@@ -1,0 +1,3 @@
+axi_mst_0_pkg.sv,systemverilog,xil_defaultlib,../../../../../axi_mst_0/sim/axi_mst_0_pkg.sv,incdir="$ref_dir/../../../ipstatic/hdl"incdir="../../../ipstatic/hdl"
+axi_mst_0.sv,systemverilog,xil_defaultlib,../../../../../axi_mst_0/sim/axi_mst_0.sv,incdir="$ref_dir/../../../ipstatic/hdl"incdir="../../../ipstatic/hdl"
+glbl.v,Verilog,xil_defaultlib,glbl.v

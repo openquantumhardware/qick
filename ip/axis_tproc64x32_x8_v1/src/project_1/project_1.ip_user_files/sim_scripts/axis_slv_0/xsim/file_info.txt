@@ -1,0 +1,3 @@
+axis_slv_0_pkg.sv,systemverilog,xil_defaultlib,../../../../../axis_slv_0/sim/axis_slv_0_pkg.sv,incdir="$ref_dir/../../../ipstatic/hdl"incdir="../../../ipstatic/hdl"
+axis_slv_0.sv,systemverilog,xil_defaultlib,../../../../../axis_slv_0/sim/axis_slv_0.sv,incdir="$ref_dir/../../../ipstatic/hdl"incdir="../../../ipstatic/hdl"
+glbl.v,Verilog,xil_defaultlib,glbl.v
