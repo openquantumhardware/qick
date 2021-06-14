@@ -1,0 +1,23 @@
+Todo if bd is re-written:
+
+Replace this original lines...
+
+  # Create instance: axi_bram_ctrl_0_bram, and set properties
+  set axi_bram_ctrl_0_bram [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 axi_bram_ctrl_0_bram ]
+  set_property -dict [ list \
+   CONFIG.EN_SAFETY_CKT {false} \
+   CONFIG.Memory_Type {True_Dual_Port_RAM} \
+ ] $axi_bram_ctrl_0_bram
+
+
+With these modified lines...
+
+  # Create instance: axi_bram_ctrl_0_bram, and set properties
+  set axi_bram_ctrl_0_bram [ create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen:8.4 axi_bram_ctrl_0_bram ]
+  set_property -dict [ list \
+   CONFIG.EN_SAFETY_CKT {false} \
+   CONFIG.Memory_Type {True_Dual_Port_RAM} \
+   CONFIG.WRITE_WIDTH_B {64} \
+   CONFIG.READ_WIDTH_B {64} \
+ ] $axi_bram_ctrl_0_bram
+
