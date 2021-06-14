@@ -1,1 +1,0 @@
-vopt -64 +acc -l elaborate.log -L xilinx_vip -L xil_defaultlib -L xpm -L axis_infrastructure_v1_1_0 -L axi4stream_vip_v1_1_5 -L axi_vip_v1_1_5 -L axi4stream_vip_v1_1_5 -L xilinx_vip -L unisims_ver -L unimacro_ver -L secureip -work xil_defaultlib xil_defaultlib.axis_slv_0 xil_defaultlib.glbl -o axis_slv_0_opt

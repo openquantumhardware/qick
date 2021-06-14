@@ -1,1 +1,0 @@
--wto "ac92bbcc1bad4f11bf33eec71116c777" --incr --debug "typical" --relax --mt "8" -L "axi_infrastructure_v1_1_0" -L "xil_defaultlib" -L "axi_vip_v1_1_5" -L "axis_infrastructure_v1_1_0" -L "axi4stream_vip_v1_1_5" -L "xilinx_vip" -L "unisims_ver" -L "unimacro_ver" -L "secureip" -L "xpm" --snapshot "tb_behav" "xil_defaultlib.tb" "xil_defaultlib.glbl" -log "elaborate.log" 

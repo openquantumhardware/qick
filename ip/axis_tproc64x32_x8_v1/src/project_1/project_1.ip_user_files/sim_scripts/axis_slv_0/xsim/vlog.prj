@@ -1,7 +1,0 @@
-sv xil_defaultlib --include "../../../ipstatic/hdl" \
-"../../../../../axis_slv_0/sim/axis_slv_0_pkg.sv" \
-"../../../../../axis_slv_0/sim/axis_slv_0.sv" \
-
-verilog xil_defaultlib "glbl.v"
-
-nosort
