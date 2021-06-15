@@ -75,12 +75,13 @@ input	[N-1:0]		DR_LEN_REG;
 // Internal signals //
 //////////////////////
 wire				mem_we_int;
-wire				mem_we_int_resync;
 wire	[N-1:0]		mem_addra_int, mem_addrb_int;
 wire	[4*B-1:0]	mem_di_int, mem_do_int;
 
 wire				AVG_START_REG_resync;
 wire				DR_START_REG_resync;
+
+wire				fifo_empty;
 
 //////////////////
 // Architecture //
@@ -109,19 +110,6 @@ synchronizer_n
 		.data_in	(DR_START_REG			),
 		.data_out	(DR_START_REG_resync	)
 	);
-
-// mem_we_int_resync
-synchronizer_n
-	#(
-		.N	(2)
-	)
-	mem_we_int_resync_i (
-		.rstn	    (m_axis_aresetn		),
-		.clk 		(m_axis_aclk		),
-		.data_in	(mem_we_int			),
-		.data_out	(mem_we_int_resync	)
-	);
-
 
 // Average block.
 avg 
@@ -204,27 +192,38 @@ data_reader
 		.LEN_REG	(DR_LEN_REG				)
     );
 
-// Output Register.
-outreg
+// Output data register (dc fifo to cross domain).
+fifo_dc_axi
     #(
-		.B	(4*B)
+        // Data width.
+        .B	(4*B	),
+        
+        // Fifo depth.
+        .N	(4		)
     )
-	outreg_i
-	(
-		// Reset and clock.
-		.rstn			(m_axis_aresetn		),
-		.clk			(m_axis_aclk		),
+    fifo_i
+    ( 
+        .wr_rstn	(rstn			),
+        .wr_clk 	(clk			),
 
-		// Data input.
-		.wen			(mem_we_int_resync	),
-		.din			(mem_di_int			),
+        .rd_rstn	(m_axis_aresetn	),
+        .rd_clk 	(m_axis_aclk	),
+        
+        // Write I/F.
+        .wr_en  	(mem_we_int		),
+        .din     	(mem_di_int		),
+        
+        // Read I/F.
+        .rd_en  	(m1_axis_tready	),
+        .dout   	(m1_axis_tdata	),
+        
+        // Flags.
+        .full    	(				),
+        .empty   	(fifo_empty		)
+    );
 
-		// M_AXIS.
-		.m_axis_tdata	(m1_axis_tdata 		),
-		.m_axis_tready	(m1_axis_tready		),
-		.m_axis_tvalid	(m1_axis_tvalid		)
-	);
-
+// Assign outputs.
+assign m1_axis_tvalid	= ~fifo_empty;
 
 endmodule
 
