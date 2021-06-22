@@ -78,17 +78,21 @@ reg			[31:0]			dds_dout_r6			[0:N_DDS-1];
 reg			[15:0]			mem_dout_real_r1	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_real_r2	[0:N_DDS-1];
 reg			[15:0]			mem_dout_real_r3	[0:N_DDS-1];
-reg signed	[15:0]			mem_dout_real_r4	[0:N_DDS-1];
-reg 		[15:0]			mem_dout_real_r5	[0:N_DDS-1];
+reg 		[15:0]			mem_dout_real_r4	[0:N_DDS-1];
+reg signed	[15:0]			mem_dout_real_r5_a	[0:N_DDS-1];
+reg			[15:0]			mem_dout_real_r5_b	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_real_r6	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_real_r7	[0:N_DDS-1];
+reg 		[15:0]			mem_dout_real_r8	[0:N_DDS-1];
 reg			[15:0]			mem_dout_imag_r1	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_imag_r2	[0:N_DDS-1];
 reg			[15:0]			mem_dout_imag_r3	[0:N_DDS-1];
-reg signed	[15:0]			mem_dout_imag_r4	[0:N_DDS-1];
-reg 		[15:0]			mem_dout_imag_r5	[0:N_DDS-1];
+reg 		[15:0]			mem_dout_imag_r4	[0:N_DDS-1];
+reg signed	[15:0]			mem_dout_imag_r5_a	[0:N_DDS-1];
+reg 		[15:0]			mem_dout_imag_r5_b	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_imag_r6	[0:N_DDS-1];
 reg 		[15:0]			mem_dout_imag_r7	[0:N_DDS-1];
+reg 		[15:0]			mem_dout_imag_r8	[0:N_DDS-1];
 
 // Product.
 wire signed	[15:0]			prod_a_real			[0:N_DDS-1];
@@ -128,7 +132,8 @@ reg			[15:0]			gain_int_r7;
 reg			[15:0]			gain_int_r8;
 reg			[15:0]			gain_int_r9;
 reg			[15:0]			gain_int_r10;
-reg	signed	[15:0]			gain_int_r11;
+reg			[15:0]			gain_int_r11;
+reg	signed	[15:0]			gain_int_r12;
 wire signed	[15:0]			prodg_a_real		[0:N_DDS-1];
 wire signed	[15:0]			prodg_a_imag		[0:N_DDS-1];
 wire signed [31:0]			prodg_y_full_real	[0:N_DDS-1];
@@ -160,6 +165,7 @@ reg			[1:0]			src_int_r6;
 reg			[1:0]			src_int_r7;
 reg			[1:0]			src_int_r8;
 reg			[1:0]			src_int_r9;
+reg			[1:0]			src_int_r10;
 
 // Steady value selection.
 wire						stdy_int;
@@ -177,6 +183,7 @@ reg							stdy_int_r11;
 reg							stdy_int_r12;
 reg							stdy_int_r13;
 reg							stdy_int_r14;
+reg							stdy_int_r15;
 
 // Output enable.
 wire						en_int;
@@ -194,6 +201,7 @@ reg							en_int_r11;
 reg							en_int_r12;
 reg							en_int_r13;
 reg							en_int_r14;
+reg							en_int_r15;
 
 // Output selection mux.
 wire						outmux_sel;
@@ -308,16 +316,20 @@ genvar i;
 				mem_dout_real_r2		[i]	<= 0;
 				mem_dout_real_r3		[i]	<= 0;
 				mem_dout_real_r4		[i]	<= 0;
-				mem_dout_real_r5		[i]	<= 0;
+				mem_dout_real_r5_a		[i]	<= 0;
+				mem_dout_real_r5_b		[i]	<= 0;
 				mem_dout_real_r6		[i]	<= 0;
 				mem_dout_real_r7		[i]	<= 0;
+				mem_dout_real_r8		[i]	<= 0;
 				mem_dout_imag_r1		[i]	<= 0;
 				mem_dout_imag_r2		[i]	<= 0;
 				mem_dout_imag_r3		[i]	<= 0;
 				mem_dout_imag_r4		[i]	<= 0;
-				mem_dout_imag_r5		[i]	<= 0;
+				mem_dout_imag_r5_a		[i]	<= 0;
+				mem_dout_imag_r5_b		[i]	<= 0;
 				mem_dout_imag_r6		[i]	<= 0;
 				mem_dout_imag_r7		[i]	<= 0;
+				mem_dout_imag_r8		[i]	<= 0;
 
 				// Product.
 				prod_y_full_real_a_r	[i]	<= 0;
@@ -353,16 +365,20 @@ genvar i;
 				mem_dout_real_r2		[i]	<= mem_dout_real_r1		[i];
 				mem_dout_real_r3		[i]	<= mem_dout_real_r2		[i];
 				mem_dout_real_r4		[i]	<= mem_dout_real_r3		[i];
-				mem_dout_real_r5		[i]	<= mem_dout_real_r4		[i];
-				mem_dout_real_r6		[i]	<= mem_dout_real_r5		[i];
+				mem_dout_real_r5_a		[i]	<= mem_dout_real_r4		[i];
+				mem_dout_real_r5_b		[i]	<= mem_dout_real_r4		[i];
+				mem_dout_real_r6		[i]	<= mem_dout_real_r5_b	[i];
 				mem_dout_real_r7		[i]	<= mem_dout_real_r6		[i];
+				mem_dout_real_r8		[i]	<= mem_dout_real_r7		[i];
 				mem_dout_imag_r1		[i]	<= mem_dout_imag_i		[i*16 +: 16];
 				mem_dout_imag_r2		[i]	<= mem_dout_imag_r1		[i];
 				mem_dout_imag_r3		[i]	<= mem_dout_imag_r2		[i];
 				mem_dout_imag_r4		[i]	<= mem_dout_imag_r3		[i];
-				mem_dout_imag_r5		[i]	<= mem_dout_imag_r4		[i];
-				mem_dout_imag_r6		[i]	<= mem_dout_imag_r5		[i];
+				mem_dout_imag_r5_a		[i]	<= mem_dout_imag_r4		[i];
+				mem_dout_imag_r5_b		[i]	<= mem_dout_imag_r4		[i];
+				mem_dout_imag_r6		[i]	<= mem_dout_imag_r5_b	[i];
 				mem_dout_imag_r7		[i]	<= mem_dout_imag_r6		[i];
+				mem_dout_imag_r8		[i]	<= mem_dout_imag_r7		[i];
 
 				// Product.
 				prod_y_full_real_a_r	[i]	<= prod_y_full_real_a	[i];
@@ -381,7 +397,7 @@ genvar i;
 				prodg_y_full_imag_r		[i] <= prodg_y_full_imag	[i];
 
 				// Rounding before truncation (enabled register to retain last value).
-				if (en_int_r13)
+				if (en_int_r14)
 					round_r_real[i] <= round[i][15:0];
 					round_r_imag[i] <= round[i][31:16];
 			end
@@ -394,8 +410,8 @@ genvar i;
 		// Inputs.
 		assign prod_a_real[i]			= dds_dout_r3[i][15:0];
 		assign prod_a_imag[i]			= dds_dout_r3[i][31:16];
-		assign prod_b_real[i]			= mem_dout_real_r4[i];
-		assign prod_b_imag[i]			= mem_dout_imag_r4[i];
+		assign prod_b_real[i]			= mem_dout_real_r5_a[i];
+		assign prod_b_imag[i]			= mem_dout_imag_r5_a[i];
 
 		// Partial products.
 		assign prod_y_full_real_a[i]	= prod_a_real[i]*prod_b_real[i];
@@ -413,15 +429,15 @@ genvar i;
 		assign prod_y[i]				= {prod_y_imag[i],prod_y_real[i]};
 
 		// Muxed output.
-		assign dout_mux[i] 			=	(src_int_r9 == 0)? prod_y_r2[i]								: 
-										(src_int_r9 == 1)? dds_dout_r6[i]							:
-										(src_int_r9 == 2)? {mem_dout_imag_r7[i],mem_dout_real_r7[i]}:
+		assign dout_mux[i] 			=	(src_int_r10 == 0)? prod_y_r2[i]								: 
+										(src_int_r10 == 1)? dds_dout_r6[i]							:
+										(src_int_r10 == 2)? {mem_dout_imag_r8[i],mem_dout_real_r8[i]}:
 										32'h0000_0000;
 		// Product with Gain.
 		assign prodg_a_real[i]		= dout_mux_r2[i][15:0];
 		assign prodg_a_imag[i]		= dout_mux_r2[i][31:16];
-		assign prodg_y_full_real[i]	= prodg_a_real[i]*gain_int_r11;
-		assign prodg_y_full_imag[i]	= prodg_a_imag[i]*gain_int_r11;
+		assign prodg_y_full_real[i]	= prodg_a_real[i]*gain_int_r12;
+		assign prodg_y_full_imag[i]	= prodg_a_imag[i]*gain_int_r12;
 
 		// Rounding before truncation.
 		assign round_full_real[i]	= prodg_y_full_real_r[i][30 -: 24];				// 32-bit to 24-bit before dithering.
@@ -461,6 +477,7 @@ always @(posedge clk) begin
 		gain_int_r9		<= 0;
 		gain_int_r10	<= 0;
 		gain_int_r11	<= 0;
+		gain_int_r12	<= 0;
 		
 		// Output source selection.
 		src_int_r1		<= 0;
@@ -472,6 +489,7 @@ always @(posedge clk) begin
 		src_int_r7		<= 0;
 		src_int_r8		<= 0;
 		src_int_r9		<= 0;
+		src_int_r10		<= 0;
 
 		// Steady value selection.
 		stdy_int_r1		<= 0;
@@ -488,6 +506,7 @@ always @(posedge clk) begin
 		stdy_int_r12	<= 0;
 		stdy_int_r13	<= 0;
 		stdy_int_r14	<= 0;
+		stdy_int_r15	<= 0;
 		
 		// Output enable.
 		en_int_r1		<= 0;
@@ -504,6 +523,7 @@ always @(posedge clk) begin
 		en_int_r12		<= 0;
 		en_int_r13		<= 0;
 		en_int_r14		<= 0;
+		en_int_r15		<= 0;
 	end
 	else begin
 		// Memory address.
@@ -525,6 +545,7 @@ always @(posedge clk) begin
 		gain_int_r9		<= gain_int_r8;
 		gain_int_r10	<= gain_int_r9;
 		gain_int_r11	<= gain_int_r10;
+		gain_int_r12	<= gain_int_r11;
 
 		// Output source selection.
 		src_int_r1		<= src_int;
@@ -536,6 +557,7 @@ always @(posedge clk) begin
 		src_int_r7		<= src_int_r6;
 		src_int_r8		<= src_int_r7;
 		src_int_r9		<= src_int_r8;
+		src_int_r10		<= src_int_r9;
 		
 		// Steady value selection.
 		stdy_int_r1		<= stdy_int;
@@ -552,6 +574,7 @@ always @(posedge clk) begin
 		stdy_int_r12	<= stdy_int_r11;
 		stdy_int_r13	<= stdy_int_r12;
 		stdy_int_r14	<= stdy_int_r13;
+		stdy_int_r15	<= stdy_int_r14;
 
 		// Output enable.
 		en_int_r1		<= en_int;
@@ -568,15 +591,16 @@ always @(posedge clk) begin
 		en_int_r12		<= en_int_r11;
 		en_int_r13		<= en_int_r12;
 		en_int_r14		<= en_int_r13;
+		en_int_r15		<= en_int_r14;
 	end
 end
 
 // Output selection mux.
-assign outmux_sel			= ~en_int_r14 & stdy_int_r14;
+assign outmux_sel			= ~en_int_r15 & stdy_int_r15;
 
 // Outputs.
 assign mem_addr_o			= mem_addr_int_r;
-assign m_axis_tvalid_o 		= en_int_r14;
+assign m_axis_tvalid_o 		= en_int_r15;
 
 endmodule
 
