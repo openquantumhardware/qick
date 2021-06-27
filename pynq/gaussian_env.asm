@@ -16,7 +16,7 @@
         memri 1, $1, 17;     // freq.
         regwi 1, $2, 15000;  // gain.        
         memri 1, $3, 18;     // nsamp.
-        regwi 1, $4, 0x0;    // b00000 -> phrst = 0, stdysel = 0, mode = 0, outsel = 00
+        regwi 1, $4, 0x8;    // b01000 -> phrst = 0, stdysel = 1, mode = 0, outsel = 00
         bitwi 1, $4, $4 << 16;
         bitw  1, $3, $3 | $4;
         regwi 1, $5, 0;  

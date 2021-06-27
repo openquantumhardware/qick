@@ -612,7 +612,7 @@ class AxisSwitch(SocIp):
 class PfbSoc(Overlay):
     FREF_PLL = 204.8
     fs_adc = 384*8
-    fs_dac = 320*16
+    fs_dac = 384*16
     
     # Constructor.
     def __init__(self, bitfile, force_init_clks=False,ignore_version=True, **kwargs):
