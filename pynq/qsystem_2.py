@@ -615,13 +615,22 @@ class PfbSoc(Overlay):
     fs_dac = 320*16
     
     # Constructor.
-    def __init__(self, bitfile, init_clks=False, **kwargs):
+    def __init__(self, bitfile, force_init_clks=False,ignore_version=True, **kwargs):
         # Load bitstream.
-        super().__init__(bitfile, **kwargs)
+        super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
         
         # Configure PLLs if requested.
-        if init_clks:
+        if force_init_clks:
             self.set_all_clks()
+        else:
+            rf=self.usp_rf_data_converter_0
+            dac_tile = rf.dac_tiles[1] # DAC 228: 0, DAC 229: 1
+            DAC_PLL=dac_tile.PLLLockStatus
+            adc_tile = rf.adc_tiles[0] # ADC 224: 0, ADC 225: 1, ADC 226: 2, ADC 227: 3
+            ADC_PLL=adc_tile.PLLLockStatus
+            
+            if not (DAC_PLL==2 and ADC_PLL==2):
+                self.set_all_clks()
                 
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = AxisSwitch(self.axis_switch_gen, nslave=1, nmaster=7)
@@ -665,18 +674,41 @@ class PfbSoc(Overlay):
         
     def set_all_clks(self):
         xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
-        
-    def getDecimated(self, ch=0, NS = 1000):
-        buff = allocate(shape=NS, dtype=np.int32)
-        [di,dq] = self.avg_bufs[ch].transfer_buf(buff,address=0,length=NS)
-        return [di,dq]
     
-    def getAccumulated(self, ch=0, NS = 16):
-        buff = allocate(shape=NS, dtype=np.int64)
-        np_buffi = np.zeros(NS, dtype=np.int32)
-        np_buffq = np.zeros(NS, dtype=np.int32)
-        [di,dq] = self.avg_bufs[ch].transfer_avg(buff,address=0,length=NS)
-        np.copyto(np_buffi,di)
-        np.copyto(np_buffq,dq)
-        return [np_buffi,np_buffq]
+    def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
+        buff = allocate(shape=length, dtype=np.int32)
+        [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
+        return [di,dq]
+
+    def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+        buff = allocate(shape=length, dtype=np.int64)
+        #np_buffi = np.zeros(length, dtype=np.int32)
+        #np_buffq = np.zeros(length, dtype=np.int32)
+        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
+        #np.copyto(np_buffi,di)
+        #np.copyto(np_buffq,dq)
+
+        return di, dq #[np_buffi,np_buffq]
+
+    
+    
+    def set_nyquist(self, ch, nqz):
+#         Channel 1 : connected to Signal Generator V4, which drives DAC 228 CH0.
+#         Channel 2 : connected to Signal Generator V4, which drives DAC 228 CH1.
+#         Channel 3 : connected to Signal Generator V4, which drives DAC 228 CH2.
+#         Channel 4 : connected to Signal Generator V4, which drives DAC 229 CH0.
+#         Channel 5 : connected to Signal Generator V4, which drives DAC 229 CH1.
+#         Channel 6 : connected to Signal Generator V4, which drives DAC 229 CH2.
+#         Channel 7 : connected to Signal Generator V4, which drives DAC 229 CH3.
+#         tiles: DAC 228: 0, DAC 229: 1
+#         channels: CH0: 0, CH1: 1, CH2: 2, CH3: 3
+        ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
+    
+        rf=self.usp_rf_data_converter_0
+        tile, channel = ch_info[ch]
+        dac_block=rf.dac_tiles[tile].blocks[channel]        
+        dac_block.NyquistZone=nqz
+        return dac_block.NyquistZone
+
+
     
