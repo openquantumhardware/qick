@@ -36,18 +36,18 @@ class ASM_Program:
                 "upper": 0b1010, "lower": 0b0101
                }
     
-    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "adc_freq":22},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "adc_freq":29},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "adc_freq":22},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "adc_freq":29},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "adc_freq":22},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "adc_freq":29},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "adc_freq":22},
+    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
                         ]   
     
     trig_offset=25
     fs_adc = 384*8
-    fs_dac = 320*16
+    fs_dac = 384*16
     fs_proc=384
     
     def __init__(self):
@@ -72,6 +72,9 @@ class ASM_Program:
     def reg2freq(self,r):
         return r*self.fs_dac/2**32
     
+    def reg2freq_adc(self,r):
+        return r*self.fs_adc/2**16
+
     def cycles2us(self,cycles):
         return cycles/self.fs_proc
     
@@ -84,67 +87,165 @@ class ASM_Program:
     def reg2deg(self, reg):
         return reg*360/2**16
     
-    def add_pulse(self, ch, name, data):
-        if len(data) % 16 !=0:
+    def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
+        
+        if qdata is None and idata is not None:
+            qdata=np.zeros(len(idata))
+        if idata is None and qdata is not None:
+            idata=np.zeros(len(qdata))
+        if idata is not None and (len(idata) % 16 !=0 or len(idata) % 16 !=0):
             raise RuntimeError("Error: Pulse length must be integer multiple of 16")
-        self.channels[ch]["pulses"][name]={"data":data, "addr":self.channels[ch]['addr'], "length":len(data)//16, "style": style}
-        self.channels[ch]["addr"]+=len(data)
+        
+        if style=="arb" or style=="flat_top":
+            self.channels[ch]["pulses"][name]={"idata":idata, "qdata":qdata, "addr":self.channels[ch]['addr'], "length":len(idata)//16, "style": style}
+            self.channels[ch]["addr"]+=len(idata)
+        elif style=="flat_top":
+            self.channels[ch]["pulses"][name]={"idata":idata, "qdata":qdata, "addr":self.channels[ch]['addr'], "length":length, "style": style}
+            self.channels[ch]["addr"]+=len(idata)
+        elif style=="const":
+            self.channels[ch]["pulses"][name]={"addr":0, "length":length, "style": style}
+        elif style=="poly":
+            pass
         
     def load_pulses(self, soc):
         for ch,gen in zip(self.channels.keys(),soc.gens):
             for name,pulse in self.channels[ch]['pulses'].items():
                 if pulse['style'] != 'const':
-                    data = pulse['data'].astype(np.int16)
-                    gen.load(data,addr=pulse['addr'])                
+                    idata = pulse['idata'].astype(np.int16)
+                    qdata = pulse['qdata'].astype(np.int16)
+                    gen.load(xin_i=idata, xin_q=qdata, addr=pulse['addr'])
 
     def ch_page(self, ch):
         return (ch-1)//2
     
     def sreg(self, ch, name):
         return self.__class__.special_registers[ch-1][name]
+    
+    def pulse(self, ch, pulse=None,freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
+        p=self
+        if pulse is not None:
+            pinfo=self.channels[ch]['pulses'][pulse]
+        else:
+            pinfo=p.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
+            
+        if pinfo['style'] == 'arb':
+            return arb_pulse(ch, pulse, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
+        elif pinfo['style'] == 'const':
+            return const_pulse(ch, pulse, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, length=length, t=t)
+        elif pinfo['style'] == 'flat_top':
+            return flat_top_pulse(ch, pulse, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, mode=mode, outsel=outsel, length=length, t=t)
         
-    def set_wave(self, ch, pulse=None, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+
+    def set_pulse_registers (self, ch, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
-        if freq is not None: p.regwi (rp, r_freq, freq, 'freq')
-        if phase is not None: p.regwi (rp, r_phase, phase, 'phase')
-        if gain is not None: p.regwi (rp, r_gain, gain, 'gain')
+        if freq is not None: p.regwi (rp, r_freq, freq, f'freq = {p.reg2freq(freq)} MHz')
+        if phase is not None: p.regwi (rp, r_phase, phase, f'phase = {phase}')
+        if gain is not None: p.regwi (rp, r_gain, gain, f'gain = {gain}')
         if t is not None and t !='auto': p.regwi (rp, r_t, t, f't = {t}')
-            
-        if pulse is not None:
-            pdata=self.channels[ch]['pulses'][pulse]["data"]
-            length=len(pdata)//16
-            addr=self.channels[ch]['pulses'][pulse]["addr"]
-            self.channels[ch]['last_pulse']=pulse
-        elif length is not None:
-            addr=0
+        if addr is not None: p.regwi (rp, r_addr, addr, f'addr = {addr}')
+        if length is not None or stdysel is not None or phrst is not None or mode is not None or outsel is not None:
+            mc=p.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length)
+            p.regwi (rp, r_mode, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
-        if addr is not None: p.regwi (rp, r_addr, addr, 'addr')
-        if length is not None:
-            p.regwi (rp, r_mode, p.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length), f'stdysel = {stdysel}, mode = {mode}, outsel = {outsel}, length = {length}')
+        return rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t
+    
+    def const_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None, t='auto', play=True):
+        p=self
+        if pulse is not None:
+            pinfo=self.channels[ch]['pulses'][pulse]
+            length=pinfo['length']
+            addr=pinfo['addr']
+            self.channels[ch]['last_pulse']=pulse
+        else:
+            pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
+            addr=None
+            length=None
+            
+        if length is not None: 
+            outsel=1
+        else:
+            outsel=None
+            
+        rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
+        
+        if play:
+            if t is not None:
+                if t=='auto':
+                    t=p.dac_ts[ch]
+                    p.dac_ts[ch]=t+pinfo["length"]                    
+                p.regwi (rp, r_t, t, f't = {t}')
+            p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
+     
+    def arb_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        p=self
+        addr=None
+        if pulse is not None:
+            pinfo=self.channels[ch]['pulses'][pulse]
+            addr=pinfo["addr"]
+            length=pinfo["length"]
+            self.channels[ch]['last_pulse']=pulse
+
+        rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length)
 
         if play:
             if t is not None:
                 if t=='auto':
                     t=p.dac_ts[ch]
-                if pulse is None and length is None:
-                    pulse=p.channels[ch]["pulses"][p.channels[ch]['last_pulse']]
-                    length=pulse['length']
-                p.dac_ts[ch]=t+length
+                if pulse is None:
+                    pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
+                p.dac_ts[ch]=t+pinfo['length']
                 p.regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
+    def flat_top_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        p=self
+        if pulse is not None:
+            pinfo=self.channels[ch]['pulses'][pulse]
+            self.channels[ch]['last_pulse']=pulse
+            length=len(pinfo["idata"])//16//2
+            stdysel=1
+            
+            
+        rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
+        
+        if play:
+            if t is not None:
+                if t=='auto':
+                    t=p.dac_ts[ch]
+                if pulse is None:
+                    pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
+                
+                ramp_length=len(pinfo["idata"])//16//2
+                
+                p.set_pulse_registers(ch, addr=pinfo["addr"], stdysel=0, t=t) #play ramp up part of pulse
+                p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
+                p.set_pulse_registers(ch, length=ramp_length, stdysel=1, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
+                p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
+            p.dac_ts[ch]=t+pinfo['length']
+        
+    def pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        if pulse is not None:
+            pinfo=self.channels[ch]['pulses'][pulse]
+        else:
+            pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
+            
+        f={'const':self.const_pulse,'arb':self.arb_pulse,'flat_top':self.flat_top_pulse}[pinfo['style']]
+        
+        return f(ch, pulse=pulse, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length , t= t, play=play)
+        
+        
     def align(self, chs):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
             
-    def sync_all(self):
+    def sync_all(self, t):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
-        if max_t>0:
-            self.synci(max_t)
+        if max_t+t>0:
+            self.synci(max_t+t)
             self.dac_ts=[0]*len(self.dac_ts) #zeros(len(self.dac_ts),dtype=uint16)
 
     def delay(self, length):
@@ -158,32 +259,21 @@ class ASM_Program:
             
                 
     #should change behavior to only change bits that are specified
-    def seti_trigger(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, tadc=0, t14=0, t15=0, rp=0, r_out = 31): 
-        p=self
-        out= (t15 << 15) |(t14<<14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0) 
-        p.regwi (rp, r_out, out, 'out = 0b{t4}{t3}{t2}{t1}')
-        p.seti (0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
-        
-    def measure(self, ch, pulse=None, freq=None, gain=None, phase=None, length=None, adc_trig_offset=256, t="auto", play=True):
-        p=self          
-        if freq is not None:
-            p.regwi (p.ch_page(ch), p.sreg(ch,"freq"), freq)  # set dac frequency register
-            #p.regwi (p.ch_page(ch), p.sreg(ch,"adc_freq"), adc_freq)  # set adc frequency register
-            #p.seti(5, p.ch_page(ch), p.sreg(ch,"adc_freq"), 0)
-        if t is not None and t != 'auto':
-            p.regwi (p.ch_page(ch), p.sreg(ch,"t"), t) 
-            t=t
-        elif t=='auto':
-            t=p.dac_ts[ch]
-
-        
-        if play:
-            p.seti_trigger(t=t+adc_trig_offset, t1=0, t15=1, t14=1, )  # bit 14 triggers downconverted buffer / averager
-            p.set_wave(ch, pulse=pulse,gain=gain, phase=phase, length=length,  outsel=1, play=play)  #if readout pulse configure dac
-            p.seti_trigger(t=t+adc_trig_offset+length+10,  t1=0, t15=0, t14=0)
-        else:
-            p.set_wave(ch, pulse=pulse,gain=gain, phase=phase, outsel=1, length=length,  play=play)  #if readout pulse configure dac
-        
+    def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True): 
+        out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0) 
+        self.regwi (rp, r_out, out, 'out = 0b{out:>016b}')
+        self.seti (0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
+        if short:
+            self.regwi (rp, r_out, 0, 'out = 0b{out:>016b}')
+            self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
+    
+    def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=256, t=0):
+        out= (adc2 << 15) |(adc1 << 14) 
+        r_out=31
+        self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
+        self.seti (0, 0, r_out, t+adc_trig_offset, f'ch =0 out = ${r_out} @t = {t}')
+        self.regwi (0, r_out, 0, f'out = 0b{0:>016b}')
+        self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')       
         
     def compile_instruction(self,inst):
         args=list(inst['args'])
@@ -218,18 +308,7 @@ class ASM_Program:
 
     def compile(self):
         return [self.compile_instruction(inst) for inst in self.prog_list]
-
-#     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
-#         if phrst is None:
-#             phrst=0
-#         if stdysel is None:
-#             stdysel=1
-#         if mode is None:
-#             mode=0
-#         if outsel is None:
-#             outsel=0
-#         return (stdysel << 15) | (mode << 14) | (outsel << 12) | (length <<0) # f'stdysel = {stdysel} , mode = {mode} , outsel = {outsel}, nsamp = {nsamp}'
-    
+   
     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
         if phrst is None:
             phrst=0
@@ -276,7 +355,7 @@ class ASM_Program:
             num_args=len(self.__class__.instructions[inst['name']]['fmt'])
             line=" "*(max_label_len+2) + template.format(*inst['args'])
             if len(inst['args']) > num_args:
-                line+=" "*24 + inst['args'][-1]
+                line+=" "*(48-len(line)) + "//" + inst['args'][-1]
             lines.append(line)
 
         for label, jj in self.labels.items():
