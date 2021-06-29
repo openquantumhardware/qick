@@ -122,7 +122,7 @@ class AxisSignalGenV4(SocIp):
         # Route switch to channel.
         self.switch.sel(mst=self.ch)
         
-        time.sleep(0.1)
+        #time.sleep(0.050)
         
         # Format data.
         xin_i = xin_i.astype(np.int16)
@@ -172,7 +172,7 @@ class AxisReadoutV1(SocIp):
     REGISTERS = {'outsel_reg':0, 'dds_freq_reg':1}
     
     # Sampling frequency (in MHz).
-    fs = 2048
+    fs = 384*8 #2048
     
     # Bits of DDS.
     B_DDS = 16
@@ -198,7 +198,7 @@ class AxisReadoutV1(SocIp):
         else:
             print("AxisReadoutV1: %s output unknown" % sel)
             
-    def set_freq(self, f=100):
+    def set_freq(self, f):
         # Sanity check.
         if f<self.fs:
             df = self.fs/2**self.B_DDS
@@ -347,7 +347,7 @@ class AxisAvgBuffer(SocIp):
         # Route switch to channel.
         self.switch_buf.sel(slv=self.ch)
         
-        time.sleep(1)
+        #time.sleep(0.050)
         
         # Set buffer data reader address and length.
         self.buf_dr_addr_reg = address
@@ -676,9 +676,11 @@ class PfbSoc(Overlay):
         xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
     
     def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
-        return [di,dq]
+        return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
     def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
         buff = allocate(shape=length, dtype=np.int64)

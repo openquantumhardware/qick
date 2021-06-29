@@ -74,6 +74,9 @@ class ASM_Program:
     
     def reg2freq_adc(self,r):
         return r*self.fs_adc/2**16
+    
+    def adcfreq(self, f):
+        return self.reg2freq_adc(self.freq2reg_adc(f))
 
     def cycles2us(self,cycles):
         return cycles/self.fs_proc
@@ -151,7 +154,7 @@ class ASM_Program:
 
         return rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t
     
-    def const_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None, t='auto', play=True):
+    def const_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
         p=self
         if pulse is not None:
             pinfo=self.channels[ch]['pulses'][pulse]
@@ -201,12 +204,15 @@ class ASM_Program:
 
     def flat_top_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
         p=self
+        addr=None
         if pulse is not None:
             pinfo=self.channels[ch]['pulses'][pulse]
             self.channels[ch]['last_pulse']=pulse
             length=len(pinfo["idata"])//16//2
-            stdysel=1
-            
+            addr=pinfo['addr']
+            stdysel=1        
+        if gain is not None:
+            pinfo['gain']=gain
             
         rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
         
@@ -219,9 +225,11 @@ class ASM_Program:
                 
                 ramp_length=len(pinfo["idata"])//16//2
                 
-                p.set_pulse_registers(ch, addr=pinfo["addr"], stdysel=0, t=t) #play ramp up part of pulse
+                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t) #play ramp up part of pulse
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
-                p.set_pulse_registers(ch, length=ramp_length, stdysel=1, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
+                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=pinfo['length'], outsel=1, t=t) #play ramp up part of pulse
+                p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
+                p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
             p.dac_ts[ch]=t+pinfo['length']
@@ -242,7 +250,7 @@ class ASM_Program:
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
             
-    def sync_all(self, t):
+    def sync_all(self, t=0):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         if max_t+t>0:
             self.synci(max_t+t)
@@ -267,7 +275,7 @@ class ASM_Program:
             self.regwi (rp, r_out, 0, 'out = 0b{out:>016b}')
             self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
     
-    def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=256, t=0):
+    def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=208, t=0):
         out= (adc2 << 15) |(adc1 << 14) 
         r_out=31
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
