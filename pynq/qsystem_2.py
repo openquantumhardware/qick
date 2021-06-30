@@ -171,9 +171,6 @@ class AxisReadoutV1(SocIp):
     #
     REGISTERS = {'outsel_reg':0, 'dds_freq_reg':1}
     
-    # Sampling frequency (in MHz).
-    fs = 384*8 #2048
-    
     # Bits of DDS.
     B_DDS = 16
     
@@ -204,6 +201,7 @@ class AxisReadoutV1(SocIp):
             df = self.fs/2**self.B_DDS
             k_i = int(np.round(f/df))
             self.dds_freq_reg = k_i
+            #print (k_i)
         
 class AxisAvgBuffer(SocIp):
     # Registers.
