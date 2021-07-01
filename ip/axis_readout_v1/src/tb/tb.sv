@@ -184,7 +184,7 @@ initial begin
 	$display("#############################");
 	$display("t = %0t", $time);
 
-	data_wr = 0;
+	data_wr = 2;
 	axi_mst_0_agent.AXI4LITE_WRITE_BURST(0, prot, data_wr, resp);
 	#10;	
 
@@ -195,7 +195,7 @@ initial begin
 	$display("###################");
 	$display("t = %0t", $time);
 
-	data_wr = 22;//freq_calc(1, N_DDS, 625);
+	data_wr = freq_calc(100, N_DDS, 625);
 	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4, prot, data_wr, resp);
 	#10;	
 
@@ -336,9 +336,9 @@ end
 
 always begin
 	aclk <= 0;
-	#3;
+	#5;
 	aclk <= 1;
-	#3;
+	#5;
 end  
 
 // Function to compute frequency register.
