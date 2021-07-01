@@ -509,7 +509,6 @@ class AxisTProc64x32_x8(SocIp):
     
     def single_write(self, addr=0, data=0):
         # Address should be translated to uppder map.
-        addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
         self.ip.write(offset=addr_temp,value=data)
@@ -676,11 +675,15 @@ class PfbSoc(Overlay):
     def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
+        if length > AxisAvgBuffer.BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
     def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+        if length > AxisAvgBuffer.AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int64)
         #np_buffi = np.zeros(length, dtype=np.int32)
         #np_buffq = np.zeros(length, dtype=np.int32)
