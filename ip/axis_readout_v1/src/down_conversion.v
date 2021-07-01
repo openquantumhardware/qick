@@ -175,7 +175,7 @@ genvar i;
 		assign pa_real		[i]	= dds_dout_r2[i][15:0];
 		assign pa_imag		[i]	= dds_dout_r2[i][31:16];
 		assign py_full_real	[i]	= pa_real[i]*din_r2[i];
-		assign py_full_imag	[i]	= pa_imag[i]*din_r2[i];
+		assign py_full_imag	[i]	= -pa_imag[i]*din_r2[i];
 		assign py_round_real[i]	= py_full_real_r[i] + RND_0P5;
 		assign py_round_imag[i]	= py_full_imag_r[i] + RND_0P5;
 		assign py_real		[i]	= py_round_real[i][31:16];
