@@ -32,7 +32,7 @@
         memri 0, $4, 33; // Number of repetitions.
 LOOP:   set 6, 1, $1, $0, $0, $2, $3, $5;
         set 7, 1, $1, $0, $0, $2, $3, $5;
-        mathi 1, $2, $2 + 1000;
+        mathi 1, $2, $2 + 1000; //Add 1000 to the gain
         sync 0, $9;
         loopnz 0, $4, @LOOP;
         
