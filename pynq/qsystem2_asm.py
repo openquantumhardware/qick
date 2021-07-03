@@ -50,12 +50,11 @@ class ASM_Program:
     fs_dac = 384*16
     fs_proc=384
     
-    def __init__(self):
+    def __init__(self, cfg=None):
         self.prog_list = []
         self.labels = {}
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
-        self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}
-        
+        self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
         
     def freq2reg(self,f):
         B=32
@@ -76,7 +75,9 @@ class ASM_Program:
         return r*self.fs_adc/2**16
     
     def adcfreq(self, f):
-        return self.reg2freq_adc(self.freq2reg_adc(f))
+        """Takes a frequency and casts it to an (even) valid adc dds frequency"""
+        reg=self.freq2reg_adc(f)
+        return self.reg2freq_adc(reg+(reg%2))
 
     def cycles2us(self,cycles):
         return cycles/self.fs_proc
@@ -99,12 +100,12 @@ class ASM_Program:
         if idata is not None and (len(idata) % 16 !=0 or len(idata) % 16 !=0):
             raise RuntimeError("Error: Pulse length must be integer multiple of 16")
         
-        if style=="arb":
+        if style=="arb" or style=="flat_top":
             self.channels[ch]["pulses"][name]={"idata":idata, "qdata":qdata, "addr":self.channels[ch]['addr'], "length":len(idata)//16, "style": style}
-            self.channels[ch]["addr"]+=2*len(idata)
+            self.channels[ch]["addr"]+=len(idata)
         elif style=="flat_top":
             self.channels[ch]["pulses"][name]={"idata":idata, "qdata":qdata, "addr":self.channels[ch]['addr'], "length":length, "style": style}
-            self.channels[ch]["addr"]+=2*len(idata)
+            self.channels[ch]["addr"]+=len(idata)
         elif style=="const":
             self.channels[ch]["pulses"][name]={"addr":0, "length":length, "style": style}
         elif style=="poly":
@@ -124,19 +125,19 @@ class ASM_Program:
     def sreg(self, ch, name):
         return self.__class__.special_registers[ch-1][name]
     
-    def pulse(self, ch, pulse=None,freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
+    def pulse(self, ch, name=None,freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
         p=self
-        if pulse is not None:
-            pinfo=self.channels[ch]['pulses'][pulse]
+        if name is not None:
+            pinfo=self.channels[ch]['pulses'][name]
         else:
             pinfo=p.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
             
         if pinfo['style'] == 'arb':
-            return arb_pulse(ch, pulse, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
+            return arb_pulse(ch, name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
         elif pinfo['style'] == 'const':
-            return const_pulse(ch, pulse, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, length=length, t=t)
+            return const_pulse(ch, name, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, length=length, t=t)
         elif pinfo['style'] == 'flat_top':
-            return flat_top_pulse(ch, pulse, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, mode=mode, outsel=outsel, length=length, t=t)
+            return flat_top_pulse(ch, name, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, mode=mode, outsel=outsel, length=length, t=t)
         
 
     def set_pulse_registers (self, ch, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
@@ -154,13 +155,13 @@ class ASM_Program:
 
         return rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t
     
-    def const_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+    def const_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
         p=self
-        if pulse is not None:
-            pinfo=self.channels[ch]['pulses'][pulse]
+        if name is not None:
+            pinfo=self.channels[ch]['pulses'][name]
             length=pinfo['length']
             addr=pinfo['addr']
-            self.channels[ch]['last_pulse']=pulse
+            self.channels[ch]['last_pulse']=name
         else:
             pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
             addr=None
@@ -181,14 +182,14 @@ class ASM_Program:
                 p.regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
      
-    def arb_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+    def arb_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
         p=self
         addr=None
-        if pulse is not None:
-            pinfo=self.channels[ch]['pulses'][pulse]
+        if name is not None:
+            pinfo=self.channels[ch]['pulses'][name]
             addr=pinfo["addr"]
             length=pinfo["length"]
-            self.channels[ch]['last_pulse']=pulse
+            self.channels[ch]['last_pulse']=name
 
         rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length)
 
@@ -202,12 +203,12 @@ class ASM_Program:
                 p.regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
-    def flat_top_pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+    def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
         p=self
         addr=None
         if pulse is not None:
-            pinfo=self.channels[ch]['pulses'][pulse]
-            self.channels[ch]['last_pulse']=pulse
+            pinfo=self.channels[ch]['pulses'][name]
+            self.channels[ch]['last_pulse']=name
             length=len(pinfo["idata"])//16//2
             addr=pinfo['addr']
             stdysel=1        
@@ -228,22 +229,21 @@ class ASM_Program:
                 p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t) #play ramp up part of pulse
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=pinfo['length'], outsel=1, t=t) #play ramp up part of pulse
-                #print(pinfo["length"])
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
-            p.dac_ts[ch]=t+pinfo['length']
+            p.dac_ts[ch]=t+pinfo['length']+2*ramp_length
         
-    def pulse(self, ch, pulse=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
-        if pulse is not None:
-            pinfo=self.channels[ch]['pulses'][pulse]
+    def pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        if name is not None:
+            pinfo=self.channels[ch]['pulses'][name]
         else:
             pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
             
         f={'const':self.const_pulse,'arb':self.arb_pulse,'flat_top':self.flat_top_pulse}[pinfo['style']]
         
-        return f(ch, pulse=pulse, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length , t= t, play=play)
+        return f(ch, name=name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length , t= t, play=play)
         
         
     def align(self, chs):
