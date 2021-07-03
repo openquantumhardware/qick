@@ -197,7 +197,7 @@ class ASM_Program:
             if t is not None:
                 if t=='auto':
                     t=p.dac_ts[ch]
-                if pulse is None:
+                if name is None:
                     pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
                 p.dac_ts[ch]=t+pinfo['length']
                 p.regwi (rp, r_t, t, f't = {t}')
@@ -206,7 +206,7 @@ class ASM_Program:
     def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
         p=self
         addr=None
-        if pulse is not None:
+        if name is not None:
             pinfo=self.channels[ch]['pulses'][name]
             self.channels[ch]['last_pulse']=name
             length=len(pinfo["idata"])//16//2
@@ -221,7 +221,7 @@ class ASM_Program:
             if t is not None:
                 if t=='auto':
                     t=p.dac_ts[ch]
-                if pulse is None:
+                if name is None:
                     pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
                 
                 ramp_length=len(pinfo["idata"])//16//2
