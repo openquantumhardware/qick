@@ -11,6 +11,8 @@ Output channels driving DACs use the updated Signal Generator V4, which has the 
 
 Readout block is actually built around two IPs: readout and average + buffer. Readout block inlcudes a digital down-convertion, FIR filtering and decimation by 8. DDS frequency is configured using a register of the readout block and it is not intended to support real-time frequency hopping as in the Signal Generator side. After frequency shifting, filtering and decimation, the data stream is sent to the Average + Buffer block, which internally can store raw samples or perform the sum of the specified number of samples. The process is started with the external trigger signal, connected to output Channel 0 of tProcessor. The user can opt to route the input, the DDS wave or the frequency shifted signal to the FIR and decimation by 8 stage. This is done using a output selection register of the readout block. Regarding the buffering capabilities, the average section of the block has a buffer of `soc.avg_bufs[i].AVG_MAX_LENGTH`.
 
+![Block Diagram](images/qsystem-readout.svg)
+
 ### tProcessor channel assignment
 tProcessor will be used to control the real-time operation of the experiment. Output channels (AXIS MASTER) of the tProcessor are assigned as follows:
 * Channel 0 : connected to PMOD0 0-3, and triggers for readout. Bits 0-3 are connected to PMOD0, bit 14 is connected to the trigger of the average/buffer block coming from the readout of ADC 224 CH0. Bit 15 is connected to the trigger of the average/buffer block coming from the readout of ADC 224 CH1.
@@ -32,3 +34,7 @@ Similarly, average and buffer inputs blocks are organized on `soc.avg_bufs` arra
 
 ### Driver and parser
 To simplify the reading of the notebook and examples, the software is divided in three files: this main notebook `qsystem_2.ipynb`, which is intended to include example code, driver file `qsystem_2.py` with specific drivers and system instantiation, and `parser.py` which separates the assembler parser.
+
+### Timing
+
+The clock frequency of the FGPA is 384 MHz. Therefore, each clock cycle has a period of 2.6 ns.
