@@ -72,8 +72,8 @@ typedef enum	{	READ_ST	,
 reg		[159:0]	fifo_dout_r;
 
 // Non-stop counter for time calculation (adds N_DDS samples each clock tick).
-reg		[15:0]	cnt_n;
-reg		[15:0]	cnt_n_reg;
+reg		[31:0]	cnt_n;
+reg		[31:0]	cnt_n_reg;
 
 // Pinc/phase.
 wire	[31:0]	pinc_int;

@@ -50,7 +50,7 @@ wire					s1_axis_tready;
 reg						s1_axis_tvalid;
 
 // m_axis interfase.
-wire	[N_DDS*32-1:0]	m_axis_tdata;
+wire	[N_DDS*16-1:0]	m_axis_tdata;
 reg 					m_axis_tready = 1;
 wire					m_axis_tvalid;
 
@@ -66,7 +66,7 @@ reg						stdysel_r;
 reg						phrst_r;
 
 // Assignment of data out for debugging.
-wire	[31:0]			dout_ii [0:N_DDS-1];
+wire	[15:0]			dout_ii [0:N_DDS-1];
 
 // AXI VIP master address.
 xil_axi_ulong   addr_start_addr	= 32'h40000000; // 0
@@ -89,7 +89,7 @@ reg	tb_write_out 		= 0;
 generate
 genvar ii;
 for (ii = 0; ii < N_DDS; ii = ii + 1) begin : GEN_debug
-    assign dout_ii[ii] = m_axis_tdata[32*ii +: 32];
+    assign dout_ii[ii] = m_axis_tdata[16*ii +: 16];
 end
 endgenerate
 axi_mst_0 axi_mst_0_i
@@ -252,7 +252,7 @@ initial begin
 	tb_write_out	<= 1;
 	wait (tb_load_wave_done);
 
-	#30000;
+	#3000;
 
 	// Stop writing output data.
 	tb_write_out 	<= 0;
@@ -311,67 +311,34 @@ initial begin
 	@(posedge aclk);
 	$display("t = %0t", $time);
 	s1_axis_tvalid	<= 1;
-	freq_r			<= freq_calc(100, N_DDS, 450);	// 120 MHz.
+	freq_r			<= freq_calc(100, N_DDS, 34);
 	phase_r			<= 0;
 	addr_r			<= 0;
 	gain_r			<= 12000;
-	nsamp_r			<= 512/N_DDS;
+	nsamp_r			<= 320/N_DDS;
 	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	mode_r			<= 1;	// 0: nsamp, 1: periodic
+	mode_r			<= 0;	// 0: nsamp, 1: periodic
 	stdysel_r		<= 1;	// 0: last, 1: zero.
 
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//freq_r			<= freq_calc(100, N_DDS, 19);
-	//phase_r			<= 0;
-	//addr_r			<= 0;
-	//gain_r			<= 30000;
-	//nsamp_r			<= 55/N_DDS;
-	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic
-	//stdysel_r		<= 0;	// 0: last, 1: zero.
+	@(posedge aclk);
+	s1_axis_tvalid	<= 0;
 
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//freq_r			<= freq_calc(100, N_DDS, 33);
-	//phase_r			<= 0;
-	//addr_r			<= 5;
-	//gain_r			<= 30000;
-	//nsamp_r			<= 670/N_DDS;
-	//outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic
-	//stdysel_r		<= 1;	// 0: last, 1: zero.
+	#2000;
 
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//freq_r			<= freq_calc(100, N_DDS, 22);
-	//phase_r			<= 7689;
-	//addr_r			<= 0;
-	//gain_r			<= 30000;
-	//nsamp_r			<= 70/N_DDS;
-	//outsel_r		<= 2;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 1;	// 0: nsamp, 1: periodic
-	//stdysel_r		<= 1;	// 0: last, 1: zero.
+	@(posedge aclk);
+	$display("t = %0t", $time);
+	s1_axis_tvalid	<= 1;
+	nsamp_r			<= 620/N_DDS;
 
-	//@(posedge aclk);
-	//s1_axis_tvalid	<= 0;
+	@(posedge aclk);
+	s1_axis_tvalid	<= 0;
 
-	//#30000;
+	#10000;
 
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//freq_r			<= freq_calc(100, N_DDS, 3);
-	//phase_r			<= 0;
-	//addr_r			<= 5;
-	//gain_r			<= 30000;
-	//nsamp_r			<= 670/N_DDS;
-	//outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic
-	//stdysel_r		<= 1;	// 0: last, 1: zero.
+	@(posedge aclk);
+	$display("t = %0t", $time);
+	s1_axis_tvalid	<= 1;
+	nsamp_r			<= 920/N_DDS;
 
 	@(posedge aclk);
 	s1_axis_tvalid	<= 0;
