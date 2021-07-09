@@ -437,7 +437,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>d0af57c8</spirit:value>
+            <spirit:value>cd28667f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -456,7 +456,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>d0af57c8</spirit:value>
+            <spirit:value>cd28667f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1198,8 +1198,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Signal Generator V4</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>9</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2021-06-21T16:10:58Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>10</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2021-07-07T13:52:51Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@4c8729dc_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@527809cf_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_signal_gen_v4</xilinx:tag>
@@ -1308,13 +1308,18 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@6f26091f_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@41bdf35b_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@6cb8b9f1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@109f8c27_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@75a0fa4f_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@274014a1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@66ceeae3_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@486fea8c_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2019.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="15f072e0"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="ea415f85"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="98bb9a1c"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="055c05dc"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="ceb85977"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="fa9ac32c"/>
