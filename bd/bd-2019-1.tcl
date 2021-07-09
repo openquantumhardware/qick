@@ -1489,11 +1489,9 @@ preplace inst xlconstant_3 -pg 1 -lvl 1 -x -940 -y 1160 -defaultsOSRD -resize 14
 preplace inst zynq_ultra_ps_e_0 -pg 1 -lvl 3 -x 160 -y -3090 -defaultsOSRD
 preplace inst axis_constant_0 -pg 1 -lvl 1 -x -940 -y 10 -defaultsOSRD
 preplace inst axis_constant_1 -pg 1 -lvl 1 -x -940 -y 130 -defaultsOSRD -resize 220 96
-preplace inst axis_readout_v1_0 -pg 1 -lvl 5 -x 1170 -y 2720 -defaultsOSRD
-preplace inst axis_readout_v1_1 -pg 1 -lvl 5 -x 1170 -y 3600 -defaultsOSRD -resize 200 176
 preplace inst axis_set_reg_0 -pg 1 -lvl 5 -x 1170 -y 150 -defaultsOSRD
 preplace inst axis_terminator_0 -pg 1 -lvl 6 -x 1680 -y 2380 -defaultsOSRD
-preplace inst axis_terminator_1 -pg 1 -lvl 6 -x 1680 -y 3480 -defaultsOSRD -resize 160 116
+preplace inst axis_terminator_1 -pg 1 -lvl 6 -x 1680 -y 3470 -defaultsOSRD -resize 160 116
 preplace inst axis_tproc64x32_x8_0 -pg 1 -lvl 2 -x -490 -y 200 -defaultsOSRD
 preplace inst system_ila_1 -pg 1 -lvl 7 -x 2120 -y 4230 -defaultsOSRD -resize 157 152
 preplace inst system_ila_0 -pg 1 -lvl 7 -x 2120 -y 4030 -defaultsOSRD -resize 157 152
@@ -1506,6 +1504,8 @@ preplace inst axis_signal_gen_v4_3 -pg 1 -lvl 5 -x 1170 -y 1280 -defaultsOSRD -r
 preplace inst axis_signal_gen_v4_4 -pg 1 -lvl 5 -x 1170 -y 1540 -defaultsOSRD -resize 220 236
 preplace inst axis_signal_gen_v4_5 -pg 1 -lvl 5 -x 1170 -y 1800 -defaultsOSRD -resize 220 236
 preplace inst axis_signal_gen_v4_6 -pg 1 -lvl 5 -x 1170 -y 2060 -defaultsOSRD -resize 220 236
+preplace inst axis_readout_v1_0 -pg 1 -lvl 5 -x 1170 -y 2720 -defaultsOSRD
+preplace inst axis_readout_v1_1 -pg 1 -lvl 5 -x 1170 -y 3600 -defaultsOSRD -resize 200 176
 preplace netloc axi_bram_ctrl_0_bram_doutb 1 1 1 -720 350n
 preplace netloc axis_set_reg_0_dout 1 5 2 N 150 N
 preplace netloc axis_tproc64x32_x8_0_pmem_addr 1 1 2 -710 410 -310
@@ -1531,30 +1531,52 @@ preplace netloc xlconstant_2_dout 1 1 1 -790 330n
 preplace netloc xlconstant_3_dout 1 1 1 -750 930n
 preplace netloc zynq_ultra_ps_e_0_pl_clk0 1 0 8 -1260 250 -800 -1700 -240 -3180 480 -3110 870 2590 1340 2590 1910 640 N
 preplace netloc zynq_ultra_ps_e_0_pl_resetn0 1 2 2 -210 -2780 470
+preplace netloc axi_bram_ctrl_0_BRAM_PORTA 1 1 1 -800 530n
+preplace netloc axi_dma_0_M_AXIS_MM2S 1 1 2 -710 -80 -310
+preplace netloc axi_dma_0_M_AXI_MM2S 1 1 2 -770 -3390 -270
+preplace netloc axi_dma_0_M_AXI_S2MM 1 1 2 -710 -3380 -280J
+preplace netloc axi_dma_1_M_AXIS_MM2S 1 2 1 N -550
+preplace netloc axi_dma_1_M_AXI_MM2S 1 1 2 -730 -1710 -310J
+preplace netloc axi_dma_avg_M_AXI_S2MM 1 1 2 -720 -3140 -290
+preplace netloc axi_dma_buf_M_AXI_S2MM 1 1 2 -710 -3130 -300
+preplace netloc axis_clk_cnvrt_avg_1_M_AXIS 1 1 7 -740 -320 NJ -320 NJ -320 N -320 NJ -320 NJ -320 2280
+preplace netloc axi_smc_M00_AXI 1 2 1 -250 -3260n
+preplace netloc axis_avg_buffer_0_m0_axis 1 6 1 1850 2790n
+preplace netloc axis_avg_buffer_0_m1_axis 1 6 1 1820 2810n
+preplace netloc axis_avg_buffer_0_m2_axis 1 6 1 1900 2830n
+preplace netloc axis_avg_buffer_1_m0_axis 1 6 1 1870 3060n
+preplace netloc axis_avg_buffer_1_m1_axis 1 6 1 1890 3280n
+preplace netloc axis_avg_buffer_1_m2_axis 1 6 1 N 3710
+preplace netloc axis_clk_cnvrt_avg_0_M_AXIS 1 1 7 -730 2980 NJ 2980 NJ 2980 N 2980 NJ 2980 1830J 2980 2260
+preplace netloc axis_clock_converter_3_M_AXIS 1 3 2 N 1220 N
+preplace netloc axis_clock_converter_4_M_AXIS 1 3 2 N 1480 N
+preplace netloc axis_clock_converter_5_M_AXIS 1 3 2 N 1740 N
+preplace netloc axis_clock_converter_6_M_AXIS 1 3 2 N 2000 N
+preplace netloc axis_constant_0_m_axis 1 1 1 -760 10n
 preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM0_FPD 1 3 2 NJ -3120 790
 preplace netloc vin1_1 1 7 2 2390J 850 2730
 preplace netloc vin0_1 1 7 2 2380J 840 N
 preplace netloc ps8_0_axi_periph_M10_AXI 1 5 1 1430 -3230n
 preplace netloc ps8_0_axi_periph_M11_AXI 1 4 2 960 -3750 1320
 preplace netloc usp_rf_data_converter_0_vout13 1 8 1 N 610
+preplace netloc ps8_0_axi_periph_M07_AXI 1 2 4 -170 -620 NJ -620 N -620 1390
+preplace netloc usp_rf_data_converter_0_vout11 1 8 1 N 570
+preplace netloc ps8_0_axi_periph_M09_AXI 1 5 1 1450 -3250n
+preplace netloc usp_rf_data_converter_0_vout02 1 8 1 N 530
 preplace netloc ps8_0_axi_periph_M12_AXI 1 4 2 970 -2710 1370
+preplace netloc usp_rf_data_converter_0_m02_axis 1 3 6 540 280 NJ 280 NJ 280 NJ 280 NJ 280 2690
 preplace netloc ps8_0_axi_periph_M14_AXI 1 4 2 980 -2700 1360
 preplace netloc ps8_0_axi_periph_M13_AXI 1 0 6 -1270 -70 N -70 NJ -70 NJ -70 N -70 1380
+preplace netloc usp_rf_data_converter_0_m00_axis 1 3 6 530 40 NJ 40 NJ 40 NJ 40 NJ 40 2700
 preplace netloc ps8_0_axi_periph_M15_AXI 1 4 2 990 -2690 1350
 preplace netloc ps8_0_axi_periph_M17_AXI 1 5 2 NJ -3090 1890
 preplace netloc ps8_0_axi_periph_M16_AXI 1 4 2 1000 -2680 1340
 preplace netloc ps8_0_axi_periph_M19_AXI 1 1 5 -740 -1680 NJ -1680 NJ -1680 760 -2670 1330
 preplace netloc ps8_0_axi_periph_M18_AXI 1 5 2 NJ -3070 1860
-preplace netloc usp_rf_data_converter_0_m02_axis 1 3 6 540 280 NJ 280 NJ 280 NJ 280 NJ 280 2690
 preplace netloc ps8_0_axi_periph_M20_AXI 1 1 5 -730 -1660 NJ -1660 NJ -1660 790 -2660 1320
 preplace netloc usp_rf_data_converter_0_vout00 1 8 1 N 490
-preplace netloc usp_rf_data_converter_0_m00_axis 1 3 6 530 40 NJ 40 NJ 40 NJ 40 NJ 40 2700
 preplace netloc usp_rf_data_converter_0_vout12 1 8 1 N 590
 preplace netloc usp_rf_data_converter_0_vout01 1 8 1 N 510
-preplace netloc usp_rf_data_converter_0_vout11 1 8 1 N 570
-preplace netloc usp_rf_data_converter_0_vout02 1 8 1 N 530
-preplace netloc ps8_0_axi_periph_M09_AXI 1 5 1 1450 -3250n
-preplace netloc ps8_0_axi_periph_M07_AXI 1 2 4 -170 -620 NJ -620 N -620 1390
 preplace netloc sysref_in_1 1 7 2 2400 860 2720
 preplace netloc ps8_0_axi_periph_M06_AXI 1 1 5 -710 -730 N -730 NJ -730 N -730 1400
 preplace netloc ps8_0_axi_periph_M05_AXI 1 4 2 950 -3760 1330
@@ -1587,7 +1609,7 @@ preplace netloc axis_switch_0_M00_AXIS 1 3 2 N -560 900
 preplace netloc axis_constant_1_m_axis 1 1 1 N 130
 preplace netloc axis_readout_v1_0_m0_axis 1 5 1 1460 2360n
 preplace netloc axis_readout_v1_0_m1_axis 1 5 1 N 2730
-preplace netloc axis_readout_v1_1_m0_axis 1 5 1 1480 3460n
+preplace netloc axis_readout_v1_1_m0_axis 1 5 1 1480 3450n
 preplace netloc axis_readout_v1_1_m1_axis 1 5 1 N 3610
 preplace netloc axis_register_slice_0_M_AXIS 1 4 1 N 2690
 preplace netloc axis_register_slice_1_M_AXIS 1 4 1 N 3570
@@ -1600,28 +1622,6 @@ preplace netloc axis_signal_gen_v4_5_m_axis 1 5 3 1440 480 N 480 NJ
 preplace netloc axis_signal_gen_v4_6_m_axis 1 5 3 1460 500 N 500 NJ
 preplace netloc adc0_clk_1 1 7 2 2360J 870 2710
 preplace netloc dac0_clk_1 1 7 2 2350J 890 2690
-preplace netloc axi_bram_ctrl_0_BRAM_PORTA 1 1 1 -800 530n
-preplace netloc axi_dma_0_M_AXIS_MM2S 1 1 2 -710 -80 -310
-preplace netloc axi_dma_0_M_AXI_MM2S 1 1 2 -770 -3390 -270
-preplace netloc axi_dma_0_M_AXI_S2MM 1 1 2 -710 -3380 -280J
-preplace netloc axi_dma_1_M_AXIS_MM2S 1 2 1 N -550
-preplace netloc axi_dma_1_M_AXI_MM2S 1 1 2 -730 -1710 -310J
-preplace netloc axi_dma_avg_M_AXI_S2MM 1 1 2 -720 -3140 -290
-preplace netloc axi_dma_buf_M_AXI_S2MM 1 1 2 -710 -3130 -300
-preplace netloc axis_clk_cnvrt_avg_1_M_AXIS 1 1 7 -740 -320 NJ -320 NJ -320 N -320 NJ -320 NJ -320 2280
-preplace netloc axi_smc_M00_AXI 1 2 1 -250 -3260n
-preplace netloc axis_avg_buffer_0_m0_axis 1 6 1 1850 2790n
-preplace netloc axis_avg_buffer_0_m1_axis 1 6 1 1820 2810n
-preplace netloc axis_avg_buffer_0_m2_axis 1 6 1 1900 2830n
-preplace netloc axis_avg_buffer_1_m0_axis 1 6 1 1870 3060n
-preplace netloc axis_avg_buffer_1_m1_axis 1 6 1 1890 3280n
-preplace netloc axis_avg_buffer_1_m2_axis 1 6 1 N 3710
-preplace netloc axis_clk_cnvrt_avg_0_M_AXIS 1 1 7 -730 2980 NJ 2980 NJ 2980 N 2980 NJ 2980 1830J 2980 2260
-preplace netloc axis_clock_converter_3_M_AXIS 1 3 2 N 1220 N
-preplace netloc axis_clock_converter_4_M_AXIS 1 3 2 N 1480 N
-preplace netloc axis_clock_converter_5_M_AXIS 1 3 2 N 1740 N
-preplace netloc axis_clock_converter_6_M_AXIS 1 3 2 N 2000 N
-preplace netloc axis_constant_0_m_axis 1 1 1 -760 10n
 levelinfo -pg 1 -1290 -940 -490 160 650 1170 1680 2120 2550 2770
 pagesize -pg 1 -db -bbox -sgen -1290 -3800 2920 4350
 "
