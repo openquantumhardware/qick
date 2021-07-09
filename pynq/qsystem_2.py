@@ -676,11 +676,15 @@ class PfbSoc(Overlay):
     def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
+        if length > AxisAvgBuffer.BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
     def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+        if length > AxisAvgBuffer.AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int64)
         #np_buffi = np.zeros(length, dtype=np.int32)
         #np_buffq = np.zeros(length, dtype=np.int32)
@@ -709,6 +713,3 @@ class PfbSoc(Overlay):
         dac_block=rf.dac_tiles[tile].blocks[channel]        
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
-
-
-    

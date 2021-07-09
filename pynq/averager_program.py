@@ -1,9 +1,104 @@
-from qsystem0_asm2 import ASM_Program
+from qsystem2_asm import ASM_Program
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import time
 
 class AveragerProgram(ASM_Program):
+    def __init__(self, cfg):
+        ASM_Program.__init__(self)
+        self.cfg=cfg
+        self.make_program()
+    
+    def initialize(self):
+        pass
+    
+    def body(self):
+        pass
+    
+    def make_program(self):
+        p=self
+        
+        rjj=14
+        rcount=15
+        p.initialize()
+        p.regwi (0, rcount,0)
+        p.regwi (0, rjj, self.cfg["reps"]-1)
+        p.label("LOOP_J")
+
+        p.body()
+
+        p.mathi(0,rcount,rcount,"+",1)
+        
+        p.memwi(0,rcount,1)
+                
+        p.loopnz(0, rjj, 'LOOP_J')
+       
+        p.end()        
+        
+    def acquire(self, soc, load_pulses=True, progress=True):
+
+        if load_pulses: 
+            self.load_pulses(soc)
+        
+        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
+            readout.set_out(sel="product")
+            readout.set_freq(adc_freq)
+        
+        # Configure and enable buffer capture.
+        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
+            avg_buf.config_buf(address=0,length=adc_length)
+            avg_buf.enable_buf()
+            avg_buf.config_avg(address=0,length=adc_length)
+            avg_buf.enable_avg()
+
+        soc.tproc.load_asm_program(self)
+        
+        reps = self.cfg['reps']
+        
+        count=0
+        last_count=0
+        total_count=reps
+
+        di_buf=np.zeros((2,total_count))
+        dq_buf=np.zeros((2,total_count))
+        
+        soc.tproc.stop()
+        
+        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
+        self.stats=[]
+        
+        soc.tproc.start()
+        while count<total_count-1:
+            count = soc.tproc.single_read(addr= 1)
+            if count>=min(last_count+1000,total_count-1):
+                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                length = count-last_count
+                length -= length%2
+                
+                for ch in range(2):
+                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+                
+                    di_buf[ch,last_count:last_count+length]=di[:length]
+                    dq_buf[ch,last_count:last_count+length]=dq[:length]
+
+                last_count+=length
+                self.stats.append( (time.time(), count,addr, length))
+                    
+        self.di_buf=di_buf
+        self.dq_buf=dq_buf
+        
+        avg_di0=np.sum(di_buf[0])/(reps)/self.cfg['adc_lengths'][0]
+        avg_dq0=np.sum(dq_buf[0])/(reps)/self.cfg['adc_lengths'][0]
+        avg_amp0=np.sqrt(avg_di0**2+avg_dq0**2)
+        
+        avg_di1=np.sum(di_buf[1])/(reps)/self.cfg['adc_lengths'][1]
+        avg_dq1=np.sum(dq_buf[1])/(reps)/self.cfg['adc_lengths'][1]
+        avg_amp1=np.sqrt(avg_di1**2+avg_dq1**2)
+        
+        
+        return avg_di0, avg_dq0, avg_amp0,avg_di1, avg_dq1, avg_amp1
+
+class RRAveragerProgram(ASM_Program):
     def __init__(self, cfg):
         ASM_Program.__init__(self)
         self.cfg=cfg
