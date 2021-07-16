@@ -437,7 +437,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>cd28667f</spirit:value>
+            <spirit:value>1bf48096</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -456,7 +456,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>cd28667f</spirit:value>
+            <spirit:value>1bf48096</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1037,14 +1037,6 @@
         <spirit:userFileType>xci</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dither.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/random_gen.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>src/signal_gen.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
@@ -1101,14 +1093,6 @@
       <spirit:file>
         <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/dither.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/random_gen.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/signal_gen.v</spirit:name>
@@ -1198,8 +1182,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Signal Generator V4</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>10</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2021-07-07T13:52:51Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>13</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2021-07-16T15:23:28Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@4c8729dc_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@527809cf_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_signal_gen_v4</xilinx:tag>
@@ -1313,13 +1297,60 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@274014a1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@66ceeae3_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@486fea8c_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2ff1ee0b_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2bf88337_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b8cfae1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4dbb5a55_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@13f9604_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@16df59e1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5e273ac6_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2141477c_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3bdc6c1c_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c239f8b_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@149d068b_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6661ae32_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@539e7cca_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@f5bd8a0_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@51aa57e4_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4139eab6_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7a6dd7c1_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@24a51baa_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6da056e7_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5d238614_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ea508fb_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@14d38d3_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@218c9e88_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a12e6b5_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4d1e6452_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@589b3072_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d1eab13_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1f810301_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@501ec2bf_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5657a4ee_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@68c760a7_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@614e8dda_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@17235180_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@140d172b_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@9007469_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@551ba50a_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d3f3c7c_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1e435146_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@18df713a_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7aa24389_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@455abb3_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@29c67250_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@f4ced84_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1f98f3e7_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2bb2113a_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73247edc_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1a6dfece_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_signal_gen_v4</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2019.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="15f072e0"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="98bb9a1c"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="8252e13f"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="055c05dc"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="ceb85977"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="fa9ac32c"/>
