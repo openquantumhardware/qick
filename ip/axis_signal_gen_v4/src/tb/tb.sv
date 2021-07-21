@@ -72,6 +72,7 @@ wire	[15:0]			dout_ii [0:N_DDS-1];
 xil_axi_ulong   addr_start_addr	= 32'h40000000; // 0
 xil_axi_ulong   addr_we			= 32'h40000004; // 1
 xil_axi_ulong   addr_rndq		= 32'h40000008; // 2
+xil_axi_ulong   addr_outsel		= 32'h4000000c; // 3
 
 xil_axi_prot_t  prot        = 0;
 reg[31:0]       data_wr     = 32'h12345678;
@@ -226,18 +227,17 @@ initial begin
 	axi_mst_0_agent.AXI4LITE_WRITE_BURST(addr_we, prot, data_wr, resp);
 	#10;	
 
-	$display("###########################");
-	$display("### Program Noise Value ###");
-	$display("###########################");
+	$display("############################");
+	$display("### Output selection reg ###");
+	$display("############################");
 	$display("t = %0t", $time);
 
 	/*
-	RNDQ = 12
+	OUTSEL = 0 (real part).
 	*/	
 		
-	// rndq.
-	data_wr = 12;
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(addr_rndq, prot, data_wr, resp);
+	data_wr = 1;
+	axi_mst_0_agent.AXI4LITE_WRITE_BURST(addr_outsel, prot, data_wr, resp);
 	#10;
 
 	#1000;
@@ -271,7 +271,8 @@ initial begin
 	
 	wait (tb_load_mem);
 
-	fd = $fopen("../../../../../tb/gauss.txt","r");
+	//fd = $fopen("../../../../../tb/gauss.txt","r");
+	fd = $fopen("../../../../../tb/ramp.txt","r");
 
 	wait (s0_axis_tready);
 
@@ -314,31 +315,32 @@ initial begin
 	freq_r			<= freq_calc(100, N_DDS, 34);
 	phase_r			<= 0;
 	addr_r			<= 0;
-	gain_r			<= 12000;
-	nsamp_r			<= 320/N_DDS;
-	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
+	gain_r			<= 30000;
+	nsamp_r			<= 128/N_DDS;
+	outsel_r		<= 2;	// 0: prod, 1: dds, 2: mem
 	mode_r			<= 0;	// 0: nsamp, 1: periodic
 	stdysel_r		<= 1;	// 0: last, 1: zero.
 
 	@(posedge aclk);
 	s1_axis_tvalid	<= 0;
 
-	#2000;
+	#200;
 
 	@(posedge aclk);
 	$display("t = %0t", $time);
 	s1_axis_tvalid	<= 1;
+	gain_r			<= 10000;
 	nsamp_r			<= 620/N_DDS;
 
-	@(posedge aclk);
-	s1_axis_tvalid	<= 0;
+	//@(posedge aclk);
+	//s1_axis_tvalid	<= 0;
 
-	#10000;
+	//#10000;
 
-	@(posedge aclk);
-	$display("t = %0t", $time);
-	s1_axis_tvalid	<= 1;
-	nsamp_r			<= 920/N_DDS;
+	//@(posedge aclk);
+	//$display("t = %0t", $time);
+	//s1_axis_tvalid	<= 1;
+	//nsamp_r			<= 920/N_DDS;
 
 	@(posedge aclk);
 	s1_axis_tvalid	<= 0;

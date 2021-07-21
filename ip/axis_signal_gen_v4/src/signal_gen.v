@@ -199,6 +199,7 @@ reg							stdy_int_r15;
 reg							stdy_int_r16;
 reg							stdy_int_r17;
 reg							stdy_int_r18;
+reg							stdy_int_r19;
 
 // Output enable.
 wire						en_int;
@@ -220,6 +221,7 @@ reg							en_int_r15;
 reg							en_int_r16;
 reg							en_int_r17;
 reg							en_int_r18;
+reg							en_int_r19;
 
 // Output selection mux.
 wire						outmux_sel;
@@ -515,6 +517,7 @@ always @(posedge clk) begin
 		stdy_int_r16	<= 0;
 		stdy_int_r17	<= 0;
 		stdy_int_r18	<= 0;
+		stdy_int_r19	<= 0;
 		
 		// Output enable.
 		en_int_r1		<= 0;
@@ -535,6 +538,7 @@ always @(posedge clk) begin
 		en_int_r16		<= 0;
 		en_int_r17		<= 0;
 		en_int_r18		<= 0;
+		en_int_r19		<= 0;
 	end
 	else begin
 		// Memory address.
@@ -599,6 +603,7 @@ always @(posedge clk) begin
 		stdy_int_r16	<= stdy_int_r15;
 		stdy_int_r17	<= stdy_int_r16;
 		stdy_int_r18	<= stdy_int_r17;
+		stdy_int_r19	<= stdy_int_r18;
 
 		// Output enable.
 		en_int_r1		<= en_int;
@@ -619,15 +624,16 @@ always @(posedge clk) begin
 		en_int_r16		<= en_int_r15;
 		en_int_r17		<= en_int_r16;
 		en_int_r18		<= en_int_r17;
+		en_int_r19		<= en_int_r18;
 	end
 end
 
 // Output selection mux.
-assign outmux_sel			= ~en_int_r18 & stdy_int_r18;
+assign outmux_sel			= ~en_int_r19 & stdy_int_r19;
 
 // Outputs.
 assign mem_addr_o			= mem_addr_int_r;
-assign m_axis_tvalid_o 		= en_int_r18;
+assign m_axis_tvalid_o 		= en_int_r19;
 
 endmodule
 
