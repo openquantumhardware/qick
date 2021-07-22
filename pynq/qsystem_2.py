@@ -683,16 +683,13 @@ class PfbSoc(Overlay):
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
     def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
-        if length > AxisAvgBuffer.AVG_MAX_LENGTH:
+        if length >= AxisAvgBuffer.AVG_MAX_LENGTH:
             raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
-        buff = allocate(shape=length, dtype=np.int64)
-        #np_buffi = np.zeros(length, dtype=np.int32)
-        #np_buffq = np.zeros(length, dtype=np.int32)
-        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
-        #np.copyto(np_buffi,di)
-        #np.copyto(np_buffq,dq)
+        evenLength = length+length%2
+        buff = allocate(shape=evenLength, dtype=np.int64)
+        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=evenLength)
 
-        return di, dq #[np_buffi,np_buffq]
+        return di[:length], dq[:length] #[np_buffi,np_buffq]
 
     
     
