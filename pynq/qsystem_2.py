@@ -676,8 +676,8 @@ class PfbSoc(Overlay):
     def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length > AxisAvgBuffer.BUF_MAX_LENGTH:
-            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
+        if length >= AxisAvgBuffer.BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer or euqal to %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
