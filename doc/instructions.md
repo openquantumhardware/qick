@@ -31,6 +31,10 @@
 * `^` -- exclusive or
 * `~` -- not `value`, ignores `rSrc`
 
+### Tproc Register Information
+
+The tproc contains 8 pages of 32 registers each, making 256 registers in total. Each register is 32 bits wide. 
+
 ### Signal Generator Options
 
 Use `stdysel` to select what value is output continuously by the signal generator after the gereration of a pulse.
