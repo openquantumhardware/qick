@@ -74,8 +74,7 @@ class qubit:
 		stdysel = 1, 
 		mode = 0, 
 		outsel = 0, 
-		tOffset = 
-		215, 
+		tOffset = 215, 
 		tDuration = 5, 
 		scopeMode = False):
 
