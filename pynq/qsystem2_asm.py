@@ -124,20 +124,6 @@ class ASM_Program:
     
     def sreg(self, ch, name):
         return self.__class__.special_registers[ch-1][name]
-    
-    def pulse(self, ch, name=None,freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
-        p=self
-        if name is not None:
-            pinfo=self.channels[ch]['pulses'][name]
-        else:
-            pinfo=p.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
-            
-        if pinfo['style'] == 'arb':
-            return arb_pulse(ch, name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
-        elif pinfo['style'] == 'const':
-            return const_pulse(ch, name, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, length=length, t=t)
-        elif pinfo['style'] == 'flat_top':
-            return flat_top_pulse(ch, name, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, mode=mode, outsel=outsel, length=length, t=t)
         
 
     def set_pulse_registers (self, ch, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
@@ -165,7 +151,6 @@ class ASM_Program:
         else:
             pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
             addr=None
-            length=None
             
         if length is not None: 
             outsel=1
@@ -178,7 +163,7 @@ class ASM_Program:
             if t is not None:
                 if t=='auto':
                     t=p.dac_ts[ch]
-                    p.dac_ts[ch]=t+pinfo["length"]                    
+                    p.dac_ts[ch]=t+length                   
                 p.regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
      
@@ -187,7 +172,7 @@ class ASM_Program:
         addr=None
         if name is not None:
             pinfo=self.channels[ch]['pulses'][name]
-            addr=pinfo["addr"]
+            addr=pinfo["addr"]//16
             length=pinfo["length"]
             self.channels[ch]['last_pulse']=name
 
@@ -210,7 +195,7 @@ class ASM_Program:
             pinfo=self.channels[ch]['pulses'][name]
             self.channels[ch]['last_pulse']=name
             length=len(pinfo["idata"])//16//2
-            addr=pinfo['addr']
+            addr=pinfo['addr']//16
             stdysel=1        
         if gain is not None:
             pinfo['gain']=gain
@@ -276,7 +261,7 @@ class ASM_Program:
             self.regwi (rp, r_out, 0, 'out = 0b{out:>016b}')
             self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
     
-    def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=208, t=0):
+    def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=270, t=0):
         out= (adc2 << 15) |(adc1 << 14) 
         r_out=31
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')

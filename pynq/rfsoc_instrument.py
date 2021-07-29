@@ -1,5 +1,5 @@
 from qsystem_2 import PfbSoc, freq2reg
-from slab.instruments import Instrument
+from slab.instruments import Instrument,InstrumentManager
 
 class RFSocInstrument(Instrument):
     
@@ -12,3 +12,27 @@ class RFSocInstrument(Instrument):
     
     def acquire(self, prog, load_pulses=True):
         return prog.acquire(self.soc, load_pulses)
+    
+    def single_write(self, addr, data):
+        self.soc.tproc.single_write(addr,data)
+        
+    def single_read(self, addr):
+        return self.soc.tproc.single_read(addr)
+    
+    def acquire_decimated_ds(self, prog, load_pulses=True):
+        return prog.acquire_decimated_ds(self.soc, load_pulses)
+    
+#     def start(self):
+#         return self.soc.tproc.start()
+
+#     def stop(self):
+#         return self.soc.tproc.stop()
+        
+#     def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+#         return self.soc.get_accumulated(ch,address,length)
+    
+#     def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
+#         return self.soc.get_decimated(ch,address,length)
+    
+    def set_nyquist(self, ch, nqz):
+        return self.soc.set_nyquist(ch,nqz)
