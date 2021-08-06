@@ -31,7 +31,8 @@ class qubit:
         Bit width for the frequency register that controls the DAC DDS frequency
     cfg['loFreq'] : int
         The frequency of the local oscillator in MHz. This will be added to the the qubit or cavity frequency on return values where frequency is included as part of the return value. 
-
+    cfg['maxADCFreq'] : int
+        The maximum adc frequency in MHz. This represents the high end of the 2nd nyqist zone. 
     """
 
     def __init__(
@@ -67,6 +68,7 @@ class qubit:
             self.cfg['maxSampBuf'] = 1022
             self.cfg['dacFreqWidth'] = 32
             self.cfg['loFreq'] = 0
+            self.cfg['maxADCFreq'] = 3072
         
         self.writeBitfile(initClocks = False)
 
@@ -208,7 +210,7 @@ class qubit:
             self.soc.tproc.load_asm_program(p)
             if printASM: print(p)
 
-    def runPulseExample(
+    def sendPulses(
         self,
         pulseCount = 5, 
         frequency = 500, 
@@ -417,11 +419,41 @@ class qubit:
         freqFinish = 3072, 
         numFreqs = 1000, 
         pulseWidth = 200, 
+        pulseDelay = 100,
         nReps = 100, 
         gain = 32767): 
         
         """
-        Currently under development
+        Currently needs testing. 
+        
+        Performs a frequency sweep from `freqStart` to `freqFinsih` with `numFreqs` nubmer of frequency steps. `nReps` defines the number of times each frequency measurement is repeated and averageed. 
+        
+        Parameters
+        ----------
+        
+        freqStart : int, optional
+            Start frequency of the sweep in MHz
+        freqFinish : int, optional
+            End frequency in MHz. This number should be less than cfg['maxADCFreq']
+        numFreqs : int, optional
+            Number of steps to use for the frequency sweep
+        pulseWidth : int, optional 
+            The width of each pulse that is sent in clocks
+        pulseDelay : int, optional
+            The delay time between pulses. 
+        nReps : int, optional
+            The number of repetitions for each frequency. Each frequency pulse set will be averaged before the value is sent back. 
+        gain : int, optional
+            THe max gain at which the pulses will be sent
+            
+        Returns
+        ------
+        float[]:
+            List of freuqencies used. These will take into account the local oscillaotr freuqnecy
+        float[]: 
+            List of amplitudes that were returned and averaged for each frequency
+        float[]:
+            LIst of phasses that were returned and averaged for each frequency
         """
         
         freqs = np.linspace(freqStart, freqFinish, numFreqs)
@@ -431,17 +463,20 @@ class qubit:
         phaseStds = np.zeros(len(freqs))
 
         for i, f in enumerate(freqs):
-            idec,qdec,iacc,qacc = self.runPulseExample(
+            idec,qdec,iacc,qacc = self.sendPulses(
                 frequency = f, 
                 gain = gain, 
                 pulseCount = nReps, 
                 pulseWidth = pulseWidth, 
-                delayWidth = 100, 
+                delayWidth = pulseDelay, 
                 outputChannel = self.cfg['coch'], 
                 readoutChannel = self.cfg['rch'])
             amps = np.abs(iacc + 1j * qacc)
             phases = np.angle(iacc + 1j * qacc)
             ampMeans[i] = amps[2:].mean()
             phaseMeans[i] = phases[2:].mean()
+            
+        
+        freqs = freqs + self.cfg['loFreq']
 
-        return ampMeans, phaseMeans
+        return freqs, ampMeans, phaseMeans
