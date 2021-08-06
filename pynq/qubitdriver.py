@@ -1,6 +1,6 @@
-#from pynq import Overlay
-#from qsystem_2 import *
-#from qsystem2_asm import *
+from pynq import Overlay
+from qsystem_2 import *
+from qsystem2_asm import *
 
 class qubit:
     """
@@ -23,14 +23,23 @@ class qubit:
         Resonant frequency of the cavity in MHz
     cfg['tof'] : int
         Time of flight for a pulse through the readout cavity in clocks
-    cfg['cperiod'] : float
+    cfg['clkPeriod'] : float
         Clock period of the tproc in nanoseconds
     cfg['maxSampBuf'] : int
         Size of the sample buffer in decimated sampes
+    cfg['dacFreqWidth'] : int
+        Bit width for the frequency register that controls the DAC DDS frequency
+    cfg['loFreq'] : int
+        The frequency of the local oscillator in MHz. This will be added to the the qubit or cavity frequency on return values where frequency is included as part of the return value. 
 
     """
 
-    def __init__(self, qubitOutputChannel = 7, cavityOutputChannel = 6, readoutChannel = 0, configDictionary = None):
+    def __init__(
+        self, 
+        qubitOutputChannel = 7,
+        cavityOutputChannel = 6, 
+        readoutChannel = 0, 
+        configDictionary = None):
         """
         Initialies the object and automatically writes the bitfile to the FGPA. 
         
@@ -54,11 +63,17 @@ class qubit:
             self.cfg['coch'] = cavityOutputChannel
             self.cfg['qoch'] = qubitOutputChannel
             self.cfg['tof'] = 214
+            self.cfg['clkPeriod'] = 2.6
             self.cfg['maxSampBuf'] = 1022
+            self.cfg['dacFreqWidth'] = 32
+            self.cfg['loFreq'] = 0
         
         self.writeBitfile(initClocks = False)
 
-    def writeBitfile(self, bitfile = 'qsystem_2.bit', initClocks = False):
+    def writeBitfile(
+        self, 
+        bitfile = 'qsystem_2.bit', 
+        initClocks = False):
         """
         Writes the bitfile to the FGPA. This function is called at the end of the `__init__()` function is called. It can be called later to reset the FGPA. 
         
@@ -72,8 +87,29 @@ class qubit:
             Initialize the clocking hardware on the FPGA. This is generaly only run once after the FGPA is powered on.
         """
         self.soc = PfbSoc(bitfile, force_init_clks=initClocks)
+    
+    def setLOFreq(
+        self,
+        loFreq):
+        
+        """
+        Set the frequency of the local oscillator. 
+        
+        Currently, this function is under development and does not set the frequency of the local oscillaotr. It simply chnages the value in the cfg dictionary. Once the development is finished, this function should set the frequency of the local oscillator and update the configuration dictionary for the object. 
+        
+        Parameters
+        ----------
+        
+        loFreq : int
+            The desired frequency of the local oscillator in MHz. 
+        
+        """
+        self.cfg['loFreq'] = loFreq
 
-    def _writeDemoASM(self, outputChannel, printASM=False):
+    def _writeDemoASM(
+        self, 
+        outputChannel, 
+        printASM=False):
         """
         Write the ASM code for the pulse output demo to the tproc. 
         
@@ -122,17 +158,20 @@ class qubit:
             # Wait and read average value
             p.waiti(0, 1000)
 
-            p.read(0, 0, "lower", 10, "lower bits of channel 0 to page 0, register 10")
-            p.read(0, 0, "upper", 11, "upper bits of channel 0 to page 0, register 11")
-            p.memwi(0, 10, 8, "write page 0, register 10 to address 8")
-            p.memwi(0, 11, 9, "write page 0, register 11 to address 9")
+#             p.read(0, 0, "lower", 10, "lower bits of channel 0 to page 0, register 10")
+#             p.read(0, 0, "upper", 11, "upper bits of channel 0 to page 0, register 11")
+#             p.memwi(0, 10, 8, "write page 0, register 10 to address 8")
+#             p.memwi(0, 11, 9, "write page 0, register 11 to address 9")
             #End the signal
             p.seti(0,0,0,0)
 
             self.soc.tproc.load_asm_program(p)
             if printASM: print(p)
 
-    def _writeTOFASM(self, outputChannel, printASM=False):
+    def _writeTOFASM(
+        self, 
+        outputChannel, 
+        printASM=False):
         """
         Write the ASM code for the time of flight function to the tproc. 
         
@@ -241,7 +280,7 @@ class qubit:
         self._writeDemoASM(outputChannel)
         
         #Write requsite values to the memory of the tproc
-        freqRegDAC = freq2reg(self.soc.fs_dac, frequency, B=32)
+        freqRegDAC = freq2reg(self.soc.fs_dac, frequency, B=self.cfg['dacFreqWidth'])
         self.soc.tproc.single_write(addr=1, data = pulseCount-1)
         self.soc.tproc.single_write(addr=2, data = freqRegDAC)
         self.soc.tproc.single_write(addr=3, data = phase)
@@ -257,7 +296,7 @@ class qubit:
         # If an envelope was not given, provide a default envelope
         if envelope == None:
             envelope = []
-            envelope.append(gauss(mu=16*pulseWidth/2, si=pulseWidth, length=16*pulseWidth, maxv=30000))
+            envelope.append(gauss(mu=16*pulseWidth/2, si=pulseWidth, length=16*pulseWidth, maxv=gain))
             envelope.append(np.zeros(16 * pulseWidth))
         self.soc.gens[outputChannel-1].load(addr=address, xin_i=envelope[0], xin_q=envelope[1])
 
@@ -265,7 +304,7 @@ class qubit:
         self.soc.readouts[readoutChannel].set_out(outputType)
         self.soc.readouts[readoutChannel].set_freq(frequency)
         decimatedLength = self.cfg['maxSampBuf'] if scopeMode else int(pulseCount*pulseWidth)
-        self.soc.avg_bufs[readoutChannel].config(address=0, length=1022 if scopeMode else pulseWidth)
+        self.soc.avg_bufs[readoutChannel].config(address=0, length=self.cfg['maxSampBuf'] if scopeMode else pulseWidth)
         self.soc.avg_bufs[readoutChannel].enable()
 
         #Restart the tproc
@@ -322,7 +361,7 @@ class qubit:
         self._writeTOFASM(self.cfg['coch'])
 
         #Write requsite values to the memory of the tproc
-        freqRegDAC = freq2reg(self.soc.fs_dac, frequency, B=32)
+        freqRegDAC = freq2reg(self.soc.fs_dac, frequency, B=self.cfg['dacFreqWidth'])
         self.soc.tproc.single_write(addr=2, data = freqRegDAC)
         self.soc.tproc.single_write(addr=4, data = address)
         self.soc.tproc.single_write(addr=5, data = gain)
@@ -330,15 +369,14 @@ class qubit:
         self.soc.tproc.single_write(addr=11, data = tOffset)
 
         # For envelope, upload envelope
-        xg_i = gauss(mu=16*pulseWidth/2, si=pulseWidth, length=16*pulseWidth, maxv=30000)
+        xg_i = gauss(mu=16*pulseWidth/2, si=pulseWidth, length=16*pulseWidth, maxv=gain)
         xg_q = np.zeros(len(xg_i))
         self.soc.gens[self.cfg['coch']-1].load(addr=address, xin_i=xg_i, xin_q=xg_q)
 
         #Set up the readout channel
         self.soc.readouts[self.cfg['rch']].set_out("product")
         self.soc.readouts[self.cfg['rch']].set_freq(frequency)
-        decimatedLength = 1000
-        self.soc.avg_bufs[self.cfg['rch']].config(address=0, length=1000)
+        self.soc.avg_bufs[self.cfg['rch']].config(address=0, length=self.cfg['maxSampBuf'])
         self.soc.avg_bufs[self.cfg['rch']].enable()
 
         #Restart the tproc
@@ -346,10 +384,10 @@ class qubit:
         self.soc.tproc.start()
 
         #Get the results of the run
-        idec,qdec = self.soc.get_decimated(self.cfg['rch'], length = decimatedLength)
+        idec,qdec = self.soc.get_decimated(self.cfg['rch'], length = self.cfg['maxSampBuf'])
 
         amps = np.abs(idec + 1j*qdec)
-        times = np.linspace(tOffset, tOffset+999, 1000)
+        times = np.linspace(tOffset, tOffset+self.cfg['maxSampBuf'] - 1, self.cfg['maxSampBuf'])
 
         #Plot the amplitudes with the best guess line
         bestLine = np.where(amps == np.amax(amps))[0][0]
@@ -363,7 +401,7 @@ class qubit:
             plt.plot(times, amps)
             plt.axvline(bestLine, ls="--", color="red", alpha=0.5, label="Detected Peak")
             plt.axvline(tof, ls="--", color="green", alpha = 0.5, label="Pulse Start")
-            tofLabel = "Time of Flight: " + str(tof) + " clocks or " + str(tof * 2.6) + " ns"
+            tofLabel = "Time of Flight: " + str(tof) + " clocks or " + str(tof * self.cfg['clkPeriod']) + " ns"
             plt.axvspan(tOffset, tof, color="lightslategrey", alpha=0.2, label=tofLabel)
             plt.legend()
             plt.title("Time of Flight Test Readout")
@@ -373,7 +411,19 @@ class qubit:
         self.cfg['tof'] = tof
         return tof
     
-    def singleToneSpec(self, freqStart = 1000, freqFinish = 3072, numFreqs = 1000, pulseWidth = 200, nReps = 100, gain = 32767): 
+    def singleToneSpec(
+        self, 
+        freqStart = 1000, 
+        freqFinish = 3072, 
+        numFreqs = 1000, 
+        pulseWidth = 200, 
+        nReps = 100, 
+        gain = 32767): 
+        
+        """
+        Currently under development
+        """
+        
         freqs = np.linspace(freqStart, freqFinish, numFreqs)
         ampMeans = np.zeros(len(freqs))
         ampStds = np.zeros(len(freqs))
@@ -395,21 +445,3 @@ class qubit:
             phaseMeans[i] = phases[2:].mean()
 
         return ampMeans, phaseMeans
-    '''
-    fig,ax = plt.subplots(2,1,sharex=True)
-    ax[0].set_title("Frequency Sweep")
-    #ax[0].errorbar(freqs, ampMeans, yerr=ampStds)
-    ax[0].plot(freqs, ampMeans)
-    ax[0].set_ylabel("Amplitude Means")
-    #ax[1].errorbar(freqs, phaseMeans, yerr=phaseStds)
-    ax[1].plot(freqs, phaseMeans)
-    ax[1].set_ylabel("Phases in Radians")
-    plt.xlabel("MHz")
-    plt.show()
-    '''
-
-    def get_i_acc(self):
-        return self.soc.tproc.single_read(addr=8)
-
-    def get_q_acc(self):
-        return self.soc.tproc.single_read(addr=9)
