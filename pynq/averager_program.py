@@ -1,4 +1,4 @@
-from qsystem2_asm import ASM_Program
+from qsystem2_asm import *
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import time
@@ -74,10 +74,10 @@ class AveragerProgram(ASM_Program):
                 addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
                 length = count-last_count
                 length -= length%2
-                
+
                 for ch in range(2):
                     di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
-                
+
                     di_buf[ch,last_count:last_count+length]=di[:length]
                     dq_buf[ch,last_count:last_count+length]=dq[:length]
 
@@ -226,23 +226,25 @@ class RRAveragerProgram(ASM_Program):
         soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
         self.stats=[]
         
-        soc.tproc.start()
-        while count<total_count-1:
-            count = soc.tproc.single_read(addr= 1)*ReadoutPerExpt
+        with tqdm(total=total_count, disable=not progress) as pbar:
+            soc.tproc.start()
+            while count<total_count-1:
+                count = soc.tproc.single_read(addr= 1)*ReadoutPerExpt
 
-            if count>=min(last_count+1000,total_count-1):
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
-                length = count-last_count
-                length -= length%2
-                
-                for ch in range(2):
-                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
-                
-                    di_buf[ch,last_count:last_count+length]=di[:length]
-                    dq_buf[ch,last_count:last_count+length]=dq[:length]
+                if count>=min(last_count+1000,total_count-1):
+                    addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                    length = count-last_count
+                    length -= length%2
 
-                last_count+=length
-                self.stats.append( (time.time(), count,addr, length))
+                    for ch in range(2):
+                        di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+
+                        di_buf[ch,last_count:last_count+length]=di[:length]
+                        dq_buf[ch,last_count:last_count+length]=dq[:length]
+
+                    last_count+=length
+                    self.stats.append( (time.time(), count,addr, length))
+                    pbar.update(last_count-pbar.n)
                     
         self.di_buf=di_buf
         self.dq_buf=dq_buf
@@ -356,23 +358,25 @@ class RAveragerProgram(ASM_Program):
         soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
         self.stats=[]
         
-        soc.tproc.start()
-        while count<total_count-1:
-            count = soc.tproc.single_read(addr= 1)
+        with tqdm(total=total_count, disable=not progress) as pbar:
+            soc.tproc.start()
+            while count<total_count-1:
+                count = soc.tproc.single_read(addr= 1)
 
-            if count>=min(last_count+1000,total_count-1):
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
-                length = count-last_count
-                length -= length%2
-                
-                for ch in range(2):
-                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
-                
-                    di_buf[ch,last_count:last_count+length]=di[:length]
-                    dq_buf[ch,last_count:last_count+length]=dq[:length]
+                if count>=min(last_count+1000,total_count-1):
+                    addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                    length = count-last_count
+                    length -= length%2
 
-                last_count+=length
-                self.stats.append( (time.time(), count,addr, length))
+                    for ch in range(2):
+                        di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+
+                        di_buf[ch,last_count:last_count+length]=di[:length]
+                        dq_buf[ch,last_count:last_count+length]=dq[:length]
+
+                    last_count+=length
+                    self.stats.append( (time.time(), count,addr, length))
+                    pbar.update(last_count-pbar.n)
                     
         self.di_buf=di_buf
         self.dq_buf=dq_buf
