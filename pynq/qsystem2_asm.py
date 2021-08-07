@@ -1,6 +1,47 @@
 from qsystem_2 import *
 import numpy as np
 
+fs_adc = 384*8
+fs_dac = 384*16
+fs_proc=384
+
+
+def freq2reg(f):
+    B=32
+    df = 2**B/fs_dac
+    f_i = f*df
+    return int(f_i)
+
+def freq2reg_adc(f):
+    B=16
+    df = 2**B/fs_adc
+    f_i = f*df
+    return int(f_i)    
+
+def reg2freq(r):
+    return r*fs_dac/2**32
+
+def reg2freq_adc(r):
+    return r*fs_adc/2**16
+
+def adcfreq(f):
+    """Takes a frequency and casts it to an (even) valid adc dds frequency"""
+    reg=freq2reg_adc(f)
+    return reg2freq_adc(reg+(reg%2))
+
+def cycles2us(cycles):
+    return cycles/fs_proc
+
+def us2cycles(us):
+    return int(us*fs_proc)
+
+def deg2reg(deg):
+    return deg*2**32//360
+
+def reg2deg(reg):
+    return reg*360/2**32
+
+
 class ASM_Program:
     instructions = {'pushi': {'type':"I", 'bin': 0b00010000, 'fmt': ((0,53),(1,41),(2,36), (3,0)), 'repr': "{0}, ${1}, ${2}, {3}"},
                     'popi':  {'type':"I", 'bin': 0b00010001, 'fmt': ((0,53),(1,41)), 'repr': "{0}, ${1}"},
@@ -46,9 +87,6 @@ class ASM_Program:
                         ]   
     
     trig_offset=25
-    fs_adc = 384*8
-    fs_dac = 384*16
-    fs_proc=384
     
     def __init__(self, cfg=None):
         self.prog_list = []
@@ -56,40 +94,6 @@ class ASM_Program:
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
         self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
         
-    def freq2reg(self,f):
-        B=32
-        df = 2**B/self.fs_dac
-        f_i = f*df
-        return int(f_i)
-
-    def freq2reg_adc(self,f):
-        B=16
-        df = 2**B/self.fs_adc
-        f_i = f*df
-        return int(f_i)    
-    
-    def reg2freq(self,r):
-        return r*self.fs_dac/2**32
-    
-    def reg2freq_adc(self,r):
-        return r*self.fs_adc/2**16
-    
-    def adcfreq(self, f):
-        """Takes a frequency and casts it to an (even) valid adc dds frequency"""
-        reg=self.freq2reg_adc(f)
-        return self.reg2freq_adc(reg+(reg%2))
-
-    def cycles2us(self,cycles):
-        return cycles/self.fs_proc
-    
-    def us2cycles(self, us):
-        return int(us*self.fs_proc)
-    
-    def deg2reg(self, deg):
-        return deg*2**32//360
-    
-    def reg2deg(self, reg):
-        return reg*360/2**32
     
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         
