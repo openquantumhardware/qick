@@ -255,16 +255,6 @@ class ASM_Program:
             self.synci(max_t+t)
             self.dac_ts=[0]*len(self.dac_ts) #zeros(len(self.dac_ts),dtype=uint16)
 
-    def delay(self, length):
-        self.sync_all()
-        if length < 2**14:
-            self.synci(length)
-        else:
-            for ii in range(length // (2**14-1)):
-                self.synci(2**14-1)
-            self.synci(length % (2**14-1))
-            
-                
     #should change behavior to only change bits that are specified
     def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True): 
         out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0) 
