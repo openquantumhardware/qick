@@ -247,7 +247,7 @@ class ASM_Program:
             self.regwi(rp,reg,imm>>1,comment)
             self.bitwi(rp,reg,reg,"<<",1)
             if imm % 2 !=0:
-                p.mathi(rp,reg,reg,"+",1)
+                self.mathi(rp,reg,reg,"+",1)
             
     def sync_all(self, t=0):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
