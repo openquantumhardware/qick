@@ -36,7 +36,7 @@ def us2cycles(us):
     return int(us*fs_proc)
 
 def deg2reg(deg):
-    return deg*2**32//360
+    return int(deg*2**32//360)
 
 def reg2deg(reg):
     return reg*360/2**32
