@@ -134,8 +134,8 @@ class ASM_Program:
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
-        if freq is not None: p.regwi (rp, r_freq, freq, f'freq = {p.reg2freq(freq)} MHz')
-        if phase is not None: p.regwi (rp, r_phase, phase, f'phase = {phase}')
+        if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
+        if phase is not None: p.safe_regwi (rp, r_phase, phase, f'phase = {phase}')
         if gain is not None: p.regwi (rp, r_gain, gain, f'gain = {gain}')
         if t is not None and t !='auto': p.regwi (rp, r_t, t, f't = {t}')
         if addr is not None: p.regwi (rp, r_addr, addr, f'addr = {addr}')
@@ -189,7 +189,7 @@ class ASM_Program:
                 if name is None:
                     pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
                 p.dac_ts[ch]=t+pinfo['length']
-                p.regwi (rp, r_t, t, f't = {t}')
+                p.safe_regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
     def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
@@ -239,6 +239,15 @@ class ASM_Program:
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
+            
+    def safe_regwi(self, rp, reg, imm, comment=None):
+        if imm <2**31:
+            self.regwi(rp,reg,imm,comment)
+        else:
+            self.regwi(rp,reg,imm>>1,comment)
+            self.bitwi(rp,reg,reg,"<<",1)
+            if imm % 2 !=0:
+                p.mathi(rp,reg,reg,"+",1)
             
     def sync_all(self, t=0):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
