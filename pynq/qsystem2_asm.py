@@ -86,10 +86,10 @@ class ASM_Program:
         return int(us*self.fs_proc)
     
     def deg2reg(self, deg):
-        return deg*2**16//360
+        return deg*2**32//360
     
     def reg2deg(self, reg):
-        return reg*360/2**16
+        return reg*360/2**32
     
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         
@@ -267,11 +267,27 @@ class ASM_Program:
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, 0, r_out, t+adc_trig_offset, f'ch =0 out = ${r_out} @t = {t}')
         self.regwi (0, r_out, 0, f'out = 0b{0:>016b}')
-        self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')       
+        self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')     
         
-    def compile_instruction(self,inst):
+    def convert_immediate(self, val):
+        if val> 2**31:
+            raise RuntimeError(f"Immediate values are only 31 bits {val} > 2**31")
+        if val <0:
+            return 2**31+val
+        else:
+            return val
+        
+    def compile_instruction(self,inst, debug = False):
         args=list(inst['args'])
+        idef = self.__class__.instructions[inst['name']]
+        fmt=idef['fmt']
+
+        if debug:
+            print (inst)
         
+        if idef['type'] =="I":
+            args[len(fmt)-1]=self.convert_immediate(args[len(fmt)-1])
+                    
         if inst['name'] == 'loopnz': 
             args[-1]=self.labels[args[-1]] #resolve label
 
@@ -288,8 +304,6 @@ class ASM_Program:
         if inst['name'][:4] == 'read':
             args[2]=self.__class__.op_codes[inst['args'][2]] #get read op code
             
-        idef = self.__class__.instructions[inst['name']]
-        fmt=idef['fmt']
         mcode = (idef['bin'] << 56)
         #print(inst)
         for field in fmt:
@@ -300,8 +314,8 @@ class ASM_Program:
 
         return mcode
 
-    def compile(self):
-        return [self.compile_instruction(inst) for inst in self.prog_list]
+    def compile(self, debug=False):
+        return [self.compile_instruction(inst,debug=debug) for inst in self.prog_list]
    
     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
         if phrst is None:

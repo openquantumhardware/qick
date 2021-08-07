@@ -35,7 +35,7 @@ class AveragerProgram(ASM_Program):
        
         p.end()        
         
-    def acquire(self, soc, load_pulses=True, progress=True):
+    def acquire(self, soc, load_pulses=True, progress=True, debug=False):
 
         if load_pulses: 
             self.load_pulses(soc)
@@ -51,7 +51,7 @@ class AveragerProgram(ASM_Program):
             avg_buf.config_avg(address=0,length=adc_length)
             avg_buf.enable_avg()
 
-        soc.tproc.load_asm_program(self)
+        soc.tproc.load_asm_program(self, debug=debug)
         
         reps = self.cfg['reps']
         
@@ -98,7 +98,7 @@ class AveragerProgram(ASM_Program):
         
         return avg_di0, avg_dq0, avg_amp0,avg_di1, avg_dq1, avg_amp1
 
-    def acquire_decimated_ds(self, soc, load_pulses=True, progress=True):
+    def acquire_decimated_ds(self, soc, load_pulses=True, progress=True, debug=False):
         if self.cfg["reps"] != 1:
             print ("Warning reps is not set to 1, and this acquire method expects reps=1")
             
@@ -127,7 +127,7 @@ class AveragerProgram(ASM_Program):
                 avg_buf.enable_avg()
 
             soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.tproc.load_asm_program(self)
+            soc.tproc.load_asm_program(self, debug=debug)
         
             soc.tproc.start() #runs the assembly program
 
@@ -194,7 +194,7 @@ class RRAveragerProgram(ASM_Program):
     def get_expt_pts(self):
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
-    def acquire(self, soc, load_pulses=True, progress=True):
+    def acquire(self, soc, load_pulses=True, ReadoutPerExpt=1, Average=[0], debug=False):
 
         if load_pulses: 
             self.load_pulses(soc)
@@ -210,13 +210,13 @@ class RRAveragerProgram(ASM_Program):
             avg_buf.config_avg(address=0,length=adc_length)
             avg_buf.enable_avg()
 
-        soc.tproc.load_asm_program(self)
+        soc.tproc.load_asm_program(self, debug=debug)
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
         count=0
         last_count=0
-        total_count=reps*expts*2
+        total_count=reps*expts*ReadoutPerExpt
 
         di_buf=np.zeros((2,total_count))
         dq_buf=np.zeros((2,total_count))
@@ -228,7 +228,7 @@ class RRAveragerProgram(ASM_Program):
         
         soc.tproc.start()
         while count<total_count-1:
-            count = soc.tproc.single_read(addr= 1)*2
+            count = soc.tproc.single_read(addr= 1)*ReadoutPerExpt
 
             if count>=min(last_count+1000,total_count-1):
                 addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
@@ -247,16 +247,33 @@ class RRAveragerProgram(ASM_Program):
         self.di_buf=di_buf
         self.dq_buf=dq_buf
         
-        avg_di0=np.sum(di_buf[0][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
-        avg_dq0=np.sum(dq_buf[0][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
         expt_pts=self.get_expt_pts()
-        amp_pts0=np.sqrt(avg_di0**2+avg_dq0**2)
         
-        avg_di1=np.sum(di_buf[1][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][1]
-        avg_dq1=np.sum(dq_buf[1][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][1]
-        amp_pts1=np.sqrt(avg_di1**2+avg_dq1**2)
+        if Average==[]:
+            return expt_pts,di_buf,dq_buf
+        else:
+            avg_di=np.zeros((2,len(Average),expts))
+            avg_dq=np.zeros((2,len(Average),expts))
+            avg_amp=np.zeros((2,len(Average),expts))
         
-        return expt_pts, avg_di0, avg_dq0, amp_pts0, avg_di1, avg_dq1, amp_pts1
+            for nn,ii in enumerate(Average):
+                avg_di[0][nn]=np.sum(di_buf[0][ii::ReadoutPerExpt].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+                avg_dq[0][nn]=np.sum(dq_buf[0][ii::ReadoutPerExpt].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+                avg_amp[0][nn]=np.sqrt(avg_di[0][nn]**2+avg_dq[0][nn]**2)
+            
+                avg_di[1][nn]=np.sum(di_buf[1][ii::ReadoutPerExpt].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+                avg_dq[1][nn]=np.sum(dq_buf[1][ii::ReadoutPerExpt].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+                avg_amp[1][nn]=np.sqrt(avg_di[1][nn]**2+avg_dq[1][nn]**2)
+            
+#         avg_di0=np.sum(di_buf[0][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+#         avg_dq0=np.sum(dq_buf[0][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][0]
+#         amp_pts0=np.sqrt(avg_di0**2+avg_dq0**2)
+        
+#         avg_di1=np.sum(di_buf[1][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][1]
+#         avg_dq1=np.sum(dq_buf[1][1::2].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][1]
+#         amp_pts1=np.sqrt(avg_di1**2+avg_dq1**2)
+        
+            return expt_pts, avg_di, avg_dq, avg_amp
     
 class RAveragerProgram(ASM_Program):
     def __init__(self, cfg):
@@ -307,7 +324,7 @@ class RAveragerProgram(ASM_Program):
     def get_expt_pts(self):
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
-    def acquire(self, soc, load_pulses=True, progress=True):
+    def acquire(self, soc, load_pulses=True, progress=True, debug=False):
 
         if load_pulses: 
             self.load_pulses(soc)
@@ -323,7 +340,7 @@ class RAveragerProgram(ASM_Program):
             avg_buf.config_avg(address=0,length=adc_length)
             avg_buf.enable_avg()
 
-        soc.tproc.load_asm_program(self)
+        soc.tproc.load_asm_program(self,debug=debug)
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         

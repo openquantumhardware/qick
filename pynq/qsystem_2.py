@@ -453,11 +453,11 @@ class AxisTProc64x32_x8(SocIp):
     def stop(self):
         self.start_reg = 0
         
-    def load_asm_program(self, prog):
+    def load_asm_program(self, prog, debug= False):
         """
         prog -- the ASM_program to load 
         """
-        for ii,inst in enumerate(prog.compile()):
+        for ii,inst in enumerate(prog.compile(debug=debug)):
             dec_low = inst & 0xffffffff
             dec_high = inst >> 32
             self.mem.write(offset=8*ii,value=dec_low)
