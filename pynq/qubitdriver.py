@@ -588,9 +588,6 @@ class qubit:
 
         return freqs, ampMeans, phaseMeans
     
-    def twoToneSpec(
-        )
-    
     def rabiOscillation(
         self,
         qStartGain = 32767,
