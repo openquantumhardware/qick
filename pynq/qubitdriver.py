@@ -1,6 +1,8 @@
 from pynq import Overlay
 from qsystem_2 import *
 from qsystem2_asm import *
+from scipy import signal
+import warnings
 
 class qubit:
     """
@@ -461,7 +463,7 @@ class qubit:
             
         Returns
         -------
-        int
+        float
             The time of flight in clocks
         """
         
@@ -496,6 +498,11 @@ class qubit:
         idec,qdec = self.soc.get_decimated(self.cfg['rch'], length = self.cfg['maxSampBuf'])
 
         amps = np.abs(idec + 1j*qdec)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ampsFiltered = (signal.correlate(amps, xg_i, mode='same')/len(amps)) 
+            
+        amps = ampsFiltered #Delete this line to use unfiltered amplitudes
         times = np.linspace(tOffset, tOffset+self.cfg['maxSampBuf'] - 1, self.cfg['maxSampBuf'])
 
         #Plot the amplitudes with the best guess line
@@ -517,22 +524,20 @@ class qubit:
             plt.show()
 
         #Return and update the dictionary 
-        self.cfg['tof'] = tof
+        self.cfg['tof'] = int(np.round(tof)) #This number must be an integer as that is what the tproc accepts. 
         return tof
     
     def singleToneSpec(
         self, 
         freqStart = 1000, 
         freqFinish = 3072, 
-        numFreqs = 1000, 
+        numFreqs = 100, 
         pulseWidth = 200, 
         pulseDelay = 100,
         nReps = 100, 
         gain = 32767): 
         
         """
-        Currently needs testing. 
-        
         Performs a frequency sweep from `freqStart` to `freqFinsih` with `numFreqs` nubmer of frequency steps. `nReps` defines the number of times each frequency measurement is repeated and averageed. 
         
         Parameters
@@ -588,6 +593,76 @@ class qubit:
 
         return freqs, ampMeans, phaseMeans
     
+    def twoToneSpec(
+        self, 
+        freqStart = 1000, 
+        freqFinish = 3072, 
+        numFreqs = 100, 
+        pulseWidth = 200, 
+        pulseDelay = 100,
+        nReps = 100, 
+        gain = 32767): 
+        
+        """
+        Performs a two tone spectroscopy test in which the cavity frequency is held constant at `cfg['cfreq']` and the qubit frequency is swept. 
+        
+        Parameters
+        ----------
+        
+        freqStart : int, optional
+            Start frequency of the sweep in MHz
+        freqFinish : int, optional
+            End frequency of the sweep in MHz. This number should be less than cfg['maxADCFreq']
+        numFreqs : int, optional
+            Number of steps to use for the frequency sweep
+        pulseWidth : int, optional 
+            The width of each pulse that is sent in clocks
+        pulseDelay : int, optional
+            The delay time between pulses. 
+        nReps : int, optional
+            The number of repetitions for each frequency. Each frequency pulse set will be averaged before the value is sent back. 
+        gain : int, optional
+            THe max gain at which the pulses will be sent
+            
+        Returns
+        ------
+        float[]:
+            List of freuqencies used. These will take into account the local oscillaotr freuqnecy
+        float[]: 
+            List of amplitudes that were returned from the cavity and averaged for each frequency
+        float[]:
+            List of phases that were returned and averaged for each frequency
+        """
+        
+        freqs = np.linspace(freqStart, freqFinish, numFreqs)
+        ampMeans = np.zeros(len(freqs))
+        ampStds = np.zeros(len(freqs))
+        phaseMeans = np.zeros(len(freqs))
+        phaseStds = np.zeros(len(freqs))
+
+        for i, f in enumerate(freqs):
+            idec,qdec,iacc,qacc = self.rabiOscillation( # We use rabi oscillation because it does what we need. In a future version of the code, we will combine most of the pusle work into a single pulse function with ASM. 
+                qubitFrequency = f, 
+                qStartGain = gain, 
+                qDeltaGain = 0,
+                pulseWidthStart = pulseWidth,
+                pulseWidthDelta = 0,
+                preReadoutDelayStart = 0, 
+                preReadoutDelayDelta = 0,
+                postReadoutDelay = pulseDelay,
+                gainLoopCount = 1,
+                durationLoopCount = 1,
+                iterationLoopCount = nReps)
+            amps = np.abs(iacc + 1j * qacc)
+            phases = np.angle(iacc + 1j * qacc)
+            ampMeans[i] = amps[2:].mean()
+            phaseMeans[i] = phases[2:].mean()
+            
+        
+        freqs = freqs + self.cfg['loFreq']
+
+        return freqs, ampMeans, phaseMeans
+    
     def rabiOscillation(
         self,
         qStartGain = 32767,
@@ -595,11 +670,12 @@ class qubit:
         pulseWidthStart = 100, 
         pulseWidthDelta = 50,
         preReadoutDelayStart = 100,
-        preReadoutDelayDelta = 20,
+        preReadoutDelayDelta = 0,
         postReadoutDelay = 300,
         gainLoopCount = 1,
         durationLoopCount = 5,
-        iterationLoopCount = 10):
+        iterationLoopCount = 10,
+        qubitFrequency = None):
         
         """
         Performs rabi oscillation testing. 
@@ -628,12 +704,17 @@ class qubit:
             Number of times to run the inner loop that increments the qubit pulse druation and the pre-readout delay duration. 
         iterationLoopCount : int, optional
             Number of times to run each individual test
+        qubitFrequency : float, optional
+            Used to overwrite the qubit frequency stored in `cfg['qfreq']`. If left as `none`, this value will take the value of `cfg['qfreq']
         """
+        
+        if qubitFrequency == None: 
+            qubitFrequency = self.cfg['qfreq']
         
         self._writeRabiASM()
         
         #Populate the address space. 
-        qFreqReg = freq2reg(self.soc.fs_dac, self.cfg['qfreq'], B=32)
+        qFreqReg = freq2reg(self.soc.fs_dac, qubitFrequency, B=32)
         self.soc.tproc.single_write(addr=1, data=qFreqReg)
 
         self.soc.tproc.single_write(addr=2, data=qStartGain)
