@@ -1,6 +1,47 @@
 from qsystem_2 import *
 import numpy as np
 
+fs_adc = 384*8
+fs_dac = 384*16
+fs_proc=384
+
+
+def freq2reg(f):
+    B=32
+    df = 2**B/fs_dac
+    f_i = f*df
+    return int(f_i)
+
+def freq2reg_adc(f):
+    B=16
+    df = 2**B/fs_adc
+    f_i = f*df
+    return int(f_i)    
+
+def reg2freq(r):
+    return r*fs_dac/2**32
+
+def reg2freq_adc(r):
+    return r*fs_adc/2**16
+
+def adcfreq(f):
+    """Takes a frequency and casts it to an (even) valid adc dds frequency"""
+    reg=freq2reg_adc(f)
+    return reg2freq_adc(reg+(reg%2))
+
+def cycles2us(cycles):
+    return cycles/fs_proc
+
+def us2cycles(us):
+    return int(us*fs_proc)
+
+def deg2reg(deg):
+    return int(deg*2**32//360)
+
+def reg2deg(reg):
+    return reg*360/2**32
+
+
 class ASM_Program:
     instructions = {'pushi': {'type':"I", 'bin': 0b00010000, 'fmt': ((0,53),(1,41),(2,36), (3,0)), 'repr': "{0}, ${1}, ${2}, {3}"},
                     'popi':  {'type':"I", 'bin': 0b00010001, 'fmt': ((0,53),(1,41)), 'repr': "{0}, ${1}"},
@@ -46,9 +87,6 @@ class ASM_Program:
                         ]   
     
     trig_offset=25
-    fs_adc = 384*8
-    fs_dac = 384*16
-    fs_proc=384
     
     def __init__(self, cfg=None):
         self.prog_list = []
@@ -56,40 +94,6 @@ class ASM_Program:
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
         self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
         
-    def freq2reg(self,f):
-        B=32
-        df = 2**B/self.fs_dac
-        f_i = f*df
-        return int(f_i)
-
-    def freq2reg_adc(self,f):
-        B=16
-        df = 2**B/self.fs_adc
-        f_i = f*df
-        return int(f_i)    
-    
-    def reg2freq(self,r):
-        return r*self.fs_dac/2**32
-    
-    def reg2freq_adc(self,r):
-        return r*self.fs_adc/2**16
-    
-    def adcfreq(self, f):
-        """Takes a frequency and casts it to an (even) valid adc dds frequency"""
-        reg=self.freq2reg_adc(f)
-        return self.reg2freq_adc(reg+(reg%2))
-
-    def cycles2us(self,cycles):
-        return cycles/self.fs_proc
-    
-    def us2cycles(self, us):
-        return int(us*self.fs_proc)
-    
-    def deg2reg(self, deg):
-        return deg*2**16//360
-    
-    def reg2deg(self, reg):
-        return reg*360/2**16
     
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         
@@ -130,8 +134,8 @@ class ASM_Program:
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
-        if freq is not None: p.regwi (rp, r_freq, freq, f'freq = {p.reg2freq(freq)} MHz')
-        if phase is not None: p.regwi (rp, r_phase, phase, f'phase = {phase}')
+        if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
+        if phase is not None: p.safe_regwi (rp, r_phase, phase, f'phase = {phase}')
         if gain is not None: p.regwi (rp, r_gain, gain, f'gain = {gain}')
         if t is not None and t !='auto': p.regwi (rp, r_t, t, f't = {t}')
         if addr is not None: p.regwi (rp, r_addr, addr, f'addr = {addr}')
@@ -185,7 +189,7 @@ class ASM_Program:
                 if name is None:
                     pinfo=p.channels[ch]['pulses'][p.channels[ch]['last_pulse']]
                 p.dac_ts[ch]=t+pinfo['length']
-                p.regwi (rp, r_t, t, f't = {t}')
+                p.safe_regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
     def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
@@ -236,22 +240,21 @@ class ASM_Program:
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
             
+    def safe_regwi(self, rp, reg, imm, comment=None):
+        if imm <2**31:
+            self.regwi(rp,reg,imm,comment)
+        else:
+            self.regwi(rp,reg,imm>>1,comment)
+            self.bitwi(rp,reg,reg,"<<",1)
+            if imm % 2 !=0:
+                self.mathi(rp,reg,reg,"+",1)
+            
     def sync_all(self, t=0):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         if max_t+t>0:
             self.synci(max_t+t)
             self.dac_ts=[0]*len(self.dac_ts) #zeros(len(self.dac_ts),dtype=uint16)
 
-    def delay(self, length):
-        self.sync_all()
-        if length < 2**14:
-            self.synci(length)
-        else:
-            for ii in range(length // (2**14-1)):
-                self.synci(2**14-1)
-            self.synci(length % (2**14-1))
-            
-                
     #should change behavior to only change bits that are specified
     def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True): 
         out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0) 
@@ -267,11 +270,27 @@ class ASM_Program:
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, 0, r_out, t+adc_trig_offset, f'ch =0 out = ${r_out} @t = {t}')
         self.regwi (0, r_out, 0, f'out = 0b{0:>016b}')
-        self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')       
+        self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')     
         
-    def compile_instruction(self,inst):
+    def convert_immediate(self, val):
+        if val> 2**31:
+            raise RuntimeError(f"Immediate values are only 31 bits {val} > 2**31")
+        if val <0:
+            return 2**31+val
+        else:
+            return val
+        
+    def compile_instruction(self,inst, debug = False):
         args=list(inst['args'])
+        idef = self.__class__.instructions[inst['name']]
+        fmt=idef['fmt']
+
+        if debug:
+            print (inst)
         
+        if idef['type'] =="I":
+            args[len(fmt)-1]=self.convert_immediate(args[len(fmt)-1])
+                    
         if inst['name'] == 'loopnz': 
             args[-1]=self.labels[args[-1]] #resolve label
 
@@ -288,8 +307,6 @@ class ASM_Program:
         if inst['name'][:4] == 'read':
             args[2]=self.__class__.op_codes[inst['args'][2]] #get read op code
             
-        idef = self.__class__.instructions[inst['name']]
-        fmt=idef['fmt']
         mcode = (idef['bin'] << 56)
         #print(inst)
         for field in fmt:
@@ -300,8 +317,8 @@ class ASM_Program:
 
         return mcode
 
-    def compile(self):
-        return [self.compile_instruction(inst) for inst in self.prog_list]
+    def compile(self, debug=False):
+        return [self.compile_instruction(inst,debug=debug) for inst in self.prog_list]
    
     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
         if phrst is None:

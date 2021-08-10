@@ -10,8 +10,11 @@ class RFSocInstrument(Instrument):
     def reset(self):
         self.soc = PfbSoc('qsystem_2.bit')
     
-    def acquire(self, prog, load_pulses=True):
-        return prog.acquire(self.soc, load_pulses)
+    def acquire(self, prog, load_pulses=True,ReadoutPerExpt=1, Average=[]):
+        if prog.__class__.__base__.__name__=='RRAveragerProgram':
+            return prog.acquire(self.soc, load_pulses, ReadoutPerExpt, Average)
+        else:
+            return prog.acquire(self.soc, load_pulses)
     
     def single_write(self, addr, data):
         self.soc.tproc.single_write(addr,data)
