@@ -21,8 +21,14 @@ class qubit:
         Resonant frequency of the qubit in MHz
     cfg['cfreq'] : int
         Resonant frequency of the cavity in MHz
+    cfg['cgain'] : int
+        Gain for the readout pulse
+    cfg['cReadoutDuration'] : int 
+        Readout pulse duration in clocks
     cfg['tof'] : int
         Time of flight for a pulse through the readout cavity in clocks
+    cfg['trigWidth'] : int
+        Width of the readout trigger in clocks.
     cfg['clkPeriod'] : float
         Clock period of the tproc in nanoseconds
     cfg['maxSampBuf'] : int
@@ -64,6 +70,11 @@ class qubit:
             self.cfg['coch'] = cavityOutputChannel
             self.cfg['qoch'] = qubitOutputChannel
             self.cfg['tof'] = 214
+            self.cfg['trigWidth'] = 5
+            self.cfg['qfreq'] = 500
+            self.cfg['cfreq'] = 500
+            self.cfg['cgain'] = 32767
+            self.cfg['cReadoutDuration'] = 200
             self.cfg['clkPeriod'] = 2.6
             self.cfg['maxSampBuf'] = 1022
             self.cfg['dacFreqWidth'] = 32
@@ -107,6 +118,102 @@ class qubit:
         
         """
         self.cfg['loFreq'] = loFreq
+        
+    def _writeRabiASM(
+        self,
+        qubitChannel = None,
+        cavityChannel = None,
+        printASM = False):
+        
+        """
+        Write the ASM code for the rabi measurement functionality. This may end up being more of a master ASM file because it has such robust functionality. 
+        
+        Parameters
+        ----------
+        
+        qubitChannel : int, optional
+            Used to overwrite the qubit channel in the configuration dictionary. If this value is left as `None`, the function will simply use the output channel set in the configuration dictionary. 
+        cavityChannel : int, optional
+            Used to overwrite the cavity channel in the configuration dictionary. If this value is left as `None`, the function will simply use the output channel set in the configuration dictionary. 
+        printASM : boolean, optional
+            Used to print the ASM code that is loaded onto the device for debugging purposes. 
+        """
+        
+        if qubitChannel == None: 
+            qubitChannel = self.cfg['qoch']
+        if cavityChannel == None:
+            cavityChannel = self.cfg['coch']
+        
+        with ASM_Program() as p:
+            #Write all memory addresses to program memory
+            #Set the frequency for the qubit channel 
+            p.memri(0, 1, 1,"freq qubit channel")
+            #Set the start gain and delta gain for the qubit channel
+            p.memri(0, 2, 2,"start/current gain qubit channel")
+            p.memri(0, 3, 3,"delta gain qubit channel")
+            #Set the start time and delta time for the qubit excitation pulse
+            p.memri(0, 4, 4,"start time qubit excitation pulse")
+            p.memri(0, 5, 5,"delta time for qubit excitation pulse")
+            #Set the frequency, gain, and time for the cavity readout pulse
+            p.memri(0, 6, 6,"Freuqency for cavity readount pulse")
+            p.memri(0, 7, 7,"Gain for cavity readount pulse")
+            p.memri(0, 8, 8,"Time duration for cavity readout pulse")
+            #Set the post-readout relaxation time
+            p.memri(0, 12, 11,"Post-readout relaxation time")
+            #Set the pre-readout relaxation time
+            p.memri(0, 13, 12,"Pre-readout start relaxation time")
+            p.memri(0, 14, 13,"Pre-readout delta relaxation time")
+            #Set the outer and inner loop count registers
+            p.memri(1, 1, 9,"Gain loop count")
+            p.memri(1, 2, 10,"Qubit pulse time loop count")
+            p.memri(1, 3, 14,"Iteration loop count")
+            #Trigger value for the average block. This will be enabled during the cavity readout pulse
+            #p.regwi(1,6, 0x4001 if cavityChannel == 0 else 0x8001)
+            p.regwi(1,6, 0xC001)
+            #Set up the DAC selection and pulse duration register for the qubit channel
+            p.regwi(0,9,0b1001,"0b1001, stdysel = 1 (zero value), mode = 0 (nsamp), outsel = 01 (DDS).") #Value
+            p.bitwi(0,9,9, "<<", 16) #Shift it left and leave it in r9
+            p.bitw(0,10,15,"|",9) #Combine the settings into register 10. We use a different register so that we can combine values in fewer steps later when the pulse duration changes. 
+            #Set up the DAC Selection and pulse duration register for the cavity channel. We use the same ouptut select because it is the same for both channels. Only the pusle duration is different for this register. 
+            p.bitw(0,11,8,"|",9)
+            #Delay the start a bit
+            p.synci(1000)
+            #Loop
+            p.label("GAIN_LOOP")
+            #Reset the pulse loop count
+            p.math(1,4,0,"+",2) #Reset the pulse loop
+            #Reset all things iterated in the pulse_loop loop
+            p.math(0,15,0,"+",4) #Reset the pulse duration
+            p.math(0,16,0,"+",13) #Reset the pre-readout delay
+            p.bitw(0,10,15,"|",9) #Update the pulse duration. 
+            p.label("PULSE_LOOP")
+            #Reset the iteration loop count
+            p.math(1,5,0,"+",3)
+            p.label("ITERATION_LOOP")
+            #Que the qubit pulse immediately and que all later operations after it finishes
+            p.set(qubitChannel,0,1,0,0,2,10,0)
+            p.sync(0,15)
+            #Delay for the pre-readout delay
+            p.sync(0,16)
+            #Que the readout pulse right after the qubit pulse, start the trigger, and que all later operations after it finishes
+            p.set(cavityChannel,0,6,0,0,7,11,0)
+            p.seti(0,1,6,self.cfg['tof'])
+            p.sync(0,8)
+            #Delay for the relaxation time
+            #Disable the trigger
+            p.seti(0,1,0,self.cfg['tof'] + self.cfg['trigWidth'])
+            p.sync(0,12)
+            p.loopnz(1,5,"ITERATION_LOOP")
+            #Run the math to add the gain values and time delay values for the next iteration of the inner loop. 
+            p.math(0,15,15,"+",5) #Add delta time to the current time and store it in the current time register. 
+            p.math(0,16,16,"+",14) #Add the delta pre-readout time delay to the pre-readout time delay. 
+            p.bitw(0,10,15,"|",9) #Update the pulse duration. 
+            p.loopnz(1,4,"PULSE_LOOP")
+            p.math(0,2,2,"+",3) #Add delta gain to the current gain and store it in the current gain register. 
+            p.loopnz(1,1,"GAIN_LOOP")
+            #End the signal
+            p.seti(0,0,0,0)
+        self.soc.tproc.load_asm_program(p)
 
     def _writeDemoASM(
         self, 
@@ -480,3 +587,96 @@ class qubit:
         freqs = freqs + self.cfg['loFreq']
 
         return freqs, ampMeans, phaseMeans
+    
+    def twoToneSpec(
+        )
+    
+    def rabiOscillation(
+        self,
+        qStartGain = 32767,
+        qDeltaGain = 0, 
+        pulseWidthStart = 100, 
+        pulseWidthDelta = 50,
+        preReadoutDelayStart = 100,
+        preReadoutDelayDelta = 20,
+        postReadoutDelay = 300,
+        gainLoopCount = 1,
+        durationLoopCount = 5,
+        iterationLoopCount = 10):
+        
+        """
+        Performs rabi oscillation testing. 
+        
+        The code works using three loops. The outer gain loop increments the gain value each time the loop is run. The middle duration loop increments the pulse width and pre-readout delay each time it is run. The center loop does not increment anything. To sweep a variable, simply provide a start and delta values and a loop count as needed. If a programmer wishes for a variable that is normally swept to remain constant, one would simply select the delta value to be zero. 
+        
+        Parameters
+        ----------
+        qStartGain : int, optional
+            The beginning gain value for the cavity. 
+        qDeltaGain : int, optional
+            The delta gain value to be incremented every time the outer gain loop runs. 
+        pulseWidthStart : int, optional
+            The start time duration for the qubit excitation pulse expressed in clocks. 
+        pulseWidthDelta : int, optinal
+            The delta time duration for the qubit excitation pulse to be added each time the inner loop runs expressed in clocks. 
+        preReadoutDelayStart : int, optional
+            The start time duration for the delay given between the qubit excitation pulse and the readout pulse expressed in clocks. 
+        preReadoutDelayDelta : int, optional
+            The delta time duration for the delay given between the qubit excitation pulse and the readout pulse expressed in clocks. This will be added to `preReadoutDelayStart` every time the inner loop rolls over. 
+        postReadoutDelay : int, optional
+            THe delay time given after a readout pulse. 
+        gainLoopCount : int, optional
+            Number of times to increment the gain
+        durationLoopCount : int, optional
+            Number of times to run the inner loop that increments the qubit pulse druation and the pre-readout delay duration. 
+        iterationLoopCount : int, optional
+            Number of times to run each individual test
+        """
+        
+        self._writeRabiASM()
+        
+        #Populate the address space. 
+        qFreqReg = freq2reg(self.soc.fs_dac, self.cfg['qfreq'], B=32)
+        self.soc.tproc.single_write(addr=1, data=qFreqReg)
+
+        self.soc.tproc.single_write(addr=2, data=qStartGain)
+        self.soc.tproc.single_write(addr=3, data=qDeltaGain)
+
+        self.soc.tproc.single_write(addr=4, data=pulseWidthStart)
+        self.soc.tproc.single_write(addr=5, data=pulseWidthDelta)
+
+        cavFreqReg = freq2reg(self.soc.fs_dac, self.cfg['cfreq'], B=32)
+        self.soc.tproc.single_write(addr=6, data=cavFreqReg)
+        self.soc.tproc.single_write(addr=7, data=self.cfg['cgain'])
+        self.soc.tproc.single_write(addr=8, data=self.cfg['cReadoutDuration'])
+
+        self.soc.tproc.single_write(addr=9, data=gainLoopCount-1)
+        self.soc.tproc.single_write(addr=10, data=durationLoopCount-1)
+        self.soc.tproc.single_write(addr=14, data=iterationLoopCount-1)
+
+        self.soc.tproc.single_write(addr=11, data=postReadoutDelay)
+
+        self.soc.tproc.single_write(addr=12, data=preReadoutDelayStart)
+        self.soc.tproc.single_write(addr=13, data=preReadoutDelayDelta)
+
+
+        decimatedLength = self.cfg['cReadoutDuration']
+        accumulatedLength = gainLoopCount * durationLoopCount * iterationLoopCount
+
+        #Set up the readout buffer
+        self.soc.readouts[self.cfg['rch']].set_out("product")
+        self.soc.readouts[self.cfg['rch']].set_freq(self.cfg['cfreq'])
+        self.soc.avg_bufs[self.cfg['rch']].config(address=self.cfg['rch'], length=decimatedLength)
+        self.soc.avg_bufs[self.cfg['rch']].enable()
+
+        #Start tProc
+        #soc.setSelection("product")
+        self.soc.tproc.stop()
+        self.soc.tproc.start()
+
+        time.sleep(1)
+
+        idec,qdec = self.soc.get_decimated(ch=self.cfg['rch'], length=1022)
+        iacc,qacc = self.soc.get_accumulated(ch=self.cfg['rch'], length=accumulatedLength)
+
+        return idec, qdec, iacc, qacc
