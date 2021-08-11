@@ -241,13 +241,13 @@ class ASM_Program:
             self.dac_ts[ch]=max_t
             
     def safe_regwi(self, rp, reg, imm, comment=None):
-        if imm <2**31:
+        if imm <2**30: 
             self.regwi(rp,reg,imm,comment)
         else:
             self.regwi(rp,reg,imm>>1,comment)
-            self.bitwi(rp,reg,reg,"<<",1)
-            if imm % 2 !=0:
-                self.mathi(rp,reg,reg,"+",1)
+            self.bitwi(rp,reg,reg,"<<",2)
+            if imm % 4 !=0:
+                self.mathi(rp,reg,reg,"+",imm % 4)
             
     def sync_all(self, t=0):
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
