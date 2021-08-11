@@ -3,6 +3,11 @@ from qsystem_2 import *
 from qsystem2_asm import *
 from scipy import signal
 import warnings
+try:
+    from windfreak import SynthHD
+    import serial
+except ImportError: 
+    print("Local oscillator contorl libraries not installed. The library will continue to function without the local oscillator functionality.")
 
 class qubit:
     """
@@ -37,8 +42,12 @@ class qubit:
         Size of the sample buffer in decimated sampes
     cfg['dacFreqWidth'] : int
         Bit width for the frequency register that controls the DAC DDS frequency
-    cfg['loFreq'] : int
+    cfg['loFreq'] : float
         The frequency of the local oscillator in MHz. This will be added to the the qubit or cavity frequency on return values where frequency is included as part of the return value. 
+    cfg['loPower'] : float
+        The power level of the local oscillator. 
+    cfg['loEnabled'] : boolean
+        Whether or not the local oscillator is enabled.
     cfg['maxADCFreq'] : int
         The maximum adc frequency in MHz. This represents the high end of the 2nd nyqist zone. 
     """
@@ -81,6 +90,8 @@ class qubit:
             self.cfg['maxSampBuf'] = 1022
             self.cfg['dacFreqWidth'] = 32
             self.cfg['loFreq'] = 0
+            self.cfg['loPower'] = 0
+            self.cfg['loEnabled'] = False
             self.cfg['maxADCFreq'] = 3072
         
         self.writeBitfile(initClocks = False)
@@ -103,23 +114,70 @@ class qubit:
         """
         self.soc = PfbSoc(bitfile, force_init_clks=initClocks)
     
+    def initLO(
+        self,
+        port):
+        
+        """
+            Initializes the local oscillator on `port`. 
+            
+        Parameters
+        ----------
+        port : string
+            The port that the local oscillator is running on. 
+        """
+        
+        self.synth = SynthHD(port)
+        self.synth.init()
+    
     def setLOFreq(
         self,
         loFreq):
         
         """
-        Set the frequency of the local oscillator. 
-        
-        Currently, this function is under development and does not set the frequency of the local oscillaotr. It simply chnages the value in the cfg dictionary. Once the development is finished, this function should set the frequency of the local oscillator and update the configuration dictionary for the object. 
+        Set the frequency of the local oscillator. The function `initLO()` should be run before this function is used. 
         
         Parameters
         ----------
         
-        loFreq : int
+        loFreq : float
             The desired frequency of the local oscillator in MHz. 
         
         """
         self.cfg['loFreq'] = loFreq
+        self.synth.frequency = loFreq
+    
+    def setLOPower(
+        self,
+        loPower):
+        
+        """
+        Sets the power level of the local oscillaotr. 
+        
+        Parameters
+        ---------
+        loPower : float
+            The desired power level of the local oscillator. 
+        """
+        
+        self.cfg['loPower'] = loPower
+        self.synth.power = loPower
+        
+    def enableLO(
+        self, 
+        enableLO):
+        
+        """
+        Sets whether the local oscillator is enabled or not. 
+        
+        Parameters
+        ----------
+        enableLO : boolean
+            Whether the external osciallator is enabled. 
+        """
+        
+        self.cfg['loEnabled'] = enableLO
+        self.synth.enable = enableIO
         
     def _writeRabiASM(
         self,
@@ -589,7 +647,8 @@ class qubit:
             phaseMeans[i] = phases[2:].mean()
             
         
-        freqs = freqs + self.cfg['loFreq']
+        if self.cfg['loEnabled']: 
+            freqs = freqs + self.cfg['loFreq']
 
         return freqs, ampMeans, phaseMeans
     
@@ -658,8 +717,8 @@ class qubit:
             ampMeans[i] = amps[2:].mean()
             phaseMeans[i] = phases[2:].mean()
             
-        
-        freqs = freqs + self.cfg['loFreq']
+        if self.cfg['loEnabled']:
+            freqs = freqs + self.cfg['loFreq']
 
         return freqs, ampMeans, phaseMeans
     
