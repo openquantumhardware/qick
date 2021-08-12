@@ -132,6 +132,7 @@ class qubit:
     
     def setLOFreq(
         self,
+        channel,
         loFreq):
         
         """
@@ -145,10 +146,11 @@ class qubit:
         
         """
         self.cfg['loFreq'] = loFreq
-        self.synth.frequency = loFreq
+        self.synth[channel].frequency = loFreq
     
     def setLOPower(
         self,
+        channel,
         loPower):
         
         """
@@ -161,10 +163,11 @@ class qubit:
         """
         
         self.cfg['loPower'] = loPower
-        self.synth.power = loPower
+        self.synth[channel].power = loPower
         
     def enableLO(
         self, 
+        channel,
         enableLO):
         
         """
@@ -177,7 +180,7 @@ class qubit:
         """
         
         self.cfg['loEnabled'] = enableLO
-        self.synth.enable = enableIO
+        self.synth[channel].enable = enableIO
         
     def _writeRabiASM(
         self,
