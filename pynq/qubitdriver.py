@@ -42,12 +42,22 @@ class qubit:
         Size of the sample buffer in decimated sampes
     cfg['dacFreqWidth'] : int
         Bit width for the frequency register that controls the DAC DDS frequency
-    cfg['loFreq'] : float
-        The frequency of the local oscillator in MHz. This will be added to the the qubit or cavity frequency on return values where frequency is included as part of the return value. 
-    cfg['loPower'] : float
-        The power level of the local oscillator. 
-    cfg['loEnabled'] : boolean
-        Whether or not the local oscillator is enabled.
+    cfg['loQubitChannel'] int
+        The LO channel that goes to the qubit. 
+    cfg['loQubitFreq'] : float
+        The frequency of the local oscillator channel going to the qubit in MHz. 
+    cfg['loQubitPower'] : float
+        The power level of the local oscillator channel going to the qubit. 
+    cfg['loQuitEnabled'] : boolean
+        Whether or not the local oscillator channel going to the qubit is enabled.
+    cfg['loCavityChannel'] int
+        The LO channel that goes to the cavity. 
+    cfg['loCavityFreq'] : float
+        The frequency of the local oscillator channel going to the cavity in MHz. 
+    cfg['loCavityPower'] : float
+        The power level of the local oscillator channel going to the cavity. 
+    cfg['loCavityEnabled'] : boolean
+        Whether or not the local oscillator channel going to the cavity is enabled.
     cfg['maxADCFreq'] : int
         The maximum adc frequency in MHz. This represents the high end of the 2nd nyqist zone. 
     """
@@ -89,9 +99,14 @@ class qubit:
             self.cfg['clkPeriod'] = 2.6
             self.cfg['maxSampBuf'] = 1022
             self.cfg['dacFreqWidth'] = 32
-            self.cfg['loFreq'] = 0
-            self.cfg['loPower'] = 0
-            self.cfg['loEnabled'] = False
+            self.cfg['loQubitChannel'] = 0
+            self.cfg['loQubitFreq'] = 0
+            self.cfg['loQubitPower'] = 0
+            self.cfg['loQubitEnabled'] = False
+            self.cfg['loCavityChannel'] = 1
+            self.cfg['loCavityFreq'] = 0
+            self.cfg['loCavityPower'] = 0
+            self.cfg['loCavityEnabled'] = False
             self.cfg['maxADCFreq'] = 3072
         
         self.writeBitfile(initClocks = False)
@@ -130,13 +145,12 @@ class qubit:
         self.synth = SynthHD(port)
         self.synth.init()
     
-    def setLOFreq(
+    def setLOFreqQubit(
         self,
-        channel,
         loFreq):
         
         """
-        Set the frequency of the local oscillator. The function `initLO()` should be run before this function is used. 
+        Set the frequency of the local oscillator going to the qubit. The function `initLO()` should be run before this function is used. 
         
         Parameters
         ----------
@@ -145,16 +159,15 @@ class qubit:
             The desired frequency of the local oscillator in MHz. 
         
         """
-        self.cfg['loFreq'] = loFreq
-        self.synth[channel].frequency = loFreq
+        self.cfg['loQubitFreq'] = loFreq
+        self.synth[slf.cfg['loQubitChannel']].frequency = loFreq
     
-    def setLOPower(
+    def setLOPowerQubit(
         self,
-        channel,
         loPower):
         
         """
-        Sets the power level of the local oscillaotr. 
+        Sets the power level of the local oscillaotr cannel going to the qubit. 
         
         Parameters
         ---------
@@ -162,16 +175,15 @@ class qubit:
             The desired power level of the local oscillator. 
         """
         
-        self.cfg['loPower'] = loPower
-        self.synth[channel].power = loPower
+        self.cfg['loQubitPower'] = loPower
+        self.synth[slf.cfg['loQubitChannel']].power = loPower
         
-    def enableLO(
+    def enableLOQubit(
         self, 
-        channel,
         enableLO):
         
         """
-        Sets whether the local oscillator is enabled or not. 
+        Sets whether the local oscillator going to the qubit is enabled or not. 
         
         Parameters
         ----------
@@ -179,8 +191,57 @@ class qubit:
             Whether the external osciallator is enabled. 
         """
         
-        self.cfg['loEnabled'] = enableLO
-        self.synth[channel].enable = enableIO
+        self.cfg['loQubitEnabled'] = enableLO
+        self.synth[slf.cfg['loQubitChannel']].enable = enableIO
+        
+    def setLOFreqCavity(
+        self,
+        loFreq):
+        
+        """
+        Set the frequency of the local oscillator going to the cavity. The function `initLO()` should be run before this function is used. 
+        
+        Parameters
+        ----------
+        
+        loFreq : float
+            The desired frequency of the local oscillator in MHz. 
+        
+        """
+        self.cfg['loCavityFreq'] = loFreq
+        self.synth[slf.cfg['loCavityChannel']].frequency = loFreq
+    
+    def setLOPowerCavity(
+        self,
+        loPower):
+        
+        """
+        Sets the power level of the local oscillaotr cannel going to the cavity. 
+        
+        Parameters
+        ---------
+        loPower : float
+            The desired power level of the local oscillator. 
+        """
+        
+        self.cfg['loCavityPower'] = loPower
+        self.synth[slf.cfg['loCavityChannel']].power = loPower
+        
+    def enableLOCavity(
+        self, 
+        enableLO):
+        
+        """
+        Sets whether the local oscillator going to the cavity is enabled or not. 
+        
+        Parameters
+        ----------
+        enableLO : boolean
+            Whether the external osciallator is enabled. 
+        """
+        
+        self.cfg['loCavityEnabled'] = enableLO
+        self.synth[slf.cfg['loCavityChannel']].enable = enableIO
         
     def _writeRabiASM(
         self,
@@ -650,8 +711,8 @@ class qubit:
             phaseMeans[i] = phases[2:].mean()
             
         
-        if self.cfg['loEnabled']: 
-            freqs = freqs + self.cfg['loFreq']
+        if self.cfg['loCavityEnabled']: 
+            freqs = freqs + self.cfg['loCavityFreq']
 
         return freqs, ampMeans, phaseMeans
     
@@ -720,8 +781,8 @@ class qubit:
             ampMeans[i] = amps[2:].mean()
             phaseMeans[i] = phases[2:].mean()
             
-        if self.cfg['loEnabled']:
-            freqs = freqs + self.cfg['loFreq']
+        if self.cfg['loQubitEnabled']:
+            freqs = freqs + self.cfg['loQubitFreq']
 
         return freqs, ampMeans, phaseMeans
     
