@@ -160,7 +160,7 @@ class qubit:
         
         """
         self.cfg['loQubitFreq'] = loFreq
-        self.synth[slf.cfg['loQubitChannel']].frequency = loFreq
+        self.synth[self.cfg['loQubitChannel']].frequency = loFreq
     
     def setLOPowerQubit(
         self,
@@ -176,7 +176,7 @@ class qubit:
         """
         
         self.cfg['loQubitPower'] = loPower
-        self.synth[slf.cfg['loQubitChannel']].power = loPower
+        self.synth[self.cfg['loQubitChannel']].power = loPower
         
     def enableLOQubit(
         self, 
@@ -192,7 +192,7 @@ class qubit:
         """
         
         self.cfg['loQubitEnabled'] = enableLO
-        self.synth[slf.cfg['loQubitChannel']].enable = enableIO
+        self.synth[self.cfg['loQubitChannel']].enable = enableIO
         
     def setLOFreqCavity(
         self,
@@ -209,7 +209,7 @@ class qubit:
         
         """
         self.cfg['loCavityFreq'] = loFreq
-        self.synth[slf.cfg['loCavityChannel']].frequency = loFreq
+        self.synth[self.cfg['loCavityChannel']].frequency = loFreq
     
     def setLOPowerCavity(
         self,
@@ -225,7 +225,7 @@ class qubit:
         """
         
         self.cfg['loCavityPower'] = loPower
-        self.synth[slf.cfg['loCavityChannel']].power = loPower
+        self.synth[self.cfg['loCavityChannel']].power = loPower
         
     def enableLOCavity(
         self, 
@@ -241,7 +241,7 @@ class qubit:
         """
         
         self.cfg['loCavityEnabled'] = enableLO
-        self.synth[slf.cfg['loCavityChannel']].enable = enableIO
+        self.synth[self.cfg['loCavityChannel']].enable = enableLO
         
     def _writeRabiASM(
         self,
