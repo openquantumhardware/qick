@@ -1,6 +1,8 @@
-# qsystem_2
-QBit readout and control with new tProcessor and extended 32-bit signal generator.
+# QICK: Quantum Instrumentation Controller Kit
 
-# Exmples in the pynq directory
+QICK is a kit of firmware and software to use the Xilinx RFSoC as a control system for quantum systems
 
-* Frequency-Sweep-qsytem_2.ipynp:  defines a function that sends and receives a tone defined with frequency, gain, nsamp, and number of loop itereations.  Two example of amplite vs gain and frequency.
+It consists of:
+Firmware for the ZCU111 RFSoC evaluation board.  
+A python package for interfacing with the QICK controller
+Examples demonstrating usage
