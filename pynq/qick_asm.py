@@ -1,10 +1,8 @@
-from qsystem_2 import *
 import numpy as np
 
 fs_adc = 384*8
 fs_dac = 384*16
 fs_proc=384
-
 
 def freq2reg(f):
     B=32
