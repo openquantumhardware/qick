@@ -11,16 +11,18 @@ This guide will show you how to setup QICK after configuring your computer and R
   * An SMA cable that you will use to connect the system in loopback mode
   * A power cable (12 volt, 50 watt) for the ZCU111
   * A micro SD card (16 GB) that you will flash the PYNQ 2.6.0 disk image onto
-* A personal computer with an Ethernet port (this guide assumes a Windows PC with no command line interface so as to be accessible to users with little command line programming experience; contact sarafs@princeton.edu if you would like this guide to include support for other operating systems). 
+  * Screwdriver, hex wrench, and associated screws
+* A personal computer with an Ethernet port (this guide assumes a Windows PC with no additional command line tools so as to be accessible to users with little command line programming experience; contact sarafs@princeton.edu if you would like this guide to include support for other operating systems). 
   * The computer should have git installed. In this guide, Github Desktop is used. 
     * You can download Github Desktop here: https://desktop.github.com/
   * The computer should have either SSH or PuTTY/PSCP installed. PuTTY is an open-source SSH client for the Windows operating system. This guide uses PuTTY/PSCP for accessibility, as some users are not familiar with the command line. 
     * You can download PuTTY here: https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html (for instance `putty-64bit-0.76-installer.msi`). You can also download the PSCP executable from the same link (for instance `pscp.exe`). 
   * The computer should have the Win32DiskImager utility from the Sourceforge Project page installed. The Win32DiskImager utility is an open-source tool for writing image files to disks. You will use this utility to flash the PYNQ 2.6.0 image onto your micro SD card. 
     * You can download the Win32DiskImager utility here: https://sourceforge.net/projects/win32diskimager/
-* A router (this guide used a standard Cisco RV160 VPN Router which is available for purchase at www.amazon.com). The router used in this guide has 4 LAN ports. For instance, in a typical qubit system setup you can connect one LAN port to your personal computer, a second LAN port to your ZCU111, and a third point to an Ethernet switch (for example the NETGEAR 24-Port Gigabit Ethernet Unmanaged Switch (JGS524) which is available for purchase at www.amazon.com). That Ethernet switch can place 24 more devices (such as external trigger sources, local oscillators, programmable attenuators or other lab equipment) on the router's subnet, making them accessible to your personal computer. 
+* A router (this guide used a standard Cisco RV160 VPN Router which is available for purchase at www.amazon.com). The router used in this guide has 4 LAN ports. For instance, in a typical qubit control setup you can connect one LAN port to your personal computer, a second LAN port to your ZCU111, and a third point to an Ethernet switch (for example the NETGEAR 24-Port Gigabit Ethernet Unmanaged Switch (JGS524) which is available for purchase at www.amazon.com). That Ethernet switch can place 24 more devices (such as external trigger sources, local oscillators, programmable attenuators or other lab equipment) on the router's subnet, making them accessible to your personal computer. 
 * Two Ethernet cables that you will use to attach 1) your ZCU111 board and 2) your personal computer to the router.
 * A micro SD card reader (such as IOGEAR SuperSpeed USB 3.0 SD/Micro SD Card Reader/Writer (GFR304SD) which is available for purchase at www.amazon.com). 
+* A torque wrench for tightening SMA cables
 
 ### Flashing the PYNQ 2.6.0 image onto your micro SD card
 * Your ZCU111 RFSOC evaluation board kit comes with a micro SD card that is preloaded with a PYNQ image. The QICK hardware requires PYNQ 2.6.0, so let's update the micro SD card with this version of the PYNQ image. 
@@ -46,17 +48,24 @@ This guide will show you how to setup QICK after configuring your computer and R
 
 
 ### Assembling and powering on your ZCU111 board
-* 
-* Connect a RF DAC channel (e.g.  to an RF ADC channel to be used in the QICK loopback test. To replicate the demo
+
+* There are several nice resources on the internet that demonstrate how to assemble the ZCU111 board. For instance, here is a full video guide: https://www.youtube.com/watch?v=4JfKlv8kWhs. The assembly is done using the screwdriver, hex wrench, and associated screws that come with the ZCU111 kit. The recommended screwdriver to install screws is a JIS #1 screwdriver such as a Vessel 220. The 4 mm hex wrench is used to tighten the jackscrew nuts under the screws. 
+* Use your torque wrench to wire an SMA cable between an RF DAC channel (for this upcoming demo, choose ADC 224 CH0) and an RF ADC channel (choose ADC 224 CH0). In the case of the XM500 breakout board the channel names are written on the board itself. For a more detailed connector mapping, consult pages 95-99 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
+* Slide your micro SD card into its slot on the ZCU111 board. Make sure that switch SW6 of the ZCU111 is in SD card mode according to Table 2-4 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
+* Connect your Ethernet cable from a router LAN port to the ZCU111 Ethernet port. 
+* Power up your router (note that you may have to contact your system administrator to register your router's MAC address to a wall outlet in your building/laboratory).  
+* Connect the 12 V power cable to the ZCU111. Flip the ZCU111 power switch on (it's next to the power cable). You should hear the fan above the RFSOC chip begin to whir and you should see green LED lights blinking all over the board. You should also see a green LED blinking repeatedly above the ZCU111 Ethernet port to signal that it is connected to the router's network. 
+* Your board setup should look something like the below cartoon:
 
 <p align="center">
  <img src="quick-start-guide-pics/boardpic_cartoon.PNG" alt="An assembled ZCU111 board">
 </p>
 
 ### Finding your RFSOC on the router's network
-* Power on your 
-* Connect your personal computer via Ethernet to a LAN port of the router
-* Connect your ZCU111 evaluation board via Ethernet to another LAN 
+* In the last section, you powered your router on and you connected your ZCU111 board via an Ethernet cable to one of the router's LAN ports. You verified that a green LED was blinking repeatedly above the ZCU111 Ethernet port. 
+* Now, connect your personal computer via Ethernet to a LAN port of the router. 
+* Log into your router via a web browser. In the case of the router used in this guide, doing so is straightforward and is explained here: https://www.cisco.com/c/dam/en/us/td/docs/routers/csbr/RV160/Quick_Start_Guide/EN/RV160_qsg_en.pdf
+* Look at the list of devices found by your router. You should see two devices; your PC and your ZCU111 (id `pynq`). Take note of the IP address that was assigned to the ZCU111 (in my case it was assigned the address `192.168.1.146`). 
 
 <p align="center">
  <img src="quick-start-guide-pics/ciscorouter.PNG" alt="Devices found by the router">
@@ -67,12 +76,18 @@ This guide will show you how to setup QICK after configuring your computer and R
 
 #### Via Jupyter
 
+* Now you are prepared to connect to your RFSOC. Before you clone the `qick` repository and copy it onto the RFSOC, let's see what is initially on the RFSOC's operating system (this was determined by the contents of the PYNQ image). To do so, simply enter the IP address assigned to the RFSOC into a web browser on your personal computer: `192.168.1.146`. The username and password for the ZCU111 are by default `xilinx` and `xilinx`, respectively. You can change those by entering `sudo` mode once you've logged into the RFSOC via SSH (you will log in via SSH in the next part of this guide).  
+* You should see this default Jupyter notebook browser: 
+
 <p align="center">
  <img src="quick-start-guide-pics/pynqstartup.PNG" alt="PYNQ startup">
 </p>
 
+* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now lets connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC processor and do the upcoming QICK loopback demo. 
+
 #### Via SSH
 
+* To connect via SSH, open the PuTTY application and input the IP address assigned to the RFSOC (`192.168.1.146`) as below: 
 <p align="center">
  <img src="quick-start-guide-pics/putty1.PNG" alt="Using PuTTY (1)">
 </p>
