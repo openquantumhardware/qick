@@ -2,7 +2,7 @@
 
 ***Have questions? Contact: sarafs@princeton.edu***
 
-This guide will show you how to setup QICK after configuring your computer and RFSOC ZCU111 board on a local area network (LAN). By the end of this guide you will have run a QICK program in loopback mode (where signals loop back from an RF DAC directly into an RF ADC)! 
+This guide will show you how to set up QICK after configuring your computer and RFSOC ZCU111 board on a local area network (LAN). By the end of this guide you will have run a QICK program in loopback mode (where signals loop back from an RF DAC directly into an RF ADC)! 
 
 ### Prerequisites
 * A ZCU111 RFSOC evaluation board kit (available for purchase at www.avnet.com). In this guide you will connect the ZCU111 evaluation board to either the XM500 breakout board which comes with the ZCU111 evaluation board kit or the QICK RF board which was custom-designed at Fermilab. The kit includes:
@@ -11,7 +11,7 @@ This guide will show you how to setup QICK after configuring your computer and R
   * An SMA cable that you will use to connect the system in loopback mode
   * A power cable (12 volt, 50 watt) for the ZCU111
   * A micro SD card (16 GB) that you will flash the PYNQ 2.6.0 disk image onto
-  * Screwdriver, hex wrench, and associated screws
+  * A screwdriver, hex wrench, and associated screws
 * A personal computer with an Ethernet port (this guide assumes a Windows PC with no additional command line tools so as to be accessible to users with little command line programming experience; contact sarafs@princeton.edu if you would like this guide to include support for other operating systems). 
   * The computer should have git installed. In this guide, Github Desktop is used. 
     * You can download Github Desktop here: https://desktop.github.com/
@@ -50,7 +50,7 @@ This guide will show you how to setup QICK after configuring your computer and R
 ### Assembling and powering on your ZCU111 board
 
 * There are several nice resources on the internet that demonstrate how to assemble the ZCU111 board. For instance, here is a full video guide: https://www.youtube.com/watch?v=4JfKlv8kWhs. The assembly is done using the screwdriver, hex wrench, and associated screws that come with the ZCU111 kit. The recommended screwdriver to install screws is a JIS #1 screwdriver such as a Vessel 220. The 4 mm hex wrench is used to tighten the jackscrew nuts under the screws. 
-* Use your torque wrench to wire an SMA cable between an RF DAC channel (for this upcoming demo, choose ADC 224 CH0) and an RF ADC channel (choose ADC 224 CH0). In the case of the XM500 breakout board the channel names are written on the board itself. For a more detailed connector mapping, consult pages 95-99 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
+* Use your torque wrench to wire an SMA cable between an RF DAC channel (for this upcoming demo, choose DAC 229 CH3) and an RF ADC channel (choose ADC 224 CH0). In the case of the XM500 breakout board the channel names are written on the board itself. For a more detailed connector mapping, consult pages 95-99 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
 * Slide your micro SD card into its slot on the ZCU111 board. Make sure that switch SW6 of the ZCU111 is in SD card mode according to Table 2-4 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
 * Connect your Ethernet cable from a router LAN port to the ZCU111 Ethernet port. 
 * Power up your router (note that you may have to contact your system administrator to register your router's MAC address to a wall outlet in your building/laboratory).  
@@ -92,40 +92,65 @@ This guide will show you how to setup QICK after configuring your computer and R
  <img src="quick-start-guide-pics/putty1.PNG" alt="Using PuTTY (1)">
 </p>
 
+* Click `Open`. You will see the following login screen on a new terminal. The username and password for the ZCU111 are by default `xilinx` and `xilinx`, respectively. 
+
 <p align="center">
  <img src="quick-start-guide-pics/putty2.PNG" alt="Using PuTTY (2)">
 </p>
+
+* After successfully logging in you will see a Linux terminal. You have now remotely logged on to the RFSOC. 
 
 <p align="center">
  <img src="quick-start-guide-pics/putty3.PNG" alt="Using PuTTY (3)">
 </p>
 
-### Moving the QICK tools onto your RFSOC's processor
+### Copy the QICK tools onto your RFSOC's processor
+
+* Use Github Desktop to clone the `qick` repo onto your personal computer (Google around for resources if you are not sure how to do this). 
+* Now, copy the `pscp.exe` into the same directory as your cloned `qick` repo, as below: 
 
 <p align="center">
  <img src="quick-start-guide-pics/pscpfolderstructure.PNG" alt="Folder structure required for PSCP">
 </p>
 
+* Open the Command Prompt application in Windows and, after navigating to the directory containing your cloned `qick` repo, type in the following command (substituting the IP address that was assigned to your RFSOC):
+
 <p align="center">
  <img src="quick-start-guide-pics/pushingdatatotheboard.PNG" alt="Pushing data to the RFSOC with PSCP">
 </p>
 
-### Running a QICK program in loopback mode
+* This copied the `qick` repository into the `jupyter_notebooks` folder in the `/home/xilinx/` directory of the RFSOC. 
+* Your Jupyter notebook browser has now updated to include the `qick` repository, as shown below: 
 
 <p align="center">
  <img src="quick-start-guide-pics/jupyternotebook1.PNG" alt="Jupyter notebook main folder">
 </p>
 
+
+### Running a QICK program in loopback mode
+
+* Navigate to the `quick-start-demo` subfolder within the `qick` directory: 
+
 <p align="center">
  <img src="quick-start-guide-pics/jupyternotebook2.PNG" alt="Jupyter notebook demo folder">
 </p>
+
+* Open `qsystem2-demonstrator.ipynb` and click through the Jupyter notebook cells. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/quick-start/quick-start-demo/qsystem2-demonstrator.ipynb. You are seeing Gaussian pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
+* You can also take the opportunity to check that you have flashed the correct PYNQ version (2.6.0): 
 
 <p align="center">
  <img src="quick-start-guide-pics/correctpynqversion.PNG" alt="The correct PYNQ version">
 </p>
 
-### Moving data off of your RFSOC's processor onto your personal computer
+### Copy data off of your RFSOC and onto your personal computer
 
+* Let's say that you have modified the `quick_start_demo` directory and you want a local copy of the entire directory (for example, you exported your data to `.png` plots that are within the `quick_start_demo` directory on the RFSOC, and you want to move those plots back to your personal computer). To do this, you do something analogous to when you copied the `qick` repository onto the RFSOC earlier in this guide:
+* Open the Command Prompt application in Windows and, after navigating to your local directory containing your `pscp.exe` executable, type in the following command (substituting the IP address that was assigned to your RFSOC):
+ 
 <p align="center">
  <img src="quick-start-guide-pics/pullingdataofftheboard.PNG" alt="Pulling data off the RFSOC with PSCP">
 </p>
+
+* Now the `quick_start_demo` directory has been copied to your local directory which contains your `pscp.exe` executable. 
+
+Hopefully this guide was a helpful introduction to QICK!
