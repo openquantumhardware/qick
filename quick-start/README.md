@@ -135,7 +135,7 @@ This guide will show you how to set up QICK after configuring your computer and 
  <img src="quick-start-guide-pics/jupyternotebook2.PNG" alt="Jupyter notebook demo folder">
 </p>
 
-* Open `qsystem2-demonstrator.ipynb` and click through the Jupyter notebook cells. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/quick-start/quick-start-demo/qsystem2-demonstrator.ipynb. You are seeing Gaussian pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
+* Open `qsystem2-demonstrator.ipynb` and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/quick-start/quick-start-demo/qsystem2-demonstrator.ipynb. You are seeing Gaussian pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 * You can also take the opportunity to check that you have flashed the correct PYNQ version (2.6.0): 
 
 <p align="center">
@@ -153,4 +153,4 @@ This guide will show you how to set up QICK after configuring your computer and 
 
 * Now the `quick_start_demo` directory has been copied to your local directory which contains your `pscp.exe` executable. 
 
-Hopefully this guide was a helpful introduction to QICK!
+***Hopefully this guide was a helpful introduction to QICK!***
