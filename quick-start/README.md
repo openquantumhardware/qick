@@ -83,7 +83,7 @@ This guide will show you how to set up QICK after configuring your computer and 
  <img src="quick-start-guide-pics/pynqstartup.PNG" alt="PYNQ startup">
 </p>
 
-* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now lets connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC processor and do the upcoming QICK loopback demo. 
+* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now lets connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC and do the upcoming QICK loopback demo. 
 
 #### Via SSH
 
@@ -104,7 +104,7 @@ This guide will show you how to set up QICK after configuring your computer and 
  <img src="quick-start-guide-pics/putty3.PNG" alt="Using PuTTY (3)">
 </p>
 
-### Copy the QICK tools onto your RFSOC's processor
+### Copy the QICK tools onto your RFSOC
 
 * Use Github Desktop to clone the `qick` repo onto your personal computer (Google around for resources if you are not sure how to do this). 
 * Now, copy the `pscp.exe` into the same directory as your cloned `qick` repo, as below: 
