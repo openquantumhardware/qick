@@ -52,6 +52,11 @@ This guide will show you how to set up QICK after configuring your computer and 
 * There are several nice resources on the internet that demonstrate how to assemble the ZCU111 board. For instance, here is a full video guide: https://www.youtube.com/watch?v=4JfKlv8kWhs. The assembly is done using the screwdriver, hex wrench, and associated screws that come with the ZCU111 kit. The recommended screwdriver to install screws is a JIS #1 screwdriver such as a Vessel 220. The 4 mm hex wrench is used to tighten the jackscrew nuts under the screws. 
 * Use your torque wrench to wire an SMA cable between an RF DAC channel (for this upcoming demo, choose DAC 229 CH3) and an RF ADC channel (choose ADC 224 CH0). In the case of the XM500 breakout board the channel names are written on the board itself. For a more detailed connector mapping, consult pages 95-99 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
 * Slide your micro SD card into its slot on the ZCU111 board. Make sure that switch SW6 of the ZCU111 is in SD card mode according to Table 2-4 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
+
+<p align="center">
+ <img src="quick-start-guide-pics/Bootmodeswitch.PNG" alt="Boot mode switch">
+</p>
+
 * Connect your Ethernet cable from a router LAN port to the ZCU111 Ethernet port. 
 * Power up your router (note that you may have to contact your system administrator to register your router's MAC address to a wall outlet in your building/laboratory).  
 * Connect the 12 V power cable to the ZCU111. Flip the ZCU111 power switch on (it's next to the power cable). You should hear the fan above the RFSOC chip begin to whir and you should see green LED lights blinking all over the board. You should also see a green LED blinking repeatedly above the ZCU111 Ethernet port to signal that it is connected to the router's network. 
