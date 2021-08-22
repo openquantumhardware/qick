@@ -54,7 +54,7 @@ This guide will show you how to set up QICK after configuring your computer and 
 * Slide your micro SD card into its slot on the ZCU111 board. Make sure that switch SW6 of the ZCU111 is in SD card mode according to Table 2-4 of this Xilinx document: https://www.xilinx.com/support/documentation/boards_and_kits/zcu111/ug1271-zcu111-eval-bd.pdf. 
 
 <p align="center">
- <img src="quick-start-guide-pics/Bootmodeswitch.PNG" alt="Boot mode switch">
+ <img src="quick-start-guide-pics/Bootmodeswitch.png" alt="Boot mode switch">
 </p>
 
 * Connect your Ethernet cable from a router LAN port to the ZCU111 Ethernet port. 
