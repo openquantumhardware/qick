@@ -1,5 +1,7 @@
 
-<img src="documentation/images/logoQICK.png">
+<p align="center">
+ <img src="documentation/images/logoQICK.svg" alt="QICK logo" width=50% height=auto>
+</p>
 
 # QICK: Quantum Instrumentation Controller Kit
 
