@@ -2,7 +2,7 @@ set clk_axi [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/axis_s
 
 # ADC/DAC
 set clk_adc0  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_adc0]]]
-set clk_adc0_x2  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/axis_readout_v1_0/aclk]]]
+set clk_adc0_x2  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/axis_readout_v2_0/aclk]]]
 set clk_dac0 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/axis_signal_gen_v4_0/aclk]]]
 set clk_dac1 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/axis_signal_gen_v4_3/aclk]]]
     
