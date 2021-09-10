@@ -134,13 +134,13 @@ This guide will show you how to set up QICK after configuring your computer and 
 
 ### Running a QICK program in loopback mode
 
-* Navigate to the `quick-start-demo` subfolder within the `qick` directory: 
+* Navigate to the `pynq_demos` subfolder within the `qick` directory: 
 
 <p align="center">
  <img src="quick-start-guide-pics/jupyternotebook2.PNG" alt="Jupyter notebook demo folder">
 </p>
 
-* Open `qsystem2-demonstrator.ipynb` and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/quick-start/quick-start-demo/qsystem2-demonstrator.ipynb. You are seeing Gaussian pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
+* Open `00_Send_receive_pulse.ipynb` and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/pynq_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 * You can also take the opportunity to check that you have flashed the correct PYNQ version (2.6.0): 
 
 <p align="center">
@@ -149,7 +149,7 @@ This guide will show you how to set up QICK after configuring your computer and 
 
 ### Copy data off of your RFSOC and onto your personal computer
 
-* Let's say that you have modified the `quick_start_demo` directory and you want a local copy of the entire directory (for example, you exported your data to `.png` plots that are within the `quick_start_demo` directory on the RFSOC, and you want to move those plots back to your personal computer). To do this, you do something analogous to when you copied the `qick` repository onto the RFSOC earlier in this guide:
+* Let's say that you have created a `quick_start_demo` directory with your work and you want a local copy of the entire directory (for example, you exported your data to `.png` plots that are within the `quick_start_demo` directory on the RFSOC, and you want to move those plots back to your personal computer). To do this, you do something analogous to when you copied the `qick` repository onto the RFSOC earlier in this guide:
 * Open the Command Prompt application in Windows and, after navigating to your local directory containing your `pscp.exe` executable, type in the following command (substituting the IP address that was assigned to your RFSOC):
  
 <p align="center">
