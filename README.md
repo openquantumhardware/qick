@@ -41,7 +41,7 @@ documentation source code: https://github.com/openquantumhardware/qick-docs
 Contribute
 ----------
 
-You are welcome to contribute to scqubits development by forking this repository and sending pull requests.
+You are welcome to contribute to QICK development by forking this repository and sending pull requests.
 
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
