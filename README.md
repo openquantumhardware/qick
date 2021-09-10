@@ -9,7 +9,8 @@ The QICK is a kit of firmware and software to use the Xilinx RFSoC as to control
 
 It consists of:
 * Firmware for the ZCU111 RFSoC evaluation board.  
-* A python package `qick-lib` for interfacing with the QICK
+* A Python package `qick-lib` for interfacing with the QICK
+* A quick start guide for setting up your board and running a Jupyter notebook example
 * Jupyter notebook examples demonstrating usage
 
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but can not guarantee backwards compatibility.
