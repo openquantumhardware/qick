@@ -1,4 +1,4 @@
-from qick import *
+from qick.qick import *
 import numpy as np
 
 fs_adc = 384*8

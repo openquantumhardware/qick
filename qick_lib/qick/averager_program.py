@@ -1,4 +1,4 @@
-from qick_asm import *
+from qick.qick_asm import *
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import time
