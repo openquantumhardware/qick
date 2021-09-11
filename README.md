@@ -44,6 +44,6 @@ All contributions are expected to be consistent with [PEP 8 -- Style Guide for P
 
 License
 -------
-[![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29)
+The source code for the site is licensed under the MIT license, which you can find in the LICENSE file.
 
 You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE file are satisfied.
