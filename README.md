@@ -31,7 +31,7 @@ Related Packages
 
 There is one related package on Github:
 
-documentation source code: https://github.com/openquantumhardware/qick-docs
+Documentation source code: https://github.com/openquantumhardware/qick-docs
 
 
 Contribute
@@ -44,6 +44,6 @@ All contributions are expected to be consistent with [PEP 8 -- Style Guide for P
 
 License
 -------
-The source code for the site is licensed under the MIT license, which you can find in the LICENSE file.
+The QICK source code is licensed under the MIT license, which you can find in the LICENSE file.
 
 You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE file are satisfied.
