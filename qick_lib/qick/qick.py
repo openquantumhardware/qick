@@ -645,9 +645,23 @@ class AxisSwitch(SocIp):
         self.ctrl = 2     
         
 class Qick(Overlay):
-    FREF_PLL = 204.8
-    fs_adc = 384*8
-    fs_dac = 384*16
+    FREF_PLL = 204.8 # MHz
+    fs_adc = 384*8 # MHz
+    fs_dac = 384*16 # MHz
+    pulse_mem_len_IQ = 65536 # samples for I, Q
+    ADC_decim_buf_len_IQ = 1024 # samples for I, Q
+    ADC_accum_buf_len_IQ = 16384 # samples for I, Q
+    tProc_instruction_len_bytes = 8 
+    tProc_prog_mem_samples = 8000
+    tProc_prog_mem_size_bytes_tot = tProc_instruction_len_bytes*tProc_prog_mem_samples
+    tProc_data_len_bytes = 4 
+    tProc_data_mem_samples = 4096
+    tProc_data_mem_size_bytes_tot = tProc_data_len_bytes*tProc_data_mem_samples
+    tProc_stack_len_bytes = 4
+    tProc_stack_samples = 256
+    tProc_stack_size_bytes_tot = tProc_stack_len_bytes*tProc_stack_samples
+    phase_resolution_bits = 32
+    gain_resolution_signed_bits = 16
     
     # Constructor.
     def __init__(self, bitfile, force_init_clks=False,ignore_version=True, **kwargs):
