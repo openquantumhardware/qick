@@ -15,7 +15,7 @@ Output channels driving DACs use the updated Signal Generator V4, which has the 
 The readout block is actually built around two IPs: readout and average + buffer. Readout block includes a digital down-convertion, FIR filtering and decimation by 8. DDS frequency is configured using a register of the readout block and it is not intended to support real-time frequency hopping as in the Signal Generator side. After frequency shifting, filtering and decimation, the data stream is sent to the Average + Buffer block, which internally can store raw samples or perform the sum of the specified number of samples. The process is started with the external trigger signal, connected to output Channel 0 of tProcessor. The user can opt to route the input, the DDS wave or the frequency shifted signal to the FIR and decimation by 8 stage. This is done using a output selection register of the readout block. Regarding the buffering capabilities, the average section of the block has a buffer of ``soc.avg_bufs[i].AVG_MAX_LENGTH``.
 
 <p align="center">
- <img src="graphics/qsystem-readout.svg" alt="QICK readout" width=100% height=auto>
+ <img src="../graphics/qsystem-readout.svg" alt="QICK readout" width=100% height=auto>
 </p>
 
 # tProcessor channel assignment
