@@ -1,6 +1,6 @@
 # QICK quick-start guide 
 
-***Have questions? Contact: ``sarafs AT princeton.edu``
+***Have questions? Contact: ``sarafs AT princeton.edu``***
 
 This guide will show you how to set up QICK after configuring your computer and RFSOC ZCU111 board on a local area network (LAN). By the end of this guide you will have run a QICK program in loopback mode (where signals loop back from an RF DAC directly into an RF ADC)! 
 
