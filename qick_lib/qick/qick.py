@@ -18,7 +18,7 @@ import re
 #from parser import *
 
 # Support functions.
-def gauss(mu=0,si=0,length=100,maxv=30000):
+def gauss(mu=0,si=25,length=100,maxv=30000):
     x = np.arange(0,length)
     y = 1/(2*np.pi*si**2)*np.exp(-(x-mu)**2/si**2)
     y = y/np.max(y)*maxv
