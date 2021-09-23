@@ -14,7 +14,7 @@ def freq2reg(f):
 
 def freq2reg_adc(f):
     """Convert frequency in MHz to adc register value"""
-    B=16
+    B=32
     df = 2**B/fs_adc
     f_i = f*df
     return int(f_i)    
@@ -25,12 +25,12 @@ def reg2freq(r):
 
 def reg2freq_adc(r):
     """Convert adc frequency register value to MHz"""
-    return r*fs_adc/2**16
+    return r*fs_adc/2**32
 
 def adcfreq(f):
     """Takes a frequency and casts it to an (even) valid adc dds frequency"""
     reg=freq2reg_adc(f)
-    return reg2freq_adc(reg+(reg%2))
+    return reg2freq_adc(reg)#+(reg%2))
 
 def cycles2us(cycles):
     """Converts processor clock cycles into microseconds"""

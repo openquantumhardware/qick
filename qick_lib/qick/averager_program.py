@@ -178,7 +178,7 @@ class RAveragerProgram(QickProgram):
     """Abstract base class similar to the AveragerProgram, except has an outer loop which allows one to sweep a parameter in the real-time program rather than looping over it in software.  This can be more efficient for short duty cycles.  
     """
     def __init__(self, cfg):
-        ASM_Program.__init__(self)
+        QickProgram.__init__(self)
         self.cfg=cfg
         self.make_program()
     
@@ -228,7 +228,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
-    def acquire(self, soc, load_pulses=True, ReadoutPerExpt=1, SaveExperiments=[0], debug=False):
+    def acquire(self, soc, load_pulses=True, ReadoutPerExpt=1, SaveExperiments=[0], progress=True, debug=False):
         """
         ReadoutPerExpt : How many measurements per experiment (>1 in experiments with conditional reset or just multiple measurements in same experiment
         SaveExperiments: List of indices of experiments to keep (lets one skip conditional reset experiments)
@@ -248,7 +248,7 @@ class RAveragerProgram(QickProgram):
             avg_buf.config_avg(address=0,length=adc_length)
             avg_buf.enable_avg()
 
-        soc.tproc.load_asm_program(self, debug=debug)
+        soc.tproc.load_qick_program(self, debug=debug)
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
