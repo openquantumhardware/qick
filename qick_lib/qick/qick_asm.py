@@ -1,4 +1,3 @@
-from qick.qick import *
 import numpy as np
 
 fs_adc = 384*8
@@ -7,21 +6,25 @@ fs_proc=384
 
 
 def freq2reg(f):
+    """Convert frequency in MHz to dac register value"""
     B=32
     df = 2**B/fs_dac
     f_i = f*df
     return int(f_i)
 
 def freq2reg_adc(f):
+    """Convert frequency in MHz to adc register value"""
     B=16
     df = 2**B/fs_adc
     f_i = f*df
     return int(f_i)    
 
 def reg2freq(r):
+    """Convert dac frequency register value to MHz"""
     return r*fs_dac/2**32
 
 def reg2freq_adc(r):
+    """Convert adc frequency register value to MHz"""
     return r*fs_adc/2**16
 
 def adcfreq(f):
@@ -30,19 +33,26 @@ def adcfreq(f):
     return reg2freq_adc(reg+(reg%2))
 
 def cycles2us(cycles):
+    """Converts processor clock cycles into microseconds"""
     return cycles/fs_proc
 
 def us2cycles(us):
+    """Converts time in microseconds into integer number of processor clock cycles"""
     return int(us*fs_proc)
 
 def deg2reg(deg):
+    """Converts degrees into phase register values, numbers greater than 360 will effectively be wrapped"""
     return int(deg*2**32//360)
 
 def reg2deg(reg):
+    """Converts phase register values into degrees"""
     return reg*360/2**32
 
 
-class ASM_Program:
+class QickProgram:
+    """Python representation of QickSoc processor assembly program.  Can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses"""
+    
+    #Instruction set for the tproc describing how to automatically generate methods for these instructions
     instructions = {'pushi': {'type':"I", 'bin': 0b00010000, 'fmt': ((0,53),(1,41),(2,36), (3,0)), 'repr': "{0}, ${1}, ${2}, {3}"},
                     'popi':  {'type':"I", 'bin': 0b00010001, 'fmt': ((0,53),(1,41)), 'repr': "{0}, ${1}"},
                     'mathi': {'type':"I", 'bin': 0b00010010, 'fmt': ((0,53),(1,41),(2,36), (3,46), (4, 0)), 'repr': "{0}, ${1}, ${2}, {3}, {4}"},
@@ -71,21 +81,24 @@ class ASM_Program:
                     'setb': {'type':"R", 'bin': 0b01011000, 'fmt': ((0,53),(2,36),(1,31)), 'repr': "{0}, ${1}, ${2}"}
                     }
 
+    #op codes for math and bitwise operations
     op_codes = {">": 0b0000, ">=": 0b0001, "<": 0b0010, "<=": 0b0011, "==": 0b0100, "!=": 0b0101, 
                 "+": 0b1000, "-": 0b1001, "*": 0b1010,
                 "&": 0b0000, "|": 0b0001, "^": 0b0010, "~": 0b0011, "<<": 0b0100, ">>": 0b0101,
                 "upper": 0b1010, "lower": 0b0101
                }
     
-    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28},
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21},
+    #To make it easier to configure pulses these special registers are reserved for each channels pulse configuration
+    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch1 - pg 0
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch2 - pg 0
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch3 - pg 1
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch4 - pg 1
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch5 - pg 2
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch6 - pg 3
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch7 - pg 4
                         ]   
     
+    #delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
     trig_offset=25
     
     def __init__(self, cfg=None):
@@ -96,7 +109,7 @@ class ASM_Program:
         
     
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
-        
+        """adds a pulse to the pulse library within the program"""
         if qdata is None and idata is not None:
             qdata=np.zeros(len(idata))
         if idata is None and qdata is not None:
@@ -116,6 +129,7 @@ class ASM_Program:
             pass
         
     def load_pulses(self, soc):
+        """loads pulses that were added using add_pulse into the soc's signal generator memories"""
         for ch,gen in zip(self.channels.keys(),soc.gens):
             for name,pulse in self.channels[ch]['pulses'].items():
                 if pulse['style'] != 'const':
@@ -124,13 +138,16 @@ class ASM_Program:
                     gen.load(xin_i=idata, xin_q=qdata, addr=pulse['addr'])
 
     def ch_page(self, ch):
+        """Get the register page associated with the specified channel"""
         return (ch-1)//2
     
     def sreg(self, ch, name):
+        """Get the special register associated with a channel and register name"""
         return self.__class__.special_registers[ch-1][name]
         
 
     def set_pulse_registers (self, ch, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
+        """A macro to set (optionally) the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, length, and schedule time"""
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
@@ -146,6 +163,7 @@ class ASM_Program:
         return rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t
     
     def const_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+        """Schedule and (optionally) play a constant pulse, can autoschedule based on previous pulses"""
         p=self
         if name is not None:
             pinfo=self.channels[ch]['pulses'][name]
@@ -172,6 +190,7 @@ class ASM_Program:
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
      
     def arb_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        """Schedule and (optionally) play an arbitrary pulse, can autoschedule based on previous pulses"""
         p=self
         addr=None
         if name is not None:
@@ -193,6 +212,10 @@ class ASM_Program:
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
     def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        """
+        Schedule and (optionally) play an a flattop pulse with arbitrary ramps, can autoschedule based on previous pulses
+        To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down
+        """
         p=self
         addr=None
         if name is not None:
@@ -225,6 +248,7 @@ class ASM_Program:
             p.dac_ts[ch]=t+pinfo['length']+2*ramp_length
         
     def pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
+        """Overall pulse class which will select the correct function to call based on the 'style' parameter of the named pulse"""
         if name is not None:
             pinfo=self.channels[ch]['pulses'][name]
         else:
@@ -236,11 +260,17 @@ class ASM_Program:
         
         
     def align(self, chs):
+        """Sets all of the last times for each channel included in chs to the latest time in any of the channels"""
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
             
     def safe_regwi(self, rp, reg, imm, comment=None):
+        """
+        Due to the way the instructions are setup immediate values can only be 30bits before not loading properly.  
+        This comes up mostly when trying to regwi values into registers, especially the _frequency_ and _phase_ pulse registers. 
+        safe_regwi can be used wherever one might use regwi and will detect if the value is >2**30 and if so will break it into two steps, putting in the first 30 bits shifting it over and then adding the last two.  
+        """
         if imm <2**30: 
             self.regwi(rp,reg,imm,comment)
         else:
@@ -250,6 +280,7 @@ class ASM_Program:
                 self.mathi(rp,reg,reg,"+",imm % 4)
             
     def sync_all(self, t=0):
+        """Aligns and syncs all channels with additional time t"""
         max_t=max([self.dac_ts[ch] for ch in range(1,9)])
         if max_t+t>0:
             self.synci(max_t+t)
@@ -257,6 +288,7 @@ class ASM_Program:
 
     #should change behavior to only change bits that are specified
     def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True): 
+        """Set's the value of the marker bits at time t"""
         out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0) 
         self.regwi (rp, r_out, out, 'out = 0b{out:>016b}')
         self.seti (0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
@@ -264,7 +296,9 @@ class ASM_Program:
             self.regwi (rp, r_out, 0, 'out = 0b{out:>016b}')
             self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
     
+    
     def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=270, t=0):
+        """Set's the value of the internal adc trigger, marker bits at time t"""
         out= (adc2 << 15) |(adc1 << 14) 
         r_out=31
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
@@ -273,6 +307,7 @@ class ASM_Program:
         self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')     
         
     def convert_immediate(self, val):
+        """Throws an error if you ever try to use a value greater than 2**31 as an immediate value"""
         if val> 2**31:
             raise RuntimeError(f"Immediate values are only 31 bits {val} > 2**31")
         if val <0:
@@ -281,6 +316,7 @@ class ASM_Program:
             return val
         
     def compile_instruction(self,inst, debug = False):
+        """Converts an assembly instruction into a machine bytecode"""
         args=list(inst['args'])
         idef = self.__class__.instructions[inst['name']]
         fmt=idef['fmt']
@@ -318,9 +354,11 @@ class ASM_Program:
         return mcode
 
     def compile(self, debug=False):
+        """Compiles program to machine code"""
         return [self.compile_instruction(inst,debug=debug) for inst in self.prog_list]
    
     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
+        """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length"""
         if phrst is None:
             phrst=0
         if stdysel is None:
@@ -333,27 +371,34 @@ class ASM_Program:
         return mc << 16 | length
 
     def append_instruction(self, name, *args):
+        """Add instruction to the program"""
         self.prog_list.append({'name':name, 'args':args})
                     
     def label(self, name):
+        """Add line number label to the labels dictionary"""
         self.labels[name]= len(self.prog_list)
 
     def comment(self, comment):
+        """Dummy function used for comments"""
         pass
 
     def __getattr__(self, a):
+        """Uses instructions dictionary to automatically generate methods for the standard instruction set"""
         if a in self.__class__.instructions:
             return lambda *args: self.append_instruction(a, *args)
         else:
             return object.__getattribute__(self, a)
 
     def hex(self):
+        """Returns hex representation of program as string"""
         return "\n".join([format(mc, '#018x') for mc in self.compile()])
     
     def bin(self):
+        """Returns binary representation of program as string"""
         return "\n".join([format(mc, '#066b') for mc in self.compile()])
 
     def asm(self):
+        """Returns assembly representation of program as string, should be compatible with the parse_prog from the parser module"""
         if self.labels =={}:
             max_label_len=0
         else:
@@ -374,6 +419,7 @@ class ASM_Program:
         return s+"\n".join(lines)
     
     def compare_program(self,fname):
+        """For debugging purposes to compare binary compilation of parse_prog with the compile"""
         match=True
         pns=[int(n,2) for n in self.bin().split('\n')]
         fns=[int(n,2) for ii,n in parse_prog(file=fname,outfmt="bin").items()]
@@ -387,6 +433,7 @@ class ASM_Program:
         return match
 
     def __repr__(self):
+        """Print as assembly by default"""
         return self.asm()
     
     def __enter__(self):
