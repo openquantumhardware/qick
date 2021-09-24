@@ -3,7 +3,7 @@
  <img src="graphics/logoQICK.svg" alt="QICK logo" width=50% height=auto>
 </p>
 
-# QICK: Quantum Instrumentation Controller Kit
+# QICK: Quantum Instrumentation Control Kit
 
 The QICK is a kit of firmware and software to use the Xilinx RFSoC as to control quantum systems.
 
