@@ -1,3 +1,4 @@
+import numpy as np
 # Support functions.
 def gauss(mu=0,si=25,length=100,maxv=30000):
     x = np.arange(0,length)

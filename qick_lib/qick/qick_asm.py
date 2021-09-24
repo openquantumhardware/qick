@@ -30,7 +30,7 @@ def reg2freq_adc(r):
 def adcfreq(f):
     """Takes a frequency and casts it to an (even) valid adc dds frequency"""
     reg=freq2reg_adc(f)
-    return reg2freq_adc(reg)#+(reg%2))
+    return reg2freq_adc(reg+reg%2)
 
 def cycles2us(cycles):
     """Converts processor clock cycles into microseconds"""
@@ -89,13 +89,13 @@ class QickProgram:
                }
     
     #To make it easier to configure pulses these special registers are reserved for each channels pulse configuration
-    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch1 - pg 0
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch2 - pg 0
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch3 - pg 1
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch4 - pg 1
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch5 - pg 2
-                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28}, # ch6 - pg 3
-                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21}, # ch7 - pg 4
+    special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "length":22}, # ch1 - pg 0
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "length":29}, # ch2 - pg 0
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "length":22}, # ch3 - pg 1
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "length":29}, # ch4 - pg 1
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "length":22}, # ch5 - pg 2
+                         {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "length":29}, # ch6 - pg 3
+                         {"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "length":22}, # ch7 - pg 4
                         ]   
     
     #delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
@@ -117,7 +117,7 @@ class QickProgram:
         if idata is not None and (len(idata) % 16 !=0 or len(idata) % 16 !=0):
             raise RuntimeError("Error: Pulse length must be integer multiple of 16")
         
-        if style=="arb" or style=="flat_top":
+        if style=="arb":
             self.channels[ch]["pulses"][name]={"idata":idata, "qdata":qdata, "addr":self.channels[ch]['addr'], "length":len(idata)//16, "style": style}
             self.channels[ch]["addr"]+=len(idata)
         elif style=="flat_top":
@@ -228,6 +228,7 @@ class QickProgram:
             pinfo['gain']=gain
             
         rp, r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
+        p.regwi(rp, p.sreg(ch, "length"), pinfo["length"])
         
         if play:
             if t is not None:
@@ -240,7 +241,9 @@ class QickProgram:
                 
                 p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t) #play ramp up part of pulse
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
-                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=pinfo['length'], outsel=1, t=t) #play ramp up part of pulse
+                
+                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=0, outsel=1, t=t) #play ramp up part of pulse
+                p.math(rp,r_mode, r_mode, "+", p.sreg(ch, "length"),"+")
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
