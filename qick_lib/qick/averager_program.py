@@ -192,7 +192,7 @@ class AveragerProgram(QickProgram):
         dq_avg1=np.zeros(self.cfg["adc_lengths"][1])
         
         #for each soft average stop the processor, reload the program, run and average decimated data
-        for ii in tqdm(range(soft_avgs)):
+        for ii in tqdm(range(soft_avgs),disable=not progress):
             soc.tproc.stop()
             # Configure and enable buffer capture.
             for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
