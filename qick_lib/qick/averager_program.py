@@ -1,27 +1,42 @@
+"""
+Several helper classes for writing qubit experiments.
+"""
 from .qick_asm import QickProgram
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
 import time
 
 class AveragerProgram(QickProgram):
-    """Abstract base class for programs which do loop over experiments in hardware, consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately"""
-    
+    """
+    AveragerProgram class is an abstract base class for programs which do loop over experiments in hardware. It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
+
+    :param cfg: Configuration dictionary
+    :type cfg: dict
+    """
     def __init__(self, cfg):
-        """Constructor for the AveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method"""
+        """
+        Constructor for the AveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
+        """
         QickProgram.__init__(self)
         self.cfg=cfg
         self.make_program()
     
     def initialize(self):
-        """Abstract method for initializing the Program and can include any instructions that are executed once at the beginning of the program."""
+        """
+        Abstract method for initializing the program and can include any instructions that are executed once at the beginning of the program.
+        """
         pass
     
     def body(self):
-        """Abstract method for the body of the program"""
+        """
+        Abstract method for the body of the program
+        """
         pass
     
     def make_program(self):
-        """A template program which repeats the instructions defined in the body() method the number of times specified in self.cfg["reps"]"""
+        """
+        A template program which repeats the instructions defined in the body() method the number of times specified in self.cfg["reps"].
+        """
         p=self
         
         rjj=14
@@ -42,13 +57,30 @@ class AveragerProgram(QickProgram):
         p.end()        
         
     def acquire(self, soc, load_pulses=True, progress=True, debug=False):
-        """This method optionally loads pulses on to the soc, configures the adc readouts, loads the machine code representation of the AveragerProgram onto the soc, starts the program and streams the data into the python, returning it as a set of numpy arrays
-            config requirements:
-            "reps" = number of repetitions
-            "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc
-            "adc_lengths" = how many samples to accumulate over for each trigger
         """
+        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
+        config requirements:
+        "reps" = number of repetitions;
+        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+        "adc_lengths" = how many samples to accumulate over for each trigger;
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - avg_di0 (:py:class:`list`) - list of averaged accumulated I data ADC 0
+            - avg_dq0 (:py:class:`list`) - list of averaged accumulated Q data ADC 0
+            - avg_amp0 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 0
+            - avg_di1 (:py:class:`list`) - list of averaged accumulated I data ADC 1
+            - avg_dq1 (:py:class:`list`) - list of averaged accumulated Q data ADC 1
+            - avg_amp1 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 1
+        """
         #Load the pulses from the program into the soc
         if load_pulses: 
             self.load_pulses(soc)
@@ -116,14 +148,28 @@ class AveragerProgram(QickProgram):
         return avg_di0, avg_dq0, avg_amp0,avg_di1, avg_dq1, avg_amp1
 
     def acquire_decimated(self, soc, load_pulses=True, progress=True, debug=False):
-        """This method acquires the raw (downconverted and decimated) data sampled by the adc
-           this method is slow and mostly useful for lining up pulses or doing loopback tests
-            config requirements:
-            "soft_avgs" = number of repetitions
-            "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc
-            "adc_lengths" = how many samples to accumulate over for each trigger
         """
-        
+        This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
+
+        config requirements:
+        "reps" = number of repetitions;
+        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+        "adc_lengths" = how many samples to accumulate over for each trigger;
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - di_avg0/soft_avgs (:py:class:`list`) - list of averaged decimated I data ADC 0
+            - dq_avg0/soft_avgs (:py:class:`list`) - list of averaged decimated Q data ADC 0
+            - di_avg1/soft_avgs (:py:class:`list`) - list of averaged decimated I data ADC 1
+            - dq_avg1/soft_avgs (:py:class:`list`) - list of averaged decimated Q data ADC 1
+        """
         #set reps to 1 since we are going to use soft averages
         if "reps" not in self.cfg or self.cfg["reps"] != 1:
             print ("Warning reps is not set to 1, and this acquire method expects reps=1")
@@ -175,23 +221,44 @@ class AveragerProgram(QickProgram):
         return di_avg0/soft_avgs,dq_avg0/soft_avgs, di_avg1/soft_avgs, dq_avg1/soft_avgs
     
 class RAveragerProgram(QickProgram):
-    """Abstract base class similar to the AveragerProgram, except has an outer loop which allows one to sweep a parameter in the real-time program rather than looping over it in software.  This can be more efficient for short duty cycles.  
+    """
+    RAveragerProgram class, for qubit experiments that sweep over a variable (whose value is stored in expt_pts).
+    It is an abstract base class similar to the AveragerProgram, except has an outer loop which allows one to sweep a parameter in the real-time program rather than looping over it in software.  This can be more efficient for short duty cycles.
+    Acquire gathers data from both ADCs 0 and 1.
+
+    :param cfg: Configuration dictionary
+    :type cfg: dict
     """
     def __init__(self, cfg):
+        """
+        Constructor for the RAveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
+        """
         QickProgram.__init__(self)
         self.cfg=cfg
         self.make_program()
     
     def initialize(self):
+        """
+        Abstract method for initializing the program and can include any instructions that are executed once at the beginning of the program.
+        """
         pass
     
     def body(self):
+        """
+        Abstract method for the body of the program
+        """
         pass
     
     def update(self):
+        """
+        Abstract method for updating the program
+        """
         pass
     
     def make_program(self):
+        """
+        A template program which repeats the instructions defined in the body() method the number of times specified in self.cfg["reps"].
+        """
         p=self
         
         rcount=13
@@ -224,14 +291,42 @@ class RAveragerProgram(QickProgram):
 
     def get_expt_pts(self):
         """
-        Method for calculating experiment points (for x-axis of plots) based on the config
+        Method for calculating experiment points (for x-axis of plots) based on the config.
+
+        :return: Numpy array of experiment points
+        :rtype: array
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
     def acquire(self, soc, load_pulses=True, ReadoutPerExpt=1, SaveExperiments=[0], progress=True, debug=False):
         """
-        ReadoutPerExpt : How many measurements per experiment (>1 in experiments with conditional reset or just multiple measurements in same experiment
-        SaveExperiments: List of indices of experiments to keep (lets one skip conditional reset experiments)
+        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the RAveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
+
+        config requirements:
+        "reps" = number of repetitions;
+        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+        "adc_lengths" = how many samples to accumulate over for each trigger;
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param ReadoutPerExpt: How many measurements per experiment (>1 in experiments with conditional reset or just multiple measurements in same experiment.
+        :type ReadoutPerExpt: int
+        :param SaveExperiments: List of indices of experiments to keep (lets one skip conditional reset experiments).
+        :type SaveExperiments: list
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - expt_pts (:py:class:`list`) - list of experiment points
+            - avg_di0 (:py:class:`list`) - list of averaged accumulated I data ADC 0
+            - avg_dq0 (:py:class:`list`) - list of averaged accumulated Q data ADC 0
+            - amp_pts0 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 0
+            - avg_di1 (:py:class:`list`) - list of averaged accumulated I data ADC 1
+            - avg_dq1 (:py:class:`list`) - list of averaged accumulated Q data ADC 1
+            - amp_pts1 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 1
         """
 
         if load_pulses: 

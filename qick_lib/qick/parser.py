@@ -1,8 +1,20 @@
+"""
+Function to parse tProc assembly language programs.
+"""
 import re
 
 # Function to parse program.
 def parse_prog(file="prog.asm",outfmt="bin"):
-    
+    """
+    Parses the .asm assembly language tProc program into a specified output format (binary or hex)
+
+    :param file: ASM program file name
+    :type file: str
+    :param outfmt: Output format ("bin" or "hex")
+    :type outfmt: str
+    :return: Program in the new output format
+    :rtype: bin or hex
+    """
     # Output structure.
     outProg = {}
 
