@@ -8,6 +8,7 @@ from pynq import Overlay
 from pynq.lib import AxiGPIO
 import time
 from .parser import *
+from . import bitfile_path
 
 # Some support functions
 def format_buffer(buff):
@@ -632,10 +633,12 @@ class QickSoc(Overlay):
     gain_resolution_signed_bits = 16
     
     # Constructor.
-    def __init__(self, bitfile, force_init_clks=False,ignore_version=True, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False,ignore_version=True, **kwargs):
         # Load bitstream.
-        super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
-        
+        if bitfile==None:
+            super().__init__(bitfile_path(), ignore_version=ignore_version, **kwargs)
+        else:
+            super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
         # Configure PLLs if requested.
         if force_init_clks:
             self.set_all_clks()
