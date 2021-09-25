@@ -144,21 +144,6 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     setup_requires=["numpy","cffi"],
     install_requires=["numpy", 'pynq','tqdm'],  # Optional
-    #
-    # from pynq import Overlay, allocate
-    # import xrfclk
-    # import xrfdc
-    # import numpy as np
-    # import scipy as sp
-    # import scipy.signal
-    # import fractions as frac
-    # from pynq import Xlnk
-    # from pynq import Overlay
-    # from pynq.lib import AxiGPIO
-    # import matplotlib.pyplot as plt
-    # import time
-    # import scipy.io as sio
-    # import re
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -175,9 +160,10 @@ setup(
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.
-    # package_data={  # Optional
-    #     'sample': ['package_data.dat'],
-    # },
+    package_data={  # Optional
+        'qick': ['*.bit', '*.hwh']
+    },
+    include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
