@@ -43,7 +43,7 @@ Similarly, average and buffer inputs blocks are organized on ``soc.avg_bufs`` ar
 
 # Timing
 
-The clock frequency of the FPGA is 384 MHz. Therefore, each clock cycle has a period of 2.6 ns.
+The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed is ``384*8 MHz`` but then the signal is decimated by a factor of ``8`` (resolution ``~2.6 ns``).
 
 # Firmware parameters
 
