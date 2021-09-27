@@ -43,7 +43,7 @@ Similarly, average and buffer inputs blocks are organized on ``soc.avg_bufs`` ar
 
 # Timing
 
-The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed is ``384*8 MHz`` but then the signal is decimated by a factor of ``8`` (resolution ``~2.6 ns``).
+The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed is ``384*8 MHz`` but then the signal is decimated by a factor of ``8`` (resolution ``~2.6 ns``). The minimum DAC pulse length is 16 samples but if you want shorter pulses than that you can pad that pulse with zeros.
 
 # Firmware parameters
 
