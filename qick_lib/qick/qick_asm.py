@@ -101,7 +101,7 @@ def deg2reg(deg):
     :return: Re-formatted number of degrees
     :rtype: int
     """
-    return int(deg*2**32//360)
+    return int(deg*2**32//360) % 2**32
 
 def reg2deg(reg):
     """
@@ -491,10 +491,10 @@ class QickProgram:
         :return: Dict of pulse styles
         :rtype: dict
         """
-        if name is not None:
-            pinfo=self.channels[ch]['pulses'][name]
-        else:
-            pinfo=self.channels[ch]['pulses'][self.channels[ch]['last_pulse']]
+        if name is None:
+            name=self.channels[ch]['last_pulse']
+        
+        pinfo=self.channels[ch]['pulses'][name]
             
         f={'const':self.const_pulse,'arb':self.arb_pulse,'flat_top':self.flat_top_pulse}[pinfo['style']]
         
@@ -527,7 +527,7 @@ class QickProgram:
         if imm <2**30: 
             self.regwi(rp,reg,imm,comment)
         else:
-            self.regwi(rp,reg,imm>>1,comment)
+            self.regwi(rp,reg,imm>>2,comment)
             self.bitwi(rp,reg,reg,"<<",2)
             if imm % 4 !=0:
                 self.mathi(rp,reg,reg,"+",imm % 4)
@@ -809,6 +809,13 @@ class QickProgram:
                 match=False
         return match
 
+    def __len__(self):
+        """
+        :return: number of instructions in the program
+        :rtype: int
+        """
+        return len(self.prog_list)
+    
     def __repr__(self):
         """
         Print as assembly by default.
