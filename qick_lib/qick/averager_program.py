@@ -56,7 +56,7 @@ class AveragerProgram(QickProgram):
        
         p.end()        
         
-    def acquire_round(self, soc, threshold=None, angle=[0,0], load_pulses=True, progress=True, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -135,19 +135,25 @@ class AveragerProgram(QickProgram):
         #save results to class in case you want to look at it later or for analysis
         self.di_buf=di_buf
         self.dq_buf=dq_buf
-        
-        #Average all of the data into a single point        
-        if threshold is None:
-            avg_di= np.array([np.sum(di_buf[0])/(reps)/self.cfg['adc_lengths'][0],np.sum(di_buf[1])/(reps)/self.cfg['adc_lengths'][1]])
-            avg_dq= np.array([np.sum(dq_buf[0])/(reps)/self.cfg['adc_lengths'][0],np.sum(dq_buf[1])/(reps)/self.cfg['adc_lengths'][1]])
-        else:
+
+        if threshold is not None:
             self.shots=self.get_single_shots(di_buf,dq_buf, threshold, angle)
-            avg_di=np.array([np.sum(self.shots[0])/(reps),np.sum(self.shots[1])/(reps)])
-            avg_dq=np.zeros(avg_di.shape)
-        
+
+        avg_di=np.zeros((2,len(save_experiments)))
+        avg_dq=np.zeros((2,len(save_experiments)))
+
+        for nn,ii in enumerate(save_experiments):
+            for ch in range (2):
+                if threshold is None:
+                    avg_di[ch][nn]=np.sum(di_buf[ch][ii::readouts_per_experiment])/(reps)/self.cfg['adc_lengths'][ch]
+                    avg_dq[ch][nn]=np.sum(dq_buf[ch][ii::readouts_per_experiment])/(reps)/self.cfg['adc_lengths'][ch]
+                else:
+                    avg_di[ch][nn]=np.sum(self.shots[ch][ii::readouts_per_experiment])/(reps)
+                    avg_dq=np.zeros(avg_di.shape)
+
         return avg_di, avg_dq
     
-    def acquire(self, soc, threshold=None, angle=[0,0], load_pulses=True, progress=True, debug=False):
+    def acquire(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
         if "rounds" not in self.cfg or self.cfg["rounds"]==1:
             return self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=progress, debug=debug)
         
@@ -319,7 +325,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
-    def acquire_round(self, soc, threshold=None, angle=[0,0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=True, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=[0,0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the RAveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
