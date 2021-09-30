@@ -67,6 +67,14 @@ class AveragerProgram(QickProgram):
 
         :param soc: Qick object
         :type soc: Qick object
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+        :param readouts_per_experiment: readouts per experiment
+        :type readouts_per_experiment: int
+        :param save_experiments: saved experiments
+        :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param progress: If true, displays progress bar
@@ -74,12 +82,8 @@ class AveragerProgram(QickProgram):
         :param debug: If true, displays assembly code for tProc program
         :type debug: bool
         :returns:
-            - avg_di0 (:py:class:`list`) - list of averaged accumulated I data ADC 0
-            - avg_dq0 (:py:class:`list`) - list of averaged accumulated Q data ADC 0
-            - avg_amp0 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 0
-            - avg_di1 (:py:class:`list`) - list of averaged accumulated I data ADC 1
-            - avg_dq1 (:py:class:`list`) - list of averaged accumulated Q data ADC 1
-            - avg_amp1 (:py:class:`list`) - list of averaged accumulated amplitude data ADC 1
+            - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
+            - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
         #Load the pulses from the program into the soc
         if load_pulses: 
@@ -154,6 +158,35 @@ class AveragerProgram(QickProgram):
         return avg_di, avg_dq
     
     def acquire(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+        """
+        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
+        config requirements:
+        "reps" = number of repetitions;
+        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+        "adc_lengths" = how many samples to accumulate over for each trigger;
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+        :param readouts_per_experiment: readouts per experiment
+        :type readouts_per_experiment: int
+        :param save_experiments: saved experiments
+        :type save_experiments: list
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - expt_pts (:py:class:`list`) - list of experiment points
+            - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
+            - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
+        """
+
         if "rounds" not in self.cfg or self.cfg["rounds"]==1:
             return self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=progress, debug=debug)
         
@@ -170,33 +203,48 @@ class AveragerProgram(QickProgram):
         return expt_pts, avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
     
     def get_single_shots(self, di, dq, threshold, angle=[0,0]):
+        """
+        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
+
+        :param di: Raw I data
+        :type di: list
+        :param dq: Raw Q data
+        :type dq: list
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+
+        :returns:
+            - single_shot_array (:py:class:`array`) - Numpy array of single shot data
+
+        """
+
         if type(threshold) is int:
             threshold=[threshold,threshold]            
         return np.array([np.heaviside((di[ch]*np.cos(angle[ch]) - dq[ch]*np.sin(angle[ch]))/self.cfg['adc_lengths'][ch]-threshold[ch],0) for ch in range(2)])        
 
     def acquire_decimated(self, soc, load_pulses=True, progress=True, debug=False):
         """
-        This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
+         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
-        config requirements:
-        "reps" = number of repetitions;
-        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-        "adc_lengths" = how many samples to accumulate over for each trigger;
+         config requirements:
+         "reps" = number of repetitions;
+         "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+         "adc_lengths" = how many samples to accumulate over for each trigger;
 
-        :param soc: Qick object
-        :type soc: Qick object
-        :param load_pulses: If true, loads pulses into the tProc
-        :type load_pulses: bool
-        :param progress: If true, displays progress bar
-        :type progress: bool
-        :param debug: If true, displays assembly code for tProc program
-        :type debug: bool
-        :returns:
-            - di_avg0/soft_avgs (:py:class:`list`) - list of averaged decimated I data ADC 0
-            - dq_avg0/soft_avgs (:py:class:`list`) - list of averaged decimated Q data ADC 0
-            - di_avg1/soft_avgs (:py:class:`list`) - list of averaged decimated I data ADC 1
-            - dq_avg1/soft_avgs (:py:class:`list`) - list of averaged decimated Q data ADC 1
-        """
+         :param soc: Qick object
+         :type soc: Qick object
+         :param load_pulses: If true, loads pulses into the tProc
+         :type load_pulses: bool
+         :param progress: If true, displays progress bar
+         :type progress: bool
+         :param debug: If true, displays assembly code for tProc program
+         :type debug: bool
+         :returns:
+             - iq0 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 0
+             - iq1 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 1
+         """
         #set reps to 1 since we are going to use soft averages
         if "reps" not in self.cfg or self.cfg["reps"] != 1:
             print ("Warning reps is not set to 1, and this acquire method expects reps=1")
@@ -327,31 +375,33 @@ class RAveragerProgram(QickProgram):
         
     def acquire_round(self, soc, threshold=None, angle=[0,0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
         """
-        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the RAveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
+         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
-        config requirements:
-        "reps" = number of repetitions;
-        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-        "adc_lengths" = how many samples to accumulate over for each trigger;
+         config requirements:
+         "reps" = number of repetitions;
+         "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+         "adc_lengths" = how many samples to accumulate over for each trigger;
 
-        :param soc: Qick object
-        :type soc: Qick object
-        :param load_pulses: If true, loads pulses into the tProc
-        :type load_pulses: bool
-        :param readouts_per_experiment: How many measurements per experiment (>1 in experiments with conditional reset or just multiple measurements in same experiment.
-        :type readouts_per_experiment: int
-        :param save_experiments: List of indices of experiments to keep (lets one skip conditional reset experiments).
-        :type save_experiments: list
-        :param progress: If true, displays progress bar
-        :type progress: bool
-        :param debug: If true, displays assembly code for tProc program
-        :type debug: bool
-        :returns:
-            - expt_pts (:py:class:`list`) - list of experiment points
-            - avg_di (:py:class:`list`) - list of averaged accumulated I data ADC 0
-            - avg_dq (:py:class:`list`) - list of averaged accumulated Q data ADC 0
-            - amp_pts (:py:class:`list`) - list of averaged accumulated amplitude data ADC 0
-        """
+         :param soc: Qick object
+         :type soc: Qick object
+         :param threshold: threshold
+         :type threshold: int
+         :param angle: rotation angle
+         :type angle: list
+         :param readouts_per_experiment: readouts per experiment
+         :type readouts_per_experiment: int
+         :param save_experiments: saved experiments
+         :type save_experiments: list
+         :param load_pulses: If true, loads pulses into the tProc
+         :type load_pulses: bool
+         :param progress: If true, displays progress bar
+         :type progress: bool
+         :param debug: If true, displays assembly code for tProc program
+         :type debug: bool
+         :returns:
+             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
+             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
+         """
 
         if load_pulses: 
             self.load_pulses(soc)
@@ -427,11 +477,56 @@ class RAveragerProgram(QickProgram):
         return expt_pts, avg_di, avg_dq
 
     def get_single_shots(self, di, dq, threshold, angle=[0,0]):
+        """
+        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
+
+        :param di: Raw I data
+        :type di: list
+        :param dq: Raw Q data
+        :type dq: list
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+
+        :returns:
+            - single_shot_array (:py:class:`array`) - Numpy array of single shot data
+
+        """
+
         if type(threshold) is int:
             threshold=[threshold,threshold]            
         return np.array([np.heaviside((di[ch]*np.cos(angle[ch]) - dq[ch]*np.sin(angle[ch]))/self.cfg['adc_lengths'][ch]-threshold[ch],0) for ch in range(2)])
                     
     def acquire(self, soc, threshold=None, angle=[0,0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=True, debug=False):
+        """
+        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
+        config requirements:
+        "reps" = number of repetitions;
+        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
+        "adc_lengths" = how many samples to accumulate over for each trigger;
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+        :param readouts_per_experiment: readouts per experiment
+        :type readouts_per_experiment: int
+        :param save_experiments: saved experiments
+        :type save_experiments: list
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - expt_pts (:py:class:`list`) - list of experiment points
+            - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
+            - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
+        """
         if "rounds" not in self.cfg or self.cfg["rounds"]==1:
             return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, progress=progress, debug=debug)
         
