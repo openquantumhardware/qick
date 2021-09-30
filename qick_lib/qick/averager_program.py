@@ -245,7 +245,7 @@ class AveragerProgram(QickProgram):
             di_avg1+=di1
             dq_avg1+=dq1
             
-        return np.array([di_avg0,di_avg0])/soft_avgs,np.array([dq_avg1,dq_avg1])/soft_avgs
+        return np.array([di_avg0,dq_avg0])/soft_avgs,np.array([di_avg1,dq_avg1])/soft_avgs
     
 class RAveragerProgram(QickProgram):
     """
