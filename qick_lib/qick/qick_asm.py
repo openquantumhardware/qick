@@ -499,8 +499,7 @@ class QickProgram:
         f={'const':self.const_pulse,'arb':self.arb_pulse,'flat_top':self.flat_top_pulse}[pinfo['style']]
         
         return f(ch, name=name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length , t= t, play=play)
-        
-        
+              
     def align(self, chs):
         """
         Sets all of the last times for each channel included in chs to the latest time in any of the channels.
@@ -524,7 +523,7 @@ class QickProgram:
         :param comment: Comment associated with the write
         :type comment: str
         """
-        if imm <2**30: 
+        if abs(imm) <2**30: 
             self.regwi(rp,reg,imm,comment)
         else:
             self.regwi(rp,reg,imm>>2,comment)
