@@ -387,7 +387,7 @@ class AxisAvgBuffer(SocIp):
     
     # Generics
     B = 16
-    N_AVG = 14
+    N_AVG = 10
     N_BUF = 10
         
     # Maximum number of samples
