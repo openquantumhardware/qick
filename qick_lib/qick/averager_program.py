@@ -118,6 +118,8 @@ class AveragerProgram(QickProgram):
         
         soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
         self.stats=[]
+
+        t = tqdm(total=total_count, disable=not progress) #progress bar
         
         soc.tproc.start()
         while count<total_count:   # Keep streaming data until you get all of it
@@ -134,7 +136,9 @@ class AveragerProgram(QickProgram):
                     dq_buf[ch,last_count:last_count+length]=dq[:length]
 
                 last_count+=length
+                t.update(length)
                 self.stats.append( (time.time(), count,addr, length))
+        t.close()
                     
         #save results to class in case you want to look at it later or for analysis
         self.di_buf=di_buf
