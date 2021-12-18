@@ -156,6 +156,17 @@ class AxisSignalGenV4(SocIp):
             print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
             return
 
+        # Check for even transfer size.
+        if len(xin_i) %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Check for max length.
+        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
+            raise ValueError("real part of envelope exceeds limits of int16 datatype")
+
+        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
+            raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
+
         # Route switch to channel.
         self.switch.sel(mst=self.ch)
         
