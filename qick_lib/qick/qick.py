@@ -76,7 +76,7 @@ class SocIp:
         :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
-            self.ip.write(4*self.__class__.REGISTERS[a], v)
+            self.ip.write(4*self.__class__.REGISTERS[a], int(v))
         else:
             return super().__setattr__(a,v)
     
@@ -155,7 +155,7 @@ class AxisSignalGenV4(SocIp):
         if len(xin_i) > self.MAX_LENGTH:
             print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
             return
-        
+
         # Route switch to channel.
         self.switch.sel(mst=self.ch)
         
@@ -445,7 +445,7 @@ class AxisAvgBuffer(SocIp):
         
     def transfer_avg(self,buff,address=0,length=100):
         """
-        Transfer average buffer data from average and buffering readout block
+        Transfer average buffer data from average and buffering readout block.
 
         :param buff: DMA buffer to be used for transfer
         :type buff: list
@@ -676,8 +676,8 @@ class AxisTProc64x32_x8(SocIp):
         for ii,inst in enumerate(prog.compile(debug=debug)):
             dec_low = inst & 0xffffffff
             dec_high = inst >> 32
-            self.mem.write(offset=8*ii,value=dec_low)
-            self.mem.write(offset=4*(2*ii+1),value=dec_high)
+            self.mem.write(offset=8*ii,value=int(dec_low))
+            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
 
     def load_program(self,prog="prog.asm",fmt="asm"):
         """
@@ -700,9 +700,9 @@ class AxisTProc64x32_x8(SocIp):
                 dec = int(line,2)
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=dec_low)
+                self.mem.write(offset=addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=dec_high)
+                self.mem.write(offset=addr,value=int(dec_high))
                 addr = addr + 4                
                 
         # Asm file.
@@ -717,9 +717,9 @@ class AxisTProc64x32_x8(SocIp):
                 #print ("@" + str(addr) + ": " + str(dec))
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=dec_low)
+                self.mem.write(offset=addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=dec_high)
+                self.mem.write(offset=addr,value=int(dec_high))
                 addr = addr + 4   
                 
     def single_read(self, addr):
@@ -754,7 +754,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
-        self.ip.write(offset=addr_temp,value=data)
+        self.ip.write(offset=addr_temp,value=int(data))
         
     def load_dmem(self, buff_in, addr=0):
         """
@@ -1024,13 +1024,14 @@ class QickSoc(Overlay):
             - di[:length] (:py:class:`list`) - list of accumulated I data
             - dq[:length] (:py:class:`list`) - list of accumulated Q data
         """
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
         if length >= AxisAvgBuffer.AVG_MAX_LENGTH:
             raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
-        evenLength = length+length%2
-        buff = allocate(shape=evenLength, dtype=np.int64)
-        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=evenLength)
+        buff = allocate(shape=length, dtype=np.int64)
+        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
 
-        return di[:length], dq[:length] #[np_buffi,np_buffq]
+        return di, dq #[np_buffi,np_buffq]
 
     
     
