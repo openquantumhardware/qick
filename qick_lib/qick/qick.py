@@ -470,6 +470,9 @@ class AxisAvgBuffer(SocIp):
         self.dma_avg.recvchannel.transfer(buff)
         self.dma_avg.recvchannel.wait()
 
+        if self.dma_avg.recvchannel.transferred != length*8:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
+
         # Stop send data mode.
         self.avg_dr_start_reg = 0
         
@@ -540,6 +543,9 @@ class AxisAvgBuffer(SocIp):
         # DMA data.
         self.dma_buf.recvchannel.transfer(buff)
         self.dma_buf.recvchannel.wait()
+
+        if self.dma_buf.recvchannel.transferred != length*4:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
 
         # Stop send data mode.
         self.buf_dr_start_reg = 0
