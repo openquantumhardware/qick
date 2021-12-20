@@ -110,13 +110,6 @@ class AxisSignalGenV4(SocIp):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0']
     REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
     
-    # Generics
-    N = 12
-    NDDS = 16
-    
-    # Maximum number of samples
-    MAX_LENGTH = 2**N*NDDS
-    
     def __init__(self, description, **kwargs):
         """
         Constructor method
@@ -127,6 +120,13 @@ class AxisSignalGenV4(SocIp):
         self.start_addr_reg=0
         self.we_reg=0
         self.rndq_reg = 10
+
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N*self.NDDS
         
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, axi_dma, axis_switch, channel):
@@ -394,26 +394,26 @@ class AxisAvgBuffer(SocIp):
                  'buf_dr_addr_reg'  : 10,
                  'buf_dr_len_reg'   : 11}
     
-    # Generics
-    B = 16
-    N_AVG = 10
-    N_BUF = 10
-        
-    # Maximum number of samples
-    AVG_MAX_LENGTH = 2**N_AVG  
-    BUF_MAX_LENGTH = 2**N_BUF
-    
-    def __init__(self, ip, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.avg_start_reg    = 0
         self.avg_dr_start_reg = 0
         self.buf_start_reg    = 0
         self.buf_dr_start_reg = 0        
+
+        # Generics
+        self.B = int(description['parameters']['B'])
+        self.N_AVG = int(description['parameters']['N_AVG'])
+        self.N_BUF = int(description['parameters']['N_BUF'])
+
+        # Maximum number of samples
+        self.AVG_MAX_LENGTH = 2**self.N_AVG  
+        self.BUF_MAX_LENGTH = 2**self.N_BUF
         
     # Configure this driver with links to the other drivers, and the readout channel number.
     def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf, channel):
@@ -641,10 +641,6 @@ class AxisTProc64x32_x8(SocIp):
                  'mem_addr_reg' : 4, 
                  'mem_len_reg' : 5}
     
-    # Generics.
-    DMEM_N = 10
-    PMEM_N = 16
-    
     # Reserved lower memory section for register access.
     DMEM_OFFSET = 256 
     
@@ -667,6 +663,10 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_start_reg = 0
         self.mem_addr_reg  = 0
         self.mem_len_reg   = 100
+
+        # Generics.
+        self.DMEM_N = int(description['parameters']['DMEM_N'])
+        self.PMEM_N = int(description['parameters']['PMEM_N'])
         
     # Configure this driver with links to its memory and DMA.
     def configure(self, mem, axi_dma):
@@ -865,20 +865,15 @@ class AxisSwitch(SocIp):
     bindto = ['xilinx.com:ip:axis_switch:1.1']
     REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
     
-    # Number of slave interfaces.
-    NSL = 1
-    
-    # Number of master interfaces.
-    NMI = 4
-    
     def __init__(self, description, **kwargs):
         """
         Constructor method
         """
         super().__init__(description)
         
-        # Set number of Slave/Master interfaces.
+        # Number of slave interfaces.
         self.NSL = int(description['parameters']['NUM_SI'])
+        # Number of master interfaces.
         self.NMI = int(description['parameters']['NUM_MI'])
         
         # Init axis_switch.
@@ -935,22 +930,24 @@ class QickSoc(Overlay):
     :type ignore_version: bool
     """
     FREF_PLL = 204.8 # MHz
-    fs_adc = 384*8 # MHz
-    fs_dac = 384*16 # MHz
-    pulse_mem_len_IQ = 65536 # samples for I, Q
-    ADC_decim_buf_len_IQ = 1024 # samples for I, Q
-    ADC_accum_buf_len_IQ = 16384 # samples for I, Q
-    tProc_instruction_len_bytes = 8 
-    tProc_prog_mem_samples = 8000
-    tProc_prog_mem_size_bytes_tot = tProc_instruction_len_bytes*tProc_prog_mem_samples
-    tProc_data_len_bytes = 4 
-    tProc_data_mem_samples = 4096
-    tProc_data_mem_size_bytes_tot = tProc_data_len_bytes*tProc_data_mem_samples
-    tProc_stack_len_bytes = 4
-    tProc_stack_samples = 256
-    tProc_stack_size_bytes_tot = tProc_stack_len_bytes*tProc_stack_samples
-    phase_resolution_bits = 32
-    gain_resolution_signed_bits = 16
+
+    # The following constants are no longer used. Some of the values may not match the bitfile.
+    #fs_adc = 384*8 # MHz
+    #fs_dac = 384*16 # MHz
+    #pulse_mem_len_IQ = 65536 # samples for I, Q
+    #ADC_decim_buf_len_IQ = 1024 # samples for I, Q
+    #ADC_accum_buf_len_IQ = 16384 # samples for I, Q
+    #tProc_instruction_len_bytes = 8 
+    #tProc_prog_mem_samples = 8000
+    #tProc_prog_mem_size_bytes_tot = tProc_instruction_len_bytes*tProc_prog_mem_samples
+    #tProc_data_len_bytes = 4 
+    #tProc_data_mem_samples = 4096
+    #tProc_data_mem_size_bytes_tot = tProc_data_len_bytes*tProc_data_mem_samples
+    #tProc_stack_len_bytes = 4
+    #tProc_stack_samples = 256
+    #tProc_stack_size_bytes_tot = tProc_stack_len_bytes*tProc_stack_samples
+    #phase_resolution_bits = 32
+    #gain_resolution_signed_bits = 16
     
     # Constructor.
     def __init__(self, bitfile=None, force_init_clks=False,ignore_version=True, **kwargs):
@@ -1023,7 +1020,7 @@ class QickSoc(Overlay):
         """
         xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
     
-    def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
+    def get_decimated(self, ch, address=0, length=None):
         """
         Acquires data from the readout decimated buffer
 
@@ -1036,15 +1033,19 @@ class QickSoc(Overlay):
         :return: List of I and Q decimated arrays
         :rtype: list
         """
+        if length is None:
+            # this default will always cause a RuntimeError
+            # TODO: remove the default, or pick a better fallback value
+            length = self.avg_bufs[ch].BUF_MAX_LENGTH
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= AxisAvgBuffer.BUF_MAX_LENGTH:
-            raise RuntimeError("length=%d longer or euqal to %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
+        if length >= self.avg_bufs[ch].BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer or equal to %d"%(length, self.avg_bufs[ch].BUF_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
-    def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+    def get_accumulated(self, ch, address=0, length=None):
         """
         Acquires data from the readout accumulated buffer
 
@@ -1058,10 +1059,14 @@ class QickSoc(Overlay):
             - di[:length] (:py:class:`list`) - list of accumulated I data
             - dq[:length] (:py:class:`list`) - list of accumulated Q data
         """
+        if length is None:
+            # this default will always cause a RuntimeError
+            # TODO: remove the default, or pick a better fallback value
+            length = self.avg_bufs[ch].AVG_MAX_LENGTH
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= AxisAvgBuffer.AVG_MAX_LENGTH:
-            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
+        if length >= self.avg_bufs[ch].AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, self.avg_bufs[ch].AVG_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int64)
         di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
 
