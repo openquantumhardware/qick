@@ -2,7 +2,7 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
-from pynq import Overlay, allocate
+from pynq import Overlay, DefaultIP, allocate
 import xrfclk
 import xrfdc
 import numpy as np
@@ -32,28 +32,30 @@ def format_buffer(buff):
     
     return dataI,dataQ
 
-class SocIp:
+class SocIp(DefaultIP):
     """
     SocIp class
     """
     REGISTERS = {}    
     
-    def __init__(self, ip, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        self.ip = ip
+        #print("SocIp init", description)
+        super().__init__(description)
+        #self.ip = description
         
-    def write(self, offset, s):
+    def write(self, offset, value):
         """
-        Writes a value s to a register specified by an offset value
+        Writes a value to a register specified by an offset
 
         :param offset: Offset value (register)
         :type offset: int
-        :param s: value to be written
-        :type s: int
+        :param value: value to be written
+        :type value: int
         """
-        self.ip.write(offset, s)
+        super().write(offset, value)
         
     def read(self, offset):
         """
@@ -62,7 +64,7 @@ class SocIp:
         :param offset: Offset value
         :type offset: int
         """
-        return self.ip.read(offset)
+        return super().read(offset)
     
     def __setattr__(self, a ,v):
         """
@@ -76,7 +78,7 @@ class SocIp:
         :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
-            self.ip.write(4*self.__class__.REGISTERS[a], int(v))
+            super().write(4*self.__class__.REGISTERS[a], int(v))
         else:
             return super().__setattr__(a,v)
     
@@ -90,7 +92,7 @@ class SocIp:
         :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
-            return self.ip.read(4*self.__class__.REGISTERS[a])
+            return super().read(4*self.__class__.REGISTERS[a])
         else:
             return super().__getattr__(a)           
         
@@ -105,6 +107,7 @@ class AxisSignalGenV4(SocIp):
     * 0 : disable writes.
     * 1 : enable writes.
     """
+    bindto = ['user.org:user:axis_signal_gen_v4:1.0']
     REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
     
     # Generics
@@ -114,17 +117,19 @@ class AxisSignalGenV4(SocIp):
     # Maximum number of samples
     MAX_LENGTH = 2**N*NDDS
     
-    def __init__(self, ip, axi_dma, axis_switch, channel, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.start_addr_reg=0
         self.we_reg=0
         self.rndq_reg = 10
         
+    # Configure this driver with links to the other drivers, and the signal gen channel number.
+    def configure(self, axi_dma, axis_switch, channel):
         # dma
         self.dma = axi_dma
         
@@ -244,16 +249,17 @@ class AxisReadoutV2(SocIp):
     :param fs: sampling frequency in MHz
     :type fs: float
     """
+    bindto = ['user.org:user:axis_readout_v2:1.0']
     REGISTERS = {'freq_reg':0, 'phase_reg':1, 'nsamp_reg':2, 'outsel_reg':3, 'mode_reg': 4, 'we_reg':5}
     
     # Bits of DDS.
     B_DDS = 32
     
-    def __init__(self, ip, fs, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.freq_reg = 0
@@ -265,6 +271,8 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
         
+    # Configure this driver with the sampling frequency.
+    def configure(self, fs):
         # Sampling frequency.
         self.fs = fs
         
@@ -372,6 +380,7 @@ class AxisAvgBuffer(SocIp):
     :param channel: readout channel selection
     :type channel: int
     """
+    bindto = ['user.org:user:axis_avg_buffer:1.0']
     REGISTERS = {'avg_start_reg'    : 0, 
                  'avg_addr_reg'     : 1,
                  'avg_len_reg'      : 2,
@@ -394,7 +403,7 @@ class AxisAvgBuffer(SocIp):
     AVG_MAX_LENGTH = 2**N_AVG  
     BUF_MAX_LENGTH = 2**N_BUF
     
-    def __init__(self, ip, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf, channel, **kwargs):
+    def __init__(self, ip, **kwargs):
         """
         Constructor method
         """
@@ -406,6 +415,8 @@ class AxisAvgBuffer(SocIp):
         self.buf_start_reg    = 0
         self.buf_dr_start_reg = 0        
         
+    # Configure this driver with links to the other drivers, and the readout channel number.
+    def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf, channel):
         # DMAs.
         self.dma_avg = axi_dma_avg
         self.dma_buf = axi_dma_buf
@@ -622,6 +633,7 @@ class AxisTProc64x32_x8(SocIp):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
+    bindto = ['user.org:user:axis_tproc64x32_x8:1.0']
     REGISTERS = {'start_src_reg' : 0, 
                  'start_reg' : 1, 
                  'mem_mode_reg' : 2, 
@@ -636,14 +648,11 @@ class AxisTProc64x32_x8(SocIp):
     # Reserved lower memory section for register access.
     DMEM_OFFSET = 256 
     
-    def __init__(self, ip, mem, axi_dma):
+    def __init__(self, description):
         """
         Constructor method
         """
-        super().__init__(ip)
-        
-        # Program memory.
-        self.mem = mem
+        super().__init__(description)
         
         # Default registers.
         # start_src_reg = 0   : internal start.
@@ -659,9 +668,14 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_addr_reg  = 0
         self.mem_len_reg   = 100
         
+    # Configure this driver with links to its memory and DMA.
+    def configure(self, mem, axi_dma):
+        # Program memory.
+        self.mem = mem
+
         # dma
         self.dma = axi_dma 
-        
+
     def start_src(self,src=0):
         """
         Sets the start source of tProc
@@ -754,7 +768,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Read data.
-        data = self.ip.read(offset=addr_temp)
+        data = self.read(offset=addr_temp)
             
         return data
     
@@ -771,7 +785,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
-        self.ip.write(offset=addr_temp,value=int(data))
+        self.write(offset=addr_temp,value=int(data))
         
     def load_dmem(self, buff_in, addr=0):
         """
@@ -848,6 +862,7 @@ class AxisSwitch(SocIp):
     :param nmaster: Number of master interfaces
     :type nmaster: int
     """
+    bindto = ['xilinx.com:ip:axis_switch:1.1']
     REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
     
     # Number of slave interfaces.
@@ -856,15 +871,15 @@ class AxisSwitch(SocIp):
     # Number of master interfaces.
     NMI = 4
     
-    def __init__(self, ip, nslave=1, nmaster=4, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)        
+        super().__init__(description)
         
         # Set number of Slave/Master interfaces.
-        self.NSL = nslave
-        self.NMI = nmaster
+        self.NSL = int(description['parameters']['NUM_SI'])
+        self.NMI = int(description['parameters']['NUM_MI'])
         
         # Init axis_switch.
         self.ctrl = 0
@@ -961,44 +976,46 @@ class QickSoc(Overlay):
                 self.set_all_clks()
                 
         # AXIS Switch to upload samples into Signal Generators.
-        self.switch_gen = AxisSwitch(self.axis_switch_gen, nslave=1, nmaster=7)
-        
+        self.switch_gen = self.axis_switch_gen
+
         # AXIS Switch to read samples from averager.
-        self.switch_avg = AxisSwitch(self.axis_switch_avg, nslave=2, nmaster=1)
+        self.switch_avg = self.axis_switch_avg
         
         # AXIS Switch to read samples from buffer.
-        self.switch_buf = AxisSwitch(self.axis_switch_buf, nslave=2, nmaster=1)
+        self.switch_buf = self.axis_switch_buf
         
         # Signal generators.
         self.gens = []
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_0, self.axi_dma_gen, self.switch_gen, 0))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_1, self.axi_dma_gen, self.switch_gen, 1))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_2, self.axi_dma_gen, self.switch_gen, 2))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_3, self.axi_dma_gen, self.switch_gen, 3))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_4, self.axi_dma_gen, self.switch_gen, 4))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_5, self.axi_dma_gen, self.switch_gen, 5))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_6, self.axi_dma_gen, self.switch_gen, 6))
+        self.gens.append(self.axis_signal_gen_v4_0)
+        self.gens.append(self.axis_signal_gen_v4_1)
+        self.gens.append(self.axis_signal_gen_v4_2)
+        self.gens.append(self.axis_signal_gen_v4_3)
+        self.gens.append(self.axis_signal_gen_v4_4)
+        self.gens.append(self.axis_signal_gen_v4_5)
+        self.gens.append(self.axis_signal_gen_v4_6)
+        for iGen, gen in enumerate(self.gens):
+            gen.configure(self.axi_dma_gen, self.switch_gen, iGen)
         
         # Readout blocks.
         self.readouts = []
-        self.readouts.append(AxisReadoutV2(self.axis_readout_v2_0, self.fs_adc))
-        self.readouts.append(AxisReadoutV2(self.axis_readout_v2_1, self.fs_adc))
+        self.readouts.append(self.axis_readout_v2_0)
+        self.readouts.append(self.axis_readout_v2_1)
+        for readout in self.readouts:
+            readout.configure(self.fs_adc)
         
         # Average + Buffer blocks.
         self.avg_bufs = []
-        self.avg_bufs.append(AxisAvgBuffer(self.axis_avg_buffer_0, 
-                                           self.axi_dma_avg, self.switch_avg,
-                                           self.axi_dma_buf, self.switch_buf,
-                                           0))
-        
-        self.avg_bufs.append(AxisAvgBuffer(self.axis_avg_buffer_1, 
-                                           self.axi_dma_avg, self.switch_avg,
-                                           self.axi_dma_buf, self.switch_buf,
-                                           1))        
+        self.avg_bufs.append(self.axis_avg_buffer_0)
+        self.avg_bufs.append(self.axis_avg_buffer_1)
+        for iBuf, buf in enumerate(self.avg_bufs):
+            buf.configure(self.axi_dma_avg, self.switch_avg,
+                    self.axi_dma_buf, self.switch_buf,
+                    iBuf)
         
         
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
-        self.tproc  = AxisTProc64x32_x8(self.axis_tproc64x32_x8_0, self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        self.tproc  = self.axis_tproc64x32_x8_0
+        self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
         
     def set_all_clks(self):
         """
