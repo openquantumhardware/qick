@@ -959,17 +959,20 @@ class QickSoc(Overlay):
             super().__init__(bitfile_path(), ignore_version=ignore_version, **kwargs)
         else:
             super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
-        # Configure PLLs if requested.
+
+        # RF data converter (for configuring ADCs and DACs)
+        self.rf = self.usp_rf_data_converter_0
+
+        # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
+        self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
+
+        # Configure PLLs if requested, or if any ADC/DAC is not locked.
         if force_init_clks:
             self.set_all_clks()
         else:
-            rf=self.usp_rf_data_converter_0
-            dac_tile = rf.dac_tiles[1] # DAC 228: 0, DAC 229: 1
-            DAC_PLL=dac_tile.PLLLockStatus
-            adc_tile = rf.adc_tiles[0] # ADC 224: 0, ADC 225: 1, ADC 226: 2, ADC 227: 3
-            ADC_PLL=adc_tile.PLLLockStatus
-            
-            if not (DAC_PLL==2 and ADC_PLL==2):
+            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
+            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
+            if not (all(dac_locked) and all(adc_locked)):
                 self.set_all_clks()
                 
         # AXIS Switch to upload samples into Signal Generators.
@@ -992,12 +995,17 @@ class QickSoc(Overlay):
         self.gens.append(self.axis_signal_gen_v4_6)
         for iGen, gen in enumerate(self.gens):
             gen.configure(self.axi_dma_gen, self.switch_gen, iGen)
+
+        # Sanity check: we should have the same number of signal generators as DACs.
+        if len(self.dac_blocks) != len(self.gens):
+            raise RuntimeError("We have %d DACs but %d signal generators."%(len(self.dac_blocks),len(self.gens)))
         
         # Readout blocks.
         self.readouts = []
         self.readouts.append(self.axis_readout_v2_0)
         self.readouts.append(self.axis_readout_v2_1)
-        for readout in self.readouts:
+
+        for iReadout, readout in enumerate(self.readouts):
             readout.configure(self.fs_adc)
         
         # Average + Buffer blocks.
@@ -1009,11 +1017,59 @@ class QickSoc(Overlay):
                     self.axi_dma_buf, self.switch_buf,
                     iBuf)
         
+        # Sanity check: we should have the same number of readouts and buffer blocks as ADCs.
+        if len(self.adc_blocks) != len(self.readouts):
+            raise RuntimeError("We have %d ADCs but %d readout blocks."%(len(self.adc_blocks),len(self.readouts)))
+        if len(self.adc_blocks) != len(self.avg_bufs):
+            raise RuntimeError("We have %d ADCs but %d avg/buffer blocks."%(len(self.adc_blocks),len(self.avg_bufs)))
         
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
         self.tproc  = self.axis_tproc64x32_x8_0
         self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
         
+    def list_rf_blocks(self, rf_config):
+        """
+        Lists the enabled ADCs and DACs and get the sampling frequencies.
+        XRFdc_CheckBlockEnabled in xrfdc_ap.c is not accessible from the Python interface to the XRFdc driver.
+        This re-implements that functionality.
+        """
+
+        hs_adc = rf_config['C_High_Speed_ADC']=='1'
+
+        self.dac_tiles = []
+        self.dac_blocks = []
+        self.adc_tiles = []
+        self.adc_blocks = []
+
+        for iTile,tile in enumerate(self.rf.dac_tiles):
+            if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
+                continue
+            self.dac_tiles.append(iTile)
+            for iBlock,block in enumerate(tile.blocks):
+                if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
+                    continue
+                self.dac_blocks.append((iTile,iBlock))
+
+        for iTile,tile in enumerate(self.rf.adc_tiles):
+            if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
+                continue
+            self.adc_tiles.append(iTile)
+            for iBlock,block in enumerate(tile.blocks):
+                if hs_adc:
+                    if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
+                        continue
+                else:
+                    if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
+                        continue
+                self.adc_blocks.append((iTile,iBlock))
+
+        # Assume all DACs and ADCs each share a common sampling frequency, so we only need to check the first one.
+        # We assume the sampling frequencies are integers in MHz.
+        iTile,iBlock = self.dac_blocks[0]
+        self.fs_dac = int(self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+        iTile,iBlock = self.adc_blocks[0]
+        self.fs_adc = int(self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+
     def set_all_clks(self):
         """
         Resets all the board clocks
@@ -1076,7 +1132,9 @@ class QickSoc(Overlay):
     
     def set_nyquist(self, ch, nqz):
         """
-        Sets DAC channel ch to operate in Nyquist zone nqz mode
+        Sets DAC channel ch to operate in Nyquist zone nqz mode.
+        Channels are indexed as they are on the tProc outputs: in other words, the first DAC channel is channel 1.
+        (tProc output 0 is reserved for readout triggers and PMOD outputs)
 
         Channel 1 : connected to Signal Generator V4, which drives DAC 228 CH0.
         Channel 2 : connected to Signal Generator V4, which drives DAC 228 CH1.
@@ -1095,11 +1153,10 @@ class QickSoc(Overlay):
         :return: 'True' or '1' if the task was completed successfully
         :rtype: bool
         """
-        ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
+        #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        rf=self.usp_rf_data_converter_0
-        tile, channel = ch_info[ch]
-        dac_block=rf.dac_tiles[tile].blocks[channel]        
+        tile, channel = self.dac_blocks[ch+1]
+        dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
 
