@@ -1066,6 +1066,8 @@ class QickSoc(Overlay):
             self.avg_bufs[0].AVG_MAX_LENGTH, 
             self.avg_bufs[0].BUF_MAX_LENGTH))
 
+        lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
+
         return "\nQICK configuration:\n"+"\n".join(lines)
 
     def list_rf_blocks(self, rf_config):
