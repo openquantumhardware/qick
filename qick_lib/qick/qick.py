@@ -1037,7 +1037,37 @@ class QickSoc(Overlay):
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
         self.tproc  = self.axis_tproc64x32_x8_0
         self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-        
+
+    def __repr__(self):
+        lines=[]
+        lines.append("\n\tGenerator switch: %d to %d"%(
+            self.switch_gen.NSL, self.switch_gen.NMI))
+        lines.append("\n\tAverager switch: %d to %d"%(
+            self.switch_avg.NSL, self.switch_avg.NMI))
+        lines.append("\n\tBuffer switch: %d to %d"%(
+            self.switch_buf.NSL, self.switch_buf.NMI))
+
+        lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
+        for iCh, (iTile,iBlock) in enumerate(self.dac_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
+                self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+
+        lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
+        for iCh, (iTile,iBlock) in enumerate(self.adc_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
+                self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+
+        lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
+            self.gens[0].MAX_LENGTH))
+
+        lines.append("\n\t%d readout blocks"%(len(self.readouts)))
+
+        lines.append("\n\t%d average+buffer blocks: max length %d samples (averages), %d (decimated buffer)"%(len(self.avg_bufs),
+            self.avg_bufs[0].AVG_MAX_LENGTH, 
+            self.avg_bufs[0].BUF_MAX_LENGTH))
+
+        return "\nQICK configuration:\n"+"\n".join(lines)
+
     def list_rf_blocks(self, rf_config):
         """
         Lists the enabled ADCs and DACs and get the sampling frequencies.
