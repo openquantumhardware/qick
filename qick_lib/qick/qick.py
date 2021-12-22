@@ -127,17 +127,17 @@ class AxisSignalGenV4(SocIp):
 
         # Maximum number of samples
         self.MAX_LENGTH = 2**self.N*self.NDDS
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
         
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, axi_dma, axis_switch, channel):
+    def configure(self, axi_dma, axis_switch):
         # dma
         self.dma = axi_dma
         
         # Switch
         self.switch = axis_switch
-        
-        # Channel.
-        self.ch = channel        
         
     # Load waveforms.
     def load(self, xin_i, xin_q ,addr=0):
@@ -271,6 +271,9 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
         
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
+
     # Configure this driver with the sampling frequency.
     def configure(self, fs):
         # Sampling frequency.
@@ -414,9 +417,12 @@ class AxisAvgBuffer(SocIp):
         # Maximum number of samples
         self.AVG_MAX_LENGTH = 2**self.N_AVG  
         self.BUF_MAX_LENGTH = 2**self.N_BUF
-        
-    # Configure this driver with links to the other drivers, and the readout channel number.
-    def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf, channel):
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
+
+    # Configure this driver with links to the other drivers.
+    def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf):
         # DMAs.
         self.dma_avg = axi_dma_avg
         self.dma_buf = axi_dma_buf
@@ -425,8 +431,6 @@ class AxisAvgBuffer(SocIp):
         self.switch_avg = switch_avg
         self.switch_buf = switch_buf
         
-        # Channel number.
-        self.ch = channel
 
     def config(self,address=0,length=100):
         """
@@ -986,43 +990,50 @@ class QickSoc(Overlay):
         
         # Signal generators.
         self.gens = []
-        self.gens.append(self.axis_signal_gen_v4_0)
-        self.gens.append(self.axis_signal_gen_v4_1)
-        self.gens.append(self.axis_signal_gen_v4_2)
-        self.gens.append(self.axis_signal_gen_v4_3)
-        self.gens.append(self.axis_signal_gen_v4_4)
-        self.gens.append(self.axis_signal_gen_v4_5)
-        self.gens.append(self.axis_signal_gen_v4_6)
-        for iGen, gen in enumerate(self.gens):
-            gen.configure(self.axi_dma_gen, self.switch_gen, iGen)
+
+        # Readout blocks.
+        self.readouts = []
+
+        # Average + Buffer blocks.
+        self.avg_bufs = []
+
+        # Populate the lists with the registered IP blocks.
+        for key,val in self.ip_dict.items():
+            if (val['driver'] == AxisSignalGenV4):
+                self.gens.append(getattr(self,key))
+            elif (val['driver'] == AxisReadoutV2):
+                self.readouts.append(getattr(self,key))
+            elif (val['driver'] == AxisAvgBuffer):
+                self.avg_bufs.append(getattr(self,key))
 
         # Sanity check: we should have the same number of signal generators as DACs.
         if len(self.dac_blocks) != len(self.gens):
             raise RuntimeError("We have %d DACs but %d signal generators."%(len(self.dac_blocks),len(self.gens)))
-        
-        # Readout blocks.
-        self.readouts = []
-        self.readouts.append(self.axis_readout_v2_0)
-        self.readouts.append(self.axis_readout_v2_1)
 
-        for iReadout, readout in enumerate(self.readouts):
-            readout.configure(self.fs_adc)
-        
-        # Average + Buffer blocks.
-        self.avg_bufs = []
-        self.avg_bufs.append(self.axis_avg_buffer_0)
-        self.avg_bufs.append(self.axis_avg_buffer_1)
-        for iBuf, buf in enumerate(self.avg_bufs):
-            buf.configure(self.axi_dma_avg, self.switch_avg,
-                    self.axi_dma_buf, self.switch_buf,
-                    iBuf)
-        
         # Sanity check: we should have the same number of readouts and buffer blocks as ADCs.
         if len(self.adc_blocks) != len(self.readouts):
             raise RuntimeError("We have %d ADCs but %d readout blocks."%(len(self.adc_blocks),len(self.readouts)))
         if len(self.adc_blocks) != len(self.avg_bufs):
             raise RuntimeError("We have %d ADCs but %d avg/buffer blocks."%(len(self.adc_blocks),len(self.avg_bufs)))
         
+        # Sort the lists by channel number.
+        # Typically they are already in order, but good to make sure?
+        self.gens.sort(key=lambda x: x.ch)
+        self.readouts.sort(key=lambda x: x.ch)
+        self.avg_bufs.sort(key=lambda x: x.ch)
+
+        # Configure the drivers.
+        for gen in self.gens:
+            gen.configure(self.axi_dma_gen, self.switch_gen)
+
+        for readout in self.readouts:
+            readout.configure(self.fs_adc)
+
+        for buf in self.avg_bufs:
+            buf.configure(self.axi_dma_avg, self.switch_avg,
+                    self.axi_dma_buf, self.switch_buf)
+
+
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
         self.tproc  = self.axis_tproc64x32_x8_0
         self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
@@ -1074,6 +1085,7 @@ class QickSoc(Overlay):
         """
         Resets all the board clocks
         """
+        print("resetting clocks:",self.__class__.FREF_PLL)
         xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
     
     def get_decimated(self, ch, address=0, length=None):
