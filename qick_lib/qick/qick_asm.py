@@ -20,11 +20,12 @@ def freq2reg(f):
     B=32
     df = 2**B/fs_dac
     f_i = f*df
-    return int(f_i)
+    return np.int64(f_i)
 
 def freq2reg_adc(f):
     """
     Converts frequency in MHz to tProc ADC register value.
+    Always returns an even number.
 
     :param f: frequency (MHz)
     :type f: float
@@ -34,7 +35,7 @@ def freq2reg_adc(f):
     B=32
     df = 2**B/fs_adc
     f_i = f*df
-    return int(f_i)    
+    return np.int64(f_i/2)*2
 
 def reg2freq(r):
     """
@@ -68,7 +69,7 @@ def adcfreq(f):
     :rtype: int
     """
     reg=freq2reg_adc(f)
-    return reg2freq_adc(reg+(reg%2))
+    return reg2freq_adc(reg)
 
 def cycles2us(cycles):
     """
@@ -351,7 +352,7 @@ class QickProgram:
                     t=p.dac_ts[ch]
                     p.dac_ts[ch]=t+length                   
                 p.regwi (rp, r_t, t, f't = {t}')
-            p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
+            p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_phase},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
      
     def arb_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None , t= 'auto', play=True):
         """
@@ -454,7 +455,7 @@ class QickProgram:
                 p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t) #play ramp up part of pulse
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 
-                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=0, outsel=1, t=t) #play ramp up part of pulse
+                p.set_pulse_registers(ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=0, outsel=1, t=t) #play flat part of pulse
                 p.math(rp,r_mode, r_mode, "+", p.sreg(ch, "length"),"+")
                 p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t+ramp_length+pinfo['length']) #play ramp down part of pulse with length delay
@@ -571,10 +572,10 @@ class QickProgram:
         :type short: bool
         """
         out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0)
-        self.regwi (rp, r_out, out, 'out = 0b{out:>016b}')
+        self.regwi (rp, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
         if short:
-            self.regwi (rp, r_out, 0, 'out = 0b{out:>016b}')
+            self.regwi (rp, r_out, 0, f'out = 0b{out:>016b}')
             self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
     
     

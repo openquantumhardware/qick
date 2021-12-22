@@ -2,7 +2,7 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
-from pynq import Overlay, allocate
+from pynq import Overlay, DefaultIP, allocate
 import xrfclk
 import xrfdc
 import numpy as np
@@ -32,28 +32,30 @@ def format_buffer(buff):
     
     return dataI,dataQ
 
-class SocIp:
+class SocIp(DefaultIP):
     """
     SocIp class
     """
     REGISTERS = {}    
     
-    def __init__(self, ip, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        self.ip = ip
+        #print("SocIp init", description)
+        super().__init__(description)
+        #self.ip = description
         
-    def write(self, offset, s):
+    def write(self, offset, value):
         """
-        Writes a value s to a register specified by an offset value
+        Writes a value to a register specified by an offset
 
         :param offset: Offset value (register)
         :type offset: int
-        :param s: value to be written
-        :type s: int
+        :param value: value to be written
+        :type value: int
         """
-        self.ip.write(offset, s)
+        super().write(offset, value)
         
     def read(self, offset):
         """
@@ -62,7 +64,7 @@ class SocIp:
         :param offset: Offset value
         :type offset: int
         """
-        return self.ip.read(offset)
+        return super().read(offset)
     
     def __setattr__(self, a ,v):
         """
@@ -76,7 +78,7 @@ class SocIp:
         :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
-            self.ip.write(4*self.__class__.REGISTERS[a], v)
+            super().write(4*self.__class__.REGISTERS[a], int(v))
         else:
             return super().__setattr__(a,v)
     
@@ -90,7 +92,7 @@ class SocIp:
         :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
-            return self.ip.read(4*self.__class__.REGISTERS[a])
+            return super().read(4*self.__class__.REGISTERS[a])
         else:
             return super().__getattr__(a)           
         
@@ -105,34 +107,37 @@ class AxisSignalGenV4(SocIp):
     * 0 : disable writes.
     * 1 : enable writes.
     """
+    bindto = ['user.org:user:axis_signal_gen_v4:1.0']
     REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
     
-    # Generics
-    N = 12
-    NDDS = 16
-    
-    # Maximum number of samples
-    MAX_LENGTH = 2**N*NDDS
-    
-    def __init__(self, ip, axi_dma, axis_switch, channel, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.start_addr_reg=0
         self.we_reg=0
         self.rndq_reg = 10
+
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N*self.NDDS
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
         
+    # Configure this driver with links to the other drivers, and the signal gen channel number.
+    def configure(self, axi_dma, axis_switch):
         # dma
         self.dma = axi_dma
         
         # Switch
         self.switch = axis_switch
-        
-        # Channel.
-        self.ch = channel        
         
     # Load waveforms.
     def load(self, xin_i, xin_q ,addr=0):
@@ -155,7 +160,18 @@ class AxisSignalGenV4(SocIp):
         if len(xin_i) > self.MAX_LENGTH:
             print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
             return
-        
+
+        # Check for even transfer size.
+        if len(xin_i) %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Check for max length.
+        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
+            raise ValueError("real part of envelope exceeds limits of int16 datatype")
+
+        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
+            raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
+
         # Route switch to channel.
         self.switch.sel(mst=self.ch)
         
@@ -233,16 +249,17 @@ class AxisReadoutV2(SocIp):
     :param fs: sampling frequency in MHz
     :type fs: float
     """
+    bindto = ['user.org:user:axis_readout_v2:1.0']
     REGISTERS = {'freq_reg':0, 'phase_reg':1, 'nsamp_reg':2, 'outsel_reg':3, 'mode_reg': 4, 'we_reg':5}
     
     # Bits of DDS.
     B_DDS = 32
     
-    def __init__(self, ip, fs, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.freq_reg = 0
@@ -254,6 +271,11 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
         
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
+
+    # Configure this driver with the sampling frequency.
+    def configure(self, fs):
         # Sampling frequency.
         self.fs = fs
         
@@ -361,6 +383,7 @@ class AxisAvgBuffer(SocIp):
     :param channel: readout channel selection
     :type channel: int
     """
+    bindto = ['user.org:user:axis_avg_buffer:1.0']
     REGISTERS = {'avg_start_reg'    : 0, 
                  'avg_addr_reg'     : 1,
                  'avg_len_reg'      : 2,
@@ -374,27 +397,32 @@ class AxisAvgBuffer(SocIp):
                  'buf_dr_addr_reg'  : 10,
                  'buf_dr_len_reg'   : 11}
     
-    # Generics
-    B = 16
-    N_AVG = 14
-    N_BUF = 10
-        
-    # Maximum number of samples
-    AVG_MAX_LENGTH = 2**N_AVG  
-    BUF_MAX_LENGTH = 2**N_BUF
-    
-    def __init__(self, ip, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf, channel, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)
+        super().__init__(description)
         
         # Default registers.
         self.avg_start_reg    = 0
         self.avg_dr_start_reg = 0
         self.buf_start_reg    = 0
         self.buf_dr_start_reg = 0        
-        
+
+        # Generics
+        self.B = int(description['parameters']['B'])
+        self.N_AVG = int(description['parameters']['N_AVG'])
+        self.N_BUF = int(description['parameters']['N_BUF'])
+
+        # Maximum number of samples
+        self.AVG_MAX_LENGTH = 2**self.N_AVG  
+        self.BUF_MAX_LENGTH = 2**self.N_BUF
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
+
+    # Configure this driver with links to the other drivers.
+    def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf):
         # DMAs.
         self.dma_avg = axi_dma_avg
         self.dma_buf = axi_dma_buf
@@ -403,8 +431,6 @@ class AxisAvgBuffer(SocIp):
         self.switch_avg = switch_avg
         self.switch_buf = switch_buf
         
-        # Channel number.
-        self.ch = channel
 
     def config(self,address=0,length=100):
         """
@@ -445,7 +471,7 @@ class AxisAvgBuffer(SocIp):
         
     def transfer_avg(self,buff,address=0,length=100):
         """
-        Transfer average buffer data from average and buffering readout block
+        Transfer average buffer data from average and buffering readout block.
 
         :param buff: DMA buffer to be used for transfer
         :type buff: list
@@ -469,6 +495,9 @@ class AxisAvgBuffer(SocIp):
         # DMA data.
         self.dma_avg.recvchannel.transfer(buff)
         self.dma_avg.recvchannel.wait()
+
+        if self.dma_avg.recvchannel.transferred != length*8:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
 
         # Stop send data mode.
         self.avg_dr_start_reg = 0
@@ -541,6 +570,9 @@ class AxisAvgBuffer(SocIp):
         self.dma_buf.recvchannel.transfer(buff)
         self.dma_buf.recvchannel.wait()
 
+        if self.dma_buf.recvchannel.transferred != length*4:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
+
         # Stop send data mode.
         self.buf_dr_start_reg = 0
         
@@ -605,6 +637,7 @@ class AxisTProc64x32_x8(SocIp):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
+    bindto = ['user.org:user:axis_tproc64x32_x8:1.0']
     REGISTERS = {'start_src_reg' : 0, 
                  'start_reg' : 1, 
                  'mem_mode_reg' : 2, 
@@ -612,21 +645,14 @@ class AxisTProc64x32_x8(SocIp):
                  'mem_addr_reg' : 4, 
                  'mem_len_reg' : 5}
     
-    # Generics.
-    DMEM_N = 10
-    PMEM_N = 16
-    
     # Reserved lower memory section for register access.
     DMEM_OFFSET = 256 
     
-    def __init__(self, ip, mem, axi_dma):
+    def __init__(self, description):
         """
         Constructor method
         """
-        super().__init__(ip)
-        
-        # Program memory.
-        self.mem = mem
+        super().__init__(description)
         
         # Default registers.
         # start_src_reg = 0   : internal start.
@@ -641,10 +667,19 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_start_reg = 0
         self.mem_addr_reg  = 0
         self.mem_len_reg   = 100
+
+        # Generics.
+        self.DMEM_N = int(description['parameters']['DMEM_N'])
+        self.PMEM_N = int(description['parameters']['PMEM_N'])
         
+    # Configure this driver with links to its memory and DMA.
+    def configure(self, mem, axi_dma):
+        # Program memory.
+        self.mem = mem
+
         # dma
         self.dma = axi_dma 
-        
+
     def start_src(self,src=0):
         """
         Sets the start source of tProc
@@ -676,8 +711,8 @@ class AxisTProc64x32_x8(SocIp):
         for ii,inst in enumerate(prog.compile(debug=debug)):
             dec_low = inst & 0xffffffff
             dec_high = inst >> 32
-            self.mem.write(offset=8*ii,value=dec_low)
-            self.mem.write(offset=4*(2*ii+1),value=dec_high)
+            self.mem.write(offset=8*ii,value=int(dec_low))
+            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
 
     def load_program(self,prog="prog.asm",fmt="asm"):
         """
@@ -700,9 +735,9 @@ class AxisTProc64x32_x8(SocIp):
                 dec = int(line,2)
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=dec_low)
+                self.mem.write(offset=addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=dec_high)
+                self.mem.write(offset=addr,value=int(dec_high))
                 addr = addr + 4                
                 
         # Asm file.
@@ -717,9 +752,9 @@ class AxisTProc64x32_x8(SocIp):
                 #print ("@" + str(addr) + ": " + str(dec))
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=dec_low)
+                self.mem.write(offset=addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=dec_high)
+                self.mem.write(offset=addr,value=int(dec_high))
                 addr = addr + 4   
                 
     def single_read(self, addr):
@@ -737,7 +772,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Read data.
-        data = self.ip.read(offset=addr_temp)
+        data = self.read(offset=addr_temp)
             
         return data
     
@@ -754,7 +789,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
-        self.ip.write(offset=addr_temp,value=data)
+        self.write(offset=addr_temp,value=int(data))
         
     def load_dmem(self, buff_in, addr=0):
         """
@@ -831,23 +866,19 @@ class AxisSwitch(SocIp):
     :param nmaster: Number of master interfaces
     :type nmaster: int
     """
+    bindto = ['xilinx.com:ip:axis_switch:1.1']
     REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
     
-    # Number of slave interfaces.
-    NSL = 1
-    
-    # Number of master interfaces.
-    NMI = 4
-    
-    def __init__(self, ip, nslave=1, nmaster=4, **kwargs):
+    def __init__(self, description, **kwargs):
         """
         Constructor method
         """
-        super().__init__(ip)        
+        super().__init__(description)
         
-        # Set number of Slave/Master interfaces.
-        self.NSL = nslave
-        self.NMI = nmaster
+        # Number of slave interfaces.
+        self.NSL = int(description['parameters']['NUM_SI'])
+        # Number of master interfaces.
+        self.NMI = int(description['parameters']['NUM_MI'])
         
         # Init axis_switch.
         self.ctrl = 0
@@ -903,22 +934,24 @@ class QickSoc(Overlay):
     :type ignore_version: bool
     """
     FREF_PLL = 204.8 # MHz
-    fs_adc = 384*8 # MHz
-    fs_dac = 384*16 # MHz
-    pulse_mem_len_IQ = 65536 # samples for I, Q
-    ADC_decim_buf_len_IQ = 1024 # samples for I, Q
-    ADC_accum_buf_len_IQ = 16384 # samples for I, Q
-    tProc_instruction_len_bytes = 8 
-    tProc_prog_mem_samples = 8000
-    tProc_prog_mem_size_bytes_tot = tProc_instruction_len_bytes*tProc_prog_mem_samples
-    tProc_data_len_bytes = 4 
-    tProc_data_mem_samples = 4096
-    tProc_data_mem_size_bytes_tot = tProc_data_len_bytes*tProc_data_mem_samples
-    tProc_stack_len_bytes = 4
-    tProc_stack_samples = 256
-    tProc_stack_size_bytes_tot = tProc_stack_len_bytes*tProc_stack_samples
-    phase_resolution_bits = 32
-    gain_resolution_signed_bits = 16
+
+    # The following constants are no longer used. Some of the values may not match the bitfile.
+    #fs_adc = 384*8 # MHz
+    #fs_dac = 384*16 # MHz
+    #pulse_mem_len_IQ = 65536 # samples for I, Q
+    #ADC_decim_buf_len_IQ = 1024 # samples for I, Q
+    #ADC_accum_buf_len_IQ = 16384 # samples for I, Q
+    #tProc_instruction_len_bytes = 8 
+    #tProc_prog_mem_samples = 8000
+    #tProc_prog_mem_size_bytes_tot = tProc_instruction_len_bytes*tProc_prog_mem_samples
+    #tProc_data_len_bytes = 4 
+    #tProc_data_mem_samples = 4096
+    #tProc_data_mem_size_bytes_tot = tProc_data_len_bytes*tProc_data_mem_samples
+    #tProc_stack_len_bytes = 4
+    #tProc_stack_samples = 256
+    #tProc_stack_size_bytes_tot = tProc_stack_len_bytes*tProc_stack_samples
+    #phase_resolution_bits = 32
+    #gain_resolution_signed_bits = 16
     
     # Constructor.
     def __init__(self, bitfile=None, force_init_clks=False,ignore_version=True, **kwargs):
@@ -930,66 +963,164 @@ class QickSoc(Overlay):
             super().__init__(bitfile_path(), ignore_version=ignore_version, **kwargs)
         else:
             super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
-        # Configure PLLs if requested.
+
+        # RF data converter (for configuring ADCs and DACs)
+        self.rf = self.usp_rf_data_converter_0
+
+        # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
+        self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
+
+        # Configure PLLs if requested, or if any ADC/DAC is not locked.
         if force_init_clks:
             self.set_all_clks()
         else:
-            rf=self.usp_rf_data_converter_0
-            dac_tile = rf.dac_tiles[1] # DAC 228: 0, DAC 229: 1
-            DAC_PLL=dac_tile.PLLLockStatus
-            adc_tile = rf.adc_tiles[0] # ADC 224: 0, ADC 225: 1, ADC 226: 2, ADC 227: 3
-            ADC_PLL=adc_tile.PLLLockStatus
-            
-            if not (DAC_PLL==2 and ADC_PLL==2):
+            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
+            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
+            if not (all(dac_locked) and all(adc_locked)):
                 self.set_all_clks()
                 
         # AXIS Switch to upload samples into Signal Generators.
-        self.switch_gen = AxisSwitch(self.axis_switch_gen, nslave=1, nmaster=7)
-        
+        self.switch_gen = self.axis_switch_gen
+
         # AXIS Switch to read samples from averager.
-        self.switch_avg = AxisSwitch(self.axis_switch_avg, nslave=2, nmaster=1)
+        self.switch_avg = self.axis_switch_avg
         
         # AXIS Switch to read samples from buffer.
-        self.switch_buf = AxisSwitch(self.axis_switch_buf, nslave=2, nmaster=1)
+        self.switch_buf = self.axis_switch_buf
         
         # Signal generators.
         self.gens = []
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_0, self.axi_dma_gen, self.switch_gen, 0))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_1, self.axi_dma_gen, self.switch_gen, 1))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_2, self.axi_dma_gen, self.switch_gen, 2))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_3, self.axi_dma_gen, self.switch_gen, 3))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_4, self.axi_dma_gen, self.switch_gen, 4))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_5, self.axi_dma_gen, self.switch_gen, 5))
-        self.gens.append(AxisSignalGenV4(self.axis_signal_gen_v4_6, self.axi_dma_gen, self.switch_gen, 6))
-        
+
         # Readout blocks.
         self.readouts = []
-        self.readouts.append(AxisReadoutV2(self.axis_readout_v2_0, self.fs_adc))
-        self.readouts.append(AxisReadoutV2(self.axis_readout_v2_1, self.fs_adc))
-        
+
         # Average + Buffer blocks.
         self.avg_bufs = []
-        self.avg_bufs.append(AxisAvgBuffer(self.axis_avg_buffer_0, 
-                                           self.axi_dma_avg, self.switch_avg,
-                                           self.axi_dma_buf, self.switch_buf,
-                                           0))
+
+        # Populate the lists with the registered IP blocks.
+        for key,val in self.ip_dict.items():
+            if (val['driver'] == AxisSignalGenV4):
+                self.gens.append(getattr(self,key))
+            elif (val['driver'] == AxisReadoutV2):
+                self.readouts.append(getattr(self,key))
+            elif (val['driver'] == AxisAvgBuffer):
+                self.avg_bufs.append(getattr(self,key))
+
+        # Sanity check: we should have the same number of signal generators as DACs.
+        if len(self.dac_blocks) != len(self.gens):
+            raise RuntimeError("We have %d DACs but %d signal generators."%(len(self.dac_blocks),len(self.gens)))
+
+        # Sanity check: we should have the same number of readouts and buffer blocks as ADCs.
+        if len(self.adc_blocks) != len(self.readouts):
+            raise RuntimeError("We have %d ADCs but %d readout blocks."%(len(self.adc_blocks),len(self.readouts)))
+        if len(self.adc_blocks) != len(self.avg_bufs):
+            raise RuntimeError("We have %d ADCs but %d avg/buffer blocks."%(len(self.adc_blocks),len(self.avg_bufs)))
         
-        self.avg_bufs.append(AxisAvgBuffer(self.axis_avg_buffer_1, 
-                                           self.axi_dma_avg, self.switch_avg,
-                                           self.axi_dma_buf, self.switch_buf,
-                                           1))        
-        
-        
+        # Sort the lists by channel number.
+        # Typically they are already in order, but good to make sure?
+        self.gens.sort(key=lambda x: x.ch)
+        self.readouts.sort(key=lambda x: x.ch)
+        self.avg_bufs.sort(key=lambda x: x.ch)
+
+        # Configure the drivers.
+        for gen in self.gens:
+            gen.configure(self.axi_dma_gen, self.switch_gen)
+
+        for readout in self.readouts:
+            readout.configure(self.fs_adc)
+
+        for buf in self.avg_bufs:
+            buf.configure(self.axi_dma_avg, self.switch_avg,
+                    self.axi_dma_buf, self.switch_buf)
+
+
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
-        self.tproc  = AxisTProc64x32_x8(self.axis_tproc64x32_x8_0, self.axi_bram_ctrl_0, self.axi_dma_tproc)
-        
+        self.tproc  = self.axis_tproc64x32_x8_0
+        self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+
+    def __repr__(self):
+        lines=[]
+        lines.append("\n\tGenerator switch: %d to %d"%(
+            self.switch_gen.NSL, self.switch_gen.NMI))
+        lines.append("\n\tAverager switch: %d to %d"%(
+            self.switch_avg.NSL, self.switch_avg.NMI))
+        lines.append("\n\tBuffer switch: %d to %d"%(
+            self.switch_buf.NSL, self.switch_buf.NMI))
+
+        lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
+        for iCh, (iTile,iBlock) in enumerate(self.dac_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
+                self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+
+        lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
+        for iCh, (iTile,iBlock) in enumerate(self.adc_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
+                self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+
+        lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
+            self.gens[0].MAX_LENGTH))
+
+        lines.append("\n\t%d readout blocks"%(len(self.readouts)))
+
+        lines.append("\n\t%d average+buffer blocks: max length %d samples (averages), %d (decimated buffer)"%(len(self.avg_bufs),
+            self.avg_bufs[0].AVG_MAX_LENGTH, 
+            self.avg_bufs[0].BUF_MAX_LENGTH))
+
+        lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
+
+        return "\nQICK configuration:\n"+"\n".join(lines)
+
+    def list_rf_blocks(self, rf_config):
+        """
+        Lists the enabled ADCs and DACs and get the sampling frequencies.
+        XRFdc_CheckBlockEnabled in xrfdc_ap.c is not accessible from the Python interface to the XRFdc driver.
+        This re-implements that functionality.
+        """
+
+        hs_adc = rf_config['C_High_Speed_ADC']=='1'
+
+        self.dac_tiles = []
+        self.dac_blocks = []
+        self.adc_tiles = []
+        self.adc_blocks = []
+
+        for iTile,tile in enumerate(self.rf.dac_tiles):
+            if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
+                continue
+            self.dac_tiles.append(iTile)
+            for iBlock,block in enumerate(tile.blocks):
+                if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
+                    continue
+                self.dac_blocks.append((iTile,iBlock))
+
+        for iTile,tile in enumerate(self.rf.adc_tiles):
+            if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
+                continue
+            self.adc_tiles.append(iTile)
+            for iBlock,block in enumerate(tile.blocks):
+                if hs_adc:
+                    if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
+                        continue
+                else:
+                    if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
+                        continue
+                self.adc_blocks.append((iTile,iBlock))
+
+        # Assume all DACs and ADCs each share a common sampling frequency, so we only need to check the first one.
+        # We assume the sampling frequencies are integers in MHz.
+        iTile,iBlock = self.dac_blocks[0]
+        self.fs_dac = int(self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+        iTile,iBlock = self.adc_blocks[0]
+        self.fs_adc = int(self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+
     def set_all_clks(self):
         """
         Resets all the board clocks
         """
+        print("resetting clocks:",self.__class__.FREF_PLL)
         xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
     
-    def get_decimated(self, ch, address=0, length=AxisAvgBuffer.BUF_MAX_LENGTH):
+    def get_decimated(self, ch, address=0, length=None):
         """
         Acquires data from the readout decimated buffer
 
@@ -1002,15 +1133,19 @@ class QickSoc(Overlay):
         :return: List of I and Q decimated arrays
         :rtype: list
         """
+        if length is None:
+            # this default will always cause a RuntimeError
+            # TODO: remove the default, or pick a better fallback value
+            length = self.avg_bufs[ch].BUF_MAX_LENGTH
         if length %2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= AxisAvgBuffer.BUF_MAX_LENGTH:
-            raise RuntimeError("length=%d longer or euqal to %d"%(length, AxisAvgBuffer.BUF_MAX_LENGTH))
+        if length >= self.avg_bufs[ch].BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer or equal to %d"%(length, self.avg_bufs[ch].BUF_MAX_LENGTH))
         buff = allocate(shape=length, dtype=np.int32)
         [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
         return [np.array(di,dtype=float),np.array(dq,dtype=float)]
 
-    def get_accumulated(self, ch, address=0, length=AxisAvgBuffer.AVG_MAX_LENGTH):
+    def get_accumulated(self, ch, address=0, length=None):
         """
         Acquires data from the readout accumulated buffer
 
@@ -1024,19 +1159,26 @@ class QickSoc(Overlay):
             - di[:length] (:py:class:`list`) - list of accumulated I data
             - dq[:length] (:py:class:`list`) - list of accumulated Q data
         """
-        if length >= AxisAvgBuffer.AVG_MAX_LENGTH:
-            raise RuntimeError("length=%d longer than %d"%(length, AxisAvgBuffer.AVG_MAX_LENGTH))
-        evenLength = length+length%2
-        buff = allocate(shape=evenLength, dtype=np.int64)
-        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=evenLength)
+        if length is None:
+            # this default will always cause a RuntimeError
+            # TODO: remove the default, or pick a better fallback value
+            length = self.avg_bufs[ch].AVG_MAX_LENGTH
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+        if length >= self.avg_bufs[ch].AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, self.avg_bufs[ch].AVG_MAX_LENGTH))
+        buff = allocate(shape=length, dtype=np.int64)
+        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
 
-        return di[:length], dq[:length] #[np_buffi,np_buffq]
+        return di, dq #[np_buffi,np_buffq]
 
     
     
     def set_nyquist(self, ch, nqz):
         """
-        Sets DAC channel ch to operate in Nyquist zone nqz mode
+        Sets DAC channel ch to operate in Nyquist zone nqz mode.
+        Channels are indexed as they are on the tProc outputs: in other words, the first DAC channel is channel 1.
+        (tProc output 0 is reserved for readout triggers and PMOD outputs)
 
         Channel 1 : connected to Signal Generator V4, which drives DAC 228 CH0.
         Channel 2 : connected to Signal Generator V4, which drives DAC 228 CH1.
@@ -1055,11 +1197,10 @@ class QickSoc(Overlay):
         :return: 'True' or '1' if the task was completed successfully
         :rtype: bool
         """
-        ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
+        #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        rf=self.usp_rf_data_converter_0
-        tile, channel = ch_info[ch]
-        dac_block=rf.dac_tiles[tile].blocks[channel]        
+        tile, channel = self.dac_blocks[ch+1]
+        dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
 
