@@ -1172,8 +1172,124 @@ class QickSoc(Overlay):
 
         return di, dq #[np_buffi,np_buffq]
 
+    def start(self):
+        """Start the tprocessor"""
+        return self.tproc.start()
+
+    def stop(self):
+        """Stop the tprocessor"""
+        return self.tproc.stop()
+
+    def single_read(self, addr):
+        """Read single value from data memory
+        
+        :param addr: Address of data memory to read
+        :type addr: int
+        :return: value at data address 'addr' 
+        :rtype: int
+
+        """
+        return self.tproc.single_read(addr)
+
+    def single_write(self, addr,data):
+        """Read single value from data memory
+        
+        :param addr: Address of data memory to read
+        :type addr: int
+        :param data: data to write into memory
+        :type data: int
+        """
+        return self.tproc.single_write(addr,data)
+
+    def read_dmem(self, addr=0, length=100):
+        """
+        Reads tProc data memory using DMA
+
+        :param addr: Starting address
+        :type addr: int
+        :param length: Number of samples
+        :type length: int
+        :return: List of memory data
+        :rtype: list
+        """
+        return self.tproc.read_dmem(addr,length)
+
+    def load_dmem(self, buff_in, addr=0):
+        """
+        Writes tProc data memory using DMA
+
+        :param buff_in: Input buffer
+        :type buff_in: int
+        :param addr: Starting destination address
+        :type addr: int
+        """
+        return self.tproc.load_dmem(buff_in, addr)
+
+    def configure_readout(self, ch, output, frequency):
+        """Configure readout channel output style and frequency
+        :param ch: Channel to configure
+        :type ch: int
+        :param output: output type from 'product', 'dds', 'input'
+        :type output: str
+        """
+        self.readout[ch].set_out(sel=output)
+        self.readout[ch].set_freq(frequency)
+
+    def config_avg(self, ch, address=0, length=1, enable=True):
+        """Configure and optionally enable accumulation buffer
+        :param ch: Channel to configure
+        :type ch: int
+        :param address: Starting address of buffer
+        :type address: int
+        :param length: length of buffer (how many samples to take)
+        :type length: int
+        :param enable: True to enable buffer
+        :type enable: bool
+        """
+        self.avg_bufs[ch].config_avg(address, length)
+        if enable:
+            self.enable_avg(ch)
+        
+    def enable_avg(self, ch):
+        self.avg_bufs[ch].enable_avg()
     
-    
+    def config_buf(self, ch, address=0, length=1, enable=True):
+        """Configure and optionally enable decimation buffer
+        :param ch: Channel to configure
+        :type ch: int
+        :param address: Starting address of buffer
+        :type address: int
+        :param length: length of buffer (how many samples to take)
+        :type length: int
+        :param enable: True to enable buffer
+        :type enable: bool
+        """
+        self.avg_bufs[ch].config_buf(address, length)
+        if enable:
+            self.enable_buf(ch)
+
+    def enable_buf(self, ch):
+        self.avg_bufs[ch].enable_buf()
+
+    def load_qick_program(self, prog, debug= False):
+        """
+        :param prog: the QickProgram to load
+        :type prog: str
+        :param debug: Debug option
+        :type debug: bool
+        """
+        return self.tproc.load_qick_program(prog, debug)
+
+    def get_avg_max_length(self, ch=0):
+        """Get accumulation buffer length for channel
+        :param ch: Channel
+        :type ch: int
+        :return: Length of accumulation buffer for channel 'ch'
+        :rtype: int
+        """
+        return self.avg_bufs[ch].AVG_MAX_LENGTH
+
+
     def set_nyquist(self, ch, nqz):
         """
         Sets DAC channel ch to operate in Nyquist zone nqz mode.

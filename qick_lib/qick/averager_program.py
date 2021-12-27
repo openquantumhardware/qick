@@ -90,19 +90,16 @@ class AveragerProgram(QickProgram):
             self.load_pulses(soc)
         
         #Configure the readout down converters
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
+        for ii, length in enumerate(self.cfg["adc_lengths"]):
+            soc.config_avg(ii,address=0,length=length)
+            soc.enable_avg(ii)
+            soc.config_buf(ii, address=0, length=length)
+            soc.config_buf(ii)
 
         #load the this AveragerProgram into the soc's tproc
-        soc.tproc.load_qick_program(self, debug=debug)
+        soc.load_qick_program(self, debug=debug)
         
         
         reps = self.cfg['reps']
@@ -114,18 +111,18 @@ class AveragerProgram(QickProgram):
         di_buf=np.zeros((2,total_count))
         dq_buf=np.zeros((2,total_count))
         
-        soc.tproc.stop()
+        soc.stop()
         
-        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
+        soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
         self.stats=[]
 
         t = tqdm(total=total_count, disable=not progress) #progress bar
         
-        soc.tproc.start()
+        soc.start()
         while count<total_count:   # Keep streaming data until you get all of it
-            count = soc.tproc.single_read(addr= 1)
+            count = soc.single_read(addr= 1)
             if count>=min(last_count+1000,total_count-1):  #wait until either you've gotten 1000 measurements or until you've finished (so you don't go crazy trying to download every measurement
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                addr=last_count % soc.get_avg_max_length(0)
                 length = count-last_count
                 length -= length%2
 
@@ -257,10 +254,10 @@ class AveragerProgram(QickProgram):
         if load_pulses: 
             self.load_pulses(soc)
         
-        #configure the adcs
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
+
+        #Configure the readout down converters
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
         
 
         soft_avgs=self.cfg["soft_avgs"]        
@@ -272,22 +269,22 @@ class AveragerProgram(QickProgram):
         
         #for each soft average stop the processor, reload the program, run and average decimated data
         for ii in tqdm(range(soft_avgs),disable=not progress):
-            soc.tproc.stop()
+            soc.stop()
             # Configure and enable buffer capture.
-            for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-                avg_buf.config_buf(address=0,length=adc_length)
-                avg_buf.enable_buf()
-                avg_buf.config_avg(address=0,length=adc_length)
-                avg_buf.enable_avg()
+        for ii, length in enumerate(self.cfg["adc_lengths"]):
+            soc.config_avg(ii,address=0,length=length)
+            soc.enable_avg(ii)
+            soc.config_buf(ii, address=0, length=length)
+            soc.config_buf(ii)
 
-            soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.tproc.load_qick_program(self, debug=debug)
+            soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
+            soc.load_qick_program(self, debug=debug)
         
-            soc.tproc.start() #runs the assembly program
+            soc.start() #runs the assembly program
 
             count=0
             while count<1:
-                count = soc.tproc.single_read(addr= 1)
+                count = soc.single_read(addr= 1)
                 
             di0,dq0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
             di1,dq1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
@@ -410,18 +407,16 @@ class RAveragerProgram(QickProgram):
         if load_pulses: 
             self.load_pulses(soc)
         
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
+        #Configure the readout down converters
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
+        for ii, length in enumerate(self.cfg["adc_lengths"]):
+            soc.config_avg(ii,address=0,length=length)
+            soc.enable_avg(ii)
+            soc.config_buf(ii, address=0, length=length)
+            soc.config_buf(ii)
 
-        soc.tproc.load_qick_program(self, debug=debug)
+        soc.load_qick_program(self, debug=debug)
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
@@ -432,18 +427,18 @@ class RAveragerProgram(QickProgram):
         di_buf=np.zeros((2,total_count))
         dq_buf=np.zeros((2,total_count))
         
-        soc.tproc.stop()
+        soc.stop()
         
-        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
+        soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
         self.stats=[]
         
         with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.tproc.start()
+            soc.start()
             while count<total_count-1:
-                count = soc.tproc.single_read(addr= 1)*readouts_per_experiment
+                count = soc.single_read(addr= 1)*readouts_per_experiment
 
                 if count>=min(last_count+1000,total_count-1):
-                    addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                    addr=last_count % get_avg_max_length(0)
                     length = count-last_count
                     length -= length%2
 
