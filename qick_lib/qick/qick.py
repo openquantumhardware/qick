@@ -418,6 +418,10 @@ class AxisAvgBuffer(SocIp):
         self.AVG_MAX_LENGTH = 2**self.N_AVG  
         self.BUF_MAX_LENGTH = 2**self.N_BUF
 
+        # Preallocate memory buffers for DMA transfers.
+        self.avg_buff = allocate(shape=self.AVG_MAX_LENGTH, dtype=np.int64)
+        self.buf_buff = allocate(shape=self.BUF_MAX_LENGTH, dtype=np.int32)
+
         # Get the channel number from the IP instance name.
         self.ch = int(description['fullpath'].split('_')[-1])
 
@@ -496,23 +500,23 @@ class AxisAvgBuffer(SocIp):
         # Start send data mode.
         self.avg_dr_start_reg = 1
         
-        with allocate(shape=length, dtype=np.int64) as buff:
-            # DMA data.
-            self.dma_avg.recvchannel.transfer(buff)
-            self.dma_avg.recvchannel.wait()
+        # DMA data.
+        buff = self.avg_buff
+        self.dma_avg.recvchannel.transfer(buff,nbytes=length*8)
+        self.dma_avg.recvchannel.wait()
 
-            if self.dma_avg.recvchannel.transferred != length*8:
-                raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
+        if self.dma_avg.recvchannel.transferred != length*8:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
 
-            # Stop send data mode.
-            self.avg_dr_start_reg = 0
+        # Stop send data mode.
+        self.avg_dr_start_reg = 0
 
-            # Format:
-            # -> lower 32 bits: I value.
-            # -> higher 32 bits: Q value.
-            data = buff
-            dataI = data & 0xFFFFFFFF
-            dataQ = data >> 32
+        # Format:
+        # -> lower 32 bits: I value.
+        # -> higher 32 bits: Q value.
+        data = buff[:length]
+        dataI = data & 0xFFFFFFFF
+        dataQ = data >> 32
 
         return np.stack((dataI,dataQ)).astype(np.int32)
         
@@ -573,23 +577,23 @@ class AxisAvgBuffer(SocIp):
         # Start send data mode.
         self.buf_dr_start_reg = 1
         
-        with allocate(shape=length, dtype=np.int32) as buff:
-            # DMA data.
-            self.dma_buf.recvchannel.transfer(buff)
-            self.dma_buf.recvchannel.wait()
+        # DMA data.
+        buff = self.buf_buff
+        self.dma_buf.recvchannel.transfer(buff,nbytes=length*4)
+        self.dma_buf.recvchannel.wait()
 
-            if self.dma_buf.recvchannel.transferred != length*4:
-                raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
+        if self.dma_buf.recvchannel.transferred != length*4:
+            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
 
-            # Stop send data mode.
-            self.buf_dr_start_reg = 0
+        # Stop send data mode.
+        self.buf_dr_start_reg = 0
 
-            # Format:
-            # -> lower 16 bits: I value.
-            # -> higher 16 bits: Q value.
-            data = buff
-            dataI = data & 0xFFFF
-            dataQ = data >> 16
+        # Format:
+        # -> lower 16 bits: I value.
+        # -> higher 16 bits: Q value.
+        data = buff[:length]
+        dataI = data & 0xFFFF
+        dataQ = data >> 16
 
         return np.stack((dataI,dataQ)).astype(np.int16)
         
