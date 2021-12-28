@@ -1075,6 +1075,7 @@ class QickSoc(Overlay):
             self.avg_bufs[0].BUF_MAX_LENGTH))
 
         lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
+        lines.append("\t\tprogram RAM: %d bytes"%(self.tproc.mem.mmio.length))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
