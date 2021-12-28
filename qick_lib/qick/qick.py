@@ -1205,7 +1205,7 @@ class QickSoc(Overlay):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel = self.dac_blocks[ch+1]
+        tile, channel = self.dac_blocks[ch-1]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
