@@ -110,6 +110,8 @@ class AveragerProgram(QickProgram):
         count=0
         last_count=0
         total_count=reps
+        stride=int(0.5 * soc.avg_bufs[0].AVG_MAX_LENGTH) # how many measurements to transfer at a time
+        # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
         di_buf=np.zeros((2,total_count))
         dq_buf=np.zeros((2,total_count))
@@ -124,8 +126,8 @@ class AveragerProgram(QickProgram):
         soc.tproc.start()
         while count<total_count:   # Keep streaming data until you get all of it
             count = soc.tproc.single_read(addr= 1)
-            if count>=min(last_count+1000,total_count-1):  #wait until either you've gotten 1000 measurements or until you've finished (so you don't go crazy trying to download every measurement
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+            if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
+                addr=last_count % soc.avg_bufs[0].AVG_MAX_LENGTH
                 length = count-last_count
                 length -= length%2
 
@@ -265,12 +267,13 @@ class AveragerProgram(QickProgram):
 
         soft_avgs=self.cfg["soft_avgs"]        
 
-        di_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        dq_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        di_avg1=np.zeros(self.cfg["adc_lengths"][1])
-        dq_avg1=np.zeros(self.cfg["adc_lengths"][1])
+        d_avg0=np.zeros((2,self.cfg["adc_lengths"][0]))
+        d_avg1=np.zeros((2,self.cfg["adc_lengths"][1]))
         
-        #for each soft average stop the processor, reload the program, run and average decimated data
+        # load the program - it's always the same, so this only needs to be done once
+        soc.tproc.load_qick_program(self, debug=debug)
+
+        #for each soft average stop the processor, run and average decimated data
         for ii in tqdm(range(soft_avgs),disable=not progress):
             soc.tproc.stop()
             # Configure and enable buffer capture.
@@ -281,7 +284,6 @@ class AveragerProgram(QickProgram):
                 avg_buf.enable_avg()
 
             soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.tproc.load_qick_program(self, debug=debug)
         
             soc.tproc.start() #runs the assembly program
 
@@ -289,15 +291,13 @@ class AveragerProgram(QickProgram):
             while count<1:
                 count = soc.tproc.single_read(addr= 1)
                 
-            di0,dq0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
-            di1,dq1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
+            d0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
+            d1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
             
-            di_avg0+=di0
-            dq_avg0+=dq0
-            di_avg1+=di1
-            dq_avg1+=dq1
+            d_avg0+=d0
+            d_avg1+=d1
             
-        return np.array([di_avg0,dq_avg0])/soft_avgs,np.array([di_avg1,dq_avg1])/soft_avgs
+        return d_avg0/soft_avgs,d_avg1/soft_avgs
     
 class RAveragerProgram(QickProgram):
     """
