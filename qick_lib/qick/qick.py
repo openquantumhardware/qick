@@ -482,6 +482,12 @@ class AxisAvgBuffer(SocIp):
         :return: I,Q pairs
         :rtype: list
         """
+
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+        if length >= self.AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, self.AVG_MAX_LENGTH))
+
         # Route switch to channel.
         self.switch_avg.sel(slv=self.ch)        
         
@@ -507,11 +513,9 @@ class AxisAvgBuffer(SocIp):
         # -> higher 32 bits: Q value.
         data = buff
         dataI = data & 0xFFFFFFFF
-        dataI = dataI.astype(np.int32)
         dataQ = data >> 32
-        dataQ = dataQ.astype(np.int32)
     
-        return dataI,dataQ        
+        return np.stack((dataI,dataQ)).astype(np.int32)
         
     def enable_avg(self):
         """
@@ -554,6 +558,12 @@ class AxisAvgBuffer(SocIp):
         :return: I,Q pairs
         :rtype: list
         """
+
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+        if length >= self.BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer or equal to %d"%(length, self.BUF_MAX_LENGTH))
+
         # Route switch to channel.
         self.switch_buf.sel(slv=self.ch)
         
@@ -581,11 +591,9 @@ class AxisAvgBuffer(SocIp):
         # -> higher 16 bits: Q value.
         data = buff
         dataI = data & 0xFFFF
-        dataI = dataI.astype(np.int16)
         dataQ = data >> 16
-        dataQ = dataQ.astype(np.int16)
     
-        return dataI,dataQ
+        return np.stack((dataI,dataQ)).astype(np.int16)
         
     def enable_buf(self):
         """
@@ -1137,13 +1145,16 @@ class QickSoc(Overlay):
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
             length = self.avg_bufs[ch].BUF_MAX_LENGTH
-        if length %2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.avg_bufs[ch].BUF_MAX_LENGTH:
-            raise RuntimeError("length=%d longer or equal to %d"%(length, self.avg_bufs[ch].BUF_MAX_LENGTH))
-        buff = allocate(shape=length, dtype=np.int32)
-        [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
-        return [np.array(di,dtype=float),np.array(dq,dtype=float)]
+
+        # we must transfer an even number of samples, so we pad the transfer size
+        transfer_len = length + length%2
+
+        buff = allocate(shape=transfer_len, dtype=np.int32)
+        data = self.avg_bufs[ch].transfer_buf(buff,address,transfer_len)
+        buff.freebuffer()
+
+        # we remove the padding here
+        return data[:,:length].astype(float)
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -1163,16 +1174,16 @@ class QickSoc(Overlay):
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
             length = self.avg_bufs[ch].AVG_MAX_LENGTH
-        if length %2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.avg_bufs[ch].AVG_MAX_LENGTH:
-            raise RuntimeError("length=%d longer than %d"%(length, self.avg_bufs[ch].AVG_MAX_LENGTH))
-        buff = allocate(shape=length, dtype=np.int64)
-        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
 
-        return di, dq #[np_buffi,np_buffq]
+        # we must transfer an even number of samples, so we pad the transfer size
+        transfer_len = length + length%2
 
-    
+        buff = allocate(shape=transfer_len, dtype=np.int64)
+        data = self.avg_bufs[ch].transfer_avg(buff,address=address,length=transfer_len)
+        buff.freebuffer()
+
+        # we remove the padding here
+        return data[:,:length]
     
     def set_nyquist(self, ch, nqz):
         """
