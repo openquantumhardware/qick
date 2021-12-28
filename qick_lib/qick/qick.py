@@ -469,12 +469,10 @@ class AxisAvgBuffer(SocIp):
         self.avg_addr_reg = address
         self.avg_len_reg = length
         
-    def transfer_avg(self,buff,address=0,length=100):
+    def transfer_avg(self,address=0,length=100):
         """
         Transfer average buffer data from average and buffering readout block.
 
-        :param buff: DMA buffer to be used for transfer
-        :type buff: list
         :param addr: starting reading address
         :type addr: int
         :param length: number of samples
@@ -498,23 +496,24 @@ class AxisAvgBuffer(SocIp):
         # Start send data mode.
         self.avg_dr_start_reg = 1
         
-        # DMA data.
-        self.dma_avg.recvchannel.transfer(buff)
-        self.dma_avg.recvchannel.wait()
+        with allocate(shape=length, dtype=np.int64) as buff:
+            # DMA data.
+            self.dma_avg.recvchannel.transfer(buff)
+            self.dma_avg.recvchannel.wait()
 
-        if self.dma_avg.recvchannel.transferred != length*8:
-            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
+            if self.dma_avg.recvchannel.transferred != length*8:
+                raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_avg.recvchannel.transferred//8))
 
-        # Stop send data mode.
-        self.avg_dr_start_reg = 0
-        
-        # Format: 
-        # -> lower 32 bits: I value.
-        # -> higher 32 bits: Q value.
-        data = buff
-        dataI = data & 0xFFFFFFFF
-        dataQ = data >> 32
-    
+            # Stop send data mode.
+            self.avg_dr_start_reg = 0
+
+            # Format:
+            # -> lower 32 bits: I value.
+            # -> higher 32 bits: Q value.
+            data = buff
+            dataI = data & 0xFFFFFFFF
+            dataQ = data >> 32
+
         return np.stack((dataI,dataQ)).astype(np.int32)
         
     def enable_avg(self):
@@ -545,12 +544,10 @@ class AxisAvgBuffer(SocIp):
         self.buf_addr_reg = address
         self.buf_len_reg = length    
         
-    def transfer_buf(self,buff,address=0,length=100):
+    def transfer_buf(self,address=0,length=100):
         """
         Transfer raw buffer data from average and buffering readout block
 
-        :param buff: DMA buffer to be used for transfer
-        :type buff: list
         :param addr: starting reading address
         :type addr: int
         :param length: number of samples
@@ -576,23 +573,24 @@ class AxisAvgBuffer(SocIp):
         # Start send data mode.
         self.buf_dr_start_reg = 1
         
-        # DMA data.
-        self.dma_buf.recvchannel.transfer(buff)
-        self.dma_buf.recvchannel.wait()
+        with allocate(shape=length, dtype=np.int32) as buff:
+            # DMA data.
+            self.dma_buf.recvchannel.transfer(buff)
+            self.dma_buf.recvchannel.wait()
 
-        if self.dma_buf.recvchannel.transferred != length*4:
-            raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
+            if self.dma_buf.recvchannel.transferred != length*4:
+                raise RuntimeError("Requested %d samples but only got %d from DMA" % (length, self.dma_buf.recvchannel.transferred//4))
 
-        # Stop send data mode.
-        self.buf_dr_start_reg = 0
-        
-        # Format: 
-        # -> lower 16 bits: I value.
-        # -> higher 16 bits: Q value.
-        data = buff
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
-    
+            # Stop send data mode.
+            self.buf_dr_start_reg = 0
+
+            # Format:
+            # -> lower 16 bits: I value.
+            # -> higher 16 bits: Q value.
+            data = buff
+            dataI = data & 0xFFFF
+            dataQ = data >> 16
+
         return np.stack((dataI,dataQ)).astype(np.int16)
         
     def enable_buf(self):
@@ -1150,9 +1148,7 @@ class QickSoc(Overlay):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        buff = allocate(shape=transfer_len, dtype=np.int32)
-        data = self.avg_bufs[ch].transfer_buf(buff,address,transfer_len)
-        buff.freebuffer()
+        data = self.avg_bufs[ch].transfer_buf(address,transfer_len)
 
         # we remove the padding here
         return data[:,:length].astype(float)
@@ -1179,9 +1175,7 @@ class QickSoc(Overlay):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        buff = allocate(shape=transfer_len, dtype=np.int64)
-        data = self.avg_bufs[ch].transfer_avg(buff,address=address,length=transfer_len)
-        buff.freebuffer()
+        data = self.avg_bufs[ch].transfer_avg(address=address,length=transfer_len)
 
         # we remove the padding here
         return data[:,:length]
