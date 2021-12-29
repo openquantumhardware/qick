@@ -113,8 +113,8 @@ class AveragerProgram(QickProgram):
         stride=int(0.5 * soc.avg_bufs[0].AVG_MAX_LENGTH) # how many measurements to transfer at a time
         # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-        di_buf=np.zeros((2,total_count))
-        dq_buf=np.zeros((2,total_count))
+        # buffer for each channel
+        d_buf=[np.zeros((2,total_count)) for i in range(2)]
         
         soc.tproc.stop()
         
@@ -129,18 +129,26 @@ class AveragerProgram(QickProgram):
             if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                 addr=last_count % soc.avg_bufs[0].AVG_MAX_LENGTH
                 length = count-last_count
-                length -= length%2
+                length -= length%2 # transfers must be of even length; trim the length (instead of padding it)
+                if length>=soc.avg_bufs[0].AVG_MAX_LENGTH:
+                    raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
+                            %(length, soc.avg_bufs[0].AVG_MAX_LENGTH) +
+                            "\nYou need to slow down the tProc by increasing relax_delay." +
+                            "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
                 for ch in range(2):  #for each adc channel get the single shot data and add it to the buffer
-                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+                    data = soc.get_accumulated(ch=ch,address=addr, length=length)
 
-                    di_buf[ch,last_count:last_count+length]=di[:length]
-                    dq_buf[ch,last_count:last_count+length]=dq[:length]
+                    d_buf[ch][:,last_count:last_count+length]=data[:,:length]
 
                 last_count+=length
                 t.update(length)
                 self.stats.append( (time.time(), count,addr, length))
         t.close()
+
+        # reformat the data into separate I and Q arrays
+        di_buf = np.stack([d_buf[i][0] for i in range(2)])
+        dq_buf = np.stack([d_buf[i][1] for i in range(2)])
                     
         #save results to class in case you want to look at it later or for analysis
         self.di_buf=di_buf
