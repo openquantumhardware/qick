@@ -3,10 +3,13 @@ The lower-level driver for the QICK library. Contains classes for interfacing wi
 """
 import os
 from pynq import Overlay, DefaultIP, allocate
-import xrfclk
-import xrfdc
+try:
+    import xrfclk
+    import xrfdc
+    from pynq import Xlnk
+except:
+    pass
 import numpy as np
-from pynq import Xlnk
 from pynq import Overlay
 from pynq.lib import AxiGPIO
 import time
