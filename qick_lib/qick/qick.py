@@ -293,14 +293,15 @@ class AxisReadoutV2(SocIp):
         :param sel: select mux control
         :type sel: int
         """
-        if sel is "product":
-            self.outsel_reg = 0
-        elif sel is "dds":
-            self.outsel_reg = 1
-        elif sel is "input":
-            self.outsel_reg = 2
-        else:
-            print("AxisReadoutV2: %s output unknown" % sel)
+        self.outsel_reg={"product":0,"dds":1,"input":2}[sel]
+#         if sel is "product":
+#             self.outsel_reg = 0
+#         elif sel is "dds":
+#             self.outsel_reg = 1
+#         elif sel is "input":
+#             self.outsel_reg = 2
+#         else:
+#             print("AxisReadoutV2: %s output unknown" % sel)
             
         # Register update.
         self.update()
@@ -701,6 +702,13 @@ class AxisTProc64x32_x8(SocIp):
         """
         self.start_reg = 0
         
+    def load_bin_program(self, binprog):
+        for ii,inst in enumerate(binprog):
+            dec_low = inst & 0xffffffff
+            dec_high = inst >> 32
+            self.mem.write(offset=8*ii,value=int(dec_low))
+            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
+        
     def load_qick_program(self, prog, debug= False):
         """
         :param prog: the QickProgram to load
@@ -708,12 +716,8 @@ class AxisTProc64x32_x8(SocIp):
         :param debug: Debug option
         :type debug: bool
         """
-        for ii,inst in enumerate(prog.compile(debug=debug)):
-            dec_low = inst & 0xffffffff
-            dec_high = inst >> 32
-            self.mem.write(offset=8*ii,value=int(dec_low))
-            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
-
+        self.load_bin_program(prog.compile(debug=debug))
+        
     def load_program(self,prog="prog.asm",fmt="asm"):
         """
         Loads tProc program. If asm progam, it compiles first
@@ -1232,8 +1236,8 @@ class QickSoc(Overlay):
         :param output: output type from 'product', 'dds', 'input'
         :type output: str
         """
-        self.readout[ch].set_out(sel=output)
-        self.readout[ch].set_freq(frequency)
+        self.readouts[ch].set_out(sel=output)
+        self.readouts[ch].set_freq(frequency)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -1270,15 +1274,9 @@ class QickSoc(Overlay):
 
     def enable_buf(self, ch):
         self.avg_bufs[ch].enable_buf()
-
-    def load_qick_program(self, prog, debug= False):
-        """
-        :param prog: the QickProgram to load
-        :type prog: str
-        :param debug: Debug option
-        :type debug: bool
-        """
-        return self.tproc.load_qick_program(prog, debug)
+        
+    def load_bin_program(self, binprog):
+        return self.tproc.load_bin_program(binprog)
 
     def get_avg_max_length(self, ch=0):
         """Get accumulation buffer length for channel
@@ -1288,7 +1286,19 @@ class QickSoc(Overlay):
         :rtype: int
         """
         return self.avg_bufs[ch].AVG_MAX_LENGTH
-
+    
+    def load_pulse_data(self, ch, idata, qdata, addr):
+        """Load pulse data into signal generators
+        :param ch: Channel
+        :type ch: int
+        :param idata: data for ichannel
+        :type idata: ndarray(dtype=int16)
+        :param qdata: data for qchannel
+        :type qdata: ndarray(dtype=int16)
+        :param addr: address to start data at
+        :type addr: int
+        """
+        return self.gens[ch-1].load(xin_i=idata, xin_q=qdata, addr=addr)                 
 
     def set_nyquist(self, ch, nqz):
         """
@@ -1315,7 +1325,7 @@ class QickSoc(Overlay):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel = self.dac_blocks[ch+1]
+        tile, channel = self.dac_blocks[ch-1]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone

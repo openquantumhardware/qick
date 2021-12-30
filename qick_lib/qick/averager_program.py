@@ -99,7 +99,7 @@ class AveragerProgram(QickProgram):
             soc.config_buf(ii)
 
         #load the this AveragerProgram into the soc's tproc
-        soc.load_qick_program(self, debug=debug)
+        soc.load_bin_program(self.compile(debug=debug))
         
         
         reps = self.cfg['reps']
@@ -278,7 +278,7 @@ class AveragerProgram(QickProgram):
             soc.config_buf(ii)
 
             soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.load_qick_program(self, debug=debug)
+            soc.load_bin_program(self.compile(debug=debug))
         
             soc.start() #runs the assembly program
 
@@ -416,7 +416,7 @@ class RAveragerProgram(QickProgram):
             soc.config_buf(ii, address=0, length=length)
             soc.config_buf(ii)
 
-        soc.load_qick_program(self, debug=debug)
+        soc.load_bin_program(self.compile(debug=debug))
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
@@ -438,7 +438,7 @@ class RAveragerProgram(QickProgram):
                 count = soc.single_read(addr= 1)*readouts_per_experiment
 
                 if count>=min(last_count+1000,total_count-1):
-                    addr=last_count % get_avg_max_length(0)
+                    addr=last_count % soc.get_avg_max_length(0)
                     length = count-last_count
                     length -= length%2
 
