@@ -437,7 +437,7 @@ class RAveragerProgram(QickProgram):
             while count<total_count-1:
                 count = soc.single_read(addr= 1)*readouts_per_experiment
 
-                if count>=min(last_count+500,total_count-1):
+                if count>=min(last_count+100,total_count-1):
                     addr=last_count % soc.get_avg_max_length(0)
                     length = count-last_count
                     length -= length%2
