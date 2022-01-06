@@ -221,12 +221,12 @@ class QickProgram:
         :param soc: Qick object
         :type soc: Qick object
         """
-        for ch,gen in zip(self.channels.keys(),soc.gens):
+        for ch in self.channels.keys():
             for name,pulse in self.channels[ch]['pulses'].items():
                 if pulse['style'] != 'const':
                     idata = pulse['idata'].astype(np.int16)
                     qdata = pulse['qdata'].astype(np.int16)
-                    gen.load(xin_i=idata, xin_q=qdata, addr=pulse['addr'])
+                    soc.load_pulse_data(ch, idata=idata, qdata=qdata, addr=pulse['addr'])
 
     def ch_page(self, ch):
         """
