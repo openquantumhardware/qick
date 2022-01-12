@@ -103,45 +103,25 @@ class AveragerProgram(QickProgram):
         
         
         reps = self.cfg['reps']
-        
-        count=0
-        last_count=0
         total_count=reps
-        stride=int(0.5 * soc.avg_bufs[0].AVG_MAX_LENGTH) # how many measurements to transfer at a time
-        # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
-
-        # buffer for each channel
-        d_buf=[np.zeros((2,total_count)) for i in range(2)]
-        
-        soc.stop()
-        
-        soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
-        self.stats=[]
-
+        count = 0
         t = tqdm(total=total_count, disable=not progress) #progress bar
         
-        soc.start()
-        while count<total_count:   # Keep streaming data until you get all of it
-            count = soc.tproc.single_read(addr= 1)
-            if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                addr=last_count % soc.get_avg_max_length(0)
-                length = count-last_count
-                length -= length%2 # transfers must be of even length; trim the length (instead of padding it)
-                if length>=soc.avg_bufs[0].AVG_MAX_LENGTH:
-                    raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                            %(length, soc.avg_bufs[0].AVG_MAX_LENGTH) +
-                            "\nYou need to slow down the tProc by increasing relax_delay." +
-                            "\nIf the TQDM progress bar is enabled, disabling it may help.")
+        d_buf = np.zeros((2,2,total_count))
+        stats_list=[]
 
-                for ch in range(2):  #for each adc channel get the single shot data and add it to the buffer
-                    data = soc.get_accumulated(ch=ch,address=addr, length=length)
-
-                    d_buf[ch][:,last_count:last_count+length]=data[:,:length]
-
-                last_count+=length
-                t.update(length)
-                self.stats.append( (time.time(), count,addr, length))
+        soc.start_readout(total_count, counter_addr=1, ch_list=[0,1])
+        while soc.readout_alive():
+            #npoints, new_data, stats_list = soc.poll_data()
+            new_data = soc.poll_data()
+            for d,s in new_data:
+                new_points = d.shape[2]
+                d_buf[:,:,count:count+new_points] = d
+                count += new_points
+                stats_list.append(s)
+                t.update(new_points)
         t.close()
+        self.stats=stats_list
 
         # reformat the data into separate I and Q arrays
         di_buf = np.stack([d_buf[i][0] for i in range(2)])
@@ -283,10 +263,8 @@ class AveragerProgram(QickProgram):
             soc.stop()
             # Configure and enable buffer capture.
             for ii, length in enumerate(self.cfg["adc_lengths"]):
-                soc.config_avg(ii,address=0,length=length)
-                soc.enable_avg(ii)
-                soc.config_buf(ii, address=0, length=length)
-                soc.config_buf(ii)
+                soc.config_avg(ii,address=0,length=length, enable=True)
+                soc.config_buf(ii, address=0, length=length, enable=True)
 
             soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
         

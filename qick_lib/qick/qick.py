@@ -14,6 +14,7 @@ from pynq import Overlay
 from pynq.lib import AxiGPIO
 import time
 from .parser import *
+from .streamer import DataStreamer
 from . import bitfile_path
 
 # Some support functions
@@ -1054,8 +1055,11 @@ class QickSoc(Overlay):
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
         self.tproc  = self.axis_tproc64x32_x8_0
         self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        #print(self.description())
 
-    def __repr__(self):
+        self.streamer = DataStreamer(self)
+
+    def description(self):
         lines=[]
         lines.append("\n\tGenerator switch: %d to %d"%(
             self.switch_gen.NSL, self.switch_gen.NMI))
@@ -1087,6 +1091,9 @@ class QickSoc(Overlay):
         lines.append("\t\tprogram RAM: %d bytes"%(self.tproc.mem.mmio.length))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
+
+    def __repr__(self):
+        return self.description()
 
     def list_rf_blocks(self, rf_config):
         """
@@ -1345,3 +1352,17 @@ class QickSoc(Overlay):
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
 
+    def start_readout(self, total_count, counter_addr=1, ch_list=[0,1]):
+        return self.streamer.start_readout(total_count, counter_addr, ch_list)
+
+    def stop_readout(self):
+        return self.streamer.stop_readout()
+
+    def readout_done(self):
+        return self.streamer.readout_done()
+
+    def readout_alive(self):
+        return self.streamer.readout_alive()
+
+    def poll_data(self):
+        return self.streamer.poll_data()
