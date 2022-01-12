@@ -6,11 +6,9 @@ from pynq import Overlay, DefaultIP, allocate
 try:
     import xrfclk
     import xrfdc
-    from pynq import Xlnk
 except:
     pass
 import numpy as np
-from pynq import Overlay
 from pynq.lib import AxiGPIO
 import time
 from .parser import *
@@ -191,7 +189,7 @@ class AxisSignalGenV4(SocIp):
         xin = xin.astype(np.int32)
         
         # Define buffer.
-        self.buff = Xlnk().cma_array(shape=(len(xin)), dtype=np.int32)
+        self.buff = allocate(shape=len(xin), dtype=np.int32)
         np.copyto(self.buff, xin)
         
         ################
@@ -720,8 +718,8 @@ class AxisTProc64x32_x8(SocIp):
         for ii,inst in enumerate(binprog):
             dec_low = inst & 0xffffffff
             dec_high = inst >> 32
-            self.mem.write(offset=8*ii,value=int(dec_low))
-            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
+            self.mem.write(8*ii, value=int(dec_low))
+            self.mem.write(4*(2*ii+1), value=int(dec_high))
         
     def load_qick_program(self, prog, debug= False):
         """
@@ -753,9 +751,9 @@ class AxisTProc64x32_x8(SocIp):
                 dec = int(line,2)
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=int(dec_low))
+                self.mem.write(addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=int(dec_high))
+                self.mem.write(addr,value=int(dec_high))
                 addr = addr + 4                
                 
         # Asm file.
@@ -770,9 +768,9 @@ class AxisTProc64x32_x8(SocIp):
                 #print ("@" + str(addr) + ": " + str(dec))
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=int(dec_low))
+                self.mem.write(addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=int(dec_high))
+                self.mem.write(addr,value=int(dec_high))
                 addr = addr + 4   
                 
     def single_read(self, addr):
@@ -790,7 +788,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Read data.
-        data = self.read(offset=addr_temp)
+        data = self.read(addr_temp)
             
         return data
     
@@ -807,7 +805,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
-        self.write(offset=addr_temp,value=int(data))
+        self.write(addr_temp,value=int(data))
         
     def load_dmem(self, buff_in, addr=0):
         """
@@ -827,7 +825,7 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = length
         
         # Define buffer.
-        self.buff = Xlnk().cma_array(shape=(length), dtype=np.int32)
+        self.buff = allocate(shape=length, dtype=np.int32)
         
         # Copy buffer.
         np.copyto(self.buff,buff_in)
@@ -859,7 +857,7 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = length
         
         # Define buffer.
-        buff = Xlnk().cma_array(shape=(length), dtype=np.int32)
+        buff = allocate(shape=length, dtype=np.int32)
         
         # Start operation on block.
         self.mem_start_reg = 1
