@@ -108,16 +108,16 @@ class DataStreamer():
         stride=int(0.5 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
         # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-        self.soc.stop()
+        self.soc.tproc.stop()
 
-        self.soc.single_write(addr= counter_addr,data=0)   #make sure count variable is reset to 0 before starting processor
+        self.soc.tproc.single_write(addr= counter_addr,data=0)   #make sure count variable is reset to 0 before starting processor
         stats=[]
 
         t_start = time.time()
 
-        self.soc.start()
+        self.soc.tproc.start()
         while (not self.stop_flag.is_set()) and count<total_count:   # Keep streaming data until you get all of it
-            count = self.soc.single_read(addr= counter_addr)
+            count = self.soc.tproc.single_read(addr= counter_addr)
             if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                 addr=last_count % self.soc.get_avg_max_length(0)
                 length = count-last_count

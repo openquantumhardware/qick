@@ -99,7 +99,7 @@ class AveragerProgram(QickProgram):
             soc.config_buf(ii)
 
         #load the this AveragerProgram into the soc's tproc
-        soc.load_bin_program(self.compile(debug=debug))
+        soc.tproc.load_bin_program(self.compile(debug=debug))
         
         
         reps = self.cfg['reps']
@@ -110,10 +110,9 @@ class AveragerProgram(QickProgram):
         d_buf = np.zeros((2,2,total_count))
         stats_list=[]
 
-        soc.start_readout(total_count, counter_addr=1, ch_list=[0,1])
-        while soc.readout_alive():
-            #npoints, new_data, stats_list = soc.poll_data()
-            new_data = soc.poll_data()
+        soc.streamer.start_readout(total_count, counter_addr=1, ch_list=[0,1])
+        while soc.streamer.readout_alive():
+            new_data = soc.streamer.poll_data()
             for d,s in new_data:
                 new_points = d.shape[2]
                 d_buf[:,:,count:count+new_points] = d
@@ -256,23 +255,23 @@ class AveragerProgram(QickProgram):
         d_avg1=np.zeros((2,self.cfg["adc_lengths"][1]))
         
         # load the program - it's always the same, so this only needs to be done once
-        soc.load_bin_program(self.compile(debug=debug))
+        soc.tproc.load_bin_program(self.compile(debug=debug))
 
         #for each soft average stop the processor, run and average decimated data
         for ii in tqdm(range(soft_avgs),disable=not progress):
-            soc.stop()
+            soc.tproc.stop()
             # Configure and enable buffer capture.
             for ii, length in enumerate(self.cfg["adc_lengths"]):
                 soc.config_avg(ii,address=0,length=length, enable=True)
                 soc.config_buf(ii, address=0, length=length, enable=True)
 
-            soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
+            soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
         
-            soc.start() #runs the assembly program
+            soc.tproc.start() #runs the assembly program
 
             count=0
             while count<1:
-                count = soc.single_read(addr= 1)
+                count = soc.tproc.single_read(addr= 1)
                 
             d0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
             d1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
@@ -402,7 +401,7 @@ class RAveragerProgram(QickProgram):
             soc.config_buf(ii, address=0, length=length)
             soc.config_buf(ii)
 
-        soc.load_bin_program(self.compile(debug=debug))
+        soc.tproc.load_bin_program(self.compile(debug=debug))
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
@@ -413,15 +412,15 @@ class RAveragerProgram(QickProgram):
         di_buf=np.zeros((2,total_count))
         dq_buf=np.zeros((2,total_count))
         
-        soc.stop()
+        soc.tproc.stop()
         
-        soc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
+        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
         self.stats=[]
         
         with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start()
+            soc.tproc.start()
             while count<total_count-1:
-                count = soc.single_read(addr= 1)*readouts_per_experiment
+                count = soc.tproc.single_read(addr= 1)*readouts_per_experiment
 
                 if count>=min(last_count+100,total_count-1):
                     addr=last_count % soc.get_avg_max_length(0)

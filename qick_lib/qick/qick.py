@@ -1051,11 +1051,19 @@ class QickSoc(Overlay):
 
 
         # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
-        self.tproc  = self.axis_tproc64x32_x8_0
-        self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        self._tproc  = self.axis_tproc64x32_x8_0
+        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
         #print(self.description())
 
-        self.streamer = DataStreamer(self)
+        self._streamer = DataStreamer(self)
+
+    @property
+    def tproc(self):
+        return self._tproc
+
+    @property
+    def streamer(self):
+        return self._streamer
 
     def description(self):
         lines=[]
@@ -1196,59 +1204,6 @@ class QickSoc(Overlay):
         # we remove the padding here
         return data[:,:length]
     
-    def start(self):
-        """Start the tprocessor"""
-        return self.tproc.start()
-
-    def stop(self):
-        """Stop the tprocessor"""
-        return self.tproc.stop()
-
-    def single_read(self, addr):
-        """Read single value from data memory
-        
-        :param addr: Address of data memory to read
-        :type addr: int
-        :return: value at data address 'addr' 
-        :rtype: int
-
-        """
-        return self.tproc.single_read(addr)
-
-    def single_write(self, addr,data):
-        """Read single value from data memory
-        
-        :param addr: Address of data memory to read
-        :type addr: int
-        :param data: data to write into memory
-        :type data: int
-        """
-        return self.tproc.single_write(addr,data)
-
-    def read_dmem(self, addr=0, length=100):
-        """
-        Reads tProc data memory using DMA
-
-        :param addr: Starting address
-        :type addr: int
-        :param length: Number of samples
-        :type length: int
-        :return: List of memory data
-        :rtype: list
-        """
-        return self.tproc.read_dmem(addr,length)
-
-    def load_dmem(self, buff_in, addr=0):
-        """
-        Writes tProc data memory using DMA
-
-        :param buff_in: Input buffer
-        :type buff_in: int
-        :param addr: Starting destination address
-        :type addr: int
-        """
-        return self.tproc.load_dmem(buff_in, addr)
-
     def configure_readout(self, ch, output, frequency):
         """Configure readout channel output style and frequency
         :param ch: Channel to configure
@@ -1295,9 +1250,6 @@ class QickSoc(Overlay):
     def enable_buf(self, ch):
         self.avg_bufs[ch].enable_buf()
         
-    def load_bin_program(self, binprog):
-        return self.tproc.load_bin_program(binprog)
-
     def get_avg_max_length(self, ch=0):
         """Get accumulation buffer length for channel
         :param ch: Channel
@@ -1350,17 +1302,3 @@ class QickSoc(Overlay):
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=[0,1]):
-        return self.streamer.start_readout(total_count, counter_addr, ch_list)
-
-    def stop_readout(self):
-        return self.streamer.stop_readout()
-
-    def readout_done(self):
-        return self.streamer.readout_done()
-
-    def readout_alive(self):
-        return self.streamer.readout_alive()
-
-    def poll_data(self):
-        return self.streamer.poll_data()
