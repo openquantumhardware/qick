@@ -1066,7 +1066,7 @@ class QickSoc(Overlay):
 
     def description(self):
         lines=[]
-        lines.append("\n\tGlobal clocks: fabric %d MHz, reference %.1f MHz"%(
+        lines.append("\n\tGlobal clocks: fabric %.3f MHz, reference %.3f MHz"%(
             self.fabric_freq, self.refclk_freq))
         lines.append("\n\tGenerator switch: %d to %d"%(
             self.switch_gen.NSL, self.switch_gen.NMI))
@@ -1077,11 +1077,11 @@ class QickSoc(Overlay):
 
         lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
         for iCh, (iTile,iBlock,fs) in enumerate(self.dac_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%d MHz"%(iCh,iTile,iBlock,fs))
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
 
         lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
         for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%d MHz"%(iCh,iTile,iBlock,fs))
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
 
         lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
             self.gens[0].MAX_LENGTH))
@@ -1120,21 +1120,19 @@ class QickSoc(Overlay):
             if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
                 continue
             self.dac_tiles.append(iTile)
-            # We assume fabric and sampling clock frequencies are integers in MHz.
-            fabric_freqs.append(int(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)])))
+            fabric_freqs.append(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)]))
             refclk_freqs.append(float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                     continue
-                fs = int(block.BlockStatus['SamplingFreq']*1000)
+                fs = block.BlockStatus['SamplingFreq']*1000
                 self.dac_blocks.append((iTile,iBlock,fs))
 
         for iTile,tile in enumerate(self.rf.adc_tiles):
             if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
                 continue
             self.adc_tiles.append(iTile)
-            # We assume fabric and sampling clock frequencies are integers in MHz.
-            fabric_freqs.append(int(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)])))
+            fabric_freqs.append(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)]))
             refclk_freqs.append(float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if hs_adc:
@@ -1144,7 +1142,7 @@ class QickSoc(Overlay):
                     if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                         continue
                 # We assume the sampling frequencies are integers in MHz.
-                fs = int(block.BlockStatus['SamplingFreq']*1000)
+                fs = block.BlockStatus['SamplingFreq']*1000
                 self.adc_blocks.append((iTile,iBlock,fs))
 
         # Assume all DACs and ADCs each share a common sampling frequency, so we only need to check the first one.
@@ -1159,8 +1157,13 @@ class QickSoc(Overlay):
         """
         Resets all the board clocks
         """
-        print("resetting clocks:",self.refclk_freq)
-        xrfclk.set_all_ref_clks(self.refclk_freq)
+        #for ZCU111
+        #print("resetting clocks:",self.refclk_freq)
+        #xrfclk.set_all_ref_clks(self.refclk_freq)
+
+        #for ZCU216
+        print("resetting clocks:",self.refclk_freq,self.refclk_freq*2)
+        xrfclk.set_ref_clks(lmk_freq=self.refclk_freq, lmx_freq=self.refclk_freq*2)
     
     def get_decimated(self, ch, address=0, length=None):
         """
@@ -1308,7 +1311,7 @@ class QickSoc(Overlay):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel = self.dac_blocks[ch-1]
+        tile, channel, _ = self.dac_blocks[ch-1]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
