@@ -949,7 +949,6 @@ class QickSoc(Overlay):
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
     """
-    FREF_PLL = 204.8 # MHz
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
     #fs_adc = 384*8 # MHz
@@ -1067,6 +1066,8 @@ class QickSoc(Overlay):
 
     def description(self):
         lines=[]
+        lines.append("\n\tGlobal clocks: fabric %d MHz, reference %.1f MHz"%(
+            self.fabric_freq, self.refclk_freq))
         lines.append("\n\tGenerator switch: %d to %d"%(
             self.switch_gen.NSL, self.switch_gen.NMI))
         lines.append("\n\tAverager switch: %d to %d"%(
@@ -1075,14 +1076,12 @@ class QickSoc(Overlay):
             self.switch_buf.NSL, self.switch_buf.NMI))
 
         lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
-        for iCh, (iTile,iBlock) in enumerate(self.dac_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
-                self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+        for iCh, (iTile,iBlock,fs) in enumerate(self.dac_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%d MHz"%(iCh,iTile,iBlock,fs))
 
         lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
-        for iCh, (iTile,iBlock) in enumerate(self.adc_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
-                self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+        for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%d MHz"%(iCh,iTile,iBlock,fs))
 
         lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
             self.gens[0].MAX_LENGTH))
@@ -1114,20 +1113,29 @@ class QickSoc(Overlay):
         self.dac_blocks = []
         self.adc_tiles = []
         self.adc_blocks = []
+        fabric_freqs = []
+        refclk_freqs = []
 
         for iTile,tile in enumerate(self.rf.dac_tiles):
             if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
                 continue
             self.dac_tiles.append(iTile)
+            # We assume fabric and sampling clock frequencies are integers in MHz.
+            fabric_freqs.append(int(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)])))
+            refclk_freqs.append(float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                     continue
-                self.dac_blocks.append((iTile,iBlock))
+                fs = int(block.BlockStatus['SamplingFreq']*1000)
+                self.dac_blocks.append((iTile,iBlock,fs))
 
         for iTile,tile in enumerate(self.rf.adc_tiles):
             if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
                 continue
             self.adc_tiles.append(iTile)
+            # We assume fabric and sampling clock frequencies are integers in MHz.
+            fabric_freqs.append(int(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)])))
+            refclk_freqs.append(float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
@@ -1135,21 +1143,24 @@ class QickSoc(Overlay):
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                         continue
-                self.adc_blocks.append((iTile,iBlock))
+                # We assume the sampling frequencies are integers in MHz.
+                fs = int(block.BlockStatus['SamplingFreq']*1000)
+                self.adc_blocks.append((iTile,iBlock,fs))
 
         # Assume all DACs and ADCs each share a common sampling frequency, so we only need to check the first one.
-        # We assume the sampling frequencies are integers in MHz.
-        iTile,iBlock = self.dac_blocks[0]
-        self.fs_dac = int(self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
-        iTile,iBlock = self.adc_blocks[0]
-        self.fs_adc = int(self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+        self.fs_dac = self.dac_blocks[0][2]
+        self.fs_adc = self.adc_blocks[0][2]
+
+        # Assume all blocks have the same fabric and reference clocks. We could test this here.
+        self.fabric_freq = fabric_freqs[0]
+        self.refclk_freq = refclk_freqs[0]
 
     def set_all_clks(self):
         """
         Resets all the board clocks
         """
-        print("resetting clocks:",self.__class__.FREF_PLL)
-        xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
+        print("resetting clocks:",self.refclk_freq)
+        xrfclk.set_all_ref_clks(self.refclk_freq)
     
     def get_decimated(self, ch, address=0, length=None):
         """
