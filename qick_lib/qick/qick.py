@@ -979,6 +979,8 @@ class QickSoc(Overlay):
         else:
             super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
 
+        self.board = os.environ["BOARD"]
+
         # RF data converter (for configuring ADCs and DACs)
         self.rf = self.usp_rf_data_converter_0
 
@@ -1066,6 +1068,7 @@ class QickSoc(Overlay):
 
     def description(self):
         lines=[]
+        lines.append("\n\tBoard: " + self.board)
         lines.append("\n\tGlobal clocks: fabric %.3f MHz, reference %.3f MHz"%(
             self.fabric_freq, self.refclk_freq))
         lines.append("\n\tGenerator switch: %d to %d"%(
@@ -1157,13 +1160,14 @@ class QickSoc(Overlay):
         """
         Resets all the board clocks
         """
-        #for ZCU111
-        #print("resetting clocks:",self.refclk_freq)
-        #xrfclk.set_all_ref_clks(self.refclk_freq)
-
-        #for ZCU216
-        print("resetting clocks:",self.refclk_freq,self.refclk_freq*2)
-        xrfclk.set_ref_clks(lmk_freq=self.refclk_freq, lmx_freq=self.refclk_freq*2)
+        if self.board=='ZCU111':
+            print("resetting clocks:",self.refclk_freq)
+            xrfclk.set_all_ref_clks(self.refclk_freq)
+        elif self.board=='ZCU216':
+            lmk_freq = self.refclk_freq
+            lmx_freq = self.refclk_freq*2
+            print("resetting clocks:",lmk_freq, lmx_freq)
+            xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
     
     def get_decimated(self, ch, address=0, length=None):
         """
