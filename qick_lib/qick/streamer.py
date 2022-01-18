@@ -21,6 +21,8 @@ class DataStreamer():
 
         # Passes data from the worker process to the main process.
         self.data_queue = Queue()
+        # Passes exceptions from the worker process to the main process.
+        self.error_queue = Queue()
         # The main process can use this flag to tell the worker process to stop.
         self.stop_flag = Event()
         # The worker process uses this to tell the main process when it's done.
@@ -69,7 +71,7 @@ class DataStreamer():
     def readout_alive(self):
         """
         Test if the readout process is still alive.
-        This is true as long as the readout loop is running, or there is unread data in the queue.
+        This is true as long as the readout loop is running, or there are unread items in the queues.
         You will not be able to start a new readout until this is false.
 
         :return: readout process status
@@ -80,10 +82,16 @@ class DataStreamer():
     def poll_data(self):
         """
         Get as much data as possible from the data queue.
+        If there are errors in the error queue, raise the first one.
 
         :return: list of (data, stats) pairs, oldest first
         :rtype: list
         """
+        try:
+            raise RuntimeError("exception in readout loop") from self.error_queue.get(block=False)
+        except queue.Empty:
+            pass
+
         new_data = []
         while True:
             try:
@@ -103,44 +111,47 @@ class DataStreamer():
         :param ch_list: List of readout channels
         :type addr: list
         """
-        count=0
-        last_count=0
-        stride=int(0.5 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
-        # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
+        try:
+            count=0
+            last_count=0
+            stride=int(0.5 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
+            # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-        self.soc.tproc.stop()
+            self.soc.tproc.stop()
 
-        self.soc.tproc.single_write(addr= counter_addr,data=0)   #make sure count variable is reset to 0 before starting processor
-        stats=[]
+            self.soc.tproc.single_write(addr= counter_addr,data=0)   #make sure count variable is reset to 0 before starting processor
+            stats=[]
 
-        t_start = time.time()
+            t_start = time.time()
 
-        self.soc.tproc.start()
-        while (not self.stop_flag.is_set()) and count<total_count:   # Keep streaming data until you get all of it
-            count = self.soc.tproc.single_read(addr= counter_addr)
-            if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                addr=last_count % self.soc.get_avg_max_length(0)
-                length = count-last_count
-                length -= length%2 # transfers must be of even length; trim the length (instead of padding it)
-                if length>=self.soc.get_avg_max_length(0):
-                    raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                            %(length, self.soc.get_avg_max_length(0)) +
-                            "\nYou need to slow down the tProc by increasing relax_delay." +
-                            "\nIf the TQDM progress bar is enabled, disabling it may help.")
+            self.soc.tproc.start()
+            while (not self.stop_flag.is_set()) and count<total_count:   # Keep streaming data until you get all of it
+                count = self.soc.tproc.single_read(addr= counter_addr)
+                if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
+                    addr=last_count % self.soc.get_avg_max_length(0)
+                    length = count-last_count
+                    length -= length%2 # transfers must be of even length; trim the length (instead of padding it)
+                    if length>=self.soc.get_avg_max_length(0):
+                        raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
+                                %(length, self.soc.get_avg_max_length(0)) +
+                                "\nYou need to slow down the tProc by increasing relax_delay." +
+                                "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
-                # buffer for each channel
-                d_buf=np.zeros((len(ch_list),2,length))
+                    # buffer for each channel
+                    d_buf=np.zeros((len(ch_list),2,length))
 
-                for iCh, ch in enumerate(ch_list):  #for each adc channel get the single shot data and add it to the buffer
-                    data = self.soc.get_accumulated(ch=ch,address=addr, length=length)
+                    for iCh, ch in enumerate(ch_list):  #for each adc channel get the single shot data and add it to the buffer
+                        data = self.soc.get_accumulated(ch=ch,address=addr, length=length)
 
-                    d_buf[iCh]=data
+                        d_buf[iCh]=data
 
-                last_count+=length
+                    last_count+=length
 
-                stats = (time.time()-t_start, count,addr, length)
-                self.data_queue.put((d_buf, stats))
-        self.done_flag.set()
+                    stats = (time.time()-t_start, count,addr, length)
+                    self.data_queue.put((d_buf, stats))
+            self.done_flag.set()
 
-        # Note that the process will not terminate until the queue is empty.
+            # Note that the process will not terminate until the queue is empty.
+        except Exception as e:
+            self.error_queue.put(e)
 
