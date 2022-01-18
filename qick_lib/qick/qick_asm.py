@@ -17,6 +17,7 @@ def freq2reg(f):
     :return: Re-formatted frequency
     :rtype: int
     """
+    raise DeprecationWarning("freq2reg() is deprecated! Use QickSoc.freq2reg() instead.")
     B=32
     df = 2**B/fs_dac
     f_i = f*df
@@ -32,6 +33,7 @@ def freq2reg_adc(f):
     :return: Re-formatted frequency
     :rtype: int
     """
+    raise DeprecationWarning("freq2reg_adc() is deprecated! Use QickSoc.configure_readout() instead.")
     B=32
     df = 2**B/fs_adc
     f_i = f*df
@@ -46,6 +48,7 @@ def reg2freq(r):
     :return: Re-formatted frequency in MHz
     :rtype: float
     """
+    raise DeprecationWarning("reg2freq() is deprecated! Use QickSoc.reg2freq() instead.")
     return r*fs_dac/2**32
 
 def reg2freq_adc(r):
@@ -57,6 +60,7 @@ def reg2freq_adc(r):
     :return: Re-formatted frequency in MHz
     :rtype: float
     """
+    raise DeprecationWarning("reg2freq_adc() is deprecated! Use QickSoc.reg2freq_adc() instead.")
     return r*fs_adc/2**32
 
 def adcfreq(f):
@@ -68,6 +72,7 @@ def adcfreq(f):
     :return: Re-formatted frequency
     :rtype: int
     """
+    raise DeprecationWarning("adcfreq() is deprecated! It is no longer needed when setting registers; otherwise, Use QickSoc.adcfreq() instead.")
     reg=freq2reg_adc(f)
     return reg2freq_adc(reg)
 
@@ -80,6 +85,7 @@ def cycles2us(cycles):
     :return: Number of microseconds
     :rtype: float
     """
+    raise DeprecationWarning("cycles2us() is deprecated! Use QickSoc.cycles2us() instead.")
     return cycles/fs_proc
 
 def us2cycles(us):
@@ -91,6 +97,7 @@ def us2cycles(us):
     :return: Number of tProc clock cycles
     :rtype: int
     """
+    raise DeprecationWarning("us2cycles() is deprecated! Use QickSoc.us2cycles() instead.")
     return int(us*fs_proc)
 
 def deg2reg(deg):
@@ -291,7 +298,9 @@ class QickProgram:
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
-        if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
+        #TODO: if we can do compile-time conversion for frequency, we can bring this print back
+        #if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
+        if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {freq}')
         if phase is not None: p.safe_regwi (rp, r_phase, phase, f'phase = {phase}')
         if gain is not None: p.regwi (rp, r_gain, gain, f'gain = {gain}')
         if t is not None and t !='auto': p.regwi (rp, r_t, t, f't = {t}')

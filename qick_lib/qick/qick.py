@@ -277,9 +277,13 @@ class AxisReadoutV2(SocIp):
         self.ch = int(description['fullpath'].split('_')[-1])
 
     # Configure this driver with the sampling frequency.
-    def configure(self, fs):
+    def configure(self, fstep, regmult):
+        # Frequency step for rounding.
+        self.fstep = fstep
+        # Integer multiplier.
+        self.regmult = regmult
         # Sampling frequency.
-        self.fs = fs
+        self.fs = 2**self.B_DDS * fstep/regmult
         
     def update(self):
         """
@@ -317,9 +321,8 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f<self.fs:
-            df = self.fs/2**self.B_DDS
-            k_i = int(np.round(f/df))
-            self.freq_reg = k_i
+            k_i = np.int64(f/self.fstep)
+            self.freq_reg = k_i * self.regmult
             
         # Register update.
         self.update()
@@ -1039,19 +1042,21 @@ class QickSoc(Overlay):
         self.readouts.sort(key=lambda x: x.ch)
         self.avg_bufs.sort(key=lambda x: x.ch)
 
+        self.prepare_freq2reg()
+
         # Configure the drivers.
         for gen in self.gens:
             gen.configure(self.axi_dma_gen, self.switch_gen)
 
         for readout in self.readouts:
-            readout.configure(self.fs_adc)
+            readout.configure(self.fstep_lcm, self.regmult_adc)
 
         for buf in self.avg_bufs:
             buf.configure(self.axi_dma_avg, self.switch_avg,
                     self.axi_dma_buf, self.switch_buf)
 
 
-        # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
+        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc  = self.axis_tproc64x32_x8_0
         self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
         #print(self.description())
@@ -1070,7 +1075,7 @@ class QickSoc(Overlay):
         lines=[]
         lines.append("\n\tBoard: " + self.board)
         lines.append("\n\tGlobal clocks: fabric %.3f MHz, reference %.3f MHz"%(
-            self.fabric_freq, self.refclk_freq))
+            self.fs_proc, self.refclk_freq))
         lines.append("\n\tGenerator switch: %d to %d"%(
             self.switch_gen.NSL, self.switch_gen.NMI))
         lines.append("\n\tAverager switch: %d to %d"%(
@@ -1085,6 +1090,11 @@ class QickSoc(Overlay):
         lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
         for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
             lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
+
+        lines.append("\n\tClock multiplier factors: %d (DAC), %d (ADC)"%(
+            self.fsmult_dac, self.fsmult_adc))
+        lines.append("\tFrequency resolution step: %.3f Hz"%(
+            self.fstep_lcm*1e6))
 
         lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
             self.gens[0].MAX_LENGTH))
@@ -1153,8 +1163,103 @@ class QickSoc(Overlay):
         self.fs_adc = self.adc_blocks[0][2]
 
         # Assume all blocks have the same fabric and reference clocks. We could test this here.
-        self.fabric_freq = fabric_freqs[0]
+        self.fs_proc = fabric_freqs[0]
         self.refclk_freq = refclk_freqs[0]
+
+    def prepare_freq2reg(self):
+        # Calculate least common multiple of DAC and ADC sampling frequencies.
+        # Typically fs_dac = fs_adc*2, so this is just the DAC frequency.
+        # This is used when converting frequencies to integers.
+
+        b_adc = AxisReadoutV2.B_DDS #typically 32
+        b_dac = 32
+
+        # clock multipliers from tProc to DAC/ADC - always integer
+        self.fsmult_dac = round(self.fs_dac/self.fs_proc)
+        self.fsmult_adc = round(self.fs_adc/self.fs_proc)
+
+        # reg = f/fstep
+        #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
+        #fstep_adc = self.fs_proc * mult_adc / 2**b_adc
+
+        # Calculate a common fstep_lcm, which is divisible by both the DAC and ADC step sizes.
+        # We should only use frequencies that are evenly divisible by fstep_lcm.
+        b_max = max(b_dac,b_adc)
+        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - b_dac),
+                self.fsmult_adc * 2**(b_max - b_adc))
+        self.fstep_lcm = self.fs_proc * mult_lcm / 2**b_max
+
+        # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
+        self.regmult_dac = 2**(b_max-b_dac) * round((mult_lcm/self.fsmult_dac))
+        self.regmult_adc = 2**(b_max-b_adc) * round((mult_lcm/self.fsmult_adc))
+        print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
+
+    def freq2reg(self, f):
+        """
+        Converts frequency in MHz to tProc DAC register value.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        k_i = np.int64(f/self.fstep_lcm)
+        return k_i * self.regmult_dac
+
+    def reg2freq(self, r):
+        """
+        Converts frequency from format readable by tProc DAC to MHz.
+
+        :param r: frequency in tProc DAC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_dac
+
+    def reg2freq_adc(self, r):
+        """
+        Converts frequency from format readable by tProc ADC to MHz.
+
+        :param r: frequency in tProc ADC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_adc
+
+    def adcfreq(self, f):
+        """
+        Takes a frequency and casts it to an (even) valid ADC DDS frequency.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        return np.round(f/self.fstep_lcm) * self.fstep_lcm
+
+    def cycles2us(self, cycles):
+        """
+        Converts tProc clock cycles to microseconds.
+
+        :param cycles: Number of tProc clock cycles
+        :type cycles: int
+        :return: Number of microseconds
+        :rtype: float
+        """
+        return cycles/self.fs_proc
+
+    def us2cycles(self, us):
+        """
+        Converts microseconds to integer number of tProc clock cycles.
+
+        :param cycles: Number of microseconds
+        :type cycles: float
+        :return: Number of tProc clock cycles
+        :rtype: int
+        """
+        return int(us*self.fs_proc)
 
     def set_all_clks(self):
         """
