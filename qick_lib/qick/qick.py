@@ -1190,8 +1190,8 @@ class QickSoc(Overlay):
         self.fstep_lcm = self.fs_proc * mult_lcm / 2**b_max
 
         # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
-        self.regmult_dac = 2**(b_max-b_dac) * round((mult_lcm/self.fsmult_dac))
-        self.regmult_adc = 2**(b_max-b_adc) * round((mult_lcm/self.fsmult_adc))
+        self.regmult_dac = int(2**(b_max-b_dac) * round(mult_lcm/self.fsmult_dac))
+        self.regmult_adc = int(2**(b_max-b_adc) * round(mult_lcm/self.fsmult_adc))
         #print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
 
     def freq2reg(self, f):
