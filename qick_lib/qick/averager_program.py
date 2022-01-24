@@ -56,7 +56,7 @@ class AveragerProgram(QickProgram):
        
         p.end()        
         
-    def acquire_round(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -90,55 +90,41 @@ class AveragerProgram(QickProgram):
             self.load_pulses(soc)
         
         #Configure the readout down converters
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
+        for ii, length in enumerate(self.cfg["adc_lengths"]):
+            soc.config_avg(ii,address=0,length=length)
+            soc.enable_avg(ii)
+            soc.config_buf(ii, address=0, length=length)
+            soc.config_buf(ii)
 
         #load the this AveragerProgram into the soc's tproc
-        soc.tproc.load_qick_program(self, debug=debug)
+        soc.tproc.load_bin_program(self.compile(debug=debug))
         
         
         reps = self.cfg['reps']
-        
-        count=0
-        last_count=0
         total_count=reps
-
-        di_buf=np.zeros((2,total_count))
-        dq_buf=np.zeros((2,total_count))
-        
-        soc.tproc.stop()
-        
-        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
-        self.stats=[]
-
+        count = 0
         t = tqdm(total=total_count, disable=not progress) #progress bar
         
-        soc.tproc.start()
-        while count<total_count:   # Keep streaming data until you get all of it
-            count = soc.tproc.single_read(addr= 1)
-            if count>=min(last_count+1000,total_count-1):  #wait until either you've gotten 1000 measurements or until you've finished (so you don't go crazy trying to download every measurement
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
-                length = count-last_count
-                length -= length%2
+        d_buf = np.zeros((2,2,total_count))
+        stats_list=[]
 
-                for ch in range(2):  #for each adc channel get the single shot data and add it to the buffer
-                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
-
-                    di_buf[ch,last_count:last_count+length]=di[:length]
-                    dq_buf[ch,last_count:last_count+length]=dq[:length]
-
-                last_count+=length
-                t.update(length)
-                self.stats.append( (time.time(), count,addr, length))
+        soc.streamer.start_readout(total_count, counter_addr=1, ch_list=[0,1])
+        while soc.streamer.readout_alive():
+            new_data = soc.streamer.poll_data()
+            for d,s in new_data:
+                new_points = d.shape[2]
+                d_buf[:,:,count:count+new_points] = d
+                count += new_points
+                stats_list.append(s)
+                t.update(new_points)
         t.close()
+        self.stats=stats_list
+
+        # reformat the data into separate I and Q arrays
+        di_buf = np.stack([d_buf[i][0] for i in range(2)])
+        dq_buf = np.stack([d_buf[i][1] for i in range(2)])
                     
         #save results to class in case you want to look at it later or for analysis
         self.di_buf=di_buf
@@ -161,7 +147,7 @@ class AveragerProgram(QickProgram):
 
         return avg_di, avg_dq
     
-    def acquire(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+    def acquire(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -257,31 +243,29 @@ class AveragerProgram(QickProgram):
         if load_pulses: 
             self.load_pulses(soc)
         
-        #configure the adcs
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
+
+        #Configure the readout down converters
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
         
 
         soft_avgs=self.cfg["soft_avgs"]        
 
-        di_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        dq_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        di_avg1=np.zeros(self.cfg["adc_lengths"][1])
-        dq_avg1=np.zeros(self.cfg["adc_lengths"][1])
+        d_avg0=np.zeros((2,self.cfg["adc_lengths"][0]))
+        d_avg1=np.zeros((2,self.cfg["adc_lengths"][1]))
         
-        #for each soft average stop the processor, reload the program, run and average decimated data
+        # load the program - it's always the same, so this only needs to be done once
+        soc.tproc.load_bin_program(self.compile(debug=debug))
+
+        #for each soft average stop the processor, run and average decimated data
         for ii in tqdm(range(soft_avgs),disable=not progress):
             soc.tproc.stop()
             # Configure and enable buffer capture.
-            for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-                avg_buf.config_buf(address=0,length=adc_length)
-                avg_buf.enable_buf()
-                avg_buf.config_avg(address=0,length=adc_length)
-                avg_buf.enable_avg()
+            for ii, length in enumerate(self.cfg["adc_lengths"]):
+                soc.config_avg(ii,address=0,length=length, enable=True)
+                soc.config_buf(ii, address=0, length=length, enable=True)
 
             soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.tproc.load_qick_program(self, debug=debug)
         
             soc.tproc.start() #runs the assembly program
 
@@ -289,15 +273,13 @@ class AveragerProgram(QickProgram):
             while count<1:
                 count = soc.tproc.single_read(addr= 1)
                 
-            di0,dq0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
-            di1,dq1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
+            d0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
+            d1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
             
-            di_avg0+=di0
-            dq_avg0+=dq0
-            di_avg1+=di1
-            dq_avg1+=dq1
+            d_avg0+=d0
+            d_avg1+=d1
             
-        return np.array([di_avg0,dq_avg0])/soft_avgs,np.array([di_avg1,dq_avg1])/soft_avgs
+        return d_avg0/soft_avgs,d_avg1/soft_avgs
     
 class RAveragerProgram(QickProgram):
     """
@@ -377,7 +359,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
         
-    def acquire_round(self, soc, threshold=None, angle=[0,0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=[0,0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
         """
          This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -410,18 +392,16 @@ class RAveragerProgram(QickProgram):
         if load_pulses: 
             self.load_pulses(soc)
         
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
+        #Configure the readout down converters
+        for ii, freq in enumerate(self.cfg["adc_freqs"]):
+            soc.configure_readout(ii,output="product", frequency=freq)
+        for ii, length in enumerate(self.cfg["adc_lengths"]):
+            soc.config_avg(ii,address=0,length=length)
+            soc.enable_avg(ii)
+            soc.config_buf(ii, address=0, length=length)
+            soc.config_buf(ii)
 
-        soc.tproc.load_qick_program(self, debug=debug)
+        soc.tproc.load_bin_program(self.compile(debug=debug))
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
@@ -442,8 +422,8 @@ class RAveragerProgram(QickProgram):
             while count<total_count-1:
                 count = soc.tproc.single_read(addr= 1)*readouts_per_experiment
 
-                if count>=min(last_count+1000,total_count-1):
-                    addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
+                if count>=min(last_count+100,total_count-1):
+                    addr=last_count % soc.get_avg_max_length(0)
                     length = count-last_count
                     length -= length%2
 
@@ -502,7 +482,7 @@ class RAveragerProgram(QickProgram):
             threshold=[threshold,threshold]            
         return np.array([np.heaviside((di[ch]*np.cos(angle[ch]) - dq[ch]*np.sin(angle[ch]))/self.cfg['adc_lengths'][ch]-threshold[ch],0) for ch in range(2)])
                     
-    def acquire(self, soc, threshold=None, angle=[0,0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=True, debug=False):
+    def acquire(self, soc, threshold=None, angle=[0,0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:

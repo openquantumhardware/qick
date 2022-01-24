@@ -3,14 +3,16 @@ The lower-level driver for the QICK library. Contains classes for interfacing wi
 """
 import os
 from pynq import Overlay, DefaultIP, allocate
-import xrfclk
-import xrfdc
+try:
+    import xrfclk
+    import xrfdc
+except:
+    pass
 import numpy as np
-from pynq import Xlnk
-from pynq import Overlay
 from pynq.lib import AxiGPIO
 import time
 from .parser import *
+from .streamer import DataStreamer
 from . import bitfile_path
 
 # Some support functions
@@ -187,7 +189,7 @@ class AxisSignalGenV4(SocIp):
         xin = xin.astype(np.int32)
         
         # Define buffer.
-        self.buff = Xlnk().cma_array(shape=(len(xin)), dtype=np.int32)
+        self.buff = allocate(shape=len(xin), dtype=np.int32)
         np.copyto(self.buff, xin)
         
         ################
@@ -275,9 +277,13 @@ class AxisReadoutV2(SocIp):
         self.ch = int(description['fullpath'].split('_')[-1])
 
     # Configure this driver with the sampling frequency.
-    def configure(self, fs):
+    def configure(self, fstep, regmult):
+        # Frequency step for rounding.
+        self.fstep = fstep
+        # Integer multiplier.
+        self.regmult = regmult
         # Sampling frequency.
-        self.fs = fs
+        self.fs = 2**self.B_DDS * fstep/regmult
         
     def update(self):
         """
@@ -293,14 +299,15 @@ class AxisReadoutV2(SocIp):
         :param sel: select mux control
         :type sel: int
         """
-        if sel is "product":
-            self.outsel_reg = 0
-        elif sel is "dds":
-            self.outsel_reg = 1
-        elif sel is "input":
-            self.outsel_reg = 2
-        else:
-            print("AxisReadoutV2: %s output unknown" % sel)
+        self.outsel_reg={"product":0,"dds":1,"input":2}[sel]
+#         if sel is "product":
+#             self.outsel_reg = 0
+#         elif sel is "dds":
+#             self.outsel_reg = 1
+#         elif sel is "input":
+#             self.outsel_reg = 2
+#         else:
+#             print("AxisReadoutV2: %s output unknown" % sel)
             
         # Register update.
         self.update()
@@ -314,9 +321,8 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f<self.fs:
-            df = self.fs/2**self.B_DDS
-            k_i = int(np.round(f/df))
-            self.freq_reg = k_i
+            k_i = np.int64(f/self.fstep)
+            self.freq_reg = k_i * self.regmult
             
         # Register update.
         self.update()
@@ -418,6 +424,10 @@ class AxisAvgBuffer(SocIp):
         self.AVG_MAX_LENGTH = 2**self.N_AVG  
         self.BUF_MAX_LENGTH = 2**self.N_BUF
 
+        # Preallocate memory buffers for DMA transfers.
+        self.avg_buff = allocate(shape=self.AVG_MAX_LENGTH, dtype=np.int64)
+        self.buf_buff = allocate(shape=self.BUF_MAX_LENGTH, dtype=np.int32)
+
         # Get the channel number from the IP instance name.
         self.ch = int(description['fullpath'].split('_')[-1])
 
@@ -469,12 +479,10 @@ class AxisAvgBuffer(SocIp):
         self.avg_addr_reg = address
         self.avg_len_reg = length
         
-    def transfer_avg(self,buff,address=0,length=100):
+    def transfer_avg(self,address=0,length=100):
         """
         Transfer average buffer data from average and buffering readout block.
 
-        :param buff: DMA buffer to be used for transfer
-        :type buff: list
         :param addr: starting reading address
         :type addr: int
         :param length: number of samples
@@ -482,6 +490,12 @@ class AxisAvgBuffer(SocIp):
         :return: I,Q pairs
         :rtype: list
         """
+
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+        if length >= self.AVG_MAX_LENGTH:
+            raise RuntimeError("length=%d longer than %d"%(length, self.AVG_MAX_LENGTH))
+
         # Route switch to channel.
         self.switch_avg.sel(slv=self.ch)        
         
@@ -493,7 +507,8 @@ class AxisAvgBuffer(SocIp):
         self.avg_dr_start_reg = 1
         
         # DMA data.
-        self.dma_avg.recvchannel.transfer(buff)
+        buff = self.avg_buff
+        self.dma_avg.recvchannel.transfer(buff,nbytes=length*8)
         self.dma_avg.recvchannel.wait()
 
         if self.dma_avg.recvchannel.transferred != length*8:
@@ -501,17 +516,15 @@ class AxisAvgBuffer(SocIp):
 
         # Stop send data mode.
         self.avg_dr_start_reg = 0
-        
-        # Format: 
+
+        # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = buff
+        data = buff[:length]
         dataI = data & 0xFFFFFFFF
-        dataI = dataI.astype(np.int32)
         dataQ = data >> 32
-        dataQ = dataQ.astype(np.int32)
-    
-        return dataI,dataQ        
+
+        return np.stack((dataI,dataQ)).astype(np.int32)
         
     def enable_avg(self):
         """
@@ -541,12 +554,10 @@ class AxisAvgBuffer(SocIp):
         self.buf_addr_reg = address
         self.buf_len_reg = length    
         
-    def transfer_buf(self,buff,address=0,length=100):
+    def transfer_buf(self,address=0,length=100):
         """
         Transfer raw buffer data from average and buffering readout block
 
-        :param buff: DMA buffer to be used for transfer
-        :type buff: list
         :param addr: starting reading address
         :type addr: int
         :param length: number of samples
@@ -554,6 +565,12 @@ class AxisAvgBuffer(SocIp):
         :return: I,Q pairs
         :rtype: list
         """
+
+        if length %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+        if length >= self.BUF_MAX_LENGTH:
+            raise RuntimeError("length=%d longer or equal to %d"%(length, self.BUF_MAX_LENGTH))
+
         # Route switch to channel.
         self.switch_buf.sel(slv=self.ch)
         
@@ -567,7 +584,8 @@ class AxisAvgBuffer(SocIp):
         self.buf_dr_start_reg = 1
         
         # DMA data.
-        self.dma_buf.recvchannel.transfer(buff)
+        buff = self.buf_buff
+        self.dma_buf.recvchannel.transfer(buff,nbytes=length*4)
         self.dma_buf.recvchannel.wait()
 
         if self.dma_buf.recvchannel.transferred != length*4:
@@ -575,17 +593,15 @@ class AxisAvgBuffer(SocIp):
 
         # Stop send data mode.
         self.buf_dr_start_reg = 0
-        
-        # Format: 
+
+        # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = buff
+        data = buff[:length]
         dataI = data & 0xFFFF
-        dataI = dataI.astype(np.int16)
         dataQ = data >> 16
-        dataQ = dataQ.astype(np.int16)
-    
-        return dataI,dataQ
+
+        return np.stack((dataI,dataQ)).astype(np.int16)
         
     def enable_buf(self):
         """
@@ -701,6 +717,13 @@ class AxisTProc64x32_x8(SocIp):
         """
         self.start_reg = 0
         
+    def load_bin_program(self, binprog):
+        for ii,inst in enumerate(binprog):
+            dec_low = inst & 0xffffffff
+            dec_high = inst >> 32
+            self.mem.write(8*ii, value=int(dec_low))
+            self.mem.write(4*(2*ii+1), value=int(dec_high))
+        
     def load_qick_program(self, prog, debug= False):
         """
         :param prog: the QickProgram to load
@@ -708,12 +731,8 @@ class AxisTProc64x32_x8(SocIp):
         :param debug: Debug option
         :type debug: bool
         """
-        for ii,inst in enumerate(prog.compile(debug=debug)):
-            dec_low = inst & 0xffffffff
-            dec_high = inst >> 32
-            self.mem.write(offset=8*ii,value=int(dec_low))
-            self.mem.write(offset=4*(2*ii+1),value=int(dec_high))
-
+        self.load_bin_program(prog.compile(debug=debug))
+        
     def load_program(self,prog="prog.asm",fmt="asm"):
         """
         Loads tProc program. If asm progam, it compiles first
@@ -735,9 +754,9 @@ class AxisTProc64x32_x8(SocIp):
                 dec = int(line,2)
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=int(dec_low))
+                self.mem.write(addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=int(dec_high))
+                self.mem.write(addr,value=int(dec_high))
                 addr = addr + 4                
                 
         # Asm file.
@@ -752,9 +771,9 @@ class AxisTProc64x32_x8(SocIp):
                 #print ("@" + str(addr) + ": " + str(dec))
                 dec_low = dec & 0xffffffff
                 dec_high = dec >> 32
-                self.mem.write(offset=addr,value=int(dec_low))
+                self.mem.write(addr,value=int(dec_low))
                 addr = addr + 4
-                self.mem.write(offset=addr,value=int(dec_high))
+                self.mem.write(addr,value=int(dec_high))
                 addr = addr + 4   
                 
     def single_read(self, addr):
@@ -772,7 +791,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Read data.
-        data = self.read(offset=addr_temp)
+        data = self.read(addr_temp)
             
         return data
     
@@ -789,7 +808,7 @@ class AxisTProc64x32_x8(SocIp):
         addr_temp = 4*addr + self.DMEM_OFFSET
             
         # Write data.
-        self.write(offset=addr_temp,value=int(data))
+        self.write(addr_temp,value=int(data))
         
     def load_dmem(self, buff_in, addr=0):
         """
@@ -809,7 +828,7 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = length
         
         # Define buffer.
-        self.buff = Xlnk().cma_array(shape=(length), dtype=np.int32)
+        self.buff = allocate(shape=length, dtype=np.int32)
         
         # Copy buffer.
         np.copyto(self.buff,buff_in)
@@ -841,7 +860,7 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = length
         
         # Define buffer.
-        buff = Xlnk().cma_array(shape=(length), dtype=np.int32)
+        buff = allocate(shape=length, dtype=np.int32)
         
         # Start operation on block.
         self.mem_start_reg = 1
@@ -933,7 +952,6 @@ class QickSoc(Overlay):
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
     """
-    FREF_PLL = 204.8 # MHz
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
     #fs_adc = 384*8 # MHz
@@ -963,6 +981,8 @@ class QickSoc(Overlay):
             super().__init__(bitfile_path(), ignore_version=ignore_version, **kwargs)
         else:
             super().__init__(bitfile, ignore_version=ignore_version, **kwargs)
+
+        self.board = os.environ["BOARD"]
 
         # RF data converter (for configuring ADCs and DACs)
         self.rf = self.usp_rf_data_converter_0
@@ -1022,24 +1042,40 @@ class QickSoc(Overlay):
         self.readouts.sort(key=lambda x: x.ch)
         self.avg_bufs.sort(key=lambda x: x.ch)
 
+        self.prepare_freq2reg()
+
         # Configure the drivers.
         for gen in self.gens:
             gen.configure(self.axi_dma_gen, self.switch_gen)
 
         for readout in self.readouts:
-            readout.configure(self.fs_adc)
+            readout.configure(self.fstep_lcm, self.regmult_adc)
 
         for buf in self.avg_bufs:
             buf.configure(self.axi_dma_avg, self.switch_avg,
                     self.axi_dma_buf, self.switch_buf)
 
 
-        # tProcessor, 64-bit instruction, 32-bit registes, x8 channels.
-        self.tproc  = self.axis_tproc64x32_x8_0
-        self.tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+        self._tproc  = self.axis_tproc64x32_x8_0
+        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        #print(self.description())
 
-    def __repr__(self):
+        self._streamer = DataStreamer(self)
+
+    @property
+    def tproc(self):
+        return self._tproc
+
+    @property
+    def streamer(self):
+        return self._streamer
+
+    def description(self):
         lines=[]
+        lines.append("\n\tBoard: " + self.board)
+        lines.append("\n\tGlobal clocks: fabric %.3f MHz, reference %.3f MHz"%(
+            self.fs_proc, self.refclk_freq))
         lines.append("\n\tGenerator switch: %d to %d"%(
             self.switch_gen.NSL, self.switch_gen.NMI))
         lines.append("\n\tAverager switch: %d to %d"%(
@@ -1048,14 +1084,17 @@ class QickSoc(Overlay):
             self.switch_buf.NSL, self.switch_buf.NMI))
 
         lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
-        for iCh, (iTile,iBlock) in enumerate(self.dac_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
-                self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+        for iCh, (iTile,iBlock,fs) in enumerate(self.dac_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
 
         lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
-        for iCh, (iTile,iBlock) in enumerate(self.adc_blocks):
-            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f GHz"%(iCh,iTile,iBlock,
-                self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']))
+        for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
+            lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
+
+        lines.append("\n\tClock multiplier factors: %d (DAC), %d (ADC)"%(
+            self.fsmult_dac, self.fsmult_adc))
+        lines.append("\tFrequency resolution step: %.3f Hz"%(
+            self.fstep_lcm*1e6))
 
         lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
             self.gens[0].MAX_LENGTH))
@@ -1067,8 +1106,12 @@ class QickSoc(Overlay):
             self.avg_bufs[0].BUF_MAX_LENGTH))
 
         lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
+        lines.append("\t\tprogram RAM: %d bytes"%(self.tproc.mem.mmio.length))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
+
+    def __repr__(self):
+        return self.description()
 
     def list_rf_blocks(self, rf_config):
         """
@@ -1083,20 +1126,27 @@ class QickSoc(Overlay):
         self.dac_blocks = []
         self.adc_tiles = []
         self.adc_blocks = []
+        fabric_freqs = []
+        refclk_freqs = []
 
         for iTile,tile in enumerate(self.rf.dac_tiles):
             if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
                 continue
             self.dac_tiles.append(iTile)
+            fabric_freqs.append(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)]))
+            refclk_freqs.append(float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                     continue
-                self.dac_blocks.append((iTile,iBlock))
+                fs = block.BlockStatus['SamplingFreq']*1000
+                self.dac_blocks.append((iTile,iBlock,fs))
 
         for iTile,tile in enumerate(self.rf.adc_tiles):
             if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
                 continue
             self.adc_tiles.append(iTile)
+            fabric_freqs.append(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)]))
+            refclk_freqs.append(float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)]))
             for iBlock,block in enumerate(tile.blocks):
                 if hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
@@ -1104,21 +1154,125 @@ class QickSoc(Overlay):
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                         continue
-                self.adc_blocks.append((iTile,iBlock))
+                # We assume the sampling frequencies are integers in MHz.
+                fs = block.BlockStatus['SamplingFreq']*1000
+                self.adc_blocks.append((iTile,iBlock,fs))
 
         # Assume all DACs and ADCs each share a common sampling frequency, so we only need to check the first one.
-        # We assume the sampling frequencies are integers in MHz.
-        iTile,iBlock = self.dac_blocks[0]
-        self.fs_dac = int(self.rf.dac_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
-        iTile,iBlock = self.adc_blocks[0]
-        self.fs_adc = int(self.rf.adc_tiles[iTile].blocks[iBlock].BlockStatus['SamplingFreq']*1000)
+        self.fs_dac = self.dac_blocks[0][2]
+        self.fs_adc = self.adc_blocks[0][2]
+
+        # Assume all blocks have the same fabric and reference clocks. We could test this here.
+        self.fs_proc = fabric_freqs[0]
+        self.refclk_freq = refclk_freqs[0]
+
+    def prepare_freq2reg(self):
+        # Calculate least common multiple of DAC and ADC sampling frequencies.
+        # Typically fs_dac = fs_adc*2, so this is just the DAC frequency.
+        # This is used when converting frequencies to integers.
+
+        b_adc = AxisReadoutV2.B_DDS #typically 32
+        b_dac = 32
+
+        # clock multipliers from tProc to DAC/ADC - always integer
+        self.fsmult_dac = round(self.fs_dac/self.fs_proc)
+        self.fsmult_adc = round(self.fs_adc/self.fs_proc)
+
+        # reg = f/fstep
+        #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
+        #fstep_adc = self.fs_proc * mult_adc / 2**b_adc
+
+        # Calculate a common fstep_lcm, which is divisible by both the DAC and ADC step sizes.
+        # We should only use frequencies that are evenly divisible by fstep_lcm.
+        b_max = max(b_dac,b_adc)
+        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - b_dac),
+                self.fsmult_adc * 2**(b_max - b_adc))
+        self.fstep_lcm = self.fs_proc * mult_lcm / 2**b_max
+
+        # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
+        self.regmult_dac = int(2**(b_max-b_dac) * round(mult_lcm/self.fsmult_dac))
+        self.regmult_adc = int(2**(b_max-b_adc) * round(mult_lcm/self.fsmult_adc))
+        #print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
+
+    def freq2reg(self, f):
+        """
+        Converts frequency in MHz to tProc DAC register value.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        k_i = np.int64(f/self.fstep_lcm)
+        return k_i * self.regmult_dac
+
+    def reg2freq(self, r):
+        """
+        Converts frequency from format readable by tProc DAC to MHz.
+
+        :param r: frequency in tProc DAC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_dac
+
+    def reg2freq_adc(self, r):
+        """
+        Converts frequency from format readable by tProc ADC to MHz.
+
+        :param r: frequency in tProc ADC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_adc
+
+    def adcfreq(self, f):
+        """
+        Takes a frequency and casts it to an (even) valid ADC DDS frequency.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        return np.round(f/self.fstep_lcm) * self.fstep_lcm
+
+    def cycles2us(self, cycles):
+        """
+        Converts tProc clock cycles to microseconds.
+
+        :param cycles: Number of tProc clock cycles
+        :type cycles: int
+        :return: Number of microseconds
+        :rtype: float
+        """
+        return cycles/self.fs_proc
+
+    def us2cycles(self, us):
+        """
+        Converts microseconds to integer number of tProc clock cycles.
+
+        :param cycles: Number of microseconds
+        :type cycles: float
+        :return: Number of tProc clock cycles
+        :rtype: int
+        """
+        return int(us*self.fs_proc)
 
     def set_all_clks(self):
         """
         Resets all the board clocks
         """
-        print("resetting clocks:",self.__class__.FREF_PLL)
-        xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
+        if self.board=='ZCU111':
+            print("resetting clocks:",self.refclk_freq)
+            xrfclk.set_all_ref_clks(self.refclk_freq)
+        elif self.board=='ZCU216':
+            lmk_freq = self.refclk_freq
+            lmx_freq = self.refclk_freq*2
+            print("resetting clocks:",lmk_freq, lmx_freq)
+            xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
     
     def get_decimated(self, ch, address=0, length=None):
         """
@@ -1137,13 +1291,14 @@ class QickSoc(Overlay):
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
             length = self.avg_bufs[ch].BUF_MAX_LENGTH
-        if length %2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.avg_bufs[ch].BUF_MAX_LENGTH:
-            raise RuntimeError("length=%d longer or equal to %d"%(length, self.avg_bufs[ch].BUF_MAX_LENGTH))
-        buff = allocate(shape=length, dtype=np.int32)
-        [di,dq]=self.avg_bufs[ch].transfer_buf(buff,address,length)
-        return [np.array(di,dtype=float),np.array(dq,dtype=float)]
+
+        # we must transfer an even number of samples, so we pad the transfer size
+        transfer_len = length + length%2
+
+        data = self.avg_bufs[ch].transfer_buf(address,transfer_len)
+
+        # we remove the padding here
+        return data[:,:length].astype(float)
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -1163,17 +1318,83 @@ class QickSoc(Overlay):
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
             length = self.avg_bufs[ch].AVG_MAX_LENGTH
-        if length %2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.avg_bufs[ch].AVG_MAX_LENGTH:
-            raise RuntimeError("length=%d longer than %d"%(length, self.avg_bufs[ch].AVG_MAX_LENGTH))
-        buff = allocate(shape=length, dtype=np.int64)
-        di,dq = self.avg_bufs[ch].transfer_avg(buff,address=address,length=length)
 
-        return di, dq #[np_buffi,np_buffq]
+        # we must transfer an even number of samples, so we pad the transfer size
+        transfer_len = length + length%2
 
+        data = self.avg_bufs[ch].transfer_avg(address=address,length=transfer_len)
+
+        # we remove the padding here
+        return data[:,:length]
     
+    def configure_readout(self, ch, output, frequency):
+        """Configure readout channel output style and frequency
+        :param ch: Channel to configure
+        :type ch: int
+        :param output: output type from 'product', 'dds', 'input'
+        :type output: str
+        """
+        self.readouts[ch].set_out(sel=output)
+        self.readouts[ch].set_freq(frequency)
+
+    def config_avg(self, ch, address=0, length=1, enable=True):
+        """Configure and optionally enable accumulation buffer
+        :param ch: Channel to configure
+        :type ch: int
+        :param address: Starting address of buffer
+        :type address: int
+        :param length: length of buffer (how many samples to take)
+        :type length: int
+        :param enable: True to enable buffer
+        :type enable: bool
+        """
+        self.avg_bufs[ch].config_avg(address, length)
+        if enable:
+            self.enable_avg(ch)
+        
+    def enable_avg(self, ch):
+        self.avg_bufs[ch].enable_avg()
     
+    def config_buf(self, ch, address=0, length=1, enable=True):
+        """Configure and optionally enable decimation buffer
+        :param ch: Channel to configure
+        :type ch: int
+        :param address: Starting address of buffer
+        :type address: int
+        :param length: length of buffer (how many samples to take)
+        :type length: int
+        :param enable: True to enable buffer
+        :type enable: bool
+        """
+        self.avg_bufs[ch].config_buf(address, length)
+        if enable:
+            self.enable_buf(ch)
+
+    def enable_buf(self, ch):
+        self.avg_bufs[ch].enable_buf()
+        
+    def get_avg_max_length(self, ch=0):
+        """Get accumulation buffer length for channel
+        :param ch: Channel
+        :type ch: int
+        :return: Length of accumulation buffer for channel 'ch'
+        :rtype: int
+        """
+        return self.avg_bufs[ch].AVG_MAX_LENGTH
+    
+    def load_pulse_data(self, ch, idata, qdata, addr):
+        """Load pulse data into signal generators
+        :param ch: Channel
+        :type ch: int
+        :param idata: data for ichannel
+        :type idata: ndarray(dtype=int16)
+        :param qdata: data for qchannel
+        :type qdata: ndarray(dtype=int16)
+        :param addr: address to start data at
+        :type addr: int
+        """
+        return self.gens[ch-1].load(xin_i=idata, xin_q=qdata, addr=addr)                 
+
     def set_nyquist(self, ch, nqz):
         """
         Sets DAC channel ch to operate in Nyquist zone nqz mode.
@@ -1199,7 +1420,7 @@ class QickSoc(Overlay):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel = self.dac_blocks[ch+1]
+        tile, channel, _ = self.dac_blocks[ch-1]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
