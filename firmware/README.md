@@ -32,7 +32,7 @@ tProcessor will be used to control the real-time operation of the experiment. Ou
 - Channel 6 : connected to Signal Generator V4, which drives DAC 229 CH2.
 - Channel 7 : connected to Signal Generator V4, which drives DAC 229 CH3.
 
-**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: DAC 229 channels 0 and 1 are high pass filtered by a 1 GHz high pass filter, so ensure that signals coming out of channels 4 and 5 are at least 1 GHz. Also, DAC 229 channels 2 and 3 are low pass filtered by a 1 GHz low pass filter, so ensure that signals coming out of channels 6 and 7 are less than 1 GHz. 
+**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: DAC 229 channels 0 and 1 are high pass filtered by a 1 GHz high pass filter, so ensure that signals coming out of channels 4 and 5 are at least 1 GHz. Also, DAC 229 channels 2 and 3 are low pass filtered by a 1 GHz low pass filter, so ensure that signals coming out of channels 6 and 7 are less than 1 GHz. DAC 228 channels 0, 1 and 2 are not filtered by the XM500 daughter board.
 
 The updated version of the tProcessor has 4 input (AXIS SLAVE) channels, which can be used for feedback. These are 64-bit, and the updated ``read`` instruction can specify channel number and upper/lower 32-bits to be read and written into an internal register. See example below on how to use this new capability.
 
