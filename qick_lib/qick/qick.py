@@ -998,7 +998,11 @@ class QickSoc(Overlay):
             adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
             if not (all(dac_locked) and all(adc_locked)):
                 self.set_all_clks()
-                
+            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
+            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
+            if not (all(dac_locked) and all(adc_locked)):
+                print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
 
@@ -1174,9 +1178,9 @@ class QickSoc(Overlay):
         b_adc = AxisReadoutV2.B_DDS #typically 32
         b_dac = 32
 
-        # clock multipliers from tProc to DAC/ADC - always integer
-        self.fsmult_dac = round(self.fs_dac/self.fs_proc)
-        self.fsmult_adc = round(self.fs_adc/self.fs_proc)
+        # clock multipliers from refclk to DAC/ADC - always integer
+        self.fsmult_dac = round(self.fs_dac/self.refclk_freq)
+        self.fsmult_adc = round(self.fs_adc/self.refclk_freq)
 
         # reg = f/fstep
         #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
@@ -1187,7 +1191,7 @@ class QickSoc(Overlay):
         b_max = max(b_dac,b_adc)
         mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - b_dac),
                 self.fsmult_adc * 2**(b_max - b_adc))
-        self.fstep_lcm = self.fs_proc * mult_lcm / 2**b_max
+        self.fstep_lcm = self.refclk_freq * mult_lcm / 2**b_max
 
         # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
         self.regmult_dac = int(2**(b_max-b_dac) * round(mult_lcm/self.fsmult_dac))
