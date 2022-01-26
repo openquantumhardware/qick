@@ -10,7 +10,7 @@ Below is a brief summary of the QICK software capabilities.
 * Arbitrary pulse envelopes
 * DAC modes of operation: CW mode, product mode, envelope-only mode
 * ADC modes of operation: demodulation in the ADC
-* Relative timing control between pulses
+* Relative timing and phase control between pulses
 
 ## Sweeping variables within a QICK program
 * Basic example given in [Demo 02_Sweeping_variables](https://github.com/openquantumhardware/qick/blob/main/qick_demos/02_Sweeping_variables.ipynb)
