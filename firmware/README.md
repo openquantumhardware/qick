@@ -39,7 +39,7 @@ The updated version of the tProcessor has 4 input (AXIS SLAVE) channels, which c
 * Channel 0 : connected to readout 0, which is driven by ADC 224 CH0
 * Channel 1 : connected to readout 1, which is driven by ADC 224 CH1
 
-**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: ADC 224 channels are low pass filtered by a 1 GHz low pass filter, so ensure that the signal coming into your XM500 board is less than 1 GHz so that it can be read in properly. 
+**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: ADC 224 channels 0 and 1 are low pass filtered by a 1 GHz low pass filter, so ensure that the signal coming into your XM500 board is less than 1 GHz so that it can be read in properly. 
 
 Signal Generators are organized on the array ``soc.gens``, which is composed of 7 instances. Array index 0 is connected to tProcessor Channel 1, array index 1 is connected to tProcessor Channel 2, and so on. As way of example, let's assume the user needs to create a pulse on DAC 229 CH1 and DAC 229 CH3. These are connected to Channels 5, and 7 or the tProcessor, respectively. However, let's also assume that a gaussian envelope needs to be uploaded into the corresponding signal generator. ``soc.gens[3]`` drives DAC 229 CH1, and ``soc.gens[6]`` drives DAC 229 CH3.
 
