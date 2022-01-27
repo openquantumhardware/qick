@@ -3,103 +3,6 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 """
 import numpy as np
 
-fs_adc = 384*8
-fs_dac = 384*16
-fs_proc=384
-
-
-def freq2reg(f):
-    """
-    Converts frequency in MHz to tProc DAC register value.
-
-    :param f: frequency (MHz)
-    :type f: float
-    :return: Re-formatted frequency
-    :rtype: int
-    """
-    raise DeprecationWarning("freq2reg() is deprecated! Use QickSoc.freq2reg() instead.")
-    B=32
-    df = 2**B/fs_dac
-    f_i = f*df
-    return np.int64(f_i)
-
-def freq2reg_adc(f):
-    """
-    Converts frequency in MHz to tProc ADC register value.
-    Always returns an even number.
-
-    :param f: frequency (MHz)
-    :type f: float
-    :return: Re-formatted frequency
-    :rtype: int
-    """
-    raise DeprecationWarning("freq2reg_adc() is deprecated! Use QickSoc.configure_readout() instead.")
-    B=32
-    df = 2**B/fs_adc
-    f_i = f*df
-    return np.int64(f_i/2)*2
-
-def reg2freq(r):
-    """
-    Converts frequency from format readable by tProc DAC to MHz.
-
-    :param r: frequency in tProc DAC format
-    :type r: float
-    :return: Re-formatted frequency in MHz
-    :rtype: float
-    """
-    raise DeprecationWarning("reg2freq() is deprecated! Use QickSoc.reg2freq() instead.")
-    return r*fs_dac/2**32
-
-def reg2freq_adc(r):
-    """
-    Converts frequency from format readable by tProc ADC to MHz.
-
-    :param r: frequency in tProc ADC format
-    :type r: float
-    :return: Re-formatted frequency in MHz
-    :rtype: float
-    """
-    raise DeprecationWarning("reg2freq_adc() is deprecated! Use QickSoc.reg2freq_adc() instead.")
-    return r*fs_adc/2**32
-
-def adcfreq(f):
-    """
-    Takes a frequency and casts it to an (even) valid ADC DDS frequency.
-
-    :param f: frequency (MHz)
-    :type f: float
-    :return: Re-formatted frequency
-    :rtype: int
-    """
-    raise DeprecationWarning("adcfreq() is deprecated! It is no longer needed when setting registers; otherwise, Use QickSoc.adcfreq() instead.")
-    reg=freq2reg_adc(f)
-    return reg2freq_adc(reg)
-
-def cycles2us(cycles):
-    """
-    Converts tProc clock cycles to microseconds.
-
-    :param cycles: Number of tProc clock cycles
-    :type cycles: int
-    :return: Number of microseconds
-    :rtype: float
-    """
-    raise DeprecationWarning("cycles2us() is deprecated! Use QickSoc.cycles2us() instead.")
-    return cycles/fs_proc
-
-def us2cycles(us):
-    """
-    Converts microseconds to integer number of tProc clock cycles.
-
-    :param cycles: Number of microseconds
-    :type cycles: float
-    :return: Number of tProc clock cycles
-    :rtype: int
-    """
-    raise DeprecationWarning("us2cycles() is deprecated! Use QickSoc.us2cycles() instead.")
-    return int(us*fs_proc)
-
 def deg2reg(deg):
     """
     Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
@@ -121,6 +24,131 @@ def reg2deg(reg):
     :rtype: float
     """
     return reg*360/2**32
+
+class MacroVal():
+    """
+    Macro value (defined in physical units), which must be converted ("expanded") to a register value.
+    Macro values are used when the physical-to-register conversion depends on specifics of the QickSoc configuration.
+    """
+    def __repr__(self):
+        return "%f %s"%(self.val, self.unit)
+
+class freq2reg(MacroVal):
+    def __init__(self, f):
+        self.val = f
+        self.unit = "MHz"
+
+    def expand(self, soc):
+        return soc.freq2reg(self.val)
+
+class us2cycles(MacroVal):
+    def __init__(self, t):
+        self.val = t
+        self.unit = "us"
+
+    def expand(self, soc):
+        return soc.us2cycles(self.val)
+
+def evaluate_args(args, soc):
+    """
+    tuple of args, some of which may be macro values
+    -> list of args, all evaluated
+    """
+    expanded_args = []
+    for arg in args:
+        if isinstance(arg,MacroVal):
+            expanded_args.append(arg.expand(soc))
+        else:
+            expanded_args.append(arg)
+    return expanded_args
+
+class MacroInst():
+    """
+    Macro instruction, which must be converted ("expanded") to tProc ASM instructions.
+    Macro instructions are used when the expansion depends on specifics of the QickSoc configuration.
+    """
+    def __init__(self, *args):
+        self._inst_dict = {}
+        self['args'] = args
+
+    def __repr__(self):
+        return self._inst_dict.__repr__()
+
+    def __getitem__(self, key):
+        return self._inst_dict[key]
+
+    def __setitem__(self, key, val):
+        self._inst_dict[key] = val
+
+    def expand(self, soc):
+        """
+        Expand this macro into a list of tProc instructions.
+
+        :param soc: Qick object used for macro expansion
+        :type soc: QickSoc
+        :return: Instructions
+        :rtype: list
+        """
+        # expand any macro values
+        args = evaluate_args(self['args'][:self.num_args], soc)
+        # perform the macro-specific expansion
+        asm_insts = self._expand(soc, args)
+        # if this macro expands to a nonzero number of ASM instructions, the first ASM instruction gets the macro's label and comment
+        if asm_insts:
+            if 'label' in self._inst_dict:
+                asm_insts[0]['label'] = self['label']
+            if len(self['args'])>self.num_args:
+                asm_insts[0]['args'].append(self['args'][-1])
+        return asm_insts
+
+    def fakeasm(self, max_label_len):
+        """
+        Print the macro instruction in a .asm-like format.
+        Macro names are printed in all-caps to distinguish them from ASM instructions.
+
+        :param max_label_len: Max label width (for setting indent)
+        :type max_label_len: int
+        :return: Macro as string
+        :rtype: str
+        """
+        line=" "*(max_label_len+2) + self['name'].upper()+ " " + ", ".join([str(a) for a in self['args'][:self.num_args]]) +";"
+        if len(self['args']) > self.num_args:
+            line+=" "*(48-len(line)) + "//" + self['args'][-1]
+        if 'label' in self._inst_dict:
+            label = self['label']
+            line = label + ": " + line[len(label)+2:]
+        return line
+
+class SafeRegwi(MacroInst):
+    """
+    Due to the way the instructions are setup immediate values can only be 30bits before not loading properly.
+    This comes up mostly when trying to regwi values into registers, especially the _frequency_ and _phase_ pulse registers.
+    safe_regwi can be used wherever one might use regwi and will detect if the value is >2**30 and if so will break it into two steps, putting in the first 30 bits shifting it over and then adding the last two.
+
+    :param rp: Register page
+    :type rp: int
+    :param reg: Register number
+    :type reg: int
+    :param imm: Value of the write
+    :type imm: int
+    :param comment: Comment associated with the write
+    :type comment: str
+    """
+    def __init__(self, *args):
+        super().__init__(*args)
+        self['name'], self.num_args = 'safe_regwi', 3
+
+    def _expand(self, soc, args):
+        rp, reg, imm = args
+        expanded_insts = []
+        if abs(imm) <2**30: 
+            expanded_insts.append({'name':'regwi', 'args':[rp,reg,imm]})
+        else:
+            expanded_insts.append({'name':'regwi', 'args':[rp,reg,imm>>2]})
+            expanded_insts.append({'name':'bitwi', 'args':[rp,reg,reg,"<<",2]})
+            if imm % 4 !=0:
+                expanded_insts.append({'name':'mathi', 'args':[rp,reg,reg,"+",imm % 4]})
+        return expanded_insts
 
 
 class QickProgram:
@@ -153,7 +181,8 @@ class QickProgram:
                     'bitw': {'type':"R", 'bin': 0b01010101, 'fmt': ((0,53),(1,41),(2,36),(3,46), (4,31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
                     'memr': {'type':"R", 'bin': 0b01010110, 'fmt': ((0,53),(1,41),(2,36)), 'repr': "{0}, ${1}, ${2}"},
                     'memw': {'type':"R", 'bin': 0b01010111, 'fmt': ((0,53),(2,36),(1,31)), 'repr': "{0}, ${1}, ${2}"},
-                    'setb': {'type':"R", 'bin': 0b01011000, 'fmt': ((0,53),(2,36),(1,31)), 'repr': "{0}, ${1}, ${2}"}
+                    'setb': {'type':"R", 'bin': 0b01011000, 'fmt': ((0,53),(2,36),(1,31)), 'repr': "{0}, ${1}, ${2}"},
+                    'comment': {}
                     }
 
     #op codes for math and bitwise operations
@@ -163,6 +192,9 @@ class QickProgram:
                 "upper": 0b1010, "lower": 0b0101
                }
     
+    #macro instructions that get preprocessed into tProc instructions
+    macro_insts = {"safe_regwi": SafeRegwi}
+
     #To make it easier to configure pulses these special registers are reserved for each channels pulse configuration
     special_registers = [{"freq": 16 , "phase":17,"addr":18,"gain":19, "mode":20, "t":21, "length":22}, # ch1 - pg 0
                           {"freq": 23 , "phase":24,"addr":25,"gain":26, "mode":27, "t":28, "length":29}, # ch2 - pg 0
@@ -180,8 +212,17 @@ class QickProgram:
         """
         Constructor method
         """
+        # High-level commands. This list may include "macro" instructions and values that must be expanded to valid ASM commands and register values.
         self.prog_list = []
+
+        # List of labels.
+        self.label_list = []
+        self.label_next = None
+
+        # Low-level (fully expanded) commands, and the map from label name to program counter.
+        self.asm_list = []
         self.labels = {}
+
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
         self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
         
@@ -298,8 +339,6 @@ class QickProgram:
         p=self
         rp=self.ch_page(ch)
         r_freq,r_phase,r_addr, r_gain, r_mode, r_t = p.sreg(ch,'freq'), p.sreg(ch,'phase'), p.sreg(ch,'addr'), p.sreg(ch,'gain'), p.sreg(ch,'mode'), p.sreg(ch,'t')
-        #TODO: if we can do compile-time conversion for frequency, we can bring this print back
-        #if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
         if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {freq}')
         if phase is not None: p.safe_regwi (rp, r_phase, phase, f'phase = {phase}')
         if gain is not None: p.regwi (rp, r_gain, gain, f'gain = {gain}')
@@ -518,28 +557,8 @@ class QickProgram:
         for ch in range(1,9):
             self.dac_ts[ch]=max_t
             
-    def safe_regwi(self, rp, reg, imm, comment=None):
-        """
-        Due to the way the instructions are setup immediate values can only be 30bits before not loading properly.
-        This comes up mostly when trying to regwi values into registers, especially the _frequency_ and _phase_ pulse registers.
-        safe_regwi can be used wherever one might use regwi and will detect if the value is >2**30 and if so will break it into two steps, putting in the first 30 bits shifting it over and then adding the last two.
-
-        :param rp: Register page
-        :type rp: int
-        :param reg: Register number
-        :type reg: int
-        :param imm: Value of the write
-        :type imm: int
-        :param comment: Comment associated with the write
-        :type comment: str
-        """
-        if abs(imm) <2**30: 
-            self.regwi(rp,reg,imm,comment)
-        else:
-            self.regwi(rp,reg,imm>>2,comment)
-            self.bitwi(rp,reg,reg,"<<",2)
-            if imm % 4 !=0:
-                self.mathi(rp,reg,reg,"+",imm % 4)
+    #def safe_regwi(self, rp, reg, imm, comment=None):
+    #    self.append_instruction(SafeRegwi(rp, reg, imm, comment))
             
     def sync_all(self, t=0):
         """
@@ -624,7 +643,7 @@ class QickProgram:
         else:
             return val
         
-    def compile_instruction(self,inst, debug = False):
+    def compile_instruction(self,inst, soc, debug = False):
         """
         Converts an assembly instruction into a machine bytecode.
 
@@ -635,7 +654,7 @@ class QickProgram:
         :return: Compiled instruction in binary
         :rtype: int
         """
-        args=list(inst['args'])
+        args = evaluate_args(inst['args'], soc)
         idef = self.__class__.instructions[inst['name']]
         fmt=idef['fmt']
 
@@ -671,7 +690,37 @@ class QickProgram:
 
         return mcode
 
-    def compile(self, debug=False):
+    def precompile(self, soc, debug=False):
+        """
+        Precompiles program: all macro values and instructions will be expanded.
+
+        :param debug: If True, debug mode is on
+        :type debug: bool
+        :return: List of binary instructions
+        :rtype: list
+        """
+        self.asm_list = []
+        self.labels = {}
+        for inst in self.prog_list:
+            if isinstance(inst, MacroInst):
+                # Expand the macro instruction into ASM.
+                # Any macro values will also be expanded in the process.
+                self.asm_list.extend(inst.expand(soc))
+            else:
+                # Copy the ASM instruction.
+                self.asm_list.append(inst.copy())
+                # Expand any macro values.
+                self.asm_list[-1]['args'] = evaluate_args(inst['args'], soc)
+        # Scan the ASM instructions for labels. Skip comment lines.
+        prog_counter = 0
+        for inst in self.asm_list:
+            if inst['name']=='comment':
+                continue
+            if 'label' in inst:
+                self.labels[inst['label']] = prog_counter
+            prog_counter += 1
+
+    def compile(self, soc, debug=False):
         """
         Compiles program to machine code.
 
@@ -680,7 +729,8 @@ class QickProgram:
         :return: List of binary instructions
         :rtype: list
         """
-        return [self.compile_instruction(inst,debug=debug) for inst in self.prog_list]
+        self.precompile(soc, debug=debug)
+        return [self.compile_instruction(inst, soc, debug=debug) for inst in self.asm_list if inst['name']!='comment']
    
     def get_mode_code(self, phrst, stdysel, mode, outsel, length):
         """
@@ -710,34 +760,59 @@ class QickProgram:
         mc=phrst*0b10000+stdysel*0b01000+mode*0b00100+outsel
         return mc << 16 | length
 
-    def append_instruction(self, name, *args):
+    def append_asm_instruction(self, name, *args):
         """
-        Append instruction to the program list
+        Create and append tProc instruction to the program list
 
         :param name: Instruction name
         :type name: str
         :param *args: Instruction arguments
         :type *args: *args object
         """
-        self.prog_list.append({'name':name, 'args':args})
-                    
+        self._append_instruction({'name':name, 'args':args})
+
+    def append_macro_instruction(self, name, *args):
+        """
+        Create and append macro instruction to the program list
+
+        :param name: Instruction name
+        :type name: str
+        :param *args: Instruction arguments
+        :type *args: *args object
+        """
+        self._append_instruction(self.__class__.macro_insts[name](*args))
+
+    def _append_instruction(self, inst):
+        """
+        Append instruction to the program list
+
+        :param inst: Instruction
+        :type inst: dict or MacroInst
+        """
+        # Delete any previous recompilation results.
+        self.asm_list = []
+
+        if self.label_next is not None:
+            # store the label with the instruction, for printing
+            inst['label'] = self.label_next
+            self.label_next = None
+        self.prog_list.append(inst)
+
     def label(self, name):
         """
-        Add line number label to the labels dictionary. This labels the instruction by its position in the program list. The loopz and condj commands use this label information.
+        Add line number label to the labels dictionary.
+        This labels the following instruction by its position in the program list.
+        The loopz and condj commands use this label information.
 
         :param name: Instruction name
         :type name: str
         """
-        self.labels[name]= len(self.prog_list)
-
-    def comment(self, comment):
-        """
-        Dummy function used for comments.
-
-        :param comment: Comment
-        :type comment: str
-        """
-        pass
+        if self.label_next is not None:
+            raise RuntimeError("label already defined for the next line")
+        if name in self.label_list:
+            raise RuntimeError("label name already used")
+        self.label_next = name
+        self.label_list.append(name)
 
     def __getattr__(self, a):
         """
@@ -749,7 +824,9 @@ class QickProgram:
         :rtype: *args object
         """
         if a in self.__class__.instructions:
-            return lambda *args: self.append_instruction(a, *args)
+            return lambda *args: self.append_asm_instruction(a, *args)
+        elif a in self.__class__.macro_insts:
+            return lambda *args: self.append_macro_instruction(a, *args)
         else:
             return object.__getattribute__(self, a)
 
@@ -771,32 +848,58 @@ class QickProgram:
         """
         return "\n".join([format(mc, '#066b') for mc in self.compile()])
 
-    def asm(self):
+    def asm(self, print_orig=False):
         """
         Returns assembly representation of program as string, should be compatible with the parse_prog from the parser module.
 
+        :param print_orig: Print the original program without macros expanded
+        :type print_orig: bool
         :return: asm file
         :rtype: str
         """
-        if self.labels =={}:
-            max_label_len=0
+        if print_orig:
+            program = self.prog_list
+            s="\n// Original program (macros not expanded, not valid ASM)\n\n"
         else:
-            max_label_len = max([len(label) for label in self.labels.keys()])
+            if not self.asm_list:
+                raise RuntimeError("Error: program has not yet been precompiled to ASM.")
+            program = self.asm_list
+            s="\n// Preprocessed program (macros expanded, valid ASM)\n\n"
+        if self.label_list:
+            max_label_len = max([len(label) for label in self.label_list])
+        else:
+            max_label_len=0
         lines=[]
-        s="\n// Program\n\n"
-        for ii, inst in enumerate(self.prog_list):
-            #print(inst)
-            template=inst['name']+ " " + self.__class__.instructions[inst['name']]['repr'] +";"
-            num_args=len(self.__class__.instructions[inst['name']]['fmt'])
-            line=" "*(max_label_len+2) + template.format(*inst['args'])
-            if len(inst['args']) > num_args:
-                line+=" "*(48-len(line)) + "//" + inst['args'][-1]
-            lines.append(line)
-
-        for label, jj in self.labels.items():
-            lines[jj] = label + ": " + lines[jj][len(label)+2:]
+        for ii, inst in enumerate(program):
+            if isinstance(inst, MacroInst):
+                lines.append(inst.fakeasm(max_label_len))
+            else:
+                lines.append(self._inst2asm(inst, max_label_len))
         return s+"\n".join(lines)
-    
+
+    def _inst2asm(self, inst, max_label_len):
+        """
+        Print the ASM instruction in the .asm format.
+
+        :param inst: ASM instruction
+        :type inst: dict
+        :param max_label_len: Max label width (for setting indent)
+        :type max_label_len: int
+        :return: Instruction as string
+        :rtype: str
+        """
+        if inst['name']=='comment':
+            return "// "+inst['args'][0]
+        template=inst['name']+ " " + self.__class__.instructions[inst['name']]['repr'] +";"
+        num_args=len(self.__class__.instructions[inst['name']]['fmt'])
+        line=" "*(max_label_len+2) + template.format(*inst['args'])
+        if len(inst['args']) > num_args:
+            line+=" "*(48-len(line)) + "//" + inst['args'][-1]
+        if 'label' in inst:
+            label = inst['label']
+            line = label + ": " + line[len(label)+2:]
+        return line
+
     def compare_program(self,fname):
         """
         For debugging purposes to compare binary compilation of parse_prog with the compile.
@@ -832,7 +935,10 @@ class QickProgram:
         :return: The asm file associated with the class
         :rtype: str
         """
-        return self.asm()
+        if self.asm_list:
+            return self.asm()
+        else:
+            return self.asm(print_orig=True)
     
     def __enter__(self):
         """

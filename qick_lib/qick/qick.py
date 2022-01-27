@@ -321,8 +321,8 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f<self.fs:
-            k_i = np.int64(f/self.fstep)
-            self.freq_reg = k_i * self.regmult
+            k_i = np.round(f/self.fstep)
+            self.freq_reg = np.int64(k_i * self.regmult)
             
         # Register update.
         self.update()
@@ -723,15 +723,6 @@ class AxisTProc64x32_x8(SocIp):
             dec_high = inst >> 32
             self.mem.write(8*ii, value=int(dec_low))
             self.mem.write(4*(2*ii+1), value=int(dec_high))
-        
-    def load_qick_program(self, prog, debug= False):
-        """
-        :param prog: the QickProgram to load
-        :type prog: str
-        :param debug: Debug option
-        :type debug: bool
-        """
-        self.load_bin_program(prog.compile(debug=debug))
         
     def load_program(self,prog="prog.asm",fmt="asm"):
         """
@@ -1203,8 +1194,8 @@ class QickSoc(Overlay):
         :return: Re-formatted frequency
         :rtype: int
         """
-        k_i = np.int64(f/self.fstep_lcm)
-        return k_i * self.regmult_dac
+        k_i = np.round(f/self.fstep_lcm)
+        return np.int64(k_i * self.regmult_dac)
 
     def reg2freq(self, r):
         """
@@ -1230,12 +1221,13 @@ class QickSoc(Overlay):
 
     def adcfreq(self, f):
         """
-        Takes a frequency and casts it to an (even) valid ADC DDS frequency.
+        Takes a frequency and casts it to a valid DDS frequency.
+        Since there is always a small difference between the frequency you request and the closest valid frequency, this is a convenient way to find out what frequency you actually drive.
 
         :param f: frequency (MHz)
         :type f: float
         :return: Re-formatted frequency
-        :rtype: int
+        :rtype: float
         """
         return np.round(f/self.fstep_lcm) * self.fstep_lcm
 
@@ -1394,6 +1386,15 @@ class QickSoc(Overlay):
         :type addr: int
         """
         return self.gens[ch-1].load(xin_i=idata, xin_q=qdata, addr=addr)                 
+
+    def load_qick_program(self, prog, debug= False):
+        """
+        :param prog: the QickProgram to load
+        :type prog: str
+        :param debug: Debug option
+        :type debug: bool
+        """
+        self.tproc.load_bin_program(prog.compile(self,debug=debug))
 
     def set_nyquist(self, ch, nqz):
         """

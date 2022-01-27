@@ -99,7 +99,7 @@ class AveragerProgram(QickProgram):
             soc.config_buf(ii)
 
         #load the this AveragerProgram into the soc's tproc
-        soc.tproc.load_bin_program(self.compile(debug=debug))
+        soc.load_qick_program(self, debug=debug)
         
         
         reps = self.cfg['reps']
@@ -255,7 +255,7 @@ class AveragerProgram(QickProgram):
         d_avg1=np.zeros((2,self.cfg["adc_lengths"][1]))
         
         # load the program - it's always the same, so this only needs to be done once
-        soc.tproc.load_bin_program(self.compile(debug=debug))
+        soc.load_qick_program(self, debug=debug)
 
         #for each soft average stop the processor, run and average decimated data
         for ii in tqdm(range(soft_avgs),disable=not progress):
@@ -401,7 +401,7 @@ class RAveragerProgram(QickProgram):
             soc.config_buf(ii, address=0, length=length)
             soc.config_buf(ii)
 
-        soc.tproc.load_bin_program(self.compile(debug=debug))
+        soc.load_qick_program(self, debug=debug)
         
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
