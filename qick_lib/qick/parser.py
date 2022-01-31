@@ -847,3 +847,15 @@ def parse_prog(file="prog.asm",outfmt="bin"):
     
     # Return program list.
     return outProg
+
+def parse_to_bin(path):
+    """
+    Parses the .asm assembly language tProc program into a form appropriate for QickSoc.load_bin_program().
+
+    :param file: ASM program file name
+    :type file: str
+    :return: Program as a list of 64-bit ints
+    :rtype: list
+    """
+    p = parse_prog(path)
+    return [int(p[i],2) for i in p]
