@@ -1325,11 +1325,11 @@ class QickSoc(Overlay, QickConfig):
         Resets all the board clocks
         """
         if self.cfg['board']=='ZCU111':
-            print("resetting clocks:",self.refclk_freq)
-            xrfclk.set_all_ref_clks(self.refclk_freq)
+            print("resetting clocks:",self.cfg['refclk_freq'])
+            xrfclk.set_all_ref_clks(self.cfg['refclk_freq'])
         elif self.cfg['board']=='ZCU216':
-            lmk_freq = self.refclk_freq
-            lmx_freq = self.refclk_freq*2
+            lmk_freq = self.cfg['refclk_freq']
+            lmx_freq = self.cfg['refclk_freq']*2
             print("resetting clocks:",lmk_freq, lmx_freq)
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
     
