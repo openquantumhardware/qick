@@ -57,7 +57,7 @@ class QickConfig():
         lines.append("\n\tGlobal clocks (MHz): DAC fabric %.3f, ADC fabric %.3f, reference %.3f"%(
             self.cfg['fs_proc'], self.cfg['adc_fabric_freq'], self.cfg['refclk_freq']))
 
-        if isinstance(self,QickSoc):
+        if hasattr(self,'tproc'): # this is a QickSoc
             lines.append("\n\tGenerator switch: %d to %d"%(
                 self.switch_gen.NSL, self.switch_gen.NMI))
             lines.append("\n\tAverager switch: %d to %d"%(
@@ -81,7 +81,7 @@ class QickConfig():
         lines.append("\tFrequency resolution step: %.3f Hz"%(
             self.fstep_lcm*1e6))
 
-        if isinstance(self,QickSoc):
+        if hasattr(self,'tproc'): # this is a QickSoc
             lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
                 self.gens[0].MAX_LENGTH))
 
