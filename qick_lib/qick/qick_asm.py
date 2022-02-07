@@ -25,6 +25,189 @@ def reg2deg(reg):
     """
     return reg*360/2**32
 
+class QickConfig():
+    """
+    Uses the QICK configuration to convert frequencies and clock delays.
+    If running on the QICK, you don't need to use this class - the QickSoc class has all of the same methods.
+    If running remotely, you may want to initialize a QickConfig from a JSON file.
+
+    :param cfg: config dictionary, or path to JSON file
+    :type cfg: dict or str
+    """
+    def __init__(self, cfg):
+        if isinstance(cfg,str):
+            with open(cfg) as f:
+                self.cfg = json.load(f)
+        else:
+            self.cfg = cfg
+        self._prepare_freq2reg()
+
+    def __repr__(self):
+        return self.description()
+
+    def description(self):
+        """
+        Generate a printable description of the QICK configuration.
+
+        :return: description
+        :rtype: str
+        """
+        lines=[]
+        lines.append("\n\tBoard: " + self.cfg['board'])
+        lines.append("\n\tGlobal clocks (MHz): DAC fabric %.3f, ADC fabric %.3f, reference %.3f"%(
+            self.cfg['fs_proc'], self.cfg['adc_fabric_freq'], self.cfg['refclk_freq']))
+
+        if isinstance(self,QickSoc):
+            lines.append("\n\tGenerator switch: %d to %d"%(
+                self.switch_gen.NSL, self.switch_gen.NMI))
+            lines.append("\n\tAverager switch: %d to %d"%(
+                self.switch_avg.NSL, self.switch_avg.NMI))
+            lines.append("\n\tBuffer switch: %d to %d"%(
+                self.switch_buf.NSL, self.switch_buf.NMI))
+
+            lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
+            for iCh, (iTile,iBlock,fs) in enumerate(self.dac_blocks):
+                lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
+
+            lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
+            for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
+                lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
+        else:
+            lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
+                self.cfg['fs_dac'], self.cfg['fs_adc']))
+
+        lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
+            self.fsmult_dac, self.fsmult_adc))
+        lines.append("\tFrequency resolution step: %.3f Hz"%(
+            self.fstep_lcm*1e6))
+
+        if isinstance(self,QickSoc):
+            lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
+                self.gens[0].MAX_LENGTH))
+
+            lines.append("\n\t%d readout blocks"%(len(self.readouts)))
+
+            lines.append("\n\t%d average+buffer blocks: max length %d samples (averages), %d (decimated buffer)"%(len(self.cfg['avg_bufs']),
+                self.cfg['avg_bufs'][0]['avg_maxlen'], 
+                self.cfg['avg_bufs'][0]['buf_maxlen']))
+
+            lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
+            lines.append("\t\tprogram RAM: %d bytes"%(self.tproc.mem.mmio.length))
+
+        return "\nQICK configuration:\n"+"\n".join(lines)
+
+    def get_cfg(self):
+        """
+        Return the QICK configuration dictionary.
+        This contains everything you need to recreate the QickConfig.
+
+        :return: configuration dictionary
+        :rtype: dict
+        """
+        return self.cfg
+
+    def dump_cfg(self):
+        """
+        Generate a JSON description of the QICK configuration.
+        You can save this string to a file and load it to recreate the QickConfig.
+
+        :return: configuration in JSON format
+        :rtype: str
+        """
+        return json.dumps(self.cfg, indent=4)
+
+    def _prepare_freq2reg(self):
+        # Calculate least common multiple of DAC and ADC sampling frequencies.
+        # Typically fs_dac = fs_adc*2, so this is just the DAC frequency.
+        # This is used when converting frequencies to integers.
+
+        # clock multipliers from refclk to DAC/ADC - always integer
+        self.fsmult_dac = round(self.cfg['fs_dac']/self.cfg['refclk_freq'])
+        self.fsmult_adc = round(self.cfg['fs_adc']/self.cfg['refclk_freq'])
+
+        # reg = f/fstep
+        #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
+        #fstep_adc = self.fs_proc * mult_adc / 2**b_adc
+
+        # Calculate a common fstep_lcm, which is divisible by both the DAC and ADC step sizes.
+        # We should only use frequencies that are evenly divisible by fstep_lcm.
+        b_max = max(self.cfg['b_dac'],self.cfg['b_adc'])
+        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - self.cfg['b_dac']),
+                          self.fsmult_adc * 2**(b_max - self.cfg['b_adc']))
+        self.fstep_lcm = self.cfg['refclk_freq'] * mult_lcm / 2**b_max
+
+        # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
+        self.regmult_dac = int(2**(b_max-self.cfg['b_dac']) * round(mult_lcm/self.fsmult_dac))
+        self.regmult_adc = int(2**(b_max-self.cfg['b_adc']) * round(mult_lcm/self.fsmult_adc))
+        #print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
+
+    def freq2reg(self, f):
+        """
+        Converts frequency in MHz to tProc DAC register value.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        k_i = np.int64(f/self.fstep_lcm)
+        return k_i * self.regmult_dac
+
+    def reg2freq(self, r):
+        """
+        Converts frequency from format readable by tProc DAC to MHz.
+
+        :param r: frequency in tProc DAC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_dac
+
+    def reg2freq_adc(self, r):
+        """
+        Converts frequency from format readable by tProc ADC to MHz.
+
+        :param r: frequency in tProc ADC format
+        :type r: float
+        :return: Re-formatted frequency in MHz
+        :rtype: float
+        """
+        return r*self.fstep_lcm/self.regmult_adc
+
+    def adcfreq(self, f):
+        """
+        Takes a frequency and casts it to an (even) valid ADC DDS frequency.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        return np.round(f/self.fstep_lcm) * self.fstep_lcm
+
+    def cycles2us(self, cycles):
+        """
+        Converts tProc clock cycles to microseconds.
+
+        :param cycles: Number of tProc clock cycles
+        :type cycles: int
+        :return: Number of microseconds
+        :rtype: float
+        """
+        return cycles/self.cfg['fs_proc']
+
+    def us2cycles(self, us):
+        """
+        Converts microseconds to integer number of tProc clock cycles.
+
+        :param cycles: Number of microseconds
+        :type cycles: float
+        :return: Number of tProc clock cycles
+        :rtype: int
+        """
+        return int(us*self.cfg['fs_proc'])
+
 
 class QickProgram:
     """
