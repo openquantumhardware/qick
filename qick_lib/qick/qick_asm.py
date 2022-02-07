@@ -96,6 +96,16 @@ class QickConfig():
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
+    def get_cfg(self):
+        """
+        Return the QICK configuration dictionary.
+        This contains everything you need to recreate the QickConfig.
+
+        :return: configuration dictionary
+        :rtype: dict
+        """
+        return self.cfg
+
     def dump_cfg(self):
         """
         Generate a JSON description of the QICK configuration.
