@@ -2,6 +2,7 @@
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
 import numpy as np
+import json
 
 def deg2reg(deg):
     """

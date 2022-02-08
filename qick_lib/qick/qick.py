@@ -2,7 +2,6 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
-import json
 from pynq import Overlay, DefaultIP, allocate
 try:
     import xrfclk
