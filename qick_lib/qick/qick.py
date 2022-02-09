@@ -977,11 +977,12 @@ class QickSoc(Overlay, QickConfig):
         """
         Constructor method
         """
-        # Load bitstream.
+        # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
+        # We need to program the clocks first.
         if bitfile==None:
-            Overlay.__init__(self, bitfile_path(), ignore_version=ignore_version, **kwargs)
+            Overlay.__init__(self, bitfile_path(), ignore_version=ignore_version, download=False, **kwargs)
         else:
-            Overlay.__init__(self, bitfile, ignore_version=ignore_version, **kwargs)
+            Overlay.__init__(self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
 
         # Configuration dictionary
         self.cfg = {}
@@ -1006,6 +1007,9 @@ class QickSoc(Overlay, QickConfig):
             adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
             if not (all(dac_locked) and all(adc_locked)):
                 print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+
+        # now that the clocks are locked, we can program the bitstream.
+        self.download()
 
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
