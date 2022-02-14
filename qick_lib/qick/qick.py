@@ -989,9 +989,6 @@ class QickSoc(Overlay, QickConfig):
 
         self.cfg['board'] = os.environ["BOARD"]
 
-        # RF data converter (for configuring ADCs and DACs)
-        self.rf = self.usp_rf_data_converter_0
-
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
 
@@ -1010,6 +1007,9 @@ class QickSoc(Overlay, QickConfig):
 
         # now that the clocks are locked, we can program the bitstream.
         self.download()
+
+        # RF data converter (for configuring ADCs and DACs)
+        self.rf = self.usp_rf_data_converter_0
 
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
@@ -1107,32 +1107,33 @@ class QickSoc(Overlay, QickConfig):
         adc_fabric_freqs = []
         refclk_freqs = []
 
-        for iTile,tile in enumerate(self.rf.dac_tiles):
+        for iTile in range(4):
             if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
                 continue
             self.dac_tiles.append(iTile)
             dac_fabric_freqs.append(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)]))
             refclk_freqs.append(float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)]))
-            for iBlock,block in enumerate(tile.blocks):
+            fs = float(rf_config['C_DAC%d_Sampling_Rate'%(iTile)])*1000
+            for iBlock in range(4):
                 if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                     continue
-                fs = block.BlockStatus['SamplingFreq']*1000
                 self.dac_blocks.append((iTile,iBlock,fs))
 
-        for iTile,tile in enumerate(self.rf.adc_tiles):
+        for iTile in range(4):
             if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
                 continue
             self.adc_tiles.append(iTile)
             adc_fabric_freqs.append(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)]))
             refclk_freqs.append(float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)]))
-            for iBlock,block in enumerate(tile.blocks):
+            fs = float(rf_config['C_ADC%d_Sampling_Rate'%(iTile)])*1000
+            #for iBlock,block in enumerate(tile.blocks):
+            for iBlock in range(4):
                 if hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
                         continue
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                         continue
-                fs = block.BlockStatus['SamplingFreq']*1000
                 self.adc_blocks.append((iTile,iBlock,fs))
 
         def get_common_freq(freqs):
