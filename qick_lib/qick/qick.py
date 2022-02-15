@@ -47,6 +47,7 @@ class SocIp(DefaultIP):
         """
         #print("SocIp init", description)
         super().__init__(description)
+        self.fullpath = description['fullpath']
         #self.ip = description
         
     def write(self, offset, value):
@@ -132,7 +133,7 @@ class AxisSignalGenV4(SocIp):
         self.MAX_LENGTH = 2**self.N*self.NDDS
 
         # Get the channel number from the IP instance name.
-        self.ch = int(description['fullpath'].split('_')[-1])
+        self.ch = int(self.fullpath.split('_')[-1])
         
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, axi_dma, axis_switch):
@@ -142,6 +143,9 @@ class AxisSignalGenV4(SocIp):
         # Switch
         self.switch = axis_switch
         
+    def configure_connections(self, parser):
+        pass
+
     # Load waveforms.
     def load(self, xin_i, xin_q ,addr=0):
         """
@@ -995,18 +999,14 @@ class QickSoc(Overlay, QickConfig):
         # Configure PLLs if requested, or if any ADC/DAC is not locked.
         if force_init_clks:
             self.set_all_clks()
+            self.download()
         else:
-            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
-            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
-            if not (all(dac_locked) and all(adc_locked)):
+            self.download()
+            if not self.clocks_locked():
                 self.set_all_clks()
-            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
-            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
-            if not (all(dac_locked) and all(adc_locked)):
-                print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
-
-        # now that the clocks are locked, we can program the bitstream.
-        self.download()
+                self.download()
+        if not self.clocks_locked():
+            print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
 
         # RF data converter (for configuring ADCs and DACs)
         self.rf = self.usp_rf_data_converter_0
@@ -1029,6 +1029,9 @@ class QickSoc(Overlay, QickConfig):
         # Average + Buffer blocks.
         self.avg_bufs = []
 
+        for key,val in self.ip_dict.items():
+            if hasattr(val['driver'],'configure_connections'):
+                getattr(self,key).configure_connections(self.parser)
         # Populate the lists with the registered IP blocks.
         for key,val in self.ip_dict.items():
             if (val['driver'] == AxisSignalGenV4):
@@ -1089,6 +1092,19 @@ class QickSoc(Overlay, QickConfig):
     @property
     def streamer(self):
         return self._streamer
+
+    def clocks_locked(self):
+        """
+        Checks whether the DAC and ADC PLLs are locked.
+        This can only be run after the bitstream has been downloaded.
+
+        :return: clock status
+        :rtype: bool
+        """
+
+        dac_locked = [self.usp_rf_data_converter_0.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
+        adc_locked = [self.usp_rf_data_converter_0.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
+        return (all(dac_locked) and all(adc_locked))
 
     def list_rf_blocks(self, rf_config):
         """
