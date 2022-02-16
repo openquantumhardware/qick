@@ -57,41 +57,25 @@ class QickConfig():
         lines.append("\n\tBoard: " + self.cfg['board'])
         lines.append("\n\tGlobal clocks (MHz): DAC fabric %.3f, ADC fabric %.3f, reference %.3f"%(
             self.cfg['fs_proc'], self.cfg['adc_fabric_freq'], self.cfg['refclk_freq']))
-
-        if hasattr(self,'tproc'): # this is a QickSoc
-            lines.append("\n\tGenerator switch: %d to %d"%(
-                self.switch_gen.NSL, self.switch_gen.NMI))
-            lines.append("\n\tAverager switch: %d to %d"%(
-                self.switch_avg.NSL, self.switch_avg.NMI))
-            lines.append("\n\tBuffer switch: %d to %d"%(
-                self.switch_buf.NSL, self.switch_buf.NMI))
-
-            lines.append("\n\t%d DAC channels:"%(len(self.dac_blocks)))
-            for iCh, (iTile,iBlock,fs) in enumerate(self.dac_blocks):
-                lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
-
-            lines.append("\n\t%d ADC channels:"%(len(self.adc_blocks)))
-            for iCh, (iTile,iBlock,fs) in enumerate(self.adc_blocks):
-                lines.append("\t%d:\ttile %d, channel %d, fs=%.3f MHz"%(iCh,iTile,iBlock,fs))
-        else:
-            lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
-                self.cfg['fs_dac'], self.cfg['fs_adc']))
+        lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
+            self.cfg['fs_dac'], self.cfg['fs_adc']))
 
         lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
             self.fsmult_dac, self.fsmult_adc))
         lines.append("\tFrequency resolution step: %.3f Hz"%(
             self.fstep_lcm*1e6))
 
+        lines.append("\n\t%d signal generator channels:"%(len(self.cfg['gens'])))
+        for iGen,gen in enumerate(self.cfg['gens']):
+            lines.append("\t%d:\ttProc output %d, maxlen %d"%(iGen, gen['tproc_ch'], gen['maxlen']))
+            lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
+
+        lines.append("\n\t%d readout channels:"%(len(self.cfg['readouts'])))
+        for iReadout,readout in enumerate(self.cfg['readouts']):
+            lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tproc input %d"%(readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
+
         if hasattr(self,'tproc'): # this is a QickSoc
-            lines.append("\n\t%d signal generators: max length %d samples"%(len(self.gens),
-                self.gens[0].MAX_LENGTH))
-
-            lines.append("\n\t%d readout blocks"%(len(self.readouts)))
-
-            lines.append("\n\t%d average+buffer blocks: max length %d samples (averages), %d (decimated buffer)"%(len(self.cfg['avg_bufs']),
-                self.cfg['avg_bufs'][0]['avg_maxlen'], 
-                self.cfg['avg_bufs'][0]['buf_maxlen']))
-
             lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
             lines.append("\t\tprogram RAM: %d bytes"%(self.tproc.mem.mmio.length))
 

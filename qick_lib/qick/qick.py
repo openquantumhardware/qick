@@ -14,6 +14,7 @@ import time
 from .parser import *
 from .streamer import DataStreamer
 from .qick_asm import QickConfig
+from .helpers import trace_net, BusParser
 from . import bitfile_path
 
 # Some support functions
@@ -47,6 +48,7 @@ class SocIp(DefaultIP):
         """
         #print("SocIp init", description)
         super().__init__(description)
+        self.fullpath = description['fullpath']
         #self.ip = description
         
     def write(self, offset, value):
@@ -131,9 +133,9 @@ class AxisSignalGenV4(SocIp):
         # Maximum number of samples
         self.MAX_LENGTH = 2**self.N*self.NDDS
 
-        # Get the channel number from the IP instance name.
-        self.ch = int(description['fullpath'].split('_')[-1])
-        
+        # Frequency resolution
+        self.B_DDS = 32
+
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, axi_dma, axis_switch):
         # dma
@@ -142,6 +144,29 @@ class AxisSignalGenV4(SocIp):
         # Switch
         self.switch = axis_switch
         
+    def configure_connections(self, soc, sigparser, busparser):
+        # what tProc output port drives this generator?
+        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+        ((block,port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        # might need to jump through an axis_clk_cnvrt
+        if 'axis_tproc' not in block:
+            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what switch port drives this generator?
+        ((block,port),) = trace_net(busparser, self.fullpath, 's0_axis')
+        # port names are of the form 'M01_AXIS'
+        self.switch_ch = int(port.split('_')[0][1:])
+
+        # what RFDC port does this generator drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # port names are of the form 's00_axis'
+        self.dac = port[1:3]
+
+        #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
+
     # Load waveforms.
     def load(self, xin_i, xin_q ,addr=0):
         """
@@ -176,7 +201,7 @@ class AxisSignalGenV4(SocIp):
             raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
 
         # Route switch to channel.
-        self.switch.sel(mst=self.ch)
+        self.switch.sel(mst=self.switch_ch)
         
         #time.sleep(0.050)
         
@@ -274,9 +299,6 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
         
-        # Get the channel number from the IP instance name.
-        self.ch = int(description['fullpath'].split('_')[-1])
-
     # Configure this driver with the sampling frequency.
     def configure(self, fstep, regmult):
         # Frequency step for rounding.
@@ -286,6 +308,22 @@ class AxisReadoutV2(SocIp):
         # Sampling frequency.
         self.fs = 2**self.B_DDS * fstep/regmult
         
+    def configure_connections(self, soc, sigparser, busparser):
+        # what RFDC port drives this readout?
+        ((block,port),) = trace_net(busparser, self.fullpath, 's_axis')
+        # jump through an axis_register_slice
+        ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        iBlock //= 2
+        self.adc = "%d%d"%(iTile, iBlock)
+
+        # what buffer does this readout drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm1_axis')
+        self.buffer = getattr(soc, block)
+
+        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
+
     def update(self):
         """
         Update register values
@@ -429,9 +467,6 @@ class AxisAvgBuffer(SocIp):
         self.avg_buff = allocate(shape=self.AVG_MAX_LENGTH, dtype=np.int64)
         self.buf_buff = allocate(shape=self.BUF_MAX_LENGTH, dtype=np.int32)
 
-        # Get the channel number from the IP instance name.
-        self.ch = int(description['fullpath'].split('_')[-1])
-
     # Configure this driver with links to the other drivers.
     def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf):
         # DMAs.
@@ -442,6 +477,39 @@ class AxisAvgBuffer(SocIp):
         self.switch_avg = switch_avg
         self.switch_buf = switch_buf
         
+    def configure_connections(self, soc, sigparser, busparser):
+        # which readout drives this buffer?
+        ((block,port),) = trace_net(busparser, self.fullpath, 's_axis')
+        self.readout = getattr(soc, block)
+
+        # which switch_avg port does this buffer drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm0_axis')
+        # port names are of the form 'S01_AXIS'
+        switch_avg_ch = int(port.split('_')[0][1:],10)
+
+        # which switch_buf port does this buffer drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm1_axis')
+        # port names are of the form 'S01_AXIS'
+        switch_buf_ch = int(port.split('_')[0][1:],10)
+        if switch_avg_ch!=switch_buf_ch:
+            raise RuntimeError("switch_avg and switch_buf port numbers do not match:",self.fullpath)
+        self.switch_ch = switch_avg_ch
+
+        # which tProc output bit triggers this buffer?
+        ((block,port),) = trace_net(sigparser, self.fullpath, 'trigger')
+        # port names are of the form 'dout14'
+        self.trigger_bit = int(port[4:])
+
+        # which tProc input port does this buffer drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm2_axis')
+        # jump through an axis_clk_cnvrt
+        ((block,port),) = trace_net(busparser, block, 'M_AXIS')
+        # port names are of the form 's1_axis'
+        # subtract 1 to get the channel number (s0 comes from the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        #print("%s: readout %s, switch %d, trigger %d, tProc port %d"%(self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
+
 
     def config(self,address=0,length=100):
         """
@@ -498,7 +566,7 @@ class AxisAvgBuffer(SocIp):
             raise RuntimeError("length=%d longer than %d"%(length, self.AVG_MAX_LENGTH))
 
         # Route switch to channel.
-        self.switch_avg.sel(slv=self.ch)        
+        self.switch_avg.sel(slv=self.switch_ch)
         
         # Set averager data reader address and length.
         self.avg_dr_addr_reg = address
@@ -573,7 +641,7 @@ class AxisAvgBuffer(SocIp):
             raise RuntimeError("length=%d longer or equal to %d"%(length, self.BUF_MAX_LENGTH))
 
         # Route switch to channel.
-        self.switch_buf.sel(slv=self.ch)
+        self.switch_buf.sel(slv=self.switch_ch)
         
         #time.sleep(0.050)
         
@@ -989,27 +1057,23 @@ class QickSoc(Overlay, QickConfig):
 
         self.cfg['board'] = os.environ["BOARD"]
 
-        # RF data converter (for configuring ADCs and DACs)
-        self.rf = self.usp_rf_data_converter_0
-
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
 
         # Configure PLLs if requested, or if any ADC/DAC is not locked.
         if force_init_clks:
             self.set_all_clks()
+            self.download()
         else:
-            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
-            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
-            if not (all(dac_locked) and all(adc_locked)):
+            self.download()
+            if not self.clocks_locked():
                 self.set_all_clks()
-            dac_locked = [self.rf.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
-            adc_locked = [self.rf.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
-            if not (all(dac_locked) and all(adc_locked)):
-                print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+                self.download()
+        if not self.clocks_locked():
+            print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
 
-        # now that the clocks are locked, we can program the bitstream.
-        self.download()
+        # RF data converter (for configuring ADCs and DACs)
+        self.rf = self.usp_rf_data_converter_0
 
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
@@ -1023,43 +1087,69 @@ class QickSoc(Overlay, QickConfig):
         # Signal generators.
         self.gens = []
 
-        # Readout blocks.
-        self.readouts = []
-
         # Average + Buffer blocks.
         self.avg_bufs = []
+
+        # Use the HWH parser to trace connectivity and deduce the channel numbering.
+        # Since the HWH parser doesn't parse buses, we also make our own BusParser.
+        busparser = BusParser(self.parser)
+        for key,val in self.ip_dict.items():
+            if hasattr(val['driver'],'configure_connections'):
+                getattr(self,key).configure_connections(self, self.parser, busparser)
 
         # Populate the lists with the registered IP blocks.
         for key,val in self.ip_dict.items():
             if (val['driver'] == AxisSignalGenV4):
                 self.gens.append(getattr(self,key))
-            elif (val['driver'] == AxisReadoutV2):
-                self.readouts.append(getattr(self,key))
             elif (val['driver'] == AxisAvgBuffer):
                 self.avg_bufs.append(getattr(self,key))
 
-        # Sanity check: we should have the same number of signal generators as DACs.
-        if len(self.dac_blocks) != len(self.gens):
-            raise RuntimeError("We have %d DACs but %d signal generators."%(len(self.dac_blocks),len(self.gens)))
+        # Sanity check: we should have the same number of signal generators as switch ports.
+        if self.switch_gen.NMI != len(self.gens):
+            raise RuntimeError("We have %d switch_gen outputs but %d signal generators."%(len(self.switch_gen.NMI),len(self.gens)))
 
-        # Sanity check: we should have the same number of readouts and buffer blocks as ADCs.
-        if len(self.adc_blocks) != len(self.readouts):
-            raise RuntimeError("We have %d ADCs but %d readout blocks."%(len(self.adc_blocks),len(self.readouts)))
-        if len(self.adc_blocks) != len(self.avg_bufs):
-            raise RuntimeError("We have %d ADCs but %d avg/buffer blocks."%(len(self.adc_blocks),len(self.avg_bufs)))
-        
+        # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
+        if self.switch_avg.NSL != len(self.avg_bufs):
+            raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks."%(len(self.switch_avg.NSL),len(self.avg_bufs)))
+        if self.switch_buf.NSL != len(self.avg_bufs):
+            raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks."%(len(self.switch_buf.NSL),len(self.avg_bufs)))
+
         # Sort the lists by channel number.
         # Typically they are already in order, but good to make sure?
-        self.gens.sort(key=lambda x: x.ch)
-        self.readouts.sort(key=lambda x: x.ch)
-        self.avg_bufs.sort(key=lambda x: x.ch)
+        # The single source of truth for channel numbering is the switch port index.
+        self.gens.sort(key=lambda x: x.switch_ch)
+        self.avg_bufs.sort(key=lambda x: x.switch_ch)
+
+        # Readout blocks.
+        self.readouts = [buf.readout for buf in self.avg_bufs]
 
         # Fill the config dictionary with driver parameters.
-        self.cfg['b_dac'] = 32
+        self.cfg['b_dac'] = self.gens[0].B_DDS #typically 32
         self.cfg['b_adc'] = self.readouts[0].B_DDS #typically 32
-        self.cfg['avg_bufs'] = [{'avg_maxlen':buf.AVG_MAX_LENGTH,
-                                 'buf_maxlen':buf.BUF_MAX_LENGTH} 
-                                 for buf in self.avg_bufs]
+
+        self.cfg['gens'] = []
+        self.cfg['readouts'] = []
+        for iGen,gen in enumerate(self.gens):
+            thiscfg = {}
+            thiscfg['maxlen'] = gen.MAX_LENGTH
+            thiscfg['b_dds'] = gen.B_DDS
+            thiscfg['tproc_ch'] = gen.tproc_ch
+            thiscfg['dac'] = gen.dac
+            thiscfg['fs'] = self.dacs[gen.dac]['fs']
+            thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
+            self.cfg['gens'].append(thiscfg)
+
+        for iBuf,buf in enumerate(self.avg_bufs):
+            thiscfg = {}
+            thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
+            thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
+            thiscfg['b_dds'] = buf.readout.B_DDS
+            thiscfg['adc'] = buf.readout.adc
+            thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
+            thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
+            thiscfg['trigger_bit'] = buf.trigger_bit
+            thiscfg['tproc_ch'] = buf.tproc_ch
+            self.cfg['readouts'].append(thiscfg)
 
         # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc  = self.axis_tproc64x32_x8_0
@@ -1090,6 +1180,19 @@ class QickSoc(Overlay, QickConfig):
     def streamer(self):
         return self._streamer
 
+    def clocks_locked(self):
+        """
+        Checks whether the DAC and ADC PLLs are locked.
+        This can only be run after the bitstream has been downloaded.
+
+        :return: clock status
+        :rtype: bool
+        """
+
+        dac_locked = [self.usp_rf_data_converter_0.dac_tiles[iTile].PLLLockStatus==2 for iTile in self.dac_tiles]
+        adc_locked = [self.usp_rf_data_converter_0.adc_tiles[iTile].PLLLockStatus==2 for iTile in self.adc_tiles]
+        return (all(dac_locked) and all(adc_locked))
+
     def list_rf_blocks(self, rf_config):
         """
         Lists the enabled ADCs and DACs and get the sampling frequencies.
@@ -1100,51 +1203,60 @@ class QickSoc(Overlay, QickConfig):
         hs_adc = rf_config['C_High_Speed_ADC']=='1'
 
         self.dac_tiles = []
-        self.dac_blocks = []
         self.adc_tiles = []
-        self.adc_blocks = []
         dac_fabric_freqs = []
         adc_fabric_freqs = []
         refclk_freqs = []
+        self.dacs = {}
+        self.adcs = {}
 
-        for iTile,tile in enumerate(self.rf.dac_tiles):
+        for iTile in range(4):
             if rf_config['C_DAC%d_Enable'%(iTile)]!='1':
                 continue
             self.dac_tiles.append(iTile)
-            dac_fabric_freqs.append(float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)]))
-            refclk_freqs.append(float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)]))
-            for iBlock,block in enumerate(tile.blocks):
+            f_fabric = float(rf_config['C_DAC%d_Fabric_Freq'%(iTile)])
+            f_refclk = float(rf_config['C_DAC%d_Refclk_Freq'%(iTile)])
+            dac_fabric_freqs.append(f_fabric)
+            refclk_freqs.append(f_refclk)
+            fs = float(rf_config['C_DAC%d_Sampling_Rate'%(iTile)])*1000
+            for iBlock in range(4):
                 if rf_config['C_DAC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                     continue
-                fs = block.BlockStatus['SamplingFreq']*1000
-                self.dac_blocks.append((iTile,iBlock,fs))
+                self.dacs["%d%d"%(iTile,iBlock)] = {'fs':fs,
+                                                    'f_fabric':f_fabric}
 
-        for iTile,tile in enumerate(self.rf.adc_tiles):
+        for iTile in range(4):
             if rf_config['C_ADC%d_Enable'%(iTile)]!='1':
                 continue
             self.adc_tiles.append(iTile)
-            adc_fabric_freqs.append(float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)]))
-            refclk_freqs.append(float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)]))
-            for iBlock,block in enumerate(tile.blocks):
+            f_fabric = float(rf_config['C_ADC%d_Fabric_Freq'%(iTile)])
+            f_refclk = float(rf_config['C_ADC%d_Refclk_Freq'%(iTile)])
+            adc_fabric_freqs.append(f_fabric)
+            refclk_freqs.append(f_refclk)
+            fs = float(rf_config['C_ADC%d_Sampling_Rate'%(iTile)])*1000
+            #for iBlock,block in enumerate(tile.blocks):
+            for iBlock in range(4):
                 if hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
                         continue
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable'%(iTile,iBlock)]!='true':
                         continue
-                fs = block.BlockStatus['SamplingFreq']*1000
-                self.adc_blocks.append((iTile,iBlock,fs))
+                self.adcs["%d%d"%(iTile,iBlock)] = {'fs':fs,
+                                                    'f_fabric':f_fabric}
 
         def get_common_freq(freqs):
             """
             Check that all elements of the list are equal, and return the common value.
             """
+            if not freqs: # input is empty list
+                return None
             if len(set(freqs))!=1:
                 raise RuntimeError("Unexpected frequencies:",freqs)
             return freqs[0]
 
-        self.cfg['fs_dac'] = get_common_freq([block[2] for block in self.dac_blocks])
-        self.cfg['fs_adc'] = get_common_freq([block[2] for block in self.adc_blocks])
+        self.cfg['fs_dac'] = get_common_freq([block[1]['fs'] for block in self.dacs.items()])
+        self.cfg['fs_adc'] = get_common_freq([block[1]['fs'] for block in self.adcs.items()])
 
         # Assume the tProc has the same frequency as the DAC fabric.
         self.cfg['fs_proc'] = get_common_freq(dac_fabric_freqs)
@@ -1310,7 +1422,7 @@ class QickSoc(Overlay, QickConfig):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel, _ = self.dac_blocks[ch-1]
+        tile, channel = [int(a) for a in self.cfg['gens'][ch-1]['dac']]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone
