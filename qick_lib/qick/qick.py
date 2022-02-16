@@ -206,13 +206,10 @@ class AxisSignalGenV4(SocIp):
         #time.sleep(0.050)
         
         # Format data.
-        xin_i = xin_i.astype(np.int16)
-        xin_q = xin_q.astype(np.int16)
-        xin = np.zeros(len(xin_i))
-        for i in range(len(xin)):
-            xin[i] = xin_i[i] + (xin_q[i] << 16)
-            
-        xin = xin.astype(np.int32)
+        xin_i = xin_i.astype(np.int32)
+        xin_q = xin_q.astype(np.int32)
+
+        xin = xin_i + (xin_q << 16)
         
         # Define buffer.
         self.buff = allocate(shape=len(xin), dtype=np.int32)
@@ -1382,7 +1379,7 @@ class QickSoc(Overlay, QickConfig):
         :return: Length of accumulation buffer for channel 'ch'
         :rtype: int
         """
-        return self.cfg['avg_bufs'][ch]['avg_maxlen']
+        return self.cfg['readouts'][ch]['avg_maxlen']
 
     def load_pulse_data(self, ch, idata, qdata, addr):
         """Load pulse data into signal generators
