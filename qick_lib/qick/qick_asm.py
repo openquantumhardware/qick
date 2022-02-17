@@ -35,16 +35,22 @@ class QickConfig():
     :param cfg: config dictionary, or path to JSON file
     :type cfg: dict or str
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg=None):
         if isinstance(cfg,str):
             with open(cfg) as f:
-                self.cfg = json.load(f)
-        else:
-            self.cfg = cfg
+                self._cfg = json.load(f)
+        elif cfg is not None:
+            self._cfg = cfg
         self._prepare_freq2reg()
 
-    def __repr__(self):
+    def __str__(self):
         return self.description()
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
+    def __setitem__(self, key, val):
+        self._cfg[key] = val
 
     def description(self):
         """
@@ -54,24 +60,24 @@ class QickConfig():
         :rtype: str
         """
         lines=[]
-        lines.append("\n\tBoard: " + self.cfg['board'])
+        lines.append("\n\tBoard: " + self['board'])
         lines.append("\n\tGlobal clocks (MHz): DAC fabric %.3f, ADC fabric %.3f, reference %.3f"%(
-            self.cfg['fs_proc'], self.cfg['adc_fabric_freq'], self.cfg['refclk_freq']))
+            self['fs_proc'], self['adc_fabric_freq'], self['refclk_freq']))
         lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
-            self.cfg['fs_dac'], self.cfg['fs_adc']))
+            self['fs_dac'], self['fs_adc']))
 
         lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
             self.fsmult_dac, self.fsmult_adc))
         lines.append("\tFrequency resolution step: %.3f Hz"%(
             self.fstep_lcm*1e6))
 
-        lines.append("\n\t%d signal generator channels:"%(len(self.cfg['gens'])))
-        for iGen,gen in enumerate(self.cfg['gens']):
+        lines.append("\n\t%d signal generator channels:"%(len(self['gens'])))
+        for iGen,gen in enumerate(self['gens']):
             lines.append("\t%d:\ttProc output %d, maxlen %d"%(iGen, gen['tproc_ch'], gen['maxlen']))
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
 
-        lines.append("\n\t%d readout channels:"%(len(self.cfg['readouts'])))
-        for iReadout,readout in enumerate(self.cfg['readouts']):
+        lines.append("\n\t%d readout channels:"%(len(self['readouts'])))
+        for iReadout,readout in enumerate(self['readouts']):
             lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tproc input %d"%(readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -89,7 +95,7 @@ class QickConfig():
         :return: configuration dictionary
         :rtype: dict
         """
-        return self.cfg
+        return self._cfg
 
     def dump_cfg(self):
         """
@@ -99,7 +105,7 @@ class QickConfig():
         :return: configuration in JSON format
         :rtype: str
         """
-        return json.dumps(self.cfg, indent=4)
+        return json.dumps(self._cfg, indent=4)
 
     def _prepare_freq2reg(self):
         # Calculate least common multiple of DAC and ADC sampling frequencies.
@@ -107,8 +113,8 @@ class QickConfig():
         # This is used when converting frequencies to integers.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        self.fsmult_dac = round(self.cfg['fs_dac']/self.cfg['refclk_freq'])
-        self.fsmult_adc = round(self.cfg['fs_adc']/self.cfg['refclk_freq'])
+        self.fsmult_dac = round(self['fs_dac']/self['refclk_freq'])
+        self.fsmult_adc = round(self['fs_adc']/self['refclk_freq'])
 
         # reg = f/fstep
         #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
@@ -116,14 +122,14 @@ class QickConfig():
 
         # Calculate a common fstep_lcm, which is divisible by both the DAC and ADC step sizes.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
-        b_max = max(self.cfg['b_dac'],self.cfg['b_adc'])
-        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - self.cfg['b_dac']),
-                          self.fsmult_adc * 2**(b_max - self.cfg['b_adc']))
-        self.fstep_lcm = self.cfg['refclk_freq'] * mult_lcm / 2**b_max
+        b_max = max(self['b_dac'],self['b_adc'])
+        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - self['b_dac']),
+                          self.fsmult_adc * 2**(b_max - self['b_adc']))
+        self.fstep_lcm = self['refclk_freq'] * mult_lcm / 2**b_max
 
         # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
-        self.regmult_dac = int(2**(b_max-self.cfg['b_dac']) * round(mult_lcm/self.fsmult_dac))
-        self.regmult_adc = int(2**(b_max-self.cfg['b_adc']) * round(mult_lcm/self.fsmult_adc))
+        self.regmult_dac = int(2**(b_max-self['b_dac']) * round(mult_lcm/self.fsmult_dac))
+        self.regmult_adc = int(2**(b_max-self['b_adc']) * round(mult_lcm/self.fsmult_adc))
         #print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
 
     def freq2reg(self, f):
@@ -180,7 +186,7 @@ class QickConfig():
         :return: Number of microseconds
         :rtype: float
         """
-        return cycles/self.cfg['fs_proc']
+        return cycles/self['fs_proc']
 
     def us2cycles(self, us):
         """
@@ -191,7 +197,7 @@ class QickConfig():
         :return: Number of tProc clock cycles
         :rtype: int
         """
-        return int(us*self.cfg['fs_proc'])
+        return int(us*self['fs_proc'])
 
 
 class QickProgram:
@@ -246,17 +252,19 @@ class QickProgram:
     
     #delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
     trig_offset=25
+
+    soccfg_methods=['freq2reg', 'reg2freq', 'reg2freq_adc', 'cycles2us', 'us2cycles']
     
-    def __init__(self, cfg=None):
+    def __init__(self, soccfg):
         """
         Constructor method
         """
+        self.soccfg = soccfg
         self.prog_list = []
         self.labels = {}
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
         self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
         
-    
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         """
         Adds a pulse to the pulse library within the program.
@@ -625,7 +633,7 @@ class QickProgram:
             self.dac_ts=[0]*len(self.dac_ts) #zeros(len(self.dac_ts),dtype=uint16)
 
     #should change behavior to only change bits that are specified
-    def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True): 
+    def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True):
         """
         Sets the value of the marker bits at time t. This triggers the ADC(s) at a specified time t and also sends trigger values to 4 PMOD pins for syncing a scope trigger.
         Channel 0 of the tProc is connected to triggers/PMODs. E.g. if t3=1 PMOD0_2 goes high.
@@ -658,7 +666,6 @@ class QickProgram:
             self.regwi (rp, r_out, 0, f'out = 0b{out:>016b}')
             self.seti (0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
     
-    
     def trigger_adc(self,adc1=0,adc2=0, adc_trig_offset=270, t=0):
         """
         Triggers the ADC(s) at a specified time t+adc_trig_offset.
@@ -679,6 +686,45 @@ class QickProgram:
         self.regwi (0, r_out, 0, f'out = 0b{0:>016b}')
         self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')     
         
+    def trigger_adclist(self, adcs=[], pins=[], adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
+        """
+        Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
+        If no ADCs are specified, the adc_trig_offset is not applied.
+
+        :param adcs: List of ADC channels to trigger.
+        :type adcs: list
+        :param pins: List of pins to pulse.
+        :type pins: list
+        :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
+        :type adc_trig_offset: int
+        :param t: The number of clock ticks at which point the ADC trigger starts
+        :type t: int
+        :param width: The width of the trigger pulse, in clock ticks
+        :type width: int
+        :param rp: Register page
+        :type rp: int
+        :param r_out: Register number
+        :type r_out: int
+        """
+        if not adcs and not pins:
+            raise RuntimeError("must pulse at least one ADC or pin")
+
+        out= 0
+        for adc in adcs:
+            out |= (1 << self.soccfg['readouts'][adc]['trigger_bit'])
+        for pin in pins:
+            out |= (1 << pin)
+
+        t_start = t
+        if adcs:
+            t_start += adc_trig_offset
+        t_end = t_start + width
+
+        self.regwi (rp, r_out, out, f'out = 0b{out:>016b}')
+        self.seti (0, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
+        self.regwi (rp, r_out, 0, f'out = 0b{0:>016b}')
+        self.seti (0, rp, r_out, t_end, f'ch =0 out = ${r_out} @t = {t}')
+
     def convert_immediate(self, val):
         """
         Convert the register value to ensure that it is positive and not too large. Throws an error if you ever try to use a value greater than 2**31 as an immediate value.
@@ -814,6 +860,9 @@ class QickProgram:
         """
         Uses instructions dictionary to automatically generate methods for the standard instruction set.
 
+        Also include all QickConfig methods as methods of the QickProgram.
+        This allows e.g. this.freq2reg(f) instead of this.soccfg.freq2reg(f).
+
         :param a: Instruction name
         :type a: str
         :return: Instruction arguments
@@ -821,6 +870,8 @@ class QickProgram:
         """
         if a in self.__class__.instructions:
             return lambda *args: self.append_instruction(a, *args)
+        elif a in self.__class__.soccfg_methods:
+            return getattr(self.soccfg,a)
         else:
             return object.__getattribute__(self, a)
 
@@ -896,7 +947,7 @@ class QickProgram:
         """
         return len(self.prog_list)
     
-    def __repr__(self):
+    def __str__(self):
         """
         Print as assembly by default.
 
