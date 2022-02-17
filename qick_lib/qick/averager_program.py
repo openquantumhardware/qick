@@ -10,6 +10,8 @@ class AveragerProgram(QickProgram):
     """
     AveragerProgram class is an abstract base class for programs which do loop over experiments in hardware. It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
+    :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
+    :type soccfg: QickConfig
     :param cfg: Configuration dictionary
     :type cfg: dict
     """

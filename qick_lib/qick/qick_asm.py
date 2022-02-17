@@ -438,7 +438,7 @@ class QickProgram:
             if t is not None:
                 if t=='auto':
                     t=p.dac_ts[ch]
-                    p.dac_ts[ch]=t+length                   
+                p.dac_ts[ch]=t+length
                 p.regwi (rp, r_t, t, f't = {t}')
             p.set (ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t, f"ch = {ch}, out = ${r_freq},${r_phase},${r_addr},${r_gain},${r_mode} @t = ${r_t}")        
      
