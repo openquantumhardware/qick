@@ -1050,9 +1050,9 @@ class QickSoc(Overlay, QickConfig):
             Overlay.__init__(self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
 
         # Configuration dictionary
-        self.cfg = {}
+        self._cfg = {}
 
-        self.cfg['board'] = os.environ["BOARD"]
+        self['board'] = os.environ["BOARD"]
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
@@ -1121,11 +1121,11 @@ class QickSoc(Overlay, QickConfig):
         self.readouts = [buf.readout for buf in self.avg_bufs]
 
         # Fill the config dictionary with driver parameters.
-        self.cfg['b_dac'] = self.gens[0].B_DDS #typically 32
-        self.cfg['b_adc'] = self.readouts[0].B_DDS #typically 32
+        self['b_dac'] = self.gens[0].B_DDS #typically 32
+        self['b_adc'] = self.readouts[0].B_DDS #typically 32
 
-        self.cfg['gens'] = []
-        self.cfg['readouts'] = []
+        self['gens'] = []
+        self['readouts'] = []
         for iGen,gen in enumerate(self.gens):
             thiscfg = {}
             thiscfg['maxlen'] = gen.MAX_LENGTH
@@ -1134,7 +1134,7 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['dac'] = gen.dac
             thiscfg['fs'] = self.dacs[gen.dac]['fs']
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
-            self.cfg['gens'].append(thiscfg)
+            self['gens'].append(thiscfg)
 
         for iBuf,buf in enumerate(self.avg_bufs):
             thiscfg = {}
@@ -1146,7 +1146,7 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
-            self.cfg['readouts'].append(thiscfg)
+            self['readouts'].append(thiscfg)
 
         # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc  = self.axis_tproc64x32_x8_0
@@ -1156,7 +1156,7 @@ class QickSoc(Overlay, QickConfig):
         self._streamer = DataStreamer(self)
 
         # Initialize the configuration (this will calculate the frequency plan)
-        QickConfig.__init__(self, self.cfg)
+        QickConfig.__init__(self)
 
         # Configure the drivers.
         for gen in self.gens:
@@ -1252,24 +1252,24 @@ class QickSoc(Overlay, QickConfig):
                 raise RuntimeError("Unexpected frequencies:",freqs)
             return freqs[0]
 
-        self.cfg['fs_dac'] = get_common_freq([block[1]['fs'] for block in self.dacs.items()])
-        self.cfg['fs_adc'] = get_common_freq([block[1]['fs'] for block in self.adcs.items()])
+        self['fs_dac'] = get_common_freq([block[1]['fs'] for block in self.dacs.items()])
+        self['fs_adc'] = get_common_freq([block[1]['fs'] for block in self.adcs.items()])
 
         # Assume the tProc has the same frequency as the DAC fabric.
-        self.cfg['fs_proc'] = get_common_freq(dac_fabric_freqs)
-        self.cfg['adc_fabric_freq'] = get_common_freq(adc_fabric_freqs)
-        self.cfg['refclk_freq'] = get_common_freq(refclk_freqs)
+        self['fs_proc'] = get_common_freq(dac_fabric_freqs)
+        self['adc_fabric_freq'] = get_common_freq(adc_fabric_freqs)
+        self['refclk_freq'] = get_common_freq(refclk_freqs)
 
     def set_all_clks(self):
         """
         Resets all the board clocks
         """
-        if self.cfg['board']=='ZCU111':
-            print("resetting clocks:",self.cfg['refclk_freq'])
-            xrfclk.set_all_ref_clks(self.cfg['refclk_freq'])
-        elif self.cfg['board']=='ZCU216':
-            lmk_freq = self.cfg['refclk_freq']
-            lmx_freq = self.cfg['refclk_freq']*2
+        if self['board']=='ZCU111':
+            print("resetting clocks:",self['refclk_freq'])
+            xrfclk.set_all_ref_clks(self['refclk_freq'])
+        elif self['board']=='ZCU216':
+            lmk_freq = self['refclk_freq']
+            lmx_freq = self['refclk_freq']*2
             print("resetting clocks:",lmk_freq, lmx_freq)
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
     
@@ -1379,7 +1379,7 @@ class QickSoc(Overlay, QickConfig):
         :return: Length of accumulation buffer for channel 'ch'
         :rtype: int
         """
-        return self.cfg['readouts'][ch]['avg_maxlen']
+        return self['readouts'][ch]['avg_maxlen']
 
     def load_pulse_data(self, ch, idata, qdata, addr):
         """Load pulse data into signal generators
@@ -1419,7 +1419,7 @@ class QickSoc(Overlay, QickConfig):
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
-        tile, channel = [int(a) for a in self.cfg['gens'][ch-1]['dac']]
+        tile, channel = [int(a) for a in self['gens'][ch-1]['dac']]
         dac_block=self.rf.dac_tiles[tile].blocks[channel]
         dac_block.NyquistZone=nqz
         return dac_block.NyquistZone

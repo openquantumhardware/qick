@@ -19,16 +19,7 @@ class DataStreamer():
         # Process object for the streaming readout.
         self.readout_process=None
 
-        # Passes data from the worker process to the main process.
-        self.data_queue = Queue()
-        # Passes exceptions from the worker process to the main process.
-        self.error_queue = Queue()
-        # The main process can use this flag to tell the worker process to stop.
-        self.stop_flag = Event()
-        # The worker process uses this to tell the main process when it's done.
-        self.done_flag = Event()
-
-    def start_readout(self,total_count, counter_addr=1, ch_list=[0,1]):
+    def start_readout(self,total_count, counter_addr=1, ch_list=[0,1], reads_per_count=1):
         """
         Start a streaming readout of the average buffers.
 
@@ -38,17 +29,31 @@ class DataStreamer():
         :type counter_addr: int
         :param ch_list: List of readout channels
         :type addr: list
+        :param reads_per_count: Number of data points to expect per counter increment
+        :type reads_per_count: int
         """
 
+        # if there's still a readout process running, stop it
         if self.readout_alive():
-            raise RuntimeError("Cannot start a readout when the readout is still alive.")
+            print("cleaning up previous readout")
+            # tell the readout to stop (this will break the readout loop)
+            self.stop_readout()
+            # get all the data in the streamer buffer (this will allow the readout process to terminate)
+            while self.readout_alive():
+                self.poll_data()
 
-        # Initialize flags.
-        self.stop_flag.clear()
-        self.done_flag.clear()
+        # Initialize flags and queues.
+        # Passes data from the worker process to the main process.
+        self.data_queue = Queue()
+        # Passes exceptions from the worker process to the main process.
+        self.error_queue = Queue()
+        # The main process can use this flag to tell the worker process to stop.
+        self.stop_flag = Event()
+        # The worker process uses this to tell the main process when it's done.
+        self.done_flag = Event()
 
         # daemon=True means the readout process will be killed if the parent is killed
-        self.readout_process = Process(target=self._run_readout, args=(total_count, counter_addr, ch_list), daemon=True)
+        self.readout_process = Process(target=self._run_readout, args=(total_count, counter_addr, ch_list, reads_per_count), daemon=True)
         self.readout_process.start()
 
     def stop_readout(self):
@@ -100,7 +105,7 @@ class DataStreamer():
                 break
         return new_data
 
-    def _run_readout(self, total_count, counter_addr, ch_list):
+    def _run_readout(self, total_count, counter_addr, ch_list, reads_per_count):
         """
         Worker process for the streaming readout
 
@@ -110,11 +115,13 @@ class DataStreamer():
         :type counter_addr: int
         :param ch_list: List of readout channels
         :type addr: list
+        :param reads_per_count: Number of data points to expect per counter increment
+        :type reads_per_count: int
         """
         try:
             count=0
             last_count=0
-            stride=int(0.5 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
+            stride=int(0.1 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
             # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
             self.soc.tproc.stop()
@@ -125,9 +132,9 @@ class DataStreamer():
             t_start = time.time()
 
             self.soc.tproc.start()
-            while (not self.stop_flag.is_set()) and count<total_count:   # Keep streaming data until you get all of it
-                count = self.soc.tproc.single_read(addr= counter_addr)
-                if count>=min(last_count+stride,total_count-1):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
+            while (not self.stop_flag.is_set()) and last_count<total_count:   # Keep streaming data until you get all of it
+                count = self.soc.tproc.single_read(addr= counter_addr)*reads_per_count
+                if count>=min(last_count+stride,total_count):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                     addr=last_count % self.soc.get_avg_max_length(0)
                     length = count-last_count
                     length -= length%2 # transfers must be of even length; trim the length (instead of padding it)

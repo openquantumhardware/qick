@@ -10,14 +10,16 @@ class AveragerProgram(QickProgram):
     """
     AveragerProgram class is an abstract base class for programs which do loop over experiments in hardware. It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
+    :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
+    :type soccfg: QickConfig
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
-    def __init__(self, cfg):
+    def __init__(self, soccfg, cfg):
         """
         Constructor for the AveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
         """
-        QickProgram.__init__(self)
+        super().__init__(soccfg)
         self.cfg=cfg
         self.make_program()
     
@@ -292,11 +294,11 @@ class RAveragerProgram(QickProgram):
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
-    def __init__(self, cfg):
+    def __init__(self, soccfg, cfg):
         """
         Constructor for the RAveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
         """
-        QickProgram.__init__(self)
+        super().__init__(soccfg)
         self.cfg=cfg
         self.make_program()
     
@@ -409,37 +411,29 @@ class RAveragerProgram(QickProgram):
         reps,expts = self.cfg['reps'],self.cfg['expts']
         
         count=0
-        last_count=0
         total_count=reps*expts*readouts_per_experiment
 
-        di_buf=np.zeros((2,total_count))
-        dq_buf=np.zeros((2,total_count))
-        
-        tproc.stop()
-        
-        tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
-        self.stats=[]
-        
+        d_buf = np.zeros((2,2,total_count))
+        streamer=soc.streamer
+        stats_list=[]
+
         with tqdm(total=total_count, disable=not progress) as pbar:
-            tproc.start()
-            while count<total_count-1:
-                count = tproc.single_read(addr= 1)*readouts_per_experiment
+            streamer.start_readout(total_count, counter_addr=1, ch_list=[0,1], reads_per_count=readouts_per_experiment)
+            while streamer.readout_alive():
+                new_data = streamer.poll_data()
+                for d,s in new_data:
+                    new_points = d.shape[2]
+                    d_buf[:,:,count:count+new_points] = d
+                    count += new_points
+                    stats_list.append(s)
+                    pbar.update(new_points)
+            self.stats=stats_list
 
-                if count>=min(last_count+100,total_count-1):
-                    addr=last_count % soc.get_avg_max_length(0)
-                    length = count-last_count
-                    length -= length%2
+        # reformat the data into separate I and Q arrays
+        di_buf = np.stack([d_buf[i][0] for i in range(2)])
+        dq_buf = np.stack([d_buf[i][1] for i in range(2)])
 
-                    for ch in range(2):
-                        di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
-
-                        di_buf[ch,last_count:last_count+length]=di[:length]
-                        dq_buf[ch,last_count:last_count+length]=dq[:length]
-
-                    last_count+=length
-                    self.stats.append( (time.time(), count,addr, length))
-                    pbar.update(last_count-pbar.n)
-                    
+        #save results to class in case you want to look at it later or for analysis
         self.di_buf=di_buf
         self.dq_buf=dq_buf
         
