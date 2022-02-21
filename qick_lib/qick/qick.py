@@ -162,6 +162,9 @@ class AxisSignalGenV4(SocIp):
 
         # what RFDC port does this generator drive?
         ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block,port),) = trace_net(busparser, block, 'M_AXIS')
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -312,7 +315,8 @@ class AxisReadoutV2(SocIp):
         ((block,port),) = trace_net(busparser, block, 'S_AXIS')
         # port names are of the form 'm02_axis' where the block number is always even
         iTile, iBlock = [int(x) for x in port[1:3]]
-        iBlock //= 2
+        if soc.hs_adc:
+            iBlock //= 2
         self.adc = "%d%d"%(iTile, iBlock)
 
         # what buffer does this readout drive?
@@ -1197,7 +1201,7 @@ class QickSoc(Overlay, QickConfig):
         This re-implements that functionality.
         """
 
-        hs_adc = rf_config['C_High_Speed_ADC']=='1'
+        self.hs_adc = rf_config['C_High_Speed_ADC']=='1'
 
         self.dac_tiles = []
         self.adc_tiles = []
@@ -1231,9 +1235,8 @@ class QickSoc(Overlay, QickConfig):
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
             fs = float(rf_config['C_ADC%d_Sampling_Rate'%(iTile)])*1000
-            #for iBlock,block in enumerate(tile.blocks):
             for iBlock in range(4):
-                if hs_adc:
+                if self.hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
                         continue
                 else:
