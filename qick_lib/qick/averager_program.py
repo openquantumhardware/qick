@@ -186,7 +186,7 @@ class AveragerProgram(QickProgram):
         
         avg_di=None
         for ii in tqdm(range (self.cfg["rounds"]), disable=not progress):           
-            avg_di0, avg_dq0, avg_amp0=self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=False, debug=debug)
+            avg_di0, avg_dq0=self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=False, debug=debug)
             
             if avg_di is None:
                 avg_di, avg_dq = avg_di0, avg_dq0
@@ -194,7 +194,7 @@ class AveragerProgram(QickProgram):
                 avg_di+= avg_di0
                 avg_dq+= avg_dq0
                 
-        return expt_pts, avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
+        return avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
     
     def get_single_shots(self, di, dq, threshold, angle=[0,0]):
         """

@@ -35,11 +35,13 @@ class DataStreamer():
 
         # if there's still a readout process running, stop it
         if self.readout_alive():
-            print("cleaning up previous readout")
+            print("cleaning up previous readout: stopping streamer loop")
             # tell the readout to stop (this will break the readout loop)
             self.stop_readout()
             # get all the data in the streamer buffer (this will allow the readout process to terminate)
             while self.readout_alive():
+                print("clearing streamer buffer")
+                time.sleep(0.5)
                 self.poll_data()
 
         # Initialize flags and queues.
