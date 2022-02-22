@@ -1294,10 +1294,12 @@ class QickSoc(Overlay, QickConfig):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        data = self.avg_bufs[ch].transfer_buf(address,transfer_len)
+        # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+        # we work around this by requesting an extra 2 samples at the beginning
+        data = self.avg_bufs[ch].transfer_buf((address-2)%self.avg_bufs[ch].BUF_MAX_LENGTH,transfer_len+2)
 
         # we remove the padding here
-        return data[:,:length].astype(float)
+        return data[:,2:length+2].astype(float)
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -1321,10 +1323,12 @@ class QickSoc(Overlay, QickConfig):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        data = self.avg_bufs[ch].transfer_avg(address=address,length=transfer_len)
+        # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+        # we work around this by requesting an extra 2 samples at the beginning
+        data = self.avg_bufs[ch].transfer_avg((address-2)%self.avg_bufs[ch].AVG_MAX_LENGTH,transfer_len+2)
 
         # we remove the padding here
-        return data[:,:length]
+        return data[:,2:length+2]
     
     def configure_readout(self, ch, output, frequency):
         """Configure readout channel output style and frequency
