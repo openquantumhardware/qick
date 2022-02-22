@@ -53,7 +53,7 @@ The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed 
 
 * Pulse memory length: 65536 per channel x2 (I,Q), i.e., 128k total
 * Decimated ADC buffer length: 1024 samples per component (I,Q), 2k total
-* Accumulated ADC buffer length: 1024 samples per component (I,Q), 2 k total
+* Accumulated ADC buffer length: 16384 samples per component (I,Q), 32k total
 * tProc program memory length: 8k instructions of 64 bits, 64k Bytes total
 * tProc data memory length: 4096 samples of 32 bits, 16k Bytes total
 * tProc stack size: 256 samples of 32 bits, 1k Byte total

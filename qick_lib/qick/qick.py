@@ -162,6 +162,9 @@ class AxisSignalGenV4(SocIp):
 
         # what RFDC port does this generator drive?
         ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block,port),) = trace_net(busparser, block, 'M_AXIS')
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -312,7 +315,8 @@ class AxisReadoutV2(SocIp):
         ((block,port),) = trace_net(busparser, block, 'S_AXIS')
         # port names are of the form 'm02_axis' where the block number is always even
         iTile, iBlock = [int(x) for x in port[1:3]]
-        iBlock //= 2
+        if soc.hs_adc:
+            iBlock //= 2
         self.adc = "%d%d"%(iTile, iBlock)
 
         # what buffer does this readout drive?
@@ -1197,7 +1201,7 @@ class QickSoc(Overlay, QickConfig):
         This re-implements that functionality.
         """
 
-        hs_adc = rf_config['C_High_Speed_ADC']=='1'
+        self.hs_adc = rf_config['C_High_Speed_ADC']=='1'
 
         self.dac_tiles = []
         self.adc_tiles = []
@@ -1231,9 +1235,8 @@ class QickSoc(Overlay, QickConfig):
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
             fs = float(rf_config['C_ADC%d_Sampling_Rate'%(iTile)])*1000
-            #for iBlock,block in enumerate(tile.blocks):
             for iBlock in range(4):
-                if hs_adc:
+                if self.hs_adc:
                     if iBlock>=2 or rf_config['C_ADC_Slice%d%d_Enable'%(iTile,2*iBlock)]!='true':
                         continue
                 else:
@@ -1294,10 +1297,12 @@ class QickSoc(Overlay, QickConfig):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        data = self.avg_bufs[ch].transfer_buf(address,transfer_len)
+        # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+        # we work around this by requesting an extra 2 samples at the beginning
+        data = self.avg_bufs[ch].transfer_buf((address-2)%self.avg_bufs[ch].BUF_MAX_LENGTH,transfer_len+2)
 
         # we remove the padding here
-        return data[:,:length].astype(float)
+        return data[:,2:length+2].astype(float)
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -1321,10 +1326,12 @@ class QickSoc(Overlay, QickConfig):
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length%2
 
-        data = self.avg_bufs[ch].transfer_avg(address=address,length=transfer_len)
+        # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+        # we work around this by requesting an extra 2 samples at the beginning
+        data = self.avg_bufs[ch].transfer_avg((address-2)%self.avg_bufs[ch].AVG_MAX_LENGTH,transfer_len+2)
 
         # we remove the padding here
-        return data[:,:length]
+        return data[:,2:length+2]
     
     def configure_readout(self, ch, output, frequency):
         """Configure readout channel output style and frequency
