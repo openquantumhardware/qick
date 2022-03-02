@@ -3,6 +3,7 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 """
 import numpy as np
 import json
+from collections import namedtuple, OrderedDict
 
 def deg2reg(deg):
     """
@@ -41,7 +42,6 @@ class QickConfig():
                 self._cfg = json.load(f)
         elif cfg is not None:
             self._cfg = cfg
-        self._prepare_freq2reg()
 
     def __str__(self):
         return self.description()
@@ -61,15 +61,15 @@ class QickConfig():
         """
         lines=[]
         lines.append("\n\tBoard: " + self['board'])
-        lines.append("\n\tGlobal clocks (MHz): DAC fabric %.3f, ADC fabric %.3f, reference %.3f"%(
-            self['fs_proc'], self['adc_fabric_freq'], self['refclk_freq']))
-        lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
-            self['fs_dac'], self['fs_adc']))
+        lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f"%(
+            self['fs_proc'], self['refclk_freq']))
+        #lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
+        #    self['fs_dac'], self['fs_adc']))
 
-        lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
-            self.fsmult_dac, self.fsmult_adc))
-        lines.append("\tFrequency resolution step: %.3f Hz"%(
-            self.fstep_lcm*1e6))
+        #lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
+        #    self.fsmult_dac, self.fsmult_adc))
+        #lines.append("\tFrequency resolution step: %.3f Hz"%(
+        #    self.fstep_lcm*1e6))
 
         lines.append("\n\t%d signal generator channels:"%(len(self['gens'])))
         for iGen,gen in enumerate(self['gens']):
@@ -79,7 +79,7 @@ class QickConfig():
         lines.append("\n\t%d readout channels:"%(len(self['readouts'])))
         for iReadout,readout in enumerate(self['readouts']):
             lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
-            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tproc input %d"%(readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
+            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tProc input %d"%(readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
         if hasattr(self,'tproc'): # this is a QickSoc
             lines.append("\n\ttProc: %d words program memory, %d words data memory"%(2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
@@ -107,75 +107,145 @@ class QickConfig():
         """
         return json.dumps(self._cfg, indent=4)
 
-    def _prepare_freq2reg(self):
-        # Calculate least common multiple of DAC and ADC sampling frequencies.
-        # Typically fs_dac = fs_adc*2, so this is just the DAC frequency.
-        # This is used when converting frequencies to integers.
+    def calc_fstep(self, ch1, ch2):
+        """
+        Finds the least common multiple of the frequency steps of two channels (typically a DAC and ADC)
+        :param ch1: config dict for one channel
+        :type ch1: dict
+        :param ch2: config dict for the other channel
+        :type ch2: dict
+        :return: frequency step common to the two channels
+        :rtype: float
+        """
+        refclk = self['refclk_freq']
+        # Calculate least common multiple of sampling frequencies.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        self.fsmult_dac = round(self['fs_dac']/self['refclk_freq'])
-        self.fsmult_adc = round(self['fs_adc']/self['refclk_freq'])
+        fsmult1 = round(ch1['fs']/refclk)
+        fsmult2 = round(ch2['fs']/refclk)
 
-        # reg = f/fstep
-        #fstep_dac = self.fs_proc * mult_dac / 2**b_dac
-        #fstep_adc = self.fs_proc * mult_adc / 2**b_adc
-
-        # Calculate a common fstep_lcm, which is divisible by both the DAC and ADC step sizes.
+        # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
-        b_max = max(self['b_dac'],self['b_adc'])
-        mult_lcm = np.lcm(self.fsmult_dac * 2**(b_max - self['b_dac']),
-                          self.fsmult_adc * 2**(b_max - self['b_adc']))
-        self.fstep_lcm = self['refclk_freq'] * mult_lcm / 2**b_max
+        b_max = max(ch1['b_dds'],ch2['b_dds'])
+        mult_lcm = np.lcm(fsmult1 * 2**(b_max - ch1['b_dds']),
+                          fsmult2 * 2**(b_max - ch2['b_dds']))
+        return refclk * mult_lcm / 2**b_max
 
-        # Calculate the integer factors relating fstep_lcm to the DAC and ADC step sizes.
-        self.regmult_dac = int(2**(b_max-self['b_dac']) * round(mult_lcm/self.fsmult_dac))
-        self.regmult_adc = int(2**(b_max-self['b_adc']) * round(mult_lcm/self.fsmult_adc))
-        #print(self.fstep_lcm, self.regmult_dac, self.regmult_adc)
+    def roundfreq(self, f, ch1, ch2):
+        """
+        Round a frequency to the LCM of the frequency steps of two channels (typically a DAC and ADC).
+        :param f: frequency (MHz)
+        :type f: float or array
+        :param ch1: config dict for one channel
+        :type ch1: dict
+        :param ch2: config dict for the other channel
+        :type ch2: dict
+        :return: rounded frequency (MHz)
+        :rtype: float or array
+        """
+        fstep = self.calc_fstep(ch1, ch2)
+        return np.round(f/fstep) * fstep
 
-    def freq2reg(self, f):
+    def freq2int(self, f, thisch, otherch=None):
+        """
+        Converts frequency in MHz to integer value suitable for writing to a register.
+        This method works for both DACs and ADCs.
+        If a DAC will be connected to an ADC, the two channels must have exactly the same frequency, and you must supply the config for the other channel.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :param thisch: config dict for the channel you're configuring
+        :type thisch: dict
+        :param otherch: config dict for a channel you will set to the same frequency
+        :type otherch: dict
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        if otherch is None:
+            f_round = f
+        else:
+            f_round = self.roundfreq(f, thisch, otherch)
+        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
+        return np.int64(k_i)
+
+    def freq2reg(self, f, gen_ch=0, ro_ch=0):
         """
         Converts frequency in MHz to tProc DAC register value.
 
         :param f: frequency (MHz)
         :type f: float
+        :param gen_ch: DAC channel
+        :type gen_ch: int
+        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
         :return: Re-formatted frequency
         :rtype: int
         """
-        k_i = np.int64(f/self.fstep_lcm)
-        return k_i * self.regmult_dac
+        if ro_ch is None:
+            rocfg = None
+        else:
+            rocfg = self['readouts'][ro_ch]
+        return self.freq2int(f, self['gens'][gen_ch], rocfg)
 
-    def reg2freq(self, r):
+    def freq2reg_adc(self, f, ro_ch=0, gen_ch=0):
+        """
+        Converts frequency in MHz to ADC register value.
+
+        :param f: frequency (MHz)
+        :type f: float
+        :param ro_ch: readout channel
+        :type ro_ch: int
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid ADC frequency)
+        :type gen_ch: int
+        :return: Re-formatted frequency
+        :rtype: int
+        """
+        if gen_ch is None:
+            gencfg = None
+        else:
+            gencfg = self['gens'][gen_ch]
+        return self.freq2int(f, self['readouts'][ro_ch], gencfg)
+
+    def reg2freq(self, r, gen_ch=0):
         """
         Converts frequency from format readable by tProc DAC to MHz.
 
         :param r: frequency in tProc DAC format
         :type r: float
+        :param gen_ch: DAC channel
+        :type gen_ch: int
         :return: Re-formatted frequency in MHz
         :rtype: float
         """
-        return r*self.fstep_lcm/self.regmult_dac
+        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['fs']
 
-    def reg2freq_adc(self, r):
+    def reg2freq_adc(self, r, ro_ch=0):
         """
         Converts frequency from format readable by tProc ADC to MHz.
 
         :param r: frequency in tProc ADC format
         :type r: float
+        :param ro_ch: ADC channel
+        :type ro_ch: int
         :return: Re-formatted frequency in MHz
         :rtype: float
         """
-        return r*self.fstep_lcm/self.regmult_adc
+        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['fs']
 
-    def adcfreq(self, f):
+    def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """
         Takes a frequency and casts it to an (even) valid ADC DDS frequency.
 
         :param f: frequency (MHz)
         :type f: float
+        :param gen_ch: DAC channel
+        :type gen_ch: int
+        :param ro_ch: readout channel
+        :type ro_ch: int
         :return: Re-formatted frequency
         :rtype: int
         """
-        return np.round(f/self.fstep_lcm) * self.fstep_lcm
+        return self.roundfreq(f, self['gens'][gen_ch], self['readouts'][ro_ch])
 
     def cycles2us(self, cycles):
         """
@@ -197,8 +267,10 @@ class QickConfig():
         :return: Number of tProc clock cycles
         :rtype: int
         """
-        return int(us*self['fs_proc'])
+        return np.int64(np.round(us*self['fs_proc']))
 
+# configuration for an enabled readout channel
+ReadoutConfig = namedtuple('ReadoutConfig', ['freq','length','sel'])
 
 class QickProgram:
     """
@@ -253,8 +325,8 @@ class QickProgram:
     #delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
     trig_offset=25
 
-    soccfg_methods=['freq2reg', 'reg2freq', 'reg2freq_adc', 'cycles2us', 'us2cycles']
-    
+    soccfg_methods=['freq2reg', 'freq2reg_adc', 'reg2freq', 'reg2freq_adc', 'cycles2us', 'us2cycles']
+
     def __init__(self, soccfg):
         """
         Constructor method
@@ -263,8 +335,26 @@ class QickProgram:
         self.prog_list = []
         self.labels = {}
         self.dac_ts = [0]*9 #np.zeros(9,dtype=np.uint16)
+        self.adc_ts = [0]*len(soccfg['readouts']) #np.zeros(9,dtype=np.uint16)
         self.channels={ch:{"addr":0, "pulses":{}, "last_pulse":None} for ch in range(1,8)}      
+
+        self.ro_chs=OrderedDict()
         
+    def config_readout(self, ch, freq, length, sel='product'):
+        """
+        Add a channel to the program's list of readouts.
+
+        :param ch: ADC channel number (0-indexed)
+        :type ch: int
+        :param freq: downconverting frequency (MHz)
+        :type freq: float
+        :param length: readout length (number of samples)
+        :type length: int
+        :param sel: output select ('product', 'dds', 'input')
+        :type sel: str
+        """
+        self.ro_chs[ch] = ReadoutConfig(freq,length,sel)
+
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         """
         Adds a pulse to the pulse library within the program.
@@ -627,10 +717,11 @@ class QickProgram:
         :param t: The time offset in clock ticks
         :type t: int
         """
-        max_t=max([self.dac_ts[ch] for ch in range(1,9)])
+        max_t=max(self.dac_ts+self.adc_ts)
         if max_t+t>0:
             self.synci(max_t+t)
-            self.dac_ts=[0]*len(self.dac_ts) #zeros(len(self.dac_ts),dtype=uint16)
+            self.dac_ts=[0]*len(self.dac_ts)
+            self.adc_ts=[0]*len(self.adc_ts)
 
     #should change behavior to only change bits that are specified
     def marker(self, t, t1 = 0, t2 = 0, t3 = 0, t4=0, adc1=0, adc2=0, rp=0, r_out = 31, short=True):
@@ -660,6 +751,10 @@ class QickProgram:
         :type short: bool
         """
         out= (adc2 << 15) |(adc1 << 14) | (t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0)
+        # update timestamps with the end of the readout window
+        for i,enable in enumerate([adc1,adc2]):
+            if enable==1:
+                self.adc_ts[i] = t + self.ro_chs[i].length
         self.regwi (rp, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
         if short:
@@ -680,13 +775,17 @@ class QickProgram:
         :type t: int
         """
         out= (adc2 << 15) |(adc1 << 14)
+        # update timestamps with the end of the readout window
+        for i,enable in enumerate([adc1,adc2]):
+            if enable==1:
+                self.adc_ts[i] = adc_trig_offset + self.ro_chs[i].length
         r_out=31
         self.regwi (0, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, 0, r_out, t+adc_trig_offset, f'ch =0 out = ${r_out} @t = {t}')
         self.regwi (0, r_out, 0, f'out = 0b{0:>016b}')
         self.seti (0, 0, r_out, t+adc_trig_offset+10, f'ch =0 out = ${r_out} @t = {t}')     
         
-    def trigger_adclist(self, adcs=[], pins=[], adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
+    def trigger(self, adcs=[], pins=[], adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
         """
         Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no ADCs are specified, the adc_trig_offset is not applied.
@@ -718,12 +817,51 @@ class QickProgram:
         t_start = t
         if adcs:
             t_start += adc_trig_offset
+            # update timestamps with the end of the readout window
+            for adc in adcs:
+                self.adc_ts[adc] = t_start + self.ro_chs[adc].length
         t_end = t_start + width
 
         self.regwi (rp, r_out, out, f'out = 0b{out:>016b}')
         self.seti (0, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
         self.regwi (rp, r_out, 0, f'out = 0b{0:>016b}')
         self.seti (0, rp, r_out, t_end, f'ch =0 out = ${r_out} @t = {t}')
+
+    def measure(self, adcs, pulse_ch, adc_trig_offset=270, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto'):
+        """
+        Wrapper method that combines an ADC trigger, a pulse, and the appropriate wait.
+        This should typically be followed by sync_all.
+
+        :param adcs: ADC channels
+        :type adcs: list
+        :param pulse_ch: DAC channel
+        :type pulse_ch: int
+        :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
+        :type adc_trig_offset: int
+        :param name: Pulse name
+        :type name: str
+        :param freq: Frequency (MHz)
+        :type freq: float
+        :param phase: Phase (degrees)
+        :type phase: float
+        :param gain: Gain (DAC units)
+        :type gain: float
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: bool
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
+        :type stdysel: bool
+        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
+        :type mode: bool
+        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
+        :type outsel: int
+        :param length: The number of samples in the pulse
+        :type length: int
+        :param t: The number of clock ticks at which point the pulse starts
+        :type t: int
+        """
+        self.trigger(adcs, adc_trig_offset=adc_trig_offset)
+        self.pulse(ch=pulse_ch, name=name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, play=True)
+        self.waiti(0,max(self.adc_ts))
 
     def convert_immediate(self, val):
         """
