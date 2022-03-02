@@ -61,6 +61,23 @@ def trace_net(parser, blockname, portname):
     # get the list of other ports on this net, discard the port we started at and ILA ports
     return [x.split('/') for x in parser.nets[netname] if x!=fullport and 'system_ila_' not in x]
 
+def get_fclk(parser, blockname, portname):
+    """
+    Find the frequency of a clock port.
+
+    :param parser: HWH parser object (from Overlay.parser, or BusParser)
+    :param blockname: the IP block of interest
+    :type blockname: string
+    :param portname: the port we want to trace
+    :type portname: string
+
+    :return: frequency in MHz
+    :rtype: float
+    """
+    xmlpath="./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(blockname,portname)
+    port = parser.root.find(xmlpath)
+    return float(port.get('CLKFREQUENCY'))/1e6
+
 class BusParser:
     def __init__(self, parser):
         """

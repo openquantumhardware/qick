@@ -14,7 +14,7 @@ import time
 from .parser import *
 from .streamer import DataStreamer
 from .qick_asm import QickConfig
-from .helpers import trace_net, BusParser
+from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
 # Some support functions
@@ -99,7 +99,7 @@ class SocIp(DefaultIP):
         if a in self.__class__.REGISTERS:
             return super().read(4*self.__class__.REGISTERS[a])
         else:
-            return super().__getattr__(a)           
+            return super().__getattribute__(a)           
         
 class AxisSignalGenV4(SocIp):
     """
@@ -137,13 +137,19 @@ class AxisSignalGenV4(SocIp):
         self.B_DDS = 32
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, axi_dma, axis_switch):
+    def configure(self, axi_dma, axis_switch, fs):
         # dma
         self.dma = axi_dma
         
         # Switch
         self.switch = axis_switch
-        
+
+        # Sampling frequency.
+        self.fs = fs   
+
+        # Frequency step for rounding.
+        self.fstep = fs/(2**self.B_DDS)                 
+
     def configure_connections(self, soc, sigparser, busparser):
         # what tProc output port drives this generator?
         # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
@@ -250,6 +256,435 @@ class AxisSignalGenV4(SocIp):
         """
         self.rndq_reg = sel_
                 
+class AxisSignalGenV5(SocIp):
+    """
+    AxisSignalGenV5class
+
+    AXIS Signal Generator V5 Registers.
+    START_ADDR_REG
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_signal_gen_v5:1.0']
+    REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
+    
+    def __init__(self, description, **kwargs):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        
+        # Default registers.
+        self.start_addr_reg=0
+        self.we_reg=0
+        self.rndq_reg = 10
+
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N*self.NDDS
+        
+        # Frequency resolution
+        self.B_DDS = 32        
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])
+        
+    # Configure this driver with links to the other drivers, and the signal gen channel number.
+    def configure(self, axi_dma, axis_switch, fs):
+        # dma
+        self.dma = axi_dma
+        
+        # Switch
+        self.switch = axis_switch
+                
+        # Sampling frequency.
+        self.fs = fs           
+        
+        # Frequency step for rounding.
+        self.fstep = fs/(2**self.B_DDS)         
+        
+    def configure_connections(self, soc, sigparser, busparser):
+        # what tProc output port drives this generator?
+        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+        ((block,port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        # might need to jump through an axis_clk_cnvrt
+        if 'axis_tproc' not in block:
+            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what switch port drives this generator?
+        ((block,port),) = trace_net(busparser, self.fullpath, 's0_axis')
+        # port names are of the form 'M01_AXIS'
+        self.switch_ch = int(port.split('_')[0][1:])
+
+        # what RFDC port does this generator drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+         # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block,port),) = trace_net(busparser, block, 'M_AXIS')
+        # port names are of the form 's00_axis'
+        self.dac = port[1:3]
+
+        #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))        
+        
+    # Load waveforms.
+    def load(self, xin_i, xin_q ,addr=0):
+        """
+        Load waveform into I,Q envelope
+
+        :param xin_i: real part of envelope
+        :type xin_i: list
+        :param xin_q: imaginary part of envelope
+        :type xin_q: list
+        :param addr: starting address
+        :type addr: int
+        """
+        # Check for equal length.
+        if len(xin_i) != len(xin_q):
+            print("%s: I/Q buffers must be the same length." % self.__class__.__name__)
+            return
+        
+        # Check for max length.
+        if len(xin_i) > self.MAX_LENGTH:
+            print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
+            return
+
+        # Check for even transfer size.
+        if len(xin_i) %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Check for max length.
+        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
+            raise ValueError("real part of envelope exceeds limits of int16 datatype")
+
+        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
+            raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
+
+        # Route switch to channel.
+        self.switch.sel(mst=self.ch)
+        
+        #time.sleep(0.050)
+        
+        # Format data.
+        xin_i = xin_i.astype(np.int16)
+        xin_q = xin_q.astype(np.int16)
+        xin = np.zeros(len(xin_i))
+        for i in range(len(xin)):
+            xin[i] = xin_i[i] + (xin_q[i] << 16)
+            
+        xin = xin.astype(np.int32)
+        
+        # Define buffer.
+        self.buff = allocate(shape=len(xin), dtype=np.int32)
+        np.copyto(self.buff, xin)
+        
+        ################
+        ### Load I/Q ###
+        ################
+        # Enable writes.
+        self.wr_enable(addr)
+
+        # DMA data.
+        self.dma.sendchannel.transfer(self.buff)
+        self.dma.sendchannel.wait()
+
+        # Disable writes.
+        self.wr_disable()        
+        
+    def wr_enable(self,addr=0):
+        """
+           Enable WE reg
+        """
+        self.start_addr_reg = addr
+        self.we_reg = 1
+        
+    def wr_disable(self):
+        """
+           Disable WE reg
+        """
+        self.we_reg = 0
+        
+    def rndq(self, sel_):
+        """
+           TODO: remove this function. This functionality was removed from IP block.
+        """
+        self.rndq_reg = sel_
+                        
+class AxisSgInt4V1(SocIp):
+    """
+    AxisSgInt4V1
+
+    AXIS Signal Generator with envelope x4 interpolation V1 Registers.
+    START_ADDR_REG
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_sg_int4_v1:1.0']
+    REGISTERS = {'start_addr_reg':0, 'we_reg':1}
+    
+    def __init__(self, description, **kwargs):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        
+        # Default registers.
+        self.start_addr_reg=0
+        self.we_reg=0
+
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = 4 # Fixed by design, not accesible.
+                
+        # Frequency resolution
+        self.B_DDS = 16      
+
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N # Table is interpolated. Length is given only by parameter N.
+
+        # Get the channel number from the IP instance name.
+        self.ch = int(description['fullpath'].split('_')[-1])        
+        
+    # Configure this driver with links to the other drivers, and the signal gen channel number.
+    def configure(self, axi_dma, axis_switch, fs):
+        # dma
+        self.dma = axi_dma
+        
+        # Switch
+        self.switch = axis_switch
+                        
+        # Sampling frequency: it's interpolated by 4 in the DAC.
+        self.fs = fs/self.NDDS   
+        
+        # Frequency step for rounding.
+        self.fstep = self.fs/(2**self.B_DDS)     
+        
+    def configure_connections(self, soc, sigparser, busparser):
+        # what tProc output port drives this generator?
+        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+        ((block,port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        # might need to jump through an axis_clk_cnvrt
+        if 'axis_tproc' not in block:
+            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what switch port drives this generator?
+        ((block,port),) = trace_net(busparser, self.fullpath, 's0_axis')
+        # port names are of the form 'M01_AXIS'
+        self.switch_ch = int(port.split('_')[0][1:])
+
+        # what RFDC port does this generator drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block,port),) = trace_net(busparser, block, 'M_AXIS')
+        # port names are of the form 's00_axis'
+        self.dac = port[1:3]        
+        
+    # Load waveforms.
+    def load(self, xin_i, xin_q ,addr=0):
+        """
+        Load waveform into I,Q envelope
+
+        :param xin_i: real part of envelope
+        :type xin_i: list
+        :param xin_q: imaginary part of envelope
+        :type xin_q: list
+        :param addr: starting address
+        :type addr: int
+        """
+        # Check for equal length.
+        if len(xin_i) != len(xin_q):
+            print("%s: I/Q buffers must be the same length." % self.__class__.__name__)
+            return
+        
+        # Check for max length.
+        if len(xin_i) > self.MAX_LENGTH:
+            print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
+            return
+
+        # Check for even transfer size.
+        if len(xin_i) %2 != 0:
+            raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Check for max length.
+        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
+            raise ValueError("real part of envelope exceeds limits of int16 datatype")
+
+        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
+            raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
+
+        # Route switch to channel.
+        self.switch.sel(mst=self.ch)
+        
+        #time.sleep(0.050)
+        
+        # Format data.
+        xin_i = xin_i.astype(np.int16)
+        xin_q = xin_q.astype(np.int16)
+        xin = np.zeros(len(xin_i))
+        for i in range(len(xin)):
+            xin[i] = xin_i[i] + (xin_q[i] << 16)
+            
+        xin = xin.astype(np.int32)
+        
+        # Define buffer.
+        self.buff = allocate(shape=len(xin), dtype=np.int32)
+        np.copyto(self.buff, xin)
+        
+        ################
+        ### Load I/Q ###
+        ################
+        # Enable writes.
+        self.wr_enable(addr)
+
+        # DMA data.
+        self.dma.sendchannel.transfer(self.buff)
+        self.dma.sendchannel.wait()
+
+        # Disable writes.
+        self.wr_disable()        
+        
+    def wr_enable(self,addr=0):
+        """
+           Enable WE reg
+        """
+        self.start_addr_reg = addr
+        self.we_reg = 1
+        
+    def wr_disable(self):
+        """
+           Disable WE reg
+        """
+        self.we_reg = 0
+        
+class AxisSgMux4V1(SocIp):
+    """
+    AxisSgMux4V1
+
+    AXIS Signal Generator with 4 muxed outputs V1 registers.
+    
+    PINC0_REG : frequency of waveform 0.
+    PINC1_REG : frequency of waveform 1.
+    PINC2_REG : frequency of waveform 2.
+    PINC3_REG : frequency of waveform 3.
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
+    REGISTERS = {'pinc0_reg':0,'pinc1_reg':1,'pinc2_reg':2,'pinc3_reg':3, 'we_reg':4}
+    
+    def __init__(self, description, **kwargs):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        
+        # Default registers.
+        self.pinc0_reg=0
+        self.pinc1_reg=0
+        self.pinc2_reg=0
+        self.pinc3_reg=0
+        self.we_reg=0
+
+        # Generics
+        self.NDDS = int(description['parameters']['N_DDS'])        
+                
+        # Frequency resolution
+        self.B_DDS = 16      
+        
+        # NOTE: Only added to avoid errors when parsing.
+        #TODO: do something more sensible
+        self.ch = int(description['fullpath'].split('_')[-1])
+        self.switch_ch = self.ch
+        self.MAX_LENGTH = 0
+        
+    # Configure this driver with links to the other drivers, and the signal gen channel number.
+    def configure(self, axi_dma, axis_switch, fs):
+        # Sampling frequency: 4x Interpolation applied by DAC IP.
+        self.fs = fs/4
+        
+        # Frequency step for rounding.
+        self.fstep = self.fs/(2**self.B_DDS)     
+        
+    def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
+        # what tProc output port drives this generator?
+        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+        ((block,port),) = trace_net(busparser, self.fullpath, 's_axis')
+        # might need to jump through an axis_clk_cnvrt
+        if 'axis_tproc' not in block:
+            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what RFDC port does this generator drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # port names are of the form 's00_axis'
+        self.dac = port[1:3]        
+
+    def update(self):
+        """
+        Update register values
+        """
+        self.we_reg = 1
+        self.we_reg = 0
+            
+    def set_freq(self, f, out=0):
+        """
+        Set frequency register
+
+        :param f: frequency in MHz
+        :type f: float
+        :param out: muxed channel to configure
+        :type out: int
+        :param dac_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type dac_ch: int
+        """
+        # Sanity check.
+        if f<self.fs:
+            k_i = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
+            if out==0:
+                self.pinc0_reg = k_i
+            elif out==1:
+                self.pinc1_reg = k_i
+            elif out==2:
+                self.pinc2_reg = k_i
+            elif out==3:
+                self.pinc3_reg = k_i                
+            
+        # Register update.
+        self.update()
+        
+    def set_freq_int(self, k_i, out=0):
+        if out==0:
+            self.pinc0_reg = k_i
+        elif out==1:
+            self.pinc1_reg = k_i
+        elif out==2:
+            self.pinc2_reg = k_i
+        elif out==3:
+            self.pinc3_reg = k_i                
+            
+        # Register update.
+        self.update()              
+                
+                                
 class AxisReadoutV2(SocIp):
     """
     AxisReadoutV2 class
@@ -300,19 +735,22 @@ class AxisReadoutV2(SocIp):
         self.update()
         
     # Configure this driver with the sampling frequency.
-    def configure(self, fstep, regmult):
+    def configure(self, ch, fs):
+        # Channel number.
+        self.ch = ch
         # Frequency step for rounding.
-        self.fstep = fstep
-        # Integer multiplier.
-        self.regmult = regmult
+        self.fstep = fs/(2**self.B_DDS)
         # Sampling frequency.
-        self.fs = 2**self.B_DDS * fstep/regmult
+        self.fs = fs
         
     def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
         # what RFDC port drives this readout?
         ((block,port),) = trace_net(busparser, self.fullpath, 's_axis')
-        # jump through an axis_register_slice
-        ((block,port),) = trace_net(busparser, block, 'S_AXIS')
+         # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
         # port names are of the form 'm02_axis' where the block number is always even
         iTile, iBlock = [int(x) for x in port[1:3]]
         if soc.hs_adc:
@@ -340,29 +778,22 @@ class AxisReadoutV2(SocIp):
         :type sel: int
         """
         self.outsel_reg={"product":0,"dds":1,"input":2}[sel]
-#         if sel is "product":
-#             self.outsel_reg = 0
-#         elif sel is "dds":
-#             self.outsel_reg = 1
-#         elif sel is "input":
-#             self.outsel_reg = 2
-#         else:
-#             print("AxisReadoutV2: %s output unknown" % sel)
             
         # Register update.
         self.update()
             
-    def set_freq(self, f):
+    def set_freq(self, f, dac_ch=0):
         """
         Set frequency register
 
         :param f: frequency in MHz
         :type f: float
+        :param dac_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type dac_ch: int
         """
         # Sanity check.
         if f<self.fs:
-            k_i = np.int64(f/self.fstep)
-            self.freq_reg = k_i * self.regmult
+            self.freq_reg = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
             
         # Register update.
         self.update()
@@ -1011,6 +1442,35 @@ class AxisSwitch(SocIp):
         self.ctrl = 2     
 
 
+class Mixer:    
+    # rf
+    rf = 0
+    
+    def __init__(self, ip):        
+        # Get Mixer Object.
+        self.rf = ip
+    
+    def set_freq(self,f,tile,dac):
+        # Make a copy of mixer settings.
+        dac_mixer = self.rf.dac_tiles[tile].blocks[dac].MixerSettings        
+        new_mixcfg = dac_mixer.copy()
+
+        # Update the copy
+        new_mixcfg.update({
+            'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
+            'Freq' : f,
+            'MixerType': xrfdc.MIXER_TYPE_FINE,
+            'PhaseOffset' : 0})
+
+        # Update settings.                
+        self.rf.dac_tiles[tile].blocks[dac].MixerSettings = new_mixcfg
+        self.rf.dac_tiles[tile].blocks[dac].UpdateEvent(xrfdc.EVENT_MIXER)
+       
+    def set_nyquist(self,nz,tile,dac):
+        dac_tile = self.rf.dac_tiles[tile]
+        dac_block = dac_tile.blocks[dac]
+        dac_block.NyquistZone = nz  
+        
 class QickSoc(Overlay, QickConfig):
     """
     QickSoc class. This class will create all object to access system blocks
@@ -1098,16 +1558,19 @@ class QickSoc(Overlay, QickConfig):
             if hasattr(val['driver'],'configure_connections'):
                 getattr(self,key).configure_connections(self, self.parser, busparser)
 
+        gen_drivers = set([AxisSignalGenV4, AxisSignalGenV5, AxisSgInt4V1, AxisSgMux4V1])
+
         # Populate the lists with the registered IP blocks.
         for key,val in self.ip_dict.items():
-            if (val['driver'] == AxisSignalGenV4):
+            if (val['driver'] in gen_drivers):
                 self.gens.append(getattr(self,key))
             elif (val['driver'] == AxisAvgBuffer):
                 self.avg_bufs.append(getattr(self,key))
 
         # Sanity check: we should have the same number of signal generators as switch ports.
-        if self.switch_gen.NMI != len(self.gens):
-            raise RuntimeError("We have %d switch_gen outputs but %d signal generators."%(len(self.switch_gen.NMI),len(self.gens)))
+        #TODO: update?
+        #if self.switch_gen.NMI != len(self.gens):
+        #    raise RuntimeError("We have %d switch_gen outputs but %d signal generators."%(len(self.switch_gen.NMI),len(self.gens)))
 
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
         if self.switch_avg.NSL != len(self.avg_bufs):
@@ -1155,7 +1618,8 @@ class QickSoc(Overlay, QickConfig):
         # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc  = self.axis_tproc64x32_x8_0
         self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-        #print(self.description())
+
+        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
 
         self._streamer = DataStreamer(self)
 
@@ -1164,14 +1628,20 @@ class QickSoc(Overlay, QickConfig):
 
         # Configure the drivers.
         for gen in self.gens:
-            gen.configure(self.axi_dma_gen, self.switch_gen)
+            gen.configure(self.axi_dma_gen, self.switch_gen, self.dacs[gen.dac]['fs'])
 
-        for readout in self.readouts:
-            readout.configure(self.fstep_lcm, self.regmult_adc)
+        for i,readout in enumerate(self.readouts):
+            readout.configure(i, self.adcs[readout.adc]['fs'])
 
         for buf in self.avg_bufs:
             buf.configure(self.axi_dma_avg, self.switch_avg,
                           self.axi_dma_buf, self.switch_buf)
+
+        # Mixer for NCO ADC/DAC control.
+        self.mixer = Mixer(self.usp_rf_data_converter_0)
+
+        # list of objects that need to be registered for autoproxying over Pyro
+        self.autoproxy = [self.streamer, self.tproc]
 
     @property
     def tproc(self):
@@ -1255,12 +1725,6 @@ class QickSoc(Overlay, QickConfig):
                 raise RuntimeError("Unexpected frequencies:",freqs)
             return freqs[0]
 
-        self['fs_dac'] = get_common_freq([block[1]['fs'] for block in self.dacs.items()])
-        self['fs_adc'] = get_common_freq([block[1]['fs'] for block in self.adcs.items()])
-
-        # Assume the tProc has the same frequency as the DAC fabric.
-        self['fs_proc'] = get_common_freq(dac_fabric_freqs)
-        self['adc_fabric_freq'] = get_common_freq(adc_fabric_freqs)
         self['refclk_freq'] = get_common_freq(refclk_freqs)
 
     def set_all_clks(self):
