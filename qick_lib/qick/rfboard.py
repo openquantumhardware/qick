@@ -1,5 +1,6 @@
 import os
 import pynq
+from .qick import *
 from pynq import Overlay
 import xrfclk
 import xrfdc
@@ -7,30 +8,6 @@ import numpy as np
 from pynq import allocate
 from pynq.lib import AxiGPIO
 import time
-
-class SocIp:
-    REGISTERS = {}    
-    
-    def __init__(self, ip, **kwargs):
-        self.ip = ip
-        
-    def write(self, offset, s):
-        self.ip.write(offset, s)
-        
-    def read(self, offset):
-        return self.ip.read(offset)
-    
-    def __setattr__(self, a ,v):
-        if a in self.__class__.REGISTERS:
-            self.ip.write(4*self.__class__.REGISTERS[a], v)
-        else:
-            return super().__setattr__(a,v)
-    
-    def __getattr__(self, a):
-        if a in self.__class__.REGISTERS:
-            return self.ip.read(4*self.__class__.REGISTERS[a])
-        else:
-            return super().__getattr__(a)
 
 class AxisSignalGenV3(SocIp):
     # AXIS Table Registers.
@@ -40,6 +17,7 @@ class AxisSignalGenV3(SocIp):
     # * 0 : disable writes.
     # * 1 : enable writes.
     #
+    bindto = ['user.org:user:axis_signal_gen_v3:1.0']
     REGISTERS = {'start_addr_reg':0, 'we_reg':1}
     
     # Generics
@@ -49,10 +27,10 @@ class AxisSignalGenV3(SocIp):
     # Maximum number of samples
     MAX_LENGTH = 2**N*NDDS
     
-    def __init__(self, ip, axi_dma, dds_mr_switch, axis_switch, channel, name, **kwargs):
-        # Init IP.
-        super().__init__(ip)
-        
+    def __init__(self, description, **kwargs):
+        super().__init__(description)
+
+    def config(self, axi_dma, dds_mr_switch, axis_switch, channel, name, **kwargs):
         # Default registers.
         self.start_addr_reg=0
         self.we_reg=0
@@ -64,7 +42,7 @@ class AxisSignalGenV3(SocIp):
         self.iq_switch = AxisDdsMrSwitch(dds_mr_switch)
         
         # switch
-        self.switch = AxisSwitch(axis_switch)
+        self.switch = axis_switch
         
         # Channel.
         self.ch = channel
@@ -75,7 +53,7 @@ class AxisSignalGenV3(SocIp):
     # Load waveforms.
     def load(self, buff_in,addr=0):
         # Route switch to channel.
-        self.switch.sel(self.ch)
+        self.switch.sel(slv=self.ch)
         
         time.sleep(0.1)
         
@@ -107,6 +85,7 @@ class AxisSignalGenV3(SocIp):
 class AxisSignalGenV3Ctrl(SocIp):
     # Signal Generator V3 Control registers.
     # ADDR_REG
+    bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0']
     REGISTERS = {
         'freq'    : 0,
         'phase'   : 1,
@@ -127,9 +106,8 @@ class AxisSignalGenV3Ctrl(SocIp):
     # Sampling frequency.
     fs    = 4096
     
-    def __init__(self, ip):
-        # Initialize ip
-        super().__init__(ip)
+    def __init__(self, description, **kwargs):
+        super().__init__(description)
         
         # Default registers.
         self.freq    = 0
@@ -199,11 +177,14 @@ class AxisDdsMrSwitch(SocIp):
     # * 0 : real part.
     # * 1 : imaginary part.
     #
+    bindto = ['user.org:user:axis_dds_mr_switch:1.0']
     REGISTERS = {'dds_real_imag' : 0}
     
-    def __init__(self, ip):
-        # Initialize ip
-        super().__init__(ip)
+    def __init__(self, description, **kwargs):
+        """
+        Constructor method
+        """
+        super().__init__(description)
         
         # Default registers.
         # dds_real_imag = 0  : take real part.
@@ -218,7 +199,10 @@ class AxisDdsMrSwitch(SocIp):
     def imag(self):
         self.config(1)
 
-class spi_base:
+class spi(SocIp):
+
+    bindto = ['xilinx.com:ip:axi_quad_spi:3.2']
+
     #
     # SPI registers - See Xilinx PG153 AXI Quad SPI for discriptions
     #
@@ -234,8 +218,14 @@ class spi_base:
     TFOR = 0x74   # 0x74 - RW - SPI Transmit FIFO Occupancy Register
     RFOR = 0x78   # 0x78 - RO - SPI Receive FIFO Occupancy Register
     
-    # Pointer to SPI IP.
-    ip = 0
+    def __init__(self, description, **kwargs):
+        super().__init__(description)
+        
+        # Soft reset SPI.
+        self.rst()
+        
+        # De-assert slave select
+        self.reg_wr("SSR",0)
     
     # Number of channels (to control CS/LE).
     NCH = 1
@@ -245,21 +235,21 @@ class spi_base:
         reg_val = -1
         
         if reg == "CR":
-            reg_val = self.ip.read(self.CR)
+            reg_val = self.read(self.CR)
         elif reg == "SR":
-            reg_val = self.ip.read(self.SR)
+            reg_val = self.read(self.SR)
         elif reg == "SSR":
-            reg_val = self.ip.read(self.SSR)
+            reg_val = self.read(self.SSR)
         elif reg == "DGIER":
-            reg_val = self.ip.read(self.DGIER)
+            reg_val = self.read(self.DGIER)
         elif reg == "IPISR":
-            reg_val = self.ip.read(self.IPISR)
+            reg_val = self.read(self.IPISR)
         elif reg == "IPIER":
-            reg_val = self.ip.read(self.IPIER)
+            reg_val = self.read(self.IPIER)
         elif reg == "TFOR":
-            reg_val = self.ip.read(self.TFOR)
+            reg_val = self.read(self.TFOR)
         elif reg == "RFOR":
-            reg_val = self.ip.read(self.RFOR)
+            reg_val = self.read(self.RFOR)
         else:
             print("%s: register %s not recognized." %(self.__class__.__name__,reg))            
             
@@ -268,16 +258,16 @@ class spi_base:
     # Register write.
     def reg_wr(self,reg="CR",reg_val=0):
         if reg == "CR":
-            self.ip.write(self.CR,reg_val)
+            self.write(self.CR,reg_val)
         elif reg == "SSR":
-            self.ip.write(self.SSR,reg_val)
+            self.write(self.SSR,reg_val)
         elif reg == "DGIER":
-            self.ip.write(self.DGIER,reg_val)
+            self.write(self.DGIER,reg_val)
         else:
             print("%s: register %s not recognized." %(self.__class__.__name__,reg))
     
     def rst(self):
-        self.ip.write(self.SRR,0xA)
+        self.write(self.SRR,0xA)
     
     # SPI Control Register:
     # Bit 9 : LSB/MSB selection.
@@ -405,7 +395,7 @@ class spi_base:
         # Send data.
         for i in range(n):
             # Send data.
-            self.ip.write(self.DTR,data[i])
+            self.write(self.DTR,data[i])
             
             # LE pulse at the end.
             if cs_t == "pulse":
@@ -430,10 +420,10 @@ class spi_base:
             return []
         else:
             # Get number of samples on fifo.
-            nr = self.ip.read(self.RFOR) + 1
+            nr = self.read(self.RFOR) + 1
             data_r = np.zeros(nr)
             for i in range(nr):
-                data_r[i] = self.ip.read(self.DRR)
+                data_r[i] = self.read(self.DRR)
             return data_r
         
     # Send/Receive.
@@ -443,17 +433,6 @@ class spi_base:
     
         return data_r
     
-class spi(spi_base):
-    def __init__(self, ip):
-        # Set ip pointer.
-        self.ip = ip
-        
-        # Soft reset SPI.
-        self.rst()
-        
-        # De-assert slave select
-        self.reg_wr("SSR",0)
-
 # Step Attenuator PE43705.
 # Parts are used in serial mode.
 # See schematics for Address/LE correspondance.
@@ -1319,13 +1298,13 @@ class adc_rf_ch():
         self.attn.set_att(db)
         
     # Get data from buffer.
-    def transfer(self,buff):
-        self.buf.transfer(buff)
+    def transfer(self):
+        return self.buf.transfer()
         
     # Capture data on buffer.
     def capture(self):
         # Route Switch to the right channel.
-        self.switch.sel(self.ch)
+        self.buf.route(self.ch)
         time.sleep(0.1)
         
         self.buf.enable()
@@ -1369,8 +1348,8 @@ class adc_dc_ch():
         self.gain.set_gain(db)
         
     # Get data from buffer.
-    def transfer(self,buff):
-        self.buf.transfer(buff)
+    def transfer(self):
+        self.buf.transfer()
         
     # Capture data on buffer.
     def capture(self):
@@ -1425,93 +1404,6 @@ class dac_ch():
         else:
             print("%s: attenuator %d not in chain." %(self.__class__.__name__,attn))
             
-class MrBufferEt(SocIp):
-    # Registers.
-    # DW_CAPTURE_REG
-    # * 0 : Capture disabled.
-    # * 1 : Capture enabled (capture started by external trigger).
-    #
-    # DR_START_REG
-    # * 0 : don't send.
-    # * 1 : start sending data.
-    #
-    # DW_CAPTURE_REG needs to be de-asserted and asserted again to allow a new capture.
-    # DR_START_REG needs to be de-assereted and asserted again to allow a new transfer.
-    #
-    REGISTERS = {'dw_capture_reg':0, 'dr_start_reg':1}
-    
-    # Generics
-    N = 14
-    Nm = 8
-        
-    # Maximum number of samples
-    MAX_LENGTH = 2**N * Nm   
-    
-    def __init__(self, ip, axi_dma, **kwargs):
-        # Init IP.
-        super().__init__(ip)
-        
-        # Default registers.
-        self.dw_capture_reg=0
-        self.dr_start_reg=0
-        
-        # dma
-        self.dma = axi_dma
-        
-    def transfer(self, buff):
-        # Start send data mode.
-        self.dr_start_reg = 1
-        
-        # DMA data.
-        self.dma.recvchannel.transfer(buff)
-        self.dma.recvchannel.wait()
-
-        # Stop send data mode.
-        self.dr_start_reg = 0  
-        
-    def enable(self):
-        self.dw_capture_reg = 1
-        
-    def disable(self):
-        self.dw_capture_reg = 0
-        
-class AxisSwitch(SocIp):
-    REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
-    
-    # Number of slave interfaces.
-    NSL = 8
-    
-    # Number of master interfaces.
-    NMI = 1
-    
-    def __init__(self, switch, **kwargs):
-        super().__init__(switch)
-        self.switch = self.ip
-        
-        # Init axis_switch.
-        self.ctrl = 0
-        self.disable_ports()
-            
-    def disable_ports(self):
-        for ii in range(self.NMI):
-            offset = self.REGISTERS['mix_mux'] + 4*ii
-            self.write(offset,0x80000000)
-        
-    def sel(self,ch):
-        # Disable register update.
-        self.ctrl = 0
-
-        # Disable all MI ports.
-        self.disable_ports()
-        
-        # MI[0] -> SI[ch]
-        offset = self.REGISTERS['mix_mux']
-        self.write(offset,ch)
-
-        # Enable register update.
-        self.ctrl = 2                     
-                    
-            
 class PfbSoc(Overlay):
     FREF_PLL = 204.8
     
@@ -1526,70 +1418,31 @@ class PfbSoc(Overlay):
         
         # Signal Generators.
         self.gen = []
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_0,
-                                         self.axi_dma_0,
-                                         self.axis_dds_mr_switch_0,
-                                         self.axis_switch_0, 
-                                         0, 
-                                         'DAC0'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_1, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_1,
-                                        self.axis_switch_0, 
-                                        1, 
-                                        'DAC1'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_2, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_2,
-                                        self.axis_switch_0, 
-                                        2, 
-                                        'DAC2'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_3, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_3,
-                                        self.axis_switch_0, 
-                                        3, 
-                                        'DAC3'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_4, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_4,
-                                        self.axis_switch_0, 
-                                        4, 
-                                        'DAC4'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_5, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_5,
-                                        self.axis_switch_0, 
-                                        5, 
-                                        'DAC5'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_6, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_6,
-                                        self.axis_switch_0, 
-                                        6, 
-                                        'DAC6'))
-        self.gen.append(AxisSignalGenV3(self.axis_signal_gen_v3_7, 
-                                        self.axi_dma_0, 
-                                        self.axis_dds_mr_switch_7,
-                                        self.axis_switch_0, 
-                                        7, 
-                                        'DAC7'))
+        for i in range(8):
+            gen = getattr(self, "axis_signal_gen_v3_{0}".format(i))
+            gen.config(self.axi_dma_0,
+                    getattr(self, "axis_dds_mr_switch_{0}".format(i)),
+                    self.axis_switch_0,
+                    i,
+                    "DAC{0}".format(i))
+            self.gen.append(gen)
                 
         # Signal Generators Control.
         self.gen_ctrl = []
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_0))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_1))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_2))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_3))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_4))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_5))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_6))
-        self.gen_ctrl.append(AxisSignalGenV3Ctrl(self.axis_signal_gen_v3_c_7))
-        self.switch_gen = AxisDdsMrSwitch(self.axis_dds_mr_switch_0)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_0)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_1)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_2)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_3)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_4)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_5)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_6)
+        self.gen_ctrl.append(self.axis_signal_gen_v3_c_7)
+        self.switch_gen = self.axis_dds_mr_switch_0
         
         # Buffer for ADC channels.
-        self.switch_bufs = AxisSwitch(self.axis_switch_1)
-        self.bufs = MrBufferEt(self.mr_buffer_et_0, self.axi_dma_1)
+        self.switch_bufs = self.axis_switch_1
+        self.bufs = self.mr_buffer_et_0
+        self.bufs.config(self.axi_dma_1, self.switch_bufs)
         
         #Enable 122.88 MHz Ref out on J108
         #mylmk04208regs = [
@@ -1605,8 +1458,7 @@ class PfbSoc(Overlay):
         xrfclk.set_ref_clks(lmk_freq=122.88128, lmx_freq=204.8)
         
         # SPI used for Attenuators.
-        self.attn_spi_i = spi(self.attn_spi)
-        self.attn_spi_i.config(
+        self.attn_spi.config(
             lsb="lsb",
             msttran="enable",
             ssmode="ssr",
@@ -1616,8 +1468,7 @@ class PfbSoc(Overlay):
             en="enable")
         
         # SPI used for Power, Switch and Fan.
-        self.psf_spi_i = spi(self.psf_spi)
-        self.psf_spi_i.config(
+        self.psf_spi.config(
             lsb="msb",
             msttran="enable",
             ssmode="ssr",
@@ -1627,8 +1478,7 @@ class PfbSoc(Overlay):
             en="enable")
         
         # SPI used for the LO.
-        self.lo_spi_i = spi(self.lo_spi)
-        self.lo_spi_i.config(
+        self.lo_spi.config(
             lsb="msb",
             msttran="enable",
             ssmode="ssr",
@@ -1638,8 +1488,7 @@ class PfbSoc(Overlay):
             en="enable")
         
         # SPI used for DAC BIAS.
-        self.dac_bias_spi_i = spi(self.dac_bias_spi)
-        self.dac_bias_spi_i.config(
+        self.dac_bias_spi.config(
             lsb="msb",
             msttran="enable",
             ssmode="ssr",
@@ -1650,38 +1499,38 @@ class PfbSoc(Overlay):
             cpha="invert")
         
         # ADC/DAC power enable, DAC RF input switch.
-        self.adc_pwr = power_sw_fan(self.psf_spi_i, nch=4, le=[0,1,2,3], en_l="low", cs_t="")
-        self.dac_pwr = power_sw_fan(self.psf_spi_i, nch=4, le=[1,2,3], en_l="low", cs_t="")
-        self.dac_sw  = power_sw_fan(self.psf_spi_i, nch=4, le=[0,2,3], en_l="low", cs_t="")
+        self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[0,1,2,3], en_l="low", cs_t="")
+        self.dac_pwr = power_sw_fan(self.psf_spi, nch=4, le=[1,2,3], en_l="low", cs_t="")
+        self.dac_sw  = power_sw_fan(self.psf_spi, nch=4, le=[0,2,3], en_l="low", cs_t="")
         
         # LO Synthesizers.
         self.lo = []
-        self.lo.append(lo_synth(self.lo_spi_i, nch=2, le=[0], en_l="low", cs_t=""))
-        self.lo.append(lo_synth(self.lo_spi_i, nch=2, le=[1], en_l="low", cs_t=""))
+        self.lo.append(lo_synth(self.lo_spi, nch=2, le=[0], en_l="low", cs_t=""))
+        self.lo.append(lo_synth(self.lo_spi, nch=2, le=[1], en_l="low", cs_t=""))
         
         # DAC BIAS.
         self.dac_bias = []
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[0,1,2,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[1,2,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[0,2,3], en_l="low", cs_t="") )                           
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[2,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[0,1,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[1,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[0,3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi_i, nch=4, le=[3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,1,2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[1,2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,2,3], en_l="low", cs_t="") )                           
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,1,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[1,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[3], en_l="low", cs_t=""))
         
         # ADC channels.
         self.adcs = []
         for ii in range(4):
-            self.adcs.append(adc_rf_ch(ii, self.switch_bufs, self.bufs, self.attn_spi_i))
+            self.adcs.append(adc_rf_ch(ii, self.switch_bufs, self.bufs, self.attn_spi))
             
         for ii in range(4):
-            self.adcs.append(adc_dc_ch(4+ii, self.switch_bufs, self.bufs, self.psf_spi_i))
+            self.adcs.append(adc_dc_ch(4+ii, self.switch_bufs, self.bufs, self.psf_spi))
         
         # DAC channels.
         self.dacs = []
         for ii in range(8):            
-            self.dacs.append(dac_ch(ii , self.gen[ii], self.gen_ctrl[ii], self.dac_sw, self.attn_spi_i))        
+            self.dacs.append(dac_ch(ii , self.gen[ii], self.gen_ctrl[ii], self.dac_sw, self.attn_spi))        
         
     def set_all_clks(self):
        # xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
