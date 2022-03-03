@@ -1328,29 +1328,49 @@ class QickSoc(Overlay, QickConfig):
         else:
             Overlay.__init__(self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
 
-        # Configuration dictionary
+        # Initialize the configuration
         self._cfg = {}
+        QickConfig.__init__(self)
 
         self['board'] = os.environ["BOARD"]
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
 
-        # Configure PLLs if requested, or if any ADC/DAC is not locked.
-        if force_init_clks:
-            self.set_all_clks()
-            self.download()
-        else:
-            self.download()
-            if not self.clocks_locked():
-                self.set_all_clks()
-                self.download()
-        if not self.clocks_locked():
-            print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+        self.config_clocks(force_init_clks)
 
         # RF data converter (for configuring ADCs and DACs)
         self.rf = self.usp_rf_data_converter_0
 
+        # Mixer for NCO ADC/DAC control.
+        self.mixer = Mixer(self.usp_rf_data_converter_0)
+
+        self.map_signal_paths()
+
+        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+        self._tproc = self.axis_tproc64x32_x8_0
+        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+
+        self._streamer = DataStreamer(self)
+
+        # list of objects that need to be registered for autoproxying over Pyro
+        self.autoproxy = [self.streamer, self.tproc]
+
+    @property
+    def tproc(self):
+        return self._tproc
+
+    @property
+    def streamer(self):
+        return self._streamer
+
+    def map_signal_paths(self):
+        """
+        Make lists of signal generator, readout, and buffer blocks in the firmware.
+        Also map the switches connecting the generators and buffers to DMA.
+        Fill the config dictionary with parameters of the DAC and ADC channels.
+        """
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
 
@@ -1430,17 +1450,6 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
 
-        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-        self._tproc  = self.axis_tproc64x32_x8_0
-        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-
-        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
-
-        self._streamer = DataStreamer(self)
-
-        # Initialize the configuration (this will calculate the frequency plan)
-        QickConfig.__init__(self)
-
         # Configure the drivers.
         for gen in self.gens:
             gen.configure(self.axi_dma_gen, self.switch_gen, self.dacs[gen.dac]['fs'])
@@ -1452,19 +1461,20 @@ class QickSoc(Overlay, QickConfig):
             buf.configure(self.axi_dma_avg, self.switch_avg,
                           self.axi_dma_buf, self.switch_buf)
 
-        # Mixer for NCO ADC/DAC control.
-        self.mixer = Mixer(self.usp_rf_data_converter_0)
-
-        # list of objects that need to be registered for autoproxying over Pyro
-        self.autoproxy = [self.streamer, self.tproc]
-
-    @property
-    def tproc(self):
-        return self._tproc
-
-    @property
-    def streamer(self):
-        return self._streamer
+    def config_clocks(self, force_init_clks):
+        """
+        Configure PLLs if requested, or if any ADC/DAC is not locked.
+        """
+        if force_init_clks:
+            self.set_all_clks()
+            self.download()
+        else:
+            self.download()
+            if not self.clocks_locked():
+                self.set_all_clks()
+                self.download()
+        if not self.clocks_locked():
+            print("Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
 
     def clocks_locked(self):
         """

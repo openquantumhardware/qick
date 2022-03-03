@@ -1535,3 +1535,117 @@ class PfbSoc(Overlay):
     def set_all_clks(self):
        # xrfclk.set_all_ref_clks(self.__class__.FREF_PLL)
         xrfclk.set_ref_clks(lmk_freq=122.88128, lmx_freq=204.8)
+
+class RFQickSoc(QickSoc):
+    """
+    Overrides the __init__ method of QickSoc in order to add the RF board drivers.
+    Otherwise supports all the QickSoc functionality.
+    """
+    def __init__(self, bitfile=None, force_init_clks=False,ignore_version=True, **kwargs):
+        """
+        Constructor method
+        """
+        # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
+        # We need to program the clocks first.
+        if bitfile==None:
+            Overlay.__init__(self, bitfile_path(), ignore_version=ignore_version, download=False, **kwargs)
+        else:
+            Overlay.__init__(self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
+
+        # Initialize the configuration
+        self._cfg = {}
+        QickConfig.__init__(self)
+
+        self['board'] = os.environ["BOARD"]
+
+        # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
+        self.list_rf_blocks(self.ip_dict['usp_rf_data_converter_0']['parameters'])
+
+        self.config_clocks(force_init_clks)
+
+        # RF data converter (for configuring ADCs and DACs)
+        self.rf = self.usp_rf_data_converter_0
+
+        # Mixer for NCO ADC/DAC control.
+        self.mixer = Mixer(self.usp_rf_data_converter_0)
+
+        self.config_rfboard()
+
+        self.map_signal_paths()
+
+        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+        self._tproc = self.axis_tproc64x32_x8_0
+        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+
+        self._streamer = DataStreamer(self)
+
+        # list of objects that need to be registered for autoproxying over Pyro
+        self.autoproxy = [self.streamer, self.tproc]
+
+    def config_rfboard(self):
+        """
+        Configure the SPI interfaces to the RF board.
+        """
+        # SPI used for Attenuators.
+        self.attn_spi.config(
+            lsb="lsb",
+            msttran="enable",
+            ssmode="ssr",
+            rxfifo="rst",
+            txfifo="rst",
+            mst="master",
+            en="enable")
+        
+        # SPI used for Power, Switch and Fan.
+        self.psf_spi.config(
+            lsb="msb",
+            msttran="enable",
+            ssmode="ssr",
+            rxfifo="rst",
+            txfifo="rst",
+            mst="master",
+            en="enable")
+        
+        # SPI used for the LO.
+        self.lo_spi.config(
+            lsb="msb",
+            msttran="enable",
+            ssmode="ssr",
+            rxfifo="rst",
+            txfifo="rst",
+            mst="master",
+            en="enable")
+        
+        # SPI used for DAC BIAS.
+        self.dac_bias_spi.config(
+            lsb="msb",
+            msttran="enable",
+            ssmode="ssr",
+            rxfifo="rst",
+            txfifo="rst",
+            mst="master",
+            en="enable",
+            cpha="invert")
+        
+        # ADC/DAC power enable, DAC RF input switch.
+        self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[0,1,2,3], en_l="low", cs_t="")
+        self.dac_pwr = power_sw_fan(self.psf_spi, nch=4, le=[1,2,3], en_l="low", cs_t="")
+        self.dac_sw  = power_sw_fan(self.psf_spi, nch=4, le=[0,2,3], en_l="low", cs_t="")
+        
+        # LO Synthesizers.
+        self.lo = []
+        self.lo.append(lo_synth(self.lo_spi, nch=2, le=[0], en_l="low", cs_t=""))
+        self.lo.append(lo_synth(self.lo_spi, nch=2, le=[1], en_l="low", cs_t=""))
+        
+        # DAC BIAS.
+        self.dac_bias = []
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,1,2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[1,2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,2,3], en_l="low", cs_t="") )                           
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[2,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,1,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[1,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[0,3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[3], en_l="low", cs_t=""))
+        
