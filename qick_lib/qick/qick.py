@@ -17,25 +17,6 @@ from .qick_asm import QickConfig
 from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
-# Some support functions
-def format_buffer(buff):
-    """
-    Return the I and Q values associated with a buffer value. The lower 16 bits correspond to the I value, and the upper 16 bits correspond to the Q value.
-
-    :param buff: Buffer location
-    :type buff: int
-    :returns:
-    - dataI (:py:class:`int`) - I data value
-    - dataQ (:py:class:`int`) - Q data value
-    """
-    data = buff
-    dataI = data & 0xFFFF
-    dataI = dataI.astype(np.int16)
-    dataQ = data >> 16
-    dataQ = dataQ.astype(np.int16)
-    
-    return dataI,dataQ
-
 class SocIp(DefaultIP):
     """
     SocIp class
@@ -101,41 +82,15 @@ class SocIp(DefaultIP):
         else:
             return super().__getattribute__(a)           
         
-class AxisSignalGen(SocIp):
+class AbsSignalGen(SocIp):
     """
-    AxisSignalGen class
-    Supports AxisSignalGenV4 and AxisSignalGenV5, since they have the same software interface (ignoring registers that are not used)
-
-    AXIS Signal Generator Registers.
-    START_ADDR_REG
-
-    WE_REG
-    * 0 : disable writes.
-    * 1 : enable writes.
+    Abstract class which defines methods that are common to different signal generators.
     """
-    bindto = ['user.org:user:axis_signal_gen_v4:1.0', 'user.org:user:axis_signal_gen_v5:1.0']
-    REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
-    
     def __init__(self, description, **kwargs):
         """
         Constructor method
         """
         super().__init__(description)
-        
-        # Default registers.
-        self.start_addr_reg=0
-        self.we_reg=0
-        self.rndq_reg = 10
-
-        # Generics
-        self.N = int(description['parameters']['N'])
-        self.NDDS = int(description['parameters']['N_DDS'])
-
-        # Maximum number of samples
-        self.MAX_LENGTH = 2**self.N*self.NDDS
-
-        # Frequency resolution
-        self.B_DDS = 32
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, axi_dma, axis_switch, fs):
@@ -251,6 +206,42 @@ class AxisSignalGen(SocIp):
         """
         self.we_reg = 0
         
+class AxisSignalGen(AbsSignalGen):
+    """
+    AxisSignalGen class
+    Supports AxisSignalGenV4 and AxisSignalGenV5, since they have the same software interface (ignoring registers that are not used)
+
+    AXIS Signal Generator Registers.
+    START_ADDR_REG
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_signal_gen_v4:1.0', 'user.org:user:axis_signal_gen_v5:1.0']
+    REGISTERS = {'start_addr_reg':0, 'we_reg':1, 'rndq_reg':2}
+    
+    def __init__(self, description, **kwargs):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        
+        # Default registers.
+        self.start_addr_reg=0
+        self.we_reg=0
+        self.rndq_reg = 10
+
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N*self.NDDS
+
+        # Frequency resolution
+        self.B_DDS = 32
+
     def rndq(self, sel_):
         """
            TODO: remove this function. This functionality was removed from IP block.
@@ -294,122 +285,7 @@ class AxisSgInt4V1(SocIp):
         ## Get the channel number from the IP instance name.
         #self.ch = int(description['fullpath'].split('_')[-1])
         
-    # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, axi_dma, axis_switch, fs):
-        # dma
-        self.dma = axi_dma
-        
-        # Switch
-        self.switch = axis_switch
-                        
-        # Sampling frequency: it's interpolated by 4 in the DAC.
-        self.fs = fs/self.NDDS   
-        
-        # Frequency step for rounding.
-        self.fstep = self.fs/(2**self.B_DDS)     
-        
-    def configure_connections(self, soc, sigparser, busparser):
-        # what tProc output port drives this generator?
-        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block,port),) = trace_net(busparser, self.fullpath, 's1_axis')
-        # might need to jump through an axis_clk_cnvrt
-        if 'axis_tproc' not in block:
-            ((block,port),) = trace_net(busparser, block, 'S_AXIS')
-        # port names are of the form 'm2_axis_tdata'
-        # subtract 1 to get the output channel number (m0 goes to the DMA)
-        self.tproc_ch = int(port.split('_')[0][1:])-1
-
-        # what switch port drives this generator?
-        ((block,port),) = trace_net(busparser, self.fullpath, 's0_axis')
-        # port names are of the form 'M01_AXIS'
-        self.switch_ch = int(port.split('_')[0][1:])
-
-        # what RFDC port does this generator drive?
-        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
-        # might need to jump through an axis_register_slice
-        if 'rf_data_converter' not in block:
-            ((block,port),) = trace_net(busparser, block, 'M_AXIS')
-        # port names are of the form 's00_axis'
-        self.dac = port[1:3]        
-        
-    # Load waveforms.
-    def load(self, xin_i, xin_q ,addr=0):
-        """
-        Load waveform into I,Q envelope
-
-        :param xin_i: real part of envelope
-        :type xin_i: list
-        :param xin_q: imaginary part of envelope
-        :type xin_q: list
-        :param addr: starting address
-        :type addr: int
-        """
-        # Check for equal length.
-        if len(xin_i) != len(xin_q):
-            print("%s: I/Q buffers must be the same length." % self.__class__.__name__)
-            return
-        
-        # Check for max length.
-        if len(xin_i) > self.MAX_LENGTH:
-            print("%s: buffer length must be %d samples or less." % (self.__class__.__name__,self.MAX_LENGTH))
-            return
-
-        # Check for even transfer size.
-        if len(xin_i) %2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
-
-        # Check for max length.
-        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
-            raise ValueError("real part of envelope exceeds limits of int16 datatype")
-
-        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
-            raise ValueError("imaginary part of envelope exceeds limits of int16 datatype")
-
-        # Route switch to channel.
-        self.switch.sel(mst=self.ch)
-        
-        #time.sleep(0.050)
-        
-        # Format data.
-        xin_i = xin_i.astype(np.int16)
-        xin_q = xin_q.astype(np.int16)
-        xin = np.zeros(len(xin_i))
-        for i in range(len(xin)):
-            xin[i] = xin_i[i] + (xin_q[i] << 16)
-            
-        xin = xin.astype(np.int32)
-        
-        # Define buffer.
-        self.buff = allocate(shape=len(xin), dtype=np.int32)
-        np.copyto(self.buff, xin)
-        
-        ################
-        ### Load I/Q ###
-        ################
-        # Enable writes.
-        self.wr_enable(addr)
-
-        # DMA data.
-        self.dma.sendchannel.transfer(self.buff)
-        self.dma.sendchannel.wait()
-
-        # Disable writes.
-        self.wr_disable()        
-        
-    def wr_enable(self,addr=0):
-        """
-           Enable WE reg
-        """
-        self.start_addr_reg = addr
-        self.we_reg = 1
-        
-    def wr_disable(self):
-        """
-           Disable WE reg
-        """
-        self.we_reg = 0
-        
-class AxisSgMux4V1(SocIp):
+class AxisSgMux4V1(AbsSignalGen):
     """
     AxisSgMux4V1
 
@@ -499,17 +375,6 @@ class AxisSgMux4V1(SocIp):
         # Sanity check.
         if f<self.fs:
             k_i = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
-            if out==0:
-                self.pinc0_reg = k_i
-            elif out==1:
-                self.pinc1_reg = k_i
-            elif out==2:
-                self.pinc2_reg = k_i
-            elif out==3:
-                self.pinc3_reg = k_i                
-            
-        # Register update.
-        self.update()
         
     def set_freq_int(self, k_i, out=0):
         if out==0:
