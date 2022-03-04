@@ -30,6 +30,7 @@ class SocIp(DefaultIP):
         #print("SocIp init", description)
         super().__init__(description)
         self.fullpath = description['fullpath']
+        self.type = description['type'].split(':')[-2]
         #self.ip = description
         
     def write(self, offset, value):
@@ -93,7 +94,10 @@ class AbsSignalGen(SocIp):
         super().__init__(description)
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, axi_dma, axis_switch, fs):
+    def configure(self, ch, axi_dma, axis_switch, fs):
+        # Channel number corresponding to entry in the QickConfig list of gens.
+        self.ch = ch
+
         # dma
         self.dma = axi_dma
         
@@ -102,9 +106,6 @@ class AbsSignalGen(SocIp):
 
         # Sampling frequency.
         self.fs = fs   
-
-        # Frequency step for rounding.
-        self.fstep = fs/(2**self.B_DDS)                 
 
     def configure_connections(self, soc, sigparser, busparser):
         # what tProc output port drives this generator?
@@ -321,20 +322,18 @@ class AxisSgMux4V1(AbsSignalGen):
                 
         # Frequency resolution
         self.B_DDS = 16      
+
+        self.switch_ch = -1
         
-        # NOTE: Only added to avoid errors when parsing.
-        #TODO: do something more sensible
-        self.ch = int(description['fullpath'].split('_')[-1])
-        self.switch_ch = self.ch
         self.MAX_LENGTH = 0
         
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, axi_dma, axis_switch, fs):
+    def configure(self, ch, axi_dma, axis_switch, fs):
+        # Channel number corresponding to entry in the QickConfig list of gens.
+        self.ch = ch
+
         # Sampling frequency: 4x Interpolation applied by DAC IP.
         self.fs = fs/4
-        
-        # Frequency step for rounding.
-        self.fstep = self.fs/(2**self.B_DDS)     
         
     def configure_connections(self, soc, sigparser, busparser):
         self.soc = soc
@@ -377,15 +376,8 @@ class AxisSgMux4V1(AbsSignalGen):
             k_i = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
         
     def set_freq_int(self, k_i, out=0):
-        if out==0:
-            self.pinc0_reg = k_i
-        elif out==1:
-            self.pinc1_reg = k_i
-        elif out==2:
-            self.pinc2_reg = k_i
-        elif out==3:
-            self.pinc3_reg = k_i                
-            
+        setattr(self, "pinc{0}_reg".format(out), k_i)
+
         # Register update.
         self.update()              
                 
@@ -412,9 +404,18 @@ class AxisConstantIQ(SocIp):
         # Register update.
         self.update()
         
-    def config(self, tile, block, fs):
-        self.tile = tile
-        self.dac = block
+    def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
+        # what RFDC port does this generator drive?
+        ((block,port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        # port names are of the form 's00_axis'
+        self.dac = port[1:3]        
+
+    def config(self, rf, fs):
+        # RFDC
+        self.rf = rf
+        # sampling frequency
         self.fs = fs
 
     def update(self):
@@ -481,10 +482,9 @@ class AxisReadoutV2(SocIp):
         
     # Configure this driver with the sampling frequency.
     def configure(self, ch, fs):
-        # Channel number.
+        # Channel number corresponding to entry in the QickConfig list of readouts.
         self.ch = ch
-        # Frequency step for rounding.
-        self.fstep = fs/(2**self.B_DDS)
+
         # Sampling frequency.
         self.fs = fs
         
@@ -686,7 +686,6 @@ class AxisAvgBuffer(SocIp):
         self.tproc_ch = int(port.split('_')[0][1:])-1
 
         #print("%s: readout %s, switch %d, trigger %d, tProc port %d"%(self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
-
 
     def config(self,address=0,length=100):
         """
@@ -1256,18 +1255,18 @@ class AxisSwitch(SocIp):
         # Enable register update.
         self.ctrl = 2     
 
+class RFDC(xrfdc.RFdc):
+    """
+    Extends the xrfdc driver.
+    """
+    bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3"]
 
-class Mixer:    
-    # rf
-    rf = 0
-    
-    def __init__(self, ip):        
-        # Get Mixer Object.
-        self.rf = ip
+    def __init__(self, description):
+        super().__init__(description)
     
     def set_freq(self,f,tile,dac):
         # Make a copy of mixer settings.
-        dac_mixer = self.rf.dac_tiles[tile].blocks[dac].MixerSettings        
+        dac_mixer = self.dac_tiles[tile].blocks[dac].MixerSettings        
         new_mixcfg = dac_mixer.copy()
 
         # Update the copy
@@ -1278,11 +1277,11 @@ class Mixer:
             'PhaseOffset' : 0})
 
         # Update settings.                
-        self.rf.dac_tiles[tile].blocks[dac].MixerSettings = new_mixcfg
-        self.rf.dac_tiles[tile].blocks[dac].UpdateEvent(xrfdc.EVENT_MIXER)
+        self.dac_tiles[tile].blocks[dac].MixerSettings = new_mixcfg
+        self.dac_tiles[tile].blocks[dac].UpdateEvent(xrfdc.EVENT_MIXER)
        
     def set_nyquist(self,nz,tile,dac):
-        dac_tile = self.rf.dac_tiles[tile]
+        dac_tile = self.dac_tiles[tile]
         dac_block = dac_tile.blocks[dac]
         dac_block.NyquistZone = nz  
         
@@ -1343,7 +1342,7 @@ class QickSoc(Overlay, QickConfig):
         self.rf = self.usp_rf_data_converter_0
 
         # Mixer for NCO ADC/DAC control.
-        self.mixer = Mixer(self.usp_rf_data_converter_0)
+        self.mixer = self.usp_rf_data_converter_0
 
         self.map_signal_paths()
 
@@ -1371,6 +1370,13 @@ class QickSoc(Overlay, QickConfig):
         Also map the switches connecting the generators and buffers to DMA.
         Fill the config dictionary with parameters of the DAC and ADC channels.
         """
+        # Use the HWH parser to trace connectivity and deduce the channel numbering.
+        # Since the HWH parser doesn't parse buses, we also make our own BusParser.
+        busparser = BusParser(self.parser)
+        for key,val in self.ip_dict.items():
+            if hasattr(val['driver'],'configure_connections'):
+                getattr(self,key).configure_connections(self, self.parser, busparser)
+
         # AXIS Switch to upload samples into Signal Generators.
         self.switch_gen = self.axis_switch_gen
 
@@ -1380,25 +1386,27 @@ class QickSoc(Overlay, QickConfig):
         # AXIS Switch to read samples from buffer.
         self.switch_buf = self.axis_switch_buf
         
-        # Signal generators.
+        # Signal generators (anything driven by the tProc)
         self.gens = []
+        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1])
+
+        # Constant generators
+        self.iqs = []
 
         # Average + Buffer blocks.
         self.avg_bufs = []
 
-        # Use the HWH parser to trace connectivity and deduce the channel numbering.
-        # Since the HWH parser doesn't parse buses, we also make our own BusParser.
-        busparser = BusParser(self.parser)
-        for key,val in self.ip_dict.items():
-            if hasattr(val['driver'],'configure_connections'):
-                getattr(self,key).configure_connections(self, self.parser, busparser)
-
-        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1])
+        # Readout blocks.
+        self.readouts = []
 
         # Populate the lists with the registered IP blocks.
         for key,val in self.ip_dict.items():
             if (val['driver'] in gen_drivers):
                 self.gens.append(getattr(self,key))
+            elif (val['driver'] == AxisConstantIQ):
+                self.avg_bufs.append(getattr(self,key))
+            elif (val['driver'] == AxisReadoutV2):
+                self.readouts.append(getattr(self,key))
             elif (val['driver'] == AxisAvgBuffer):
                 self.avg_bufs.append(getattr(self,key))
 
@@ -1408,19 +1416,19 @@ class QickSoc(Overlay, QickConfig):
         #    raise RuntimeError("We have %d switch_gen outputs but %d signal generators."%(len(self.switch_gen.NMI),len(self.gens)))
 
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
+        if len(self.readouts) != len(self.avg_bufs):
+            raise RuntimeError("We have %d readouts but %d avg/buffer blocks."%(len(self.readouts),len(self.avg_bufs)))
         if self.switch_avg.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks."%(len(self.switch_avg.NSL),len(self.avg_bufs)))
+            raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks."%(self.switch_avg.NSL,len(self.avg_bufs)))
         if self.switch_buf.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks."%(len(self.switch_buf.NSL),len(self.avg_bufs)))
+            raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks."%(self.switch_buf.NSL,len(self.avg_bufs)))
 
         # Sort the lists by channel number.
         # Typically they are already in order, but good to make sure?
-        # The single source of truth for channel numbering is the switch port index.
-        self.gens.sort(key=lambda x: x.switch_ch)
+        # We order gens by the DAC port number and buffers by the switch port number.
+        self.gens.sort(key=lambda x: x.dac)
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
-
-        # Readout blocks.
-        self.readouts = [buf.readout for buf in self.avg_bufs]
+        self.readouts.sort(key=lambda x: x.buffer.switch_ch)
 
         # Fill the config dictionary with driver parameters.
         self['b_dac'] = self.gens[0].B_DDS #typically 32
@@ -1430,8 +1438,10 @@ class QickSoc(Overlay, QickConfig):
         self['readouts'] = []
         for iGen,gen in enumerate(self.gens):
             thiscfg = {}
+            thiscfg['type'] = gen.type
             thiscfg['maxlen'] = gen.MAX_LENGTH
             thiscfg['b_dds'] = gen.B_DDS
+            thiscfg['switch_ch'] = gen.switch_ch
             thiscfg['tproc_ch'] = gen.tproc_ch
             thiscfg['dac'] = gen.dac
             thiscfg['fs'] = self.dacs[gen.dac]['fs']
@@ -1451,15 +1461,16 @@ class QickSoc(Overlay, QickConfig):
             self['readouts'].append(thiscfg)
 
         # Configure the drivers.
-        for gen in self.gens:
-            gen.configure(self.axi_dma_gen, self.switch_gen, self.dacs[gen.dac]['fs'])
+        for i,gen in enumerate(self.gens):
+            gen.configure(i, self.axi_dma_gen, self.switch_gen, self.dacs[gen.dac]['fs'])
+        
+        for i,iq in enumerate(self.iqs):
+            iq.configure(self.rf, self.dacs[gen.dac]['fs'])
 
-        for i,readout in enumerate(self.readouts):
-            readout.configure(i, self.adcs[readout.adc]['fs'])
-
-        for buf in self.avg_bufs:
+        for i,buf in enumerate(self.avg_bufs):
             buf.configure(self.axi_dma_avg, self.switch_avg,
                           self.axi_dma_buf, self.switch_buf)
+            buf.readout.configure(i, self.adcs[buf.readout.adc]['fs'])
 
     def config_clocks(self, force_init_clks):
         """
@@ -1696,27 +1707,12 @@ class QickSoc(Overlay, QickConfig):
         Channels are indexed as they are on the tProc outputs: in other words, the first DAC channel is channel 1.
         (tProc output 0 is reserved for readout triggers and PMOD outputs)
 
-        Channel 1 : connected to Signal Generator V4, which drives DAC 228 CH0.
-        Channel 2 : connected to Signal Generator V4, which drives DAC 228 CH1.
-        Channel 3 : connected to Signal Generator V4, which drives DAC 228 CH2.
-        Channel 4 : connected to Signal Generator V4, which drives DAC 229 CH0.
-        Channel 5 : connected to Signal Generator V4, which drives DAC 229 CH1.
-        Channel 6 : connected to Signal Generator V4, which drives DAC 229 CH2.
-        Channel 7 : connected to Signal Generator V4, which drives DAC 229 CH3.
-        tiles: DAC 228: 0, DAC 229: 1
-        channels: CH0: 0, CH1: 1, CH2: 2, CH3: 3
-
         :param ch: DAC channel
         :type ch: int
         :param nqz: Nyquist zone
         :type nqz: int
-        :return: 'True' or '1' if the task was completed successfully
-        :rtype: bool
         """
         #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
     
         tile, channel = [int(a) for a in self['gens'][ch-1]['dac']]
-        dac_block=self.rf.dac_tiles[tile].blocks[channel]
-        dac_block.NyquistZone=nqz
-        return dac_block.NyquistZone
-
+        self.rf.set_nyquist(nqz, tile, channel)
