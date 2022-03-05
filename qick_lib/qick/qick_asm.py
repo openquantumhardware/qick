@@ -63,17 +63,10 @@ class QickConfig():
         lines.append("\n\tBoard: " + self['board'])
         lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f"%(
             self['fs_proc'], self['refclk_freq']))
-        #lines.append("\n\tSampling freqs (MHz): DAC %.3f, ADC %.3f"%(
-        #    self['fs_dac'], self['fs_adc']))
-
-        #lines.append("\n\tRefclk multiplier factors: %d (DAC), %d (ADC)"%(
-        #    self.fsmult_dac, self.fsmult_adc))
-        #lines.append("\tFrequency resolution step: %.3f Hz"%(
-        #    self.fstep_lcm*1e6))
 
         lines.append("\n\t%d signal generator channels:"%(len(self['gens'])))
         for iGen,gen in enumerate(self['gens']):
-            lines.append("\t%d:\ttProc output %d, maxlen %d"%(iGen, gen['tproc_ch'], gen['maxlen']))
+            lines.append("\t%d:\t%s - tProc output %d, switch ch %d, maxlen %d"%(iGen, gen['type'], gen['tproc_ch'], gen['switch_ch'], gen['maxlen']))
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz"%(*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
 
         lines.append("\n\t%d readout channels:"%(len(self['readouts'])))
