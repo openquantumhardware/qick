@@ -323,8 +323,8 @@ class AxisSgMux4V1(AbsSignalGen):
         # Frequency resolution
         self.B_DDS = 16      
 
+        # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
-        
         self.MAX_LENGTH = 0
         
     # Configure this driver with links to the other drivers, and the signal gen channel number.
@@ -360,7 +360,7 @@ class AxisSgMux4V1(AbsSignalGen):
         self.we_reg = 1
         self.we_reg = 0
             
-    def set_freq(self, f, out=0):
+    def set_freq(self, f, out=0, dac_ch=0):
         """
         Set frequency register
 
@@ -1423,6 +1423,8 @@ class QickSoc(Overlay, QickConfig):
             raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks."%(self.switch_avg.NSL,len(self.avg_bufs)))
         if self.switch_buf.NSL != len(self.avg_bufs):
             raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks."%(self.switch_buf.NSL,len(self.avg_bufs)))
+
+        #TODO: get the trigger port
 
         # Sort the lists by channel number.
         # Typically they are already in order, but good to make sure?
