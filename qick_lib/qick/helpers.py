@@ -3,7 +3,8 @@ Support functions.
 """
 import numpy as np
 
-def gauss(mu=0,si=25,length=100,maxv=30000):
+
+def gauss(mu=0, si=25, length=100, maxv=30000):
     """
     Create a numpy array containing a Gaussian function
 
@@ -18,12 +19,13 @@ def gauss(mu=0,si=25,length=100,maxv=30000):
     :return: Numpy array containing a Gaussian function
     :rtype: array
     """
-    x = np.arange(0,length)
+    x = np.arange(0, length)
     y = 1/(2*np.pi*si**2)*np.exp(-(x-mu)**2/si**2)
     y = y/np.max(y)*maxv
     return y
 
-def triang(length=100,maxv=30000):
+
+def triang(length=100, maxv=30000):
     """
     Create a numpy array containing a triangle function
 
@@ -34,11 +36,12 @@ def triang(length=100,maxv=30000):
     :return: Numpy array containing a triangle function
     :rtype: array
     """
-    y1 = np.arange(0,length/2)
-    y2 = np.flip(y1,0)
-    y = np.concatenate((y1,y2))
+    y1 = np.arange(0, length/2)
+    y2 = np.flip(y1, 0)
+    y = np.concatenate((y1, y2))
     y = y/np.max(y)*maxv
     return y
+
 
 def trace_net(parser, blockname, portname):
     """
@@ -59,7 +62,8 @@ def trace_net(parser, blockname, portname):
     # the net connected to this port
     netname = parser.pins[fullport]
     # get the list of other ports on this net, discard the port we started at and ILA ports
-    return [x.split('/') for x in parser.nets[netname] if x!=fullport and 'system_ila_' not in x]
+    return [x.split('/') for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
+
 
 def get_fclk(parser, blockname, portname):
     """
@@ -74,9 +78,11 @@ def get_fclk(parser, blockname, portname):
     :return: frequency in MHz
     :rtype: float
     """
-    xmlpath="./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(blockname,portname)
+    xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
+        blockname, portname)
     port = parser.root.find(xmlpath)
     return float(port.get('CLKFREQUENCY'))/1e6
+
 
 class BusParser:
     def __init__(self, parser):

@@ -4,6 +4,7 @@ import queue
 import time
 import os
 
+
 class DataStreamer():
     """
     Uses a separate process to read data from the average buffers.
@@ -13,13 +14,14 @@ class DataStreamer():
     :param soc: The QickSoc object.
     :type soc: QickSoc
     """
+
     def __init__(self, soc):
         self.soc = soc
 
         # Process object for the streaming readout.
-        self.readout_process=None
+        self.readout_process = None
 
-    def start_readout(self,total_count, counter_addr=1, ch_list=[0,1], reads_per_count=1):
+    def start_readout(self, total_count, counter_addr=1, ch_list=[0, 1], reads_per_count=1):
         """
         Start a streaming readout of the average buffers.
 
@@ -55,7 +57,8 @@ class DataStreamer():
         self.done_flag = Event()
 
         # daemon=True means the readout process will be killed if the parent is killed
-        self.readout_process = Process(target=self._run_readout, args=(total_count, counter_addr, ch_list, reads_per_count), daemon=True)
+        self.readout_process = Process(target=self._run_readout, args=(
+            total_count, counter_addr, ch_list, reads_per_count), daemon=True)
         self.readout_process.start()
 
     def stop_readout(self):
@@ -95,7 +98,8 @@ class DataStreamer():
         :rtype: list
         """
         try:
-            raise RuntimeError("exception in readout loop") from self.error_queue.get(block=False)
+            raise RuntimeError(
+                "exception in readout loop") from self.error_queue.get(block=False)
         except queue.Empty:
             pass
 
@@ -121,46 +125,53 @@ class DataStreamer():
         :type reads_per_count: int
         """
         try:
-            count=0
-            last_count=0
-            stride=int(0.1 * self.soc.get_avg_max_length(0)) # how many measurements to transfer at a time
+            count = 0
+            last_count = 0
+            # how many measurements to transfer at a time
+            stride = int(0.1 * self.soc.get_avg_max_length(0))
             # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
             self.soc.tproc.stop()
 
-            self.soc.tproc.single_write(addr= counter_addr,data=0)   #make sure count variable is reset to 0 before starting processor
-            stats=[]
+            # make sure count variable is reset to 0 before starting processor
+            self.soc.tproc.single_write(addr=counter_addr, data=0)
+            stats = []
 
             t_start = time.time()
 
             self.soc.tproc.start()
-            while (not self.stop_flag.is_set()) and last_count<total_count:   # Keep streaming data until you get all of it
-                count = self.soc.tproc.single_read(addr= counter_addr)*reads_per_count
-                if count>=min(last_count+stride,total_count):  #wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                    addr=last_count % self.soc.get_avg_max_length(0)
+            # Keep streaming data until you get all of it
+            while (not self.stop_flag.is_set()) and last_count < total_count:
+                count = self.soc.tproc.single_read(
+                    addr=counter_addr)*reads_per_count
+                # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
+                if count >= min(last_count+stride, total_count):
+                    addr = last_count % self.soc.get_avg_max_length(0)
                     length = count-last_count
-                    length -= length%2 # transfers must be of even length; trim the length (instead of padding it)
-                    if length>=self.soc.get_avg_max_length(0):
+                    # transfers must be of even length; trim the length (instead of padding it)
+                    length -= length % 2
+                    if length >= self.soc.get_avg_max_length(0):
                         raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                                %(length, self.soc.get_avg_max_length(0)) +
-                                "\nYou need to slow down the tProc by increasing relax_delay." +
-                                "\nIf the TQDM progress bar is enabled, disabling it may help.")
+                                           % (length, self.soc.get_avg_max_length(0)) +
+                                           "\nYou need to slow down the tProc by increasing relax_delay." +
+                                           "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
                     # buffer for each channel
-                    d_buf=np.zeros((len(ch_list),2,length))
+                    d_buf = np.zeros((len(ch_list), 2, length))
 
-                    for iCh, ch in enumerate(ch_list):  #for each adc channel get the single shot data and add it to the buffer
-                        data = self.soc.get_accumulated(ch=ch,address=addr, length=length)
+                    # for each adc channel get the single shot data and add it to the buffer
+                    for iCh, ch in enumerate(ch_list):
+                        data = self.soc.get_accumulated(
+                            ch=ch, address=addr, length=length)
 
-                        d_buf[iCh]=data
+                        d_buf[iCh] = data
 
-                    last_count+=length
+                    last_count += length
 
-                    stats = (time.time()-t_start, count,addr, length)
+                    stats = (time.time()-t_start, count, addr, length)
                     self.data_queue.put((d_buf, stats))
             self.done_flag.set()
 
             # Note that the process will not terminate until the queue is empty.
         except Exception as e:
             self.error_queue.put(e)
-
