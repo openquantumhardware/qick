@@ -249,7 +249,7 @@ class AxisSignalGen(AbsSignalGen):
         """
         self.rndq_reg = sel_
                 
-class AxisSgInt4V1(SocIp):
+class AxisSgInt4V1(AbsSignalGen):
     """
     AxisSgInt4V1
 
@@ -412,7 +412,7 @@ class AxisConstantIQ(SocIp):
         # port names are of the form 's00_axis'
         self.dac = port[1:3]        
 
-    def config(self, rf, fs):
+    def configure(self, rf, fs):
         # RFDC
         self.rf = rf
         # sampling frequency
@@ -1259,7 +1259,8 @@ class RFDC(xrfdc.RFdc):
     """
     Extends the xrfdc driver.
     """
-    bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3"]
+    bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
+              "xilinx.com:ip:usp_rf_data_converter:2.4"]
 
     def __init__(self, description):
         super().__init__(description)
@@ -1404,7 +1405,7 @@ class QickSoc(Overlay, QickConfig):
             if (val['driver'] in gen_drivers):
                 self.gens.append(getattr(self,key))
             elif (val['driver'] == AxisConstantIQ):
-                self.avg_bufs.append(getattr(self,key))
+                self.iqs.append(getattr(self,key))
             elif (val['driver'] == AxisReadoutV2):
                 self.readouts.append(getattr(self,key))
             elif (val['driver'] == AxisAvgBuffer):
