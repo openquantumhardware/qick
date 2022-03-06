@@ -1,8 +1,7 @@
-import numpy as np
 from multiprocessing import Process, Queue, Event
 import queue
 import time
-import os
+import numpy as np
 
 
 class DataStreamer():
@@ -21,7 +20,7 @@ class DataStreamer():
         # Process object for the streaming readout.
         self.readout_process = None
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=[0, 1], reads_per_count=1):
+    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
         """
         Start a streaming readout of the average buffers.
 
@@ -34,6 +33,8 @@ class DataStreamer():
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
         """
+        if ch_list is None:
+            ch_list = [0, 1]
 
         # if there's still a readout process running, stop it
         if self.readout_alive():

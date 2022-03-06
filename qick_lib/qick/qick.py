@@ -9,9 +9,7 @@ try:
 except:
     pass
 import numpy as np
-from pynq.lib import AxiGPIO
-import time
-from .parser import *
+from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig
 from .helpers import trace_net, get_fclk, BusParser
@@ -24,7 +22,7 @@ class SocIp(DefaultIP):
     """
     REGISTERS = {}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -33,17 +31,6 @@ class SocIp(DefaultIP):
         self.fullpath = description['fullpath']
         self.type = description['type'].split(':')[-2]
         #self.ip = description
-
-    def write(self, offset, value):
-        """
-        Writes a value to a register specified by an offset
-
-        :param offset: Offset value (register)
-        :type offset: int
-        :param value: value to be written
-        :type value: int
-        """
-        super().write(offset, value)
 
     def read(self, offset):
         """
@@ -62,13 +49,10 @@ class SocIp(DefaultIP):
         :type a: int
         :param v: value to be written
         :type v: int
-        :return: Register arguments
-        :rtype: *args object
         """
         if a in self.__class__.REGISTERS:
             super().write(4*self.__class__.REGISTERS[a], int(v))
-        else:
-            return super().__setattr__(a, v)
+        super().__setattr__(a, v)
 
     def __getattr__(self, a):
         """
@@ -81,20 +65,13 @@ class SocIp(DefaultIP):
         """
         if a in self.__class__.REGISTERS:
             return super().read(4*self.__class__.REGISTERS[a])
-        else:
-            return super().__getattribute__(a)
+        return super().__getattribute__(a)
 
 
 class AbsSignalGen(SocIp):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
-
-    def __init__(self, description, **kwargs):
-        """
-        Constructor method
-        """
-        super().__init__(description)
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, ch, axi_dma, axis_switch, fs):
@@ -231,7 +208,7 @@ class AxisSignalGen(AbsSignalGen):
               'user.org:user:axis_signal_gen_v5:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -273,7 +250,7 @@ class AxisSgInt4V1(AbsSignalGen):
     bindto = ['user.org:user:axis_sg_int4_v1:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -317,7 +294,7 @@ class AxisSgMux4V1(AbsSignalGen):
     REGISTERS = {'pinc0_reg': 0, 'pinc1_reg': 1,
                  'pinc2_reg': 2, 'pinc3_reg': 3, 'we_reg': 4}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -386,7 +363,9 @@ class AxisSgMux4V1(AbsSignalGen):
         """
         # Sanity check.
         if f < self.fs:
-            k_i = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
+            k_i = np.int64(self.soc.freq2reg_adc(
+                f, ro_ch=self.ch, gen_ch=dac_ch))
+            self.set_freq_int(k_i, out)
 
     def set_freq_int(self, k_i, out=0):
         setattr(self, "pinc{0}_reg".format(out), k_i)
@@ -422,7 +401,7 @@ class AxisConstantIQ(SocIp):
         self.soc = soc
 
         # what RFDC port does this generator drive?
-        ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        ((_, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -479,7 +458,7 @@ class AxisReadoutV2(SocIp):
     # Bits of DDS.
     B_DDS = 32
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -553,7 +532,8 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f < self.fs:
-            self.freq_reg = np.int64(self.soc.freq2reg_adc(f, ro_ch=self.ch))
+            self.freq_reg = np.int64(self.soc.freq2reg_adc(
+                f, ro_ch=self.ch, gen_ch=dac_ch))
 
         # Register update.
         self.update()
@@ -635,7 +615,7 @@ class AxisAvgBuffer(SocIp):
                  'buf_dr_addr_reg': 10,
                  'buf_dr_len_reg': 11}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -702,7 +682,8 @@ class AxisAvgBuffer(SocIp):
         # subtract 1 to get the channel number (s0 comes from the DMA)
         self.tproc_ch = int(port.split('_')[0][1:])-1
 
-        #print("%s: readout %s, switch %d, trigger %d, tProc port %d"%(self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
+        # print("%s: readout %s, switch %d, trigger %d, tProc port %d"%
+        # (self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
 
     def config(self, address=0, length=100):
         """
@@ -1226,7 +1207,7 @@ class AxisSwitch(SocIp):
     bindto = ['xilinx.com:ip:axis_switch:1.1']
     REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
-    def __init__(self, description, **kwargs):
+    def __init__(self, description):
         """
         Constructor method
         """
@@ -1289,9 +1270,6 @@ class RFDC(xrfdc.RFdc):
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4"]
 
-    def __init__(self, description):
-        super().__init__(description)
-
     def set_freq(self, f, tile, dac):
         # Make a copy of mixer settings.
         dac_mixer = self.dac_tiles[tile].blocks[dac].MixerSettings
@@ -1351,7 +1329,7 @@ class QickSoc(Overlay, QickConfig):
         """
         # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
         # We need to program the clocks first.
-        if bitfile == None:
+        if bitfile is None:
             Overlay.__init__(self, bitfile_path(
             ), ignore_version=ignore_version, download=False, **kwargs)
         else:
@@ -1434,19 +1412,14 @@ class QickSoc(Overlay, QickConfig):
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
-            if (val['driver'] in gen_drivers):
+            if val['driver'] in gen_drivers:
                 self.gens.append(getattr(self, key))
-            elif (val['driver'] == AxisConstantIQ):
+            elif val['driver'] == AxisConstantIQ:
                 self.iqs.append(getattr(self, key))
-            elif (val['driver'] == AxisReadoutV2):
+            elif val['driver'] == AxisReadoutV2:
                 self.readouts.append(getattr(self, key))
-            elif (val['driver'] == AxisAvgBuffer):
+            elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
-
-        # Sanity check: we should have the same number of signal generators as switch ports.
-        # TODO: update?
-        # if self.switch_gen.NMI != len(self.gens):
-        #    raise RuntimeError("We have %d switch_gen outputs but %d signal generators."%(len(self.switch_gen.NMI),len(self.gens)))
 
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
         if len(self.readouts) != len(self.avg_bufs):
@@ -1474,7 +1447,7 @@ class QickSoc(Overlay, QickConfig):
 
         self['gens'] = []
         self['readouts'] = []
-        for iGen, gen in enumerate(self.gens):
+        for gen in self.gens:
             thiscfg = {}
             thiscfg['type'] = gen.type
             thiscfg['maxlen'] = gen.MAX_LENGTH
@@ -1486,7 +1459,7 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
             self['gens'].append(thiscfg)
 
-        for iBuf, buf in enumerate(self.avg_bufs):
+        for buf in self.avg_bufs:
             thiscfg = {}
             thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
             thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
@@ -1540,7 +1513,7 @@ class QickSoc(Overlay, QickConfig):
                       .PLLLockStatus == 2 for iTile in self.dac_tiles]
         adc_locked = [self.usp_rf_data_converter_0.adc_tiles[iTile]
                       .PLLLockStatus == 2 for iTile in self.adc_tiles]
-        return (all(dac_locked) and all(adc_locked))
+        return all(dac_locked) and all(adc_locked)
 
     def list_rf_blocks(self, rf_config):
         """

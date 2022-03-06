@@ -1,15 +1,15 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from .qick_asm import QickProgram
 from tqdm import tqdm_notebook as tqdm
 import numpy as np
-import time
+from .qick_asm import QickProgram
 
 
 class AveragerProgram(QickProgram):
     """
-    AveragerProgram class is an abstract base class for programs which do loop over experiments in hardware. It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
+    AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
+    It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
     :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
     :type soccfg: QickConfig
@@ -19,7 +19,9 @@ class AveragerProgram(QickProgram):
 
     def __init__(self, soccfg, cfg):
         """
-        Constructor for the AveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
+        Constructor for the AveragerProgram, calls make program at the end.
+        For classes that inherit from this, if you want it to do something before the program is made and compiled:
+        either do it before calling this __init__ or put it in the initialize method.
         """
         super().__init__(soccfg)
         self.cfg = cfg
@@ -60,7 +62,7 @@ class AveragerProgram(QickProgram):
 
         p.end()
 
-    def acquire_round(self, soc, threshold=None, angle=[0, 0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -87,6 +89,11 @@ class AveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
+
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
         # Load the pulses from the program into the soc
         if load_pulses:
             self.load_pulses(soc)
@@ -152,7 +159,7 @@ class AveragerProgram(QickProgram):
 
         return avg_di, avg_dq
 
-    def acquire(self, soc, threshold=None, angle=[0, 0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
+    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -180,13 +187,17 @@ class AveragerProgram(QickProgram):
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
 
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
         if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
-            return self.acquire_round(soc, threshold=threshold, angle=angle, load_pulses=load_pulses, progress=progress, debug=debug)
+            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, progress=progress, debug=debug)
 
         avg_di = None
         for ii in tqdm(range(self.cfg["rounds"]), disable=not progress):
             avg_di0, avg_dq0 = self.acquire_round(
-                soc, threshold=threshold, angle=angle, load_pulses=load_pulses, progress=False, debug=debug)
+                soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, progress=False, debug=debug)
 
             if avg_di is None:
                 avg_di, avg_dq = avg_di0, avg_dq0
@@ -196,7 +207,7 @@ class AveragerProgram(QickProgram):
 
         return avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
 
-    def get_single_shots(self, di, dq, threshold, angle=[0, 0]):
+    def get_single_shots(self, di, dq, threshold, angle=None):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -214,7 +225,9 @@ class AveragerProgram(QickProgram):
 
         """
 
-        if type(threshold) is int:
+        if angle is None:
+            angle = [0, 0]
+        if isinstance(threshold, int):
             threshold = [threshold, threshold]
         return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
@@ -361,7 +374,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
 
-    def acquire_round(self, soc, threshold=None, angle=[0, 0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=False, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=None,  readouts_per_experiment=1, save_experiments=None, load_pulses=True, progress=False, debug=False):
         """
          This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -389,6 +402,10 @@ class RAveragerProgram(QickProgram):
              - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
          """
 
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
         if load_pulses:
             self.load_pulses(soc)
 
@@ -454,7 +471,7 @@ class RAveragerProgram(QickProgram):
 
         return expt_pts, avg_di, avg_dq
 
-    def get_single_shots(self, di, dq, threshold, angle=[0, 0]):
+    def get_single_shots(self, di, dq, threshold, angle=None):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -472,11 +489,13 @@ class RAveragerProgram(QickProgram):
 
         """
 
+        if angle is None:
+            angle = [0, 0]
         if type(threshold) is int:
             threshold = [threshold, threshold]
         return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
-    def acquire(self, soc, threshold=None, angle=[0, 0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=False, debug=False):
+    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -503,6 +522,10 @@ class RAveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
         if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
             return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, progress=progress, debug=debug)
 
