@@ -198,7 +198,7 @@ class QickConfig():
         :type f: float
         :param ro_ch: readout channel
         :type ro_ch: int
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid ADC frequency)
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         :return: Re-formatted frequency
         :rtype: int
@@ -274,7 +274,7 @@ class QickConfig():
 
 
 # configuration for an enabled readout channel
-ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel'])
+ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel', 'gen_ch'])
 
 
 class QickProgram:
@@ -354,11 +354,11 @@ class QickProgram:
 
         self.ro_chs = OrderedDict()
 
-    def config_readout(self, ch, freq, length, sel='product'):
+    def config_readout(self, ch, freq, length, sel='product', gen_ch=0):
         """
         Add a channel to the program's list of readouts.
 
-        :param ch: ADC channel number (0-indexed)
+        :param ch: ADC channel number (index in 'readouts' list)
         :type ch: int
         :param freq: downconverting frequency (MHz)
         :type freq: float
@@ -366,14 +366,16 @@ class QickProgram:
         :type length: int
         :param sel: output select ('product', 'dds', 'input')
         :type sel: str
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
         """
-        self.ro_chs[ch] = ReadoutConfig(freq, length, sel)
+        self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
 
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         """
         Adds a pulse to the pulse library within the program.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Name of the pulse
         :type name: str
@@ -427,7 +429,7 @@ class QickProgram:
         """
         Gets tProc register page associated with channel.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :return: tProc page number
         :rtype: int
@@ -438,7 +440,7 @@ class QickProgram:
         """
         Gets tProc special register number associated with a channel and register name.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Name of special register ("gain", "freq")
         :type name: str
@@ -451,7 +453,7 @@ class QickProgram:
         """
         A macro to set (optionally) the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, length, and schedule time.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param freq: Frequency (MHz)
         :type freq: float
@@ -510,7 +512,7 @@ class QickProgram:
         """
         Schedule and (optionally) play a constant pulse, can autoschedule this based on previous pulses.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Pulse name
         :type name: str
@@ -534,6 +536,7 @@ class QickProgram:
         :type t: int
         """
         p = self
+        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
         if name is not None:
             pinfo = self.channels[ch]['pulses'][name]
             length = pinfo['length']
@@ -558,14 +561,14 @@ class QickProgram:
                     t = p.dac_ts[ch]
                 p.dac_ts[ch] = t+length
                 p.regwi(rp, r_t, t, f't = {t}')
-            p.set(ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
+            p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
                   f"ch = {ch}, out = ${r_freq},${r_phase},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
     def arb_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
         """
         Schedule and (optionally) play an arbitrary pulse, can autoschedule this based on previous pulses.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Pulse name
         :type name: str
@@ -590,6 +593,7 @@ class QickProgram:
         """
         p = self
         addr = None
+        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
         if name is not None:
             pinfo = self.channels[ch]['pulses'][name]
             addr = pinfo["addr"]//16
@@ -608,7 +612,7 @@ class QickProgram:
                                                      ['last_pulse']]
                 p.dac_ts[ch] = t+pinfo['length']
                 p.safe_regwi(rp, r_t, t, f't = {t}')
-            p.set(ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
+            p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
                   f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
     def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
@@ -616,7 +620,7 @@ class QickProgram:
         Schedule and (optionally) play an a flattop pulse with arbitrary ramps, can autoschedule based on previous pulses
         To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Pulse name
         :type name: str
@@ -641,6 +645,7 @@ class QickProgram:
         """
         p = self
         addr = None
+        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
         if name is not None:
             pinfo = self.channels[ch]['pulses'][name]
             self.channels[ch]['last_pulse'] = name
@@ -667,18 +672,18 @@ class QickProgram:
                 # play ramp up part of pulse
                 p.set_pulse_registers(
                     ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t)
-                p.set(ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
+                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
                       f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
                 # play flat part of pulse
                 p.set_pulse_registers(
                     ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=0, outsel=1, t=t)
                 p.math(rp, r_mode, r_mode, "+", p.sreg(ch, "length"), "+")
-                p.set(ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
+                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
                       f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
                 p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length,
                                       outsel=0, t=t+ramp_length+pinfo['length'])  # play ramp down part of pulse with length delay
-                p.set(ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
+                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
                       f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
 
             p.dac_ts[ch] = t+pinfo['length']+2*ramp_length
@@ -687,7 +692,7 @@ class QickProgram:
         """
         Overall pulse class which will select the correct function to call based on the 'style' parameter of the named pulse.
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param name: Pulse name
         :type name: str
@@ -868,10 +873,12 @@ class QickProgram:
                 self.adc_ts[adc] = t_start + self.ro_chs[adc].length
         t_end = t_start + width
 
+        trig_output = self.soccfg['tprocs'][0]['trig_output']
+
         self.regwi(rp, r_out, out, f'out = 0b{out:>016b}')
-        self.seti(0, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
+        self.seti(trig_output, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
         self.regwi(rp, r_out, 0, f'out = 0b{0:>016b}')
-        self.seti(0, rp, r_out, t_end, f'ch =0 out = ${r_out} @t = {t}')
+        self.seti(trig_output, rp, r_out, t_end, f'ch =0 out = ${r_out} @t = {t}')
 
     def measure(self, adcs, pulse_ch, adc_trig_offset=270, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto'):
         """

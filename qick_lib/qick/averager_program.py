@@ -100,7 +100,7 @@ class AveragerProgram(QickProgram):
 
         # Configure the readout down converters
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq)
+            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
             soc.config_avg(ch, address=0, length=ro.length, enable=True)
             soc.config_buf(ch, address=0, length=ro.length, enable=True)
 
@@ -260,7 +260,7 @@ class AveragerProgram(QickProgram):
 
         # Configure the readout down converters
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq)
+            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
 
         # assume every channel has the same readout length
         d_buf = np.zeros((len(self.ro_chs), 2, max(
@@ -411,7 +411,7 @@ class RAveragerProgram(QickProgram):
 
         # Configure the readout down converters
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq)
+            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
             soc.config_avg(ch, address=0, length=ro.length, enable=True)
             soc.config_buf(ch, address=0, length=ro.length, enable=True)
 

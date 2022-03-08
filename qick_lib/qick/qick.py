@@ -521,19 +521,18 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
 
-    def set_freq(self, f, dac_ch=0):
+    def set_freq(self, f, gen_ch=0):
         """
         Set frequency register
 
         :param f: frequency in MHz
         :type f: float
-        :param dac_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type dac_ch: int
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
         """
         # Sanity check.
         if f < self.fs:
-            self.freq_reg = np.int64(self.soc.freq2reg_adc(
-                f, ro_ch=self.ch, gen_ch=dac_ch))
+            self.set_freq_int(self.soc.freq2reg_adc(f, ro_ch=self.ch, gen_ch=gen_ch))
 
         # Register update.
         self.update()
@@ -545,7 +544,7 @@ class AxisReadoutV2(SocIp):
         :param f_int: frequency value register
         :type f_int: int
         """
-        self.freq_reg = f_int
+        self.freq_reg = np.int64(f_int)
 
         # Register update.
         self.update()
@@ -1015,6 +1014,15 @@ class AxisTProc64x32_x8(SocIp):
         # dma
         self.dma = axi_dma
 
+    def configure_connections(self, soc, sigparser, busparser):
+        for i in range(8):
+            # what block does this output drive?
+            # add 1, because output 0 goes to the DMA
+            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis'%(i+1))
+            if "axis_set_reg" in block:
+                print("trigger output is %d"%(i))
+                self.trig_output = i
+
     def start_src(self, src=0):
         """
         Sets the start source of tProc
@@ -1354,12 +1362,12 @@ class QickSoc(Overlay, QickConfig):
         # Mixer for NCO ADC/DAC control.
         self.mixer = self.usp_rf_data_converter_0
 
-        self.map_signal_paths()
-
         # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc = self.axis_tproc64x32_x8_0
         self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
         self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+
+        self.map_signal_paths()
 
         self._streamer = DataStreamer(self)
 
@@ -1470,6 +1478,12 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
+
+        self['tprocs'] = []
+        for tproc in [self.tproc]:
+            thiscfg = {}
+            thiscfg['trig_output'] = tproc.trig_output
+            self['tprocs'].append(thiscfg)
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
@@ -1650,15 +1664,19 @@ class QickSoc(Overlay, QickConfig):
         # we remove the padding here
         return data[:, 2:length+2]
 
-    def configure_readout(self, ch, output, frequency):
+    def configure_readout(self, ch, output, frequency, gen_ch=0):
         """Configure readout channel output style and frequency
         :param ch: Channel to configure
         :type ch: int
         :param output: output type from 'product', 'dds', 'input'
         :type output: str
+        :param frequency: frequency
+        :type frequency: float
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
         """
         self.readouts[ch].set_out(sel=output)
-        self.readouts[ch].set_freq(frequency)
+        self.readouts[ch].set_freq(frequency, gen_ch=gen_ch)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -1721,15 +1739,12 @@ class QickSoc(Overlay, QickConfig):
     def set_nyquist(self, ch, nqz):
         """
         Sets DAC channel ch to operate in Nyquist zone nqz mode.
-        Channels are indexed as they are on the tProc outputs: in other words, the first DAC channel is channel 1.
-        (tProc output 0 is reserved for readout triggers and PMOD outputs)
 
-        :param ch: DAC channel
+        :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param nqz: Nyquist zone
         :type nqz: int
         """
-        #ch_info={1: (0,0), 2: (0,1), 3: (0,2), 4: (1,0), 5: (1,1), 6: (1, 2), 7: (1,3)}
 
-        tile, channel = [int(a) for a in self['gens'][ch-1]['dac']]
+        tile, channel = [int(a) for a in self['gens'][ch]['dac']]
         self.rf.set_nyquist(nqz, tile, channel)
