@@ -72,25 +72,41 @@ class AbsSignalGen(SocIp):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
+    # The signal generator has a waveform memory.
+    HAS_WAVEFORM = False
+    # The DAC channel has a mixer.
+    HAS_MIXER = False
+    # Interpolation factor relating the generator and DAC sampling freqs.
+    FS_INTERPOLATION = 1
+    # Name of the input driven by the tProc.
+    TPROC_PORT = 's1_axis'
+    # Name of the input driven by the waveform DMA (if applicable).
+    WAVEFORM_PORT = 's0_axis'
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, axi_dma, axis_switch, fs):
+    def configure(self, ch, axi_dma, axis_switch, rf, fs):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
 
-        # dma
-        self.dma = axi_dma
+        if self.HAS_WAVEFORM:
+            # dma
+            self.dma = axi_dma
 
-        # Switch
-        self.switch = axis_switch
+            # Switch
+            self.switch = axis_switch
+
+        # RF data converter
+        self.rf = rf
 
         # Sampling frequency.
-        self.fs = fs
+        self.fs = fs/self.FS_INTERPOLATION
 
     def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
         # what tProc output port drives this generator?
         # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block, port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
         # might need to jump through an axis_clk_cnvrt
         if 'axis_tproc' not in block:
             ((block, port),) = trace_net(busparser, block, 'S_AXIS')
@@ -98,10 +114,12 @@ class AbsSignalGen(SocIp):
         # subtract 1 to get the output channel number (m0 goes to the DMA)
         self.tproc_ch = int(port.split('_')[0][1:])-1
 
-        # what switch port drives this generator?
-        ((block, port),) = trace_net(busparser, self.fullpath, 's0_axis')
-        # port names are of the form 'M01_AXIS'
-        self.switch_ch = int(port.split('_')[0][1:])
+        if self.HAS_WAVEFORM:
+            # what switch port drives this generator?
+            ((block, port),) = trace_net(
+                busparser, self.fullpath, self.WAVEFORM_PORT)
+            # port names are of the form 'M01_AXIS'
+            self.switch_ch = int(port.split('_')[0][1:])
 
         # what RFDC port does this generator drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
@@ -125,6 +143,10 @@ class AbsSignalGen(SocIp):
         :param addr: starting address
         :type addr: int
         """
+        if not self.HAS_WAVEFORM:
+            raise NotImplementedError(
+                "This generator does not support waveforms.")
+
         # Check for equal length.
         if len(xin_i) != len(xin_q):
             print("%s: I/Q buffers must be the same length." %
@@ -169,27 +191,40 @@ class AbsSignalGen(SocIp):
         ### Load I/Q ###
         ################
         # Enable writes.
-        self.wr_enable(addr)
+        self._wr_enable(addr)
 
         # DMA data.
         self.dma.sendchannel.transfer(self.buff)
         self.dma.sendchannel.wait()
 
         # Disable writes.
-        self.wr_disable()
+        self._wr_disable()
 
-    def wr_enable(self, addr=0):
+    def _wr_enable(self, addr=0):
         """
            Enable WE reg
         """
         self.start_addr_reg = addr
         self.we_reg = 1
 
-    def wr_disable(self):
+    def _wr_disable(self):
         """
            Disable WE reg
         """
         self.we_reg = 0
+
+    def set_nyquist(self, nqz):
+        self.rf.set_nyquist(self.dac, nqz)
+
+    def set_mixer_freq(self, f):
+        if not self.HAS_MIXER:
+            raise NotImplementedError("This generator does not have a mixer.")
+        self.rf.set_mixer_freq(self.dac, f)
+
+    def get_mixer_freq(self):
+        if not self.HAS_MIXER:
+            raise NotImplementedError("This generator does not have a mixer.")
+        return self.rf.get_mixer_freq(self.dac)
 
 
 class AxisSignalGen(AbsSignalGen):
@@ -207,6 +242,7 @@ class AxisSignalGen(AbsSignalGen):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
+    HAS_WAVEFORM = True
 
     def __init__(self, description):
         """
@@ -249,6 +285,8 @@ class AxisSgInt4V1(AbsSignalGen):
     """
     bindto = ['user.org:user:axis_sg_int4_v1:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
+    HAS_WAVEFORM = True
+    HAS_MIXER = True
 
     def __init__(self, description):
         """
@@ -293,6 +331,9 @@ class AxisSgMux4V1(AbsSignalGen):
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
     REGISTERS = {'pinc0_reg': 0, 'pinc1_reg': 1,
                  'pinc2_reg': 2, 'pinc3_reg': 3, 'we_reg': 4}
+    HAS_MIXER = True
+    FS_INTERPOLATION = 4
+    TPROC_PORT = 's_axis'
 
     def __init__(self, description):
         """
@@ -317,32 +358,6 @@ class AxisSgMux4V1(AbsSignalGen):
         self.switch_ch = -1
         self.MAX_LENGTH = 0
 
-    # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, axi_dma, axis_switch, fs):
-        # Channel number corresponding to entry in the QickConfig list of gens.
-        self.ch = ch
-
-        # Sampling frequency: 4x Interpolation applied by DAC IP.
-        self.fs = fs/4
-
-    def configure_connections(self, soc, sigparser, busparser):
-        self.soc = soc
-
-        # what tProc output port drives this generator?
-        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
-        # might need to jump through an axis_clk_cnvrt
-        if 'axis_tproc' not in block:
-            ((block, port),) = trace_net(busparser, block, 'S_AXIS')
-        # port names are of the form 'm2_axis_tdata'
-        # subtract 1 to get the output channel number (m0 goes to the DMA)
-        self.tproc_ch = int(port.split('_')[0][1:])-1
-
-        # what RFDC port does this generator drive?
-        ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
-        # port names are of the form 's00_axis'
-        self.dac = port[1:3]
-
     def update(self):
         """
         Update register values
@@ -350,7 +365,7 @@ class AxisSgMux4V1(AbsSignalGen):
         self.we_reg = 1
         self.we_reg = 0
 
-    def set_freq(self, f, out=0, dac_ch=0):
+    def set_freq(self, f, out=0, adc_ch=0):
         """
         Set frequency register
 
@@ -358,20 +373,23 @@ class AxisSgMux4V1(AbsSignalGen):
         :type f: float
         :param out: muxed channel to configure
         :type out: int
-        :param dac_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type dac_ch: int
+        :param adc_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
+        :type adc_ch: int
         """
         # Sanity check.
         if f < self.fs:
-            k_i = np.int64(self.soc.freq2reg_adc(
-                f, ro_ch=self.ch, gen_ch=dac_ch))
+            k_i = np.int64(self.soc.freq2reg(
+                f, gen_ch=self.ch, ro_ch=adc_ch))
             self.set_freq_int(k_i, out)
 
     def set_freq_int(self, k_i, out=0):
-        setattr(self, "pinc{0}_reg".format(out), k_i)
+        setattr(self, "pinc%d_reg" % (out), k_i)
 
         # Register update.
         self.update()
+
+    def get_freq(self, out=0):
+        return getattr(self, "pinc%d_reg" % (out)) * self.fs / (2**self.B_DDS)
 
 
 class AxisConstantIQ(SocIp):
@@ -532,7 +550,8 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f < self.fs:
-            self.set_freq_int(self.soc.freq2reg_adc(f, ro_ch=self.ch, gen_ch=gen_ch))
+            self.set_freq_int(self.soc.freq2reg_adc(
+                f, ro_ch=self.ch, gen_ch=gen_ch))
 
         # Register update.
         self.update()
@@ -548,6 +567,9 @@ class AxisReadoutV2(SocIp):
 
         # Register update.
         self.update()
+
+    def get_freq(self):
+        return self.freq_reg * self.fs / (2**self.B_DDS)
 
 
 class AxisAvgBuffer(SocIp):
@@ -1018,9 +1040,9 @@ class AxisTProc64x32_x8(SocIp):
         for i in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
-            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis'%(i+1))
+            ((block, port),) = trace_net(
+                busparser, self.fullpath, 'm%d_axis' % (i+1))
             if "axis_set_reg" in block:
-                print("trigger output is %d"%(i))
                 self.trig_output = i
 
     def start_src(self, src=0):
@@ -1278,9 +1300,10 @@ class RFDC(xrfdc.RFdc):
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4"]
 
-    def set_freq(self, f, tile, dac):
+    def set_mixer_freq(self, dacname, f):
+        tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
-        dac_mixer = self.dac_tiles[tile].blocks[dac].MixerSettings
+        dac_mixer = self.dac_tiles[tile].blocks[channel].MixerSettings
         new_mixcfg = dac_mixer.copy()
 
         # Update the copy
@@ -1291,13 +1314,16 @@ class RFDC(xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
-        self.dac_tiles[tile].blocks[dac].MixerSettings = new_mixcfg
-        self.dac_tiles[tile].blocks[dac].UpdateEvent(xrfdc.EVENT_MIXER)
+        self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
+        self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
 
-    def set_nyquist(self, nz, tile, dac):
-        dac_tile = self.dac_tiles[tile]
-        dac_block = dac_tile.blocks[dac]
-        dac_block.NyquistZone = nz
+    def get_mixer_freq(self, dacname):
+        tile, channel = [int(a) for a in dacname]
+        return self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
+
+    def set_nyquist(self, dacname, nz):
+        tile, channel = [int(a) for a in dacname]
+        self.dac_tiles[tile].blocks[channel].NyquistZone = nz
 
 
 class QickSoc(Overlay, QickConfig):
@@ -1440,8 +1466,6 @@ class QickSoc(Overlay, QickConfig):
             raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
                                (self.switch_buf.NSL, len(self.avg_bufs)))
 
-        # TODO: get the trigger port
-
         # Sort the lists by channel number.
         # Typically they are already in order, but good to make sure?
         # We order gens by the DAC port number and buffers by the switch port number.
@@ -1449,10 +1473,20 @@ class QickSoc(Overlay, QickConfig):
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         self.readouts.sort(key=lambda x: x.buffer.switch_ch)
 
-        # Fill the config dictionary with driver parameters.
-        self['b_dac'] = self.gens[0].B_DDS  # typically 32
-        self['b_adc'] = self.readouts[0].B_DDS  # typically 32
+        # Configure the drivers.
+        for i, gen in enumerate(self.gens):
+            gen.configure(i, self.axi_dma_gen, self.switch_gen, self.rf,
+                          self.dacs[gen.dac]['fs'])
 
+        for i, iq in enumerate(self.iqs):
+            iq.configure(self.rf, self.dacs[gen.dac]['fs'])
+
+        for i, buf in enumerate(self.avg_bufs):
+            buf.configure(self.axi_dma_avg, self.switch_avg,
+                          self.axi_dma_buf, self.switch_buf)
+            buf.readout.configure(i, self.adcs[buf.readout.adc]['fs'])
+
+        # Fill the config dictionary with driver parameters.
         self['gens'] = []
         self['readouts'] = []
         for gen in self.gens:
@@ -1463,7 +1497,7 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['switch_ch'] = gen.switch_ch
             thiscfg['tproc_ch'] = gen.tproc_ch
             thiscfg['dac'] = gen.dac
-            thiscfg['fs'] = self.dacs[gen.dac]['fs']
+            thiscfg['fs'] = gen.fs
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
             self['gens'].append(thiscfg)
 
@@ -1484,19 +1518,6 @@ class QickSoc(Overlay, QickConfig):
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
             self['tprocs'].append(thiscfg)
-
-        # Configure the drivers.
-        for i, gen in enumerate(self.gens):
-            gen.configure(i, self.axi_dma_gen, self.switch_gen,
-                          self.dacs[gen.dac]['fs'])
-
-        for i, iq in enumerate(self.iqs):
-            iq.configure(self.rf, self.dacs[gen.dac]['fs'])
-
-        for i, buf in enumerate(self.avg_bufs):
-            buf.configure(self.axi_dma_avg, self.switch_avg,
-                          self.axi_dma_buf, self.switch_buf)
-            buf.readout.configure(i, self.adcs[buf.readout.adc]['fs'])
 
     def config_clocks(self, force_init_clks):
         """
@@ -1746,5 +1767,4 @@ class QickSoc(Overlay, QickConfig):
         :type nqz: int
         """
 
-        tile, channel = [int(a) for a in self['gens'][ch]['dac']]
-        self.rf.set_nyquist(nqz, tile, channel)
+        self.gens[ch].set_nyquist(nqz)
