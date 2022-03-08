@@ -275,6 +275,7 @@ class QickConfig():
 
 # configuration for an enabled readout channel
 ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel', 'gen_ch'])
+GeneratorConfig = namedtuple('GeneratorConfig', ['nqz', 'mixer_freq', 'mux_freqs', 'ro_ch'])
 
 
 class QickProgram:
@@ -352,9 +353,12 @@ class QickProgram:
         self.channels = {ch: {"addr": 0, "pulses": {},
                               "last_pulse": None} for ch in range(1, 8)}
 
+        # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
+        # signal generator channels to configure before running the program
+        self.gen_chs = OrderedDict()
 
-    def config_readout(self, ch, freq, length, sel='product', gen_ch=0):
+    def declare_readout(self, ch, freq, length, sel='product', gen_ch=0):
         """
         Add a channel to the program's list of readouts.
 
@@ -370,6 +374,42 @@ class QickProgram:
         :type gen_ch: int
         """
         self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
+
+    def config_readouts(self, soc):
+        for ch, cfg in self.ro_chs.items():
+            soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
+
+    def config_bufs(self, soc, enable_avg=True, enable_buf=True):
+        for ch, cfg in self.ro_chs.items():
+            if enable_avg:
+                soc.config_avg(ch, address=0, length=cfg.length, enable=True)
+            if enable_buf:
+                soc.config_buf(ch, address=0, length=cfg.length, enable=True)
+
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, ro_ch=0):
+        """
+        Add a channel to the program's list of signal generators.
+
+        :param ch: Generator channel number (index in 'gens' list)
+        :type ch: int
+        :param nqz: Nyquist zone for the DAC
+        :type nqz: int
+        :param mixer_freq: mixer frequency (if applicable)
+        :type mixer_freq: float
+        :param mux_freqs: if this is a mux generator, list up to 4 output frequencies
+        :type mux_freqs: list
+        :param ro_ch: ASC channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
+        """
+        self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, ro_ch)
+
+    def config_gens(self, soc):
+        for ch, cfg in self.gen_chs.items():
+            soc.set_nyquist(ch, cfg.nqz)
+            if cfg.mixer_freq is not None:
+                soc.set_mixer_freq(ch, cfg.mixer_freq)
+            if cfg.mux_freqs is not None:
+                soc.set_mux_freqs(ch, cfg.mux_freqs)
 
     def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
         """

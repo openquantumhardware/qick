@@ -98,11 +98,12 @@ class AveragerProgram(QickProgram):
         if load_pulses:
             self.load_pulses(soc)
 
+        # Configure signal generators
+        self.config_gens(soc)
+
         # Configure the readout down converters
-        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
-            soc.config_avg(ch, address=0, length=ro.length, enable=True)
-            soc.config_buf(ch, address=0, length=ro.length, enable=True)
+        self.config_readouts(soc)
+        self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
         # load the this AveragerProgram into the soc's tproc
         tproc = soc.tproc
@@ -258,9 +259,11 @@ class AveragerProgram(QickProgram):
         if load_pulses:
             self.load_pulses(soc)
 
+        # Configure signal generators
+        self.config_gens(soc)
+
         # Configure the readout down converters
-        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
+        self.config_readouts(soc)
 
         # assume every channel has the same readout length
         d_buf = np.zeros((len(self.ro_chs), 2, max(
@@ -276,9 +279,7 @@ class AveragerProgram(QickProgram):
         for ii in tqdm(range(soft_avgs), disable=not progress):
             tproc.stop()
             # Configure and enable buffer capture.
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                soc.config_avg(ch, address=0, length=ro.length, enable=True)
-                soc.config_buf(ch, address=0, length=ro.length, enable=True)
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
             # make sure count variable is reset to 0
             tproc.single_write(addr=1, data=0)
@@ -409,11 +410,12 @@ class RAveragerProgram(QickProgram):
         if load_pulses:
             self.load_pulses(soc)
 
+        # Configure signal generators
+        self.config_gens(soc)
+
         # Configure the readout down converters
-        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            soc.configure_readout(ch, output=ro.sel, frequency=ro.freq, gen_ch=ro.gen_ch)
-            soc.config_avg(ch, address=0, length=ro.length, enable=True)
-            soc.config_buf(ch, address=0, length=ro.length, enable=True)
+        self.config_readouts(soc)
+        self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
         tproc = soc.tproc
         tproc.load_bin_program(self.compile(debug=debug))

@@ -72,19 +72,21 @@ class AbsSignalGen(SocIp):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
-    # The signal generator has a waveform memory.
+    # This signal generator has a waveform memory.
     HAS_WAVEFORM = False
+    # This signal generator is controlled by the tProc.
+    HAS_TPROC = False
     # The DAC channel has a mixer.
     HAS_MIXER = False
     # Interpolation factor relating the generator and DAC sampling freqs.
     FS_INTERPOLATION = 1
-    # Name of the input driven by the tProc.
+    # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, axi_dma, axis_switch, rf, fs):
+    def configure(self, ch, rf, fs, axi_dma=None, axis_switch=None):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
 
@@ -104,15 +106,16 @@ class AbsSignalGen(SocIp):
     def configure_connections(self, soc, sigparser, busparser):
         self.soc = soc
 
-        # what tProc output port drives this generator?
-        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
-        # might need to jump through an axis_clk_cnvrt
-        if 'axis_tproc' not in block:
-            ((block, port),) = trace_net(busparser, block, 'S_AXIS')
-        # port names are of the form 'm2_axis_tdata'
-        # subtract 1 to get the output channel number (m0 goes to the DMA)
-        self.tproc_ch = int(port.split('_')[0][1:])-1
+        if self.HAS_TPROC:
+            # what tProc output port drives this generator?
+            # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+            ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
+            # might need to jump through an axis_clk_cnvrt
+            if 'axis_tproc' not in block:
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            # port names are of the form 'm2_axis_tdata'
+            # subtract 1 to get the output channel number (m0 goes to the DMA)
+            self.tproc_ch = int(port.split('_')[0][1:])-1
 
         if self.HAS_WAVEFORM:
             # what switch port drives this generator?
@@ -218,12 +221,12 @@ class AbsSignalGen(SocIp):
 
     def set_mixer_freq(self, f):
         if not self.HAS_MIXER:
-            raise NotImplementedError("This generator does not have a mixer.")
+            raise NotImplementedError("This channel does not have a mixer.")
         self.rf.set_mixer_freq(self.dac, f)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
-            raise NotImplementedError("This generator does not have a mixer.")
+            raise NotImplementedError("This channel does not have a mixer.")
         return self.rf.get_mixer_freq(self.dac)
 
 
@@ -242,6 +245,7 @@ class AxisSignalGen(AbsSignalGen):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
+    HAS_TPROC = True
     HAS_WAVEFORM = True
 
     def __init__(self, description):
@@ -285,6 +289,7 @@ class AxisSgInt4V1(AbsSignalGen):
     """
     bindto = ['user.org:user:axis_sg_int4_v1:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
+    HAS_TPROC = True
     HAS_WAVEFORM = True
     HAS_MIXER = True
 
@@ -309,9 +314,6 @@ class AxisSgInt4V1(AbsSignalGen):
         # Table is interpolated. Length is given only by parameter N.
         self.MAX_LENGTH = 2**self.N
 
-        # Get the channel number from the IP instance name.
-        #self.ch = int(description['fullpath'].split('_')[-1])
-
 
 class AxisSgMux4V1(AbsSignalGen):
     """
@@ -331,6 +333,7 @@ class AxisSgMux4V1(AbsSignalGen):
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
     REGISTERS = {'pinc0_reg': 0, 'pinc1_reg': 1,
                  'pinc2_reg': 2, 'pinc3_reg': 3, 'we_reg': 4}
+    HAS_TPROC = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     TPROC_PORT = 's_axis'
@@ -365,7 +368,7 @@ class AxisSgMux4V1(AbsSignalGen):
         self.we_reg = 1
         self.we_reg = 0
 
-    def set_freq(self, f, out=0, adc_ch=0):
+    def set_freq(self, f, out=0, ro_ch=0):
         """
         Set frequency register
 
@@ -373,16 +376,18 @@ class AxisSgMux4V1(AbsSignalGen):
         :type f: float
         :param out: muxed channel to configure
         :type out: int
-        :param adc_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
-        :type adc_ch: int
+        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
         """
         # Sanity check.
         if f < self.fs:
             k_i = np.int64(self.soc.freq2reg(
-                f, gen_ch=self.ch, ro_ch=adc_ch))
+                f, gen_ch=self.ch, ro_ch=ro_ch))
             self.set_freq_int(k_i, out)
 
     def set_freq_int(self, k_i, out=0):
+        if out not in [0,1,2,3]:
+            raise IndexError("Invalid output index for mux.")
         setattr(self, "pinc%d_reg" % (out), k_i)
 
         # Register update.
@@ -392,13 +397,14 @@ class AxisSgMux4V1(AbsSignalGen):
         return getattr(self, "pinc%d_reg" % (out)) * self.fs / (2**self.B_DDS)
 
 
-class AxisConstantIQ(SocIp):
+class AxisConstantIQ(AbsSignalGen):
     # AXIS Constant IQ registers:
     # REAL_REG : 16-bit.
     # IMAG_REG : 16-bit.
     # WE_REG   : 1-bit. Update registers.
     bindto = ['user.org:user:axis_constant_iq:1.0']
     REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
+    HAS_MIXER = True
 
     # Number of bits.
     B = 16
@@ -414,20 +420,6 @@ class AxisConstantIQ(SocIp):
 
         # Register update.
         self.update()
-
-    def configure_connections(self, soc, sigparser, busparser):
-        self.soc = soc
-
-        # what RFDC port does this generator drive?
-        ((_, port),) = trace_net(busparser, self.fullpath, 'm_axis')
-        # port names are of the form 's00_axis'
-        self.dac = port[1:3]
-
-    def configure(self, rf, fs):
-        # RFDC
-        self.rf = rf
-        # sampling frequency
-        self.fs = fs
 
     def update(self):
         self.we_reg = 1
@@ -1475,11 +1467,11 @@ class QickSoc(Overlay, QickConfig):
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
-            gen.configure(i, self.axi_dma_gen, self.switch_gen, self.rf,
-                          self.dacs[gen.dac]['fs'])
+            gen.configure(i, self.rf,
+                          self.dacs[gen.dac]['fs'], self.axi_dma_gen, self.switch_gen)
 
         for i, iq in enumerate(self.iqs):
-            iq.configure(self.rf, self.dacs[gen.dac]['fs'])
+            iq.configure(i, self.rf, self.dacs[gen.dac]['fs'])
 
         for i, buf in enumerate(self.avg_bufs):
             buf.configure(self.axi_dma_avg, self.switch_avg,
@@ -1768,3 +1760,46 @@ class QickSoc(Overlay, QickConfig):
         """
 
         self.gens[ch].set_nyquist(nqz)
+
+    def set_mixer_freq(self, ch, f):
+        """
+        Set mixer frequency for a signal generator.
+        If the generator does not have a mixer, you will get an error.
+
+        :param ch: DAC channel (index in 'gens' list)
+        :type ch: int
+        :param f: frequency (MHz)
+        :type f: float
+        """
+        self.gens[ch].set_mixer_freq(f)
+
+    def set_mux_freqs(self, ch, freqs, ro_ch=0):
+        """
+        Set muxed frequencies for a signal generator.
+        If it's not a muxed signal generator, you will get an error.
+
+        :param ch: DAC channel (index in 'gens' list)
+        :type ch: int
+        :param freqs: frequencies (MHz)
+        :type freqs: list
+        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
+        """
+        for ii, f in enumerate(freqs):
+            self.gens[ch].set_freq(f, out=ii, ro_ch=ro_ch)
+
+    def set_iq(self, ch, f, i, q):
+        """
+        Set frequency, I, and Q for a constant-IQ output.
+
+        :param ch: IQ channel (index in 'iqs' list)
+        :type ch: int
+        :param f: frequency (MHz)
+        :type f: float
+        :param i: I value (in range -1 to 1)
+        :type i: float
+        :param q: Q value (in range -1 to 1)
+        :type q: float
+        """
+        self.iqs[ch].set_mixer_freq(f)
+        self.iqs[ch].set_iq(i, q)
