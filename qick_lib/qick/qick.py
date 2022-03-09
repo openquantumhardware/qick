@@ -219,10 +219,18 @@ class AbsSignalGen(SocIp):
     def set_nyquist(self, nqz):
         self.rf.set_nyquist(self.dac, nqz)
 
-    def set_mixer_freq(self, f):
+    def set_mixer_freq(self, f, ro_ch=None):
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
-        self.rf.set_mixer_freq(self.dac, f)
+        if ro_ch is None:
+            rounded_f = f
+        else:
+            mixercfg = {}
+            mixercfg['fs'] = self.fs*self.FS_INTERPOLATION
+            mixercfg['b_dds'] = 48
+            fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
+            rounded_f = round(f/fstep)*fstep
+        self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
@@ -535,15 +543,27 @@ class AxisReadoutV2(SocIp):
         """
         Set frequency register
 
-        :param f: frequency in MHz
+        :param f: frequency in MHz (before adding any DAC mixer frequency)
         :type f: float
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
         # Sanity check.
         if f < self.fs:
-            self.set_freq_int(self.soc.freq2reg_adc(
-                f, ro_ch=self.ch, gen_ch=gen_ch))
+            if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
+                mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
+                if mixer_freq != 0:
+                    # calculate the frequency that will be applied to the generator
+                    rounded_freq = self.soc.roundfreq(self.soc['gens'][gen_ch], self.soc['readouts'][self.ch])
+                    # now we can calculate the exact frequency the RO will see
+                    ro_freq = rounded_freq + mixer_freq
+                    # we can calculate the register value without further referencing the gen_ch
+                    self.set_freq_int(self.soc.freq2reg_adc(ro_freq, ro_ch=self.ch, gen_ch=None))
+                else:
+                    self.set_freq_int(self.soc.freq2reg_adc(ro_freq, ro_ch=self.ch, gen_ch=gen_ch))
+            else:
+                self.set_freq_int(self.soc.freq2reg_adc(
+                    f, ro_ch=self.ch, gen_ch=gen_ch))
 
         # Register update.
         self.update()
@@ -1761,7 +1781,7 @@ class QickSoc(Overlay, QickConfig):
 
         self.gens[ch].set_nyquist(nqz)
 
-    def set_mixer_freq(self, ch, f):
+    def set_mixer_freq(self, ch, f, ro_ch=None):
         """
         Set mixer frequency for a signal generator.
         If the generator does not have a mixer, you will get an error.
@@ -1770,8 +1790,13 @@ class QickSoc(Overlay, QickConfig):
         :type ch: int
         :param f: frequency (MHz)
         :type f: float
+        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
         """
-        self.gens[ch].set_mixer_freq(f)
+        if self.gens[ch].HAS_MIXER:
+            self.gens[ch].set_mixer_freq(f, ro_ch)
+        elif f != 0:
+            raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
     def set_mux_freqs(self, ch, freqs, ro_ch=0):
         """

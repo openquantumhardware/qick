@@ -110,13 +110,13 @@ class QickConfig():
         """
         return json.dumps(self._cfg, indent=4)
 
-    def calc_fstep(self, ch1, ch2):
+    def calc_fstep(self, dict1, dict2):
         """
         Finds the least common multiple of the frequency steps of two channels (typically a DAC and ADC)
-        :param ch1: config dict for one channel
-        :type ch1: dict
-        :param ch2: config dict for the other channel
-        :type ch2: dict
+        :param dict1: config dict for one channel
+        :type dict1: dict
+        :param dict2: config dict for the other channel
+        :type dict2: dict
         :return: frequency step common to the two channels
         :rtype: float
         """
@@ -124,29 +124,29 @@ class QickConfig():
         # Calculate least common multiple of sampling frequencies.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        fsmult1 = round(ch1['fs']/refclk)
-        fsmult2 = round(ch2['fs']/refclk)
+        fsmult1 = round(dict1['fs']/refclk)
+        fsmult2 = round(dict2['fs']/refclk)
 
         # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
-        b_max = max(ch1['b_dds'], ch2['b_dds'])
-        mult_lcm = np.lcm(fsmult1 * 2**(b_max - ch1['b_dds']),
-                          fsmult2 * 2**(b_max - ch2['b_dds']))
+        b_max = max(dict1['b_dds'], dict2['b_dds'])
+        mult_lcm = np.lcm(fsmult1 * 2**(b_max - dict1['b_dds']),
+                          fsmult2 * 2**(b_max - dict2['b_dds']))
         return refclk * mult_lcm / 2**b_max
 
-    def roundfreq(self, f, ch1, ch2):
+    def roundfreq(self, f, dict1, dict2):
         """
         Round a frequency to the LCM of the frequency steps of two channels (typically a DAC and ADC).
         :param f: frequency (MHz)
         :type f: float or array
-        :param ch1: config dict for one channel
-        :type ch1: dict
-        :param ch2: config dict for the other channel
-        :type ch2: dict
+        :param dict1: config dict for one channel
+        :type dict1: dict
+        :param dict2: config dict for the other channel
+        :type dict2: dict
         :return: rounded frequency (MHz)
         :rtype: float or array
         """
-        fstep = self.calc_fstep(ch1, ch2)
+        fstep = self.calc_fstep(dict1, dict2)
         return np.round(f/fstep) * fstep
 
     def freq2int(self, f, thisch, otherch=None):
@@ -377,6 +377,9 @@ class QickProgram:
 
     def config_readouts(self, soc):
         for ch, cfg in self.ro_chs.items():
+            if cfg.gen_ch is not None:
+                gen_cfg = self.gen_chs[cfg.gen_ch]
+                gen = soc.gens[cfg.gen_ch]
             soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
@@ -386,7 +389,7 @@ class QickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg.length, enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, ro_ch=0):
+    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, ro_ch=0):
         """
         Add a channel to the program's list of signal generators.
 
@@ -406,8 +409,7 @@ class QickProgram:
     def config_gens(self, soc):
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg.nqz)
-            if cfg.mixer_freq is not None:
-                soc.set_mixer_freq(ch, cfg.mixer_freq)
+            soc.set_mixer_freq(ch, cfg.mixer_freq, cfg.ro_ch)
             if cfg.mux_freqs is not None:
                 soc.set_mux_freqs(ch, cfg.mux_freqs)
 
