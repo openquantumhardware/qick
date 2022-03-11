@@ -318,21 +318,13 @@ class QickProgram:
                 "upper": 0b1010, "lower": 0b0101
                 }
 
-    # To make it easier to configure pulses these special registers are reserved for each channels pulse configuration
-    special_registers = [{"freq": 16, "phase": 17, "addr": 18, "gain": 19, "mode": 20, "t": 21, "length": 22},  # ch1 - pg 0
-                         {"freq": 23, "phase": 24, "addr": 25, "gain": 26,
-                             "mode": 27, "t": 28, "length": 29},  # ch2 - pg 0
-                         {"freq": 16, "phase": 17, "addr": 18, "gain": 19,
-                             "mode": 20, "t": 21, "length": 22},  # ch3 - pg 1
-                         {"freq": 23, "phase": 24, "addr": 25, "gain": 26,
-                             "mode": 27, "t": 28, "length": 29},  # ch4 - pg 1
-                         {"freq": 16, "phase": 17, "addr": 18, "gain": 19,
-                          "mode": 20, "t": 21, "length": 22},  # ch5 - pg 2
-                         {"freq": 23, "phase": 24, "addr": 25, "gain": 26,
-                          "mode": 27, "t": 28, "length": 29},  # ch6 - pg 3
-                         {"freq": 16, "phase": 17, "addr": 18, "gain": 19,
-                          "mode": 20, "t": 21, "length": 22},  # ch7 - pg 4
-                         ]
+    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
+    # In each page, register 0 is hard-wired with the value 0.
+    # In page 0 we reserve the following additional registers:
+    # 13, 14 and 15 for loop counters, 31 for the trigger time.
+    # Pairs of channels share a register page.
+    # The flat_top pulse uses some extra registers.
+    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2"]
 
     # delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
     trig_offset = 25
@@ -350,15 +342,15 @@ class QickProgram:
         self.dac_ts = [0]*9  # np.zeros(9,dtype=np.uint16)
         # np.zeros(9,dtype=np.uint16)
         self.adc_ts = [0]*len(soccfg['readouts'])
-        self.channels = {ch: {"addr": 0, "pulses": {},
-                              "last_pulse": None} for ch in range(1, 8)}
+        self.channels = {ch: {"addr": 0, "pulses": {}, "params": {},
+                              "last_pulse": None} for ch in range(0, 8)}
 
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
-    def declare_readout(self, ch, freq, length, sel='product', gen_ch=0):
+    def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
         """
         Add a channel to the program's list of readouts.
 
@@ -389,7 +381,7 @@ class QickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg.length, enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, ro_ch=0):
+    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, ro_ch=None):
         """
         Add a channel to the program's list of signal generators.
 
@@ -401,7 +393,7 @@ class QickProgram:
         :type mixer_freq: float
         :param mux_freqs: if this is a mux generator, list up to 4 output frequencies
         :type mux_freqs: list
-        :param ro_ch: ASC channel (use None if you don't want to round to a valid ADC frequency)
+        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency) - only used for mux generator and mixer
         :type ro_ch: int
         """
         self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, ro_ch)
@@ -413,7 +405,7 @@ class QickProgram:
             if cfg.mux_freqs is not None:
                 soc.set_mux_freqs(ch, cfg.mux_freqs)
 
-    def add_pulse(self, ch, name, style, idata=None, qdata=None, length=None):
+    def add_pulse(self, ch, name, idata=None, qdata=None):
         """
         Adds a pulse to the pulse library within the program.
 
@@ -421,36 +413,23 @@ class QickProgram:
         :type ch: int
         :param name: Name of the pulse
         :type name: str
-        :param style: Pulse style ("const", "arb", "flat_top", "poly")
-        :type style: str
         :param idata: I data Numpy array
         :type idata: array
         :param qdata: Q data Numpy array
         :type qdata: array
-        :param length: Length of pulse in FPGA clock ticks
-        :type length: int
         """
         if qdata is None and idata is not None:
             qdata = np.zeros(len(idata))
         if idata is None and qdata is not None:
             idata = np.zeros(len(qdata))
-        if idata is not None and (len(idata) % 16 != 0 or len(idata) % 16 != 0):
+        if idata is not None and (len(idata) != len(qdata) or len(idata) % 16 != 0):
             raise RuntimeError(
-                "Error: Pulse length must be integer multiple of 16")
+                "Error: I and Q pulse lengths must be equal and an integer multiple of 16")
 
-        if style == "arb":
-            self.channels[ch]["pulses"][name] = {
-                "idata": idata, "qdata": qdata, "addr": self.channels[ch]['addr'], "length": len(idata)//16, "style": style}
-            self.channels[ch]["addr"] += len(idata)
-        elif style == "flat_top":
-            self.channels[ch]["pulses"][name] = {
-                "idata": idata, "qdata": qdata, "addr": self.channels[ch]['addr'], "length": length, "style": style}
-            self.channels[ch]["addr"] += len(idata)
-        elif style == "const":
-            self.channels[ch]["pulses"][name] = {
-                "addr": 0, "length": length, "style": style}
-        elif style == "poly":
-            pass
+        self.channels[ch]["pulses"][name] = {
+            "idata": idata, "qdata": qdata, "addr": self.channels[ch]['addr']}
+        self.channels[ch]["addr"] += len(idata)
+
 
     def load_pulses(self, soc):
         """
@@ -461,22 +440,23 @@ class QickProgram:
         """
         for ch in self.channels.keys():
             for name, pulse in self.channels[ch]['pulses'].items():
-                if pulse['style'] != 'const':
-                    idata = pulse['idata'].astype(np.int16)
-                    qdata = pulse['qdata'].astype(np.int16)
-                    soc.load_pulse_data(
-                        ch, idata=idata, qdata=qdata, addr=pulse['addr'])
+                idata = pulse['idata']
+                qdata = pulse['qdata']
+                soc.load_pulse_data(
+                    ch, idata=idata, qdata=qdata, addr=pulse['addr'])
 
     def ch_page(self, ch):
         """
         Gets tProc register page associated with channel.
+        Page 0 gets one DAC channel because it also has some other registers.
+        Other pages get two DACs each.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :return: tProc page number
         :rtype: int
         """
-        return (ch-1)//2
+        return (ch+1)//2
 
     def sreg(self, ch, name):
         """
@@ -489,11 +469,14 @@ class QickProgram:
         :return: tProc special register number
         :rtype: int
         """
-        return self.__class__.special_registers[ch-1][name]
+        n_regs = len(self.pulse_registers)
+        return 31 - (n_regs * 2) + n_regs*((ch+1)%2) + self.pulse_registers.index(name)
 
-    def set_pulse_registers(self, ch, freq=None, phase=None, addr=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t=None):
+    def set_pulse_registers(self, ch, style, **kwargs):
+        #waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
         """
-        A macro to set (optionally) the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, length, and schedule time.
+        A macro to set (optionally) the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
+        The time is scheduled when you call pulse().
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
@@ -526,31 +509,12 @@ class QickProgram:
             - r_mode (:py:class:`int`) The pulse mode
             - r_t (:py:class:`int`) The pulse beginning time
         """
-        p = self
-        rp = self.ch_page(ch)
-        r_freq, r_phase, r_addr, r_gain, r_mode, r_t = p.sreg(ch, 'freq'), p.sreg(
-            ch, 'phase'), p.sreg(ch, 'addr'), p.sreg(ch, 'gain'), p.sreg(ch, 'mode'), p.sreg(ch, 't')
-        # TODO: if we can do compile-time conversion for frequency, we can bring this print back
-        #if freq is not None: p.safe_regwi (rp, r_freq, freq, f'freq = {reg2freq(freq)} MHz')
-        if freq is not None:
-            p.safe_regwi(rp, r_freq, freq, f'freq = {freq}')
-        if phase is not None:
-            p.safe_regwi(rp, r_phase, phase, f'phase = {phase}')
-        if gain is not None:
-            p.regwi(rp, r_gain, gain, f'gain = {gain}')
-        if t is not None and t != 'auto':
-            p.regwi(rp, r_t, t, f't = {t}')
-        if addr is not None:
-            p.regwi(rp, r_addr, addr, f'addr = {addr}')
-        if length is not None or stdysel is not None or phrst is not None or mode is not None or outsel is not None:
-            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
-                                 mode=mode, outsel=outsel, length=length)
-            p.regwi(
-                rp, r_mode, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+        f = {'const': self.const_pulse, 'arb': self.arb_pulse,
+                     'flat_top': self.flat_top_pulse}[style]
+        return f(ch, **kwargs)
 
-        return rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t
 
-    def const_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+    def const_pulse(self, ch, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, mask=None):
         """
         Schedule and (optionally) play a constant pulse, can autoschedule this based on previous pulses.
 
@@ -558,55 +522,59 @@ class QickProgram:
         :type ch: int
         :param name: Pulse name
         :type name: str
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param gain: Gain (DAC units)
-        :type gain: float
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
-        :type length: int
         :param t: The number of clock ticks at which point the pulse starts
         :type t: int
         """
         p = self
-        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        if name is not None:
-            pinfo = self.channels[ch]['pulses'][name]
-            length = pinfo['length']
-            addr = pinfo['addr']
-            self.channels[ch]['last_pulse'] = name
+        gen_type = self.soccfg['gens'][ch]['type']
+        rp = self.ch_page(ch)
+
+        last_pulse = {}
+        self.channels[ch]['last_pulse'] = last_pulse
+        last_pulse['rp'] = rp
+        last_pulse['regs'] = []
+
+        # set the pulse duration
+        last_pulse['length'] = length
+
+        r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
+
+        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+            p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
+            p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
+            p.regwi(rp, r_b, gain, f'gain = {gain}')
+
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel="dds", length=length)
+            p.regwi(
+                rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            last_pulse['regs'].append((r_e, r_d, 0, r_b, r_a))
+        elif gen_type == 'axis_sg_int4_v1':
+            if stdysel is not None or phrst is not None:
+                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
+            p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
+            p.safe_regwi(rp, r_d, (gain << 16), f'gain = {gain}')
+            mc = p.get_mode_code(mode=mode, outsel="dds", length=length)
+            p.regwi(
+                rp, r_c, mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            last_pulse['regs'].append((r_e, r_d, r_c, 0, 0))
+        elif gen_type == 'axis_sg_mux4_v1':
+            if mask is None:
+                raise RuntimeError("mask must be specified for mux generator")
+            if any([x is not None for x in [stdysel, phrst, freq, phase, gain, outsel]]):
+                raise RuntimeError(gen_type, "does not support specified options")
+            p.safe_regwi(rp, r_e, length, f'length = {length}')
+            val_mask = 0
+            for maskch in mask:
+                if maskch not in [0, 1, 2, 3]:
+                    raise RuntimeError("invalid mash specification")
+                val_mask |= (1 << maskch)
+            p.regwi(rp, r_d, val_mask, f'mask = {mask}')
+            last_pulse['regs'].append((r_e, r_d, 0, 0, 0))
         else:
-            pinfo = self.channels[ch]['pulses'][self.channels[ch]
-                                                ['last_pulse']]
-            addr = None
+            raise RuntimeError("this is not a tProc-controlled signal generator:", gen_type)
 
-        if length is not None:
-            outsel = 1
-        else:
-            outsel = None
-
-        rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(
-            ch, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
-
-        if play:
-            if t is not None:
-                if t == 'auto':
-                    t = p.dac_ts[ch]
-                p.dac_ts[ch] = t+length
-                p.regwi(rp, r_t, t, f't = {t}')
-            p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
-                  f"ch = {ch}, out = ${r_freq},${r_phase},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
-
-    def arb_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+    def arb_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None):
         """
         Schedule and (optionally) play an arbitrary pulse, can autoschedule this based on previous pulses.
 
@@ -614,160 +582,157 @@ class QickProgram:
         :type ch: int
         :param name: Pulse name
         :type name: str
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param gain: Gain (DAC units)
-        :type gain: float
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
-        :type length: int
         :param t: The number of clock ticks at which point the pulse starts
         :type t: int
         """
         p = self
-        addr = None
-        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        if name is not None:
-            pinfo = self.channels[ch]['pulses'][name]
-            addr = pinfo["addr"]//16
-            length = pinfo["length"]
-            self.channels[ch]['last_pulse'] = name
+        gen_type = self.soccfg['gens'][ch]['type']
+        rp = self.ch_page(ch)
 
-        rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(
-            ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length)
+        last_pulse = {}
+        self.channels[ch]['last_pulse'] = last_pulse
+        last_pulse['rp'] = rp
+        last_pulse['regs'] = []
 
-        if play:
-            if t is not None:
-                if t == 'auto':
-                    t = p.dac_ts[ch]
-                if name is None:
-                    pinfo = p.channels[ch]['pulses'][p.channels[ch]
-                                                     ['last_pulse']]
-                p.dac_ts[ch] = t+pinfo['length']
-                p.safe_regwi(rp, r_t, t, f't = {t}')
-            p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
-                  f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
+        pinfo = self.channels[ch]['pulses'][waveform]
+        addr = pinfo["addr"]//16
+        wfm_length = len(pinfo["idata"])//16
+        # set the pulse duration
+        last_pulse['length'] = wfm_length
 
-    def flat_top_pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+        r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
+        
+        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+            p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
+            p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
+            p.regwi(rp, r_b, gain, f'gain = {gain}')
+
+            p.regwi(rp, r_c, addr, f'addr = {addr}')
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel=outsel, length=wfm_length)
+            p.regwi(
+                rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            last_pulse['regs'].append((r_e, r_d, r_c, r_b, r_a))
+        elif gen_type == 'axis_sg_int4_v1':
+            if stdysel is not None or phrst is not None:
+                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
+            p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
+            p.safe_regwi(rp, r_d, (gain << 16) | addr, f'gain = {gain} | addr = {addr}')
+            mc = p.get_mode_code(mode=mode, outsel=outsel, length=wfm_length)
+            p.regwi(
+                rp, r_c, mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            last_pulse['regs'].append((r_e, r_d, r_c, 0, 0))
+        else:
+            raise RuntimeError("this generator does not support arb pulse:", gen_type)
+
+    def flat_top_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
         """
-        Schedule and (optionally) play an a flattop pulse with arbitrary ramps, can autoschedule based on previous pulses
+        Program a flattop pulse with arbitrary ramps.
+        The waveform is played in three segments: ramp up, flat, and ramp down.
         To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
-        :param name: Pulse name
-        :type name: str
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param gain: Gain (DAC units)
-        :type gain: float
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
-        :type length: int
-        :param t: The number of clock ticks at which point the pulse starts
-        :type t: int
         """
         p = self
-        addr = None
-        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        if name is not None:
-            pinfo = self.channels[ch]['pulses'][name]
-            self.channels[ch]['last_pulse'] = name
-            length = len(pinfo["idata"])//16//2
-            addr = pinfo['addr']//16
-            stdysel = 1
-        if gain is not None:
-            pinfo['gain'] = gain
+        gen_type = self.soccfg['gens'][ch]['type']
+        rp = self.ch_page(ch)
 
-        rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t = p.set_pulse_registers(
-            ch, freq=freq, phase=phase, addr=addr, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t)
-        p.regwi(rp, p.sreg(ch, "length"), pinfo["length"])
+        last_pulse = {}
+        self.channels[ch]['last_pulse'] = last_pulse
+        last_pulse['rp'] = rp
+        last_pulse['regs'] = []
 
-        if play:
-            if t is not None:
-                if t == 'auto':
-                    t = p.dac_ts[ch]
-                if name is None:
-                    pinfo = p.channels[ch]['pulses'][p.channels[ch]
-                                                     ['last_pulse']]
+        pinfo = self.channels[ch]['pulses'][waveform]
+        addr = pinfo["addr"]//16
+        wfm_length = len(pinfo["idata"])//16
+        # set the pulse duration
+        last_pulse['length'] = wfm_length + length
 
-                ramp_length = len(pinfo["idata"])//16//2
+        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+            r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
+            r_c2, r_b2, r_a2 = [p.sreg(ch,x) for x in ['addr2', 'gain2', 'mode2']]
+            p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
+            p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
+            # gain for ramps
+            p.regwi(rp, r_b, gain, f'gain = {gain}')
 
-                # play ramp up part of pulse
-                p.set_pulse_registers(
-                    ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain'], length=ramp_length, outsel=0, t=t)
-                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
-                      f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
+            # address for ramp-up
+            p.regwi(rp, r_c, addr, f'addr = {addr}')
+            # address for ramp-down
+            p.regwi(rp, r_c2, addr+wfm_length//2, f'addr = {addr}')
+            # gain for flat segment
+            p.regwi(rp, r_b2, gain//2, f'gain = {gain}')
+            # mode for flat segment
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel="dds", length=length)
+            p.regwi(rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            # mode for ramps
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel="product", length=wfm_length//2)
+            p.regwi(rp, r_a2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
-                # play flat part of pulse
-                p.set_pulse_registers(
-                    ch, addr=pinfo["addr"], phase=phase, gain=pinfo['gain']//2, length=0, outsel=1, t=t)
-                p.math(rp, r_mode, r_mode, "+", p.sreg(ch, "length"), "+")
-                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
-                      f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
-                p.set_pulse_registers(ch, addr=pinfo["addr"]+ramp_length, phase=phase, gain=pinfo['gain'], length=ramp_length,
-                                      outsel=0, t=t+ramp_length+pinfo['length'])  # play ramp down part of pulse with length delay
-                p.set(tproc_ch, rp, r_freq, r_phase, r_addr, r_gain, r_mode, r_t,
-                      f"ch = {ch}, out = ${r_freq},${r_addr},${r_gain},${r_mode} @t = ${r_t}")
+            last_pulse['regs'].append((r_e, r_d, r_c, r_b, r_a2))
+            last_pulse['regs'].append((r_e, r_d, 0, r_b2, r_a))
+            last_pulse['regs'].append((r_e, r_d, r_c2, r_b, r_a2))
+        elif gen_type == 'axis_sg_int4_v1':
+            if stdysel is not None or phrst is not None:
+                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
+            # phase+freq
+            r_e = p.sreg(ch,'freq')
+            r_c, r_c2 = [p.sreg(ch,x) for x in ['mode', 'mode2']]
+            # gain+addr
+            r_d1, r_d2, r_d3 = [p.sreg(ch,x) for x in ['addr', 'gain', 'addr2']]
 
-            p.dac_ts[ch] = t+pinfo['length']+2*ramp_length
+            p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
 
-    def pulse(self, ch, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto', play=True):
+            # mode for flat segment
+            mc = p.get_mode_code(mode=mode, outsel="dds", length=length)
+            p.regwi(rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            # mode for ramps
+            #mc = p.get_mode_code(mode=mode, outsel="product", length=wfm_length//2)
+            mc = p.get_mode_code(mode=mode, outsel="product", length=length)
+            p.regwi(rp, r_c2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+
+            # gain+addr for ramp-up
+            p.safe_regwi(rp, r_d1, (gain << 16) | addr, f'gain = {gain} | addr = {addr}')
+            # gain+addr for flat
+            p.safe_regwi(rp, r_d2, (gain//2 << 16), f'gain = {gain} | addr = {addr}')
+            # gain+addr for ramp-down
+            p.safe_regwi(rp, r_d3, (gain << 16) | addr+wfm_length//2, f'gain = {gain} | addr = {addr}')
+
+            last_pulse['regs'].append((r_e, r_d1, r_c2, 0, 0))
+            last_pulse['regs'].append((r_e, r_d2, r_c, 0, 0))
+            last_pulse['regs'].append((r_e, r_d3, r_c2, 0, 0))
+        else:
+            raise RuntimeError("this generator does not support flat_top pulse:", gen_type)
+
+    def pulse(self, ch, t='auto'):
         """
-        Overall pulse class which will select the correct function to call based on the 'style' parameter of the named pulse.
+        Play the pulse currently programmed into the registers for this DAC channel.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
-        :param name: Pulse name
-        :type name: str
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param gain: Gain (DAC units)
-        :type gain: float
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
-        :type length: int
-        :param t: The number of clock ticks at which point the pulse starts
+        :param t: The number of clock ticks at which point the pulse starts (None to use the time register as is, 'auto' to start whenever the last pulse ends)
         :type t: int
-        :return: Dict of pulse styles
-        :rtype: dict
         """
-        if name is None:
-            name = self.channels[ch]['last_pulse']
+        rp = self.ch_page(ch)
+        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
+        last_pulse = self.channels[ch]['last_pulse']
 
-        pinfo = self.channels[ch]['pulses'][name]
+        r_t = self.sreg(ch, 't')
+        
+        if t is not None:
+            if t == 'auto':
+                t = self.dac_ts[ch]
+            self.dac_ts[ch] = t + last_pulse['length']
+            self.safe_regwi(rp, r_t, t, f't = {t}')
 
-        f = {'const': self.const_pulse, 'arb': self.arb_pulse,
-             'flat_top': self.flat_top_pulse}[pinfo['style']]
-
-        return f(ch, name=name, freq=freq, phase=phase, gain=gain, phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=length, t=t, play=play)
+        # Play each pulse segment.
+        # We specify the same time for all segments and rely on the signal generator to concatenate them without gaps.
+        # We could specify the "correct" times, but it's difficult to get right when the tProc and generator clocks are different.
+        for regs in last_pulse['regs']:
+            self.set(tproc_ch, rp, *regs, r_t, f"ch = {ch}, pulse @t = ${r_t}")
 
     def align(self, chs):
         """
@@ -955,8 +920,7 @@ class QickProgram:
         :type t: int
         """
         self.trigger(adcs, adc_trig_offset=adc_trig_offset)
-        self.pulse(ch=pulse_ch, name=name, freq=freq, phase=phase, gain=gain, phrst=phrst,
-                   stdysel=stdysel, mode=mode, outsel=outsel, length=length, play=True)
+        self.pulse(ch=pulse_ch)
         self.waiti(0, max(self.adc_ts))
 
     def convert_immediate(self, val):
@@ -1036,32 +1000,31 @@ class QickProgram:
         """
         return [self.compile_instruction(inst, debug=debug) for inst in self.prog_list]
 
-    def get_mode_code(self, phrst, stdysel, mode, outsel, length):
+    def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """
         Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
 
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
         :param length: The number of samples in the pulse
         :type length: int
+        :param mode: Selects whether the output is "oneshot" or "periodic"
+        :type mode: string
+        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        :type outsel: int
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: bool
         :return: Compiled mode code in binary
         :rtype: int
         """
-        if phrst is None:
-            phrst = 0
-        if stdysel is None:
-            stdysel = 1
-        if mode is None:
-            mode = 0
-        if outsel is None:
-            outsel = 0
-        mc = phrst*0b10000+stdysel*0b01000+mode*0b00100+outsel
+        if mode is None: mode = "oneshot"
+        if outsel is None: outsel = "product"
+        if stdysel is None: stdysel = "zero"
+        if phrst is None: phrst = 0
+        stdysel_reg = {"last": 0, "zero": 1}[stdysel]
+        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
+        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
+        mc = phrst*0b10000+stdysel_reg*0b01000+mode_reg*0b00100+outsel_reg
         return mc << 16 | length
 
     def append_instruction(self, name, *args):

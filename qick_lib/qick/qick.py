@@ -32,15 +32,6 @@ class SocIp(DefaultIP):
         self.type = description['type'].split(':')[-2]
         #self.ip = description
 
-    def read(self, offset):
-        """
-        Reads an offset
-
-        :param offset: Offset value
-        :type offset: int
-        """
-        return super().read(offset)
-
     def __setattr__(self, a, v):
         """
         Sets the arguments associated with a register
@@ -51,6 +42,7 @@ class SocIp(DefaultIP):
         :type v: int
         """
         if a in self.__class__.REGISTERS:
+            #print(self.fullpath, a, v)
             super().write(4*self.__class__.REGISTERS[a], int(v))
         super().__setattr__(a, v)
 
@@ -185,6 +177,7 @@ class AbsSignalGen(SocIp):
         xin_q = xin_q.astype(np.int32)
 
         xin = xin_i + (xin_q << 16)
+        #print(self.fullpath, xin.shape, addr, self.switch_ch)
 
         # Define buffer.
         self.buff = allocate(shape=len(xin), dtype=np.int32)
@@ -554,13 +547,13 @@ class AxisReadoutV2(SocIp):
                 mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
                 if mixer_freq != 0:
                     # calculate the frequency that will be applied to the generator
-                    rounded_freq = self.soc.roundfreq(self.soc['gens'][gen_ch], self.soc['readouts'][self.ch])
+                    rounded_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.soc['readouts'][self.ch])
                     # now we can calculate the exact frequency the RO will see
                     ro_freq = rounded_freq + mixer_freq
                     # we can calculate the register value without further referencing the gen_ch
                     self.set_freq_int(self.soc.freq2reg_adc(ro_freq, ro_ch=self.ch, gen_ch=None))
                 else:
-                    self.set_freq_int(self.soc.freq2reg_adc(ro_freq, ro_ch=self.ch, gen_ch=gen_ch))
+                    self.set_freq_int(self.soc.freq2reg_adc(f, ro_ch=self.ch, gen_ch=gen_ch))
             else:
                 self.set_freq_int(self.soc.freq2reg_adc(
                     f, ro_ch=self.ch, gen_ch=gen_ch))
@@ -1333,9 +1326,9 @@ class RFDC(xrfdc.RFdc):
         tile, channel = [int(a) for a in dacname]
         return self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
 
-    def set_nyquist(self, dacname, nz):
+    def set_nyquist(self, dacname, nqz):
         tile, channel = [int(a) for a in dacname]
-        self.dac_tiles[tile].blocks[channel].NyquistZone = nz
+        self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
 
 
 class QickSoc(Overlay, QickConfig):
@@ -1767,7 +1760,7 @@ class QickSoc(Overlay, QickConfig):
         :param addr: address to start data at
         :type addr: int
         """
-        return self.gens[ch-1].load(xin_i=idata, xin_q=qdata, addr=addr)
+        return self.gens[ch].load(xin_i=idata, xin_q=qdata, addr=addr)
 
     def set_nyquist(self, ch, nqz):
         """
