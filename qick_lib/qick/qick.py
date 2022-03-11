@@ -11,7 +11,7 @@ except:
 import numpy as np
 from .parser import parse_to_bin
 from .streamer import DataStreamer
-from .qick_asm import QickConfig
+from .qick_asm import QickConfig, QickProgram
 from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
@@ -1827,3 +1827,18 @@ class QickSoc(Overlay, QickConfig):
         """
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
+
+    def reset_gens(self):
+        """
+        Run a minimal tProc program that drives all signal generators with 0's.
+        Useful for stopping any periodic or stdysel="last" outputs that may have been driven by a previous program.
+        """
+        prog = QickProgram(self)
+        for gen in self.gens:
+            if gen.HAS_WAVEFORM:
+                prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
+                prog.pulse(ch=gen.ch,t=0)
+        prog.end()
+        self.tproc.stop()
+        prog.load_program(self)
+        self.tproc.start()

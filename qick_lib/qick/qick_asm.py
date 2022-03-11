@@ -1000,6 +1000,15 @@ class QickProgram:
         """
         return [self.compile_instruction(inst, debug=debug) for inst in self.prog_list]
 
+    def load_program(self, soc, debug=False):
+        """
+        Load the compiled program into the tProcessor.
+
+        :param debug: If True, debug mode is on
+        :type debug: bool
+        """
+        soc.tproc.load_bin_program(self.compile(debug=debug))
+
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """
         Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
