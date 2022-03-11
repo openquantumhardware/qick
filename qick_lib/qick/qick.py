@@ -223,6 +223,11 @@ class AbsSignalGen(SocIp):
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
+        # The XRFDC driver uses C integer type conversion to get the register value.
+        # The frequency we calculated exactly equals (to within float precision) a valid NCO frequency.
+        # So half the time, the frequency will get rounded down to the next lowest valid frequency.
+        # We don't want this, so we must add a half-step to the frequency we demand.
+        rounded_f += self.fs*self.FS_INTERPOLATION/2**49
         self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
@@ -293,6 +298,7 @@ class AxisSgInt4V1(AbsSignalGen):
     HAS_TPROC = True
     HAS_WAVEFORM = True
     HAS_MIXER = True
+    FS_INTERPOLATION = 4
 
     def __init__(self, description):
         """
@@ -1473,8 +1479,8 @@ class QickSoc(Overlay, QickConfig):
 
         # Sort the lists by channel number.
         # Typically they are already in order, but good to make sure?
-        # We order gens by the DAC port number and buffers by the switch port number.
-        self.gens.sort(key=lambda x: x.dac)
+        # We order gens by the tProc port number and buffers by the switch port number.
+        self.gens.sort(key=lambda x: x.tproc_ch)
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         self.readouts.sort(key=lambda x: x.buffer.switch_ch)
 
