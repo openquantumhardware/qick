@@ -418,18 +418,21 @@ class QickProgram:
         :param qdata: Q data Numpy array
         :type qdata: array
         """
-        if qdata is None and idata is not None:
+        if qdata is None and idata is None:
+            raise RuntimeError("Error: no data argument was supplied")
+        if qdata is None:
             qdata = np.zeros(len(idata))
-        if idata is None and qdata is not None:
+        if idata is None:
             idata = np.zeros(len(qdata))
-        if idata is not None and (len(idata) != len(qdata) or len(idata) % 16 != 0):
-            raise RuntimeError(
-                "Error: I and Q pulse lengths must be equal and an integer multiple of 16")
+        if len(idata) != len(qdata):
+            raise RuntimeError("Error: I and Q pulse lengths must be equal")
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        if (len(idata) % samps_per_clk) != 0:
+            raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(samps_per_clk))
 
         self.channels[ch]["pulses"][name] = {
             "idata": idata, "qdata": qdata, "addr": self.channels[ch]['addr']}
         self.channels[ch]["addr"] += len(idata)
-
 
     def load_pulses(self, soc):
         """
@@ -514,7 +517,7 @@ class QickProgram:
         return f(ch, **kwargs)
 
 
-    def const_pulse(self, ch, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, mask=None):
+    def const_pulse(self, ch, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None, mask=None):
         """
         Schedule and (optionally) play a constant pulse, can autoschedule this based on previous pulses.
 
@@ -561,7 +564,7 @@ class QickProgram:
         elif gen_type == 'axis_sg_mux4_v1':
             if mask is None:
                 raise RuntimeError("mask must be specified for mux generator")
-            if any([x is not None for x in [stdysel, phrst, freq, phase, gain, outsel]]):
+            if any([x is not None for x in [stdysel, phrst, freq, phase, gain]]):
                 raise RuntimeError(gen_type, "does not support specified options")
             p.safe_regwi(rp, r_e, length, f'length = {length}')
             val_mask = 0
@@ -587,6 +590,7 @@ class QickProgram:
         """
         p = self
         gen_type = self.soccfg['gens'][ch]['type']
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
         rp = self.ch_page(ch)
 
         last_pulse = {}
@@ -595,8 +599,9 @@ class QickProgram:
         last_pulse['regs'] = []
 
         pinfo = self.channels[ch]['pulses'][waveform]
-        addr = pinfo["addr"]//16
-        wfm_length = len(pinfo["idata"])//16
+
+        addr = pinfo["addr"]//samps_per_clk
+        wfm_length = len(pinfo["idata"])//samps_per_clk
         # set the pulse duration
         last_pulse['length'] = wfm_length
 
@@ -636,6 +641,7 @@ class QickProgram:
         """
         p = self
         gen_type = self.soccfg['gens'][ch]['type']
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
         rp = self.ch_page(ch)
 
         last_pulse = {}
@@ -644,8 +650,8 @@ class QickProgram:
         last_pulse['regs'] = []
 
         pinfo = self.channels[ch]['pulses'][waveform]
-        addr = pinfo["addr"]//16
-        wfm_length = len(pinfo["idata"])//16
+        addr = pinfo["addr"]//samps_per_clk
+        wfm_length = len(pinfo["idata"])//samps_per_clk
         # set the pulse duration
         last_pulse['length'] = wfm_length + length
 
@@ -690,8 +696,7 @@ class QickProgram:
             mc = p.get_mode_code(mode=mode, outsel="dds", length=length)
             p.regwi(rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             # mode for ramps
-            #mc = p.get_mode_code(mode=mode, outsel="product", length=wfm_length//2)
-            mc = p.get_mode_code(mode=mode, outsel="product", length=length)
+            mc = p.get_mode_code(mode=mode, outsel="product", length=wfm_length//2)
             p.regwi(rp, r_c2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
             # gain+addr for ramp-up

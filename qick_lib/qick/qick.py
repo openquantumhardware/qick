@@ -72,6 +72,8 @@ class AbsSignalGen(SocIp):
     HAS_MIXER = False
     # Interpolation factor relating the generator and DAC sampling freqs.
     FS_INTERPOLATION = 1
+    # Waveform samples per fabric clock.
+    SAMPS_PER_CLK = 1
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
     # Name of the input driven by the waveform DMA (if applicable).
@@ -144,21 +146,19 @@ class AbsSignalGen(SocIp):
 
         # Check for equal length.
         if len(xin_i) != len(xin_q):
-            print("%s: I/Q buffers must be the same length." %
+            raise RuntimeError("%s: I/Q buffers must be the same length." %
                   self.__class__.__name__)
-            return
 
         # Check for max length.
         if len(xin_i) > self.MAX_LENGTH:
-            print("%s: buffer length must be %d samples or less." %
+            raise RuntimeError("%s: buffer length must be %d samples or less." %
                   (self.__class__.__name__, self.MAX_LENGTH))
-            return
 
         # Check for even transfer size.
-        if len(xin_i) % 2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
+        #if len(xin_i) % 2 != 0:
+        #    raise RuntimeError("Buffer transfer length must be even number.")
 
-        # Check for max length.
+        # Check for max value.
         if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
             raise ValueError(
                 "real part of envelope exceeds limits of int16 datatype")
@@ -253,6 +253,7 @@ class AxisSignalGen(AbsSignalGen):
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     HAS_TPROC = True
     HAS_WAVEFORM = True
+    SAMPS_PER_CLK = 16
 
     def __init__(self, description):
         """
@@ -1510,6 +1511,7 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['dac'] = gen.dac
             thiscfg['fs'] = gen.fs
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
+            thiscfg['samps_per_clk'] = gen.SAMPS_PER_CLK
             self['gens'].append(thiscfg)
 
         for buf in self.avg_bufs:
