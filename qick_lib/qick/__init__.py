@@ -13,5 +13,5 @@ def bitfile_path():
 
 try:
     from .qick import QickSoc
-except:
-    print("Could not import QickSoc, probably due to not being able to load pynq package.")
+except Exception as e:
+    print("Could not import QickSoc:", e)

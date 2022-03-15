@@ -456,7 +456,7 @@ class AxisReadoutV2(SocIp):
     OUTSEL_REG : 2-bit.
     * 0 : product.
     * 1 : dds.
-    * 2 : bypass.
+    * 2 : input (bypass).
 
     MODE_REG : 1-bit.
     * 0 : NSAMP.
@@ -464,8 +464,6 @@ class AxisReadoutV2(SocIp):
 
     WE_REG : enable/disable to perform register update.
 
-    :param ip: IP address
-    :type ip: str
     :param fs: sampling frequency in MHz
     :type fs: float
     """
@@ -493,10 +491,7 @@ class AxisReadoutV2(SocIp):
         self.update()
 
     # Configure this driver with the sampling frequency.
-    def configure(self, ch, fs):
-        # Channel number corresponding to entry in the QickConfig list of readouts.
-        self.ch = ch
-
+    def configure(self, fs):
         # Sampling frequency.
         self.fs = fs
 
@@ -550,20 +545,18 @@ class AxisReadoutV2(SocIp):
         """
         # Sanity check.
         if f < self.fs:
+            thiscfg = {}
+            thiscfg['fs'] = self.fs
+            thiscfg['b_dds'] = self.B_DDS
+            # calculate the exact frequency we expect to see
+            ro_freq = f
+            if gen_ch is not None: # calculate the frequency that will be applied to the generator
+                ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
             if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-                mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-                if mixer_freq != 0:
-                    # calculate the frequency that will be applied to the generator
-                    rounded_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.soc['readouts'][self.ch])
-                    # now we can calculate the exact frequency the RO will see
-                    ro_freq = rounded_freq + mixer_freq
-                    # we can calculate the register value without further referencing the gen_ch
-                    self.set_freq_int(self.soc.freq2reg_adc(ro_freq, ro_ch=self.ch, gen_ch=None))
-                else:
-                    self.set_freq_int(self.soc.freq2reg_adc(f, ro_ch=self.ch, gen_ch=gen_ch))
-            else:
-                self.set_freq_int(self.soc.freq2reg_adc(
-                    f, ro_ch=self.ch, gen_ch=gen_ch))
+                ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
+            # we can calculate the register value without further referencing the gen_ch
+            f_int = self.soc.freq2int(ro_freq, thiscfg)
+            self.set_freq_int(f_int)
 
         # Register update.
         self.update()
@@ -583,6 +576,115 @@ class AxisReadoutV2(SocIp):
     def get_freq(self):
         return self.freq_reg * self.fs / (2**self.B_DDS)
 
+class AxisPFBReadoutV2(SocIp):
+    """
+    AxisPFBReadoutV2 class
+
+    Registers.
+    FREQ[0-7]_REG : 32-bit frequency of each channel.
+
+    OUTSEL_REG : 2-bit.
+    * 0 : product.
+    * 1 : input (bypass).
+    * 2 : dds.
+
+    CH[0-3]SEL_REG : 3-bit ID mapping an output channel to an input.
+    """
+    bindto = ['user.org:user:axis_pfb_readout_v2:1.0']
+    REGISTERS = {'freq0_reg': 0,
+            'freq1_reg': 1,
+            'freq2_reg': 2,
+            'freq3_reg': 3,
+            'freq4_reg': 4,
+            'freq5_reg': 5,
+            'freq6_reg': 6,
+            'freq7_reg': 7,
+            'outsel_reg': 8,
+            'ch0sel_reg': 9,
+            'ch1sel_reg': 10,
+            'ch2sel_reg': 11,
+            'ch3sel_reg': 12,
+            }
+
+    # Bits of DDS. 
+    # The channelizer DDS range is 1/8 of the sampling frequency, which effectively adds 3 bits of resolution.
+    B_DDS = 35
+
+    # Configure this driver with the sampling frequency.
+    def configure(self, fs):
+        # Sampling frequency.
+        self.fs = fs
+
+    def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
+        # what RFDC port drives this readout?
+        ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
+        # might need to jump through an axis_register_slice
+        if 'rf_data_converter' not in block:
+            ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        if soc.hs_adc:
+            iBlock //= 2
+        self.adc = "%d%d" % (iTile, iBlock)
+
+        # what buffer does this readout drive?
+        self.buffers=[]
+        for iBuf in range(4):
+            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis'%(iBuf))
+            self.buffers.append(getattr(soc, block))
+
+        print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
+
+    def set_out(self, sel="product"):
+        """
+        Select readout signal output
+
+        :param sel: select mux control
+        :type sel: int
+        """
+        self.outsel_reg = {"product": 0, "input": 1, "dds": 2}[sel]
+
+    def set_freq(self, f, out_ch, gen_ch=0):
+        """
+        Set frequency register
+
+        :param f: frequency in MHz (before adding any DAC mixer frequency)
+        :type f: float
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
+        """
+        thiscfg = {}
+        thiscfg['fs'] = self.fs
+        thiscfg['b_dds'] = self.B_DDS
+        # calculate the exact frequency we expect to see
+        ro_freq = f
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
+        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
+            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
+
+        nqz = int(ro_freq // (self.fs/2)) + 1
+        if nqz % 2 == 0: # even Nyquist zone
+            ro_freq *= -1
+        # the PFB channels are separated by half the DDS range
+        # round() gives you the single best channel
+        # floor() and ceil() would give you the 2 best channels
+        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
+        f_steps = int(np.round(ro_freq/(self.fs/16)))
+        f_dds = ro_freq - f_steps*(self.fs/16)
+        in_ch = (4 + f_steps) % 8
+
+        # we can calculate the register value without further referencing the gen_ch
+        freq_int = self.soc.freq2int(f_dds, thiscfg)
+        self.set_freq_int(freq_int, in_ch, out_ch)
+
+    def set_freq_int(self, f_int, in_ch, out_ch):
+        # wire the selected PFB channel to the output
+        setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
+        # set the PFB channel's DDS frequency
+        setattr(self, "freq%d_reg"%(in_ch), f_int)
 
 class AxisAvgBuffer(SocIp):
     """
@@ -621,8 +723,6 @@ class AxisAvgBuffer(SocIp):
 
     BUF_DR_LEN_REG : number of samples to be read.
 
-    :param ip: IP address
-    :type ip: str
     :param axi_dma_avg: dma block for average buffers
     :type axi_dma_avg: str
     :param switch_avg: switch block for average buffers
@@ -687,6 +787,8 @@ class AxisAvgBuffer(SocIp):
         # which readout drives this buffer?
         ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
         self.readout = getattr(soc, block)
+        # port names are of the form 'm1_axis'
+        self.readoutport = int(port.split('_')[0][1:], 10)
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm0_axis')
@@ -717,6 +819,20 @@ class AxisAvgBuffer(SocIp):
 
         # print("%s: readout %s, switch %d, trigger %d, tProc port %d"%
         # (self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
+
+    def set_freq(self, f, gen_ch=0):
+        """
+        Set the downconversion frequency on the readout that drvies this buffer.
+
+        :param f: frequency in MHz (before adding any DAC mixer frequency)
+        :type f: float
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
+        """
+        if isinstance(self.readout, AxisPFBReadoutV2):
+            self.readout.set_freq(f, self.readoutport, gen_ch=gen_ch)
+        else:
+            self.readout.set_freq(f, gen_ch=gen_ch)
 
     def config(self, address=0, length=100):
         """
@@ -998,8 +1114,6 @@ class AxisTProc64x32_x8(SocIp):
     The other method is to DMA in and out. Here the access is direct, so no conversion is needed.
     There is an arbiter to ensure data coherency and avoid blocking transactions.
 
-    :param ip: IP address
-    :type ip: str
     :param mem: memory address
     :type mem: int
     :param axi_dma: axi_dma address
@@ -1239,8 +1353,6 @@ class AxisSwitch(SocIp):
     """
     AxisSwitch class to control Xilinx AXI-Stream switch IP
 
-    :param ip: IP address
-    :type ip: str
     :param nslave: Number of slave interfaces
     :type nslave: int
     :param nmaster: Number of master interfaces
@@ -1455,6 +1567,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Readout blocks.
         self.readouts = []
+        ro_drivers = set([AxisReadoutV2, AxisPFBReadoutV2])
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
@@ -1462,15 +1575,16 @@ class QickSoc(Overlay, QickConfig):
                 self.gens.append(getattr(self, key))
             elif val['driver'] == AxisConstantIQ:
                 self.iqs.append(getattr(self, key))
-            elif val['driver'] == AxisReadoutV2:
+            elif val['driver'] in ro_drivers:
                 self.readouts.append(getattr(self, key))
             elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
 
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
-        if len(self.readouts) != len(self.avg_bufs):
-            raise RuntimeError("We have %d readouts but %d avg/buffer blocks." %
-                               (len(self.readouts), len(self.avg_bufs)))
+        #TODO: bring back?
+        #if len(self.readouts) != len(self.avg_bufs):
+        #    raise RuntimeError("We have %d readouts but %d avg/buffer blocks." %
+        #                       (len(self.readouts), len(self.avg_bufs)))
         if self.switch_avg.NSL != len(self.avg_bufs):
             raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
                                (self.switch_avg.NSL, len(self.avg_bufs)))
@@ -1478,12 +1592,14 @@ class QickSoc(Overlay, QickConfig):
             raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
                                (self.switch_buf.NSL, len(self.avg_bufs)))
 
-        # Sort the lists by channel number.
-        # Typically they are already in order, but good to make sure?
+        # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
+        # Those orderings are important, since those indices get used in programs.
         self.gens.sort(key=lambda x: x.tproc_ch)
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
-        self.readouts.sort(key=lambda x: x.buffer.switch_ch)
+        # The IQ and readout orderings aren't critical for anything.
+        self.iqs.sort(key=lambda x: x.dac)
+        self.readouts.sort(key=lambda x: x.adc)
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
@@ -1491,16 +1607,18 @@ class QickSoc(Overlay, QickConfig):
                           self.dacs[gen.dac]['fs'], self.axi_dma_gen, self.switch_gen)
 
         for i, iq in enumerate(self.iqs):
-            iq.configure(i, self.rf, self.dacs[gen.dac]['fs'])
+            iq.configure(i, self.rf, self.dacs[iq.dac]['fs'])
 
-        for i, buf in enumerate(self.avg_bufs):
+        for buf in self.avg_bufs:
             buf.configure(self.axi_dma_avg, self.switch_avg,
                           self.axi_dma_buf, self.switch_buf)
-            buf.readout.configure(i, self.adcs[buf.readout.adc]['fs'])
+        for readout in self.readouts:
+            readout.configure(self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
         self['gens'] = []
         self['readouts'] = []
+        self['iqs'] = []
         for gen in self.gens:
             thiscfg = {}
             thiscfg['type'] = gen.type
@@ -1525,6 +1643,12 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
+
+        for iq in self.iqs:
+            thiscfg = {}
+            thiscfg['dac'] = iq.dac
+            thiscfg['fs'] = iq.fs
+            self['iqs'].append(thiscfg)
 
         self['tprocs'] = []
         for tproc in [self.tproc]:
@@ -1709,8 +1833,8 @@ class QickSoc(Overlay, QickConfig):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        self.readouts[ch].set_out(sel=output)
-        self.readouts[ch].set_freq(frequency, gen_ch=gen_ch)
+        self.avg_bufs[ch].readout.set_out(sel=output)
+        self.avg_bufs[ch].set_freq(frequency, gen_ch=gen_ch)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer

@@ -75,6 +75,12 @@ class QickConfig():
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
 
+        if self['iqs']:
+            lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
+            for iIQ, iq in enumerate(self['iqs']):
+                lines.append("\t%d:\tDAC tile %s, ch %s, fs=%.3f MHz" %
+                             (iIQ, *iq['dac'], iq['fs']))
+
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
             lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
