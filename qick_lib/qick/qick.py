@@ -515,6 +515,12 @@ class AxisReadoutV2(SocIp):
 
         #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
 
+    def initialize(self):
+        """
+        Does nothing.
+        """
+        pass
+
     def update(self):
         """
         Update register values
@@ -543,20 +549,19 @@ class AxisReadoutV2(SocIp):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        # Sanity check.
-        if f < self.fs:
-            thiscfg = {}
-            thiscfg['fs'] = self.fs
-            thiscfg['b_dds'] = self.B_DDS
-            # calculate the exact frequency we expect to see
-            ro_freq = f
-            if gen_ch is not None: # calculate the frequency that will be applied to the generator
-                ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
-            if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-                ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
-            # we can calculate the register value without further referencing the gen_ch
-            f_int = self.soc.freq2int(ro_freq, thiscfg)
-            self.set_freq_int(f_int)
+        thiscfg = {}
+        thiscfg['fs'] = self.fs
+        thiscfg['b_dds'] = self.B_DDS
+        # calculate the exact frequency we expect to see
+        ro_freq = f
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
+        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
+            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
+        ro_freq = ro_freq % self.fs
+        # we can calculate the register value without further referencing the gen_ch
+        f_int = self.soc.freq2int(ro_freq, thiscfg)
+        self.set_freq_int(f_int)
 
         # Register update.
         self.update()
@@ -610,6 +615,13 @@ class AxisPFBReadoutV2(SocIp):
     # The channelizer DDS range is 1/8 of the sampling frequency, which effectively adds 3 bits of resolution.
     B_DDS = 35
 
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        self.initialize()
+
     # Configure this driver with the sampling frequency.
     def configure(self, fs):
         # Sampling frequency.
@@ -629,13 +641,20 @@ class AxisPFBReadoutV2(SocIp):
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
 
-        # what buffer does this readout drive?
+        # what buffers does this readout drive?
         self.buffers=[]
         for iBuf in range(4):
             ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis'%(iBuf))
             self.buffers.append(getattr(soc, block))
 
-        print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
+        #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
+
+    def initialize(self):
+        """
+        Set up local variables to track definitions of frequencies or readout modes.
+        """
+        self.ch_freqs = {}
+        self.sel = None
 
     def set_out(self, sel="product"):
         """
@@ -644,6 +663,9 @@ class AxisPFBReadoutV2(SocIp):
         :param sel: select mux control
         :type sel: int
         """
+        if self.sel is not None and sel != self.sel:
+            raise RuntimeError("trying to set output mode to %s, but mode was previously set to %s"%(sel, self.sel))
+        self.sel = sel
         self.outsel_reg = {"product": 0, "input": 1, "dds": 2}[sel]
 
     def set_freq(self, f, out_ch, gen_ch=0):
@@ -681,6 +703,9 @@ class AxisPFBReadoutV2(SocIp):
         self.set_freq_int(freq_int, in_ch, out_ch)
 
     def set_freq_int(self, f_int, in_ch, out_ch):
+        if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
+            raise RuntimeError("trying to set PFB channel %d to freq %d, but freq was previously set to %d"%(in_ch, f_int, self.ch_freqs[in_ch]))
+        self.ch_freqs[in_ch] = f_int
         # wire the selected PFB channel to the output
         setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
         # set the PFB channel's DDS frequency
@@ -1821,6 +1846,13 @@ class QickSoc(Overlay, QickConfig):
 
         # we remove the padding here
         return data[:, 2:length+2]
+
+    def init_readouts(self):
+        """
+        Initialize readouts, in preparation for configuring them.
+        """
+        for readout in self.readouts:
+            readout.initialize()
 
     def configure_readout(self, ch, output, frequency, gen_ch=0):
         """Configure readout channel output style and frequency

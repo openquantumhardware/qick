@@ -374,6 +374,7 @@ class QickProgram:
         self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
 
     def config_readouts(self, soc):
+        soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
             if cfg.gen_ch is not None:
                 gen_cfg = self.gen_chs[cfg.gen_ch]
