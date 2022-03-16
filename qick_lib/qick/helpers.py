@@ -91,12 +91,16 @@ class BusParser:
         This is essentially a copy of the HWH parser's match_nets() and match_pins(),
         but working on buses instead of signals.
 
+        In addition, there's a map from module names to module types.
+
         :param parser: HWH parser object (from Overlay.parser)
         """
         self.nets = {}
         self.pins = {}
+        self.mod2type = {}
         for module in parser.root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
+            self.mod2type[fullpath] = module.get('MODTYPE')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')
