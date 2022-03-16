@@ -105,7 +105,7 @@ class AbsSignalGen(SocIp):
             # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
             ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
             # might need to jump through an axis_clk_cnvrt
-            if 'axis_tproc' not in block:
+            while busparser.mod2type[block] == "axis_clock_converter":
                 ((block, port),) = trace_net(busparser, block, 'S_AXIS')
             # port names are of the form 'm2_axis_tdata'
             # subtract 1 to get the output channel number (m0 goes to the DMA)
@@ -121,7 +121,7 @@ class AbsSignalGen(SocIp):
         # what RFDC port does this generator drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # might need to jump through an axis_register_slice
-        if 'rf_data_converter' not in block:
+        while busparser.mod2type[block] == "axis_register_slice":
             ((block, port),) = trace_net(busparser, block, 'M_AXIS')
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
@@ -501,7 +501,7 @@ class AxisReadoutV2(SocIp):
         # what RFDC port drives this readout?
         ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
         # might need to jump through an axis_register_slice
-        if 'rf_data_converter' not in block:
+        while busparser.mod2type[block] == "axis_register_slice":
             ((block, port),) = trace_net(busparser, block, 'S_AXIS')
         # port names are of the form 'm02_axis' where the block number is always even
         iTile, iBlock = [int(x) for x in port[1:3]]
@@ -633,7 +633,7 @@ class AxisPFBReadoutV2(SocIp):
         # what RFDC port drives this readout?
         ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
         # might need to jump through an axis_register_slice
-        if 'rf_data_converter' not in block:
+        while busparser.mod2type[block] == "axis_register_slice":
             ((block, port),) = trace_net(busparser, block, 'S_AXIS')
         # port names are of the form 'm02_axis' where the block number is always even
         iTile, iBlock = [int(x) for x in port[1:3]]
@@ -837,10 +837,15 @@ class AxisAvgBuffer(SocIp):
         # which tProc input port does this buffer drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm2_axis')
         # jump through an axis_clk_cnvrt
-        ((block, port),) = trace_net(busparser, block, 'M_AXIS')
+        while busparser.mod2type[block] == "axis_clock_converter":
+            ((block, port),) = trace_net(busparser, block, 'M_AXIS')
         # port names are of the form 's1_axis'
         # subtract 1 to get the channel number (s0 comes from the DMA)
-        self.tproc_ch = int(port.split('_')[0][1:])-1
+        if busparser.mod2type[block] == "axis_tproc64x32_x8":
+            self.tproc_ch = int(port.split('_')[0][1:])-1
+        else:
+            # this buffer doesn't feed back into the tProc
+            self.tproc_ch = -1
 
         # print("%s: readout %s, switch %d, trigger %d, tProc port %d"%
         # (self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
@@ -1193,7 +1198,7 @@ class AxisTProc64x32_x8(SocIp):
             # add 1, because output 0 goes to the DMA
             ((block, port),) = trace_net(
                 busparser, self.fullpath, 'm%d_axis' % (i+1))
-            if "axis_set_reg" in block:
+            if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
 
     def start_src(self, src=0):
