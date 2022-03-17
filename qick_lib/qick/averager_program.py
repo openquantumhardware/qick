@@ -1,7 +1,7 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 import numpy as np
 from .qick_asm import QickProgram
 
@@ -274,9 +274,9 @@ class AveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         tproc = soc.tproc
-        # for each soft average stop the processor, run and average decimated data
+        # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
-            tproc.stop()
+
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
@@ -292,6 +292,7 @@ class AveragerProgram(QickProgram):
                 d_buf[ii] += soc.get_decimated(ch=ch,
                                                address=0, length=ro.length)
 
+        # average the decimated data
         return [d/soft_avgs for d in d_buf]
 
 
