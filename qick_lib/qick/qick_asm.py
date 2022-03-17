@@ -345,8 +345,7 @@ class QickProgram:
         self.soccfg = soccfg
         self.prog_list = []
         self.labels = {}
-        self.dac_ts = [0]*9  # np.zeros(9,dtype=np.uint16)
-        # np.zeros(9,dtype=np.uint16)
+        self.dac_ts = [0]*len(soccfg['gens'])
         self.adc_ts = [0]*len(soccfg['readouts'])
         self.channels = {ch: {"addr": 0, "pulses": {}, "params": {},
                               "last_pulse": None} for ch in range(0, 8)}
@@ -745,14 +744,6 @@ class QickProgram:
         # We could specify the "correct" times, but it's difficult to get right when the tProc and generator clocks are different.
         for regs in last_pulse['regs']:
             self.set(tproc_ch, rp, *regs, r_t, f"ch = {ch}, pulse @t = ${r_t}")
-
-    def align(self, chs):
-        """
-        Sets all of the last times for each channel included in chs to the latest time in any of the channels.
-        """
-        max_t = max([self.dac_ts[ch] for ch in range(1, 9)])
-        for ch in range(1, 9):
-            self.dac_ts[ch] = max_t
 
     def safe_regwi(self, rp, reg, imm, comment=None):
         """
