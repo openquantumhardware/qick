@@ -348,7 +348,7 @@ class QickProgram:
         self.dac_ts = [0]*len(soccfg['gens'])
         self.adc_ts = [0]*len(soccfg['readouts'])
         self.channels = {ch: {"addr": 0, "pulses": {}, "params": {},
-                              "last_pulse": None} for ch in range(0, 8)}
+                              "last_pulse": None} for ch in range(len(soccfg['gens']))}
 
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
@@ -735,8 +735,13 @@ class QickProgram:
         
         if t is not None:
             if t == 'auto':
-                t = self.dac_ts[ch]
-            self.dac_ts[ch] = t + last_pulse['length']
+                t = int(self.dac_ts[ch])
+            elif t < self.dac_ts[ch]:
+                print("Pulse time %d appears to conflict with previous pulse ending at %f?"%(t, dac_ts[ch]))
+            # convert from generator clock to tProc clock
+            pulse_length = last_pulse['length']
+            pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
+            self.dac_ts[ch] = t + pulse_length
             self.safe_regwi(rp, r_t, t, f't = {t}')
 
         # Play each pulse segment.
@@ -771,13 +776,14 @@ class QickProgram:
     def sync_all(self, t=0):
         """
         Aligns and syncs all channels with additional time t.
+        Accounts for both DAC pulses and ADC readout windows.
 
         :param t: The time offset in clock ticks
         :type t: int
         """
         max_t = max(self.dac_ts+self.adc_ts)
         if max_t+t > 0:
-            self.synci(max_t+t)
+            self.synci(int(max_t+t))
             self.dac_ts = [0]*len(self.dac_ts)
             self.adc_ts = [0]*len(self.adc_ts)
 
@@ -846,14 +852,14 @@ class QickProgram:
         self.seti(0, 0, r_out, t+adc_trig_offset+10,
                   f'ch =0 out = ${r_out} @t = {t}')
 
-    def trigger(self, adcs=[], pins=[], adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
+    def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
         """
         Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no ADCs are specified, the adc_trig_offset is not applied.
 
         :param adcs: List of ADC channels to trigger.
         :type adcs: list
-        :param pins: List of pins to pulse.
+        :param pins: List of marker pins to pulse.
         :type pins: list
         :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
         :type adc_trig_offset: int
@@ -866,6 +872,10 @@ class QickProgram:
         :param r_out: Register number
         :type r_out: int
         """
+        if adcs is None:
+            adcs = []
+        if pins is None:
+            pins = []
         if not adcs and not pins:
             raise RuntimeError("must pulse at least one ADC or pin")
 
@@ -880,17 +890,21 @@ class QickProgram:
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
             for adc in adcs:
-                self.adc_ts[adc] = t_start + self.ro_chs[adc].length
+                if t_start < self.adc_ts[adc]:
+                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, adc_ts[adc]))
+                # convert from readout clock to tProc clock
+                ro_length = self.ro_chs[adc].length
+                ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
+                self.adc_ts[adc] = t_start + ro_length
         t_end = t_start + width
 
         trig_output = self.soccfg['tprocs'][0]['trig_output']
 
         self.regwi(rp, r_out, out, f'out = 0b{out:>016b}')
         self.seti(trig_output, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
-        self.regwi(rp, r_out, 0, f'out = 0b{0:>016b}')
-        self.seti(trig_output, rp, r_out, t_end, f'ch =0 out = ${r_out} @t = {t}')
+        self.seti(trig_output, rp, 0, t_end, f'ch =0 out = 0 @t = {t}')
 
-    def measure(self, adcs, pulse_ch, adc_trig_offset=270, name=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None, t='auto'):
+    def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, length=None, t='auto', wait=True):
         """
         Wrapper method that combines an ADC trigger, a pulse, and the appropriate wait.
         This should typically be followed by sync_all.
@@ -899,32 +913,21 @@ class QickProgram:
         :type adcs: list
         :param pulse_ch: DAC channel
         :type pulse_ch: int
+        :param pins: List of marker pins to pulse.
+        :type pins: list
         :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
         :type adc_trig_offset: int
-        :param name: Pulse name
-        :type name: str
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param gain: Gain (DAC units)
-        :type gain: float
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
-        :type length: int
         :param t: The number of clock ticks at which point the pulse starts
         :type t: int
+        :param wait: Pause tProc execution until the end of the ADC readout window
+        :type wait: bool
         """
-        self.trigger(adcs, adc_trig_offset=adc_trig_offset)
-        self.pulse(ch=pulse_ch)
-        self.waiti(0, max(self.adc_ts))
+        self.trigger(adcs, pins=pins, adc_trig_offset=adc_trig_offset)
+        self.pulse(ch=pulse_ch, t=t)
+        if wait:
+            # tProc should wait for the readout to complete.
+            # This prevents loop counters from getting incremented before the data is available.
+            self.waiti(0, int(max(self.adc_ts)))
 
     def convert_immediate(self, val):
         """
