@@ -1,5 +1,5 @@
 from .averager_program import AveragerProgram, RAveragerProgram
-from .qick_asm import QickConfig, QickProgram, deg2reg, reg2deg
+from .qick_asm import QickConfig, QickProgram
 import os
 
 

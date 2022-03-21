@@ -6,30 +6,6 @@ import json
 from collections import namedtuple, OrderedDict
 
 
-def deg2reg(deg):
-    """
-    Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
-
-    :param deg: Number of degrees
-    :type deg: float
-    :return: Re-formatted number of degrees
-    :rtype: int
-    """
-    return int(deg*2**32//360) % 2**32
-
-
-def reg2deg(reg):
-    """
-    Converts phase register values into degrees.
-
-    :param cycles: Re-formatted number of degrees
-    :type cycles: int
-    :return: Number of degrees
-    :rtype: float
-    """
-    return reg*360/2**32
-
-
 class QickConfig():
     """
     Uses the QICK configuration to convert frequencies and clock delays.
@@ -256,6 +232,38 @@ class QickConfig():
         """
         return self.roundfreq(f, self['gens'][gen_ch], self['readouts'][ro_ch])
 
+    def deg2reg(self, deg, gen_ch=0):
+        """
+        Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
+
+        :param deg: Number of degrees
+        :type deg: float
+        :return: Re-formatted number of degrees
+        :rtype: int
+        """
+        gen_type = self['gens'][gen_ch]['type']
+        if gen_type == 'axis_sg_int4_v1':
+            b_phase = 16
+        else:
+            b_phase = 32
+        return int(deg*2**b_phase//360) % 2**b_phase
+
+    def reg2deg(self, reg, gen_ch=0):
+        """
+        Converts phase register values into degrees.
+
+        :param cycles: Re-formatted number of degrees
+        :type cycles: int
+        :return: Number of degrees
+        :rtype: float
+        """
+        gen_type = self['gens'][gen_ch]['type']
+        if gen_type == 'axis_sg_int4_v1':
+            b_phase = 16
+        else:
+            b_phase = 32
+        return reg*360/2**b_phase
+
     def cycles2us(self, cycles):
         """
         Converts tProc clock cycles to microseconds.
@@ -336,7 +344,9 @@ class QickProgram:
     trig_offset = 25
 
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
-                      'reg2freq', 'reg2freq_adc', 'cycles2us', 'us2cycles']
+                      'reg2freq', 'reg2freq_adc',
+                      'cycles2us', 'us2cycles',
+                      'deg2reg', 'reg2deg']
 
     def __init__(self, soccfg):
         """
@@ -904,10 +914,11 @@ class QickProgram:
         self.seti(trig_output, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
         self.seti(trig_output, rp, 0, t_end, f'ch =0 out = 0 @t = {t}')
 
-    def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, length=None, t='auto', wait=True):
+    def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, length=None, t='auto', wait=False, syncdelay=None):
         """
-        Wrapper method that combines an ADC trigger, a pulse, and the appropriate wait.
-        This should typically be followed by sync_all.
+        Wrapper method that combines an ADC trigger, a pulse, and (optionally) the appropriate wait and a sync_all.
+
+        If you use wait=True, it's recommended to also specify a nonzero syncdelay.
 
         :param adcs: ADC channels
         :type adcs: list
@@ -921,6 +932,8 @@ class QickProgram:
         :type t: int
         :param wait: Pause tProc execution until the end of the ADC readout window
         :type wait: bool
+        :param syncdelay: The number of additional clock ticks to delay in the sync_all.
+        :type syncdelay: int
         """
         self.trigger(adcs, pins=pins, adc_trig_offset=adc_trig_offset)
         self.pulse(ch=pulse_ch, t=t)
@@ -928,6 +941,8 @@ class QickProgram:
             # tProc should wait for the readout to complete.
             # This prevents loop counters from getting incremented before the data is available.
             self.waiti(0, int(max(self.adc_ts)))
+        if syncdelay is not None:
+            self.sync_all(syncdelay)
 
     def convert_immediate(self, val):
         """
