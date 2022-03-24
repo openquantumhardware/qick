@@ -1119,12 +1119,17 @@ class AxisTProc64x32_x8(SocIp):
 
     AXIS tProcessor registers:
     START_SRC_REG
-    * 0 : internal start.
-    * 1 : external start.
+    * 0 : internal start (using START_REG)
+    * 1 : external start (using "start" input)
+
+    Regardless of the START_SRC, the start logic triggers on a rising edge:
+    A low level arms the trigger (transitions from "end" to "init" state).
+    A high level fires the trigger (starts the program).
+    To stop a running program, see reset().
 
     START_REG
-    * 0 : stop.
-    * 1 : start.
+    * 0 : init
+    * 1 : start
 
     MEM_MODE_REG
     * 0 : AXIS Read (from memory to m0_axis)
@@ -1205,24 +1210,39 @@ class AxisTProc64x32_x8(SocIp):
         """
         Sets the start source of tProc
 
-        :param src: start source
-        :type src: int
+        :param src: start source "internal" or "external"
+        :type src: string
         """
-        self.start_src_reg = src
+        self.start_src_reg = {"internal": 0, "external": 1}[src]
 
     def start(self):
         """
-        Start tProc from register
-        """
-        self.start_reg = 1
-
-    def stop(self):
-        """
-        Stop tProc from register
+        Start tProc from register.
+        This has no effect if the tProc is not in init or end state.
         """
         self.start_reg = 0
+        self.start_reg = 1
+
+    def reset(self):
+        """
+        Force the tProc to stop by filling the program memory with "end" instructions.
+        For speed, we hard-code the "end" instruction and write directly to the program memory.
+        This typically takes about 1 ms.
+        """
+        # we only write the high half of each program word, the low half doesn't matter
+        np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
+
+        #prog = QickProgram(self.soc)
+        #for i in range(self.mem.mmio.length//8):
+        #    prog.end()
+        #prog.load_program(self.soc)
 
     def load_bin_program(self, binprog):
+        """
+        Stop the tProcessor and write the program to the tProc program memory.
+        """
+        self.reset()
+
         for ii, inst in enumerate(binprog):
             dec_low = inst & 0xffffffff
             dec_high = inst >> 32
@@ -2002,6 +2022,5 @@ class QickSoc(Overlay, QickConfig):
                 prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
-        self.tproc.stop()
         prog.load_program(self)
         self.tproc.start()

@@ -132,8 +132,6 @@ class DataStreamer():
             stride = int(0.1 * self.soc.get_avg_max_length(0))
             # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-            self.soc.tproc.stop()
-
             # make sure count variable is reset to 0 before starting processor
             self.soc.tproc.single_write(addr=counter_addr, data=0)
             stats = []

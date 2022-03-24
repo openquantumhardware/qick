@@ -1,7 +1,7 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 import numpy as np
 from .qick_asm import QickProgram
 
@@ -236,7 +236,15 @@ class AveragerProgram(QickProgram):
          This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
          config requirements:
-         "reps" = number of repetitions;
+         "reps" = number of tProc loop repetitions;
+         "soft_avgs" = number of Python loop repetitions;
+
+         The data is returned as a list of ndarrays (one ndarray per readout channel).
+         There are two possible array formats.
+         reps = 1:
+         2D array with dimensions (2, length), indices (I/Q, sample)
+         reps > 1:
+         3D array with dimensions (reps, 2, length), indices (rep, I/Q, sample)
 
          :param soc: Qick object
          :type soc: Qick object
@@ -247,12 +255,11 @@ class AveragerProgram(QickProgram):
          :param debug: If true, displays assembly code for tProc program
          :type debug: bool
          :returns:
-             - iq0 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 0
-             - iq1 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 1
+             - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
          """
-        # set reps to 1 since we are going to use soft averages
-        if "reps" not in self.cfg or self.cfg["reps"] != 1:
-            print("Warning reps is not set to 1, and this acquire method expects reps=1")
+
+        reps = self.cfg['reps']
+        soft_avgs = self.cfg["soft_avgs"]
 
         # load pulses onto soc
         if load_pulses:
@@ -264,19 +271,21 @@ class AveragerProgram(QickProgram):
         # Configure the readout down converters
         self.config_readouts(soc)
 
-        # assume every channel has the same readout length
-        d_buf = np.zeros((len(self.ro_chs), 2, max(
-            [ro.length for ro in self.ro_chs.values()])))
-
-        soft_avgs = self.cfg["soft_avgs"]
+        # Initialize data buffers
+        d_buf = []
+        for ch, ro in self.ro_chs.items():
+            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
+            if ro.length*reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro.length, reps, maxlen))
+            d_buf.append(np.zeros((2, ro.length*reps)))
 
         # load the program - it's always the same, so this only needs to be done once
         self.load_program(soc, debug=debug)
 
         tproc = soc.tproc
-        # for each soft average stop the processor, run and average decimated data
+        # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
-            tproc.stop()
+
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
@@ -285,14 +294,21 @@ class AveragerProgram(QickProgram):
             tproc.start()  # runs the assembly program
 
             count = 0
-            while count < 1:
+            while count < reps:
                 count = tproc.single_read(addr=1)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += soc.get_decimated(ch=ch,
-                                               address=0, length=ro.length)
+                                               address=0, length=ro.length*reps)
 
-        return [d/soft_avgs for d in d_buf]
+        # average the decimated data
+        if reps == 1:
+            return [d/soft_avgs for d in d_buf]
+        else:
+            # split the data into the individual reps:
+            # we reshape to slice each long buffer into reps,
+            # then use moveaxis() to transpose the I/Q and rep axes
+            return [np.moveaxis(d.reshape(2, reps, -1), 0, 1)/soft_avgs for d in d_buf]
 
 
 class RAveragerProgram(QickProgram):
