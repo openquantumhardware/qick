@@ -383,6 +383,13 @@ class QickProgram:
         self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
 
     def config_readouts(self, soc):
+        """
+        Configure the readout channels specified in this program.
+        This is usually called as part of an acquire() method.
+
+        :param soc: the QickSoc that will execute this program
+        :type soc: QickSoc
+        """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
             if cfg.gen_ch is not None:
@@ -391,6 +398,17 @@ class QickProgram:
             soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
+        """
+        Configure the readout buffers specified in this program.
+        This is usually called as part of an acquire() method.
+
+        :param soc: the QickSoc that will execute this program
+        :type soc: QickSoc
+        :param enable_avg: enable the accumulated (averaging) buffer
+        :type enable_avg: bool
+        :param enable_buf: enable the decimated (waveform) buffer
+        :type enable_buf: bool
+        """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
                 soc.config_avg(ch, address=0, length=cfg.length, enable=True)
@@ -405,9 +423,9 @@ class QickProgram:
         :type ch: int
         :param nqz: Nyquist zone for the DAC
         :type nqz: int
-        :param mixer_freq: mixer frequency (if applicable)
+        :param mixer_freq: mixer frequency (if applicable; use 0 if there's no mixer on this DAC)
         :type mixer_freq: float
-        :param mux_freqs: if this is a mux generator, list up to 4 output frequencies
+        :param mux_freqs: list up to 4 output frequencies - only used for mux generator
         :type mux_freqs: list
         :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency) - only used for mux generator and mixer
         :type ro_ch: int
@@ -415,6 +433,13 @@ class QickProgram:
         self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, ro_ch)
 
     def config_gens(self, soc):
+        """
+        Configure the signal generators specified in this program.
+        This is usually called as part of an acquire() method.
+
+        :param soc: the QickSoc that will execute this program
+        :type soc: QickSoc
+        """
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg.nqz)
             soc.set_mixer_freq(ch, cfg.mixer_freq, cfg.ro_ch)
@@ -494,39 +519,35 @@ class QickProgram:
     def set_pulse_registers(self, ch, style, **kwargs):
         #waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
         """
-        A macro to set (optionally) the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
+        A macro to set the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
         The time is scheduled when you call pulse().
+
+        Not all generators and pulse styles support all parameters - see the style-specific methods for more info.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
-        :param freq: Frequency (MHz)
-        :type freq: float
-        :param phase: Phase (degrees)
-        :type phase: float
-        :param addr: Address
-        :type addr: int
+        :param style: Pulse style ("const", "arb", "flat_top")
+        :type style: string
+        :param waveform: Name of the envelope waveform loaded with add_pulse()
+        :type waveform: string
+        :param freq: Frequency (register value)
+        :type freq: int
+        :param phase: Phase (register value)
+        :type phase: int
         :param gain: Gain (DAC units)
-        :type gain: float
+        :type gain: int
         :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If 0, it is the last calculated sample of the pulse. If 1, it is a zero value.
-        :type stdysel: bool
-        :param mode: Selects whether the output is periodic or one-shot. If 0, it is one-shot. If 1, it is periodic.
-        :type mode: bool
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If 0, the output is the product of table and DDS. If 1, the output is the DDS only. If 2, the output is from the table for the real part, and zeros for the imaginary part. If 3, the output is always zero.
-        :type outsel: int
-        :param length: The number of samples in the pulse
+        :type phrst: int
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param mode: Selects whether the output is "oneshot" or "periodic"
+        :type mode: string
+        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        :type outsel: string
+        :param length: The number of fabric clock cycles in the const portion of the pulse
         :type length: int
-        :param t: The number of clock ticks at which point the pulse starts
-        :type t: int
-        :returns:
-            - rp (:py:class:`int`) The pulse page
-            - r_freq (:py:class:`int`) The pulse phase
-            - r_phase (:py:class:`int`) The pulse phase
-            - r_addr (:py:class:`int`) The pulse address
-            - r_gain (:py:class:`int`) The pulse gain
-            - r_mode (:py:class:`int`) The pulse mode
-            - r_t (:py:class:`int`) The pulse beginning time
+        :param mask: for a muxed signal generator, the list of tones to enable for this pulse
+        :type mask: list
         """
         f = {'const': self.const_pulse, 'arb': self.arb_pulse,
                      'flat_top': self.flat_top_pulse}[style]
@@ -535,14 +556,30 @@ class QickProgram:
 
     def const_pulse(self, ch, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None, mask=None):
         """
-        Schedule and (optionally) play a constant pulse, can autoschedule this based on previous pulses.
+        Configure a constant (rectangular) pulse.
+
+        There is no outsel setting for this pulse style; "dds" is always used.
+
+        This is the only style supported by the muxed signal generator, which only takes length and mask arguments (frequency is set at program initialization).
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
-        :param name: Pulse name
-        :type name: str
-        :param t: The number of clock ticks at which point the pulse starts
-        :type t: int
+        :param freq: Frequency (register value)
+        :type freq: int
+        :param phase: Phase (register value)
+        :type phase: int
+        :param gain: Gain (DAC units)
+        :type gain: int
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: int
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param mode: Selects whether the output is "oneshot" or "periodic".
+        :type mode: string
+        :param length: The number of fabric clock cycles in the const portion of the pulse
+        :type length: int
+        :param mask: for a muxed signal generator, the list of tones to enable for this pulse
+        :type mask: list
         """
         p = self
         gen_type = self.soccfg['gens'][ch]['type']
@@ -585,8 +622,8 @@ class QickProgram:
             p.safe_regwi(rp, r_e, length, f'length = {length}')
             val_mask = 0
             for maskch in mask:
-                if maskch not in [0, 1, 2, 3]:
-                    raise RuntimeError("invalid mash specification")
+                if maskch not in range(4):
+                    raise RuntimeError("invalid mask specification")
                 val_mask |= (1 << maskch)
             p.regwi(rp, r_d, val_mask, f'mask = {mask}')
             last_pulse['regs'].append((r_e, r_d, 0, 0, 0))
@@ -595,14 +632,26 @@ class QickProgram:
 
     def arb_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None):
         """
-        Schedule and (optionally) play an arbitrary pulse, can autoschedule this based on previous pulses.
+        Configure an arbitrary pulse, can autoschedule this based on previous pulses.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
-        :param name: Pulse name
-        :type name: str
-        :param t: The number of clock ticks at which point the pulse starts
-        :type t: int
+        :param waveform: Name of the envelope waveform loaded with add_pulse()
+        :type waveform: string
+        :param freq: Frequency (register value)
+        :type freq: int
+        :param phase: Phase (register value)
+        :type phase: int
+        :param gain: Gain (DAC units)
+        :type gain: int
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: int
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param mode: Selects whether the output is "oneshot" or "periodic".
+        :type mode: string
+        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        :type outsel: string
         """
         p = self
         gen_type = self.soccfg['gens'][ch]['type']
@@ -646,14 +695,34 @@ class QickProgram:
         else:
             raise RuntimeError("this generator does not support arb pulse:", gen_type)
 
-    def flat_top_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
+    def flat_top_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None):
         """
         Program a flattop pulse with arbitrary ramps.
         The waveform is played in three segments: ramp up, flat, and ramp down.
         To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
+        If the waveform is not of even length, the middle sample will be skipped.
+
+        There is no outsel setting for this pulse style; the ramps always use "product" and the flat segment always uses "dds".
+
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
+        :param waveform: Name of the envelope waveform loaded with add_pulse()
+        :type waveform: string
+        :param freq: Frequency (register value)
+        :type freq: int
+        :param phase: Phase (register value)
+        :type phase: int
+        :param gain: Gain (DAC units)
+        :type gain: int
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: int
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param mode: Selects whether the output is "oneshot" or "periodic".
+        :type mode: string
+        :param length: The number of fabric clock cycles in the const portion of the pulse
+        :type length: int
         """
         p = self
         gen_type = self.soccfg['gens'][ch]['type']
@@ -682,7 +751,7 @@ class QickProgram:
             # address for ramp-up
             p.regwi(rp, r_c, addr, f'addr = {addr}')
             # address for ramp-down
-            p.regwi(rp, r_c2, addr+wfm_length//2, f'addr = {addr}')
+            p.regwi(rp, r_c2, addr+(wfm_length+1)//2, f'addr = {addr}')
             # gain for flat segment
             p.regwi(rp, r_b2, gain//2, f'gain = {gain}')
             # mode for flat segment
@@ -720,7 +789,7 @@ class QickProgram:
             # gain+addr for flat
             p.safe_regwi(rp, r_d2, (gain//2 << 16), f'gain = {gain} | addr = {addr}')
             # gain+addr for ramp-down
-            p.safe_regwi(rp, r_d3, (gain << 16) | addr+wfm_length//2, f'gain = {gain} | addr = {addr}')
+            p.safe_regwi(rp, r_d3, (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 
             last_pulse['regs'].append((r_e, r_d1, r_c2, 0, 0))
             last_pulse['regs'].append((r_e, r_d2, r_c, 0, 0))
@@ -1034,16 +1103,16 @@ class QickProgram:
         """
         Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
 
-        :param length: The number of samples in the pulse
+        :param length: The number of fabric clock cycles in the pulse
         :type length: int
         :param mode: Selects whether the output is "oneshot" or "periodic"
         :type mode: string
         :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
-        :type outsel: int
+        :type outsel: string
         :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
         :type stdysel: string
         :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: bool
+        :type phrst: int
         :return: Compiled mode code in binary
         :rtype: int
         """
