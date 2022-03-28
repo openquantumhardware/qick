@@ -695,7 +695,7 @@ class QickProgram:
         else:
             raise RuntimeError("this generator does not support arb pulse:", gen_type)
 
-    def flat_top_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None):
+    def flat_top_pulse(self, ch, waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, length=None):
         """
         Program a flattop pulse with arbitrary ramps.
         The waveform is played in three segments: ramp up, flat, and ramp down.
@@ -704,6 +704,7 @@ class QickProgram:
         If the waveform is not of even length, the middle sample will be skipped.
 
         There is no outsel setting for this pulse style; the ramps always use "product" and the flat segment always uses "dds".
+        There is no mode setting for this pulse style; it is always "oneshot".
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
@@ -719,8 +720,6 @@ class QickProgram:
         :type phrst: int
         :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
         :type stdysel: string
-        :param mode: Selects whether the output is "oneshot" or "periodic".
-        :type mode: string
         :param length: The number of fabric clock cycles in the const portion of the pulse
         :type length: int
         """
@@ -756,11 +755,11 @@ class QickProgram:
             p.regwi(rp, r_b2, gain//2, f'gain = {gain}')
             # mode for flat segment
             mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
-                                 mode=mode, outsel="dds", length=length)
+                                 mode="oneshot", outsel="dds", length=length)
             p.regwi(rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             # mode for ramps
             mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
-                                 mode=mode, outsel="product", length=wfm_length//2)
+                                 mode="oneshot", outsel="product", length=wfm_length//2)
             p.regwi(rp, r_a2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
             last_pulse['regs'].append((r_e, r_d, r_c, r_b, r_a2))
@@ -778,10 +777,10 @@ class QickProgram:
             p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
 
             # mode for flat segment
-            mc = p.get_mode_code(mode=mode, outsel="dds", length=length)
+            mc = p.get_mode_code(mode="oneshot", outsel="dds", length=length)
             p.regwi(rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             # mode for ramps
-            mc = p.get_mode_code(mode=mode, outsel="product", length=wfm_length//2)
+            mc = p.get_mode_code(mode="oneshot", outsel="product", length=wfm_length//2)
             p.regwi(rp, r_c2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
             # gain+addr for ramp-up
