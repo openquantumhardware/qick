@@ -934,12 +934,12 @@ class AxisAvgBuffer(SocIp):
         self.dma_avg.recvchannel.transfer(buff, nbytes=length*8)
         self.dma_avg.recvchannel.wait()
 
+        # Stop send data mode.
+        self.avg_dr_start_reg = 0
+
         if self.dma_avg.recvchannel.transferred != length*8:
             raise RuntimeError("Requested %d samples but only got %d from DMA" % (
                 length, self.dma_avg.recvchannel.transferred//8))
-
-        # Stop send data mode.
-        self.avg_dr_start_reg = 0
 
         # Format:
         # -> lower 32 bits: I value.
@@ -1206,7 +1206,7 @@ class AxisTProc64x32_x8(SocIp):
             if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
 
-    def start_src(self, src=0):
+    def start_src(self, src):
         """
         Sets the start source of tProc
 
@@ -1218,7 +1218,8 @@ class AxisTProc64x32_x8(SocIp):
     def start(self):
         """
         Start tProc from register.
-        This has no effect if the tProc is not in init or end state.
+        This has no effect if the tProc is not in init or end state,
+        or if the start source is set to "external."
         """
         self.start_reg = 0
         self.start_reg = 1
@@ -2022,5 +2023,7 @@ class QickSoc(Overlay, QickConfig):
                 prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
+        # this should always run with internal trigger
+        self.tproc.start_src("internal")
         prog.load_program(self)
         self.tproc.start()

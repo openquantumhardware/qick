@@ -138,7 +138,10 @@ class DataStreamer():
 
             t_start = time.time()
 
+            # if the tproc is configured for internal start, this will start the program
+            # for external start, the program will not start until a start pulse is received
             self.soc.tproc.start()
+
             # Keep streaming data until you get all of it
             while (not self.stop_flag.is_set()) and last_count < total_count:
                 count = self.soc.tproc.single_read(
