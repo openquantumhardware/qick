@@ -20,9 +20,37 @@ def gauss(mu=0, si=25, length=100, maxv=30000):
     :rtype: array
     """
     x = np.arange(0, length)
-    y = 1/(2*np.pi*si**2)*np.exp(-(x-mu)**2/si**2)
-    y = y/np.max(y)*maxv
+    y = maxv * np.exp(-(x-mu)**2/si**2)
     return y
+
+
+def DRAG(mu, si, length, maxv, delta, alpha):
+    """
+    Create I and Q arrays for a DRAG pulse.
+    Based on QubiC and Qiskit-Pulse implementations.
+
+    :param mu: Mu (peak offset) of Gaussian
+    :type mu: float
+    :param si: Sigma (standard deviation) of Gaussian
+    :type si: float
+    :param length: Length of array
+    :type length: int
+    :param maxv: Maximum amplitude of Gaussian
+    :type maxv: float
+    :param delta: anharmonicity of the qubit (units of 1/sample time)
+    :type delta: float
+    :param alpha: alpha parameter of DRAG (order-1 scale factor)
+    :type alpha:float
+    :return: Numpy array with I and Q components of the DRAG pulse
+    :rtype: array, array
+    """
+    x = np.arange(0, length)
+    gaus = maxv * np.exp(-(x-mu)**2/si**2)
+    # derivative of the gaussian
+    dgaus = -(x-mu)/(si**2)*gaus
+    idata = gaus
+    qdata = -1 * alpha * dgaus / delta
+    return idata, qdata
 
 
 def triang(length=100, maxv=30000):
@@ -36,10 +64,15 @@ def triang(length=100, maxv=30000):
     :return: Numpy array containing a triangle function
     :rtype: array
     """
-    y1 = np.arange(0, length/2)
-    y2 = np.flip(y1, 0)
-    y = np.concatenate((y1, y2))
-    y = y/np.max(y)*maxv
+    y = np.zeros(length)
+
+    # if length is even, there are length//2 samples in the ramp
+    # if length is odd, there are length//2 + 1 samples in the ramp
+    halflength = (length + 1) // 2
+
+    y1 = np.linspace(0, maxv, halflength)
+    y[:halflength] = y1
+    y[length//2:length] = np.flip(y1)
     return y
 
 

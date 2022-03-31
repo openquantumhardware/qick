@@ -4,6 +4,7 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
+from .helpers import gauss, triang, DRAG
 
 
 class QickConfig():
@@ -448,7 +449,7 @@ class QickProgram:
 
     def add_pulse(self, ch, name, idata=None, qdata=None):
         """
-        Adds a pulse to the pulse library within the program.
+        Adds a waveform to the waveform library within the program.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
@@ -474,6 +475,85 @@ class QickProgram:
         self.channels[ch]["pulses"][name] = {
             "idata": idata, "qdata": qdata, "addr": self.channels[ch]['addr']}
         self.channels[ch]["addr"] += len(idata)
+
+    def add_gauss(self, ch, name, sigma, length, maxv=None):
+        """
+        Adds a Gaussian pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        :param ch: DAC channel (index in 'gens' list)
+        :type ch: int
+        :param name: Name of the pulse
+        :type name: str
+        :param sigma: Standard deviation of the Gaussian (in units of fabric clocks)
+        :type sigma: float
+        :param length: Total pulse length (in units of fabric clocks)
+        :type length: int
+        :param maxv: Value at the peak (if None, the max value for this generator will be used)
+        :type maxv: float
+        """
+        if maxv is None: maxv = 2**15-2
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+
+        length = np.round(length) * samps_per_clk
+        sigma *= samps_per_clk
+
+        self.add_pulse(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
+
+
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
+        """
+        Adds a DRAG pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        :param ch: DAC channel (index in 'gens' list)
+        :type ch: int
+        :param name: Name of the pulse
+        :type name: str
+        :param sigma: Standard deviation of the Gaussian (in units of fabric clocks)
+        :type sigma: float
+        :param length: Total pulse length (in units of fabric clocks)
+        :type length: int
+        :param maxv: Value at the peak (if None, the max value for this generator will be used)
+        :type maxv: float
+        :param delta: anharmonicity of the qubit (units of MHz)
+        :type delta: float
+        :param alpha: alpha parameter of DRAG (order-1 scale factor)
+        :type alpha: float
+        """
+        if maxv is None: maxv = 2**15-2
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        f_fabric = self.soccfg['gens'][ch]['f_fabric']
+
+        delta /= samps_per_clk*f_fabric
+
+        length = np.round(length) * samps_per_clk
+        sigma *= samps_per_clk
+
+        idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
+
+        self.add_pulse(ch, name, idata=idata, qdata=qdata)
+
+    def add_triangle(self, ch, name, length, maxv=None):
+        """
+        Adds a triangle pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        :param ch: DAC channel (index in 'gens' list)
+        :type ch: int
+        :param name: Name of the pulse
+        :type name: str
+        :param length: Total pulse length (in units of fabric clocks)
+        :type length: int
+        :param maxv: Value at the peak (if None, the max value for this generator will be used)
+        :type maxv: float
+        """
+        if maxv is None: maxv = 2**15-2
+        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+
+        length = np.round(length) * samps_per_clk
+
+        self.add_pulse(ch, name, idata=triang(length=length, maxv=maxv))
 
     def load_pulses(self, soc):
         """
@@ -702,6 +782,7 @@ class QickProgram:
         To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
         If the waveform is not of even length, the middle sample will be skipped.
+        It's recommended to use an even-length waveform.
 
         There is no outsel setting for this pulse style; the ramps always use "product" and the flat segment always uses "dds".
         There is no mode setting for this pulse style; it is always "oneshot".
