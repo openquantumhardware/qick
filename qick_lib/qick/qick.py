@@ -1250,15 +1250,6 @@ class AxisTProc64x32_x8(SocIp):
             self.mem.write(8*ii, value=int(dec_low))
             self.mem.write(4*(2*ii+1), value=int(dec_high))
 
-    def load_qick_program(self, prog, debug=False):
-        """
-        :param prog: the QickProgram to load
-        :type prog: str
-        :param debug: Debug option
-        :type debug: bool
-        """
-        self.load_bin_program(prog.compile(debug=debug))
-
     def load_program(self, prog="prog.asm", fmt="asm"):
         """
         Loads tProc program. If asm progam, it compiles first
@@ -2011,6 +2002,15 @@ class QickSoc(Overlay, QickConfig):
         """
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
+
+    def load_qick_program(self, prog, debug=False):
+        """
+        :param prog: the QickProgram to load
+        :type prog: str
+        :param debug: Debug option
+        :type debug: bool
+        """
+        self.tproc.load_bin_program(prog.compile(debug=debug))
 
     def reset_gens(self):
         """
