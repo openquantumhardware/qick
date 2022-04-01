@@ -154,7 +154,7 @@ class QickConfig():
         k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
         return np.int64(k_i)
 
-    def freq2reg(self, f, gen_ch=0, ro_ch=0):
+    def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """
         Converts frequency in MHz to tProc DAC register value.
 
@@ -162,7 +162,7 @@ class QickConfig():
         :type f: float
         :param gen_ch: DAC channel
         :type gen_ch: int
-        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
+        :param ro_ch: readout channel (use None if you don't want to frequency-match to an ADC)
         :type ro_ch: int
         :return: Re-formatted frequency
         :rtype: int
@@ -173,7 +173,7 @@ class QickConfig():
             rocfg = self['readouts'][ro_ch]
         return self.freq2int(f, self['gens'][gen_ch], rocfg)
 
-    def freq2reg_adc(self, f, ro_ch=0, gen_ch=0):
+    def freq2reg_adc(self, f, ro_ch=0, gen_ch=None):
         """
         Converts frequency in MHz to ADC register value.
 
@@ -181,7 +181,7 @@ class QickConfig():
         :type f: float
         :param ro_ch: readout channel
         :type ro_ch: int
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :param gen_ch: DAC channel (use None if you don't want to frequency-match to a DAC)
         :type gen_ch: int
         :return: Re-formatted frequency
         :rtype: int
@@ -197,7 +197,7 @@ class QickConfig():
         Converts frequency from format readable by tProc DAC to MHz.
 
         :param r: frequency in tProc DAC format
-        :type r: float
+        :type r: int
         :param gen_ch: DAC channel
         :type gen_ch: int
         :return: Re-formatted frequency in MHz
@@ -210,7 +210,7 @@ class QickConfig():
         Converts frequency from format readable by tProc ADC to MHz.
 
         :param r: frequency in tProc ADC format
-        :type r: float
+        :type r: int
         :param ro_ch: ADC channel
         :type ro_ch: int
         :return: Re-formatted frequency in MHz
@@ -220,7 +220,7 @@ class QickConfig():
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """
-        Takes a frequency and casts it to an (even) valid ADC DDS frequency.
+        Takes a frequency and trims it to the closest DDS frequency valid for both channels.
 
         :param f: frequency (MHz)
         :type f: float
@@ -229,7 +229,7 @@ class QickConfig():
         :param ro_ch: readout channel
         :type ro_ch: int
         :return: Re-formatted frequency
-        :rtype: int
+        :rtype: float
         """
         return self.roundfreq(f, self['gens'][gen_ch], self['readouts'][ro_ch])
 
@@ -265,27 +265,55 @@ class QickConfig():
             b_phase = 32
         return reg*360/2**b_phase
 
-    def cycles2us(self, cycles):
+    def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """
-        Converts tProc clock cycles to microseconds.
+        Converts clock cycles to microseconds.
+        Uses tProc clock frequency by default.
+        If gen_ch or ro_ch is specified, uses that DAC/ADC channel's fabric clock.
 
-        :param cycles: Number of tProc clock cycles
+        :param cycles: Number of clock cycles
         :type cycles: int
+        :param gen_ch: DAC channel (index in 'gens' list)
+        :type gen_ch: int
+        :param ro_ch: ADC channel (index in 'readouts' list)
+        :type ro_ch: int
         :return: Number of microseconds
         :rtype: float
         """
-        return cycles/self['fs_proc']
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        if gen_ch is not None:
+            fclk = self['gens'][gen_ch]['f_fabric']
+        elif ro_ch is not None:
+            fclk = self['readouts'][ro_ch]['f_fabric']
+        else:
+            fclk = self['fs_proc']
+        return cycles/fclk
 
-    def us2cycles(self, us):
+    def us2cycles(self, us, gen_ch=None, ro_ch=None):
         """
-        Converts microseconds to integer number of tProc clock cycles.
+        Converts microseconds to integer number of clock cycles.
+        Uses tProc clock frequency by default.
+        If gen_ch or ro_ch is specified, uses that DAC/ADC channel's fabric clock.
 
         :param cycles: Number of microseconds
         :type cycles: float
-        :return: Number of tProc clock cycles
+        :param gen_ch: DAC channel (index in 'gens' list)
+        :type gen_ch: int
+        :param ro_ch: ADC channel (index in 'readouts' list)
+        :type ro_ch: int
+        :return: Number of clock cycles
         :rtype: int
         """
-        return np.int64(np.round(us*self['fs_proc']))
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        if gen_ch is not None:
+            fclk = self['gens'][gen_ch]['f_fabric']
+        elif ro_ch is not None:
+            fclk = self['readouts'][ro_ch]['f_fabric']
+        else:
+            fclk = self['fs_proc']
+        return np.int64(np.round(us*fclk))
 
 
 # configuration for an enabled readout channel
@@ -936,6 +964,7 @@ class QickProgram:
         """
         Aligns and syncs all channels with additional time t.
         Accounts for both DAC pulses and ADC readout windows.
+        This does not pause the tProc.
 
         :param t: The time offset in clock ticks
         :type t: int
@@ -945,6 +974,16 @@ class QickProgram:
             self.synci(int(max_t+t))
             self.dac_ts = [0]*len(self.dac_ts)
             self.adc_ts = [0]*len(self.adc_ts)
+
+    def wait_all(self, t=0):
+        """
+        Pause the tProc until all ADC readout windows are complete, plus additional time t.
+        This does not sync the tProc clock.
+
+        :param t: The time offset in clock ticks
+        :type t: int
+        """
+        self.waiti(0, int(max(self.adc_ts) + t))
 
     # should change behavior to only change bits that are specified
     def marker(self, t, t1=0, t2=0, t3=0, t4=0, adc1=0, adc2=0, rp=0, r_out=31, short=True):
@@ -1089,7 +1128,7 @@ class QickProgram:
         if wait:
             # tProc should wait for the readout to complete.
             # This prevents loop counters from getting incremented before the data is available.
-            self.waiti(0, int(max(self.adc_ts)))
+            self.wait_all()
         if syncdelay is not None:
             self.sync_all(syncdelay)
 
