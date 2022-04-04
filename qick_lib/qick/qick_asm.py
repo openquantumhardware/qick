@@ -421,9 +421,6 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            if cfg.gen_ch is not None:
-                gen_cfg = self.gen_chs[cfg.gen_ch]
-                gen = soc.gens[cfg.gen_ch]
             soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
