@@ -136,8 +136,7 @@ This guide will show you how to set up QICK after configuring your computer and 
 <!--* Navigate to the `qick` directory and run: `sudo python3 -m pip install .`
 This will install the qick Python package.
 -->
-* Navigate to the `qick_demos` subfolder within the `qick` directory and run the Jupyter notebook `Test_qick_package.ipynb`. This will walk you through installing and testing the `qick` package.
-
+* Navigate to the `qick_demos` subfolder within the `qick` directory and run the Jupyter notebook `000_Install_qick_package.ipynb`. This will walk you through installing and testing the `qick` package.
 
 ### Running a QICK program in loopback mode
 
