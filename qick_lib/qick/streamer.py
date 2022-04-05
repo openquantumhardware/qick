@@ -1,12 +1,22 @@
-from multiprocessing import Process, Queue, Event
+from threading import Thread, Event
+from queue import Queue
 import queue
 import time
 import numpy as np
 
+# This code originally used Process not Thread.
+# Process is slower (Process.start() is ~100 ms, Thread.start() is a few ms).
+# On the other hand, CPU-bound Python threads can't run in parallel ("global interpreter lock").
+# The overall problem is not CPU-bound - we should always be limited by tProc execution.
+# In the worst case where the tProc is running fast, we should actually be waiting for IO a lot (due to the DMA).
+# So we think it's safe to use threads.
+# However, this is a complicated problem and we may ultimately need to mess around with sys.setswitchinterval() or go back to Process.
+# To use Process instead of Thread, use the following import and change the constructor for self.readout_executor.
+#from multiprocessing import Process, Queue, Event
 
 class DataStreamer():
     """
-    Uses a separate process to read data from the average buffers.
+    Uses a separate thread to read data from the average buffers.
 
     We don't lock the QickSoc or the IPs. The user is responsible for not disrupting a readout in progress.
 
@@ -18,7 +28,7 @@ class DataStreamer():
         self.soc = soc
 
         # Process object for the streaming readout.
-        self.readout_process = None
+        self.readout_executor = None
 
     def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
         """
@@ -33,39 +43,45 @@ class DataStreamer():
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
         """
+        #t0 = time.time()
         if ch_list is None:
             ch_list = [0, 1]
 
-        # if there's still a readout process running, stop it
+        #print(time.time() - t0)
+        # if there's still a readout thread running, stop it
         if self.readout_alive():
             print("cleaning up previous readout: stopping streamer loop")
             # tell the readout to stop (this will break the readout loop)
             self.stop_readout()
-            # get all the data in the streamer buffer (this will allow the readout process to terminate)
+            # get all the data in the streamer buffer (this will allow the readout thread to terminate)
             while self.readout_alive():
                 print("clearing streamer buffer")
                 time.sleep(0.5)
                 self.poll_data()
 
+        #print(time.time() - t0)
         # Initialize flags and queues.
-        # Passes data from the worker process to the main process.
+        # Passes data from the worker thread to the main thread.
         self.data_queue = Queue()
-        # Passes exceptions from the worker process to the main process.
+        # Passes exceptions from the worker thread to the main thread.
         self.error_queue = Queue()
-        # The main process can use this flag to tell the worker process to stop.
+        # The main thread can use this flag to tell the worker thread to stop.
         self.stop_flag = Event()
-        # The worker process uses this to tell the main process when it's done.
+        # The worker thread uses this to tell the main thread when it's done.
         self.done_flag = Event()
+        #print(time.time() - t0)
 
-        # daemon=True means the readout process will be killed if the parent is killed
-        self.readout_process = Process(target=self._run_readout, args=(
+        # daemon=True means the readout thread will be killed if the parent is killed
+        self.readout_executor = Thread(target=self._run_readout, args=(
             total_count, counter_addr, ch_list, reads_per_count), daemon=True)
-        self.readout_process.start()
+        #print(time.time() - t0)
+        self.readout_executor.start()
+        #print(time.time() - t0)
 
     def stop_readout(self):
         """
         Signal the readout loop to break.
-        The readout process will stay alive until you have read any data already in the data queue.
+        The readout thread will stay alive until you have read any data already in the data queue.
         """
         self.stop_flag.set()
 
@@ -81,14 +97,14 @@ class DataStreamer():
 
     def readout_alive(self):
         """
-        Test if the readout process is still alive.
+        Test if the readout thread is still alive.
         This is true as long as the readout loop is running, or there are unread items in the queues.
         You will not be able to start a new readout until this is false.
 
-        :return: readout process status
+        :return: readout thread status
         :rtype: bool
         """
-        return self.readout_process is not None and self.readout_process.is_alive()
+        return self.readout_executor is not None and self.readout_executor.is_alive()
 
     def poll_data(self):
         """
@@ -114,7 +130,7 @@ class DataStreamer():
 
     def _run_readout(self, total_count, counter_addr, ch_list, reads_per_count):
         """
-        Worker process for the streaming readout
+        Worker thread for the streaming readout
 
         :param total_count: Number of data points expected
         :type addr: int
@@ -174,6 +190,6 @@ class DataStreamer():
                     self.data_queue.put((d_buf, stats))
             self.done_flag.set()
 
-            # Note that the process will not terminate until the queue is empty.
+            # Note that the thread will not terminate until the queue is empty.
         except Exception as e:
             self.error_queue.put(e)

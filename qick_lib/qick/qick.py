@@ -1238,11 +1238,12 @@ class AxisTProc64x32_x8(SocIp):
         #    prog.end()
         #prog.load_program(self.soc)
 
-    def load_bin_program(self, binprog):
+    def load_bin_program(self, binprog, reset=True):
         """
         Stop the tProcessor and write the program to the tProc program memory.
         """
-        self.reset()
+        if reset:
+            self.reset()
 
         for ii, inst in enumerate(binprog):
             dec_low = inst & 0xffffffff
@@ -1466,6 +1467,13 @@ class RFDC(xrfdc.RFdc):
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4"]
 
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        self.nqz_dict = {}
+
     def set_mixer_freq(self, dacname, f):
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -1487,8 +1495,24 @@ class RFDC(xrfdc.RFdc):
         tile, channel = [int(a) for a in dacname]
         return self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
 
-    def set_nyquist(self, dacname, nqz):
+    def set_nyquist(self, dacname, nqz, force=False):
+        """
+        Sets DAC channel to operate in Nyquist zone nqz.
+        Because this takes a bit of time (10-20 ms), we do not write to the channel if the new nqz equals the previous setting.
+        The "force" option overrides this behavior.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param nqz: Nyquist zone
+        :type nqz: int
+        :param force: force update
+        :type force: bool
+        """
         tile, channel = [int(a) for a in dacname]
+        if not force and (tile, channel) in self.nqz_dict:
+            if self.nqz_dict[(tile, channel)] == nqz:
+                return
+        self.nqz_dict[(tile, channel)] = nqz
         self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
 
 
@@ -1943,7 +1967,7 @@ class QickSoc(Overlay, QickConfig):
         """
         return self.gens[ch].load(xin_i=idata, xin_q=qdata, addr=addr)
 
-    def set_nyquist(self, ch, nqz):
+    def set_nyquist(self, ch, nqz, force=False):
         """
         Sets DAC channel ch to operate in Nyquist zone nqz mode.
 
