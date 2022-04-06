@@ -563,9 +563,6 @@ class AxisReadoutV2(SocIp):
         f_int = self.soc.freq2int(ro_freq, thiscfg)
         self.set_freq_int(f_int)
 
-        # Register update.
-        self.update()
-
     def set_freq_int(self, f_int):
         """
         Set frequency register (integer version)
@@ -583,7 +580,13 @@ class AxisReadoutV2(SocIp):
 
 class AxisPFBReadoutV2(SocIp):
     """
-    AxisPFBReadoutV2 class
+    AxisPFBReadoutV2 class.
+
+    This readout block contains a polyphase filter bank with 8 channels.
+    Channel i mixes the input signal down by a fixed frequency f = i * fs/16,
+    then by a programmable DDS with a range of +/- fs/16.
+
+    The PFB channels can be freely mapped to the 4 outputs of the readout block.
 
     Registers.
     FREQ[0-7]_REG : 32-bit frequency of each channel.
@@ -670,10 +673,13 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq(self, f, out_ch, gen_ch=0):
         """
-        Set frequency register
+        Select the best PFB channel for reading out the requested frequency.
+        Set that channel's frequency register, and wire that channel to the specified output of the PFB readout block.
 
         :param f: frequency in MHz (before adding any DAC mixer frequency)
         :type f: float
+        :param out_ch: output channel
+        :type out_ch: int
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
@@ -704,7 +710,15 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq_int(self, f_int, in_ch, out_ch):
         if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            raise RuntimeError("trying to set PFB channel %d to freq %d, but freq was previously set to %d"%(in_ch, f_int, self.ch_freqs[in_ch]))
+            centerfreq = (in_ch - 4) * (self.fs/16)
+            lofreq = centerfreq - self.fs/32
+            hifreq = centerfreq + self.fs/32
+            thiscfg = {}
+            thiscfg['fs'] = self.fs
+            thiscfg['b_dds'] = self.B_DDS
+            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], thiscfg)
+            newfreq = centerfreq + self.soc.int2freq(f_int, thiscfg)
+            raise RuntimeError("frequency collision: %f and %f MHz both map to the PFB channel that is optimal for [%f, %f] (all freqs expressed in first Nyquist zone)"%(newfreq, oldfreq, lofreq, hifreq))
         self.ch_freqs[in_ch] = f_int
         # wire the selected PFB channel to the output
         setattr(self, "ch%dsel_reg"%(out_ch), in_ch)

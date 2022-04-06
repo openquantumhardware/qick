@@ -154,6 +154,20 @@ class QickConfig():
         k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
         return np.int64(k_i)
 
+    def int2freq(self, r, thisch):
+        """
+        Converts register value to MHz.
+        This method works for both DACs and ADCs.
+
+        :param r: register value
+        :type r: int
+        :param thisch: config dict for the channel you're configuring
+        :type thisch: dict
+        :return: Re-formatted frequency (MHz)
+        :rtype: float
+        """
+        return r * thisch['fs'] / 2**thisch['b_dds']
+
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """
         Converts frequency in MHz to tProc DAC register value.
@@ -722,7 +736,7 @@ class QickProgram:
         elif gen_type == 'axis_sg_mux4_v1':
             if mask is None:
                 raise RuntimeError("mask must be specified for mux generator")
-            if any([x is not None for x in [stdysel, phrst, freq, phase, gain]]):
+            if any([x is not None for x in [stdysel, phrst, mode, freq, phase, gain]]):
                 raise RuntimeError(gen_type, "does not support specified options")
             p.safe_regwi(rp, r_e, length, f'length = {length}')
             val_mask = 0
@@ -921,7 +935,7 @@ class QickProgram:
             if t == 'auto':
                 t = int(self.dac_ts[ch])
             elif t < self.dac_ts[ch]:
-                print("Pulse time %d appears to conflict with previous pulse ending at %f?"%(t, dac_ts[ch]))
+                print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self.dac_ts[ch]))
             # convert from generator clock to tProc clock
             pulse_length = last_pulse['length']
             pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
