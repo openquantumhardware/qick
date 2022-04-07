@@ -41,10 +41,11 @@ class SocIp(DefaultIP):
         :param v: value to be written
         :type v: int
         """
-        if a in self.__class__.REGISTERS:
-            #print(self.fullpath, a, v)
-            super().write(4*self.__class__.REGISTERS[a], int(v))
-        super().__setattr__(a, v)
+        try:
+            index = self.REGISTERS[a]
+            self.mmio.array[index] = np.uint32(v)
+        except KeyError:
+            super().__setattr__(a, v)
 
     def __getattr__(self, a):
         """
@@ -55,9 +56,11 @@ class SocIp(DefaultIP):
         :return: Register arguments
         :rtype: *args object
         """
-        if a in self.__class__.REGISTERS:
-            return super().read(4*self.__class__.REGISTERS[a])
-        return super().__getattribute__(a)
+        try:
+            index = self.REGISTERS[a]
+            return self.mmio.array[index]
+        except KeyError:
+            return super().__getattribute__(a)
 
 
 class AbsSignalGen(SocIp):
@@ -1913,12 +1916,10 @@ class QickSoc(Overlay, QickConfig):
         :param enable: True to enable buffer
         :type enable: bool
         """
-        self.avg_bufs[ch].config_avg(address, length)
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.config_avg(address, length)
         if enable:
-            self.enable_avg(ch)
-
-    def enable_avg(self, ch):
-        self.avg_bufs[ch].enable_avg()
+            avg_buf.enable_avg()
 
     def config_buf(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable decimation buffer
@@ -1931,12 +1932,10 @@ class QickSoc(Overlay, QickConfig):
         :param enable: True to enable buffer
         :type enable: bool
         """
-        self.avg_bufs[ch].config_buf(address, length)
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.config_buf(address, length)
         if enable:
-            self.enable_buf(ch)
-
-    def enable_buf(self, ch):
-        self.avg_bufs[ch].enable_buf()
+            avg_buf.enable_buf()
 
     def get_avg_max_length(self, ch=0):
         """Get accumulation buffer length for channel
