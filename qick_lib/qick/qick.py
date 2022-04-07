@@ -1277,35 +1277,15 @@ class AxisTProc64x32_x8(SocIp):
         # Binary file format.
         if fmt == "bin":
             # Read binary file from disk.
-            fd = open(prog, "r")
-
-            # Write memory.
-            addr = 0
-            for line in fd:
-                line.strip("\r\n")
-                dec = int(line, 2)
-                dec_low = dec & 0xffffffff
-                dec_high = dec >> 32
-                self.mem.write(addr, value=int(dec_low))
-                addr = addr + 4
-                self.mem.write(addr, value=int(dec_high))
-                addr = addr + 4
+            with open(prog, "r") as fd:
+                progList = [int(line, 2) for line in fd]
 
         # Asm file.
         elif fmt == "asm":
             # Compile program.
             progList = parse_to_bin(prog)
 
-            # Load Program Memory.
-            addr = 0
-            for dec in progList:
-                #print ("@" + str(addr) + ": " + str(dec))
-                dec_low = dec & 0xffffffff
-                dec_high = dec >> 32
-                self.mem.write(addr, value=int(dec_low))
-                addr = addr + 4
-                self.mem.write(addr, value=int(dec_high))
-                addr = addr + 4
+        self.load_bin_program(progList)
 
     def single_read(self, addr):
         """
