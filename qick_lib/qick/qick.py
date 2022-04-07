@@ -1259,11 +1259,10 @@ class AxisTProc64x32_x8(SocIp):
         if reset:
             self.reset()
 
-        for ii, inst in enumerate(binprog):
-            dec_low = inst & 0xffffffff
-            dec_high = inst >> 32
-            self.mem.write(8*ii, value=int(dec_low))
-            self.mem.write(4*(2*ii+1), value=int(dec_high))
+        # cast the program words to 64-bit uints
+        p = np.array(binprog, dtype=np.uint64)
+        # reshape to 32-bit uints to match the program memory, and do a fast copy
+        np.copyto(self.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
 
     def load_program(self, prog="prog.asm", fmt="asm"):
         """
