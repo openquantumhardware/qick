@@ -66,6 +66,9 @@ class DataStreamer():
         """
         if ch_list is None: ch_list = [0, 1]
 
+        self.total_count = total_count
+        self.count = 0
+
         if not self.readout_worker.is_alive():
             print("restarting readout worker")
             self.start_worker()
@@ -108,12 +111,18 @@ class DataStreamer():
         """
         return not self.data_queue.empty()
 
-    def poll_data(self, max_expected=None, timeout=None):
+    def poll_data(self, totaltime=0.1, timeout=None):
         """
         Get as much data as possible from the data queue.
+        Stop when any of the following conditions are met:
+        * all the data has been transferred (based on the total_count)
+        * we got data, and it has been totaltime seconds since poll_data was called
+        * timeout is defined, and the timeout expired without getting new data in the queue
         If there are errors in the error queue, raise the first one.
 
-        :param timeout: Seconds to wait for the next data packet
+        :param totaltime: How long to acquire data
+        :type totaltime: float
+        :param timeout: How long to wait for the next data packet (None = wait forever)
         :type timeout: float
         :return: list of (data, stats) pairs, oldest first
         :rtype: list
@@ -124,12 +133,12 @@ class DataStreamer():
         except queue.Empty:
             pass
 
+        time_end = time.time() + totaltime
         new_data = []
-        while max_expected is None or max_expected>0:
+        while self.count < self.total_count and time.time() < time_end:
             try:
                 length, data = self.data_queue.get(block=True, timeout=timeout)
-                if max_expected is not None:
-                    max_expected -= length
+                self.count += length
                 new_data.append(data)
             except queue.Empty:
                 break
