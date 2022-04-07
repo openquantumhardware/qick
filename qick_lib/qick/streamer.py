@@ -11,7 +11,7 @@ import numpy as np
 # In the worst case where the tProc is running fast, we should actually be waiting for IO a lot (due to the DMA).
 # So we think it's safe to use threads.
 # However, this is a complicated problem and we may ultimately need to mess around with sys.setswitchinterval() or go back to Process.
-# To use Process instead of Thread, use the following import and change the constructor for self.readout_executor.
+# To use Process instead of Thread, use the following import and change WORKERTYPE.
 #from multiprocessing import Process, Queue, Event
 
 class DataStreamer():
@@ -24,43 +24,18 @@ class DataStreamer():
     :type soc: QickSoc
     """
 
+    #WORKERTYPE = Process
+    WORKERTYPE = Thread
+
     def __init__(self, soc):
         self.soc = soc
 
-        # Process object for the streaming readout.
-        self.readout_executor = None
+        self.start_worker()
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
-        """
-        Start a streaming readout of the average buffers.
-
-        :param total_count: Number of data points expected
-        :type addr: int
-        :param counter_addr: Data memory address for the loop counter
-        :type counter_addr: int
-        :param ch_list: List of readout channels
-        :type addr: list
-        :param reads_per_count: Number of data points to expect per counter increment
-        :type reads_per_count: int
-        """
-        #t0 = time.time()
-        if ch_list is None:
-            ch_list = [0, 1]
-
-        #print(time.time() - t0)
-        # if there's still a readout thread running, stop it
-        if self.readout_alive():
-            print("cleaning up previous readout: stopping streamer loop")
-            # tell the readout to stop (this will break the readout loop)
-            self.stop_readout()
-            # get all the data in the streamer buffer (this will allow the readout thread to terminate)
-            while self.readout_alive():
-                print("clearing streamer buffer")
-                time.sleep(0.5)
-                self.poll_data()
-
-        #print(time.time() - t0)
+    def start_worker(self):
         # Initialize flags and queues.
+        # Passes run commands from the main thread to the worker thread.
+        self.job_queue = Queue()
         # Passes data from the worker thread to the main thread.
         self.data_queue = Queue()
         # Passes exceptions from the worker thread to the main thread.
@@ -69,48 +44,77 @@ class DataStreamer():
         self.stop_flag = Event()
         # The worker thread uses this to tell the main thread when it's done.
         self.done_flag = Event()
-        #print(time.time() - t0)
+        self.done_flag.set()
 
+        # Process object for the streaming readout.
         # daemon=True means the readout thread will be killed if the parent is killed
-        self.readout_executor = Thread(target=self._run_readout, args=(
-            total_count, counter_addr, ch_list, reads_per_count), daemon=True)
-        #print(time.time() - t0)
-        self.readout_executor.start()
-        #print(time.time() - t0)
+        self.readout_worker = self.WORKERTYPE(target=self._run_readout, daemon=True)
+        self.readout_worker.start()
+
+    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+        """
+        Start a streaming readout of the average buffers.
+
+        :param total_count: Number of data points expected
+        :type total_count: int
+        :param counter_addr: Data memory address for the loop counter
+        :type counter_addr: int
+        :param ch_list: List of readout channels
+        :type ch_list: list
+        :param reads_per_count: Number of data points to expect per counter increment
+        :type reads_per_count: int
+        """
+        if ch_list is None: ch_list = [0, 1]
+
+        if not self.readout_worker.is_alive():
+            print("restarting readout worker")
+            self.start_worker()
+
+        # if there's still a readout job running, stop it
+        if self.readout_running():
+            print("cleaning up previous readout: stopping streamer loop")
+            # tell the readout to stop (this will break the readout loop)
+            self.stop_readout()
+            self.done_flag.wait()
+        if self.data_available():
+            # flush all the data in the streamer buffer
+            print("clearing streamer buffer")
+            self.poll_data(timeout=0.1)
+        self.done_flag.clear()
+        self.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
+
 
     def stop_readout(self):
         """
         Signal the readout loop to break.
-        The readout thread will stay alive until you have read any data already in the data queue.
         """
         self.stop_flag.set()
 
-    def readout_done(self):
+    def readout_running(self):
         """
         Test if the readout loop is running.
-        There may still be unread data in the queue.
-
-        :return: readout loop flag
-        :rtype: bool
-        """
-        return self.done_flag.is_set()
-
-    def readout_alive(self):
-        """
-        Test if the readout thread is still alive.
-        This is true as long as the readout loop is running, or there are unread items in the queues.
-        You will not be able to start a new readout until this is false.
 
         :return: readout thread status
         :rtype: bool
         """
-        return self.readout_executor is not None and self.readout_executor.is_alive()
+        return not self.done_flag.is_set()
 
-    def poll_data(self):
+    def data_available(self):
+        """
+        Test if data is available in the queue.
+
+        :return: data queue status
+        :rtype: bool
+        """
+        return not self.data_queue.empty()
+
+    def poll_data(self, max_expected=None, timeout=None):
         """
         Get as much data as possible from the data queue.
         If there are errors in the error queue, raise the first one.
 
+        :param timeout: Seconds to wait for the next data packet
+        :type timeout: float
         :return: list of (data, stats) pairs, oldest first
         :rtype: list
         """
@@ -121,14 +125,17 @@ class DataStreamer():
             pass
 
         new_data = []
-        while True:
+        while max_expected is None or max_expected>0:
             try:
-                new_data.append(self.data_queue.get(timeout=0.001))
+                length, data = self.data_queue.get(block=True, timeout=timeout)
+                if max_expected is not None:
+                    max_expected -= length
+                new_data.append(data)
             except queue.Empty:
                 break
         return new_data
 
-    def _run_readout(self, total_count, counter_addr, ch_list, reads_per_count):
+    def _run_readout(self):
         """
         Worker thread for the streaming readout
 
@@ -142,54 +149,62 @@ class DataStreamer():
         :type reads_per_count: int
         """
         try:
-            count = 0
-            last_count = 0
-            # how many measurements to transfer at a time
-            stride = int(0.1 * self.soc.get_avg_max_length(0))
-            # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
+            while True:
+                # wait for a job
+                total_count, counter_addr, ch_list, reads_per_count = self.job_queue.get(block=True)
 
-            # make sure count variable is reset to 0 before starting processor
-            self.soc.tproc.single_write(addr=counter_addr, data=0)
-            stats = []
+                count = 0
+                last_count = 0
+                # how many measurements to transfer at a time
+                stride = int(0.1 * self.soc.get_avg_max_length(0))
+                # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-            t_start = time.time()
+                # make sure count variable is reset to 0 before starting processor
+                self.soc.tproc.single_write(addr=counter_addr, data=0)
+                stats = []
 
-            # if the tproc is configured for internal start, this will start the program
-            # for external start, the program will not start until a start pulse is received
-            self.soc.tproc.start()
+                t_start = time.time()
 
-            # Keep streaming data until you get all of it
-            while (not self.stop_flag.is_set()) and last_count < total_count:
-                count = self.soc.tproc.single_read(
-                    addr=counter_addr)*reads_per_count
-                # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                if count >= min(last_count+stride, total_count):
-                    addr = last_count % self.soc.get_avg_max_length(0)
-                    length = count-last_count
-                    # transfers must be of even length; trim the length (instead of padding it)
-                    length -= length % 2
-                    if length >= self.soc.get_avg_max_length(0):
-                        raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                                           % (length, self.soc.get_avg_max_length(0)) +
-                                           "\nYou need to slow down the tProc by increasing relax_delay." +
-                                           "\nIf the TQDM progress bar is enabled, disabling it may help.")
+                # if the tproc is configured for internal start, this will start the program
+                # for external start, the program will not start until a start pulse is received
+                self.soc.tproc.start()
 
-                    # buffer for each channel
-                    d_buf = np.zeros((len(ch_list), 2, length))
+                # Keep streaming data until you get all of it
+                while (not self.stop_flag.is_set()) and last_count < total_count:
+                    count = self.soc.tproc.single_read(
+                        addr=counter_addr)*reads_per_count
+                    # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
+                    if count >= min(last_count+stride, total_count):
+                        addr = last_count % self.soc.get_avg_max_length(0)
+                        length = count-last_count
+                        if length >= self.soc.get_avg_max_length(0):
+                            raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
+                                               % (length, self.soc.get_avg_max_length(0)) +
+                                               "\nYou need to slow down the tProc by increasing relax_delay." +
+                                               "\nIf the TQDM progress bar is enabled, disabling it may help.")
+                        # transfers must be of even length; trim the length (instead of padding it)
+                        # don't trim if this is the last read of the run
+                        if count < last_count:
+                            length -= length % 2
+                        #else:
+                        #    time.sleep(0.0001)
 
-                    # for each adc channel get the single shot data and add it to the buffer
-                    for iCh, ch in enumerate(ch_list):
-                        data = self.soc.get_accumulated(
-                            ch=ch, address=addr, length=length)
+                        # buffer for each channel
+                        d_buf = np.zeros((len(ch_list), 2, length))
 
-                        d_buf[iCh] = data
+                        # for each adc channel get the single shot data and add it to the buffer
+                        for iCh, ch in enumerate(ch_list):
+                            data = self.soc.get_accumulated(
+                                ch=ch, address=addr, length=length)
 
-                    last_count += length
+                            d_buf[iCh] = data
 
-                    stats = (time.time()-t_start, count, addr, length)
-                    self.data_queue.put((d_buf, stats))
-            self.done_flag.set()
+                        last_count += length
 
-            # Note that the thread will not terminate until the queue is empty.
+                        stats = (time.time()-t_start, count, addr, length)
+                        self.data_queue.put((length, (d_buf, stats)))
+                self.done_flag.set()
+
+                # Note that the thread will not terminate until the queue is empty.
         except Exception as e:
             self.error_queue.put(e)

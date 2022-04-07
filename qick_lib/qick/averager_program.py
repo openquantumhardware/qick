@@ -124,8 +124,8 @@ class AveragerProgram(QickProgram):
         streamer = soc.streamer
         streamer.start_readout(total_count, counter_addr=1,
                                ch_list=list(self.ro_chs))
-        while streamer.readout_alive():
-            new_data = streamer.poll_data()
+        while count<total_count:
+            new_data = streamer.poll_data(max_expected=min(10000, total_count-count))
             for d, s in new_data:
                 new_points = d.shape[2]
                 d_buf[:, :, count:count+new_points] = d
@@ -467,8 +467,8 @@ class RAveragerProgram(QickProgram):
         with tqdm(total=total_count, disable=not progress) as pbar:
             streamer.start_readout(total_count, counter_addr=1, ch_list=list(
                 self.ro_chs), reads_per_count=readouts_per_experiment)
-            while streamer.readout_alive():
-                new_data = streamer.poll_data()
+            while count<total_count:
+                new_data = streamer.poll_data(max_expected=min(10000, total_count-count))
                 for d, s in new_data:
                     new_points = d.shape[2]
                     d_buf[:, :, count:count+new_points] = d
