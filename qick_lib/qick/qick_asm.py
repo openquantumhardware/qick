@@ -65,11 +65,9 @@ class QickConfig():
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
-        if hasattr(self, 'tproc'):  # this is a QickSoc
-            lines.append("\n\ttProc: %d words program memory, %d words data memory" % (
-                2**self.tproc.PMEM_N, 2**self.tproc.DMEM_N))
-            lines.append("\t\tprogram RAM: %d bytes" %
-                         (self.tproc.mem.mmio.length))
+        tproc = self['tprocs'][0]
+        lines.append("\n\ttProc: %d words program memory, %d words data memory" %
+                (tproc['pmem_size'], tproc['dmem_size']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
@@ -1220,14 +1218,14 @@ class QickProgram:
         """
         return [self.compile_instruction(inst, debug=debug) for inst in self.prog_list]
 
-    def load_program(self, soc, debug=False):
+    def load_program(self, soc, debug=False, reset=False):
         """
         Load the compiled program into the tProcessor.
 
         :param debug: If True, debug mode is on
         :type debug: bool
         """
-        soc.tproc.load_bin_program(self.compile(debug=debug))
+        soc.tproc.load_bin_program(self.compile(debug=debug), reset=reset)
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """

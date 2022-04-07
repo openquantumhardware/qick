@@ -195,8 +195,6 @@ class DataStreamer():
                         # don't trim if this is the last read of the run
                         if count < last_count:
                             length -= length % 2
-                        #else:
-                        #    time.sleep(0.0001)
 
                         # buffer for each channel
                         d_buf = np.zeros((len(ch_list), 2, length))

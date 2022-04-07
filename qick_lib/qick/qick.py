@@ -948,7 +948,8 @@ class AxisAvgBuffer(SocIp):
 
         # DMA data.
         buff = self.avg_buff
-        self.dma_avg.recvchannel.transfer(buff, nbytes=length*8)
+        # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
+        self.dma_avg.recvchannel.transfer(buff, nbytes=int(length*8))
         self.dma_avg.recvchannel.wait()
 
         # Stop send data mode.
@@ -1027,7 +1028,8 @@ class AxisAvgBuffer(SocIp):
 
         # DMA data.
         buff = self.buf_buff
-        self.dma_buf.recvchannel.transfer(buff, nbytes=length*4)
+        # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
+        self.dma_buf.recvchannel.transfer(buff, nbytes=int(length*4))
         self.dma_buf.recvchannel.wait()
 
         if self.dma_buf.recvchannel.transferred != length*4:
@@ -1179,8 +1181,8 @@ class AxisTProc64x32_x8(SocIp):
                  'mem_addr_reg': 4,
                  'mem_len_reg': 5}
 
-    # Reserved lower memory section for register access.
-    DMEM_OFFSET = 256
+    # Number of 32-bit words in the lower address map (reserved for register access)
+    NREG = 64
 
     def __init__(self, description):
         """
@@ -1203,7 +1205,9 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = 100
 
         # Generics.
+        # data memory address size (log2 of the number of 32-bit words)
         self.DMEM_N = int(description['parameters']['DMEM_N'])
+        # program memory address size (log2 of the number of 64-bit words, though the actual memory is usually smaller)
         self.PMEM_N = int(description['parameters']['PMEM_N'])
 
     # Configure this driver with links to its memory and DMA.
@@ -1250,17 +1254,14 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-        #prog = QickProgram(self.soc)
-        #for i in range(self.mem.mmio.length//8):
-        #    prog.end()
-        #prog.load_program(self.soc)
+    def load_bin_program(self, binprog, reset=False):
+        """
+        Write the program to the tProc program memory.
 
-    def load_bin_program(self, binprog, reset=True):
+        :param reset: Reset the tProc before writing the program.
+        :type reset: bool
         """
-        Stop the tProcessor and write the program to the tProc program memory.
-        """
-        if reset:
-            self.reset()
+        if reset: self.reset()
 
         # cast the program words to 64-bit uints
         p = np.array(binprog, dtype=np.uint64)
@@ -1300,13 +1301,9 @@ class AxisTProc64x32_x8(SocIp):
         :return: requested value
         :rtype: int
         """
-        # Address should be translated to upper map.
-        addr_temp = 4*addr + self.DMEM_OFFSET
-
         # Read data.
-        data = self.read(addr_temp)
-
-        return data
+        # Address should be translated to upper map.
+        return self.mmio.array[addr + self.NREG]
 
     def single_write(self, addr=0, data=0):
         """
@@ -1317,11 +1314,9 @@ class AxisTProc64x32_x8(SocIp):
         :param data: value to be written
         :type data: int
         """
-        # Address should be translated to upper map.
-        addr_temp = 4*addr + self.DMEM_OFFSET
-
         # Write data.
-        self.write(addr_temp, value=int(data))
+        # Address should be translated to upper map.
+        self.mmio.array[addr + self.NREG] = np.uint32(data)
 
     def load_dmem(self, buff_in, addr=0):
         """
@@ -1716,6 +1711,8 @@ class QickSoc(Overlay, QickConfig):
         for tproc in [self.tproc]:
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
+            thiscfg['pmem_size'] = tproc.mem.mmio.length/8
+            thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
     def config_clocks(self, force_init_clks):
@@ -2019,18 +2016,9 @@ class QickSoc(Overlay, QickConfig):
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
 
-    def load_qick_program(self, prog, debug=False):
-        """
-        :param prog: the QickProgram to load
-        :type prog: str
-        :param debug: Debug option
-        :type debug: bool
-        """
-        self.tproc.load_bin_program(prog.compile(debug=debug))
-
     def reset_gens(self):
         """
-        Run a minimal tProc program that drives all signal generators with 0's.
+        Reset the tProc and run a minimal tProc program that drives all signal generators with 0's.
         Useful for stopping any periodic or stdysel="last" outputs that may have been driven by a previous program.
         """
         prog = QickProgram(self)
@@ -2041,5 +2029,5 @@ class QickSoc(Overlay, QickConfig):
         prog.end()
         # this should always run with internal trigger
         self.tproc.start_src("internal")
-        prog.load_program(self)
+        prog.load_program(self, reset=True)
         self.tproc.start()
