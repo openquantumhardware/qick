@@ -111,7 +111,7 @@ class AveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
+        soc.start_src(start_src)
 
         reps = self.cfg['reps']
         total_count = reps
@@ -291,9 +291,9 @@ class AveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
-
         tproc = soc.tproc
+
+        soc.start_src(start_src)
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
 
@@ -452,7 +452,7 @@ class RAveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
+        soc.start_src(start_src)
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
 
