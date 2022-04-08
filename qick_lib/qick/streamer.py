@@ -5,7 +5,8 @@ import time
 import numpy as np
 
 # This code originally used Process not Thread.
-# Process is slower (Process.start() is ~100 ms, Thread.start() is a few ms).
+# Process is much slower to start (Process.start() is ~100 ms, Thread.start() is a few ms)
+# The process-safe versions of Queue and Event are also significantly slower.
 # On the other hand, CPU-bound Python threads can't run in parallel ("global interpreter lock").
 # The overall problem is not CPU-bound - we should always be limited by tProc execution.
 # In the worst case where the tProc is running fast, we should actually be waiting for IO a lot (due to the DMA).
