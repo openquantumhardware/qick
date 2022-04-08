@@ -111,7 +111,7 @@ class AveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
+        soc.start_src(start_src)
 
         reps = self.cfg['reps']
         total_count = reps
@@ -120,13 +120,12 @@ class AveragerProgram(QickProgram):
 
         d_buf = np.zeros((n_ro, 2, total_count))
         self.stats = []
-        streamer = soc.streamer
 
         with tqdm(total=total_count, disable=not progress) as pbar:
-            streamer.start_readout(total_count, counter_addr=1,
+            soc.start_readout(total_count, counter_addr=1,
                                    ch_list=list(self.ro_chs))
             while count<total_count:
-                new_data = streamer.poll_data()
+                new_data = soc.poll_data()
                 for d, s in new_data:
                     new_points = d.shape[2]
                     d_buf[:, :, count:count+new_points] = d
@@ -291,9 +290,9 @@ class AveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
-
         tproc = soc.tproc
+
+        soc.start_src(start_src)
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
 
@@ -452,7 +451,7 @@ class RAveragerProgram(QickProgram):
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
-        soc.tproc.start_src(start_src)
+        soc.start_src(start_src)
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
 
@@ -462,13 +461,12 @@ class RAveragerProgram(QickProgram):
 
         d_buf = np.zeros((n_ro, 2, total_count))
         self.stats = []
-        streamer = soc.streamer
 
         with tqdm(total=total_count, disable=not progress) as pbar:
-            streamer.start_readout(total_count, counter_addr=1, ch_list=list(
+            soc.start_readout(total_count, counter_addr=1, ch_list=list(
                 self.ro_chs), reads_per_count=readouts_per_experiment)
             while count<total_count:
-                new_data = streamer.poll_data()
+                new_data = soc.poll_data()
                 for d, s in new_data:
                     new_points = d.shape[2]
                     d_buf[:, :, count:count+new_points] = d

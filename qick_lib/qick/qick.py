@@ -1227,15 +1227,6 @@ class AxisTProc64x32_x8(SocIp):
             if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
 
-    def start_src(self, src):
-        """
-        Sets the start source of tProc
-
-        :param src: start source "internal" or "external"
-        :type src: string
-        """
-        self.start_src_reg = {"internal": 0, "external": 1}[src]
-
     def start(self):
         """
         Start tProc from register.
@@ -1254,50 +1245,12 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-    def load_bin_program(self, binprog, reset=False):
-        """
-        Write the program to the tProc program memory.
-
-        :param reset: Reset the tProc before writing the program.
-        :type reset: bool
-        """
-        if reset: self.reset()
-
-        # cast the program words to 64-bit uints
-        p = np.array(binprog, dtype=np.uint64)
-        # reshape to 32-bit uints to match the program memory, and do a fast copy
-        np.copyto(self.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
-
-    def load_program(self, prog="prog.asm", fmt="asm"):
-        """
-        Loads tProc program. If asm progam, it compiles first
-
-        :param prog: program file name
-        :type prog: string
-        :param fmt: file format
-        :type fmt: string
-        """
-        # Binary file format.
-        if fmt == "bin":
-            # Read binary file from disk.
-            with open(prog, "r") as fd:
-                progList = [int(line, 2) for line in fd]
-
-        # Asm file.
-        elif fmt == "asm":
-            # Compile program.
-            progList = parse_to_bin(prog)
-
-        self.load_bin_program(progList)
-
     def single_read(self, addr):
         """
         Reads one sample of tProc data memory using AXI access
 
         :param addr: reading address
         :type addr: int
-        :param data: value to be written
-        :type data: int
         :return: requested value
         :rtype: int
         """
@@ -2016,6 +1969,29 @@ class QickSoc(Overlay, QickConfig):
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
 
+    def load_bin_program(self, binprog, reset=False):
+        """
+        Write the program to the tProc program memory.
+
+        :param reset: Reset the tProc before writing the program.
+        :type reset: bool
+        """
+        if reset: self.tproc.reset()
+
+        # cast the program words to 64-bit uints
+        p = np.array(binprog, dtype=np.uint64)
+        # reshape to 32-bit uints to match the program memory, and do a fast copy
+        np.copyto(self.tproc.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
+
+    def start_src(self, src):
+        """
+        Sets the start source of tProc
+
+        :param src: start source "internal" or "external"
+        :type src: string
+        """
+        self.tproc.start_src_reg = {"internal": 0, "external": 1}[src]
+
     def reset_gens(self):
         """
         Reset the tProc and run a minimal tProc program that drives all signal generators with 0's.
@@ -2028,6 +2004,23 @@ class QickSoc(Overlay, QickConfig):
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
         # this should always run with internal trigger
-        self.tproc.start_src("internal")
+        self.start_src("internal")
         prog.load_program(self, reset=True)
         self.tproc.start()
+
+    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+        """
+        Start a streaming readout of the accumulated buffers.
+
+        This is a wrapper around DataStreamer.start_readout().
+        """
+        if ch_list is None: ch_list = [0, 1]
+        self.streamer.start_readout(total_count, counter_addr, ch_list, reads_per_count)
+
+    def poll_data(self, totaltime=0.1, timeout=None):
+        """
+        Get as much data as possible from the streamer.
+
+        This is a wrapper around DataStreamer.poll_data().
+        """
+        return self.streamer.poll_data(totaltime, timeout)

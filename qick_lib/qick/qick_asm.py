@@ -1225,7 +1225,7 @@ class QickProgram:
         :param debug: If True, debug mode is on
         :type debug: bool
         """
-        soc.tproc.load_bin_program(self.compile(debug=debug), reset=reset)
+        soc.load_bin_program(self.compile(debug=debug), reset=reset)
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """

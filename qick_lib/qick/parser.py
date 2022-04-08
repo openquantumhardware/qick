@@ -890,3 +890,27 @@ def parse_to_bin(path):
     """
     p = parse_prog(path)
     return [int(p[i], 2) for i in p]
+
+def load_program(soc, prog="prog.asm", fmt="asm"):
+    """
+    Loads tProc program. If asm program, it compiles first
+
+    :param soc: Qick to be programmed
+    :type soc: QickSoc
+    :param prog: program file name
+    :type prog: string
+    :param fmt: file format
+    :type fmt: string
+    """
+    # Binary file format.
+    if fmt == "bin":
+        # Read binary file from disk.
+        with open(prog, "r") as fd:
+            progList = [int(line, 2) for line in fd]
+
+    # Asm file.
+    elif fmt == "asm":
+        # Compile program.
+        progList = parse_to_bin(prog)
+
+    soc.load_bin_program(progList)
