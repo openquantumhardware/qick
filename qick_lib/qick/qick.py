@@ -41,10 +41,11 @@ class SocIp(DefaultIP):
         :param v: value to be written
         :type v: int
         """
-        if a in self.__class__.REGISTERS:
-            #print(self.fullpath, a, v)
-            super().write(4*self.__class__.REGISTERS[a], int(v))
-        super().__setattr__(a, v)
+        try:
+            index = self.REGISTERS[a]
+            self.mmio.array[index] = np.uint32(v)
+        except KeyError:
+            super().__setattr__(a, v)
 
     def __getattr__(self, a):
         """
@@ -55,9 +56,11 @@ class SocIp(DefaultIP):
         :return: Register arguments
         :rtype: *args object
         """
-        if a in self.__class__.REGISTERS:
-            return super().read(4*self.__class__.REGISTERS[a])
-        return super().__getattribute__(a)
+        try:
+            index = self.REGISTERS[a]
+            return self.mmio.array[index]
+        except KeyError:
+            return super().__getattribute__(a)
 
 
 class AbsSignalGen(SocIp):
@@ -563,9 +566,6 @@ class AxisReadoutV2(SocIp):
         f_int = self.soc.freq2int(ro_freq, thiscfg)
         self.set_freq_int(f_int)
 
-        # Register update.
-        self.update()
-
     def set_freq_int(self, f_int):
         """
         Set frequency register (integer version)
@@ -583,7 +583,13 @@ class AxisReadoutV2(SocIp):
 
 class AxisPFBReadoutV2(SocIp):
     """
-    AxisPFBReadoutV2 class
+    AxisPFBReadoutV2 class.
+
+    This readout block contains a polyphase filter bank with 8 channels.
+    Channel i mixes the input signal down by a fixed frequency f = i * fs/16,
+    then by a programmable DDS with a range of +/- fs/16.
+
+    The PFB channels can be freely mapped to the 4 outputs of the readout block.
 
     Registers.
     FREQ[0-7]_REG : 32-bit frequency of each channel.
@@ -670,10 +676,13 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq(self, f, out_ch, gen_ch=0):
         """
-        Set frequency register
+        Select the best PFB channel for reading out the requested frequency.
+        Set that channel's frequency register, and wire that channel to the specified output of the PFB readout block.
 
         :param f: frequency in MHz (before adding any DAC mixer frequency)
         :type f: float
+        :param out_ch: output channel
+        :type out_ch: int
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
@@ -704,7 +713,15 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq_int(self, f_int, in_ch, out_ch):
         if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            raise RuntimeError("trying to set PFB channel %d to freq %d, but freq was previously set to %d"%(in_ch, f_int, self.ch_freqs[in_ch]))
+            centerfreq = (in_ch - 4) * (self.fs/16)
+            lofreq = centerfreq - self.fs/32
+            hifreq = centerfreq + self.fs/32
+            thiscfg = {}
+            thiscfg['fs'] = self.fs
+            thiscfg['b_dds'] = self.B_DDS
+            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], thiscfg)
+            newfreq = centerfreq + self.soc.int2freq(f_int, thiscfg)
+            raise RuntimeError("frequency collision: %f and %f MHz both map to the PFB channel that is optimal for [%f, %f] (all freqs expressed in first Nyquist zone)"%(newfreq, oldfreq, lofreq, hifreq))
         self.ch_freqs[in_ch] = f_int
         # wire the selected PFB channel to the output
         setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
@@ -931,7 +948,8 @@ class AxisAvgBuffer(SocIp):
 
         # DMA data.
         buff = self.avg_buff
-        self.dma_avg.recvchannel.transfer(buff, nbytes=length*8)
+        # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
+        self.dma_avg.recvchannel.transfer(buff, nbytes=int(length*8))
         self.dma_avg.recvchannel.wait()
 
         # Stop send data mode.
@@ -1010,7 +1028,8 @@ class AxisAvgBuffer(SocIp):
 
         # DMA data.
         buff = self.buf_buff
-        self.dma_buf.recvchannel.transfer(buff, nbytes=length*4)
+        # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
+        self.dma_buf.recvchannel.transfer(buff, nbytes=int(length*4))
         self.dma_buf.recvchannel.wait()
 
         if self.dma_buf.recvchannel.transferred != length*4:
@@ -1162,8 +1181,8 @@ class AxisTProc64x32_x8(SocIp):
                  'mem_addr_reg': 4,
                  'mem_len_reg': 5}
 
-    # Reserved lower memory section for register access.
-    DMEM_OFFSET = 256
+    # Number of 32-bit words in the lower address map (reserved for register access)
+    NREG = 64
 
     def __init__(self, description):
         """
@@ -1186,7 +1205,9 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_len_reg = 100
 
         # Generics.
+        # data memory address size (log2 of the number of 32-bit words)
         self.DMEM_N = int(description['parameters']['DMEM_N'])
+        # program memory address size (log2 of the number of 64-bit words, though the actual memory is usually smaller)
         self.PMEM_N = int(description['parameters']['PMEM_N'])
 
     # Configure this driver with links to its memory and DMA.
@@ -1233,22 +1254,19 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-        #prog = QickProgram(self.soc)
-        #for i in range(self.mem.mmio.length//8):
-        #    prog.end()
-        #prog.load_program(self.soc)
-
-    def load_bin_program(self, binprog):
+    def load_bin_program(self, binprog, reset=False):
         """
-        Stop the tProcessor and write the program to the tProc program memory.
-        """
-        self.reset()
+        Write the program to the tProc program memory.
 
-        for ii, inst in enumerate(binprog):
-            dec_low = inst & 0xffffffff
-            dec_high = inst >> 32
-            self.mem.write(8*ii, value=int(dec_low))
-            self.mem.write(4*(2*ii+1), value=int(dec_high))
+        :param reset: Reset the tProc before writing the program.
+        :type reset: bool
+        """
+        if reset: self.reset()
+
+        # cast the program words to 64-bit uints
+        p = np.array(binprog, dtype=np.uint64)
+        # reshape to 32-bit uints to match the program memory, and do a fast copy
+        np.copyto(self.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
 
     def load_program(self, prog="prog.asm", fmt="asm"):
         """
@@ -1262,35 +1280,15 @@ class AxisTProc64x32_x8(SocIp):
         # Binary file format.
         if fmt == "bin":
             # Read binary file from disk.
-            fd = open(prog, "r")
-
-            # Write memory.
-            addr = 0
-            for line in fd:
-                line.strip("\r\n")
-                dec = int(line, 2)
-                dec_low = dec & 0xffffffff
-                dec_high = dec >> 32
-                self.mem.write(addr, value=int(dec_low))
-                addr = addr + 4
-                self.mem.write(addr, value=int(dec_high))
-                addr = addr + 4
+            with open(prog, "r") as fd:
+                progList = [int(line, 2) for line in fd]
 
         # Asm file.
         elif fmt == "asm":
             # Compile program.
             progList = parse_to_bin(prog)
 
-            # Load Program Memory.
-            addr = 0
-            for dec in progList:
-                #print ("@" + str(addr) + ": " + str(dec))
-                dec_low = dec & 0xffffffff
-                dec_high = dec >> 32
-                self.mem.write(addr, value=int(dec_low))
-                addr = addr + 4
-                self.mem.write(addr, value=int(dec_high))
-                addr = addr + 4
+        self.load_bin_program(progList)
 
     def single_read(self, addr):
         """
@@ -1303,13 +1301,9 @@ class AxisTProc64x32_x8(SocIp):
         :return: requested value
         :rtype: int
         """
-        # Address should be translated to upper map.
-        addr_temp = 4*addr + self.DMEM_OFFSET
-
         # Read data.
-        data = self.read(addr_temp)
-
-        return data
+        # Address should be translated to upper map.
+        return self.mmio.array[addr + self.NREG]
 
     def single_write(self, addr=0, data=0):
         """
@@ -1320,11 +1314,9 @@ class AxisTProc64x32_x8(SocIp):
         :param data: value to be written
         :type data: int
         """
-        # Address should be translated to upper map.
-        addr_temp = 4*addr + self.DMEM_OFFSET
-
         # Write data.
-        self.write(addr_temp, value=int(data))
+        # Address should be translated to upper map.
+        self.mmio.array[addr + self.NREG] = np.uint32(data)
 
     def load_dmem(self, buff_in, addr=0):
         """
@@ -1466,6 +1458,13 @@ class RFDC(xrfdc.RFdc):
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4"]
 
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        self.nqz_dict = {}
+
     def set_mixer_freq(self, dacname, f):
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -1487,8 +1486,24 @@ class RFDC(xrfdc.RFdc):
         tile, channel = [int(a) for a in dacname]
         return self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
 
-    def set_nyquist(self, dacname, nqz):
+    def set_nyquist(self, dacname, nqz, force=False):
+        """
+        Sets DAC channel to operate in Nyquist zone nqz.
+        Because this takes a bit of time (10-20 ms), we do not write to the channel if the new nqz equals the previous setting.
+        The "force" option overrides this behavior.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param nqz: Nyquist zone
+        :type nqz: int
+        :param force: force update
+        :type force: bool
+        """
         tile, channel = [int(a) for a in dacname]
+        if not force and (tile, channel) in self.nqz_dict:
+            if self.nqz_dict[(tile, channel)] == nqz:
+                return
+        self.nqz_dict[(tile, channel)] = nqz
         self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
 
 
@@ -1696,6 +1711,8 @@ class QickSoc(Overlay, QickConfig):
         for tproc in [self.tproc]:
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
+            thiscfg['pmem_size'] = tproc.mem.mmio.length/8
+            thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
     def config_clocks(self, force_init_clks):
@@ -1896,12 +1913,10 @@ class QickSoc(Overlay, QickConfig):
         :param enable: True to enable buffer
         :type enable: bool
         """
-        self.avg_bufs[ch].config_avg(address, length)
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.config_avg(address, length)
         if enable:
-            self.enable_avg(ch)
-
-    def enable_avg(self, ch):
-        self.avg_bufs[ch].enable_avg()
+            avg_buf.enable_avg()
 
     def config_buf(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable decimation buffer
@@ -1914,12 +1929,10 @@ class QickSoc(Overlay, QickConfig):
         :param enable: True to enable buffer
         :type enable: bool
         """
-        self.avg_bufs[ch].config_buf(address, length)
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.config_buf(address, length)
         if enable:
-            self.enable_buf(ch)
-
-    def enable_buf(self, ch):
-        self.avg_bufs[ch].enable_buf()
+            avg_buf.enable_buf()
 
     def get_avg_max_length(self, ch=0):
         """Get accumulation buffer length for channel
@@ -1943,7 +1956,7 @@ class QickSoc(Overlay, QickConfig):
         """
         return self.gens[ch].load(xin_i=idata, xin_q=qdata, addr=addr)
 
-    def set_nyquist(self, ch, nqz):
+    def set_nyquist(self, ch, nqz, force=False):
         """
         Sets DAC channel ch to operate in Nyquist zone nqz mode.
 
@@ -2003,18 +2016,9 @@ class QickSoc(Overlay, QickConfig):
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
 
-    def load_qick_program(self, prog, debug=False):
-        """
-        :param prog: the QickProgram to load
-        :type prog: str
-        :param debug: Debug option
-        :type debug: bool
-        """
-        self.tproc.load_bin_program(prog.compile(debug=debug))
-
     def reset_gens(self):
         """
-        Run a minimal tProc program that drives all signal generators with 0's.
+        Reset the tProc and run a minimal tProc program that drives all signal generators with 0's.
         Useful for stopping any periodic or stdysel="last" outputs that may have been driven by a previous program.
         """
         prog = QickProgram(self)
@@ -2025,5 +2029,5 @@ class QickSoc(Overlay, QickConfig):
         prog.end()
         # this should always run with internal trigger
         self.tproc.start_src("internal")
-        prog.load_program(self)
+        prog.load_program(self, reset=True)
         self.tproc.start()

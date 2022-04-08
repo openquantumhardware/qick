@@ -116,28 +116,27 @@ class AveragerProgram(QickProgram):
         reps = self.cfg['reps']
         total_count = reps
         count = 0
-        t = tqdm(total=total_count, disable=not progress)  # progress bar
+        n_ro = len(self.ro_chs)
 
-        d_buf = np.zeros((len(self.ro_chs), 2, total_count))
-        stats_list = []
-
+        d_buf = np.zeros((n_ro, 2, total_count))
+        self.stats = []
         streamer = soc.streamer
-        streamer.start_readout(total_count, counter_addr=1,
-                               ch_list=list(self.ro_chs))
-        while streamer.readout_alive():
-            new_data = streamer.poll_data()
-            for d, s in new_data:
-                new_points = d.shape[2]
-                d_buf[:, :, count:count+new_points] = d
-                count += new_points
-                stats_list.append(s)
-                t.update(new_points)
-        t.close()
-        self.stats = stats_list
+
+        with tqdm(total=total_count, disable=not progress) as pbar:
+            streamer.start_readout(total_count, counter_addr=1,
+                                   ch_list=list(self.ro_chs))
+            while count<total_count:
+                new_data = streamer.poll_data()
+                for d, s in new_data:
+                    new_points = d.shape[2]
+                    d_buf[:, :, count:count+new_points] = d
+                    count += new_points
+                    self.stats.append(s)
+                    pbar.update(new_points)
 
         # reformat the data into separate I and Q arrays
-        di_buf = np.stack([d_buf[i][0] for i in range(len(self.ro_chs))])
-        dq_buf = np.stack([d_buf[i][1] for i in range(len(self.ro_chs))])
+        di_buf = d_buf[:,0,:]
+        dq_buf = d_buf[:,1,:]
 
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = di_buf
@@ -147,8 +146,8 @@ class AveragerProgram(QickProgram):
             self.shots = self.get_single_shots(
                 di_buf, dq_buf, threshold, angle)
 
-        avg_di = np.zeros((len(self.ro_chs), len(save_experiments)))
-        avg_dq = np.zeros((len(self.ro_chs), len(save_experiments)))
+        avg_di = np.zeros((n_ro, len(save_experiments)))
+        avg_dq = np.zeros((n_ro, len(save_experiments)))
 
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
@@ -457,29 +456,29 @@ class RAveragerProgram(QickProgram):
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
 
-        count = 0
         total_count = reps*expts*readouts_per_experiment
+        count = 0
+        n_ro = len(self.ro_chs)
 
-        d_buf = np.zeros((len(self.ro_chs), 2, total_count))
+        d_buf = np.zeros((n_ro, 2, total_count))
+        self.stats = []
         streamer = soc.streamer
-        stats_list = []
 
         with tqdm(total=total_count, disable=not progress) as pbar:
             streamer.start_readout(total_count, counter_addr=1, ch_list=list(
                 self.ro_chs), reads_per_count=readouts_per_experiment)
-            while streamer.readout_alive():
+            while count<total_count:
                 new_data = streamer.poll_data()
                 for d, s in new_data:
                     new_points = d.shape[2]
                     d_buf[:, :, count:count+new_points] = d
                     count += new_points
-                    stats_list.append(s)
+                    self.stats.append(s)
                     pbar.update(new_points)
-            self.stats = stats_list
 
         # reformat the data into separate I and Q arrays
-        di_buf = np.stack([d_buf[i][0] for i in range(len(self.ro_chs))])
-        dq_buf = np.stack([d_buf[i][1] for i in range(len(self.ro_chs))])
+        di_buf = d_buf[:,0,:]
+        dq_buf = d_buf[:,1,:]
 
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = di_buf
@@ -491,8 +490,8 @@ class RAveragerProgram(QickProgram):
 
         expt_pts = self.get_expt_pts()
 
-        avg_di = np.zeros((len(self.ro_chs), len(save_experiments), expts))
-        avg_dq = np.zeros((len(self.ro_chs), len(save_experiments), expts))
+        avg_di = np.zeros((n_ro, len(save_experiments), expts))
+        avg_dq = np.zeros((n_ro, len(save_experiments), expts))
 
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
