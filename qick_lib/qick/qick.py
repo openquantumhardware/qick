@@ -2007,3 +2007,20 @@ class QickSoc(Overlay, QickConfig):
         self.start_src("internal")
         prog.load_program(self, reset=True)
         self.tproc.start()
+
+    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+        """
+        Start a streaming readout of the accumulated buffers.
+
+        This is a wrapper around DataStreamer.start_readout().
+        """
+        if ch_list is None: ch_list = [0, 1]
+        self.streamer.start_readout(total_count, counter_addr, ch_list, reads_per_count)
+
+    def poll_data(self, totaltime=0.1, timeout=None):
+        """
+        Get as much data as possible from the streamer.
+
+        This is a wrapper around DataStreamer.poll_data().
+        """
+        return self.streamer.poll_data(totaltime, timeout)

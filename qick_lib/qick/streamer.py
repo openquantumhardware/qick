@@ -52,9 +52,9 @@ class DataStreamer():
         self.readout_worker = self.WORKERTYPE(target=self._run_readout, daemon=True)
         self.readout_worker.start()
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+    def start_readout(self, total_count, counter_addr, ch_list, reads_per_count):
         """
-        Start a streaming readout of the average buffers.
+        Start a streaming readout of the accumulated buffers.
 
         :param total_count: Number of data points expected
         :type total_count: int
@@ -65,7 +65,6 @@ class DataStreamer():
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
         """
-        if ch_list is None: ch_list = [0, 1]
 
         self.total_count = total_count
         self.count = 0
@@ -112,7 +111,7 @@ class DataStreamer():
         """
         return not self.data_queue.empty()
 
-    def poll_data(self, totaltime=0.1, timeout=None):
+    def poll_data(self, totaltime, timeout):
         """
         Get as much data as possible from the data queue.
         Stop when any of the following conditions are met:
