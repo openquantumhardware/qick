@@ -66,9 +66,6 @@ class DataStreamer():
         :type reads_per_count: int
         """
 
-        self.total_count = total_count
-        self.count = 0
-
         if not self.readout_worker.is_alive():
             print("restarting readout worker")
             self.start_worker()
@@ -82,7 +79,12 @@ class DataStreamer():
         if self.data_available():
             # flush all the data in the streamer buffer
             print("clearing streamer buffer")
-            self.poll_data(timeout=0.1)
+            # read until the queue times out, discard the data
+            self.poll_data(totaltime=-1, timeout=0.1)
+
+        self.total_count = total_count
+        self.count = 0
+
         self.done_flag.clear()
         self.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
 
@@ -120,7 +122,7 @@ class DataStreamer():
         * timeout is defined, and the timeout expired without getting new data in the queue
         If there are errors in the error queue, raise the first one.
 
-        :param totaltime: How long to acquire data
+        :param totaltime: How long to acquire data (negative value = ignore total time and total count, just read until timeout)
         :type totaltime: float
         :param timeout: How long to wait for the next data packet (None = wait forever)
         :type timeout: float
@@ -135,7 +137,7 @@ class DataStreamer():
 
         time_end = time.time() + totaltime
         new_data = []
-        while self.count < self.total_count and time.time() < time_end:
+        while (totaltime < 0) or (self.count < self.total_count and time.time() < time_end):
             try:
                 length, data = self.data_queue.get(block=True, timeout=timeout)
                 self.count += length
