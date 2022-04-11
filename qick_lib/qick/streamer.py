@@ -1,6 +1,5 @@
 from threading import Thread, Event
 from queue import Queue
-import queue
 import time
 import numpy as np
 
@@ -18,6 +17,8 @@ import numpy as np
 class DataStreamer():
     """
     Uses a separate thread to read data from the average buffers.
+    The class methods define the readout loop and initialization of the worker thread.
+    The QickSoc methods start_readout() and poll_data() are the external interface to the streamer.
 
     We don't lock the QickSoc or the IPs. The user is responsible for not disrupting a readout in progress.
 
@@ -52,41 +53,6 @@ class DataStreamer():
         self.readout_worker = self.WORKERTYPE(target=self._run_readout, daemon=True)
         self.readout_worker.start()
 
-    def start_readout(self, total_count, counter_addr, ch_list, reads_per_count):
-        """
-        Start a streaming readout of the accumulated buffers.
-
-        :param total_count: Number of data points expected
-        :type total_count: int
-        :param counter_addr: Data memory address for the loop counter
-        :type counter_addr: int
-        :param ch_list: List of readout channels
-        :type ch_list: list
-        :param reads_per_count: Number of data points to expect per counter increment
-        :type reads_per_count: int
-        """
-
-        self.total_count = total_count
-        self.count = 0
-
-        if not self.readout_worker.is_alive():
-            print("restarting readout worker")
-            self.start_worker()
-
-        # if there's still a readout job running, stop it
-        if self.readout_running():
-            print("cleaning up previous readout: stopping streamer loop")
-            # tell the readout to stop (this will break the readout loop)
-            self.stop_readout()
-            self.done_flag.wait()
-        if self.data_available():
-            # flush all the data in the streamer buffer
-            print("clearing streamer buffer")
-            self.poll_data(timeout=0.1)
-        self.done_flag.clear()
-        self.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
-
-
     def stop_readout(self):
         """
         Signal the readout loop to break.
@@ -110,39 +76,6 @@ class DataStreamer():
         :rtype: bool
         """
         return not self.data_queue.empty()
-
-    def poll_data(self, totaltime, timeout):
-        """
-        Get as much data as possible from the data queue.
-        Stop when any of the following conditions are met:
-        * all the data has been transferred (based on the total_count)
-        * we got data, and it has been totaltime seconds since poll_data was called
-        * timeout is defined, and the timeout expired without getting new data in the queue
-        If there are errors in the error queue, raise the first one.
-
-        :param totaltime: How long to acquire data
-        :type totaltime: float
-        :param timeout: How long to wait for the next data packet (None = wait forever)
-        :type timeout: float
-        :return: list of (data, stats) pairs, oldest first
-        :rtype: list
-        """
-        try:
-            raise RuntimeError(
-                "exception in readout loop") from self.error_queue.get(block=False)
-        except queue.Empty:
-            pass
-
-        time_end = time.time() + totaltime
-        new_data = []
-        while self.count < self.total_count and time.time() < time_end:
-            try:
-                length, data = self.data_queue.get(block=True, timeout=timeout)
-                self.count += length
-                new_data.append(data)
-            except queue.Empty:
-                break
-        return new_data
 
     def _run_readout(self):
         """
