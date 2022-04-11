@@ -9,6 +9,8 @@ try:
 except:
     pass
 import numpy as np
+import time
+import queue
 from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig, QickProgram
@@ -2012,15 +2014,70 @@ class QickSoc(Overlay, QickConfig):
         """
         Start a streaming readout of the accumulated buffers.
 
-        This is a wrapper around DataStreamer.start_readout().
+        :param total_count: Number of data points expected
+        :type total_count: int
+        :param counter_addr: Data memory address for the loop counter
+        :type counter_addr: int
+        :param ch_list: List of readout channels
+        :type ch_list: list
+        :param reads_per_count: Number of data points to expect per counter increment
+        :type reads_per_count: int
         """
         if ch_list is None: ch_list = [0, 1]
-        self.streamer.start_readout(total_count, counter_addr, ch_list, reads_per_count)
+        streamer = self.streamer
+
+        if not streamer.readout_worker.is_alive():
+            print("restarting readout worker")
+            streamer.start_worker()
+
+        # if there's still a readout job running, stop it
+        if streamer.readout_running():
+            print("cleaning up previous readout: stopping streamer loop")
+            # tell the readout to stop (this will break the readout loop)
+            streamer.stop_readout()
+            streamer.done_flag.wait()
+        if streamer.data_available():
+            # flush all the data in the streamer buffer
+            print("clearing streamer buffer")
+            # read until the queue times out, discard the data
+            self.poll_data(totaltime=-1, timeout=0.1)
+
+        streamer.total_count = total_count
+        streamer.count = 0
+
+        streamer.done_flag.clear()
+        streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """
-        Get as much data as possible from the streamer.
+        Get as much data as possible from the streamer data queue.
+        Stop when any of the following conditions are met:
+        * all the data has been transferred (based on the total_count)
+        * we got data, and it has been totaltime seconds since poll_data was called
+        * timeout is defined, and the timeout expired without getting new data in the queue
+        If there are errors in the error queue, raise the first one.
 
-        This is a wrapper around DataStreamer.poll_data().
+        :param totaltime: How long to acquire data (negative value = ignore total time and total count, just read until timeout)
+        :type totaltime: float
+        :param timeout: How long to wait for the next data packet (None = wait forever)
+        :type timeout: float
+        :return: list of (data, stats) pairs, oldest first
+        :rtype: list
         """
-        return self.streamer.poll_data(totaltime, timeout)
+        streamer = self.streamer
+        try:
+            raise RuntimeError(
+                "exception in readout loop") from streamer.error_queue.get(block=False)
+        except queue.Empty:
+            pass
+
+        time_end = time.time() + totaltime
+        new_data = []
+        while (totaltime < 0) or (streamer.count < streamer.total_count and time.time() < time_end):
+            try:
+                length, data = streamer.data_queue.get(block=True, timeout=timeout)
+                streamer.count += length
+                new_data.append(data)
+            except queue.Empty:
+                break
+        return new_data
