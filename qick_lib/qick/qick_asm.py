@@ -712,7 +712,7 @@ class QickProgram:
 
         r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
 
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
             p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
             p.regwi(rp, r_b, gain, f'gain = {gain}')
@@ -789,7 +789,7 @@ class QickProgram:
 
         r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
         
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
             p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
             p.regwi(rp, r_b, gain, f'gain = {gain}')
@@ -857,7 +857,7 @@ class QickProgram:
         # set the pulse duration
         last_pulse['length'] = wfm_length + length
 
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
             r_c2, r_b2, r_a2 = [p.sreg(ch,x) for x in ['addr2', 'gain2', 'mode2']]
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')

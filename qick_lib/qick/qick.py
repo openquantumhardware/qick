@@ -126,8 +126,13 @@ class AbsSignalGen(SocIp):
         # what RFDC port does this generator drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # might need to jump through an axis_register_slice
-        while busparser.mod2type[block] == "axis_register_slice":
-            ((block, port),) = trace_net(busparser, block, 'M_AXIS')
+        while True:
+            if busparser.mod2type[block] == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, "M_AXIS")
+            elif busparser.mod2type[block] == "axis_register_slice_nb":
+                ((block, port),) = trace_net(busparser, block, "m_axis")
+            else: # hopefully we found the data converter
+                break
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -244,7 +249,7 @@ class AbsSignalGen(SocIp):
 class AxisSignalGen(AbsSignalGen):
     """
     AxisSignalGen class
-    Supports AxisSignalGenV4 and AxisSignalGenV5, since they have the same software interface (ignoring registers that are not used)
+    Supports AxisSignalGen V4+V5+V6, since they have the same software interface (ignoring registers that are not used)
 
     AXIS Signal Generator Registers.
     START_ADDR_REG
@@ -254,7 +259,8 @@ class AxisSignalGen(AbsSignalGen):
     * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
-              'user.org:user:axis_signal_gen_v5:1.0']
+              'user.org:user:axis_signal_gen_v5:1.0',
+              'user.org:user:axis_signal_gen_v6:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     HAS_TPROC = True
     HAS_WAVEFORM = True
@@ -286,7 +292,6 @@ class AxisSignalGen(AbsSignalGen):
            TODO: remove this function. This functionality was removed from IP block.
         """
         self.rndq_reg = sel_
-
 
 class AxisSgInt4V1(AbsSignalGen):
     """
