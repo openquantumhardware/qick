@@ -183,7 +183,12 @@ class QickConfig():
             rocfg = None
         else:
             rocfg = self['readouts'][ro_ch]
-        return self.freq2int(f, self['gens'][gen_ch], rocfg)
+        gencfg = self['gens'][gen_ch]
+        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1']:
+            # because of the interpolation filter, there is no output power in the higher nyquist zones
+            if abs(f)>gencfg['fs']:
+                raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
+        return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
     def freq2reg_adc(self, f, ro_ch=0, gen_ch=None):
         """
