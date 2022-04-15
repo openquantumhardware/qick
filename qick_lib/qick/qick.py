@@ -401,10 +401,8 @@ class AxisSgMux4V1(AbsSignalGen):
         :type ro_ch: int
         """
         # Sanity check.
-        if f < self.fs:
-            k_i = np.int64(self.soc.freq2reg(
-                f, gen_ch=self.ch, ro_ch=ro_ch))
-            self.set_freq_int(k_i, out)
+        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
+        self.set_freq_int(k_i, out)
 
     def set_freq_int(self, k_i, out=0):
         if out not in [0,1,2,3]:
@@ -1437,6 +1435,8 @@ class RFDC(xrfdc.RFdc):
 
     def set_mixer_freq(self, dacname, f, force=False):
         """
+        Set the NCO frequency that will be mixed with the generator output.
+
         The RFdc driver does its own math to convert a frequency to a register value.
         (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
         This is what it does:
@@ -1449,6 +1449,13 @@ class RFDC(xrfdc.RFdc):
         * We want to get as close as possible to the demanded frequency, so we must add a half-step.
         This is important if the demanded frequency was rounded to a valid NCO frequency for frequency-matching.
         If we didn't add a half-step, half of the time these would get rounded down to the next lowest valid frequency.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param f: NCO frequency
+        :type f: float
+        :param force: force update, even if the setting is the same
+        :type force: bool
         """
         fs = self.daccfg[dacname]['fs']
         fstep = fs/2**48
@@ -1490,15 +1497,16 @@ class RFDC(xrfdc.RFdc):
     def set_nyquist(self, dacname, nqz, force=False):
         """
         Sets DAC channel to operate in Nyquist zone nqz.
-        Setting the NQZ to 2 increases output power in the 2nd Nyquist zone.
-        Because this takes a bit of time (10-20 ms), we do not write to the channel if the new nqz equals the previous setting.
-        The "force" option overrides this behavior.
+        This setting doesn't change the output frequencies:
+        you will always have some power at both the demanded frequency and its image(s).
+        Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
+        See "RF-DAC Nyquist Zone Operation" in PG269.
 
         :param dacname: DAC channel (2-digit string)
         :type dacname: int
         :param nqz: Nyquist zone (1 or 2)
         :type nqz: int
-        :param force: force update
+        :param force: force update, even if the setting is the same
         :type force: bool
         """
         if nqz not in [1,2]:

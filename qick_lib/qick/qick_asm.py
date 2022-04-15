@@ -186,7 +186,7 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1']:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['fs']:
+            if abs(f)>gencfg['fs']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
