@@ -534,8 +534,9 @@ class QickProgram:
         :param maxv: Value at the peak (if None, the max value for this generator will be used)
         :type maxv: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
 
         length = np.round(length) * samps_per_clk
         sigma *= samps_per_clk
@@ -563,9 +564,10 @@ class QickProgram:
         :param alpha: alpha parameter of DRAG (order-1 scale factor)
         :type alpha: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
-        f_fabric = self.soccfg['gens'][ch]['f_fabric']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+        f_fabric = gencfg['f_fabric']
 
         delta /= samps_per_clk*f_fabric
 
@@ -590,8 +592,9 @@ class QickProgram:
         :param maxv: Value at the peak (if None, the max value for this generator will be used)
         :type maxv: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
 
         length = np.round(length) * samps_per_clk
 
@@ -847,8 +850,10 @@ class QickProgram:
         :type length: int
         """
         p = self
-        gen_type = self.soccfg['gens'][ch]['type']
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        gen_type = gencfg['type']
+        samps_per_clk = gencfg['samps_per_clk']
+        maxv_scale = gencfg['maxv_scale']
         rp = self.ch_page(ch)
 
         last_pulse = {}
@@ -909,7 +914,7 @@ class QickProgram:
             # gain+addr for ramp-up
             p.safe_regwi(rp, r_d1, (gain << 16) | addr, f'gain = {gain} | addr = {addr}')
             # gain+addr for flat
-            p.safe_regwi(rp, r_d2, (gain//2 << 16), f'gain = {gain} | addr = {addr}')
+            p.safe_regwi(rp, r_d2, (int(gain*maxv_scale/2) << 16), f'gain = {gain} | addr = {addr}')
             # gain+addr for ramp-down
             p.safe_regwi(rp, r_d3, (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 

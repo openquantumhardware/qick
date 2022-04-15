@@ -83,6 +83,10 @@ class AbsSignalGen(SocIp):
     TPROC_PORT = 's1_axis'
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
+    # Maximum waveform amplitude.
+    MAXV = 2**15-2
+    # Scale factor between MAXV and the default maximum amplitude (necessary to avoid overshoot).
+    MAXV_SCALE = 1.0
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, ch, rf, fs, axi_dma=None, axis_switch=None):
@@ -300,6 +304,14 @@ class AxisSgInt4V1(AbsSignalGen):
     """
     AxisSgInt4V1
 
+    The default max amplitude for this generator is 0.9 times the maximum of int16.
+    This is necessary to prevent interpolation overshoot:
+    the output of the interpolation filter may exceed the max value of the input points.
+    (https://blogs.keysight.com/blogs/tech/rfmw.entry.html/2019/05/07/confronting_measurem-IBRp.html)
+    The result of overshoot is integer overflow in the filter output and big negative spikes.
+    If the input to the filter is a square pulse, the rising edge of the output overshoots by 10%.
+    Therefore, scaling envelopes by 90% seems safe.
+
     AXIS Signal Generator with envelope x4 interpolation V1 Registers.
     START_ADDR_REG
 
@@ -313,6 +325,7 @@ class AxisSgInt4V1(AbsSignalGen):
     HAS_WAVEFORM = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
+    MAXV_SCALE = 0.9
 
     def __init__(self, description):
         """
@@ -425,10 +438,6 @@ class AxisConstantIQ(AbsSignalGen):
     REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
     HAS_MIXER = True
 
-    # Number of bits.
-    B = 16
-    MAX_V = 2**(B-1)-1
-
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
@@ -446,8 +455,8 @@ class AxisConstantIQ(AbsSignalGen):
 
     def set_iq(self, i=1, q=1):
         # Set registers.
-        self.real_reg = int(i*self.MAX_V)
-        self.imag_reg = int(q*self.MAX_V)
+        self.real_reg = int(i*self.MAXV)
+        self.imag_reg = int(q*self.MAXV)
 
         # Register update.
         self.update()
@@ -1704,6 +1713,8 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['fs'] = gen.fs_dds
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
             thiscfg['samps_per_clk'] = gen.SAMPS_PER_CLK
+            thiscfg['maxv'] = gen.MAXV
+            thiscfg['maxv_scale'] = gen.MAXV_SCALE
             self['gens'].append(thiscfg)
 
         for buf in self.avg_bufs:
