@@ -183,7 +183,12 @@ class QickConfig():
             rocfg = None
         else:
             rocfg = self['readouts'][ro_ch]
-        return self.freq2int(f, self['gens'][gen_ch], rocfg)
+        gencfg = self['gens'][gen_ch]
+        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1']:
+            # because of the interpolation filter, there is no output power in the higher nyquist zones
+            if abs(f)>gencfg['fs']/2:
+                raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
+        return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
     def freq2reg_adc(self, f, ro_ch=0, gen_ch=None):
         """
@@ -529,8 +534,9 @@ class QickProgram:
         :param maxv: Value at the peak (if None, the max value for this generator will be used)
         :type maxv: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
 
         length = np.round(length) * samps_per_clk
         sigma *= samps_per_clk
@@ -558,9 +564,10 @@ class QickProgram:
         :param alpha: alpha parameter of DRAG (order-1 scale factor)
         :type alpha: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
-        f_fabric = self.soccfg['gens'][ch]['f_fabric']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+        f_fabric = gencfg['f_fabric']
 
         delta /= samps_per_clk*f_fabric
 
@@ -585,8 +592,9 @@ class QickProgram:
         :param maxv: Value at the peak (if None, the max value for this generator will be used)
         :type maxv: float
         """
-        if maxv is None: maxv = 2**15-2
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
 
         length = np.round(length) * samps_per_clk
 
@@ -712,7 +720,7 @@ class QickProgram:
 
         r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
 
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
             p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
             p.regwi(rp, r_b, gain, f'gain = {gain}')
@@ -789,7 +797,7 @@ class QickProgram:
 
         r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
         
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
             p.safe_regwi(rp, r_d, phase, f'phase = {phase}')
             p.regwi(rp, r_b, gain, f'gain = {gain}')
@@ -842,8 +850,10 @@ class QickProgram:
         :type length: int
         """
         p = self
-        gen_type = self.soccfg['gens'][ch]['type']
-        samps_per_clk = self.soccfg['gens'][ch]['samps_per_clk']
+        gencfg = self.soccfg['gens'][ch]
+        gen_type = gencfg['type']
+        samps_per_clk = gencfg['samps_per_clk']
+        maxv_scale = gencfg['maxv_scale']
         rp = self.ch_page(ch)
 
         last_pulse = {}
@@ -857,7 +867,7 @@ class QickProgram:
         # set the pulse duration
         last_pulse['length'] = wfm_length + length
 
-        if gen_type in ['axis_signal_gen_v4','axis_signal_gen_v5']:
+        if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
             r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
             r_c2, r_b2, r_a2 = [p.sreg(ch,x) for x in ['addr2', 'gain2', 'mode2']]
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
@@ -904,7 +914,7 @@ class QickProgram:
             # gain+addr for ramp-up
             p.safe_regwi(rp, r_d1, (gain << 16) | addr, f'gain = {gain} | addr = {addr}')
             # gain+addr for flat
-            p.safe_regwi(rp, r_d2, (gain//2 << 16), f'gain = {gain} | addr = {addr}')
+            p.safe_regwi(rp, r_d2, (int(gain*maxv_scale/2) << 16), f'gain = {gain} | addr = {addr}')
             # gain+addr for ramp-down
             p.safe_regwi(rp, r_d3, (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 

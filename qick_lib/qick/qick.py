@@ -83,6 +83,10 @@ class AbsSignalGen(SocIp):
     TPROC_PORT = 's1_axis'
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
+    # Maximum waveform amplitude.
+    MAXV = 2**15-2
+    # Scale factor between MAXV and the default maximum amplitude (necessary to avoid overshoot).
+    MAXV_SCALE = 1.0
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
     def configure(self, ch, rf, fs, axi_dma=None, axis_switch=None):
@@ -99,8 +103,11 @@ class AbsSignalGen(SocIp):
         # RF data converter
         self.rf = rf
 
-        # Sampling frequency.
-        self.fs = fs/self.FS_INTERPOLATION
+        # DAC sampling frequency.
+        self.fs_dac = fs
+
+        # DDS sampling frequency.
+        self.fs_dds = fs/self.FS_INTERPOLATION
 
     def configure_connections(self, soc, sigparser, busparser):
         self.soc = soc
@@ -126,8 +133,13 @@ class AbsSignalGen(SocIp):
         # what RFDC port does this generator drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # might need to jump through an axis_register_slice
-        while busparser.mod2type[block] == "axis_register_slice":
-            ((block, port),) = trace_net(busparser, block, 'M_AXIS')
+        while True:
+            if busparser.mod2type[block] == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, "M_AXIS")
+            elif busparser.mod2type[block] == "axis_register_slice_nb":
+                ((block, port),) = trace_net(busparser, block, "m_axis")
+            else: # hopefully we found the data converter
+                break
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -224,7 +236,7 @@ class AbsSignalGen(SocIp):
             rounded_f = f
         else:
             mixercfg = {}
-            mixercfg['fs'] = self.fs*self.FS_INTERPOLATION
+            mixercfg['fs'] = self.fs_dac
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
@@ -232,7 +244,7 @@ class AbsSignalGen(SocIp):
         # The frequency we calculated exactly equals (to within float precision) a valid NCO frequency.
         # So half the time, the frequency will get rounded down to the next lowest valid frequency.
         # We don't want this, so we must add a half-step to the frequency we demand.
-        rounded_f += self.fs*self.FS_INTERPOLATION/2**49
+        rounded_f += self.fs_dac/2**49
         self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
@@ -244,7 +256,7 @@ class AbsSignalGen(SocIp):
 class AxisSignalGen(AbsSignalGen):
     """
     AxisSignalGen class
-    Supports AxisSignalGenV4 and AxisSignalGenV5, since they have the same software interface (ignoring registers that are not used)
+    Supports AxisSignalGen V4+V5+V6, since they have the same software interface (ignoring registers that are not used)
 
     AXIS Signal Generator Registers.
     START_ADDR_REG
@@ -254,7 +266,8 @@ class AxisSignalGen(AbsSignalGen):
     * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
-              'user.org:user:axis_signal_gen_v5:1.0']
+              'user.org:user:axis_signal_gen_v5:1.0',
+              'user.org:user:axis_signal_gen_v6:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     HAS_TPROC = True
     HAS_WAVEFORM = True
@@ -287,10 +300,17 @@ class AxisSignalGen(AbsSignalGen):
         """
         self.rndq_reg = sel_
 
-
 class AxisSgInt4V1(AbsSignalGen):
     """
     AxisSgInt4V1
+
+    The default max amplitude for this generator is 0.9 times the maximum of int16.
+    This is necessary to prevent interpolation overshoot:
+    the output of the interpolation filter may exceed the max value of the input points.
+    (https://blogs.keysight.com/blogs/tech/rfmw.entry.html/2019/05/07/confronting_measurem-IBRp.html)
+    The result of overshoot is integer overflow in the filter output and big negative spikes.
+    If the input to the filter is a square pulse, the rising edge of the output overshoots by 10%.
+    Therefore, scaling envelopes by 90% seems safe.
 
     AXIS Signal Generator with envelope x4 interpolation V1 Registers.
     START_ADDR_REG
@@ -305,6 +325,7 @@ class AxisSgInt4V1(AbsSignalGen):
     HAS_WAVEFORM = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
+    MAXV_SCALE = 0.9
 
     def __init__(self, description):
         """
@@ -393,10 +414,8 @@ class AxisSgMux4V1(AbsSignalGen):
         :type ro_ch: int
         """
         # Sanity check.
-        if f < self.fs:
-            k_i = np.int64(self.soc.freq2reg(
-                f, gen_ch=self.ch, ro_ch=ro_ch))
-            self.set_freq_int(k_i, out)
+        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
+        self.set_freq_int(k_i, out)
 
     def set_freq_int(self, k_i, out=0):
         if out not in [0,1,2,3]:
@@ -407,7 +426,7 @@ class AxisSgMux4V1(AbsSignalGen):
         self.update()
 
     def get_freq(self, out=0):
-        return getattr(self, "pinc%d_reg" % (out)) * self.fs / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
 
 
 class AxisConstantIQ(AbsSignalGen):
@@ -418,10 +437,6 @@ class AxisConstantIQ(AbsSignalGen):
     bindto = ['user.org:user:axis_constant_iq:1.0']
     REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
     HAS_MIXER = True
-
-    # Number of bits.
-    B = 16
-    MAX_V = 2**(B-1)-1
 
     def __init__(self, description):
         # Initialize ip
@@ -440,8 +455,8 @@ class AxisConstantIQ(AbsSignalGen):
 
     def set_iq(self, i=1, q=1):
         # Set registers.
-        self.real_reg = int(i*self.MAX_V)
-        self.imag_reg = int(q*self.MAX_V)
+        self.real_reg = int(i*self.MAXV)
+        self.imag_reg = int(q*self.MAXV)
 
         # Register update.
         self.update()
@@ -1409,6 +1424,7 @@ class AxisSwitch(SocIp):
 class RFDC(xrfdc.RFdc):
     """
     Extends the xrfdc driver.
+    Since operations on the RFdc tend to be slow (tens of ms), we cache the Nyquist zone and frequency.
     """
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4"]
@@ -1418,9 +1434,50 @@ class RFDC(xrfdc.RFdc):
         Constructor method
         """
         super().__init__(description)
+        # Nyquist zone for each channel
         self.nqz_dict = {}
+        # Rounded NCO frequency for each channel
+        self.mixer_dict = {}
 
-    def set_mixer_freq(self, dacname, f):
+    def configure(self, soc):
+        self.daccfg = soc.dacs
+
+    def set_mixer_freq(self, dacname, f, force=False):
+        """
+        Set the NCO frequency that will be mixed with the generator output.
+
+        The RFdc driver does its own math to convert a frequency to a register value.
+        (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
+        This is what it does:
+        1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
+        2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
+        3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
+        We need to adjust the frequency so the result of this conversion equals the frequency we intended.
+        Specifically:
+        * We don't want the inversion in step 2, so we also multiply by -1.
+        * We want to get as close as possible to the demanded frequency, so we must add a half-step.
+        This is important if the demanded frequency was rounded to a valid NCO frequency for frequency-matching.
+        If we didn't add a half-step, half of the time these would get rounded down to the next lowest valid frequency.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param f: NCO frequency
+        :type f: float
+        :param force: force update, even if the setting is the same
+        :type force: bool
+        """
+        fs = self.daccfg[dacname]['fs']
+        fstep = fs/2**48
+        rounded_f = round(f/fstep) * fstep
+        if not force and rounded_f == self.get_mixer_freq(dacname):
+            return
+        if (f % fs) > fs/2: # will be negative after step 1
+            f -= fstep/2
+        else: # will be positive after step 1
+            f += fstep/2
+        if abs(f) > fs/2 and self.get_nyquist(dacname)==2:
+            f *= -1
+
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
         dac_mixer = self.dac_tiles[tile].blocks[channel].MixerSettings
@@ -1436,30 +1493,46 @@ class RFDC(xrfdc.RFdc):
         # Update settings.
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
+        self.mixer_dict[dacname] = rounded_f
 
     def get_mixer_freq(self, dacname):
-        tile, channel = [int(a) for a in dacname]
-        return self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
+        try:
+            return self.mixer_dict[dacname]
+        except KeyError:
+            tile, channel = [int(a) for a in dacname]
+            self.mixer_dict[dacname] = self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
+            return self.mixer_dict[dacname]
 
     def set_nyquist(self, dacname, nqz, force=False):
         """
         Sets DAC channel to operate in Nyquist zone nqz.
-        Because this takes a bit of time (10-20 ms), we do not write to the channel if the new nqz equals the previous setting.
-        The "force" option overrides this behavior.
+        This setting doesn't change the output frequencies:
+        you will always have some power at both the demanded frequency and its image(s).
+        Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
+        See "RF-DAC Nyquist Zone Operation" in PG269.
 
         :param dacname: DAC channel (2-digit string)
         :type dacname: int
-        :param nqz: Nyquist zone
+        :param nqz: Nyquist zone (1 or 2)
         :type nqz: int
-        :param force: force update
+        :param force: force update, even if the setting is the same
         :type force: bool
         """
+        if nqz not in [1,2]:
+            raise RuntimeError("Nyquist zone must be 1 or 2")
         tile, channel = [int(a) for a in dacname]
-        if not force and (tile, channel) in self.nqz_dict:
-            if self.nqz_dict[(tile, channel)] == nqz:
-                return
-        self.nqz_dict[(tile, channel)] = nqz
+        if not force and self.get_nyquist(dacname) == nqz:
+            return
         self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
+        self.nqz_dict[dacname] = nqz
+
+    def get_nyquist(self, dacname):
+        try:
+            return self.nqz_dict[dacname]
+        except KeyError:
+            tile, channel = [int(a) for a in dacname]
+            self.nqz_dict[dacname] = self.dac_tiles[tile].blocks[channel].NyquistZone
+            return self.nqz_dict[dacname]
 
 
 class QickSoc(Overlay, QickConfig):
@@ -1518,11 +1591,9 @@ class QickSoc(Overlay, QickConfig):
 
         self.config_clocks(force_init_clks)
 
-        # RF data converter (for configuring ADCs and DACs)
+        # RF data converter (for configuring ADCs and DACs, and setting NCOs)
         self.rf = self.usp_rf_data_converter_0
-
-        # Mixer for NCO ADC/DAC control.
-        self.mixer = self.usp_rf_data_converter_0
+        self.rf.configure(self)
 
         # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
         self._tproc = self.axis_tproc64x32_x8_0
@@ -1639,9 +1710,11 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['switch_ch'] = gen.switch_ch
             thiscfg['tproc_ch'] = gen.tproc_ch
             thiscfg['dac'] = gen.dac
-            thiscfg['fs'] = gen.fs
+            thiscfg['fs'] = gen.fs_dds
             thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
             thiscfg['samps_per_clk'] = gen.SAMPS_PER_CLK
+            thiscfg['maxv'] = gen.MAXV
+            thiscfg['maxv_scale'] = gen.MAXV_SCALE
             self['gens'].append(thiscfg)
 
         for buf in self.avg_bufs:
@@ -1659,7 +1732,7 @@ class QickSoc(Overlay, QickConfig):
         for iq in self.iqs:
             thiscfg = {}
             thiscfg['dac'] = iq.dac
-            thiscfg['fs'] = iq.fs
+            thiscfg['fs'] = iq.fs_dac
             self['iqs'].append(thiscfg)
 
         self['tprocs'] = []
