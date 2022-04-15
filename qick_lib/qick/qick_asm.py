@@ -731,13 +731,12 @@ class QickProgram:
                 rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             last_pulse['regs'].append((r_e, r_d, 0, r_b, r_a))
         elif gen_type == 'axis_sg_int4_v1':
-            if stdysel is not None or phrst is not None:
-                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
             p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
             p.safe_regwi(rp, r_d, (gain << 16), f'gain = {gain}')
-            mc = p.get_mode_code(mode=mode, outsel="dds", length=length)
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel="dds", length=length)
             p.regwi(
-                rp, r_c, mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+                rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             last_pulse['regs'].append((r_e, r_d, r_c, 0, 0))
         elif gen_type == 'axis_sg_mux4_v1':
             if mask is None:
@@ -809,13 +808,12 @@ class QickProgram:
                 rp, r_a, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             last_pulse['regs'].append((r_e, r_d, r_c, r_b, r_a))
         elif gen_type == 'axis_sg_int4_v1':
-            if stdysel is not None or phrst is not None:
-                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
             p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
             p.safe_regwi(rp, r_d, (gain << 16) | addr, f'gain = {gain} | addr = {addr}')
-            mc = p.get_mode_code(mode=mode, outsel=outsel, length=wfm_length)
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode=mode, outsel=outsel, length=wfm_length)
             p.regwi(
-                rp, r_c, mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+                rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             last_pulse['regs'].append((r_e, r_d, r_c, 0, 0))
         else:
             raise RuntimeError("this generator does not support arb pulse:", gen_type)
@@ -864,10 +862,10 @@ class QickProgram:
         pinfo = self.channels[ch]['pulses'][waveform]
         addr = pinfo["addr"]//samps_per_clk
         wfm_length = len(pinfo["idata"])//samps_per_clk
-        # set the pulse duration
-        last_pulse['length'] = wfm_length + length
 
         if gen_type in ['axis_signal_gen_v4', 'axis_signal_gen_v5', 'axis_signal_gen_v6']:
+            # set the pulse duration
+            last_pulse['length'] = wfm_length + length
             r_e, r_d, r_c, r_b, r_a = [p.sreg(ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']]
             r_c2, r_b2, r_a2 = [p.sreg(ch,x) for x in ['addr2', 'gain2', 'mode2']]
             p.safe_regwi(rp, r_e, freq, f'freq = {freq}')
@@ -894,8 +892,8 @@ class QickProgram:
             last_pulse['regs'].append((r_e, r_d, 0, r_b2, r_a))
             last_pulse['regs'].append((r_e, r_d, r_c2, r_b, r_a2))
         elif gen_type == 'axis_sg_int4_v1':
-            if stdysel is not None or phrst is not None:
-                raise RuntimeError(gen_type, "does not support stdysel and phrst options")
+            # set the pulse duration (including the extra duration for the FIR workaround)
+            last_pulse['length'] = wfm_length + 2*length
             # phase+freq
             r_e = p.sreg(ch,'freq')
             r_c, r_c2 = [p.sreg(ch,x) for x in ['mode', 'mode2']]
@@ -905,10 +903,12 @@ class QickProgram:
             p.safe_regwi(rp, r_e, (phase << 16) | freq, f'phase = {phase} | freq = {freq}')
 
             # mode for flat segment
-            mc = p.get_mode_code(mode="oneshot", outsel="dds", length=length)
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode="oneshot", outsel="dds", length=length)
             p.regwi(rp, r_c, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
             # mode for ramps
-            mc = p.get_mode_code(mode="oneshot", outsel="product", length=wfm_length//2)
+            mc = p.get_mode_code(phrst=phrst, stdysel=stdysel,
+                                 mode="oneshot", outsel="product", length=wfm_length//2)
             p.regwi(rp, r_c2, mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
             # gain+addr for ramp-up
@@ -921,6 +921,8 @@ class QickProgram:
             last_pulse['regs'].append((r_e, r_d1, r_c2, 0, 0))
             last_pulse['regs'].append((r_e, r_d2, r_c, 0, 0))
             last_pulse['regs'].append((r_e, r_d3, r_c2, 0, 0))
+            # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
+            last_pulse['regs'].append((0, 0, r_c, 0, 0))
         else:
             raise RuntimeError("this generator does not support flat_top pulse:", gen_type)
 
