@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Typically (use the IP and port of your Pyro nameserver):
+# sudo -s ./server.py myqick -n 192.168.133.17 -p 8888
 import sys, getopt
 
 ns_host = None

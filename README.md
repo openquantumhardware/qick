@@ -5,15 +5,15 @@
 
 # QICK: Quantum Instrumentation Control Kit
 
-The QICK is a kit of firmware and software to use the Xilinx RFSoC as to control quantum systems.
+The QICK is a kit of firmware and software to use the Xilinx RFSoC to control quantum systems.
 
 It consists of:
-* Firmware for the ZCU111 RFSoC evaluation board.  
+* Firmware for the ZCU111 and ZCU216 RFSoC evaluation boards
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
 
-Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but can not guarantee backwards compatibility.
+Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
 
 Download and Installation
@@ -25,6 +25,24 @@ Documentation
 -------------
 
 The documentation for QICK is available at: https://qick-docs.readthedocs.io/
+
+Updates
+-------
+
+Frequent updates to the QICK firmware and software are made as pull requests.
+Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
+We hope that this will help you decide whether or not to update your local code to the latest version.
+We strive for, but cannot guarantee, bug-free and fully functional pull requests.
+We also do not guarantee that the demo notebooks will keep pace with every pull request, though we make an effort to update the demos after major API changes.
+
+Tagged releases can be expected periodically.
+We recommend that everyone should be using at least the most recent release.
+We guarantee the following for releases:
+* The demo notebooks will be compatible with the QICK library, and will follow our current best recommendations for writing QICK programs.
+* The firmware images for all supported boards will be fully compatible with the library and the demo notebooks.
+* Release notes will summarize the pull request notes and explain both breaking API changes (what you need to change in your code) and improvements (why you should move to the new release).
+
+We recommend that you "watch" this repository on GitHub to get automatic notifications of pull requests and releases.
 
 Related Packages
 ----------------
@@ -40,6 +58,8 @@ Contribute
 You are welcome to contribute to QICK development by forking this repository and sending pull requests.
 
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
+
+We welcome comments, bug reports, and feature requests via GitHub Issues.
 
 License
 -------
