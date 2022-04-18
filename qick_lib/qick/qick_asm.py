@@ -386,9 +386,6 @@ class QickProgram:
     # The flat_top pulse uses some extra registers.
     pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2"]
 
-    # delay in clock cycles between marker channel (ch0) and siggen channels (due to pipeline delay)
-    trig_offset = 25
-
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
                       'reg2freq', 'reg2freq_adc',
                       'cycles2us', 'us2cycles',
@@ -403,7 +400,7 @@ class QickProgram:
         self.labels = {}
         self.dac_ts = [0]*len(soccfg['gens'])
         self.adc_ts = [0]*len(soccfg['readouts'])
-        self.channels = {ch: {"addr": 0, "pulses": {}, "params": {},
+        self.channels = {ch: {"addr": 0, "pulses": {}, "default_params": {},
                               "last_pulse": None} for ch in range(len(soccfg['gens']))}
 
         # readout channels to configure before running the program
@@ -641,13 +638,59 @@ class QickProgram:
         n_regs = len(self.pulse_registers)
         return 31 - (n_regs * 2) + n_regs*((ch+1)%2) + self.pulse_registers.index(name)
 
-    def set_pulse_registers(self, ch, style, **kwargs):
+    def default_pulse_registers(self, ch, **kwargs):
+        """
+        """
+        if self.channels[ch]["default_params"]:
+            # complain if the default parameter dict is not empty
+            raise RuntimeException("ch %d already has a set of default parameters"%(ch))
+        self.channels[ch]["default_params"] = kwargs
+
+    def set_pulse_registers(self, ch, **kwargs):
         #waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
         """
         A macro to set the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
         The time is scheduled when you call pulse().
 
         Not all generators and pulse styles support all parameters - see the style-specific methods for more info.
+
+        Some notes on register packing for different generator and pulse types:
+        full-speed:
+        r_freq = freq
+        r_phase = phase
+        r_gain = gain
+            const:
+            r_addr = NC
+            r_mode = mode+length
+            arb:
+            r_addr = addr
+            r_mode = mode+wfm_length
+            flattop:
+            r_addr = addr
+            r_mode = flat_mode+length
+            r_mode2 = ramp_mode+ramp_length
+            r_addr2 = rampdown_addr
+            r_gain2 = flat_gain = gain/2
+
+        int4:
+        r_e=r_freqphase = freq+phase
+            const:
+            r_d=r_gainaddr = gain+0
+            r_c=r_mode = mode+length
+            arb:
+            r_gainaddr = gain+addr
+            r_mode = mode+wfm_length
+            flattop:
+            r_c=r_mode = flat_mode+length
+            r_c2=r_mode2 = ramp_mode+ramp_length
+            r_d1=r_gainaddr_rampup = gain+addr
+            r_d2=r_gainaddr_flat = flat_gain+0
+            r_d3=r_gainaddr_rampup = gain+rampdown_addr
+
+        mux4:
+        r_e = length
+        r_d = mask
+
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
@@ -674,9 +717,16 @@ class QickProgram:
         :param mask: for a muxed signal generator, the list of tones to enable for this pulse
         :type mask: list
         """
+        defaults = self.channels[ch]["default_params"]
+        if not defaults.keys().isdisjoint(kwargs):
+            raise RuntimeException("these params were set both in default_pulse_registers and set_pulse_registers: {0}".format(defaults.keys() & kwargs.keys()))
+        merged = {**defaults, **kwargs}
+
+        # extract and delete the style parameter
+        style = merged.pop('style')
         f = {'const': self.const_pulse, 'arb': self.arb_pulse,
                      'flat_top': self.flat_top_pulse}[style]
-        return f(ch, **kwargs)
+        return f(ch, **merged)
 
 
     def const_pulse(self, ch, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, length=None, mask=None):
