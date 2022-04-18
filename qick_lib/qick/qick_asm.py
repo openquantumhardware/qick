@@ -643,8 +643,9 @@ class QickProgram:
         """
         if self.channels[ch]["default_params"]:
             # complain if the default parameter dict is not empty
-            raise RuntimeException("ch %d already has a set of default parameters"%(ch))
+            raise RuntimeError("ch %d already has a set of default parameters"%(ch))
         self.channels[ch]["default_params"] = kwargs
+
 
     def set_pulse_registers(self, ch, **kwargs):
         #waveform=None, freq=None, phase=None, gain=None, phrst=None, stdysel=None, mode=None, outsel=None, length=None):
@@ -719,7 +720,7 @@ class QickProgram:
         """
         defaults = self.channels[ch]["default_params"]
         if not defaults.keys().isdisjoint(kwargs):
-            raise RuntimeException("these params were set both in default_pulse_registers and set_pulse_registers: {0}".format(defaults.keys() & kwargs.keys()))
+            raise RuntimeError("these params were set both in default_pulse_registers and set_pulse_registers: {0}".format(defaults.keys() & kwargs.keys()))
         merged = {**defaults, **kwargs}
 
         # extract and delete the style parameter
