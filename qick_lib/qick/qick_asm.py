@@ -902,6 +902,24 @@ class QickProgram:
         """
         self.gen_mgrs[ch].set_registers(kwargs)
 
+    def setup_and_pulse(self, ch, t='auto', **kwargs):
+        """
+        Set up a pulse on this DAC channel, and immediately play it.
+        This is a wrapper around set_pulse_registers() and pulse(), and takes the arguments from both.
+        You can only run this on a single DAC channel.
+        """
+        self.set_pulse_registers(ch, **kwargs)
+        self.pulse(ch, t)
+
+    def setup_and_measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, t='auto', wait=False, syncdelay=None, **kwargs):
+        """
+        Set up a pulse on this DAC channel, and immediately do a measurement with it.
+        This is a wrapper around set_pulse_registers() and measure(), and takes the arguments from both.
+        You can only run this on a single DAC channel.
+        """
+        self.set_pulse_registers(pulse_ch, **kwargs)
+        self.measure(adcs, pulse_ch, pins=pins, adc_trig_offset=adc_trig_offset, t=t, wait=wait, syncdelay=syncdelay)
+
     def pulse(self, ch, t='auto'):
         """
         Play the pulse currently programmed into the registers for this DAC channel.
@@ -1108,7 +1126,7 @@ class QickProgram:
         self.seti(trig_output, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
         self.seti(trig_output, rp, 0, t_end, f'ch =0 out = 0 @t = {t}')
 
-    def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, length=None, t='auto', wait=False, syncdelay=None):
+    def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, t='auto', wait=False, syncdelay=None):
         """
         Wrapper method that combines an ADC trigger, a pulse, and (optionally) the appropriate wait and a sync_all.
         You must have already run set_pulse_registers for this channel.
