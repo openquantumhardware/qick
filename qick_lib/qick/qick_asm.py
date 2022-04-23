@@ -542,6 +542,8 @@ class InterpolatedGenManager(GenManager):
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
+                # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
+                last_pulse['regs'].append((0, 0, 'mode', 0, 0))
                 # set the pulse duration (including the extra duration for the FIR workaround)
                 self.next_pulse['length'] = (wfm_length//2)*2 + 2*params['length']
 
@@ -632,8 +634,6 @@ class QickProgram:
             'axis_signal_gen_v6': FullSpeedGenManager,
             'axis_sg_int4_v1': InterpolatedGenManager,
             'axis_sg_mux4_v1': MultiplexedGenManager}
-
-
 
     def __init__(self, soccfg):
         """
