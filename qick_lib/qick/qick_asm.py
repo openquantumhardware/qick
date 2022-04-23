@@ -405,6 +405,33 @@ class GenManager:
         if defined - allowed:
             raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
+    def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
+        """
+        Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
+
+        :param length: The number of fabric clock cycles in the pulse
+        :type length: int
+        :param mode: Selects whether the output is "oneshot" or "periodic"
+        :type mode: string
+        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        :type outsel: string
+        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        :type stdysel: string
+        :param phrst: If 1, it resets the phase coherent accumulator
+        :type phrst: int
+        :return: Compiled mode code in binary
+        :rtype: int
+        """
+        if mode is None: mode = "oneshot"
+        if outsel is None: outsel = "product"
+        if stdysel is None: stdysel = "zero"
+        if phrst is None: phrst = 0
+        stdysel_reg = {"last": 0, "zero": 1}[stdysel]
+        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
+        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
+        mc = phrst*0b10000+stdysel_reg*0b01000+mode_reg*0b00100+outsel_reg
+        return mc << 16 | length
+
 class FullSpeedGenManager(GenManager):
     PARAMS_REQUIRED = {'const': ['style', 'freq', 'phase', 'gain', 'length'],
             'arb': ['style', 'freq', 'phase', 'gain', 'waveform'],
@@ -431,12 +458,12 @@ class FullSpeedGenManager(GenManager):
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
             if style=='const':
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
                 self.next_pulse['length'] = wfm_length
@@ -446,10 +473,10 @@ class FullSpeedGenManager(GenManager):
                 # gain for flat segment
                 self.set_reg('gain2', params['gain']//2)
                 # mode for flat segment
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='dds', length=params['length'])
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='dds', length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 # mode for ramps
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
                 self.set_reg('mode2', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
@@ -486,12 +513,12 @@ class InterpolatedGenManager(GenManager):
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
             if style=='const':
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = wfm_length
@@ -499,10 +526,10 @@ class InterpolatedGenManager(GenManager):
                 maxv_scale = self.gencfg['maxv_scale']
                 gain, length = [params[x] for x in ['gain', 'length']]
                 # mode for flat segment
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode="oneshot", outsel="dds", length=params['length'])
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode="oneshot", outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
                 # mode for ramps
-                mc = self.prog.get_mode_code(phrst=phrst, stdysel=stdysel, mode="oneshot", outsel="product", length=wfm_length//2)
+                mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode="oneshot", outsel="product", length=wfm_length//2)
                 self.set_reg('mode2', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
                 # gain+addr for ramp-up
@@ -1010,70 +1037,6 @@ class QickProgram:
         self.waiti(0, int(max(self.adc_ts) + t))
 
     # should change behavior to only change bits that are specified
-    def marker(self, t, t1=0, t2=0, t3=0, t4=0, adc1=0, adc2=0, rp=0, r_out=31, short=True):
-        """
-        Sets the value of the marker bits at time t. This triggers the ADC(s) at a specified time t and also sends trigger values to 4 PMOD pins for syncing a scope trigger.
-        Channel 0 of the tProc is connected to triggers/PMODs. E.g. if t3=1 PMOD0_2 goes high.
-
-        :param t: The number of clock ticks at which point the pulse starts
-        :type t: int
-        :param t1: t1 - value of an external pin connected to the PMOD (PMOD0_0)
-        :type t1: int
-        :param t2: t2 - value of an external pin connected to the PMOD (PMOD0_1)
-        :type t2: int
-        :param t3: t3 - value of an external pin connected to the PMOD (PMOD0_2)
-        :type t3: int
-        :param t4: t4 - value of an external pin connected to the PMOD (PMOD0_3)
-        :type t4: int
-        :param adc1: 1 if ADC channel 0 is triggered; 0 otherwise.
-        :type adc1: bool
-        :param adc2: 1 if ADC channel 1 is triggered; 0 otherwise.
-        :type adc2: bool
-        :param rp: Register page
-        :type rp: int
-        :param r_out: Register number
-        :type r_out: int
-        :param short: If 1, plays a short marker pulse that is 5 clock ticks long
-        :type short: bool
-        """
-        out = (adc2 << 15) | (adc1 << 14) | (
-            t4 << 3) | (t3 << 2) | (t2 << 1) | (t1 << 0)
-        # update timestamps with the end of the readout window
-        for i, enable in enumerate([adc1, adc2]):
-            if enable == 1:
-                self.adc_ts[i] = t + self.ro_chs[i].length
-        self.regwi(rp, r_out, out, f'out = 0b{out:>016b}')
-        self.seti(0, rp, r_out, t, f'ch =0 out = ${r_out} @t = {t}')
-        if short:
-            self.regwi(rp, r_out, 0, f'out = 0b{out:>016b}')
-            self.seti(0, rp, r_out, t+5, f'ch =0 out = ${r_out} @t = {t}')
-
-    def trigger_adc(self, adc1=0, adc2=0, adc_trig_offset=270, t=0):
-        """
-        Triggers the ADC(s) at a specified time t+adc_trig_offset.
-
-        :param adc1: 1 if ADC channel 0 is triggered; 0 otherwise.
-        :type adc1: bool
-        :param adc2: 1 if ADC channel 1 is triggered; 0 otherwise.
-        :type adc2: bool
-        :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
-        :type adc_trig_offset: int
-        :param t: The number of clock ticks at which point the ADC trigger starts
-        :type t: int
-        """
-        out = (adc2 << 15) | (adc1 << 14)
-        # update timestamps with the end of the readout window
-        for i, enable in enumerate([adc1, adc2]):
-            if enable == 1:
-                self.adc_ts[i] = adc_trig_offset + self.ro_chs[i].length
-        r_out = 31
-        self.regwi(0, r_out, out, f'out = 0b{out:>016b}')
-        self.seti(0, 0, r_out, t+adc_trig_offset,
-                  f'ch =0 out = ${r_out} @t = {t}')
-        self.regwi(0, r_out, 0, f'out = 0b{0:>016b}')
-        self.seti(0, 0, r_out, t+adc_trig_offset+10,
-                  f'ch =0 out = ${r_out} @t = {t}')
-
     def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
         """
         Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
@@ -1242,33 +1205,6 @@ class QickProgram:
         :type debug: bool
         """
         soc.load_bin_program(self.compile(debug=debug), reset=reset)
-
-    def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
-        """
-        Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
-
-        :param length: The number of fabric clock cycles in the pulse
-        :type length: int
-        :param mode: Selects whether the output is "oneshot" or "periodic"
-        :type mode: string
-        :param outsel: Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
-        :type outsel: string
-        :param stdysel: Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
-        :type stdysel: string
-        :param phrst: If 1, it resets the phase coherent accumulator
-        :type phrst: int
-        :return: Compiled mode code in binary
-        :rtype: int
-        """
-        if mode is None: mode = "oneshot"
-        if outsel is None: outsel = "product"
-        if stdysel is None: stdysel = "zero"
-        if phrst is None: phrst = 0
-        stdysel_reg = {"last": 0, "zero": 1}[stdysel]
-        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
-        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
-        mc = phrst*0b10000+stdysel_reg*0b01000+mode_reg*0b00100+outsel_reg
-        return mc << 16 | length
 
     def append_instruction(self, name, *args):
         """
