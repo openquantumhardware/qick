@@ -24,7 +24,12 @@ Follow the quick start guide located [here](quick_start) to set up your board, i
 Documentation
 -------------
 
-The documentation for QICK is available at: https://qick-docs.readthedocs.io/
+The API documentation for QICK is available at: https://qick-docs.readthedocs.io/
+
+The [demo notebooks](qick_demos) are intended as a tutorial.
+The first demos explain important features of the QICK system and walk you through how to write working QICK programs.
+The later demos provide examples of useful measurements you might make with the QICK.
+We recommend that new users read and understand all of the demos.
 
 Updates
 -------
