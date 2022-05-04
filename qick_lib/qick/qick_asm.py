@@ -1270,8 +1270,8 @@ class QickProgram:
 
         :param name: Instruction name
         :type name: str
-        :param *args: Instruction arguments
-        :type *args: *args object
+        :param \*args: Instruction arguments
+        :type \*args: \*args object
         """
         self.prog_list.append({'name': name, 'args': args})
 

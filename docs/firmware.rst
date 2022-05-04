@@ -19,7 +19,7 @@ The readout block is actually built around two IPs: readout and average + buffer
    :align: center
 
 tProcessor channel assignment
-########
+#############################
 
 tProcessor will be used to control the real-time operation of the experiment. Output channels (AXIS MASTER) of the tProcessor are assigned as follows:
 
@@ -47,7 +47,7 @@ Timing
 The clock frequency of the FPGA is 384 MHz. Therefore, each clock cycle has a period of 2.6 ns.
 
 Firmware parameters
-########
+###################
 
 * Pulse memory length: 65536 per channel x2 (I,Q), i.e., 128k total
 * Decimated ADC buffer length: 1024 samples per component (I,Q), 2k total
