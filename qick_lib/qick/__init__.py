@@ -2,6 +2,7 @@ from .averager_program import AveragerProgram, RAveragerProgram
 from .qick_asm import QickConfig, QickProgram
 import os
 
+__version__ = "0.2"
 
 def bitfile_path():
     if os.environ['BOARD'] == 'ZCU216':
