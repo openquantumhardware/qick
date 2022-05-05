@@ -1,12 +1,9 @@
 import os
-import pynq
-from .qick import *
-from pynq import Overlay
+from .qick import SocIp, QickSoc
+from pynq.overlay import Overlay
+from pynq.buffer import allocate
 import xrfclk
-import xrfdc
 import numpy as np
-from pynq import allocate
-from pynq.lib import AxiGPIO
 import time
 
 
@@ -103,7 +100,7 @@ class AxisSignalGenV3Ctrl(SocIp):
     N = 10
     NDDS = 16
     B = 16
-    MAX_v = np.power(2, B)-1
+    MAX_v = 2**B - 1
 
     # Sampling frequency.
     fs = 4096

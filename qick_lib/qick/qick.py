@@ -2,7 +2,8 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
-from pynq import Overlay, DefaultIP, allocate
+from pynq.overlay import Overlay, DefaultIP
+from pynq.buffer import allocate
 try:
     import xrfclk
     import xrfdc
