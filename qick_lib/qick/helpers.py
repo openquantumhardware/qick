@@ -40,7 +40,7 @@ def DRAG(mu, si, length, maxv, delta, alpha):
     :param delta: anharmonicity of the qubit (units of 1/sample time)
     :type delta: float
     :param alpha: alpha parameter of DRAG (order-1 scale factor)
-    :type alpha:float
+    :type alpha: float
     :return: Numpy array with I and Q components of the DRAG pulse
     :rtype: array, array
     """
