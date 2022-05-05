@@ -20,6 +20,8 @@ import pathlib
 ## Make your modules available in sys.path
 here = pathlib.Path(__file__).parent.resolve()
 sys.path.insert(0, (here / '../qick_lib').resolve())
+print(sys.path)
+import qick
 
 def get_version(rel_path):
     for line in (here / rel_path).read_text().splitlines():
