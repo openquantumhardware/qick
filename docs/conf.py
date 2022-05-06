@@ -22,6 +22,14 @@ here = pathlib.Path(__file__).parent.resolve()
 sys.path.insert(0, (here / '../qick_lib').resolve().as_posix())
 print(sys.path)
 
+def get_version(rel_path):
+    for line in (here / rel_path).read_text().splitlines():
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        raise RuntimeError("Unable to find version string.")
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -82,7 +90,7 @@ author = 'openquantumhardware'
 # built documents.
 #
 # The short X.Y version.
-version = '0.1'
+version = get_version("../qick_lib/qick/__init__.py")
 # The full version, including alpha/beta/rc tags.
 release = version
 

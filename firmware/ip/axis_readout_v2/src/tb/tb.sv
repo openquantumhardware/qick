@@ -200,7 +200,7 @@ initial begin
 	#10;	
 
 	// OUTSEL : 0 (product), 1 (dds), 2 (input).
-	data_wr = 1;
+	data_wr = 2;
 	axi_mst_0_agent.AXI4LITE_WRITE_BURST(3*4, prot, data_wr, resp);
 	#10;	
 
@@ -223,34 +223,34 @@ initial begin
 
 	#10000;
 
-	// FREQ.
-	data_wr = freq_calc(100, N_DDS, 17);
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(0*4, prot, data_wr, resp);
-	#10;	
+	//// FREQ.
+	//data_wr = freq_calc(100, N_DDS, 17);
+	//axi_mst_0_agent.AXI4LITE_WRITE_BURST(0*4, prot, data_wr, resp);
+	//#10;	
 
-	// WE.
-	data_wr = 1;
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
-	#10;	
+	//// WE.
+	//data_wr = 1;
+	//axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
+	//#10;	
 
-	#100;
+	//#100;
 
-	// WE.
-	data_wr = 0;
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
-	#10;	
+	//// WE.
+	//data_wr = 0;
+	//axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
+	//#10;	
 
-	#8484;
+	//#8484;
 
-	// FREQ.
-	data_wr = freq_calc(100, N_DDS, 5);
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(0*4, prot, data_wr, resp);
-	#10;	
+	//// FREQ.
+	//data_wr = freq_calc(100, N_DDS, 5);
+	//axi_mst_0_agent.AXI4LITE_WRITE_BURST(0*4, prot, data_wr, resp);
+	//#10;	
 
-	// WE.
-	data_wr = 1;
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
-	#10;	
+	//// WE.
+	//data_wr = 1;
+	//axi_mst_0_agent.AXI4LITE_WRITE_BURST(5*4, prot, data_wr, resp);
+	//#10;	
 
 	#100;
 

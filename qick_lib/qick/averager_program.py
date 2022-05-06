@@ -1,69 +1,73 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from .qick_asm import QickProgram
-from tqdm import tqdm_notebook as tqdm
+from tqdm.notebook import tqdm
 import numpy as np
-import time
+from .qick_asm import QickProgram
+
 
 class AveragerProgram(QickProgram):
     """
-    AveragerProgram class is an abstract base class for programs which do loop over experiments in hardware. It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
+    AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
+    It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
+    :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
+    :type soccfg: QickConfig
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
-    def __init__(self, cfg):
+
+    def __init__(self, soccfg, cfg):
         """
-        Constructor for the AveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
+        Constructor for the AveragerProgram, calls make program at the end.
+        For classes that inherit from this, if you want it to do something before the program is made and compiled:
+        either do it before calling this __init__ or put it in the initialize method.
         """
-        QickProgram.__init__(self)
-        self.cfg=cfg
+        super().__init__(soccfg)
+        self.cfg = cfg
         self.make_program()
-    
+
     def initialize(self):
         """
         Abstract method for initializing the program and can include any instructions that are executed once at the beginning of the program.
         """
         pass
-    
+
     def body(self):
         """
         Abstract method for the body of the program
         """
         pass
-    
+
     def make_program(self):
         """
         A template program which repeats the instructions defined in the body() method the number of times specified in self.cfg["reps"].
         """
-        p=self
-        
-        rjj=14
-        rcount=15
+        p = self
+
+        rjj = 14
+        rcount = 15
         p.initialize()
-        p.regwi (0, rcount,0)
-        p.regwi (0, rjj, self.cfg["reps"]-1)
+        p.regwi(0, rcount, 0)
+        p.regwi(0, rjj, self.cfg["reps"]-1)
         p.label("LOOP_J")
 
         p.body()
 
-        p.mathi(0,rcount,rcount,"+",1)
-        
-        p.memwi(0,rcount,1)
-                
+        p.mathi(0, rcount, rcount, "+", 1)
+
+        p.memwi(0, rcount, 1)
+
         p.loopnz(0, rjj, 'LOOP_J')
-       
-        p.end()        
-        
-    def acquire_round(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+
+        p.end()
+
+    def acquire_round(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
         config requirements:
         "reps" = number of repetitions;
-        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-        "adc_lengths" = how many samples to accumulate over for each trigger;
 
         :param soc: Qick object
         :type soc: Qick object
@@ -77,6 +81,8 @@ class AveragerProgram(QickProgram):
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
+        :param start_src: "internal" (tProc starts immediately) or "external" (waits for an external trigger)
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :param debug: If true, displays assembly code for tProc program
@@ -85,85 +91,82 @@ class AveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
-        #Load the pulses from the program into the soc
-        if load_pulses: 
+
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
+        # Load the pulses from the program into the soc
+        if load_pulses:
             self.load_pulses(soc)
-        
-        #Configure the readout down converters
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
 
-        #load the this AveragerProgram into the soc's tproc
-        soc.tproc.load_qick_program(self, debug=debug)
-        
-        
+        # Configure signal generators
+        self.config_gens(soc)
+
+        # Configure the readout down converters
+        self.config_readouts(soc)
+        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
         reps = self.cfg['reps']
-        
-        count=0
-        last_count=0
-        total_count=reps
+        total_count = reps
+        count = 0
+        n_ro = len(self.ro_chs)
 
-        di_buf=np.zeros((2,total_count))
-        dq_buf=np.zeros((2,total_count))
-        
-        soc.tproc.stop()
-        
-        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0 before starting processor
-        self.stats=[]
-        
-        soc.tproc.start()
-        while count<total_count:   # Keep streaming data until you get all of it
-            count = soc.tproc.single_read(addr= 1)
-            if count>=min(last_count+1000,total_count-1):  #wait until either you've gotten 1000 measurements or until you've finished (so you don't go crazy trying to download every measurement
-                addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
-                length = count-last_count
-                length -= length%2
+        d_buf = np.zeros((n_ro, 2, total_count))
+        self.stats = []
 
-                for ch in range(2):  #for each adc channel get the single shot data and add it to the buffer
-                    di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+        with tqdm(total=total_count, disable=not progress) as pbar:
+            soc.start_readout(total_count, counter_addr=1,
+                                   ch_list=list(self.ro_chs))
+            while count<total_count:
+                new_data = soc.poll_data()
+                for d, s in new_data:
+                    new_points = d.shape[2]
+                    d_buf[:, :, count:count+new_points] = d
+                    count += new_points
+                    self.stats.append(s)
+                    pbar.update(new_points)
 
-                    di_buf[ch,last_count:last_count+length]=di[:length]
-                    dq_buf[ch,last_count:last_count+length]=dq[:length]
+        # reformat the data into separate I and Q arrays
+        di_buf = d_buf[:,0,:]
+        dq_buf = d_buf[:,1,:]
 
-                last_count+=length
-                self.stats.append( (time.time(), count,addr, length))
-                    
-        #save results to class in case you want to look at it later or for analysis
-        self.di_buf=di_buf
-        self.dq_buf=dq_buf
+        # save results to class in case you want to look at it later or for analysis
+        self.di_buf = di_buf
+        self.dq_buf = dq_buf
 
         if threshold is not None:
-            self.shots=self.get_single_shots(di_buf,dq_buf, threshold, angle)
+            self.shots = self.get_single_shots(
+                di_buf, dq_buf, threshold, angle)
 
-        avg_di=np.zeros((2,len(save_experiments)))
-        avg_dq=np.zeros((2,len(save_experiments)))
+        avg_di = np.zeros((n_ro, len(save_experiments)))
+        avg_dq = np.zeros((n_ro, len(save_experiments)))
 
-        for nn,ii in enumerate(save_experiments):
-            for ch in range (2):
+        for nn, ii in enumerate(save_experiments):
+            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                 if threshold is None:
-                    avg_di[ch][nn]=np.sum(di_buf[ch][ii::readouts_per_experiment])/(reps)/self.cfg['adc_lengths'][ch]
-                    avg_dq[ch][nn]=np.sum(dq_buf[ch][ii::readouts_per_experiment])/(reps)/self.cfg['adc_lengths'][ch]
+                    avg_di[i_ch][nn] = np.sum(
+                        di_buf[i_ch][ii::readouts_per_experiment])/(reps)/ro.length
+                    avg_dq[i_ch][nn] = np.sum(
+                        dq_buf[i_ch][ii::readouts_per_experiment])/(reps)/ro.length
                 else:
-                    avg_di[ch][nn]=np.sum(self.shots[ch][ii::readouts_per_experiment])/(reps)
-                    avg_dq=np.zeros(avg_di.shape)
+                    avg_di[i_ch][nn] = np.sum(
+                        self.shots[i_ch][ii::readouts_per_experiment])/(reps)
+                    avg_dq = np.zeros(avg_di.shape)
 
         return avg_di, avg_dq
-    
-    def acquire(self, soc, threshold=None, angle=[0,0], readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+
+    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
         "reps" = number of repetitions;
-        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-        "adc_lengths" = how many samples to accumulate over for each trigger;
 
         :param soc: Qick object
         :type soc: Qick object
@@ -177,6 +180,8 @@ class AveragerProgram(QickProgram):
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
+        :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :param debug: If true, displays assembly code for tProc program
@@ -187,22 +192,27 @@ class AveragerProgram(QickProgram):
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
 
-        if "rounds" not in self.cfg or self.cfg["rounds"]==1:
-            return self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=progress, debug=debug)
-        
-        avg_di=None
-        for ii in tqdm(range (self.cfg["rounds"]), disable=not progress):           
-            avg_di0, avg_dq0, avg_amp0=self.acquire_round(soc,threshold=threshold, angle=angle, load_pulses=load_pulses,progress=False, debug=debug)
-            
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
+        if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
+            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, start_src=start_src, load_pulses=load_pulses, progress=progress, debug=debug)
+
+        avg_di = None
+        for ii in tqdm(range(self.cfg["rounds"]), disable=not progress):
+            avg_di0, avg_dq0 = self.acquire_round(
+                soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, start_src=start_src, load_pulses=load_pulses, progress=False, debug=debug)
+
             if avg_di is None:
                 avg_di, avg_dq = avg_di0, avg_dq0
             else:
-                avg_di+= avg_di0
-                avg_dq+= avg_dq0
-                
-        return expt_pts, avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
-    
-    def get_single_shots(self, di, dq, threshold, angle=[0,0]):
+                avg_di += avg_di0
+                avg_dq += avg_dq0
+
+        return avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
+
+    def get_single_shots(self, di, dq, threshold, angle=None):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -220,81 +230,100 @@ class AveragerProgram(QickProgram):
 
         """
 
-        if type(threshold) is int:
-            threshold=[threshold,threshold]            
-        return np.array([np.heaviside((di[ch]*np.cos(angle[ch]) - dq[ch]*np.sin(angle[ch]))/self.cfg['adc_lengths'][ch]-threshold[ch],0) for ch in range(2)])        
+        if angle is None:
+            angle = [0, 0]
+        if isinstance(threshold, int):
+            threshold = [threshold, threshold]
+        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
-    def acquire_decimated(self, soc, load_pulses=True, progress=True, debug=False):
+    def acquire_decimated(self, soc, load_pulses=True, start_src="internal", progress=True, debug=False):
         """
-         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
+        This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
-         config requirements:
-         "reps" = number of repetitions;
-         "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-         "adc_lengths" = how many samples to accumulate over for each trigger;
+        config requirements:
+        "reps" = number of tProc loop repetitions;
+        "soft_avgs" = number of Python loop repetitions;
 
-         :param soc: Qick object
-         :type soc: Qick object
-         :param load_pulses: If true, loads pulses into the tProc
-         :type load_pulses: bool
-         :param progress: If true, displays progress bar
-         :type progress: bool
-         :param debug: If true, displays assembly code for tProc program
-         :type debug: bool
-         :returns:
-             - iq0 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 0
-             - iq1 (:py:class:`list`) - list of lists of averaged decimated I and Q data ADC 1
-         """
-        #set reps to 1 since we are going to use soft averages
-        if "reps" not in self.cfg or self.cfg["reps"] != 1:
-            print ("Warning reps is not set to 1, and this acquire method expects reps=1")
-        
-        #load pulses onto soc
-        if load_pulses: 
+        The data is returned as a list of ndarrays (one ndarray per readout channel).
+        There are two possible array formats.
+        reps = 1:
+        2D array with dimensions (2, length), indices (I/Q, sample)
+        reps > 1:
+        3D array with dimensions (reps, 2, length), indices (rep, I/Q, sample)
+
+        :param soc: Qick object
+        :type soc: Qick object
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param start_src: "internal" (tProc starts immediately) or "external" (each soft_avg waits for an external trigger)
+        :type start_src: string
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
+        """
+
+        reps = self.cfg['reps']
+        soft_avgs = self.cfg["soft_avgs"]
+
+        # load pulses onto soc
+        if load_pulses:
             self.load_pulses(soc)
-        
-        #configure the adcs
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
 
-        soft_avgs=self.cfg["soft_avgs"]        
+        # Configure signal generators
+        self.config_gens(soc)
 
-        di_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        dq_avg0=np.zeros(self.cfg["adc_lengths"][0])
-        di_avg1=np.zeros(self.cfg["adc_lengths"][1])
-        dq_avg1=np.zeros(self.cfg["adc_lengths"][1])
-        
-        #for each soft average stop the processor, reload the program, run and average decimated data
-        for ii in tqdm(range(soft_avgs),disable=not progress):
-            soc.tproc.stop()
+        # Configure the readout down converters
+        self.config_readouts(soc)
+
+        # Initialize data buffers
+        d_buf = []
+        for ch, ro in self.ro_chs.items():
+            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
+            if ro.length*reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro.length, reps, maxlen))
+            d_buf.append(np.zeros((2, ro.length*reps)))
+
+        # load the program - it's always the same, so this only needs to be done once
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        tproc = soc.tproc
+
+        soc.start_src(start_src)
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(soft_avgs), disable=not progress):
+
             # Configure and enable buffer capture.
-            for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-                avg_buf.config_buf(address=0,length=adc_length)
-                avg_buf.enable_buf()
-                avg_buf.config_avg(address=0,length=adc_length)
-                avg_buf.enable_avg()
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
-            soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0       
-            soc.tproc.load_qick_program(self, debug=debug)
-        
-            soc.tproc.start() #runs the assembly program
+            # make sure count variable is reset to 0
+            tproc.single_write(addr=1, data=0)
 
-            count=0
-            while count<1:
-                count = soc.tproc.single_read(addr= 1)
-                
-            di0,dq0 = soc.get_decimated(ch=0, address=0, length=self.cfg["adc_lengths"][0])
-            di1,dq1 = soc.get_decimated(ch=1, address=0, length=self.cfg["adc_lengths"][1])
-            
-            di_avg0+=di0
-            dq_avg0+=dq0
-            di_avg1+=di1
-            dq_avg1+=dq1
-            
-        return np.array([di_avg0,dq_avg0])/soft_avgs,np.array([di_avg1,dq_avg1])/soft_avgs
-    
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every soft_avg
+            tproc.start()
+
+            count = 0
+            while count < reps:
+                count = tproc.single_read(addr=1)
+
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                d_buf[ii] += soc.get_decimated(ch=ch,
+                                               address=0, length=ro.length*reps)
+
+        # average the decimated data
+        if reps == 1:
+            return [d/soft_avgs for d in d_buf]
+        else:
+            # split the data into the individual reps:
+            # we reshape to slice each long buffer into reps,
+            # then use moveaxis() to transpose the I/Q and rep axes
+            return [np.moveaxis(d.reshape(2, reps, -1), 0, 1)/soft_avgs for d in d_buf]
+
+
 class RAveragerProgram(QickProgram):
     """
     RAveragerProgram class, for qubit experiments that sweep over a variable (whose value is stored in expt_pts).
@@ -304,65 +333,66 @@ class RAveragerProgram(QickProgram):
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
-    def __init__(self, cfg):
+
+    def __init__(self, soccfg, cfg):
         """
         Constructor for the RAveragerProgram, calls make program at the end so for classes that inherit from this if you want it to do something before the program is made and compiled either do it before calling this __init__ or put it in the initialize method.
         """
-        QickProgram.__init__(self)
-        self.cfg=cfg
+        super().__init__(soccfg)
+        self.cfg = cfg
         self.make_program()
-    
+
     def initialize(self):
         """
         Abstract method for initializing the program and can include any instructions that are executed once at the beginning of the program.
         """
         pass
-    
+
     def body(self):
         """
         Abstract method for the body of the program
         """
         pass
-    
+
     def update(self):
         """
         Abstract method for updating the program
         """
         pass
-    
+
     def make_program(self):
         """
         A template program which repeats the instructions defined in the body() method the number of times specified in self.cfg["reps"].
         """
-        p=self
-        
-        rcount=13
-        rii=14
-        rjj=15
+        p = self
+
+        rcount = 13
+        rii = 14
+        rjj = 15
 
         p.initialize()
 
-        p.regwi(0, rcount,0)
-        
-        p.regwi (0, rii, self.cfg["expts"]-1 )
-        p.label("LOOP_I")    
+        p.regwi(0, rcount, 0)
 
-        p.regwi (0, rjj, self.cfg["reps"]-1)
+        p.regwi(0, rii, self.cfg["expts"]-1)
+        p.label("LOOP_I")
+
+        p.regwi(0, rjj, self.cfg["reps"]-1)
         p.label("LOOP_J")
 
         p.body()
 
-        p.mathi(0,rcount,rcount,"+",1)
-        
-        p.memwi(0,rcount,1)
-                
+        p.mathi(0, rcount, rcount, "+", 1)
+
+        p.memwi(0, rcount, 1)
+
         p.loopnz(0, rjj, 'LOOP_J')
 
         p.update()
-        
-        p.loopnz(0, rii, "LOOP_I")    
 
-        p.end()        
+        p.loopnz(0, rii, "LOOP_I")
+
+        p.end()
 
     def get_expt_pts(self):
         """
@@ -372,111 +402,110 @@ class RAveragerProgram(QickProgram):
         :rtype: array
         """
         return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
-        
-    def acquire_round(self, soc, threshold=None, angle=[0,0],  readouts_per_experiment=1, save_experiments=[0], load_pulses=True, progress=True, debug=False):
+
+    def acquire_round(self, soc, threshold=None, angle=None,  readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
         """
-         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
+        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
-         config requirements:
-         "reps" = number of repetitions;
-         "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-         "adc_lengths" = how many samples to accumulate over for each trigger;
+        config requirements:
+        "reps" = number of repetitions;
 
-         :param soc: Qick object
-         :type soc: Qick object
-         :param threshold: threshold
-         :type threshold: int
-         :param angle: rotation angle
-         :type angle: list
-         :param readouts_per_experiment: readouts per experiment
-         :type readouts_per_experiment: int
-         :param save_experiments: saved experiments
-         :type save_experiments: list
-         :param load_pulses: If true, loads pulses into the tProc
-         :type load_pulses: bool
-         :param progress: If true, displays progress bar
-         :type progress: bool
-         :param debug: If true, displays assembly code for tProc program
-         :type debug: bool
-         :returns:
-             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
-             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
-         """
+        :param soc: Qick object
+        :type soc: Qick object
+        :param threshold: threshold
+        :type threshold: int
+        :param angle: rotation angle
+        :type angle: list
+        :param readouts_per_experiment: readouts per experiment
+        :type readouts_per_experiment: int
+        :param save_experiments: saved experiments
+        :type save_experiments: list
+        :param load_pulses: If true, loads pulses into the tProc
+        :type load_pulses: bool
+        :param start_src: "internal" (tProc starts immediately) or "external" (waits for an external trigger)
+        :type start_src: string
+        :param progress: If true, displays progress bar
+        :type progress: bool
+        :param debug: If true, displays assembly code for tProc program
+        :type debug: bool
+        :returns:
+            - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
+            - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
+        """
 
-        if load_pulses: 
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
+        if load_pulses:
             self.load_pulses(soc)
-        
-        for readout,adc_freq in zip(soc.readouts,self.cfg["adc_freqs"]):
-            readout.set_out(sel="product")
-            readout.set_freq(adc_freq)
-        
-        # Configure and enable buffer capture.
-        for avg_buf,adc_length in zip(soc.avg_bufs, self.cfg["adc_lengths"]):
-            avg_buf.config_buf(address=0,length=adc_length)
-            avg_buf.enable_buf()
-            avg_buf.config_avg(address=0,length=adc_length)
-            avg_buf.enable_avg()
 
-        soc.tproc.load_qick_program(self, debug=debug)
-        
-        reps,expts = self.cfg['reps'],self.cfg['expts']
-        
-        count=0
-        last_count=0
-        total_count=reps*expts*readouts_per_experiment
+        # Configure signal generators
+        self.config_gens(soc)
 
-        di_buf=np.zeros((2,total_count))
-        dq_buf=np.zeros((2,total_count))
-        
-        soc.tproc.stop()
-        
-        soc.tproc.single_write(addr= 1,data=0)   #make sure count variable is reset to 0
-        self.stats=[]
-        
+        # Configure the readout down converters
+        self.config_readouts(soc)
+        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+        reps, expts = self.cfg['reps'], self.cfg['expts']
+
+        total_count = reps*expts*readouts_per_experiment
+        count = 0
+        n_ro = len(self.ro_chs)
+
+        d_buf = np.zeros((n_ro, 2, total_count))
+        self.stats = []
+
         with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.tproc.start()
-            while count<total_count-1:
-                count = soc.tproc.single_read(addr= 1)*readouts_per_experiment
+            soc.start_readout(total_count, counter_addr=1, ch_list=list(
+                self.ro_chs), reads_per_count=readouts_per_experiment)
+            while count<total_count:
+                new_data = soc.poll_data()
+                for d, s in new_data:
+                    new_points = d.shape[2]
+                    d_buf[:, :, count:count+new_points] = d
+                    count += new_points
+                    self.stats.append(s)
+                    pbar.update(new_points)
 
-                if count>=min(last_count+1000,total_count-1):
-                    addr=last_count % soc.avg_bufs[1].AVG_MAX_LENGTH
-                    length = count-last_count
-                    length -= length%2
+        # reformat the data into separate I and Q arrays
+        di_buf = d_buf[:,0,:]
+        dq_buf = d_buf[:,1,:]
 
-                    for ch in range(2):
-                        di,dq = soc.get_accumulated(ch=ch,address=addr, length=length)
+        # save results to class in case you want to look at it later or for analysis
+        self.di_buf = di_buf
+        self.dq_buf = dq_buf
 
-                        di_buf[ch,last_count:last_count+length]=di[:length]
-                        dq_buf[ch,last_count:last_count+length]=dq[:length]
-
-                    last_count+=length
-                    self.stats.append( (time.time(), count,addr, length))
-                    pbar.update(last_count-pbar.n)
-                    
-        self.di_buf=di_buf
-        self.dq_buf=dq_buf
-        
         if threshold is not None:
-            self.shots=self.get_single_shots(di_buf,dq_buf, threshold, angle)
-                
-        expt_pts=self.get_expt_pts()
-        
+            self.shots = self.get_single_shots(
+                di_buf, dq_buf, threshold, angle)
 
-        avg_di=np.zeros((2,len(save_experiments),expts))
-        avg_dq=np.zeros((2,len(save_experiments),expts))
+        expt_pts = self.get_expt_pts()
 
-        for nn,ii in enumerate(save_experiments):
-            for ch in range (2):
+        avg_di = np.zeros((n_ro, len(save_experiments), expts))
+        avg_dq = np.zeros((n_ro, len(save_experiments), expts))
+
+        for nn, ii in enumerate(save_experiments):
+            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                 if threshold is None:
-                    avg_di[ch][nn]=np.sum(di_buf[ch][ii::readouts_per_experiment].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][ch]
-                    avg_dq[ch][nn]=np.sum(dq_buf[ch][ii::readouts_per_experiment].reshape((expts, reps)),1)/(reps)/self.cfg['adc_lengths'][ch]
+                    avg_di[i_ch][nn] = np.sum(di_buf[i_ch][ii::readouts_per_experiment].reshape(
+                        (expts, reps)), 1)/(reps)/ro.length
+                    avg_dq[i_ch][nn] = np.sum(dq_buf[i_ch][ii::readouts_per_experiment].reshape(
+                        (expts, reps)), 1)/(reps)/ro.length
                 else:
-                    avg_di[ch][nn]=np.sum(self.shots[ch][ii::readouts_per_experiment].reshape((expts, reps)),1)/(reps)
-                    avg_dq=np.zeros(avg_di.shape)
+                    avg_di[i_ch][nn] = np.sum(
+                        self.shots[i_ch][ii::readouts_per_experiment].reshape((expts, reps)), 1)/(reps)
+                    avg_dq = np.zeros(avg_di.shape)
 
         return expt_pts, avg_di, avg_dq
 
-    def get_single_shots(self, di, dq, threshold, angle=[0,0]):
+    def get_single_shots(self, di, dq, threshold, angle=None):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -494,17 +523,17 @@ class RAveragerProgram(QickProgram):
 
         """
 
+        if angle is None:
+            angle = [0, 0]
         if type(threshold) is int:
-            threshold=[threshold,threshold]            
-        return np.array([np.heaviside((di[ch]*np.cos(angle[ch]) - dq[ch]*np.sin(angle[ch]))/self.cfg['adc_lengths'][ch]-threshold[ch],0) for ch in range(2)])
-                    
-    def acquire(self, soc, threshold=None, angle=[0,0], load_pulses=True, readouts_per_experiment=1, save_experiments=[0], progress=True, debug=False):
+            threshold = [threshold, threshold]
+        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
+
+    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, start_src="internal", progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
         "reps" = number of repetitions;
-        "adc_freqs" = [freq1, freq2] the downconverting frequencies (in MHz) to be used in the adc_ddc;
-        "adc_lengths" = how many samples to accumulate over for each trigger;
 
         :param soc: Qick object
         :type soc: Qick object
@@ -518,6 +547,8 @@ class RAveragerProgram(QickProgram):
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
+        :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :param debug: If true, displays assembly code for tProc program
@@ -527,18 +558,22 @@ class RAveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
-        if "rounds" not in self.cfg or self.cfg["rounds"]==1:
-            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, progress=progress, debug=debug)
-        
-        avg_di=None
-        for ii in tqdm(range (self.cfg["rounds"]), disable=not progress):
-            expt_pts, avg_di0, avg_dq0=self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, progress=False, debug=debug)
-            
+        if angle is None:
+            angle = [0, 0]
+        if save_experiments is None:
+            save_experiments = [0]
+        if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
+            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+
+        avg_di = None
+        for ii in tqdm(range(self.cfg["rounds"]), disable=not progress):
+            expt_pts, avg_di0, avg_dq0 = self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment,
+                                                            save_experiments=save_experiments, load_pulses=load_pulses, start_src=start_src, progress=False, debug=debug)
+
             if avg_di is None:
-                avg_di, avg_dq= avg_di0, avg_dq0
+                avg_di, avg_dq = avg_di0, avg_dq0
             else:
-                avg_di+= avg_di0
-                avg_dq+= avg_dq0
-        
-                
+                avg_di += avg_di0
+                avg_dq += avg_dq0
+
         return expt_pts, avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]

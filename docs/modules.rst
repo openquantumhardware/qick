@@ -10,3 +10,5 @@ QICK software library
    qick.averager_program
    qick.helpers
    qick.parser
+   qick.streamer
+   qick.rfboard

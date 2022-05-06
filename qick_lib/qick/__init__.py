@@ -1,11 +1,18 @@
+from .averager_program import AveragerProgram, RAveragerProgram
+from .qick_asm import QickConfig, QickProgram
 import os
-import qick
+
+__version__ = "0.2"
 
 def bitfile_path():
-    src = os.path.join(os.path.dirname(qick.__file__), 'qick.bit')
+    if os.environ['BOARD'] == 'ZCU216':
+        src = os.path.join(os.path.dirname(qick.__file__), 'qick_216.bit')
+    else:  # assume ZCU111
+        src = os.path.join(os.path.dirname(qick.__file__), 'qick_111.bit')
     return src
 
-from .qick import QickSoc
-from .qick_asm import QickProgram,freq2reg,freq2reg_adc,reg2freq,reg2freq_adc, adcfreq, cycles2us, us2cycles, deg2reg, reg2deg
-from .averager_program import AveragerProgram, RAveragerProgram
 
+try:
+    from .qick import QickSoc
+except Exception as e:
+    print("Could not import QickSoc:", e)

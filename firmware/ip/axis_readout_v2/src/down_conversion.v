@@ -55,7 +55,7 @@ wire 		[N_DDS*72-1:0]	dds_ctrl_int;
 reg 		[N_DDS*72-1:0]	dds_ctrl_int_r;
 
 // Output selection.
-wire						outsel_int;
+wire		[1:0]			outsel_int;
 
 // DDS output.
 wire 		[31:0]			dds_dout			[0:N_DDS-1];

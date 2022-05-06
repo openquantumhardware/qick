@@ -88,7 +88,7 @@ This guide will show you how to set up QICK after configuring your computer and 
  <img src="quick-start-guide-pics/pynqstartup.PNG" alt="PYNQ startup">
 </p>
 
-* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now lets connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC and do the upcoming QICK loopback demo. 
+* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now let's connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC and do the upcoming QICK loopback demo. 
 
 #### Via SSH
 
@@ -133,16 +133,14 @@ This guide will show you how to set up QICK after configuring your computer and 
 
 ### Installing the `qick` Python package
 
-* Navigate to the `qick` directory and run: `sudo python3 -m pip install .`
+<!--* Navigate to the `qick` directory and run: `sudo python3 -m pip install .`
 This will install the qick Python package.
-* To check that your installation is working, navigate to the `qick_demos` subfolder and run the Jupyter notebook `Test_qick_package.ipynb`.
-
+-->
+* Navigate to the `qick_demos` subfolder within the `qick` directory and run the Jupyter notebook `000_Install_qick_package.ipynb`. This will walk you through installing and testing the `qick` package.
 
 ### Running a QICK program in loopback mode
 
-* Navigate to the `qick_demos` subfolder within the `qick` directory: 
-
-* Open `00_Send_receive_pulse.ipynb` and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
+* Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 * You can also take the opportunity to check that you have flashed the correct PYNQ version (2.6.0): 
 
 <p align="center">
