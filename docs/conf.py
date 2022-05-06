@@ -19,9 +19,8 @@ import pathlib
 
 ## Make your modules available in sys.path
 here = pathlib.Path(__file__).parent.resolve()
-sys.path.insert(0, (here / '../qick_lib').resolve())
+sys.path.insert(0, (here / '../qick_lib').resolve().as_posix())
 print(sys.path)
-from qick import parser
 
 def get_version(rel_path):
     for line in (here / rel_path).read_text().splitlines():
@@ -62,9 +61,7 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
-autodoc_mock_imports = ["pynq", "xrfclk", "xrfdc","tqdm",
-                        "json","collections",
-                        "numpy","os","time","multiprocessing","queue","re"]
+autodoc_mock_imports = ["pynq", "xrfclk", "xrfdc"]
 
 ## Generate autodoc stubs with summaries from code
 autosummary_generate = True
