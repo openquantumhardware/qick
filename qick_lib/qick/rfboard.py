@@ -1199,19 +1199,11 @@ class gain:
             self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
 # Class to describe the ADC-RF channel chain.
-
-
 class adc_rf_ch():
     # Constructor.
-    def __init__(self, ch, switch_ip, buf_ip, attn_spi):
+    def __init__(self, ch, attn_spi):
         # Channel number.
         self.ch = ch
-
-        # AXIS Switch.
-        self.switch = switch_ip
-
-        # MrBufferEt.
-        self.buf = buf_ip
 
         # Attenuator.
         self.attn = attenuator(attn_spi, ch, le=[0])
@@ -1223,37 +1215,14 @@ class adc_rf_ch():
     def set_attn_db(self, db=0):
         self.attn.set_att(db)
 
-    # Get data from buffer.
-    def transfer(self):
-        return self.buf.transfer()
-
-    # Capture data on buffer.
-    def capture(self):
-        # Route Switch to the right channel.
-        self.buf.route(self.ch)
-        time.sleep(0.1)
-
-        self.buf.enable()
-        time.sleep(0.1)
-        self.buf.disable()
-
 # Class to describe the ADC-DC channel chain.
-
-
 class adc_dc_ch():
     # Constructor.
-    def __init__(self, ch, switch_ip, buf_ip, gain_spi):
+    def __init__(self, ch, gain_spi):
         # Channel number.
         self.ch = ch
 
-        # AXIS Switch.
-        self.switch = switch_ip
-
-        # MrBufferEt.
-        self.buf = buf_ip
-
         # Variable Gain Amplifier.
-        # LE.
         if ch < 4 or ch > 7:
             print("%s: channel %d not valid for ADC-DC type" %
                   (self.__class__.__name__, ch))
@@ -1267,34 +1236,13 @@ class adc_dc_ch():
     def set_gain_db(self, db=0):
         self.gain.set_gain(db)
 
-    # Get data from buffer.
-    def transfer(self):
-        self.buf.transfer()
-
-    # Capture data on buffer.
-    def capture(self):
-        # Route Switch to the right channel.
-        self.switch.sel(self.ch)
-        time.sleep(0.1)
-
-        self.buf.enable()
-        time.sleep(0.1)
-        self.buf.disable()
 
 # Class to describe the DAC channel chain.
-
-
 class dac_ch():
     # Constructor.
-    def __init__(self, ch, gen, gen_ctrl, rfsw, attn_spi):
+    def __init__(self, ch, rfsw, attn_spi):
         # Channel number.
         self.ch = ch
-
-        # Signal Generator.
-        self.gen = gen
-
-        # Signal Generator Control.
-        self.gen_ctrl = gen_ctrl
 
         # RF Input Switch.
         self.rfsw = rfsw
@@ -1381,12 +1329,12 @@ class RFQickSoc(QickSoc):
         # ADC channels.
         self.adcs = []
         for ii in range(4):
-            self.adcs.append(adc_rf_ch(ii, self.switch_buf, self.avg_bufs, self.attn_spi))
+            self.adcs.append(adc_rf_ch(ii, self.attn_spi))
             
         for ii in range(4):
-            self.adcs.append(adc_dc_ch(4+ii, self.switch_buf, self.avg_bufs, self.psf_spi))
+            self.adcs.append(adc_dc_ch(4+ii, self.psf_spi))
         
         # DAC channels.
         self.dacs = []
         for ii in range(8):            
-            self.dacs.append(dac_ch(ii , None, None, self.dac_sw, self.attn_spi))  
+            self.dacs.append(dac_ch(ii, self.dac_sw, self.attn_spi))  
