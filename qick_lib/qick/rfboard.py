@@ -395,7 +395,6 @@ class spi(SocIp):
     # Send function.
     def send_m(self, data, ch_en, cs_t="pulse"):
         # Manually assert channels.
-        ch_en = self.en_level(nch, chlist, en_l)
         ch_en_temp = self.reg_rd("SSR")
 
         # Standard CS at the beginning of transaction.
@@ -835,7 +834,7 @@ class attenuator:
 class power_sw_fan:
 
     # Constructor.
-    def __init__(self, spi_ip, nch=4, le=[0, 1], en_l="low", cs_t=""):
+    def __init__(self, spi_ip, ch_en, cs_t=""):
         # MCP23S08.
         self.mcp = MCP23S08()
 
@@ -843,7 +842,7 @@ class power_sw_fan:
         self.spi = spi_ip
 
         # CS.
-        self.ch_en = self.spi.en_level(nch, le, en_l)
+        self.ch_en = ch_en
         self.cs_t = cs_t
 
         # All CS to high value.
@@ -1170,7 +1169,7 @@ class lo_synth:
 class dac_bias:
 
     # Constructor.
-    def __init__(self, spi_ip, nch=4, le=[0, 1], en_l="low", cs_t=""):
+    def __init__(self, spi_ip, ch_en, cs_t=""):
         # AD5791.
         self.ad = AD5781()
 
@@ -1178,7 +1177,7 @@ class dac_bias:
         self.spi = spi_ip
 
         # CS.
-        self.ch_en = self.spi.en_level(nch, le, en_l)
+        self.ch_en = ch_en
         self.cs_t = cs_t
 
         # All CS to high value.
@@ -1278,7 +1277,7 @@ class gain:
     Gmax = 26
 
     # Constructor.
-    def __init__(self, spi_ip, nch=4, le=[0, 1, 3], en_l="low", cs_t=""):
+    def __init__(self, spi_ip, ch_en, cs_t=""):
         # LMH6401.
         self.lmh = LMH6401()
 
@@ -1286,7 +1285,7 @@ class gain:
         self.spi = spi_ip
 
         # Lath-enable.
-        self.ch_en = self.spi.en_level(nch, le, en_l)
+        self.ch_en = ch_en
         self.cs_t = cs_t
 
     # Set gain.
@@ -1322,8 +1321,7 @@ class adc_rf_ch():
         self.buf = buf_ip
 
         # Attenuator.
-        self.attn = attenuator(attn_spi, ch, nch=3, le=[
-                               0], en_l="high", cs_t="pulse")
+        self.attn = attenuator(attn_spi, ch, le=[0])
 
         # Default to 30 dB attenuation.
         self.set_attn_db(30)
@@ -1363,20 +1361,11 @@ class adc_dc_ch():
 
         # Variable Gain Amplifier.
         # LE.
-        le = [0, 1, 3]
-        if ch == 4:
-            le = [0, 1, 3]
-        elif ch == 5:
-            le = [1, 3]
-        elif ch == 6:
-            le = [0, 3]
-        elif ch == 7:
-            le = [3]
-        else:
+        if ch < 4 or ch > 7:
             print("%s: channel %d not valid for ADC-DC type" %
                   (self.__class__.__name__, ch))
 
-        self.gain = gain(gain_spi, nch=4, le=le, en_l="low", cs_t="")
+        self.gain = gain(gain_spi, ch_en=ch)
 
         # Default to 0 dB gain.
         self.set_gain_db(0)
@@ -1419,10 +1408,8 @@ class dac_ch():
 
         # Attenuators.
         self.attn = []
-        self.attn.append(attenuator(attn_spi, ch, nch=3,
-                                    le=[1], en_l="high", cs_t="pulse"))
-        self.attn.append(attenuator(attn_spi, ch, nch=3,
-                                    le=[2], en_l="high", cs_t="pulse"))
+        self.attn.append(attenuator(attn_spi, ch, le=[1]))
+        self.attn.append(attenuator(attn_spi, ch, le=[2]))
 
         # Default to 10 dB attenuation.
         self.set_attn_db(0, 10)
@@ -1515,38 +1502,25 @@ class PfbSoc(Overlay):
         self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
         # ADC/DAC power enable, DAC RF input switch.
-        self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
-                                    0, 1, 2, 3], en_l="low", cs_t="")
-        self.dac_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
-                                    1, 2, 3], en_l="low", cs_t="")
-        self.dac_sw = power_sw_fan(self.psf_spi, nch=4, le=[
-                                   0, 2, 3], en_l="low", cs_t="")
+        self.adc_pwr = power_sw_fan(self.psf_spi, ch_en=0)
+        self.dac_pwr = power_sw_fan(self.psf_spi, ch_en=1)
+        self.dac_sw = power_sw_fan(self.psf_spi, ch_en=2)
 
         # LO Synthesizers.
         self.lo = []
-        self.lo.append(lo_synth(self.lo_spi, nch=2,
-                                le=[0], en_l="low", cs_t=""))
-        self.lo.append(lo_synth(self.lo_spi, nch=2,
-                                le=[1], en_l="low", cs_t=""))
+        self.lo.append(lo_synth(self.lo_spi, le=[0]))
+        self.lo.append(lo_synth(self.lo_spi, le=[1]))
 
         # DAC BIAS.
         self.dac_bias = []
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 1, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             1, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 1, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[1, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[0, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=0))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=1))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=2))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=3))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=4))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=5))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=6))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=7))
 
         # ADC channels.
         self.adcs = []
@@ -1598,35 +1572,35 @@ class RFQickSoc(QickSoc):
         self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
         # ADC/DAC power enable, DAC RF input switch.
-        self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
-                                    0, 1, 2, 3], en_l="low", cs_t="")
-        self.dac_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
-                                    1, 2, 3], en_l="low", cs_t="")
-        self.dac_sw = power_sw_fan(self.psf_spi, nch=4, le=[
-                                   0, 2, 3], en_l="low", cs_t="")
+        self.adc_pwr = power_sw_fan(self.psf_spi, ch_en=0)
+        self.dac_pwr = power_sw_fan(self.psf_spi, ch_en=1)
+        self.dac_sw = power_sw_fan(self.psf_spi, ch_en=2)
 
         # LO Synthesizers.
         self.lo = []
-        self.lo.append(lo_synth(self.lo_spi, nch=2,
-                                le=[0], en_l="low", cs_t=""))
-        self.lo.append(lo_synth(self.lo_spi, nch=2,
-                                le=[1], en_l="low", cs_t=""))
+        self.lo.append(lo_synth(self.lo_spi, le=[0]))
+        self.lo.append(lo_synth(self.lo_spi, le=[1]))
 
         # DAC BIAS.
         self.dac_bias = []
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 1, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             1, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[2, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, nch=4, le=[
-                             0, 1, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[1, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[0, 3], en_l="low", cs_t=""))
-        self.dac_bias.append(
-            dac_bias(self.dac_bias_spi, nch=4, le=[3], en_l="low", cs_t=""))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=0))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=1))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=2))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=3))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=4))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=5))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=6))
+        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=7))
+
+        # ADC channels.
+        self.adcs = []
+        for ii in range(4):
+            self.adcs.append(adc_rf_ch(ii, self.switch_buf, self.avg_bufs, self.attn_spi))
+            
+        for ii in range(4):
+            self.adcs.append(adc_dc_ch(4+ii, self.switch_buf, self.avg_bufs, self.psf_spi))
+        
+        # DAC channels.
+        self.dacs = []
+        for ii in range(8):            
+            self.dacs.append(dac_ch(ii , None, None, self.dac_sw, self.attn_spi))  
