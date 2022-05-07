@@ -1338,3 +1338,11 @@ class RFQickSoc(QickSoc):
         self.dacs = []
         for ii in range(8):            
             self.dacs.append(dac_ch(ii, self.dac_sw, self.attn_spi))  
+
+        # Link gens/readouts to the corresponding RF board channels.
+        for gen in soc.gens:
+            tile, block = [int(a) for a in gen.dac]
+            gen.rfb = soc.dacs[4*tile + block]
+        for ro in soc.readouts:
+            tile, block = [int(a) for a in ro.adc]
+            ro.rfb = soc.adcs[2*tile + block]
