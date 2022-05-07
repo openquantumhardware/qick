@@ -402,9 +402,9 @@ class spi(SocIp):
             self.reg_wr("SSR", ch_en)
 
         # Send data.
-        for i in range(n):
+        for byte in data:
             # Send data.
-            self.write(self.DTR, data[i])
+            self.write(self.DTR, byte)
 
             # LE pulse at the end.
             if cs_t == "pulse":
@@ -910,208 +910,107 @@ class lo_synth:
         self.spi.reg_wr("SSR", 0xff)
 
         # Write 0x00 to reg 0x73
-        byte = self.adf.reg_wr("LD_PD_ADC_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("LD_PD_ADC_REG", 0x00)
         # Write 0x3a to reg 0x72
-        byte = self.adf.reg_wr("AUXOUT_REG", 0x3A)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("AUXOUT_REG", 0x3A)
         # Write 0x60 to reg 0x71
-        byte = self.adf.reg_wr("BIAS_SEL_X4_REG", 0x60)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("BIAS_SEL_X4_REG", 0x60)
         # Write 0xe3 to reg 0x70
-        byte = self.adf.reg_wr("BIAS_SEL_X2_REG", 0xE3)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("BIAS_SEL_X2_REG", 0xE3)
         # Write 0xf4 to reg 0x52
-        byte = self.adf.reg_wr("TRM_RESD1_REG", 0xF4)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("TRM_RESD1_REG", 0xF4)
         # Write 0xc0 to reg 0x47
-        byte = self.adf.reg_wr("TRM_RESD0_REG", 0xC0)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("TRM_RESD0_REG", 0xC0)
         # Write 0x28 to reg 0x41
-        byte = self.adf.reg_wr("CLK2_DIV_REG", 0x28)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CLK2_DIV_REG", 0x28)
         # Write 0x50 to reg 0x40
-        byte = self.adf.reg_wr("CLK1_DIV_HIGH_REG", 0x50)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CLK1_DIV_HIGH_REG", 0x50)
         # Write 0x80 to reg 0x3f
-        byte = self.adf.reg_wr("CLK1_DIV_LOW_REG", 0x80)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CLK1_DIV_LOW_REG", 0x80)
         # Write 0x0c to reg 0x3e
-        byte = self.adf.reg_wr("CP_TMODE_REG", 0x0C)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CP_TMODE_REG", 0x0C)
         # Write 0x00 to reg 0x3d
-        byte = self.adf.reg_wr("SD_RESET_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SD_RESET_REG", 0x00)
         # Write 0x55 to reg 0x3a
-        byte = self.adf.reg_wr("ADC_OFFSET_REG", 0x55)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("ADC_OFFSET_REG", 0x55)
         # Write 0x07 to reg 0x39
-        byte = self.adf.reg_wr("SI_VTUNE_REG", 0x07)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SI_VTUNE_REG", 0x07)
         # Write 0x00 to reg 0x38
-        byte = self.adf.reg_wr("SI_VCO_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SI_VCO_REG", 0x00)
         # Write 0x00 to reg 0x37
-        byte = self.adf.reg_wr("SI_BAND_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SI_BAND_REG", 0x00)
         # Write 0x30 to reg 0x36
-        byte = self.adf.reg_wr("ICP_OFFSET_REG", 0x30)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("ICP_OFFSET_REG", 0x30)
         # Write 0xff to reg 0x35
-        byte = self.adf.reg_wr("ADC_CLK_REG", 0xFF)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("ADC_CLK_REG", 0xFF)
         # Write 0x86 to reg 0x34
-        byte = self.adf.reg_wr("VCO_TIMEOUT_REG", 0x86)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_TIMEOUT_REG", 0x86)
         # Write 0x23 to reg 0x33
-        byte = self.adf.reg_wr("SYNTH_TIMEOUT_REG", 0x23)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SYNTH_TIMEOUT_REG", 0x23)
         # Write 0x04 to reg 0x32
-        byte = self.adf.reg_wr("ADC_REG", 0x04)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("ADC_REG", 0x04)
         # Write 0x02 to reg 0x31
-        byte = self.adf.reg_wr("TIMEOUT_REG", 0x02)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("TIMEOUT_REG", 0x02)
         # Write 0x34 to reg 0x30
-        byte = self.adf.reg_wr("VCO_BAND_REG", 0x34)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_BAND_REG", 0x34)
         # Write 0x94 to reg 0x2f
-        byte = self.adf.reg_wr("VCO_BIAS3_REG", 0x94)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_BIAS3_REG", 0x94)
         # Write 0x12 to reg 0x2e
-        byte = self.adf.reg_wr("VCO_BIAS2_REG", 0x12)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_BIAS2_REG", 0x12)
         # Write 0x11 to reg 0x2d
-        byte = self.adf.reg_wr("VCO_BIAS1_REG", 0x11)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_BIAS1_REG", 0x11)
         # Write 0x44 to reg 0x2c
-        byte = self.adf.reg_wr("VCO_BIAS0_REG", 0x44)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("VCO_BIAS0_REG", 0x44)
         # Write 0x10 to reg 0x2b
-        byte = self.adf.reg_wr("SD_REG", 0x10)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("SD_REG", 0x10)
         # Write 0x00 to reg 0x2a
-        byte = self.adf.reg_wr("CONFIG4_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CONFIG4_REG", 0x00)
         # Write 0x83 to reg 0x28
-        byte = self.adf.reg_wr("LOCK_REG", 0x83)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("LOCK_REG", 0x83)
         # Write 0xcd to reg 0x27
-        byte = self.adf.reg_wr("BLEED1_REG", 0xcd)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("BLEED1_REG", 0xcd)
         # Write 0x2f to reg 0x26
-        byte = self.adf.reg_wr("BLEED0_REG", 0x2F)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("BLEED0_REG", 0x2F)
         # Write 0x07 to reg 0x25
-        byte = self.adf.reg_wr("RFOUT_REG", 0x07)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("RFOUT_REG", 0x07)
         # Write 0x80 to reg 0x24
-        byte = self.adf.reg_wr("RFDIV_REG", 0x80)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("RFDIV_REG", 0x80)
         # Write 0x00 to reg 0x23
-        byte = self.adf.reg_wr("CONFIG3_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CONFIG3_REG", 0x00)
         # Write 0x00 to reg 0x22
-        byte = self.adf.reg_wr("REF_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("REF_REG", 0x00)
         # Write 0x14 to reg 0x20
-        byte = self.adf.reg_wr("MUXOUT_REG", 0x14)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("MUXOUT_REG", 0x14)
         # Write 0x01 to reg 0x1f
-        byte = self.adf.reg_wr("RCNT_REG", 0x01)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("RCNT_REG", 0x01)
         # Write 0x58 to reg 0x1e
-        byte = self.adf.reg_wr("CONFIG2_REG", 0x58)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CONFIG2_REG", 0x58)
         # Write 0x00 to reg 0x1d
-        byte = self.adf.reg_wr("PHASE_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("PHASE_HIGH_REG", 0x00)
         # Write 0x00 to reg 0x1c
-        byte = self.adf.reg_wr("PHASE_MID_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("PHASE_MID_REG", 0x00)
         # Write 0x00 to reg 0x1b
-        byte = self.adf.reg_wr("PHASE_LOW_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("PHASE_LOW_REG", 0x00)
         # Write 0x00 to reg 0x1a
-        byte = self.adf.reg_wr("MOD2_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("MOD2_HIGH_REG", 0x00)
         # Write 0x03 to reg 0x19
-        byte = self.adf.reg_wr("MOD2_LOW_REG", 0x03)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("MOD2_LOW_REG", 0x03)
         # Write 0x00 to reg 0x18
-        byte = self.adf.reg_wr("FRAC2_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("FRAC2_HIGH_REG", 0x00)
         # Write 0x01 to reg 0x17 (holds MSB of FRAC1 on bit[0]).
-        byte = self.adf.reg_wr("FRAC2_LOW_REG", 0x01)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("FRAC2_LOW_REG", 0x01)
         # Write 0x61 to reg 0x16
-        byte = self.adf.reg_wr("FRAC1_HIGH_REG", 0x61)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("FRAC1_HIGH_REG", 0x61)
         # Write 0x055 to reg 0x15
-        byte = self.adf.reg_wr("FRAC1_MID_REG", 0x55)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("FRAC1_MID_REG", 0x55)
         # Write 0x55 to reg 0x14
-        byte = self.adf.reg_wr("FRAC1_LOW_REG", 0x55)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("FRAC1_LOW_REG", 0x55)
         # Write 0x40 to reg 0x12
-        byte = self.adf.reg_wr("CAL_PRE_REG", 0x40)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("CAL_PRE_REG", 0x40)
         # Write 0x00 to reg 0x11
-        byte = self.adf.reg_wr("INT_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
+        self.reg_wr("INT_HIGH_REG", 0x00)
         # Write 0x28 to reg 0x10
-        byte = self.adf.reg_wr("INT_LOW_REG", 0x28)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        self.reg_wr("INT_LOW_REG", 0x28)
 
     def reg_rd(self, reg="CONFIG0_REG"):
         # Byte array.
@@ -1139,29 +1038,23 @@ class lo_synth:
         else:
             # Write FRAC1 register.
             # MSB
-            byte = self.adf.reg_wr('FRAC2_LOW_REG', regs['FRAC1']['MSB'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('FRAC2_LOW_REG', regs['FRAC1']['MSB'])
 
             # HIGH.
-            byte = self.adf.reg_wr('FRAC1_HIGH_REG', regs['FRAC1']['HIGH'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('FRAC1_HIGH_REG', regs['FRAC1']['HIGH'])
 
             # MID.
-            byte = self.adf.reg_wr('FRAC1_MID_REG', regs['FRAC1']['MID'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('FRAC1_MID_REG', regs['FRAC1']['MID'])
 
             # LOW.
-            byte = self.adf.reg_wr('FRAC1_LOW_REG', regs['FRAC1']['LOW'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('FRAC1_LOW_REG', regs['FRAC1']['LOW'])
 
             # Write INT register.
             # HIGH.
-            byte = self.adf.reg_wr('INT_HIGH_REG', regs['INT']['HIGH'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('INT_HIGH_REG', regs['INT']['HIGH'])
 
             # LOW
-            byte = self.adf.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            self.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
 
 # Bias dac.
 
