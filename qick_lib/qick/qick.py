@@ -1548,6 +1548,8 @@ class QickSoc(Overlay, QickConfig):
     :type ignore_version: bool
     """
 
+    ENABLE_LO_OUTPUT = False
+
     # The following constants are no longer used. Some of the values may not match the bitfile.
     # fs_adc = 384*8 # MHz
     # fs_dac = 384*16 # MHz
@@ -1844,6 +1846,14 @@ class QickSoc(Overlay, QickConfig):
         """
         if self['board'] == 'ZCU111':
             print("resetting clocks:", self['refclk_freq'])
+
+            # load the clock chip configurations from file, so we can then modify them
+            xrfclk.xrfclk._read_tics_output()
+            if self.ENABLE_LO_OUTPUT:
+                # change the register for the LMK04208 chip's 5th output, which goes to J108
+                # we need this for driving the RF board
+                xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']

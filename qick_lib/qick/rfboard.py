@@ -1,5 +1,6 @@
 import os
 from .qick import SocIp, QickSoc
+from .qick_asm import QickConfig
 from pynq.overlay import Overlay
 from pynq.buffer import allocate
 import xrfclk
@@ -316,8 +317,8 @@ class spi(SocIp):
                lsb="lsb",
                msttran="enable",
                ssmode="ssr",
-               rxfifo="normal",
-               txfifo="normal",
+               rxfifo="rst",
+               txfifo="rst",
                cpha="",
                cpol="high",
                mst="master",
@@ -374,6 +375,12 @@ class spi(SocIp):
 
     # Enable function.
     def en_level(self, nch=4, chlist=[0], en_l="high"):
+        """
+        chlist: list of bits to enable
+        en_l: enable level
+            "high": ignore nch, enabled bits are set high
+            "low": nch is total length, enabled bits are set low
+        """
         ch_en = 0
         if en_l == "high":
             for i in range(len(chlist)):
@@ -386,7 +393,7 @@ class spi(SocIp):
         return ch_en
 
     # Send function.
-    def send_m(self, data, n=1, nch=4, chlist=[0], en_l="high", cs_t="pulse"):
+    def send_m(self, data, ch_en, cs_t="pulse"):
         # Manually assert channels.
         ch_en = self.en_level(nch, chlist, en_l)
         ch_en_temp = self.reg_rd("SSR")
@@ -430,8 +437,12 @@ class spi(SocIp):
             return data_r
 
     # Send/Receive.
-    def send_receive_m(self, data, n=1, nch=4, chlist=[0], en_l="high", cs_t="pulse"):
-        self.send_m(data, n, nch, chlist, en_l, cs_t)
+    def send_receive_m(self, data, ch_en, cs_t="pulse"):
+        """
+        data: list of bytes to send
+        ch_en: destination address
+        """
+        self.send_m(data, ch_en, cs_t)
         data_r = self.receive()
 
         return data_r
@@ -807,9 +818,7 @@ class attenuator:
         self.spi = spi_ip
 
         # Lath-enable.
-        self.nch = nch
-        self.le = le
-        self.en_l = en_l
+        self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
     # Set attenuation function.
@@ -818,8 +827,7 @@ class attenuator:
         reg = [self.pe.db2reg(db)]
 
         # Write value using spi.
-        self.spi.send_receive_m(reg, len(reg), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
 
 # Power, Switch and Fan.
 
@@ -835,9 +843,7 @@ class power_sw_fan:
         self.spi = spi_ip
 
         # CS.
-        self.nch = nch
-        self.le = le
-        self.en_l = en_l
+        self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
         # All CS to high value.
@@ -845,13 +851,11 @@ class power_sw_fan:
 
         # Set all bits as outputs.
         byte = self.mcp.reg_wr("IODIR_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Set all outputs to logic 1.
         byte = self.mcp.reg_wr("GPIO_REG", 0xff)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     # Write bits.
     def bits_set(self, bits=[0]):
@@ -859,8 +863,7 @@ class power_sw_fan:
 
         # Read actual value.
         byte = self.mcp.reg_rd("GPIO_REG")
-        vals = self.spi.send_receive_m(
-            byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+        vals = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
         val = int(vals[2])
 
         # Set bits.
@@ -869,16 +872,14 @@ class power_sw_fan:
 
         # Set value to hardware.
         byte = self.mcp.reg_wr("GPIO_REG", val)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     def bits_reset(self, bits=[0]):
         val = 0xff
 
         # Read actual value.
         byte = self.mcp.reg_rd("GPIO_REG")
-        vals = self.spi.send_receive_m(
-            byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+        vals = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
         val = int(vals[2])
 
         # Reset bits.
@@ -887,8 +888,7 @@ class power_sw_fan:
 
         # Set value to hardware.
         byte = self.mcp.reg_wr("GPIO_REG", val)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
 # LO Synthesis.
 
@@ -904,9 +904,7 @@ class lo_synth:
         self.spi = spi_ip
 
         # CS.
-        self.nch = nch
-        self.le = le
-        self.en_l = en_l
+        self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
         # All CS to high value.
@@ -914,266 +912,214 @@ class lo_synth:
 
         # Write 0x00 to reg 0x73
         byte = self.adf.reg_wr("LD_PD_ADC_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x3a to reg 0x72
         byte = self.adf.reg_wr("AUXOUT_REG", 0x3A)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x60 to reg 0x71
         byte = self.adf.reg_wr("BIAS_SEL_X4_REG", 0x60)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0xe3 to reg 0x70
         byte = self.adf.reg_wr("BIAS_SEL_X2_REG", 0xE3)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0xf4 to reg 0x52
         byte = self.adf.reg_wr("TRM_RESD1_REG", 0xF4)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0xc0 to reg 0x47
         byte = self.adf.reg_wr("TRM_RESD0_REG", 0xC0)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x28 to reg 0x41
         byte = self.adf.reg_wr("CLK2_DIV_REG", 0x28)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x50 to reg 0x40
         byte = self.adf.reg_wr("CLK1_DIV_HIGH_REG", 0x50)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x80 to reg 0x3f
         byte = self.adf.reg_wr("CLK1_DIV_LOW_REG", 0x80)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x0c to reg 0x3e
         byte = self.adf.reg_wr("CP_TMODE_REG", 0x0C)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x3d
         byte = self.adf.reg_wr("SD_RESET_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x55 to reg 0x3a
         byte = self.adf.reg_wr("ADC_OFFSET_REG", 0x55)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x07 to reg 0x39
         byte = self.adf.reg_wr("SI_VTUNE_REG", 0x07)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x38
         byte = self.adf.reg_wr("SI_VCO_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x37
         byte = self.adf.reg_wr("SI_BAND_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x30 to reg 0x36
         byte = self.adf.reg_wr("ICP_OFFSET_REG", 0x30)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0xff to reg 0x35
         byte = self.adf.reg_wr("ADC_CLK_REG", 0xFF)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x86 to reg 0x34
         byte = self.adf.reg_wr("VCO_TIMEOUT_REG", 0x86)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x23 to reg 0x33
         byte = self.adf.reg_wr("SYNTH_TIMEOUT_REG", 0x23)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x04 to reg 0x32
         byte = self.adf.reg_wr("ADC_REG", 0x04)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x02 to reg 0x31
         byte = self.adf.reg_wr("TIMEOUT_REG", 0x02)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x34 to reg 0x30
         byte = self.adf.reg_wr("VCO_BAND_REG", 0x34)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x94 to reg 0x2f
         byte = self.adf.reg_wr("VCO_BIAS3_REG", 0x94)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x12 to reg 0x2e
         byte = self.adf.reg_wr("VCO_BIAS2_REG", 0x12)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x11 to reg 0x2d
         byte = self.adf.reg_wr("VCO_BIAS1_REG", 0x11)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x44 to reg 0x2c
         byte = self.adf.reg_wr("VCO_BIAS0_REG", 0x44)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x10 to reg 0x2b
         byte = self.adf.reg_wr("SD_REG", 0x10)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x2a
         byte = self.adf.reg_wr("CONFIG4_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x83 to reg 0x28
         byte = self.adf.reg_wr("LOCK_REG", 0x83)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0xcd to reg 0x27
         byte = self.adf.reg_wr("BLEED1_REG", 0xcd)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x2f to reg 0x26
         byte = self.adf.reg_wr("BLEED0_REG", 0x2F)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x07 to reg 0x25
         byte = self.adf.reg_wr("RFOUT_REG", 0x07)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x80 to reg 0x24
         byte = self.adf.reg_wr("RFDIV_REG", 0x80)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x23
         byte = self.adf.reg_wr("CONFIG3_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x22
         byte = self.adf.reg_wr("REF_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x14 to reg 0x20
         byte = self.adf.reg_wr("MUXOUT_REG", 0x14)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x01 to reg 0x1f
         byte = self.adf.reg_wr("RCNT_REG", 0x01)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x58 to reg 0x1e
         byte = self.adf.reg_wr("CONFIG2_REG", 0x58)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x1d
         byte = self.adf.reg_wr("PHASE_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x1c
         byte = self.adf.reg_wr("PHASE_MID_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x1b
         byte = self.adf.reg_wr("PHASE_LOW_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x1a
         byte = self.adf.reg_wr("MOD2_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x03 to reg 0x19
         byte = self.adf.reg_wr("MOD2_LOW_REG", 0x03)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x18
         byte = self.adf.reg_wr("FRAC2_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x01 to reg 0x17 (holds MSB of FRAC1 on bit[0]).
         byte = self.adf.reg_wr("FRAC2_LOW_REG", 0x01)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x61 to reg 0x16
         byte = self.adf.reg_wr("FRAC1_HIGH_REG", 0x61)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x055 to reg 0x15
         byte = self.adf.reg_wr("FRAC1_MID_REG", 0x55)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x55 to reg 0x14
         byte = self.adf.reg_wr("FRAC1_LOW_REG", 0x55)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x40 to reg 0x12
         byte = self.adf.reg_wr("CAL_PRE_REG", 0x40)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x00 to reg 0x11
         byte = self.adf.reg_wr("INT_HIGH_REG", 0x00)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Write 0x28 to reg 0x10
         byte = self.adf.reg_wr("INT_LOW_REG", 0x28)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     def reg_rd(self, reg="CONFIG0_REG"):
         # Byte array.
         byte = self.adf.reg_rd(reg)
 
         # Execute read.
-        reg = self.spi.send_receive_m(
-            byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         return reg
 
@@ -1182,8 +1128,7 @@ class lo_synth:
         byte = self.adf.reg_wr(reg, val)
 
         # Execute write.
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     def set_freq(self, fin=6000):
         # Get INT/FRAC register values.
@@ -1196,34 +1141,28 @@ class lo_synth:
             # Write FRAC1 register.
             # MSB
             byte = self.adf.reg_wr('FRAC2_LOW_REG', regs['FRAC1']['MSB'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # HIGH.
             byte = self.adf.reg_wr('FRAC1_HIGH_REG', regs['FRAC1']['HIGH'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # MID.
             byte = self.adf.reg_wr('FRAC1_MID_REG', regs['FRAC1']['MID'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # LOW.
             byte = self.adf.reg_wr('FRAC1_LOW_REG', regs['FRAC1']['LOW'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # Write INT register.
             # HIGH.
             byte = self.adf.reg_wr('INT_HIGH_REG', regs['INT']['HIGH'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # LOW
             byte = self.adf.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
 # Bias dac.
 
@@ -1239,9 +1178,7 @@ class dac_bias:
         self.spi = spi_ip
 
         # CS.
-        self.nch = nch
-        self.le = le
-        self.en_l = en_l
+        self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
         # All CS to high value.
@@ -1253,21 +1190,18 @@ class dac_bias:
     def read(self, reg="DAC_REG"):
         # Read command.
         byte = self.ad.reg_rd(reg)
-        reg = self.spi.send_receive_m(
-            byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         # Another read with dummy data to allow clocking register out.
         byte = [0, 0, 0]
-        reg = self.spi.send_receive_m(
-            byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         return reg
 
     def write(self, reg="DAC_REG", val=0):
         # Write command.
         byte = self.ad.reg_wr(reg, val)
-        self.spi.send_receive_m(byte, len(byte), self.nch,
-                                self.le, self.en_l, self.cs_t)
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     def set_volt(self, volt=0):
         # Convert volts to register value.
@@ -1352,9 +1286,7 @@ class gain:
         self.spi = spi_ip
 
         # Lath-enable.
-        self.nch = nch
-        self.le = le
-        self.en_l = en_l
+        self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
     # Set gain.
@@ -1372,8 +1304,7 @@ class gain:
             byte = self.lmh.reg_wr(reg="GAIN_REG", val=db_a)
 
             # Write value using spi.
-            self.spi.send_receive_m(
-                byte, len(byte), self.nch, self.le, self.en_l, self.cs_t)
+            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
 # Class to describe the ADC-RF channel chain.
 
@@ -1572,45 +1503,16 @@ class PfbSoc(Overlay):
         xrfclk.set_ref_clks(lmk_freq=122.88128, lmx_freq=204.8)
 
         # SPI used for Attenuators.
-        self.attn_spi.config(
-            lsb="lsb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.attn_spi.config(lsb="lsb")
 
         # SPI used for Power, Switch and Fan.
-        self.psf_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.psf_spi.config(lsb="msb")
 
         # SPI used for the LO.
-        self.lo_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.lo_spi.config(lsb="msb")
 
         # SPI used for DAC BIAS.
-        self.dac_bias_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable",
-            cpha="invert")
+        self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
         # ADC/DAC power enable, DAC RF input switch.
         self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
@@ -1672,96 +1574,28 @@ class RFQickSoc(QickSoc):
     Overrides the __init__ method of QickSoc in order to add the RF board drivers.
     Otherwise supports all the QickSoc functionality.
     """
+    ENABLE_LO_OUTPUT = True
 
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, **kwargs):
-        """
-        Constructor method
-        """
-        # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
-        # We need to program the clocks first.
-        if bitfile == None:
-            Overlay.__init__(self, bitfile_path(
-            ), ignore_version=ignore_version, download=False, **kwargs)
-        else:
-            Overlay.__init__(
-                self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
-
-        # Initialize the configuration
-        self._cfg = {}
-        QickConfig.__init__(self)
-
-        self['board'] = os.environ["BOARD"]
-
-        # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
-        self.list_rf_blocks(
-            self.ip_dict['usp_rf_data_converter_0']['parameters'])
-
-        self.config_clocks(force_init_clks)
-
-        # RF data converter (for configuring ADCs and DACs)
-        self.rf = self.usp_rf_data_converter_0
-
-        # Mixer for NCO ADC/DAC control.
-        self.mixer = Mixer(self.usp_rf_data_converter_0)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         self.config_rfboard()
-
-        self.map_signal_paths()
-
-        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-        self._tproc = self.axis_tproc64x32_x8_0
-        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
-
-        self._streamer = DataStreamer(self)
-
-        # list of objects that need to be registered for autoproxying over Pyro
-        self.autoproxy = [self.streamer, self.tproc]
 
     def config_rfboard(self):
         """
         Configure the SPI interfaces to the RF board.
         """
         # SPI used for Attenuators.
-        self.attn_spi.config(
-            lsb="lsb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.attn_spi.config(lsb="lsb")
 
         # SPI used for Power, Switch and Fan.
-        self.psf_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.psf_spi.config(lsb="msb")
 
         # SPI used for the LO.
-        self.lo_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable")
+        self.lo_spi.config(lsb="msb")
 
         # SPI used for DAC BIAS.
-        self.dac_bias_spi.config(
-            lsb="msb",
-            msttran="enable",
-            ssmode="ssr",
-            rxfifo="rst",
-            txfifo="rst",
-            mst="master",
-            en="enable",
-            cpha="invert")
+        self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
         # ADC/DAC power enable, DAC RF input switch.
         self.adc_pwr = power_sw_fan(self.psf_spi, nch=4, le=[
