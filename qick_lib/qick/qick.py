@@ -1848,6 +1848,7 @@ class QickSoc(Overlay, QickConfig):
             print("resetting clocks:", self['refclk_freq'])
 
             # load the clock chip configurations from file, so we can then modify them
+            xrfclk.xrfclk._find_devices()
             xrfclk.xrfclk._read_tics_output()
             if self.ENABLE_LO_OUTPUT:
                 # change the register for the LMK04208 chip's 5th output, which goes to J108

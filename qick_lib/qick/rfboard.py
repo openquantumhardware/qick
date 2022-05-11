@@ -1284,12 +1284,16 @@ class RFQickSoc(QickSoc):
     """
     ENABLE_LO_OUTPUT = True
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, bitfile=None, force_init_clks=True, ignore_version=True, **kwargs):
+        """
+        By default, re-initialize the clocks every time.
+        This ensures that the LO output to the RF board is enabled.
+        """
+        super().__init__(bitfile=bitfile, force_init_clks=force_init_clks, ignore_version=ignore_version, **kwargs)
 
-        self.config_rfboard()
+        self.rfb_config()
 
-    def config_rfboard(self):
+    def rfb_config(self):
         """
         Configure the SPI interfaces to the RF board.
         """
@@ -1340,9 +1344,65 @@ class RFQickSoc(QickSoc):
             self.dacs.append(dac_ch(ii, self.dac_sw, self.attn_spi))  
 
         # Link gens/readouts to the corresponding RF board channels.
-        for gen in soc.gens:
+        for gen in self.gens:
             tile, block = [int(a) for a in gen.dac]
-            gen.rfb = soc.dacs[4*tile + block]
-        for ro in soc.readouts:
+            gen.rfb = self.dacs[4*tile + block]
+        for ro in self.readouts:
             tile, block = [int(a) for a in ro.adc]
-            ro.rfb = soc.adcs[2*tile + block]
+            ro.rfb = self.adcs[2*tile + block]
+
+    def rfb_set_lo(self, f):
+        """Set both of the RF-board local oscillators to the same frequency.
+
+        Tile 0 DACs and all RF ADCs are connected to LO[0], tile 1 DACs are connected to LO[1].
+
+        Parameters
+        ----------
+        f : float
+            Frequency (4000-8000 MHz)
+        """
+        for lo in self.lo:
+            lo.set_freq(f)
+
+    def rfb_set_genrf(self, gen_ch, att1, att2):
+        """Configure an RF-board output channel for RF output.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        att1 : float
+            Attenuation for first stage (0-31.75 dB)
+        att2 : float
+            Attenuation for second stage (0-31.75 dB)
+        """
+        rfb_ch = self.gens[gen_ch].rfb
+        rfb_ch.rfsw_sel("RF")
+        rfb_ch.attn[0].set_att(att1)
+        rfb_ch.attn[1].set_att(att2)
+
+    def rfb_set_ro(self, ro_ch, att):
+        """Configure an RF-board input channel.
+
+        Parameters
+        ----------
+        ro_ch : int
+            ADC channel (index in 'readouts' list)
+        att : float
+            Attenuation (0-31.75 dB)
+        """
+        rfb_ch = self.readouts[ro_ch].rfb
+        rfb_ch.attn.set_att(att)
+
+    def rfb_set_bias(self, bias_ch, v):
+        """Set a voltage on an RF-board bias DAC.
+
+        Parameters
+        ----------
+        bias_ch : int
+            Channel number (0-7)
+        v : float
+            Voltage (-10 to 10 V)
+        """
+        self.dac_bias[bias_ch].set_volt(v)
+

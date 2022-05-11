@@ -50,6 +50,7 @@ extensions = [
     'sphinx.ext.mathjax',
     ## Include autosymmary
     'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon',
 ]
 
 ## Include Python objects as they appear in source files
