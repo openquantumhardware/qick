@@ -2150,15 +2150,14 @@ class QickSoc(Overlay, QickConfig):
         :rtype: list
         """
         streamer = self.streamer
-        try:
-            raise RuntimeError(
-                "exception in readout loop") from streamer.error_queue.get(block=False)
-        except queue.Empty:
-            pass
 
         time_end = time.time() + totaltime
         new_data = []
         while (totaltime < 0) or (streamer.count < streamer.total_count and time.time() < time_end):
+            try:
+                raise RuntimeError("exception in readout loop") from streamer.error_queue.get(block=False)
+            except queue.Empty:
+                pass
             try:
                 length, data = streamer.data_queue.get(block=True, timeout=timeout)
                 streamer.count += length

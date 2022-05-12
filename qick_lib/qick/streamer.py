@@ -90,8 +90,8 @@ class DataStreamer():
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
         """
-        try:
-            while True:
+        while True:
+            try:
                 # wait for a job
                 total_count, counter_addr, ch_list, reads_per_count = self.job_queue.get(block=True)
 
@@ -143,8 +143,10 @@ class DataStreamer():
 
                         stats = (time.time()-t_start, count, addr, length)
                         self.data_queue.put((length, (d_buf, stats)))
-                self.done_flag.set()
 
-                # Note that the thread will not terminate until the queue is empty.
-        except Exception as e:
-            self.error_queue.put(e)
+            except Exception as e:
+                # pass the exception to the main thread
+                self.error_queue.put(e)
+            finally:
+                # we should set the done flag regardless of whether we completed readout, used the stop flag, or errored out
+                self.done_flag.set()
