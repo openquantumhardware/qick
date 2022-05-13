@@ -378,8 +378,8 @@ class spi(SocIp):
         """
         chlist: list of bits to enable
         en_l: enable level
-            "high": ignore nch, enabled bits are set high
-            "low": nch is total length, enabled bits are set low
+        "high": ignore nch, enabled bits are set high
+        "low": nch is total length, enabled bits are set low
         """
         ch_en = 0
         if en_l == "high":
