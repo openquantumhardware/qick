@@ -184,7 +184,7 @@ class QickConfig():
         else:
             rocfg = self['readouts'][ro_ch]
         gencfg = self['gens'][gen_ch]
-        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1']:
+        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
             if abs(f)>gencfg['fs']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
@@ -573,7 +573,7 @@ class MultiplexedGenManager(GenManager):
 
 # configuration for an enabled readout channel
 ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel', 'gen_ch'])
-GeneratorConfig = namedtuple('GeneratorConfig', ['nqz', 'mixer_freq', 'mux_freqs', 'ro_ch'])
+GeneratorConfig = namedtuple('GeneratorConfig', ['nqz', 'mixer_freq', 'mux_freqs', 'mux_gains', 'ro_ch'])
 
 
 class QickProgram:
@@ -630,10 +630,11 @@ class QickProgram:
                       'deg2reg', 'reg2deg']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
-            'axis_signal_gen_v5': FullSpeedGenManager,
-            'axis_signal_gen_v6': FullSpeedGenManager,
-            'axis_sg_int4_v1': InterpolatedGenManager,
-            'axis_sg_mux4_v1': MultiplexedGenManager}
+                'axis_signal_gen_v5': FullSpeedGenManager,
+                'axis_signal_gen_v6': FullSpeedGenManager,
+                'axis_sg_int4_v1': InterpolatedGenManager,
+                'axis_sg_mux4_v1': MultiplexedGenManager,
+                'axis_sg_mux4_v2': MultiplexedGenManager}
 
     def __init__(self, soccfg):
         """
@@ -698,7 +699,7 @@ class QickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg.length, enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
         """
         Add a channel to the program's list of signal generators.
 
@@ -710,10 +711,12 @@ class QickProgram:
         :type mixer_freq: float
         :param mux_freqs: list up to 4 output frequencies - only used for mux generator
         :type mux_freqs: list
+        :param mux_gains: list gains for the tones specified in mux_freqs (lists must be the same length) - only used for mux generator
+        :type mux_gains: list
         :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency) - only used for mux generator and mixer
         :type ro_ch: int
         """
-        self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, ro_ch)
+        self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, mux_gains, ro_ch)
 
     def config_gens(self, soc):
         """
@@ -727,7 +730,7 @@ class QickProgram:
             soc.set_nyquist(ch, cfg.nqz)
             soc.set_mixer_freq(ch, cfg.mixer_freq, cfg.ro_ch)
             if cfg.mux_freqs is not None:
-                soc.set_mux_freqs(ch, cfg.mux_freqs)
+                soc.set_mux_freqs(ch, freqs=cfg.mux_freqs, gains=cfg.mux_gains)
 
     def add_pulse(self, ch, name, idata=None, qdata=None):
         """

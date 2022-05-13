@@ -356,18 +356,22 @@ class AxisSgMux4V1(AbsSignalGen):
 
     AXIS Signal Generator with 4 muxed outputs V1 registers.
 
-    PINC0_REG : frequency of waveform 0.
-    PINC1_REG : frequency of waveform 1.
-    PINC2_REG : frequency of waveform 2.
-    PINC3_REG : frequency of waveform 3.
+    PINC0_REG : frequency of tone 0.
+    PINC1_REG : frequency of tone 1.
+    PINC2_REG : frequency of tone 2.
+    PINC3_REG : frequency of tone 3.
 
     WE_REG
     * 0 : disable writes.
     * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
-    REGISTERS = {'pinc0_reg': 0, 'pinc1_reg': 1,
-                 'pinc2_reg': 2, 'pinc3_reg': 3, 'we_reg': 4}
+    REGISTERS = {'pinc0_reg': 0,
+            'pinc1_reg': 1,
+            'pinc2_reg': 2,
+            'pinc3_reg': 3,
+            'we_reg': 4}
+
     HAS_TPROC = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
@@ -379,13 +383,6 @@ class AxisSgMux4V1(AbsSignalGen):
         """
         super().__init__(description)
 
-        # Default registers.
-        self.pinc0_reg = 0
-        self.pinc1_reg = 0
-        self.pinc2_reg = 0
-        self.pinc3_reg = 0
-        self.we_reg = 0
-
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
 
@@ -395,6 +392,14 @@ class AxisSgMux4V1(AbsSignalGen):
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
         self.MAX_LENGTH = 0
+
+        # Default registers.
+        self.pinc0_reg = 0
+        self.pinc1_reg = 0
+        self.pinc2_reg = 0
+        self.pinc3_reg = 0
+
+        self.update()
 
     def update(self):
         """
@@ -421,7 +426,7 @@ class AxisSgMux4V1(AbsSignalGen):
     def set_freq_int(self, k_i, out=0):
         if out not in [0,1,2,3]:
             raise IndexError("Invalid output index for mux.")
-        setattr(self, "pinc%d_reg" % (out), k_i)
+        setattr(self, "pinc%d_reg" % (out), np.uint16(k_i))
 
         # Register update.
         self.update()
@@ -429,6 +434,122 @@ class AxisSgMux4V1(AbsSignalGen):
     def get_freq(self, out=0):
         return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
 
+class AxisSgMux4V2(AbsSignalGen):
+    """
+    AxisSgMux4V2
+
+    AXIS Signal Generator with 4 muxed outputs V2 registers.
+
+    PINC0_REG : frequency of tone 0.
+    PINC1_REG : frequency of tone 1.
+    PINC2_REG : frequency of tone 2.
+    PINC3_REG : frequency of tone 3.
+    GAIN0_REG : gain of tone 0.
+    GAIN1_REG : gain of tone 1.
+    GAIN2_REG : gain of tone 2.
+    GAIN3_REG : gain of tone 3.
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_sg_mux4_v2:1.0']
+    REGISTERS = {'pinc0_reg':0,
+                 'pinc1_reg':1,
+                 'pinc2_reg':2,
+                 'pinc3_reg':3,
+                 'gain0_reg':4,
+                 'gain1_reg':5,
+                 'gain2_reg':6,
+                 'gain3_reg':7,
+                 'we_reg':8}
+
+    HAS_TPROC = True
+    HAS_MIXER = True
+    FS_INTERPOLATION = 4
+    TPROC_PORT = 's_axis'
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+
+        # Generics
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # Frequency resolution
+        self.B_DDS = 32
+
+        # dummy values, since this doesn't have a waveform memory.
+        self.switch_ch = -1
+        self.MAX_LENGTH = 0
+
+        # Default registers.
+        self.pinc0_reg=0
+        self.pinc1_reg=0
+        self.pinc2_reg=0
+        self.pinc3_reg=0
+        self.gain0_reg=self.MAXV
+        self.gain1_reg=self.MAXV
+        self.gain2_reg=self.MAXV
+        self.gain3_reg=self.MAXV
+
+        self.update()
+
+    def update(self):
+        """
+        Update register values
+        """
+        self.we_reg = 1
+        self.we_reg = 0
+
+    def set_freq(self, f, out, ro_ch=0):
+        """
+        Set frequency register
+
+        :param f: frequency in MHz
+        :type f: float
+        :param out: muxed channel to configure
+        :type out: int
+        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
+        """
+        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
+        self.set_freq_int(k_i, out)
+
+    def set_freq_int(self, k_i, out):
+        if out not in range(4):
+            raise IndexError("Invalid output index for mux.")
+        setattr(self, "pinc%d_reg" % (out), np.uint32(k_i))
+
+        # Register update.
+        self.update()
+
+    def get_freq(self, out):
+        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
+
+    def set_gain(self, g, out):
+        """
+        Set gain register
+
+        :param g: gain (in range -1 to 1)
+        :type g: float
+        :param out: muxed channel to configure
+        :type out: int
+        """
+        self.set_gain_int(np.round(g*self.MAXV), out)
+
+    def set_gain_int(self, g_i, out):
+        # Sanity checks.
+        if out not in range(4):
+            raise IndexError("Invalid output index for mux.")
+        if np.abs(g_i)>self.MAXV:
+            raise RuntimeError("Requested gain exceeds max limit.")
+        setattr(self, "gain%d_reg" % (out), np.int16(g_i))
+
+        # Register update.
+        self.update()
 
 class AxisConstantIQ(AbsSignalGen):
     # AXIS Constant IQ registers:
@@ -444,8 +565,8 @@ class AxisConstantIQ(AbsSignalGen):
         super().__init__(description)
 
         # Default registers.
-        self.real_reg = 30000
-        self.imag_reg = 30000
+        self.real_reg = self.MAXV
+        self.imag_reg = self.MAXV
 
         # Register update.
         self.update()
@@ -456,8 +577,8 @@ class AxisConstantIQ(AbsSignalGen):
 
     def set_iq(self, i=1, q=1):
         # Set registers.
-        self.real_reg = int(i*self.MAXV)
-        self.imag_reg = int(q*self.MAXV)
+        self.real_reg = np.int16(i*self.MAXV)
+        self.imag_reg = np.int16(q*self.MAXV)
 
         # Register update.
         self.update()
@@ -1643,7 +1764,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Signal generators (anything driven by the tProc)
         self.gens = []
-        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1])
+        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1, AxisSgMux4V2])
 
         # Constant generators
         self.iqs = []
@@ -2025,20 +2146,29 @@ class QickSoc(Overlay, QickConfig):
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
-    def set_mux_freqs(self, ch, freqs, ro_ch=0):
+    def set_mux_freqs(self, ch, freqs, gains=None, ro_ch=0):
         """
-        Set muxed frequencies for a signal generator.
+        Set muxed frequencies and gains for a signal generator.
         If it's not a muxed signal generator, you will get an error.
+
+        Gains can only be specified for a muxed generator with configurable gains.
+        The gain list must be the same length as the freqs list.
 
         :param ch: DAC channel (index in 'gens' list)
         :type ch: int
         :param freqs: frequencies (MHz)
         :type freqs: list
+        :param gains: gains (in range -1 to 1)
+        :type gains: list
         :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
         :type ro_ch: int
         """
+        if gains is not None and len(gains) != len(freqs):
+            raise RuntimeError("lengths of freqs and gains lists do not match")
         for ii, f in enumerate(freqs):
             self.gens[ch].set_freq(f, out=ii, ro_ch=ro_ch)
+            if gains is not None:
+                self.gens[ch].set_gain(gains[ii], out=ii)
 
     def set_iq(self, ch, f, i, q):
         """
