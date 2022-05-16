@@ -52,31 +52,23 @@ This guide will show you how to set up QICK after configuring your computer and 
 * For detailed connector mapping, consult pages 71-79 of this Xilinx document: https://www.xilinx.com/content/dam/xilinx/support/documents/boards_and_kits/zcu216/ug1390-zcu216-eval-bd.pdf. 
 * Now, tie the P/N differential SMAs of a DAC (lets say, DAC 6, which is in the below table labeled `2_231` on the XM655 card) to a low frequency balun (10 MHz-1 GHz) on the XM655 card. Also tie the P/N differential SMAs of an ADC (lets say, ADC 0 which is in the below table labeled `0_226` on the XM655 card) to another low frequency balun on the XM655 card. Now connect the balun outputs together to create a loopback from DAC 6 to ADC 0. When you initialize the RFSOC object in your loopback script you will see the mapping between QICK DAC and ADC channels and the tile numbers associated with the various JHC locations on the XM655 card. Here they are listed below, as well. 
 
-DAC-side
-JHC 3 differential SMAs:
+* DAC-side
+  * JHC 3 differential SMAs:
+   * 2_231 <-> DAC 6
+   * 0_231 <-> DAC 4
+   * 2_230 <-> DAC 2
+   * 0_230 <- DAC 0
+  * JHC 4 differential SMAs:
+   * 1_231 <-> DAC 5
+   * 3_230 <-> DAC 3
+   * 1_230 <-> DAC 1
 
-2_231 <-> DAC 6
-0_231 <-> DAC 4
-2_230 <-> DAC 2
-0_230 <- DAC 0
-
-JHC 4 differential SMAs:
-
-1_231 <-> DAC 5
-3_230 <-> DAC 3
-1_230 <-> DAC 1
-
-ADC-side
-JHC 7 differential SMAs:
-2_226 <-> ADC 1
-0_226 <-> ADC 0
-
+* ADC-side
+  * JHC 7 differential SMAs:
+   * 2_226 <-> ADC 1
+   * 0_226 <-> ADC 0
 
 * Slide your micro SD card into its slot on the ZCU216 board. Make sure that switch SW2 of the ZCU216 is in SD card mode according to Table 5 of this Xilinx document: https://www.xilinx.com/content/dam/xilinx/support/documents/boards_and_kits/zcu216/ug1390-zcu216-eval-bd.pdf. 
-
-<p align="center">
- <img src="quick-start-guide-pics/Bootmodeswitch.png" alt="Boot mode switch">
-</p>
 
 * Connect your Ethernet cable from a router LAN port to the ZCU216 Ethernet port. 
 * Power up your router (note that you may have to contact your system administrator to register your router's MAC address to a wall outlet in your building/laboratory).  
