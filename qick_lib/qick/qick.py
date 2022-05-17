@@ -1968,13 +1968,22 @@ class QickSoc(Overlay, QickConfig):
         if self['board'] == 'ZCU111':
             print("resetting clocks:", self['refclk_freq'])
 
-            # load the clock chip configurations from file, so we can then modify them
-            xrfclk.xrfclk._find_devices()
-            xrfclk.xrfclk._read_tics_output()
-            if self.ENABLE_LO_OUTPUT:
-                # change the register for the LMK04208 chip's 5th output, which goes to J108
-                # we need this for driving the RF board
-                xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+            if hasattr(xrfclk, "xrfclk"):
+                # load the default clock chip configurations from file, so we can then modify them
+                xrfclk.xrfclk._find_devices()
+                xrfclk.xrfclk._read_tics_output()
+                if self.ENABLE_LO_OUTPUT:
+                    # change the register for the LMK04208 chip's 5th output, which goes to J108
+                    # we need this for driving the RF board
+                    xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+            else:
+                if self.ENABLE_LO_OUTPUT:
+                    # change the register for the LMK04208 chip's 5th output, which goes to J108
+                    # we need this for driving the RF board
+                    xrfclk._lmk04208Config[122.88][6] = 0x00140325
+                else:
+                    # restore the default clock config
+                    xrfclk._lmk04208Config[122.88][6] = 0x80141E05
 
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
