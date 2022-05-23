@@ -157,7 +157,7 @@ setup(
     # but qick_asm.py, averager_program.py, and the notebooks should still work.
     install_requires=[
         "numpy",
-        "pynq;platform_machine=='aarch64' or platform_machine=='armv7l'",
+        "pynq>=2.6;platform_machine=='aarch64' or platform_machine=='armv7l'",
         "tqdm"],  # Optional
 
     # List additional groups of dependencies here (e.g. development
@@ -210,8 +210,9 @@ setup(
     # maintainers, and where to support the project financially. The key is
     # what's used to render the link text on PyPI.
     project_urls={  # Optional
+        'Source': 'https://github.com/openquantumhardware/qick',
         'Documentation': 'https://qick-docs.readthedocs.io/en/latest/',
-        'Documentation Repo': 'https://github.com/openquantumhardware/qick-docs',
+        'Tracker': 'https://github.com/openquantumhardware/qick/issues',
     },
 )
 

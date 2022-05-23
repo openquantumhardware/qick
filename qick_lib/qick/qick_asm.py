@@ -62,12 +62,16 @@ class QickConfig():
         for iReadout, readout in enumerate(self['readouts']):
             lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
-            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tProc input %d" % (
+            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
         tproc = self['tprocs'][0]
         lines.append("\n\ttProc: %d words program memory, %d words data memory" %
                 (tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
+        for pin, name in tproc['output_pins']:
+            lines.append("\t%d:\t%s" % (pin, name))
+
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
@@ -1045,9 +1049,9 @@ class QickProgram:
         Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no ADCs are specified, the adc_trig_offset is not applied.
 
-        :param adcs: List of ADC channels to trigger.
+        :param adcs: List of ADC channels to trigger. Use the readout channel index in the QickConfig printout.
         :type adcs: list
-        :param pins: List of marker pins to pulse.
+        :param pins: List of marker pins to pulse. Use the pin numbers in the QickConfig printout.
         :type pins: list
         :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
         :type adc_trig_offset: int

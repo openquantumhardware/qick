@@ -1358,13 +1358,24 @@ class AxisTProc64x32_x8(SocIp):
         self.dma = axi_dma
 
     def configure_connections(self, soc, sigparser, busparser):
+        self.output_pins = []
         for i in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
-            ((block, port),) = trace_net(
-                busparser, self.fullpath, 'm%d_axis' % (i+1))
+            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis' % (i+1))
             if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
+                ((block, port),) = trace_net(sigparser, block, 'dout')
+                for iPin in range(16):
+                    try:
+                        (port,) = trace_net(sigparser, block, "dout%d"%(iPin))
+                        if len(port)==1:
+                            # it's an FPGA pin, save it
+                            pinname = port[0]
+                            self.output_pins.append((iPin, pinname))
+                    except KeyError:
+                        pass
+
 
     def start(self):
         """
@@ -1863,6 +1874,7 @@ class QickSoc(Overlay, QickConfig):
         for tproc in [self.tproc]:
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
+            thiscfg['output_pins'] = tproc.output_pins
             thiscfg['pmem_size'] = tproc.mem.mmio.length/8
             thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
@@ -1968,13 +1980,22 @@ class QickSoc(Overlay, QickConfig):
         if self['board'] == 'ZCU111':
             print("resetting clocks:", self['refclk_freq'])
 
-            # load the clock chip configurations from file, so we can then modify them
-            xrfclk.xrfclk._find_devices()
-            xrfclk.xrfclk._read_tics_output()
-            if self.ENABLE_LO_OUTPUT:
-                # change the register for the LMK04208 chip's 5th output, which goes to J108
-                # we need this for driving the RF board
-                xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+            if hasattr(xrfclk, "xrfclk"):
+                # load the default clock chip configurations from file, so we can then modify them
+                xrfclk.xrfclk._find_devices()
+                xrfclk.xrfclk._read_tics_output()
+                if self.ENABLE_LO_OUTPUT:
+                    # change the register for the LMK04208 chip's 5th output, which goes to J108
+                    # we need this for driving the RF board
+                    xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+            else:
+                if self.ENABLE_LO_OUTPUT:
+                    # change the register for the LMK04208 chip's 5th output, which goes to J108
+                    # we need this for driving the RF board
+                    xrfclk._lmk04208Config[122.88][6] = 0x00140325
+                else:
+                    # restore the default clock config
+                    xrfclk._lmk04208Config[122.88][6] = 0x80141E05
 
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
