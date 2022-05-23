@@ -1049,9 +1049,9 @@ class QickProgram:
         Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no ADCs are specified, the adc_trig_offset is not applied.
 
-        :param adcs: List of ADC channels to trigger.
+        :param adcs: List of ADC channels to trigger. Use the readout channel index in the QickConfig printout.
         :type adcs: list
-        :param pins: List of marker pins to pulse.
+        :param pins: List of marker pins to pulse. Use the pin numbers in the QickConfig printout.
         :type pins: list
         :param adc_trig_offset: Offset time at which the ADC is triggered (in clock ticks)
         :type adc_trig_offset: int
