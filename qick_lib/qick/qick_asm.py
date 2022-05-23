@@ -62,12 +62,16 @@ class QickConfig():
         for iReadout, readout in enumerate(self['readouts']):
             lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
-            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger %d, tProc input %d" % (
+            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
         tproc = self['tprocs'][0]
         lines.append("\n\ttProc: %d words program memory, %d words data memory" %
                 (tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
+        for pin, name in tproc['output_pins']:
+            lines.append("\t%d:\t%s" % (pin, name))
+
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
