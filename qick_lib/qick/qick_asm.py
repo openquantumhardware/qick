@@ -65,13 +65,35 @@ class QickConfig():
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
+        lines.append("\n\t%d DACs:" % (len(self['dacs'])))
+        for dac in self['dacs']:
+            tile, block = [int(c) for c in dac]
+            if self['board']=='ZCU111':
+                label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
+            elif self['board']=='ZCU216':
+                label = "%d_%d" % (block, tile + 228)
+            lines.append("\t\tDAC tile %d, ch %d is %s" %
+                         (tile, block, label))
+
+        lines.append("\n\t%d ADCs:" % (len(self['adcs'])))
+        for adc in self['adcs']:
+            tile, block = [int(c) for c in adc]
+            if self['board']=='ZCU111':
+                rfbtype = "DC" if tile > 1 else "AC"
+                label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
+            elif self['board']=='ZCU216':
+                label = "%d_%d" % (block, tile + 224)
+            lines.append("\t\tADC tile %d, ch %d is %s" %
+                         (tile, block, label))
+
         tproc = self['tprocs'][0]
-        lines.append("\n\ttProc: %d words program memory, %d words data memory" %
-                (tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 
+        lines.append("\n\ttProc: %d words program memory, %d words data memory" %
+                (tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 

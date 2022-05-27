@@ -1359,6 +1359,12 @@ class AxisTProc64x32_x8(SocIp):
 
     def configure_connections(self, soc, sigparser, busparser):
         self.output_pins = []
+        self.start_pin = None
+        try:
+            ((port),) = trace_net(sigparser, self.fullpath, 'start')
+            self.start_pin = port[0]
+        except:
+            pass
         for i in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
@@ -1368,10 +1374,11 @@ class AxisTProc64x32_x8(SocIp):
                 ((block, port),) = trace_net(sigparser, block, 'dout')
                 for iPin in range(16):
                     try:
-                        (port,) = trace_net(sigparser, block, "dout%d"%(iPin))
-                        if len(port)==1:
+                        #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
+                        ports = trace_net(sigparser, block, "dout%d"%(iPin))
+                        if len(ports)==1 and len(ports[0])==1:
                             # it's an FPGA pin, save it
-                            pinname = port[0]
+                            pinname = ports[0][0]
                             self.output_pins.append((iPin, pinname))
                     except KeyError:
                         pass
@@ -1834,6 +1841,8 @@ class QickSoc(Overlay, QickConfig):
             readout.configure(self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
+        self['dacs'] = list(self.dacs.keys())
+        self['adcs'] = list(self.adcs.keys())
         self['gens'] = []
         self['readouts'] = []
         self['iqs'] = []
@@ -1875,7 +1884,8 @@ class QickSoc(Overlay, QickConfig):
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
             thiscfg['output_pins'] = tproc.output_pins
-            thiscfg['pmem_size'] = tproc.mem.mmio.length/8
+            thiscfg['start_pin'] = tproc.start_pin
+            thiscfg['pmem_size'] = tproc.mem.mmio.length//8
             thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
