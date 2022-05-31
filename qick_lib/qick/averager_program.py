@@ -1,7 +1,7 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 import numpy as np
 from .qick_asm import QickProgram
 
@@ -813,12 +813,25 @@ class PAveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
+        reps, expts, rounds = self.cfg['reps'], self.cfg['expts'], self.cfg.get("rounds", 1)
+        msmt_per_rep = expts * readouts_per_experiment
+        tot_reps = reps * rounds
+        total_msmt = msmt_per_rep * tot_reps
+
+        n_ro = len(self.ro_chs)
+
+        self.di_buf_p = np.zeros((n_ro, tot_reps, msmt_per_rep))
+        self.dq_buf_p = np.zeros((n_ro, tot_reps, msmt_per_rep))
+
         if angle is None:
             angle = [0, 0]
         if save_experiments is None:
             save_experiments = [0]
         if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
-            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+            expt_pts, avg_di, avg_dq = self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+            self.di_buf_p = self.di_buf.reshape(n_ro, reps, -1)
+            self.dq_buf_p = self.dq_buf.reshape(n_ro, reps, -1)
+            return expt_pts, avg_di, avg_dq
 
         avg_di = None
         for ii in tqdm(range(self.cfg["rounds"]), disable=not progress):
@@ -830,5 +843,8 @@ class PAveragerProgram(QickProgram):
             else:
                 avg_di += avg_di0
                 avg_dq += avg_dq0
+
+            self.di_buf_p[:, reps * ii: reps * (ii + 1), :] = self.di_buf.reshape(n_ro, reps, -1)
+            self.dq_buf_p[:, reps * ii: reps * (ii + 1), :] = self.dq_buf.reshape(n_ro, reps, -1)
 
         return expt_pts, avg_di/self.cfg["rounds"], avg_dq/self.cfg["rounds"]
