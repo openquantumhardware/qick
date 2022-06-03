@@ -726,21 +726,23 @@ class QickProgram:
                 soc.config_buf(ch, address=0, length=cfg.length, enable=True)
 
     def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
-        """
-        Add a channel to the program's list of signal generators.
+        """Add a channel to the program's list of signal generators.
 
-        :param ch: Generator channel number (index in 'gens' list)
-        :type ch: int
-        :param nqz: Nyquist zone for the DAC
-        :type nqz: int
-        :param mixer_freq: mixer frequency (if applicable; use 0 if there's no mixer on this DAC)
-        :type mixer_freq: float
-        :param mux_freqs: list up to 4 output frequencies - only used for mux generator
-        :type mux_freqs: list
-        :param mux_gains: list gains for the tones specified in mux_freqs (lists must be the same length) - only used for mux generator
-        :type mux_gains: list
-        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency) - only used for mux generator and mixer
-        :type ro_ch: int
+        Parameters
+        ----------
+        ch : int
+            Generator channel number (index in 'gens' list)
+        nqz : int
+            Nyquist zone for the DAC
+        mixer_freq : float
+            mixer frequency (if applicable; use 0 if there's no mixer on this DAC)
+        mux_freqs : list
+            list up to 4 output frequencies - only used for mux generator
+        mux_gains : list
+            list gains for the tones specified in mux_freqs (lists must be the same length) - only used for mux generator
+            range is [-1, 1] - in other words, amplitude is signed and is scaled to the max amplitude of the generator
+        ro_ch : int
+            ADC channel (use None if you don't want to round to a valid ADC frequency) - only used for mux and interpolated generators
         """
         self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, mux_gains, ro_ch)
 
