@@ -200,7 +200,7 @@ class QickConfig():
         thisch : dict
             config dict for the channel you're configuring
         otherch : dict
-            config dict for a channel you will set to the same frequency (Default value = None)
+            config dict for a channel you will set to the same frequency
 
         Returns
         -------
@@ -242,9 +242,9 @@ class QickConfig():
         f : float
             frequency (MHz)
         gen_ch : int
-            DAC channel (Default value = 0)
+            DAC channel
         ro_ch : int
-            readout channel (use None if you don't want to frequency-match to an ADC) (Default value = None)
+            readout channel (use None if you don't want to frequency-match to an ADC)
 
         Returns
         -------
@@ -271,9 +271,9 @@ class QickConfig():
         f : float
             frequency (MHz)
         ro_ch : int
-            readout channel (Default value = 0)
+            readout channel
         gen_ch : int
-            DAC channel (use None if you don't want to frequency-match to a DAC) (Default value = None)
+            DAC channel (use None if you don't want to frequency-match to a DAC)
 
         Returns
         -------
@@ -295,7 +295,7 @@ class QickConfig():
         r : int
             frequency in tProc DAC format
         gen_ch : int
-            DAC channel (Default value = 0)
+            DAC channel
 
         Returns
         -------
@@ -313,7 +313,7 @@ class QickConfig():
         r : int
             frequency in tProc ADC format
         ro_ch : int
-            ADC channel (Default value = 0)
+            ADC channel
 
         Returns
         -------
@@ -331,9 +331,9 @@ class QickConfig():
         f : float
             frequency (MHz)
         gen_ch : int
-            DAC channel (Default value = 0)
+            DAC channel
         ro_ch : int
-            readout channel (Default value = 0)
+            readout channel
 
         Returns
         -------
@@ -429,9 +429,9 @@ class QickConfig():
         us : float
             Number of microseconds
         gen_ch : int
-            DAC channel (index in 'gens' list) (Default value = None)
+            DAC channel (index in 'gens' list)
         ro_ch : int
-            ADC channel (index in 'readouts' list) (Default value = None)
+            ADC channel (index in 'readouts' list)
 
         Returns
         -------
@@ -591,7 +591,7 @@ class AbsGenManager:
         Parameters
         ----------
         length : int
-            The number of fabric clock cycles in the pulse
+            The number of DAC fabric cycles in the pulse
         mode : str
             Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
         outsel : str
@@ -936,10 +936,9 @@ class QickProgram:
         length : int
             readout length (number of samples)
         sel : str
-            output select ('product', 'dds', 'input') (Default value = 'product')
+            output select ('product', 'dds', 'input')
         gen_ch : int
-            DAC channel (use None if you don't want to round to a valid DAC frequency) (Default value = None)
-
+            DAC channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
 
@@ -966,9 +965,9 @@ class QickProgram:
         soc : QickSoc
             the QickSoc that will execute this program
         enable_avg : bool
-            enable the accumulated (averaging) buffer (Default value = True)
+            enable the accumulated (averaging) buffer
         enable_buf : bool
-            enable the decimated (waveform) buffer (Default value = True)
+            enable the decimated (waveform) buffer
 
         """
         for ch, cfg in self.ro_chs.items():
@@ -980,21 +979,27 @@ class QickProgram:
     def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
+        If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
+
+        If this is a muxed generator, the mux_freqs and mux_gains lists must be long enough to define all the tones you will play.
+        (in other words, if your mask list ever enables tone 2 you must define at least 3 freqs+gains)
+
         Parameters
         ----------
-        ch :
-            
-        nqz :
-             (Default value = 1)
-        mixer_freq :
-             (Default value = 0)
-        mux_freqs :
-             (Default value = None)
-        mux_gains :
-             (Default value = None)
-        ro_ch :
-             (Default value = None)
-
+        ch : int
+            DAC channel (index in 'gens' list)
+        nqz : int, optional
+            Nyquist zone (must be 1 or 2).
+            Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
+        mixer_freq : float, optional
+            Mixer frequency (in MHz)
+        mux_freqs : list of float, optional
+            Tone frequencies for the muxed generator (in MHz).
+            Positive and negative values are allowed.
+        mux_gains : list of int, optional
+            Tone amplitudes for the muxed generator (in range -1 to 1).
+        ro_ch : int, optional
+            ADC channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
         """
         self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, mux_gains, ro_ch)
 
@@ -1024,9 +1029,9 @@ class QickProgram:
         name : str
             Name of the pulse
         idata : array
-            I data Numpy array (Default value = None)
+            I data Numpy array
         qdata : array
-            Q data Numpy array (Default value = None)
+            Q data Numpy array
 
         """
         self.gen_mgrs[ch].add_pulse(name, idata, qdata)
@@ -1046,7 +1051,7 @@ class QickProgram:
         length : int
             Total pulse length (in units of fabric clocks)
         maxv : float
-            Value at the peak (if None, the max value for this generator will be used) (Default value = None)
+            Value at the peak (if None, the max value for this generator will be used)
 
         """
         gencfg = self.soccfg['gens'][ch]
@@ -1074,11 +1079,11 @@ class QickProgram:
         length : int
             Total pulse length (in units of fabric clocks)
         maxv : float
-            Value at the peak (if None, the max value for this generator will be used) (Default value = None)
+            Value at the peak (if None, the max value for this generator will be used)
         delta : float
             anharmonicity of the qubit (units of MHz)
         alpha : float
-            alpha parameter of DRAG (order-1 scale factor) (Default value = 0.5)
+            alpha parameter of DRAG (order-1 scale factor)
 
         Returns
         -------
@@ -1111,7 +1116,7 @@ class QickProgram:
         length : int
             Total pulse length (in units of fabric clocks)
         maxv : float
-            Value at the peak (if None, the max value for this generator will be used) (Default value = None)
+            Value at the peak (if None, the max value for this generator will be used)
 
         """
         gencfg = self.soccfg['gens'][ch]
@@ -1375,11 +1380,11 @@ class QickProgram:
             List of marker pins to pulse.
             Use the pin numbers in the QickConfig printout.
         adc_trig_offset : int, optional
-            Offset time at which the ADC is triggered (in clock ticks)
+            Offset time at which the ADC is triggered (in tProc cycles)
         t : int, optional
-            The number of clock ticks at which point the ADC trigger starts
+            The number of tProc cycles at which the ADC trigger starts
         width : int, optional
-            The width of the trigger pulse, in clock ticks
+            The width of the trigger pulse, in tProc cycles
         rp : int, optional
             Register page
         r_out : int, optional
@@ -1438,7 +1443,7 @@ class QickProgram:
         wait : bool, optional
             Pause tProc execution until the end of the ADC readout window
         syncdelay : int, optional
-            The number of additional clock ticks to delay in the sync_all
+            The number of additional tProc cycles to delay in the sync_all
         """
         self.trigger(adcs, pins=pins, adc_trig_offset=adc_trig_offset)
         self.pulse(ch=pulse_ch, t=t)
