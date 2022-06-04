@@ -44,6 +44,9 @@ reg						s0_axis_tvalid;
 reg						aresetn;
 reg						aclk;
 
+// Dummy clock for debugging.
+reg						aclk4;
+
 // s1_axis interfase.
 reg		[87:0]			s1_axis_tdata;
 wire					s1_axis_tready;
@@ -62,9 +65,12 @@ reg		[15:0]			gain_r;
 reg		[15:0]			nsamp_r;
 reg		[1:0]			outsel_r;
 reg						mode_r;
+reg						stdysel_r;
+reg						phrst_r;
 
 // Assignment of data out for debugging.
 wire	[31:0]			dout_ii [0:N_DDS-1];
+reg		[31:0]			dout_f;
 
 xil_axi_prot_t  prot        = 0;
 reg[31:0]       data_wr     = 32'h12345678;
@@ -165,7 +171,7 @@ axis_sg_int4_v1
 // VIP Agents
 axi_mst_0_mst_t 	axi_mst_0_agent;
 
-assign s1_axis_tdata = {mode_r,outsel_r,nsamp_r,gain_r,addr_r,phase_r,freq_r};
+assign s1_axis_tdata = {phrst_r,stdysel_r,mode_r,outsel_r,nsamp_r,gain_r,addr_r,phase_r,freq_r};
 
 initial begin
 	// Create agents.
@@ -278,43 +284,93 @@ initial begin
 	nsamp_r			<= 0;
 	outsel_r		<= 0;
 	mode_r			<= 0;
+	stdysel_r		<= 0;
+	phrst_r			<= 0;
 
 	wait (tb_load_wave);
 	wait (s1_axis_tready);
 
-	@(posedge aclk);
-	$display("t = %0t", $time);
-	s1_axis_tvalid	<= 1;
-	freq_r			<= freq_calc(100, N_DDS, 10);
-	phase_r			<= 0;
-	addr_r			<= 127;
-	gain_r			<= 32000;
-	nsamp_r			<= 10;
-	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	mode_r			<= 0;	// 0: nsamp, 1: periodic
-	
+	/***************/
+	/* Simple Test */
+	/***************/
 	@(posedge aclk);
 	$display("t = %0t", $time);
 	s1_axis_tvalid	<= 1;
 	freq_r			<= freq_calc(100, N_DDS, 15);
-	phase_r			<= 0;
 	addr_r			<= 0;
 	gain_r			<= 22000;
-	nsamp_r			<= 512;
-	outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+	nsamp_r			<= 100;
+	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
 	mode_r			<= 0;	// 0: nsamp, 1: periodic	
+	stdysel_r		<= 0;
+	phrst_r			<= 0;
+
+	@(posedge aclk);
+	s1_axis_tvalid	<= 0;
+
+	/************/
+	/* Flat Top */
+	/************/
+
+	//@(posedge aclk);
+	//$display("t = %0t", $time);
+	//s1_axis_tvalid	<= 1;
+	//freq_r			<= freq_calc(100, N_DDS, 15);
+	//addr_r			<= 0;
+	//gain_r			<= 22000;
+	//nsamp_r			<= 300;
+	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
+
+	//@(posedge aclk);
+	//$display("t = %0t", $time);
+	//s1_axis_tvalid	<= 1;
+	//addr_r			<= 300;
+	//gain_r			<= 11000;
+	//nsamp_r			<= 200;
+	//outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
+	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
+
+	////@(posedge aclk);
+	////s1_axis_tvalid	<= 0;
+
+	////#5000;
+
+	//@(posedge aclk);
+	//$display("t = %0t", $time);
+	//s1_axis_tvalid	<= 1;
+	//addr_r			<= 300;
+	//gain_r			<= 22000;
+	//nsamp_r			<= 300;
+	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
+	//stdysel_r		<= 1;
+
+	/*****************/
+	/* Latency Check */
+	/*****************/
 
 	//@(posedge aclk);
 	//$display("t = %0t", $time);
 	//s1_axis_tvalid	<= 1;
 	//freq_r			<= freq_calc(100, N_DDS, 19);
-	//phase_r			<= 0;
-	//addr_r			<= 0;
+	//phase_r			<= 100;
+	//addr_r			<= 10;
 	//gain_r			<= 30000;
-	//nsamp_r			<= 55/N_DDS;
+	//nsamp_r			<= 17;
 	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
 	//mode_r			<= 0;	// 0: nsamp, 1: periodic
-	//stdysel_r		<= 0;	// 0: last, 1: zero.
+
+	//@(posedge aclk);
+	//$display("t = %0t", $time);
+	//s1_axis_tvalid	<= 1;
+	//freq_r			<= freq_calc(100, N_DDS, 1);
+	//phase_r			<= 245;
+	//addr_r			<= 300;
+	//gain_r			<= 30000;
+	//nsamp_r			<= 5;
+	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+	//mode_r			<= 0;	// 0: nsamp, 1: periodic
 
 	//@(posedge aclk);
 	//$display("t = %0t", $time);
@@ -389,6 +445,19 @@ initial begin
 	$fclose(fd);
 end
 
+// Assign output to vector for easy plotting.
+initial begin
+	dout_f <= 0;
+
+	@(posedge aclk);
+	while (1) begin
+		for (int i=0; i<N_DDS; i = i+1) begin
+			@(posedge aclk4);
+			dout_f = dout_ii[i];
+		end
+	end
+end
+
 always begin
 	s_axi_aclk <= 0;
 	#10;
@@ -405,9 +474,26 @@ end
 
 always begin
 	aclk <= 0;
-	#5;
+	aclk4 <= 0;
+	#1;
+	aclk4 <= 1;
+	#1;
+
+	aclk4 <= 0;
+	#1;
+	aclk4 <= 1;
+	#1;
+
 	aclk <= 1;
-	#5;
+	aclk4 <= 0;
+	#1;
+	aclk4 <= 1;
+	#1;
+
+	aclk4 <= 0;
+	#1;
+	aclk4 <= 1;
+	#1;
 end  
 
 // Function to compute frequency register.

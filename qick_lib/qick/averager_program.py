@@ -1,7 +1,10 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from tqdm.notebook import tqdm
+try:
+    from tqdm.notebook import tqdm
+except:
+    from tqdm import tqdm_notebook as tqdm
 import numpy as np
 from .qick_asm import QickProgram
 
