@@ -81,7 +81,7 @@ class QickConfig():
             if self['board']=='ZCU111':
                 label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
             elif self['board']=='ZCU216':
-                label = "%d_%d" % (block, tile + 228)
+                label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
             lines.append("\t\tDAC tile %d, ch %d is %s" %
                          (tile, block, label))
 
@@ -92,7 +92,7 @@ class QickConfig():
                 rfbtype = "DC" if tile > 1 else "AC"
                 label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
             elif self['board']=='ZCU216':
-                label = "%d_%d" % (block, tile + 224)
+                label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
             lines.append("\t\tADC tile %d, ch %d is %s" %
                          (tile, block, label))
 
