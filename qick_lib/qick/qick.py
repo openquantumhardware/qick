@@ -1582,7 +1582,7 @@ class RFDC(xrfdc.RFdc):
     def configure(self, soc):
         self.daccfg = soc.dacs
 
-    def set_mixer_freq(self, dacname, f, force=False):
+    def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
@@ -1605,6 +1605,8 @@ class RFDC(xrfdc.RFdc):
         :type f: float
         :param force: force update, even if the setting is the same
         :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
         """
         fs = self.daccfg[dacname]['fs']
         fstep = fs/2**48
@@ -1631,6 +1633,7 @@ class RFDC(xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
+        if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
         self.mixer_dict[dacname] = rounded_f
