@@ -1582,7 +1582,7 @@ class RFDC(xrfdc.RFdc):
     def configure(self, soc):
         self.daccfg = soc.dacs
 
-    def set_mixer_freq(self, dacname, f, force=False):
+    def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
@@ -1605,6 +1605,8 @@ class RFDC(xrfdc.RFdc):
         :type f: float
         :param force: force update, even if the setting is the same
         :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
         """
         fs = self.daccfg[dacname]['fs']
         fstep = fs/2**48
@@ -1631,6 +1633,7 @@ class RFDC(xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
+        if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
         self.mixer_dict[dacname] = rounded_f
@@ -2227,9 +2230,20 @@ class QickSoc(Overlay, QickConfig):
         if reset: self.tproc.reset()
 
         # cast the program words to 64-bit uints
-        p = np.array(binprog, dtype=np.uint64)
-        # reshape to 32-bit uints to match the program memory, and do a fast copy
-        np.copyto(self.tproc.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
+        self.binprog = np.array(binprog, dtype=np.uint64)
+        # reshape to 32 bits to match the program memory
+        self.binprog = np.frombuffer(self.binprog, np.uint32)
+
+        self.reload_program()
+
+    def reload_program(self):
+        """
+        Write the most recently written program to the tProc program memory.
+        This is normally useful after a reset (which erases the program memory)
+        """
+        # write the program to memory with a fast copy
+        #print(self.binprog)
+        np.copyto(self.tproc.mem.mmio.array[:len(self.binprog)], self.binprog)
 
     def start_src(self, src):
         """
@@ -2275,23 +2289,34 @@ class QickSoc(Overlay, QickConfig):
         if not streamer.readout_worker.is_alive():
             print("restarting readout worker")
             streamer.start_worker()
+            print("worker restarted")
 
         # if there's still a readout job running, stop it
         if streamer.readout_running():
-            print("cleaning up previous readout: stopping streamer loop")
+            print("cleaning up previous readout: stopping tProc and streamer loop")
+            # stop the tProc
+            self.tproc.reset()
             # tell the readout to stop (this will break the readout loop)
             streamer.stop_readout()
             streamer.done_flag.wait()
+            # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
+            streamer.data_queue.put((0,0))
+            time.sleep(0.1)
+            # reload the program (since the reset will have wiped it out)
+            self.reload_program()
+            print("streamer stopped")
         if streamer.data_available():
             # flush all the data in the streamer buffer
             print("clearing streamer buffer")
             # read until the queue times out, discard the data
             self.poll_data(totaltime=-1, timeout=0.1)
+            print("buffer cleared")
 
         streamer.total_count = total_count
         streamer.count = 0
 
         streamer.done_flag.clear()
+        streamer.stop_flag.clear()
         streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
 
     def poll_data(self, totaltime=0.1, timeout=None):
@@ -2321,6 +2346,9 @@ class QickSoc(Overlay, QickConfig):
                 pass
             try:
                 length, data = streamer.data_queue.get(block=True, timeout=timeout)
+                # if we stopped the readout while we were waiting for data, break out and return
+                if streamer.stop_flag.is_set():
+                    break
                 streamer.count += length
                 new_data.append(data)
             except queue.Empty:
