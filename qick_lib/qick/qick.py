@@ -2300,7 +2300,7 @@ class QickSoc(Overlay, QickConfig):
             streamer.stop_readout()
             streamer.done_flag.wait()
             # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
-            streamer.data_queue.put((0,0))
+            streamer.data_queue.put((0, (None, None)))
             time.sleep(0.1)
             # reload the program (since the reset will have wiped it out)
             self.reload_program()
