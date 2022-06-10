@@ -383,7 +383,7 @@ class spi(DefaultIP):
             nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
             data_r = np.zeros(nr)
             for i in range(nr):
-                data_r[i] = self.SPI_DRR
+                data_r[i] = self.SPI_DRR.RX_Data
             return data_r
 
     # Send/Receive.
