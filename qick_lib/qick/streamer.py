@@ -2,6 +2,7 @@ from threading import Thread, Event
 from queue import Queue
 import time
 import numpy as np
+import traceback
 
 # This code originally used Process not Thread.
 # Process is much slower to start (Process.start() is ~100 ms, Thread.start() is a few ms)
@@ -153,8 +154,11 @@ class DataStreamer():
 
             except Exception as e:
                 print("streamer loop: got exception")
+                traceback.print_exc()
                 # pass the exception to the main thread
                 self.error_queue.put(e)
+                # put dummy data in the data queue, to trigger a poll_data read
+                self.data_queue.put((0, (None, None)))
             finally:
                 # we should set the done flag regardless of whether we completed readout, used the stop flag, or errored out
                 self.done_flag.set()
