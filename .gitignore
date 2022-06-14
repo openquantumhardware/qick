@@ -5,4 +5,11 @@ __pycache__
 *~
 *swp
 
+# IPython
 .ipynb_checkpoints
+
+# Python setuptools
+dist/
+build/
+ipq_pynq_utils.egg-info
+

@@ -5,6 +5,36 @@ Implements different clock / PLL models for easy manipulation without vendor sof
 import json
 import re
 import numpy as np
+import platform
+
+def _parse_version_string(s):
+    arr = [int(v) for v in s.split(".")]
+    return arr + [0]*(3-len(arr))
+
+def _compare_version_lt(a, b):
+    if a[0] < b[0]:
+        return True
+    elif a[0] > b[0]:
+        return False
+
+    if a[1] < b[1]:
+        return True
+    elif a[1] > b[1]:
+        return False
+
+    if a[2] < b[2]:
+        return True
+
+    return False
+
+_python_version = _parse_version_string(platform.python_version())
+_required_python_version = [3, 10, 0]
+
+# Import compat-lib for python versions older than 3.10
+if _compare_version_lt(_python_version, _required_python_version):
+    from importlib_resources import files
+else:
+    from importlib.resources import files
 
 class EnumVal:
     def __init__(self, name, value, description):
@@ -318,7 +348,7 @@ class LMK04828B:
         
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
         
-        with open("lmk04828b_regmap_out.json", "r") as f:
+        with files("ipq_pynq_utils").joinpath("data/lmk04828b_regmap.json").open() as f:
             regmap = json.load(f)
         
         # Initialize registers from regmap
@@ -348,9 +378,12 @@ class LMK04828B:
         
         self.clock_branches = [LMK04828BOutputBranch(self, 2*i) for i in range(7)]
         
-    def init_from_file(self, filename):
-        with open(filename, "r") as f:
-            lines = f.read().strip().split("\n")
+    def init_from_file(self, file):
+        if hasattr(file, "read"):
+            lines = file.read().strip().split("\n")
+        else:
+            with open(file, "r") as f:
+                lines = f.read().strip().split("\n")
 
         for line in lines:
             a,b = line.split("\t")
@@ -589,10 +622,15 @@ class CLK104Output:
         self.branch.sdclk_active = value
 
 class CLK104:
-    def __init__(self, src):
+    def __init__(self, src=None):
         # 10 MHz reference clock, 156.25 MHz clock input on external SMA, 160 MHz VCO frequency
         self.lmk = LMK04828B(10, 10, 156.25, 160)
-        self.lmk.init_from_file(src)
+
+        if src is None:
+            with files("ipq_pynq_utils").joinpath("data/lmk04828b_regdump_defaults.txt").open() as f:
+                self.lmk.init_from_file(f)
+        else:
+            self.lmk.init_from_file(src)
         
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
         self.AMS_SYSREF = CLK104Output(self.lmk.clock_branches[1])
@@ -604,7 +642,7 @@ class CLK104:
         
     @property
     def PLL2_FREQ(self):
-        return self.pll2_output_freq
+        return self.lmk.pll2_output_freq
     
     @PLL2_FREQ.setter
     def PLL2_FREQ(self, value):

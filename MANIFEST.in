@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+include ipq_pynq_utils/data/*.txt
+include ipq_pynq_utils/data/*.json
