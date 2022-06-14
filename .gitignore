@@ -4,3 +4,5 @@ __pycache__
 # Vim
 *~
 *swp
+
+.ipynb_checkpoints
