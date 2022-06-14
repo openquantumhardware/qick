@@ -96,6 +96,15 @@ class Field:
                 return "BAD ENUM VALUE"
         return self.value
     
+    def set(self, value):
+        if self.value_type == "enum":
+            if not isinstance(value, EnumVal):
+                raise RuntimeError("Expected enum value!")
+            else:
+                self.value = value.value
+        else:
+            self.value = value
+    
     def get_raw(self):
         return self.mask & (self.value << self.start)
     
@@ -183,13 +192,49 @@ class LMK04828BOutputBranch:
         self.DCLK_MUX = ga(f"DCLKout{self.i}_MUX")
         self.SDCLK_MUX = ga(f"SDCLKout{self.i+1}_MUX")
     
+    def _set_output_status(self, dclk_enable, sdclk_enable):
+        if not dclk_enable and not sdclk_enable:
+            self.CLK_PD.set(self.CLK_PD.POWERDOWN)
+        elif dclk_enable and not sdclk_enable:
+            self.CLK_PD.set(self.CLK_PD.ENABLED)
+            self.DCLK_FMT.set(self.DCLK_FMT.LVDS)
+            self.SDCLK_PD.set(self.SDCLK_PD.POWERDOWN)
+        elif not dclk_enable and sdclk_enable:
+            self.CLK_PD.set(self.CLK_PD.ENABLED)
+            self.DCLK_FMT.set(self.DCLK_FMT.POWERDOWN)
+            self.SDCLK_FMT.set(self.SDCLK_FMT.LVDS)
+            self.SDCLK_PD.set(self.SDCLK_PD.ENABLED)
+        elif dclk_enable and sdclk_enable:
+            self.CLK_PD.set(self.CLK_PD.ENABLED)
+            self.DCLK_FMT.set(self.DCLK_FMT.LVDS)
+            self.SDCLK_FMT.set(self.SDCLK_FMT.LVDS)
+            self.SDCLK_PD.set(self.SDCLK_PD.ENABLED)
+        else:
+            raise RuntimeError("?!")
+    
     @property
     def dclk_active(self):
         return not (self.dclk_fmt == self.DCLK_FMT.POWERDOWN or self.clk_pd == self.CLK_PD.POWERDOWN)
     
+    @dclk_active.setter
+    def dclk_active(self, value: bool):
+        if self.dclk_active == value:
+            return
+        
+        self._set_output_status(value, self.sdclk_active)
+        self.parent.update()
+    
     @property
     def sdclk_active(self):
         return not (self.sdclk_pd == self.SDCLK_PD.POWERDOWN or self.sdclk_fmt == self.SDCLK_FMT.POWERDOWN or self.clk_pd == self.CLK_PD.POWERDOWN)
+    
+    @sdclk_active.setter
+    def sdclk_active(self, value: bool):
+        if self.sdclk_active == value:
+            return
+        
+        self._set_output_status(self.dclk_active, value)
+        self.parent.update()
     
     def get_sdclk_freqs(self):
         return self.parent.pll2_output_freq / (np.arange(32)+1)
@@ -510,6 +555,38 @@ class LMK04828B:
         
         self.set_long_register(div, self.SYSREF_DIV_12_8, self.SYSREF_DIV_7_0)
         self.update()
+        
+class CLK104Output:
+    def __init__(self, branch):
+        self.branch = branch
+    
+    @property
+    def freq(self):
+        return self.branch.dclk_freq
+    
+    @freq.setter
+    def freq(self, value):
+        return self.branch.request_freq(value)
+    
+    @property
+    def sysref_freq(self):
+        return self.branch.sdclk_freq
+    
+    @property
+    def enable(self):
+        return self.branch.dclk_active
+    
+    @property
+    def sysref_enable(self):
+        return self.branch.sdclk_active
+    
+    @enable.setter
+    def enable(self, value):
+        self.branch.dclk_active = value
+    
+    @sysref_enable.setter
+    def sysref_enable(self, value):
+        self.branch.sdclk_active = value
 
 class CLK104:
     def __init__(self, src):
@@ -517,60 +594,28 @@ class CLK104:
         self.lmk = LMK04828B(10, 10, 156.25, 160)
         self.lmk.init_from_file(src)
         
-    @property
-    def PLL2_CLK(self):
-        return self.pll2_output_freq
-    
-    @PLL2_CLK.setter
-    def PLL2_CLK(self, value):
-        self.lmk.set_refclk(value)
+        self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
+        self.AMS_SYSREF = CLK104Output(self.lmk.clock_branches[1])
+        self.RF_PLL_DAC_REF = CLK104Output(self.lmk.clock_branches[2])
+        self.DAC_REFCLK = CLK104Output(self.lmk.clock_branches[3])
+        self.PL_CLK = CLK104Output(self.lmk.clock_branches[4])
+        self.EXT_REF_OUT = CLK104Output(self.lmk.clock_branches[5])
+        self.ADC_REFCLK = CLK104Output(self.lmk.clock_branches[6])
         
     @property
-    def RF_PLL_ADC_REF(self):
-        return self.lmk.clock_branches[0].dclk_freq
+    def PLL2_FREQ(self):
+        return self.pll2_output_freq
     
-    @RF_PLL_ADC_REF.setter
-    def RF_PLL_ADC_REF(self, val):
-        return self.lmk.clock_branches[0].request_freq(val)
-    
-    @property
-    def RF_PLL_DAC_REF(self):
-        return self.lmk.clock_branches[2].dclk_freq
-    
-    @RF_PLL_DAC_REF.setter
-    def RF_PLL_DAC_REF(self, val):
-        return self.lmk.clock_branches[2].request_freq(val)
+    @PLL2_FREQ.setter
+    def PLL2_FREQ(self, value):
+        self.lmk.set_refclk(value)
     
     @property
-    def DAC_REFCLK(self):
-        return self.lmk.clock_branches[3].dclk_freq
-    
-    @DAC_REFCLK.setter
-    def DAC_REFCLK(self, val):
-        return self.lmk.clock_branches[3].request_freq(val)
-    
-    @property
-    def ADC_REFCLK(self):
-        return self.lmk.clock_branches[6].dclk_freq
-    
-    @ADC_REFCLK.setter
-    def ADC_REFCLK(self, val):
-        return self.lmk.clock_branches[6].request_freq(val)
-    
-    @property
-    def PL_CLK(self):
-        return self.lmk.clock_branches[4].dclk_freq
-    
-    @PL_CLK.setter
-    def PL_CLK(self, val):
-        return self.lmk.clock_branches[4].request_freq(val)
-    
-    @property
-    def SYSREF_CLK(self):
+    def SYSREF_FREQ(self):
         return self.lmk.sysref_freq
     
-    @SYSREF_CLK.setter
-    def SYSREF_CLK(self, value):
+    @SYSREF_FREQ.setter
+    def SYSREF_FREQ(self, value):
         self.lmk.set_sysref(value)
 
     def get_register_dump(self):
