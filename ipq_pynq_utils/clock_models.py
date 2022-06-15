@@ -5,7 +5,7 @@ Implements different clock / PLL models for easy manipulation without vendor sof
 import json
 import re
 import numpy as np
-import .utils
+from . import utils
 
 # Import compat-lib for python versions older than 3.10
 if utils.python_version_lt("3.10.0"):

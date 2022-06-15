@@ -1,7 +1,7 @@
 import spidev
 import xrfdc
 from .clock_models import CLK104
-import .utils
+from . import utils
 
 # Import compat-lib for python versions older than 3.10
 if utils.python_version_lt("3.10.0"):
