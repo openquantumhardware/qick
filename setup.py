@@ -8,6 +8,9 @@ setup(name='ipq_pynq_utils',
       url="https://git.scc.kit.edu/ipq_systemgroup/fpga/ipq_pynq_utils",
       python_requires=">=3.6",
       include_package_data=True,
+      install_requires=[
+          "spidev>=3.5"
+        ],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
