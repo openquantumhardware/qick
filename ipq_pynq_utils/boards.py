@@ -122,6 +122,18 @@ class ZCU208Board:
 
         ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
         ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
+
+    def print_clock_summary(self):
+        print(f"Name            |  Frequency  | Enabled | Sysref Enabled")
+        print( "----------------|-------------|---------|----------------")
+        print(f"PLL2_FREQ       | {self.clk104.PLL2_FREQ:7.2f} MHz | True    |")
+        print(f"AMS_SYSREF      | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | {str(self.clk104.AMS_SYSREF.sysref_enable)}")
+        print(f"SYSREF_FREQ     | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | True")
+        print(f"ADC_REFCLK      | {self.clk104.ADC_REFCLK.freq:7.2f} MHz | {str(self.clk104.ADC_REFCLK.enable):<7} | {str(self.clk104.ADC_REFCLK.sysref_enable):<7}")
+        print(f"DAC_REFCLK      | {self.clk104.DAC_REFCLK.freq:7.2f} MHz | {str(self.clk104.DAC_REFCLK.enable):<7} | {str(self.clk104.DAC_REFCLK.sysref_enable):<7}")
+        print(f"RF_PLL_ADC_REF  | {self.clk104.RF_PLL_ADC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_ADC_REF.enable):<7} | {str(self.clk104.RF_PLL_ADC_REF.sysref_enable):<7}")
+        print(f"RF_PLL_DAC_REF  | {self.clk104.RF_PLL_DAC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_DAC_REF.enable):<7} | {str(self.clk104.RF_PLL_DAC_REF.sysref_enable):<7}")
+        print(f"PL_CLK          | {self.clk104.PL_CLK.freq:7.2f} MHz | {str(self.clk104.PL_CLK.enable):<7} | {str(self.clk104.PL_CLK.sysref_enable):<7}")
     
     def perform_mts(self, rfdc, tile_type, tiles=0xf, target_latency=-1):
         """
