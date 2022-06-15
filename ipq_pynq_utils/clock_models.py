@@ -5,33 +5,10 @@ Implements different clock / PLL models for easy manipulation without vendor sof
 import json
 import re
 import numpy as np
-import platform
-
-def _parse_version_string(s):
-    arr = [int(v) for v in s.split(".")]
-    return arr + [0]*(3-len(arr))
-
-def _compare_version_lt(a, b):
-    if a[0] < b[0]:
-        return True
-    elif a[0] > b[0]:
-        return False
-
-    if a[1] < b[1]:
-        return True
-    elif a[1] > b[1]:
-        return False
-
-    if a[2] < b[2]:
-        return True
-
-    return False
-
-_python_version = _parse_version_string(platform.python_version())
-_required_python_version = [3, 10, 0]
+import .utils
 
 # Import compat-lib for python versions older than 3.10
-if _compare_version_lt(_python_version, _required_python_version):
+if utils.python_version_lt("3.10.0"):
     from importlib_resources import files
 else:
     from importlib.resources import files
@@ -435,7 +412,7 @@ class LMK04828B:
     def get_register_dump(self):
         ret = []
         for addr in self.register_addresses:
-            ret.append((addr, self.registers_by_addr[addr].get_raw()))
+            ret.append(self.registers_by_addr[addr].get_raw())
         
         return ret
     
