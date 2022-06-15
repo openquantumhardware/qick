@@ -43,6 +43,10 @@ XRFDC_MTS_BAD_REF_TILE = 8192
 
 XRFDC_MTS_DAC = None
 XRFDC_MTS_ADC = None
+    
+def read_datafile(s):
+    with files("ipq_pynq_utils").joinpath("data/" + s).open() as f:
+        return f.read()
 
 class ZCU208Board:
     """
@@ -85,8 +89,7 @@ class ZCU208Board:
             spi.max_speed_hz = 100000
         
         if not _cdefs_loaded:
-            with files("ipq_pynq_utils").joinpath("data/xrfdc_cdefs.h").open() as f:
-                xrfdc._ffi.cdef(f.read())
+            xrfdc._ffi.cdef(read_datafile("xrfdc_cdefs.h"))
             _cdefs_loaded = True
         
         XRFDC_MTS_DAC = xrfdc._lib.XRFDC_DAC_TILE
@@ -95,8 +98,11 @@ class ZCU208Board:
         self.clk104 = CLK104(lmk_srcfile)
         
     def _parse_register_file(filename):
-        with open(filename, "r") as f:
-            lines = f.read().strip().split("\n")
+        try:
+            lines = read_datafile(f"clockFiles/{filename}").strip().split("\n")
+        except:
+            with open(filename, "r") as f:
+                lines = f.read().strip().split("\n")
 
         ret = []
 
@@ -116,7 +122,7 @@ class ZCU208Board:
     def _write_clk104_registers(self):
         lmk_regdump = self.clk104.get_register_dump()
 
-    
+
     def configure_clocks(self, lmxdac, lmxadc):
         ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.get_register_dump())
 
