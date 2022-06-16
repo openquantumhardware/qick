@@ -1,5 +1,5 @@
 import spidev
-import xrfdc
+# import xrfdc
 from .clock_models import CLK104
 from . import utils
 

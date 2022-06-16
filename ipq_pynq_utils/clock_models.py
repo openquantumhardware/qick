@@ -89,7 +89,7 @@ class Field:
         elif self.valid_type == "enum":
             for value in valid["values"]:
                 enum_val = EnumVal(**value)
-                assert getattr(self, value["name"], None) is None
+                assert getattr(self, value["name"], None) is None, f"Duplicate enum value in field {self.name}: {value['name']}"
                 setattr(self, value["name"], enum_val)
                 self.enum_map[enum_val.value] = enum_val
         else:
@@ -145,9 +145,10 @@ class Field:
         return str(self.__dict__)
 
 class Register:
-    def __init__(self, obj):
+    def __init__(self, obj, dw=8):
         self.addr = obj["addr"]
         self.fields = []
+        self.dw = dw 
 
         for field in obj["fields"]:
             fieldtype = field["fieldtype"]
@@ -173,7 +174,7 @@ class Register:
         return str({"addr": self.addr, "fields": self.fields})
 
     def get_raw(self):
-        ret = self.addr << 8
+        ret = self.addr << self.dw
 
         for field in self.fields:
             ret |= field.get_raw()
@@ -314,21 +315,17 @@ class LMK04828BOutputBranch:
         dbg("DCLK_ACTIVE:", self.dclk_active)
         dbg("SDCLK_ACTIVE:", self.sdclk_active)
 
-class LMK04828B:
-    def __init__(self, clkin0_freq, clkin1_freq, clkin2_freq, vcxo_freq):
+class RegisterDevice:
+    def __init__(self, aw, dw, definition):
+        # Address width and data width
+        self.aw = aw
+        self.dw = dw
         self.registers_by_addr = {}
-
-        self.clkin0_freq = clkin0_freq
-        self.clkin1_freq = clkin1_freq
-        self.clkin2_freq = clkin2_freq
-        self.vcxo_freq = vcxo_freq
-
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
 
-        with files("ipq_pynq_utils").joinpath("data/lmk04828b_regmap.json").open() as f:
+        with files("ipq_pynq_utils").joinpath(definition).open() as f:
             regmap = json.load(f)
 
-        # Initialize registers from regmap
         for register in regmap:
             addr = register["addr"]
             reg = Register(register)
@@ -338,22 +335,6 @@ class LMK04828B:
                 if isinstance(field, Field) and field.valid_type != "constant":
                     sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
                     setattr(self, sanitized_name, field)
-
-        # Dictionaries are unordered, and because the order of operations is important when writing
-        # these registers, they the correct index order is written down in this array:
-        self.register_addresses = [0, 2, 3, 4, 5, 6, 12, 13, 256, 257, 258, 259, 260, 261, 262,
-                                   263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275,
-                                   276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,
-                                   289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301,
-                                   302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
-                                   315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
-                                   328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
-                                   341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353,
-                                   354, 355, 356, 357, 369, 370, 380, 381, 358, 359, 360, 361, 362,
-                                   363, 364, 365, 366, 371, 386, 387, 388, 389, 392, 393, 394, 395,
-                                   8189, 8190, 8191]
-
-        self.clock_branches = [LMK04828BOutputBranch(self, 2*i) for i in range(7)]
 
     def init_from_file(self, file):
         if hasattr(file, "read"):
@@ -366,8 +347,10 @@ class LMK04828B:
             a,b = line.split("\t")
             rawdata = int(b, 16)
 
-            addr = 0x1fff & (rawdata >> 8)
-            data = rawdata & 0xFF
+            addr_mask = (1 << self.aw) - 1
+            addr = addr_mask & (rawdata >> self.dw)
+            data_mask = (1 << self.dw) - 1
+            data = rawdata & data_mask
 
             if not addr in self.registers_by_addr:
                 print(f"Unhandled register: {hex(addr)}, skipping ...")
@@ -409,18 +392,115 @@ class LMK04828B:
 
             field.value = (value & value_mask) >> start
 
-    def get_register_dump(self):
+    def get_register_dump(self, with_addr=False):
         ret = []
         for addr in self.register_addresses:
-            ret.append(self.registers_by_addr[addr].get_raw())
+            if not with_addr:
+                ret.append(self.registers_by_addr[addr].get_raw())
+            else:
+                ret.append((addr, self.registers_by_addr[addr].get_raw()))
 
         return ret
+
+    def print(self):
+        for addr in self.register_addresses:
+            register = self.registers_by_addr[addr]
+
+            for field in register.fields:
+                val = field.get()
+                if field.name == "CONST":
+                    continue
+
+                print(f"    {field.name}")
+                print(f"        Description: {field.description}")
+                print(f"        Value:       {val}")
+                if field.valid_type == "enum":
+                    print(f"        ValDesc:     {field.value_description}")
+                print()
+
+
+class LMX2594(RegisterDevice):
+    def __init__(self, f_osc):
+        RegisterDevice.__init__(self, 8, 16, "data/lmx2594_regmap.json")
+
+        self.f_osc = f_osc
+
+        # Note that this isn't the complete range, but skips the readback registers which are read-only
+        self.register_addresses = list(range(109, -1, -1))
+
+    def update(self):
+        if self.OSC_2X.get() == self.OSC_2X.DISABLED:
+            f_in = self.f_osc
+        else:
+            f_in = 2 * self.f_osc
+
+        f_in /= self.PLL_R_PRE.value
+        f_in *= self.MULT.value
+        f_in /= self.PLL_R.value
+
+        self.f_pd = f_in
+
+        num = self.get_long_register(self.PLL_NUM_31_16, self.PLL_NUM_15_0)
+        den = self.get_long_register(self.PLL_DEN_31_16, self.PLL_DEN_15_0)
+        pll_n = self.get_long_register(self.PLL_N_18_16, self.PLL_N_15_0)
+
+        self.f_vco = self.f_pd * (pll_n + num/den)
+
+        chdiv_lut = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 72, 96, 128, 192, 256, 384, 512, 768]
+        self.f_chdiv = self.f_vco / chdiv_lut[self.CHDIV.value]
+
+        if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
+            self.f_outa = self.f_chdiv
+        else:
+            self.f_outa = self.f_vco
+
+        sysref_divider_lut = { self.SYSREF_DIV_PRE.DIVIDE_BY_1: 1,
+                               self.SYSREF_DIV_PRE.DIVIDE_BY_2: 2,
+                               self.SYSREF_DIV_PRE.DIVIDE_BY_4: 4 }
+        
+        if self.SYSREF_EN.get() == self.SYSREF_EN.ENABLED:
+            sysref_div = self.SYSREF_DIV.get()
+            sysref_div *= sysref_divider_lut[self.SYSREF_DIV_PRE.get()]
+            self.f_sysref = self.f_vco / sysref_div
+
+        outb_mux = self.OUTB_MUX.get()
+        if outb_mux == self.OUTB_MUX.CHANNEL_DIVIDER:
+            self.f_outb = self.f_chdiv
+        elif outb_mux == self.OUTB_MUX.VCO or outb_mux == self.OUTB_MUX.HIGH_IMPEDANCE:
+            self.f_outb = self.f_vco
+        elif outb_mux == self.SYSREF:
+            self.f_outb = self.f_sysref
+
+class LMK04828B(RegisterDevice):
+    def __init__(self, clkin0_freq, clkin1_freq, clkin2_freq, vcxo_freq):
+        RegisterDevice.__init__(self, 13, 8, "data/lmk04828b_regmap.json")
+
+        self.clkin0_freq = clkin0_freq
+        self.clkin1_freq = clkin1_freq
+        self.clkin2_freq = clkin2_freq
+        self.vcxo_freq = vcxo_freq
+
+        # Dictionaries are unordered, and because the order of operations is important when writing
+        # these registers, the correct order of indices is written down in this array:
+        self.register_addresses = [0, 2, 3, 4, 5, 6, 12, 13, 256, 257, 258, 259, 260, 261, 262,
+                                   263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275,
+                                   276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288,
+                                   289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301,
+                                   302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314,
+                                   315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
+                                   328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
+                                   341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353,
+                                   354, 355, 356, 357, 369, 370, 380, 381, 358, 359, 360, 361, 362,
+                                   363, 364, 365, 366, 371, 386, 387, 388, 389, 392, 393, 394, 395,
+                                   8189, 8190, 8191]
+
+        self.clock_branches = [LMK04828BOutputBranch(self, 2*i) for i in range(7)]
 
     def write_register_dump(self, name):
         with open(name, "w") as f:
             f.write(f"R0 (INIT)\t0x000090\n")
 
-            for addr,val in self.get_register_dump():
+            for addr,val in self.get_register_dump(with_addr=True):
                 f.write(f"R{addr}\t0x{val:06X}\n")
 
     def update(self, printDebug=False):
@@ -495,22 +575,6 @@ class LMK04828B:
 
         for branch in self.clock_branches:
             branch.update(printDebug)
-
-    def print(self):
-        for addr in self.register_addresses:
-            register = self.registers_by_addr[addr]
-
-            for field in register.fields:
-                val = field.get()
-                if field.name == "CONST":
-                    continue
-
-                print(f"    {field.name}")
-                print(f"        Description: {field.description}")
-                print(f"        Value:       {val}")
-                if field.valid_type == "enum":
-                    print(f"        ValDesc:     {field.value_description}")
-                print()
 
     def set_refclk(self, refclk, precision=1):
         f_i = int(self.vcxo_freq * 10**precision)
