@@ -1,5 +1,11 @@
 import spidev
-# import xrfdc
+
+try:
+    import xrfdc
+except:
+    # Probably on development system, ignore error for now
+    pass
+
 from .clock_models import CLK104
 from . import utils
 
