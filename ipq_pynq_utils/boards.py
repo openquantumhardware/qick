@@ -245,7 +245,7 @@ class ZCU208Board:
         lmk_regdump = self.clk104.get_register_dump()
 
 
-    def configure(self, overlay, lmxdac, lmxadc, pl_clk=None):
+    def configure(self, overlay, lmxdac, lmxadc, pl_clk=None, download=True):
         self.overlay = overlay
         self.rfdc_name = None
         for key in overlay.ip_dict.keys():
@@ -256,17 +256,17 @@ class ZCU208Board:
         if self.rfdc_name is None:
             raise RuntimeError("No RF Data Converter present in overlay!")
 
-        self.rfdc_config = RFDCConfig(ol, self.rfdc_name)
+        self.rfdc_config = RFDCConfig(overlay, self.rfdc_name)
         self.rfdc_config.print_table()
         clkreqs = self.rfdc_config.get_clk_requirements()
-        print("Clock Requirements:", clockreqs)
+        print("Clock Requirements:", clkreqs)
 
         mts = clkreqs["MTS"]
 
-        if clkreqs["PL_CLK"] is not None:
-            f = clkreqs["PL_CLK"]
-        elif pl_clk is not None:
+        if pl_clk is not None:
             f = pl_clk
+        elif clkreqs["PL_CLK"] is not None:
+            f = clkreqs["PL_CLK"]
         else:
             raise RuntimeError("A single PL CLK rate could not be determined, please provide one manually using the pl_clk parameter to ZCU208Board.configure()!")
 
@@ -303,6 +303,9 @@ class ZCU208Board:
             f = clkreqs["RF_CLKO_DAC"]
             # TODO: Handle RF PLLs
             ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
+
+        if not download:
+            return
 
         print("Configured clocks, loading bitstream ... ", end="")
         overlay.download()
