@@ -279,14 +279,14 @@ class ZCU208Board:
         self.clk104.ADC_REFCLK.sysref_enable = en and mts
 
         if en:
-            self.clk104.ADC_REFCLK.freq = clkreq["ADC_REFCLK"]
+            self.clk104.ADC_REFCLK.freq = clkreqs["ADC_REFCLK"]
 
         en = clkreqs["DAC_REFCLK"] is not None
         self.clk104.DAC_REFCLK.enable = en
         self.clk104.DAC_REFCLK.sysref_enable = en and mts
 
         if en:
-            self.clk104.DAC_REFCLK.freq = clkreq["DAC_REFCLK"]
+            self.clk104.DAC_REFCLK.freq = clkreqs["DAC_REFCLK"]
 
         ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.get_register_dump())
 
