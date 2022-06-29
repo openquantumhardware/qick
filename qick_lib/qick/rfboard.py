@@ -1230,7 +1230,7 @@ class dac_ch():
 
 class RFQickSoc(QickSoc):
     """
-    Overrides the __init__ method of QickSoc in order to add the RF board drivers.
+    Overrides the __init__ method of QickSoc in order to add the drivers for the preproduction (V1) version of the RF board.
     Otherwise supports all the QickSoc functionality.
     """
     ENABLE_LO_OUTPUT = True
