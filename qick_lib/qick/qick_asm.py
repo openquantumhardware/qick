@@ -1409,7 +1409,7 @@ class QickProgram:
             # update timestamps with the end of the readout window
             for adc in adcs:
                 if t_start < self.adc_ts[adc]:
-                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, adc_ts[adc]))
+                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self.adc_ts[adc]))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[adc].length
                 ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
