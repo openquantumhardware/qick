@@ -46,4 +46,5 @@ A modified version of the firmware with 4 DACs and 4 ADCs enabled (instead of 7 
 
 * [Connie Miao, Schuster Lab](https://github.com/conniemiao/slab_rfsoc_expts)
 * [Chao Zhou, Hatlab](https://github.com/PITT-HATLAB/Hatlab_RFSOC)
+* [Sara Sussman, Houck Lab](https://github.com/sarafs1926/qick-amo)
 
