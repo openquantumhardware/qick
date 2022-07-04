@@ -664,8 +664,8 @@ class CLK104Output:
 
 class CLK104:
     def __init__(self, src=None):
-        # 10 MHz reference clock, 156.25 MHz clock input on external SMA, 160 MHz VCO frequency
-        self.lmk = LMK04828B(10, 10, 156.25, 160)
+        # 10 MHz reference clock, 10 MHz clock input on external SMA, 160 MHz VCO frequency
+        self.lmk = LMK04828B(10, 10, 10, 160)
 
         if src is None:
             with files("ipq_pynq_utils").joinpath("data/lmk04828b_regdump_defaults.txt").open() as f:
