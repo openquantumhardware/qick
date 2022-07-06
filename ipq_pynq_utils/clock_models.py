@@ -181,6 +181,258 @@ class Register:
 
         return ret
 
+class RegisterDevice:
+    def __init__(self, aw, dw, definition):
+        # Address width and data width
+        self.aw = aw
+        self.dw = dw
+        self.registers_by_addr = {}
+        self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
+
+        with files("ipq_pynq_utils").joinpath(definition).open() as f:
+            regmap = json.load(f)
+
+        for register in regmap:
+            addr = register["addr"]
+            reg = Register(register)
+            self.registers_by_addr[addr] = reg
+
+            for field in reg.fields:
+                if isinstance(field, Field) and field.valid_type != "constant":
+                    sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
+                    setattr(self, sanitized_name, field)
+
+    def init_from_file(self, file):
+        if hasattr(file, "read"):
+            lines = file.read().strip().split("\n")
+        else:
+            with open(file, "r") as f:
+                lines = f.read().strip().split("\n")
+
+        for line in lines:
+            a,b = line.split("\t")
+            rawdata = int(b, 16)
+
+            addr_mask = (1 << self.aw) - 1
+            addr = addr_mask & (rawdata >> self.dw)
+            data_mask = (1 << self.dw) - 1
+            data = rawdata & data_mask
+
+            if not addr in self.registers_by_addr:
+                print(f"Unhandled register: {hex(addr)}, skipping ...")
+                print()
+                continue
+
+            self.registers_by_addr[addr].parse(data)
+
+        self.update()
+
+    def get_long_register(self, *args):
+        ret = 0
+        for field in args:
+            match = self.regname_pattern.match(field.name)
+            if match is None:
+                raise RuntimeError("Cannot read non-long field: " + field.name)
+
+            end = int(match.group(1))
+            start = int(match.group(2))
+            width = end-start+1
+            mask = ((1 << width)-1)
+
+            val = (field.value & mask)
+            ret |= val << start
+
+        return ret
+
+    def set_long_register(self, value, *args):
+        for field in args:
+            match = self.regname_pattern.match(field.name)
+            if match is None:
+                raise RuntimeError("Cannot read non-long field: " + field.name)
+
+            end = int(match.group(1))
+            start = int(match.group(2))
+            width = end-start+1
+            mask = ((1 << width)-1)
+            value_mask = mask << start
+
+            field.value = (value & value_mask) >> start
+
+    def get_register_dump(self, with_addr=False):
+        ret = []
+        for addr in self.register_addresses:
+            if not with_addr:
+                ret.append(self.registers_by_addr[addr].get_raw())
+            else:
+                ret.append((addr, self.registers_by_addr[addr].get_raw()))
+
+        return ret
+
+    def print(self):
+        for addr in self.register_addresses:
+            register = self.registers_by_addr[addr]
+
+            for field in register.fields:
+                val = field.get()
+                if field.name == "CONST":
+                    continue
+
+                print(f"    {field.name}")
+                print(f"        Description: {field.description}")
+                print(f"        Value:       {val}")
+                if field.valid_type == "enum":
+                    print(f"        ValDesc:     {field.value_description}")
+                print()
+
+LMX2594_VCOs = [
+        (1,  7500,  8600, 164, 12, 299, 240),
+        (2,  8600,  9800, 165, 16, 356, 247),
+        (3,  9800, 10800, 158, 19, 324, 224),
+        (4, 10800, 12000, 140,  0, 383, 244),
+        (5, 12000, 12900, 183, 36, 205, 146),
+        (6, 12900, 13900, 155,  6, 242, 163),
+        (7, 13900, 15000, 175, 19, 323, 244)
+    ]
+
+CAL_NO_ASSIST = 0
+CAL_PARTIAL_ASSIST = 1
+CAL_CLOSE_FREQUENCY_ASSIST = 2
+CAL_FULL_ASSIST = 3
+
+class LMX2594(RegisterDevice):
+
+    def __init__(self, f_osc):
+        RegisterDevice.__init__(self, 8, 16, "data/lmx2594_regmap.json")
+
+        self.f_osc = f_osc
+
+        # Note that this isn't the complete range, but skips the readback registers
+        self.register_addresses = list(range(109, -1, -1))
+
+    def configure_calibration(assistance_level=0):
+        if self.f_pd <= 100:
+            if self.f_pd >= 10:
+                self.FCAL_LPFD_ADJ.value = 0
+            elif self.f_pd >= 5:
+                self.FCAL_LPFD_ADJ.value = 1
+            elif self.f_pd >= 2.5:
+                self.FCAL_LPFD_ADJ.value = 2
+            else:
+                self.FCAL_LPFD_ADJ.value = 3
+
+            self.FCAL_HPFD_ADJ.value = 0
+        elif self.f_pd <= 150:
+            self.FCAL_HPFD_ADJ.value = 1
+        elif self.f_pd <= 200:
+            self.FCAL_HPFD_ADJ.value = 2
+        else:
+            self.FCAL_HPFD_ADJ.value = 3
+
+        # Optimize for phase noise performance (At the cost of locking time)
+        self.CAL_CLK_DIV.value = 3
+        self.ACAL_CMP_DLY.value = 25
+
+        # Don't output clock signal during calibration
+        self.OUT_MUTE.value = 1
+        self.OUT_FORCE.value = 0
+
+        # VCO calibration settings
+        if 11900 <= self.f_vco <= 12100:
+            self.VCO_SEL.value = 4
+            self.QUICK_RECAL_EN.value = 0
+            self.VCO_SEL_FORCE.value = 0
+            self.VCO_DACISET_FORCE.value = 0
+            self.VCO_CAPCTRL_FORCE.value = 0
+
+            self.VCO_DACISET_STRT.value = 300
+            self.VCO_CAPCTRL_STRT.value = 183 
+
+        elif assistance_level == CAL_NO_ASSIST:
+            self.QUICK_RECAL_EN.value = 0
+            self.VCO_SEL_FORCE.value = 0
+            self.VCO_DACISET_FORCE.value = 0
+            self.VCO_CAPCTRL_FORCE.value = 0
+            self.VCO_SEL.value = 7
+
+        else:
+            for vco_id, f_min, f_max, c_min, c_max, a_min, a_max in LMX2594_VCOs:
+                if f_min <= self.f_vco <= f_max:
+                    self.VCO_SEL.value = vco_id
+                    self.VCO_DACISET_STRT.value = round(c_min - (c_min - c_max) * (f_vco - f_min) / (f_max - f_min))
+                    self.VCO_CAPCTRL_STRT.value = round(a_min + (a_max - a_min) * (f_vco - f_min) / (f_max - f_min))
+                    break
+
+                if vco_id == 7:
+                    raise RuntimeError("Failed to find acceptable VCO??")
+
+            if assistance_level == CAL_PARTIAL_ASSIST:
+                self.QUICK_RECAL_EN.value = 0
+                self.VCO_SEL_FORCE.value = 0
+                self.VCO_DACISET_FORCE.value = 0
+                self.VCO_CAPCTRL_FORCE.value = 0
+
+            elif assistance_level == CAL_CLOSE_FREQUENCY_ASSIST:
+                self.QUICK_RECAL_EN.value = 1
+                self.VCO_SEL_FORCE.value = 0
+                self.VCO_DACISET_FORCE.value = 0
+                self.VCO_CAPCTRL_FORCE.value = 0
+
+            elif assistance_level == CAL_FULL_ASSIST:
+                self.QUICK_RECAL_EN.value = 0
+                self.VCO_SEL_FORCE.value = 1
+                self.VCO_DACISET_FORCE.value = 1
+                self.VCO_CAPCTRL_FORCE.value = 1
+
+    def check_constraints():
+        # Make sure the correct VCO is being used
+        pass
+
+    def update(self):
+        if self.OSC_2X.get() == self.OSC_2X.DISABLED:
+            f_in = self.f_osc
+        else:
+            f_in = 2 * self.f_osc
+
+        f_in /= self.PLL_R_PRE.value
+        f_in *= self.MULT.value
+        f_in /= self.PLL_R.value
+
+        self.f_pd = f_in
+
+        num = self.get_long_register(self.PLL_NUM_31_16, self.PLL_NUM_15_0)
+        den = self.get_long_register(self.PLL_DEN_31_16, self.PLL_DEN_15_0)
+        pll_n = self.get_long_register(self.PLL_N_18_16, self.PLL_N_15_0)
+
+        self.f_vco = self.f_pd * (pll_n + num/den)
+
+        if not (7500 <= self.f_vco <= 15000):
+            raise RuntimeError(f"VCO frequency f_vco = {round(self.f_vco, ndigits=2)} out of range: 7500 MHz <= f_vco <= 15000")
+
+        chdiv_lut = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 72, 96, 128, 192, 256, 384, 512, 768]
+        self.f_chdiv = self.f_vco / chdiv_lut[self.CHDIV.value]
+
+        if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
+            self.f_outa = self.f_chdiv
+        else:
+            self.f_outa = self.f_vco
+
+        sysref_divider_lut = { self.SYSREF_DIV_PRE.DIVIDE_BY_1: 1,
+                               self.SYSREF_DIV_PRE.DIVIDE_BY_2: 2,
+                               self.SYSREF_DIV_PRE.DIVIDE_BY_4: 4 }
+        
+        if self.SYSREF_EN.get() == self.SYSREF_EN.ENABLED:
+            sysref_div = self.SYSREF_DIV.get()
+            sysref_div *= sysref_divider_lut[self.SYSREF_DIV_PRE.get()]
+            self.f_sysref = self.f_vco / sysref_div
+
+        outb_mux = self.OUTB_MUX.get()
+        if outb_mux == self.OUTB_MUX.CHANNEL_DIVIDER:
+            self.f_outb = self.f_chdiv
+        elif outb_mux == self.OUTB_MUX.VCO or outb_mux == self.OUTB_MUX.HIGH_IMPEDANCE:
+            self.f_outb = self.f_vco
+        elif outb_mux == self.SYSREF:
+            self.f_outb = self.f_sysref
+
 class LMK04828BOutputBranch:
     def __init__(self, parent, i):
         self.parent = parent
@@ -314,162 +566,6 @@ class LMK04828BOutputBranch:
 
         dbg("DCLK_ACTIVE:", self.dclk_active)
         dbg("SDCLK_ACTIVE:", self.sdclk_active)
-
-class RegisterDevice:
-    def __init__(self, aw, dw, definition):
-        # Address width and data width
-        self.aw = aw
-        self.dw = dw
-        self.registers_by_addr = {}
-        self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
-
-        with files("ipq_pynq_utils").joinpath(definition).open() as f:
-            regmap = json.load(f)
-
-        for register in regmap:
-            addr = register["addr"]
-            reg = Register(register)
-            self.registers_by_addr[addr] = reg
-
-            for field in reg.fields:
-                if isinstance(field, Field) and field.valid_type != "constant":
-                    sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
-                    setattr(self, sanitized_name, field)
-
-    def init_from_file(self, file):
-        if hasattr(file, "read"):
-            lines = file.read().strip().split("\n")
-        else:
-            with open(file, "r") as f:
-                lines = f.read().strip().split("\n")
-
-        for line in lines:
-            a,b = line.split("\t")
-            rawdata = int(b, 16)
-
-            addr_mask = (1 << self.aw) - 1
-            addr = addr_mask & (rawdata >> self.dw)
-            data_mask = (1 << self.dw) - 1
-            data = rawdata & data_mask
-
-            if not addr in self.registers_by_addr:
-                print(f"Unhandled register: {hex(addr)}, skipping ...")
-                print()
-                continue
-
-            self.registers_by_addr[addr].parse(data)
-
-        self.update()
-
-    def get_long_register(self, *args):
-        ret = 0
-        for field in args:
-            match = self.regname_pattern.match(field.name)
-            if match is None:
-                raise RuntimeError("Cannot read non-long field: " + field.name)
-
-            end = int(match.group(1))
-            start = int(match.group(2))
-            width = end-start+1
-            mask = ((1 << width)-1)
-
-            val = (field.value & mask)
-            ret |= val << start
-
-        return ret
-
-    def set_long_register(self, value, *args):
-        for field in args:
-            match = self.regname_pattern.match(field.name)
-            if match is None:
-                raise RuntimeError("Cannot read non-long field: " + field.name)
-
-            end = int(match.group(1))
-            start = int(match.group(2))
-            width = end-start+1
-            mask = ((1 << width)-1)
-            value_mask = mask << start
-
-            field.value = (value & value_mask) >> start
-
-    def get_register_dump(self, with_addr=False):
-        ret = []
-        for addr in self.register_addresses:
-            if not with_addr:
-                ret.append(self.registers_by_addr[addr].get_raw())
-            else:
-                ret.append((addr, self.registers_by_addr[addr].get_raw()))
-
-        return ret
-
-    def print(self):
-        for addr in self.register_addresses:
-            register = self.registers_by_addr[addr]
-
-            for field in register.fields:
-                val = field.get()
-                if field.name == "CONST":
-                    continue
-
-                print(f"    {field.name}")
-                print(f"        Description: {field.description}")
-                print(f"        Value:       {val}")
-                if field.valid_type == "enum":
-                    print(f"        ValDesc:     {field.value_description}")
-                print()
-
-
-class LMX2594(RegisterDevice):
-    def __init__(self, f_osc):
-        RegisterDevice.__init__(self, 8, 16, "data/lmx2594_regmap.json")
-
-        self.f_osc = f_osc
-
-        # Note that this isn't the complete range, but skips the readback registers which are read-only
-        self.register_addresses = list(range(109, -1, -1))
-
-    def update(self):
-        if self.OSC_2X.get() == self.OSC_2X.DISABLED:
-            f_in = self.f_osc
-        else:
-            f_in = 2 * self.f_osc
-
-        f_in /= self.PLL_R_PRE.value
-        f_in *= self.MULT.value
-        f_in /= self.PLL_R.value
-
-        self.f_pd = f_in
-
-        num = self.get_long_register(self.PLL_NUM_31_16, self.PLL_NUM_15_0)
-        den = self.get_long_register(self.PLL_DEN_31_16, self.PLL_DEN_15_0)
-        pll_n = self.get_long_register(self.PLL_N_18_16, self.PLL_N_15_0)
-
-        self.f_vco = self.f_pd * (pll_n + num/den)
-
-        chdiv_lut = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 72, 96, 128, 192, 256, 384, 512, 768]
-        self.f_chdiv = self.f_vco / chdiv_lut[self.CHDIV.value]
-
-        if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
-            self.f_outa = self.f_chdiv
-        else:
-            self.f_outa = self.f_vco
-
-        sysref_divider_lut = { self.SYSREF_DIV_PRE.DIVIDE_BY_1: 1,
-                               self.SYSREF_DIV_PRE.DIVIDE_BY_2: 2,
-                               self.SYSREF_DIV_PRE.DIVIDE_BY_4: 4 }
-        
-        if self.SYSREF_EN.get() == self.SYSREF_EN.ENABLED:
-            sysref_div = self.SYSREF_DIV.get()
-            sysref_div *= sysref_divider_lut[self.SYSREF_DIV_PRE.get()]
-            self.f_sysref = self.f_vco / sysref_div
-
-        outb_mux = self.OUTB_MUX.get()
-        if outb_mux == self.OUTB_MUX.CHANNEL_DIVIDER:
-            self.f_outb = self.f_chdiv
-        elif outb_mux == self.OUTB_MUX.VCO or outb_mux == self.OUTB_MUX.HIGH_IMPEDANCE:
-            self.f_outb = self.f_vco
-        elif outb_mux == self.SYSREF:
-            self.f_outb = self.f_sysref
 
 class LMK04828B(RegisterDevice):
     def __init__(self, clkin0_freq, clkin1_freq, clkin2_freq, vcxo_freq):
@@ -698,4 +794,6 @@ class CLK104:
         self.lmk.set_sysref(value)
 
     def get_register_dump(self):
-        return self.lmk.get_register_dump()
+        return {
+                "LMK": self.lmk.get_register_dump()
+                }
