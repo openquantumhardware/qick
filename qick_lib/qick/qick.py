@@ -241,11 +241,6 @@ class AbsSignalGen(SocIp):
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
-        # The XRFDC driver uses C integer type conversion to get the register value.
-        # The frequency we calculated exactly equals (to within float precision) a valid NCO frequency.
-        # So half the time, the frequency will get rounded down to the next lowest valid frequency.
-        # We don't want this, so we must add a half-step to the frequency we demand.
-        rounded_f += self.fs_dac/2**49
         self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
@@ -852,7 +847,7 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq_int(self, f_int, in_ch, out_ch):
         if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            centerfreq = (in_ch - 4) * (self.fs/16)
+            centerfreq = ((in_ch - 4) % 8) * (self.fs/16)
             lofreq = centerfreq - self.fs/32
             hifreq = centerfreq + self.fs/32
             thiscfg = {}
@@ -1592,12 +1587,13 @@ class RFDC(xrfdc.RFdc):
         1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
         2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
         3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
-        We need to adjust the frequency so the result of this conversion equals the frequency we intended.
-        Specifically:
-        * We don't want the inversion in step 2, so we also multiply by -1.
-        * We want to get as close as possible to the demanded frequency, so we must add a half-step.
-        This is important if the demanded frequency was rounded to a valid NCO frequency for frequency-matching.
-        If we didn't add a half-step, half of the time these would get rounded down to the next lowest valid frequency.
+
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
+        The safest way to get consistent behavior is to always round to a valid NCO frequency.
+        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
 
         :param dacname: DAC channel (2-digit string)
         :type dacname: int
@@ -1610,15 +1606,12 @@ class RFDC(xrfdc.RFdc):
         """
         fs = self.daccfg[dacname]['fs']
         fstep = fs/2**48
-        rounded_f = round(f/fstep) * fstep
+        rounded_f = round(f/fstep)*fstep
         if not force and rounded_f == self.get_mixer_freq(dacname):
             return
-        if (f % fs) > fs/2: # will be negative after step 1
-            f -= fstep/2
-        else: # will be positive after step 1
-            f += fstep/2
-        if abs(f) > fs/2 and self.get_nyquist(dacname)==2:
-            f *= -1
+        fset = rounded_f
+        if abs(rounded_f) > fs/2 and self.get_nyquist(dacname)==2:
+            fset *= -1
 
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -1628,7 +1621,7 @@ class RFDC(xrfdc.RFdc):
         # Update the copy
         new_mixcfg.update({
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
-            'Freq': f,
+            'Freq': fset,
             'MixerType': xrfdc.MIXER_TYPE_FINE,
             'PhaseOffset': 0})
 
