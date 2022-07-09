@@ -1588,7 +1588,9 @@ class RFDC(xrfdc.RFdc):
         2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
         3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
 
-        This gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
         This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
         The safest way to get consistent behavior is to always round to a valid NCO frequency.
         We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
@@ -1603,10 +1605,13 @@ class RFDC(xrfdc.RFdc):
         :type reset: bool
         """
         fs = self.daccfg[dacname]['fs']
-        fstep = self.daccfg[dacname]['fs']/2**48
+        fstep = fs/2**48
         rounded_f = round(f/fstep)*fstep
         if not force and rounded_f == self.get_mixer_freq(dacname):
             return
+        fset = rounded_f
+        if abs(rounded_f) > fs/2 and self.get_nyquist(dacname)==2:
+            fset *= -1
 
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -1616,7 +1621,7 @@ class RFDC(xrfdc.RFdc):
         # Update the copy
         new_mixcfg.update({
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
-            'Freq': rounded_f,
+            'Freq': fset,
             'MixerType': xrfdc.MIXER_TYPE_FINE,
             'PhaseOffset': 0})
 
