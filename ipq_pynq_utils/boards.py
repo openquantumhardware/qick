@@ -245,7 +245,7 @@ class ZCU208Board:
         lmk_regdump = self.clk104.get_register_dump()
 
 
-    def configure(self, overlay, lmxdac, lmxadc, pl_clk=None, download=True):
+    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True):
         self.overlay = overlay
         self.rfdc_name = None
         for key in overlay.ip_dict.keys():
@@ -270,9 +270,13 @@ class ZCU208Board:
         else:
             raise RuntimeError("A single PL CLK rate could not be determined, please provide one manually using the pl_clk parameter to ZCU208Board.configure()!")
 
-        en = clkreqs["RF_CLKO_ADC"] is not None
-        self.clk104.RF_PLL_ADC_REF.enable = en
-        self.clk104.RF_PLL_ADC_REF.sysref_enable = en and mts
+        en_adc_pll = clkreqs["RF_CLKO_ADC"] is not None
+        self.clk104.RF_PLL_ADC_REF.enable = en_adc_pll
+        self.clk104.RF_PLL_ADC_REF.sysref_enable = en_adc_pll and mts
+
+        en_dac_pll = clkreqs["RF_CLKO_DAC"] is not None
+        self.clk104.RF_PLL_ADC_REF.enable = en_dac_pll
+        self.clk104.RF_PLL_ADC_REF.sysref_enable = en_dac_pll and mts
 
         en = clkreqs["ADC_REFCLK"] is not None
         self.clk104.ADC_REFCLK.enable = en
@@ -290,19 +294,21 @@ class ZCU208Board:
 
         ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.get_register_dump())
 
-        if en:
+        if en_adc_pll:
             f = clkreqs["RF_CLKO_ADC"]
-            # TODO: Handle RF PLLs
-            ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
+            if lmxadc is not None:
+                ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
+            else:
+                self.lmx_adc.set_output_frequency(f)
+                ZCU208Board._write_registers(self.spi_adc, self.lmx_adc.get_register_dump())
 
-        en = clkreqs["RF_CLKO_DAC"] is not None
-        self.clk104.RF_PLL_DAC_REF.enable = en
-        self.clk104.RF_PLL_DAC_REF.sysref_enable = en and mts
-
-        if en:
+        if en_dac_pll:
             f = clkreqs["RF_CLKO_DAC"]
-            # TODO: Handle RF PLLs
-            ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
+            if lmxdac is not None:
+                ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
+            else:
+                self.lmx_dac.set_output_frequency(f)
+                ZCU208Board._write_registers(self.spi_dac, self.lmx_dac.get_register_dump())
 
         if not download:
             return

@@ -365,7 +365,6 @@ class LMX2594(RegisterDevice):
         self.OUTA_PD.set(self.OUTA_PD.NORMAL_OPERATION)
         self.OUTB_PWR.value = 0
         self.OUTB_PD.set(self.OUTB_PD.POWERDOWN)
-        self.OUTB_MUX.set(self.OUTB_MUX.HIGH_IMPEDANCE)
 
         chdivs = []
         f_vco_min = 7500
@@ -436,9 +435,11 @@ class LMX2594(RegisterDevice):
 
         if chdiv_i == 18:
             self.OUTA_MUX.set(self.OUTA_MUX.VCO)
+            self.OUTB_MUX.set(self.OUTB_MUX.VCO)
             self.CHDIV_DIV2.set(self.CHDIV_DIV2.DISABLED)
         else:
             self.OUTA_MUX.set(self.OUTA_MUX.CHANNEL_DIVIDER)
+            self.OUTB_MUX.set(self.OUTB_MUX.CHANNEL_DIVIDER)
 
             # Enable CHDIV_DIV2 driver for CHDIV > 2
             self.CHDIV_DIV2.set(self.CHDIV_DIV2.DISABLED if chdiv_i == 0 else self.CHDIV_DIV2.ENABLED)
@@ -941,12 +942,20 @@ class CLK104:
     def __init__(self, src=None):
         # 10 MHz reference clock, 10 MHz clock input on external SMA, 160 MHz VCO frequency
         self.lmk = LMK04828B(10, 10, 10, 160)
+        self.lmx_adc = LMX2594(245.76)
+        self.lmx_dac = LMX2594(245.76)
 
         if src is None:
             with files("ipq_pynq_utils").joinpath("data/lmk04828b_regdump_defaults.txt").open() as f:
                 self.lmk.init_from_file(f)
         else:
             self.lmk.init_from_file(src)
+
+        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+            self.lmx_adc.init_from_file(f)
+
+        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+            self.lmx_dac.init_from_file(f)
 
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
         self.AMS_SYSREF = CLK104Output(self.lmk.clock_branches[1])
