@@ -6,6 +6,7 @@ import json
 import re
 import numpy as np
 from . import utils
+import fractions
 
 # Import compat-lib for python versions older than 3.10
 if utils.python_version_lt("3.10.0"):
@@ -181,6 +182,20 @@ class Register:
 
         return ret
 
+class MultiRegister:
+    def __init__(self, parent, name, fields):
+        self.parent = parent
+        self.fields = fields
+        self.name = name
+
+    @property
+    def value(self):
+        return self.parent.get_long_register(*self.fields)
+
+    @value.setter
+    def value(self, v):
+        self.parent.set_long_register(v, *self.fields)
+
 class RegisterDevice:
     def __init__(self, aw, dw, definition):
         # Address width and data width
@@ -192,15 +207,23 @@ class RegisterDevice:
         with files("ipq_pynq_utils").joinpath(definition).open() as f:
             regmap = json.load(f)
 
+        multi_regs = {}
+
         for register in regmap:
             addr = register["addr"]
-            reg = Register(register)
+            reg = Register(register, dw=dw)
             self.registers_by_addr[addr] = reg
 
             for field in reg.fields:
                 if isinstance(field, Field) and field.valid_type != "constant":
                     sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
+                    if field.name.endswith("]"): # Multi-field
+                        name = field.name[:field.name.index("[")]
+                        multi_regs[name] = multi_regs.get(name, []) + [field]
                     setattr(self, sanitized_name, field)
+
+        for k,v in multi_regs.items():
+            setattr(self, k, MultiRegister(self, k, v))
 
     def init_from_file(self, file):
         if hasattr(file, "read"):
@@ -299,6 +322,28 @@ CAL_PARTIAL_ASSIST = 1
 CAL_CLOSE_FREQUENCY_ASSIST = 2
 CAL_FULL_ASSIST = 3
 
+CHDIV_TABLE = [
+        (2, 15000, 3750, 7500),
+        (4, 15000, 1875, 3750),
+        (6, 15000, 1250, 2500),
+        (8, 11500, 937.5, 1437.5),
+        (12, 11500, 625, 958.333),
+        (16, 11500, 468.75, 718.75),
+        (24, 11500, 312.5, 479.167),
+        (32, 11500, 234.375, 359.375),
+        (48, 11500, 156.25, 239.583),
+        (64, 11500, 117.1875, 179.6875),
+        (72, 11500, 104.167, 159.722),
+        (96, 11500, 78.125, 119.792),
+        (128, 11500, 58.594, 89.844),
+        (192, 11500, 39.0625, 59.896),
+        (256, 11500, 29.297, 44.922),
+        (384, 11500, 19.531, 29.948),
+        (512, 11500, 14.648, 22.461),
+        (768, 11500, 9.766, 14.974),
+        (1, 15000, 10, 15000)
+        ]
+
 class LMX2594(RegisterDevice):
 
     def __init__(self, f_osc):
@@ -309,7 +354,99 @@ class LMX2594(RegisterDevice):
         # Note that this isn't the complete range, but skips the readback registers
         self.register_addresses = list(range(109, -1, -1))
 
-    def configure_calibration(assistance_level=0):
+    def set_output_frequency(self, f_target, pwr=31):
+        # We only support integer mode right now
+        self.MASH_ORDER.value = 0
+        self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
+        self.PLL_NUM.value = 0
+        self.PLL_DEN.value = 0
+
+        self.OUTA_PWR.value = pwr
+        self.OUTA_PD.set(self.OUTA_PD.NORMAL_OPERATION)
+        self.OUTB_PWR.value = 0
+        self.OUTB_PD.set(self.OUTB_PD.POWERDOWN)
+        self.OUTB_MUX.set(self.OUTB_MUX.HIGH_IMPEDANCE)
+
+        chdivs = []
+        f_vco_min = 7500
+
+        for i,(div,f_vco_max,f_out_min,f_out_max) in enumerate(CHDIV_TABLE):
+            if not (f_out_min <= f_target <= f_out_max):
+                continue
+
+            f_vco = f_target * div
+
+            if not (f_vco_min <= f_vco <= f_vco_max):
+                continue
+
+            chdivs.append((i, div, f_vco))
+
+        if len(chdivs) < 1:
+            raise RuntimeError("No possible integer solutions found!")
+
+        solutions = []
+        print("Solutions:")
+        print("  i    f_vco   DIV MIN_N DLY_SEL    n    R   R_pre f_fpd Metric")
+        print("----------------------------------------------------------------")
+
+        metric_min = 1e999999
+        metric_min_idx = None
+        for idx,(i,div,f_vco) in enumerate(chdivs):
+            min_n,dly_sel = LMX2594.get_modulator_constraints(self.MASH_ORDER.value, f_vco)
+
+            ratio = fractions.Fraction(f_vco / self.f_osc).limit_denominator(255)
+            n = ratio.numerator
+            R = ratio.denominator
+
+            R_pre = 1
+
+            assert n != 0, "N can't be zero!"
+
+            while n < min_n or self.f_osc / (R * R_pre) > 400:
+                n *= 2
+
+                if R*2 <= 255:
+                    R *= 2
+                elif R_pre * 2 < 128:
+                    R_pre *= 2
+                else:
+                    raise RuntimeError("Failed to find solution, N limit can't be met!")
+
+            f_pd = self.f_osc / (R * R_pre)
+
+            metric = R_pre * R * n * div
+            if metric < metric_min:
+                metric_min_idx = idx
+                metric_min = metric
+
+            print(f"{idx:3d}: {f_vco:7.2f} / {div:3d} {min_n:5d} {dly_sel:7d} {n:4d} {R:4d} {R_pre:5d} {f_pd:7.2f} {metric}")
+
+            solutions.append((i, div, f_vco, n, R, R_pre))
+
+        print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}")
+
+        chdiv_i,chdiv,f_vco,n,R,R_pre = solutions[metric_min_idx]
+
+        self.CHDIV.value = chdiv_i % 18
+        self.PFD_DLY_SEL.value = dly_sel
+        self.set_long_register(n, self.PLL_N_18_16, self.PLL_N_15_0)
+        self.PLL_N.value = n
+        self.PLL_R_PRE.value = R_pre
+        self.PLL_R.value = R
+
+        if chdiv_i == 18:
+            self.OUTA_MUX.set(self.OUTA_MUX.VCO)
+            self.CHDIV_DIV2.set(self.CHDIV_DIV2.DISABLED)
+        else:
+            self.OUTA_MUX.set(self.OUTA_MUX.CHANNEL_DIVIDER)
+
+            # Enable CHDIV_DIV2 driver for CHDIV > 2
+            self.CHDIV_DIV2.set(self.CHDIV_DIV2.DISABLED if chdiv_i == 0 else self.CHDIV_DIV2.ENABLED)
+
+        self.update()
+        self.configure_calibration()
+
+    def configure_calibration(self, assistance_level=0):
         if self.f_pd <= 100:
             if self.f_pd >= 10:
                 self.FCAL_LPFD_ADJ.value = 0
@@ -383,9 +520,49 @@ class LMX2594(RegisterDevice):
                 self.VCO_DACISET_FORCE.value = 1
                 self.VCO_CAPCTRL_FORCE.value = 1
 
-    def check_constraints():
-        # Make sure the correct VCO is being used
-        pass
+    def get_modulator_constraints(mash_order, f_vco):
+        if mash_order == 0:
+            if f_vco <= 12500:
+                min_n = 28
+                dly_sel = 1
+            else:
+                min_n = 32
+                dly_sel = 2
+        elif mash_order == 1:
+            if f_vco <= 10000:
+                min_n = 28
+                dly_sel = 1
+            elif 10000 < f_vco < 12500:
+                min_n = 32
+                dly_sel = 2
+            else:
+                min_n = 36
+                dly_sel = 3
+        elif mash_order == 2:
+            if f_vco <= 10000:
+                min_n = 32
+                dly_sel = 2
+            else:
+                min_n = 36
+                dly_sel = 3
+        elif mash_order == 3:
+            if f_vco <= 10000:
+                min_n = 36
+                dly_sel = 3
+            else:
+                min_n = 40
+                dly_sel = 4
+        elif mash_order == 4:
+            if f_vco <= 10000:
+                min_n = 44
+                dly_sel = 5
+            else:
+                min_n = 48
+                dly_sel = 6
+        else:
+            raise RuntimeError(f"Can't handle unknown mash order: {mash_order}")
+
+        return min_n, dly_sel
 
     def update(self):
         if self.OSC_2X.get() == self.OSC_2X.DISABLED:
@@ -403,13 +580,15 @@ class LMX2594(RegisterDevice):
         den = self.get_long_register(self.PLL_DEN_31_16, self.PLL_DEN_15_0)
         pll_n = self.get_long_register(self.PLL_N_18_16, self.PLL_N_15_0)
 
-        self.f_vco = self.f_pd * (pll_n + num/den)
+        if den != 0 and num != 0:
+            self.f_vco = self.f_pd * (pll_n + num/den)
+        else:
+            self.f_vco = self.f_pd * pll_n
 
         if not (7500 <= self.f_vco <= 15000):
             raise RuntimeError(f"VCO frequency f_vco = {round(self.f_vco, ndigits=2)} out of range: 7500 MHz <= f_vco <= 15000")
 
-        chdiv_lut = [2, 4, 6, 8, 12, 16, 24, 32, 48, 64, 72, 96, 128, 192, 256, 384, 512, 768]
-        self.f_chdiv = self.f_vco / chdiv_lut[self.CHDIV.value]
+        self.f_chdiv = self.f_vco / CHDIV_TABLE[self.CHDIV.value][0]
 
         if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
             self.f_outa = self.f_chdiv
