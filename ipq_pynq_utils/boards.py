@@ -241,10 +241,6 @@ class ZCU208Board:
             data = [(word >> 16) & 0xFF, (word >> 8) & 0xFF, word & 0xFF]
             spi.writebytes(data)
 
-    def _write_clk104_registers(self):
-        lmk_regdump = self.clk104.get_register_dump()
-
-
     def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True):
         self.overlay = overlay
         self.rfdc_name = None
@@ -292,7 +288,7 @@ class ZCU208Board:
         if en:
             self.clk104.DAC_REFCLK.freq = clkreqs["DAC_REFCLK"]
 
-        ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.get_register_dump())
+        ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.lmk.get_register_dump())
 
         if en_adc_pll:
             f = clkreqs["RF_CLKO_ADC"]
@@ -300,7 +296,7 @@ class ZCU208Board:
                 ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
             else:
                 self.lmx_adc.set_output_frequency(f)
-                ZCU208Board._write_registers(self.spi_adc, self.lmx_adc.get_register_dump())
+                ZCU208Board._write_registers(self.spi_adc, self.clk104.lmx_adc.get_register_dump())
 
         if en_dac_pll:
             f = clkreqs["RF_CLKO_DAC"]
@@ -308,7 +304,7 @@ class ZCU208Board:
                 ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
             else:
                 self.lmx_dac.set_output_frequency(f)
-                ZCU208Board._write_registers(self.spi_dac, self.lmx_dac.get_register_dump())
+                ZCU208Board._write_registers(self.spi_dac, self.clk104.lmx_dac.get_register_dump())
 
         if not download:
             return
