@@ -386,7 +386,7 @@ class LMX2594(RegisterDevice):
         solutions = []
         print("Solutions:")
         print("  i    f_vco   DIV MIN_N DLY_SEL    n    R   R_pre f_fpd Metric")
-        print("----------------------------------------------------------------")
+        print("-----------------------------------------------------------------")
 
         metric_min = 1e999999
         metric_min_idx = None
@@ -418,7 +418,7 @@ class LMX2594(RegisterDevice):
                 metric_min_idx = idx
                 metric_min = metric
 
-            print(f"{idx:3d}: {f_vco:7.2f} / {div:3d} {min_n:5d} {dly_sel:7d} {n:4d} {R:4d} {R_pre:5d} {f_pd:7.2f} {metric}")
+            print(f"{idx:3d}: {f_vco:8.2f} / {div:3d} {min_n:5d} {dly_sel:7d} {n:4d} {R:4d} {R_pre:5d} {f_pd:7.2f} {metric}")
 
             solutions.append((i, div, f_vco, n, R, R_pre))
 
@@ -428,7 +428,7 @@ class LMX2594(RegisterDevice):
 
         self.CHDIV.value = chdiv_i % 18
         self.PFD_DLY_SEL.value = dly_sel
-        self.set_long_register(n, self.PLL_N_18_16, self.PLL_N_15_0)
+        self.PLL_N.value = n
         self.PLL_N.value = n
         self.PLL_R_PRE.value = R_pre
         self.PLL_R.value = R
@@ -577,9 +577,9 @@ class LMX2594(RegisterDevice):
 
         self.f_pd = f_in
 
-        num = self.get_long_register(self.PLL_NUM_31_16, self.PLL_NUM_15_0)
-        den = self.get_long_register(self.PLL_DEN_31_16, self.PLL_DEN_15_0)
-        pll_n = self.get_long_register(self.PLL_N_18_16, self.PLL_N_15_0)
+        num = self.PLL_NUM.value
+        den = self.PLL_DEN.value
+        pll_n = self.PLL_N.value
 
         if den != 0 and num != 0:
             self.f_vco = self.f_pd * (pll_n + num/den)
@@ -792,19 +792,19 @@ class LMK04828B(RegisterDevice):
             assert self.CLKin0_OUT_MUX.get() == self.CLKin0_OUT_MUX.PLL1
             pll1_src_freq = self.clkin0_freq
 
-            divider = self.get_long_register(self.CLKin0_R_13_8, self.CLKin0_R_7_0)
+            divider = self.CLKin0_R.value
 
         elif sel_mode == self.CLKin_SEL_MODE.CLK_IN_1_MANUAL:
             assert self.CLKin1_OUT_MUX.get() == self.CLKin1_OUT_MUX.PLL1
             pll1_src_freq = self.clkin1_freq
 
-            divider = self.get_long_register(self.CLKin1_R_13_8, self.CLKin1_R_7_0)
+            divider = self.CLKin1_R.value
 
         elif sel_mode == self.CLKin_SEL_MODE.CLK_IN_2_MANUAL:
             assert self.CLKin2_OUT_MUX.get() == self.CLKin2_OUT_MUX.PLL1
             pll1_src_freq = self.clkin2_freq
 
-            divider = self.get_long_register(self.CLKin2_R_13_8, self.CLKin2_R_7_0)
+            divider = self.CLKin2_R.value
         else:
             raise RuntimeError("sel_mode == " + str(sel_mode) + ", which is not supported!")
 
@@ -815,13 +815,13 @@ class LMK04828B(RegisterDevice):
         self.pll1_phase_detector_freq = pll1_src_freq / divider
         dbg("PLL1 Phase Detector Frequency:", self.pll1_phase_detector_freq)
 
-        self.pll1_n_divider = self.get_long_register(self.PLL1_N_13_8, self.PLL1_N_7_0)
+        self.pll1_n_divider = self.PLL1_N.value
         dbg("PLL1N Divider:", self.pll1_n_divider)
         dbg("Expected VCXO Frequency:", self.pll1_n_divider * self.pll1_phase_detector_freq)
 
         assert self.vcxo_freq == self.pll1_n_divider * self.pll1_phase_detector_freq
 
-        self.pll2_r_divider = self.get_long_register(self.PLL2_R_11_8, self.PLL2_R_7_0)
+        self.pll2_r_divider = self.PLL2_R.value
         pll2_input_freq = self.vcxo_freq / self.pll2_r_divider * (2 if self.PLL2_REF_2X_EN.get() == self.PLL2_REF_2X_EN.ENABLED else 1)
         dbg("PLL2 Input Frequency:", pll2_input_freq)
 
@@ -837,13 +837,13 @@ class LMK04828B(RegisterDevice):
 
         dbg("PLL2_P:", pll2_p)
 
-        pll2_n = self.get_long_register(self.PLL2_N_17_16, self.PLL2_N_15_8, self.PLL2_N_7_0)
+        pll2_n = self.PLL2_N.value
         dbg("PLL2_N:", pll2_n)
 
         self.pll2_output_freq = pll2_input_freq * pll2_n * pll2_p
         dbg("PLL2 Output Frequency:", round(self.pll2_output_freq, ndigits=2))
 
-        self.sysref_divider = self.get_long_register(self.SYSREF_DIV_12_8, self.SYSREF_DIV_7_0)
+        self.sysref_divider = self.SYSREF_DIV.value
         dbg("SYSREF DIVIDER:", self.sysref_divider)
 
         self.sysref_freq = self.pll2_output_freq / self.sysref_divider
@@ -886,8 +886,8 @@ class LMK04828B(RegisterDevice):
 
         self.VCO_MUX.value = self.VCO_MUX.VCO_1.value if vco == 1 else self.VCO_MUX.VCO_0.value
 
-        self.set_long_register(R, self.PLL2_R_11_8, self.PLL2_R_7_0)
-        self.set_long_register(N // P, self.PLL2_N_17_16, self.PLL2_N_15_8, self.PLL2_N_7_0)
+        self.PLL2_R.value = R
+        self.PLL2_N.value = N // P
         self.PLL2_P.value = P & 0x7 # 8 is represented as 0
 
         self.update()
@@ -903,7 +903,7 @@ class LMK04828B(RegisterDevice):
         if abs(div - _div) / div > 0.01:
             print(f"WARNING: SYSREF_CLK target could not be hit accurately! Requested frequency {value} MHz requires divider {_div:.4f} which is not realizable. The closest integer divider {div} results in a frequency of {f_new} MHz!")
 
-        self.set_long_register(div, self.SYSREF_DIV_12_8, self.SYSREF_DIV_7_0)
+        self.SYSREF_DIV.value = div
         self.update()
 
 class CLK104Output:
