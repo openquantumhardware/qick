@@ -354,7 +354,7 @@ class LMX2594(RegisterDevice):
         # Note that this isn't the complete range, but skips the readback registers
         self.register_addresses = list(range(109, -1, -1))
 
-    def set_output_frequency(self, f_target, pwr=31):
+    def set_output_frequency(self, f_target, pwr=31, solution=None):
         # We only support integer mode right now
         self.MASH_ORDER.value = 0
         self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
@@ -384,11 +384,10 @@ class LMX2594(RegisterDevice):
             raise RuntimeError("No possible integer solutions found!")
 
         solutions = []
-        print("Solutions:")
-        print("  i    f_vco   DIV MIN_N DLY_SEL    n    R   R_pre f_fpd Metric")
-        print("-----------------------------------------------------------------")
+        print("  i |   f_vco  | DIV | MIN_N | DLY_SEL |   n  |   R  | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
+        print("----|----------|-----|-------|---------|------|------|-------|---------|----------|---------|------------")
 
-        metric_min = 1e999999
+        metric_min = np.inf
         metric_min_idx = None
         for idx,(i,div,f_vco) in enumerate(chdivs):
             min_n,dly_sel = LMX2594.get_modulator_constraints(self.MASH_ORDER.value, f_vco)
@@ -418,13 +417,21 @@ class LMX2594(RegisterDevice):
                 metric_min_idx = idx
                 metric_min = metric
 
-            print(f"{idx:3d}: {f_vco:8.2f} / {div:3d} {min_n:5d} {dly_sel:7d} {n:4d} {R:4d} {R_pre:5d} {f_pd:7.2f} {metric}")
+            f_out = f_vco / div
+            delta_f = abs(f_out - f_target)
+
+            metric += delta_f*1e6
+
+            print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
 
             solutions.append((i, div, f_vco, n, R, R_pre))
 
-        print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}")
+        print()
+        if solution is None:
+            print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
+            solution = metric_min_idx
 
-        chdiv_i,chdiv,f_vco,n,R,R_pre = solutions[metric_min_idx]
+        chdiv_i,chdiv,f_vco,n,R,R_pre = solutions[solution]
 
         self.CHDIV.value = chdiv_i % 18
         self.PFD_DLY_SEL.value = dly_sel
@@ -446,6 +453,8 @@ class LMX2594(RegisterDevice):
 
         self.update()
         self.configure_calibration()
+
+        return f_vco / chdiv
 
     def configure_calibration(self, assistance_level=0):
         if self.f_pd <= 100:

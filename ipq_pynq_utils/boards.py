@@ -106,6 +106,8 @@ class RFDCConfig:
         print(f" Name | Enable | Ref Clock | Clock Source | PLL Enable | Fabric CLK |  MTS  | Clock Dist")
         print( "------|--------|-----------|--------------|------------|------------|-------|------------")
         for tile in self.rftiles:
+            if not tile.enabled:
+                continue
             tile.print_line()
 
     def get_clk_requirements(self, hide_warnings=False):
@@ -252,12 +254,18 @@ class ZCU208Board:
         if self.rfdc_name is None:
             raise RuntimeError("No RF Data Converter present in overlay!")
 
+        print("Parsing RFDC configuration ... ")
         self.rfdc_config = RFDCConfig(overlay, self.rfdc_name)
+        print()
         self.rfdc_config.print_table()
-        clkreqs = self.rfdc_config.get_clk_requirements()
-        print("Clock Requirements:", clkreqs)
+        print()
 
-        mts = clkreqs["MTS"]
+        clkreqs = self.rfdc_config.get_clk_requirements()
+
+        def tr(x):
+            if x is None:
+                return "Not used"
+            return str(round(x, ndigits=2)) + " MHz"
 
         if pl_clk is not None:
             f = pl_clk
@@ -265,6 +273,17 @@ class ZCU208Board:
             f = clkreqs["PL_CLK"]
         else:
             raise RuntimeError("A single PL CLK rate could not be determined, please provide one manually using the pl_clk parameter to ZCU208Board.configure()!")
+
+        mts = clkreqs["MTS"]
+
+        print( "Clock requirements:")
+        print(f" * RF_CLKO_ADC:", tr(clkreqs["RF_CLKO_ADC"]))
+        print(f" * RF_CLKO_DAC:", tr(clkreqs["RF_CLKO_DAC"]))
+        print(f" * ADC_REFCLK: ", tr(clkreqs["ADC_REFCLK"]))
+        print(f" * DAC_REFCLK: ", tr(clkreqs["DAC_REFCLK"]))
+        print(f" * PL_CLK:     ", tr(f))
+        print(f" * MTS:        ", "Enabled" if mts else "Disabled")
+        print()
 
         en_adc_pll = clkreqs["RF_CLKO_ADC"] is not None
         self.clk104.RF_PLL_ADC_REF.enable = en_adc_pll
@@ -295,16 +314,20 @@ class ZCU208Board:
             if lmxadc is not None:
                 ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
             else:
-                self.lmx_adc.set_output_frequency(f)
+                print("Generating ADC PLL configuration:")
+                self.clk104.lmx_adc.set_output_frequency(f)
                 ZCU208Board._write_registers(self.spi_adc, self.clk104.lmx_adc.get_register_dump())
+                print()
 
         if en_dac_pll:
             f = clkreqs["RF_CLKO_DAC"]
             if lmxdac is not None:
                 ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
             else:
-                self.lmx_dac.set_output_frequency(f)
+                print("Generating DAC PLL configuration:")
+                self.clk104.lmx_dac.set_output_frequency(f)
                 ZCU208Board._write_registers(self.spi_dac, self.clk104.lmx_dac.get_register_dump())
+                print()
 
         if not download:
             return
@@ -333,16 +356,16 @@ class ZCU208Board:
             print("done!")
 
     def print_clock_summary(self):
-        print(f"Name            |  Frequency  | Enabled | Sysref Enabled")
-        print( "----------------|-------------|---------|----------------")
-        print(f"PLL2_FREQ       | {self.clk104.PLL2_FREQ:7.2f} MHz | True    |")
-        print(f"AMS_SYSREF      | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | {str(self.clk104.AMS_SYSREF.sysref_enable)}")
-        print(f"SYSREF_FREQ     | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | True")
-        print(f"ADC_REFCLK      | {self.clk104.ADC_REFCLK.freq:7.2f} MHz | {str(self.clk104.ADC_REFCLK.enable):<7} | {str(self.clk104.ADC_REFCLK.sysref_enable):<7}")
-        print(f"DAC_REFCLK      | {self.clk104.DAC_REFCLK.freq:7.2f} MHz | {str(self.clk104.DAC_REFCLK.enable):<7} | {str(self.clk104.DAC_REFCLK.sysref_enable):<7}")
-        print(f"RF_PLL_ADC_REF  | {self.clk104.RF_PLL_ADC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_ADC_REF.enable):<7} | {str(self.clk104.RF_PLL_ADC_REF.sysref_enable):<7}")
-        print(f"RF_PLL_DAC_REF  | {self.clk104.RF_PLL_DAC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_DAC_REF.enable):<7} | {str(self.clk104.RF_PLL_DAC_REF.sysref_enable):<7}")
-        print(f"PL_CLK          | {self.clk104.PL_CLK.freq:7.2f} MHz | {str(self.clk104.PL_CLK.enable):<7} | {str(self.clk104.PL_CLK.sysref_enable):<7}")
+        print(f" Name            |  Frequency  | Enabled | Sysref Enabled")
+        print( "-----------------|-------------|---------|----------------")
+        print(f" PLL2_FREQ       | {self.clk104.PLL2_FREQ:7.2f} MHz | True    |")
+        print(f" AMS_SYSREF      | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | {str(self.clk104.AMS_SYSREF.sysref_enable)}")
+        print(f" SYSREF_FREQ     | {self.clk104.SYSREF_FREQ:7.2f} MHz |         | True")
+        print(f" ADC_REFCLK      | {self.clk104.ADC_REFCLK.freq:7.2f} MHz | {str(self.clk104.ADC_REFCLK.enable):<7} | {str(self.clk104.ADC_REFCLK.sysref_enable):<7}")
+        print(f" DAC_REFCLK      | {self.clk104.DAC_REFCLK.freq:7.2f} MHz | {str(self.clk104.DAC_REFCLK.enable):<7} | {str(self.clk104.DAC_REFCLK.sysref_enable):<7}")
+        print(f" RF_PLL_ADC_REF  | {self.clk104.RF_PLL_ADC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_ADC_REF.enable):<7} | {str(self.clk104.RF_PLL_ADC_REF.sysref_enable):<7}")
+        print(f" RF_PLL_DAC_REF  | {self.clk104.RF_PLL_DAC_REF.freq:7.2f} MHz | {str(self.clk104.RF_PLL_DAC_REF.enable):<7} | {str(self.clk104.RF_PLL_DAC_REF.sysref_enable):<7}")
+        print(f" PL_CLK          | {self.clk104.PL_CLK.freq:7.2f} MHz | {str(self.clk104.PL_CLK.enable):<7} | {str(self.clk104.PL_CLK.sysref_enable):<7}")
 
     def perform_mts(self, rfdc, tile_type, tiles=0xf, target_latency=-1):
         """
