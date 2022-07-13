@@ -124,7 +124,7 @@ class RFDCConfig:
 
         adc1 = self.rftiles[1]
         if adc1.enabled and adc1.src == 1:
-            ret["RF_CLKO_DAC"] = adc1.refclk_freq
+            ret["RF_CLKO_ADC"] = adc1.refclk_freq
 
         dac2 = self.rftiles[6]
         if dac2.enabled and dac2.src == 6:
