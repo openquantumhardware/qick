@@ -241,11 +241,6 @@ class AbsSignalGen(SocIp):
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
-        # The XRFDC driver uses C integer type conversion to get the register value.
-        # The frequency we calculated exactly equals (to within float precision) a valid NCO frequency.
-        # So half the time, the frequency will get rounded down to the next lowest valid frequency.
-        # We don't want this, so we must add a half-step to the frequency we demand.
-        rounded_f += self.fs_dac/2**49
         self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
@@ -852,7 +847,7 @@ class AxisPFBReadoutV2(SocIp):
 
     def set_freq_int(self, f_int, in_ch, out_ch):
         if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            centerfreq = (in_ch - 4) * (self.fs/16)
+            centerfreq = ((in_ch - 4) % 8) * (self.fs/16)
             lofreq = centerfreq - self.fs/32
             hifreq = centerfreq + self.fs/32
             thiscfg = {}
@@ -1358,13 +1353,31 @@ class AxisTProc64x32_x8(SocIp):
         self.dma = axi_dma
 
     def configure_connections(self, soc, sigparser, busparser):
+        self.output_pins = []
+        self.start_pin = None
+        try:
+            ((port),) = trace_net(sigparser, self.fullpath, 'start')
+            self.start_pin = port[0]
+        except:
+            pass
         for i in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
-            ((block, port),) = trace_net(
-                busparser, self.fullpath, 'm%d_axis' % (i+1))
+            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis' % (i+1))
             if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
+                ((block, port),) = trace_net(sigparser, block, 'dout')
+                for iPin in range(16):
+                    try:
+                        #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
+                        ports = trace_net(sigparser, block, "dout%d"%(iPin))
+                        if len(ports)==1 and len(ports[0])==1:
+                            # it's an FPGA pin, save it
+                            pinname = ports[0][0]
+                            self.output_pins.append((iPin, pinname))
+                    except KeyError:
+                        pass
+
 
     def start(self):
         """
@@ -1564,7 +1577,7 @@ class RFDC(xrfdc.RFdc):
     def configure(self, soc):
         self.daccfg = soc.dacs
 
-    def set_mixer_freq(self, dacname, f, force=False):
+    def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
@@ -1574,12 +1587,13 @@ class RFDC(xrfdc.RFdc):
         1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
         2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
         3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
-        We need to adjust the frequency so the result of this conversion equals the frequency we intended.
-        Specifically:
-        * We don't want the inversion in step 2, so we also multiply by -1.
-        * We want to get as close as possible to the demanded frequency, so we must add a half-step.
-        This is important if the demanded frequency was rounded to a valid NCO frequency for frequency-matching.
-        If we didn't add a half-step, half of the time these would get rounded down to the next lowest valid frequency.
+
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
+        The safest way to get consistent behavior is to always round to a valid NCO frequency.
+        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
 
         :param dacname: DAC channel (2-digit string)
         :type dacname: int
@@ -1587,18 +1601,17 @@ class RFDC(xrfdc.RFdc):
         :type f: float
         :param force: force update, even if the setting is the same
         :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
         """
         fs = self.daccfg[dacname]['fs']
         fstep = fs/2**48
-        rounded_f = round(f/fstep) * fstep
+        rounded_f = round(f/fstep)*fstep
         if not force and rounded_f == self.get_mixer_freq(dacname):
             return
-        if (f % fs) > fs/2: # will be negative after step 1
-            f -= fstep/2
-        else: # will be positive after step 1
-            f += fstep/2
-        if abs(f) > fs/2 and self.get_nyquist(dacname)==2:
-            f *= -1
+        fset = rounded_f
+        if abs(rounded_f) > fs/2 and self.get_nyquist(dacname)==2:
+            fset *= -1
 
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -1608,11 +1621,12 @@ class RFDC(xrfdc.RFdc):
         # Update the copy
         new_mixcfg.update({
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
-            'Freq': f,
+            'Freq': fset,
             'MixerType': xrfdc.MIXER_TYPE_FINE,
             'PhaseOffset': 0})
 
         # Update settings.
+        if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
         self.mixer_dict[dacname] = rounded_f
@@ -1823,6 +1837,8 @@ class QickSoc(Overlay, QickConfig):
             readout.configure(self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
+        self['dacs'] = list(self.dacs.keys())
+        self['adcs'] = list(self.adcs.keys())
         self['gens'] = []
         self['readouts'] = []
         self['iqs'] = []
@@ -1863,7 +1879,9 @@ class QickSoc(Overlay, QickConfig):
         for tproc in [self.tproc]:
             thiscfg = {}
             thiscfg['trig_output'] = tproc.trig_output
-            thiscfg['pmem_size'] = tproc.mem.mmio.length/8
+            thiscfg['output_pins'] = tproc.output_pins
+            thiscfg['start_pin'] = tproc.start_pin
+            thiscfg['pmem_size'] = tproc.mem.mmio.length//8
             thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
@@ -2205,9 +2223,20 @@ class QickSoc(Overlay, QickConfig):
         if reset: self.tproc.reset()
 
         # cast the program words to 64-bit uints
-        p = np.array(binprog, dtype=np.uint64)
-        # reshape to 32-bit uints to match the program memory, and do a fast copy
-        np.copyto(self.tproc.mem.mmio.array[:2*len(p)], np.frombuffer(p, np.uint32))
+        self.binprog = np.array(binprog, dtype=np.uint64)
+        # reshape to 32 bits to match the program memory
+        self.binprog = np.frombuffer(self.binprog, np.uint32)
+
+        self.reload_program()
+
+    def reload_program(self):
+        """
+        Write the most recently written program to the tProc program memory.
+        This is normally useful after a reset (which erases the program memory)
+        """
+        # write the program to memory with a fast copy
+        #print(self.binprog)
+        np.copyto(self.tproc.mem.mmio.array[:len(self.binprog)], self.binprog)
 
     def start_src(self, src):
         """
@@ -2253,23 +2282,34 @@ class QickSoc(Overlay, QickConfig):
         if not streamer.readout_worker.is_alive():
             print("restarting readout worker")
             streamer.start_worker()
+            print("worker restarted")
 
         # if there's still a readout job running, stop it
         if streamer.readout_running():
-            print("cleaning up previous readout: stopping streamer loop")
+            print("cleaning up previous readout: stopping tProc and streamer loop")
+            # stop the tProc
+            self.tproc.reset()
             # tell the readout to stop (this will break the readout loop)
             streamer.stop_readout()
             streamer.done_flag.wait()
+            # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
+            streamer.data_queue.put((0, (None, None)))
+            time.sleep(0.1)
+            # reload the program (since the reset will have wiped it out)
+            self.reload_program()
+            print("streamer stopped")
         if streamer.data_available():
             # flush all the data in the streamer buffer
             print("clearing streamer buffer")
             # read until the queue times out, discard the data
             self.poll_data(totaltime=-1, timeout=0.1)
+            print("buffer cleared")
 
         streamer.total_count = total_count
         streamer.count = 0
 
         streamer.done_flag.clear()
+        streamer.stop_flag.clear()
         streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
 
     def poll_data(self, totaltime=0.1, timeout=None):
@@ -2299,6 +2339,9 @@ class QickSoc(Overlay, QickConfig):
                 pass
             try:
                 length, data = streamer.data_queue.get(block=True, timeout=timeout)
+                # if we stopped the readout while we were waiting for data, break out and return
+                if streamer.stop_flag.is_set():
+                    break
                 streamer.count += length
                 new_data.append(data)
             except queue.Empty:

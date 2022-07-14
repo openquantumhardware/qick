@@ -8,7 +8,7 @@ def gauss(mu=0, si=0, length=100, maxv=32000):
 	return y
 
 yi = gauss(mu=300, si=120, length=600)
-yq = yi
+yq = np.zeros(len(yi))
 
 yi = yi.astype(np.int16)
 yq = yq.astype(np.int16)

@@ -1,7 +1,7 @@
 import os
 from .qick import SocIp, QickSoc
 from .qick_asm import QickConfig
-from pynq.overlay import Overlay
+from pynq.overlay import Overlay, DefaultIP
 from pynq.buffer import allocate
 import xrfclk
 import numpy as np
@@ -201,24 +201,25 @@ class AxisDdsMrSwitch(SocIp):
         self.config(1)
 
 
-class spi(SocIp):
+class spi(DefaultIP):
 
     bindto = ['xilinx.com:ip:axi_quad_spi:3.2']
+    SPI_REGLIST = ['DGIER', 'IPISR', 'IPIER', 'SRR', 'SPICR', 'SPISR', 'SPI_DTR', 'SPI_DRR', 'SPI_SSR', 'SPI_TXFIFO_OR', 'SPI_RXFIFO_OR']
 
     #
     # SPI registers - See Xilinx PG153 AXI Quad SPI for discriptions
     #
-    DGIER = 0x1C   # 0x1C - RW - SPI Device Global Interrupt Enable Register
-    IPISR = 0x20   # 0x20 - RW - SPI IP Interrupt Status Register
-    IPIER = 0x28   # 0x28 - RW - SPI IP Interrupt Enable Register
-    SRR = 0x40     # 0x40 - WO - SPI Software Reset Reg
-    CR = 0x60      # 0x60 - RW - SPI Control Register
-    SR = 0x64     # 0x64 - RO - SPI Status Register
-    DTR = 0x68    # 0x68 - WO - SPI Data Transmit Register
-    DRR = 0x6C    # 0x6C - RO - SPI Data Receive Register
-    SSR = 0x70    # 0x70 - RW - SPI Slave Select Register
-    TFOR = 0x74   # 0x74 - RW - SPI Transmit FIFO Occupancy Register
-    RFOR = 0x78   # 0x78 - RO - SPI Receive FIFO Occupancy Register
+    #DGIER = 0x1C          # 0x1C - RW - SPI Device Global Interrupt Enable Register
+    #IPISR = 0x20          # 0x20 - RW - SPI IP Interrupt Status Register
+    #IPIER = 0x28          # 0x28 - RW - SPI IP Interrupt Enable Register
+    #SRR = 0x40            # 0x40 - WO - SPI Software Reset Reg
+    #SPICR = 0x60          # 0x60 - RW - SPI Control Register
+    #SPISR = 0x64          # 0x64 - RO - SPI Status Register
+    #SPI_DTR = 0x68        # 0x68 - WO - SPI Data Transmit Register
+    #SPI_DRR = 0x6C        # 0x6C - RO - SPI Data Receive Register
+    #SPI_SSR = 0x70        # 0x70 - RW - SPI Slave Select Register
+    #SPI_TXFIFO_OR = 0x74  # 0x74 - RW - SPI Transmit FIFO Occupancy Register
+    #SPI_RXFIFO_OR = 0x78  # 0x78 - RO - SPI Receive FIFO Occupancy Register
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
@@ -227,51 +228,23 @@ class spi(SocIp):
         self.rst()
 
         # De-assert slave select
-        self.reg_wr("SSR", 0)
+        self.SPI_SSR = 0
 
-    # Number of channels (to control CS/LE).
-    NCH = 1
-
-    # Register read.
-    def reg_rd(self, reg="CR"):
-        reg_val = -1
-
-        if reg == "CR":
-            reg_val = self.read(self.CR)
-        elif reg == "SR":
-            reg_val = self.read(self.SR)
-        elif reg == "SSR":
-            reg_val = self.read(self.SSR)
-        elif reg == "DGIER":
-            reg_val = self.read(self.DGIER)
-        elif reg == "IPISR":
-            reg_val = self.read(self.IPISR)
-        elif reg == "IPIER":
-            reg_val = self.read(self.IPIER)
-        elif reg == "TFOR":
-            reg_val = self.read(self.TFOR)
-        elif reg == "RFOR":
-            reg_val = self.read(self.RFOR)
+    def __setattr__(self, a, v):
+        if a in self.SPI_REGLIST:
+            setattr(self.register_map, a, v)
         else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
+            super().__setattr__(a, v)
 
-        return reg_val
-
-    # Register write.
-    def reg_wr(self, reg="CR", reg_val=0):
-        if reg == "CR":
-            self.write(self.CR, reg_val)
-        elif reg == "SSR":
-            self.write(self.SSR, reg_val)
-        elif reg == "DGIER":
-            self.write(self.DGIER, reg_val)
+    def __getattr__(self, a):
+        #print(self.SPI_REGLIST)
+        if a in self.SPI_REGLIST:
+            return getattr(self.register_map, a)
         else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
+            return super().__getattribute__(a)
 
     def rst(self):
-        self.write(self.SRR, 0xA)
+        self.SRR = 0xA
 
     # SPI Control Register:
     # Bit 9 : LSB/MSB selection.
@@ -325,53 +298,35 @@ class spi(SocIp):
                en="enable",
                loopback="no"):
 
-        # Config word.
-        tmp = 0
-
         # LSB/MSB.
-        if lsb == "lsb":
-            tmp |= (1 << 9)
+        self.register_map.SPICR.LSB_First = {"lsb":1, "msb":0}[lsb]
 
         # Master transaction inhibit.
-        if msttran == "disable":
-            tmp |= (1 << 8)
+        self.register_map.SPICR.Master_Transaction_Inhibit = {"disable":1, "enable":0}[msttran]
 
         # Manual slave select.
-        if ssmode == "ssr":
-            tmp |= (1 << 7)
+        self.register_map.SPICR.Manual_Slave_Select_Assertion_Enable = {"ssr":1, "auto":0}[ssmode]
 
         # RX FIFO.
-        if rxfifo == "rst":
-            tmp |= (1 << 6)
+        self.register_map.SPICR.RX_FIFO_Reset = {"rst":1, "":0}[rxfifo]
 
         # TX FIFO.
-        if txfifo == "rst":
-            tmp |= (1 << 5)
+        self.register_map.SPICR.TX_FIFO_Reset = {"rst":1, "":0}[txfifo]
 
         # CPHA.
-        if cpha == "invert":
-            tmp |= (1 << 4)
+        self.register_map.SPICR.CPHA = {"invert":1, "":0}[cpha]
 
         # CPOL
-        if cpol == "low":
-            tmp |= (1 << 3)
+        self.register_map.SPICR.CPOL = {"low":1, "high":0}[cpol]
 
         # Master mode.
-        if mst == "master":
-            tmp |= (1 << 2)
+        self.register_map.SPICR.Master = {"master":1, "slave":0}[mst]
 
         # SPI enable.
-        if en == "enable":
-            tmp |= (1 << 1)
+        self.register_map.SPICR.SPE = {"enable":1, "disable":0}[en]
 
         # Loopback
-        if loopback == "yes":
-            tmp |= (1 << 0)
-
-        # Write register.
-        self.reg_wr("CR", tmp)
-
-        return tmp
+        self.register_map.SPICR.LOOP = {"yes":1, "no":0}[loopback]
 
     # Enable function.
     def en_level(self, nch=4, chlist=[0], en_l="high"):
@@ -395,44 +350,40 @@ class spi(SocIp):
     # Send function.
     def send_m(self, data, ch_en, cs_t="pulse"):
         # Manually assert channels.
-        ch_en_temp = self.reg_rd("SSR")
+        ch_en_temp = self.SPI_SSR.Selected_Slave
 
         # Standard CS at the beginning of transaction.
         if cs_t != "pulse":
-            self.reg_wr("SSR", ch_en)
+            self.SPI_SSR = ch_en
 
         # Send data.
         for byte in data:
             # Send data.
-            self.write(self.DTR, byte)
+            self.SPI_DTR = byte
 
             # LE pulse at the end.
             if cs_t == "pulse":
                 # Write SSR to enable channels.
-                self.reg_wr("SSR", ch_en)
+                self.SPI_SSR = ch_en
 
                 # Write SSR to previous value.
-                self.reg_wr("SSR", ch_en_temp)
+                self.SPI_SSR = ch_en_temp
 
         # Bring CS to default value.
         if cs_t != "pulse":
-            self.reg_wr("SSR", ch_en_temp)
+            self.SPI_SSR = ch_en_temp
 
     # Receive function.
     def receive(self):
-        # Check if fifo is empty.
-        status = self.reg_rd("SR")
-        status &= 0x1  # mask to get only rx empty bit.
-
         # Fifo is empty
-        if status:
+        if self.SPISR.RX_Empty==1:
             return []
         else:
             # Get number of samples on fifo.
-            nr = self.read(self.RFOR) + 1
+            nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
             data_r = np.zeros(nr)
             for i in range(nr):
-                data_r[i] = self.read(self.DRR)
+                data_r[i] = self.SPI_DRR.RX_Data
             return data_r
 
     # Send/Receive.
@@ -846,7 +797,7 @@ class power_sw_fan:
         self.cs_t = cs_t
 
         # All CS to high value.
-        self.spi.reg_wr("SSR", 0xff)
+        self.spi.SPI_SSR = 0xff
 
         # Set all bits as outputs.
         byte = self.mcp.reg_wr("IODIR_REG", 0x00)
@@ -907,7 +858,7 @@ class lo_synth:
         self.cs_t = cs_t
 
         # All CS to high value.
-        self.spi.reg_wr("SSR", 0xff)
+        self.spi.SPI_SSR = 0xff
 
         # Write 0x00 to reg 0x73
         self.reg_wr("LD_PD_ADC_REG", 0x00)
@@ -1074,7 +1025,7 @@ class dac_bias:
         self.cs_t = cs_t
 
         # All CS to high value.
-        self.spi.reg_wr("SSR", 0xff)
+        self.spi.SPI_SSR = 0xff
 
         # Initialize control register.
         self.write(reg="CTRL_REG", val=0x312)
@@ -1279,7 +1230,7 @@ class dac_ch():
 
 class RFQickSoc(QickSoc):
     """
-    Overrides the __init__ method of QickSoc in order to add the RF board drivers.
+    Overrides the __init__ method of QickSoc in order to add the drivers for the preproduction (V1) version of the RF board.
     Otherwise supports all the QickSoc functionality.
     """
     ENABLE_LO_OUTPUT = True

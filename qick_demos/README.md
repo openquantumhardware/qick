@@ -41,3 +41,10 @@ A modified version of the firmware with 4 DACs and 4 ADCs enabled (instead of 7 
 ## Features available on the QICK which are not included in this collection of demos
 * Control other lab hardware remotely using the QICK (e.g. Yokogawa voltage source, Signalcore LO, digital step attenuators)
 * Marker pulses coming out of the RFSoC PMOD pins
+
+## Other examples of QICK measurement code, shared by QICK collaborators
+
+* [Connie Miao, Schuster Lab](https://github.com/conniemiao/slab_rfsoc_expts)
+* [Chao Zhou, Hatlab](https://github.com/PITT-HATLAB/Hatlab_RFSOC)
+* [Sara Sussman, Houck Lab](https://github.com/sarafs1926/qick-amo)
+

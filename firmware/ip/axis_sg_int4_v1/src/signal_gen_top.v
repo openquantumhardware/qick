@@ -47,7 +47,7 @@ input 	[31:0]			s0_axis_tdata_i;
 input					s0_axis_tvalid_i;
 output					s0_axis_tready_o;
 
-input 	[82:0]			s1_axis_tdata_i;
+input 	[84:0]			s1_axis_tdata_i;
 input					s1_axis_tvalid_i;
 output					s1_axis_tready_o;
 
@@ -63,9 +63,9 @@ input           		WE_REG;
 /********************/
 // Fifo.
 wire					fifo_wr_en;
-wire	[82:0]			fifo_din;
+wire	[84:0]			fifo_din;
 wire					fifo_rd_en;
-wire	[82:0]			fifo_dout;
+wire	[84:0]			fifo_dout;
 wire					fifo_full;
 wire					fifo_empty;
 
@@ -86,7 +86,7 @@ wire	[15:0]			mem_dob_imag;
 fifo
     #(
         // Data width.
-        .B	(83),
+        .B	(85),
         
         // Fifo depth.
         .N	(16)

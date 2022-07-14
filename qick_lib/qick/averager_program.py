@@ -1,7 +1,10 @@
 """
 Several helper classes for writing qubit experiments.
 """
-from tqdm import tqdm
+try:
+    from tqdm.notebook import tqdm
+except:
+    from tqdm import tqdm_notebook as tqdm
 import numpy as np
 from .qick_asm import QickProgram
 
@@ -77,7 +80,7 @@ class AveragerProgram(QickProgram):
         :type angle: list
         :param readouts_per_experiment: readouts per experiment
         :type readouts_per_experiment: int
-        :param save_experiments: saved experiments
+        :param save_experiments: saved readouts (by default, save all readouts)
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
@@ -95,7 +98,7 @@ class AveragerProgram(QickProgram):
         if angle is None:
             angle = [0, 0]
         if save_experiments is None:
-            save_experiments = [0]
+            save_experiments = range(readouts_per_experiment)
         # Load the pulses from the program into the soc
         if load_pulses:
             self.load_pulses(soc)
@@ -114,7 +117,7 @@ class AveragerProgram(QickProgram):
         soc.start_src(start_src)
 
         reps = self.cfg['reps']
-        total_count = reps
+        total_count = reps*readouts_per_experiment
         count = 0
         n_ro = len(self.ro_chs)
 
@@ -123,7 +126,7 @@ class AveragerProgram(QickProgram):
 
         with tqdm(total=total_count, disable=not progress) as pbar:
             soc.start_readout(total_count, counter_addr=1,
-                                   ch_list=list(self.ro_chs))
+                                   ch_list=list(self.ro_chs), reads_per_count=readouts_per_experiment)
             while count<total_count:
                 new_data = soc.poll_data()
                 for d, s in new_data:
@@ -176,7 +179,7 @@ class AveragerProgram(QickProgram):
         :type angle: list
         :param readouts_per_experiment: readouts per experiment
         :type readouts_per_experiment: int
-        :param save_experiments: saved experiments
+        :param save_experiments: saved readouts (by default, save all readouts)
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
@@ -195,14 +198,14 @@ class AveragerProgram(QickProgram):
         if angle is None:
             angle = [0, 0]
         if save_experiments is None:
-            save_experiments = [0]
+            save_experiments = range(readouts_per_experiment)
         if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
-            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, start_src=start_src, load_pulses=load_pulses, progress=progress, debug=debug)
+            return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, start_src=start_src, load_pulses=load_pulses, progress=progress, debug=debug)
 
         avg_di = None
         for ii in tqdm(range(self.cfg["rounds"]), disable=not progress):
             avg_di0, avg_dq0 = self.acquire_round(
-                soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, start_src=start_src, load_pulses=load_pulses, progress=False, debug=debug)
+                soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, start_src=start_src, load_pulses=load_pulses, progress=False, debug=debug)
 
             if avg_di is None:
                 avg_di, avg_dq = avg_di0, avg_dq0
@@ -236,7 +239,7 @@ class AveragerProgram(QickProgram):
             threshold = [threshold, threshold]
         return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
-    def acquire_decimated(self, soc, load_pulses=True, start_src="internal", progress=True, debug=False):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=1, start_src="internal", progress=True, debug=False):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -250,11 +253,15 @@ class AveragerProgram(QickProgram):
         2D array with dimensions (2, length), indices (I/Q, sample)
         reps > 1:
         3D array with dimensions (reps, 2, length), indices (rep, I/Q, sample)
+        readouts_per_experiment>1:
+        3D array with dimensions (reps, expts, 2, length), indices (rep, expt, I/Q, sample)
 
         :param soc: Qick object
         :type soc: Qick object
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
+        :param readouts_per_experiment: readouts per experiment (all will be saved)
+        :type readouts_per_experiment: int
         :param start_src: "internal" (tProc starts immediately) or "external" (each soft_avg waits for an external trigger)
         :type start_src: string
         :param progress: If true, displays progress bar
@@ -284,7 +291,7 @@ class AveragerProgram(QickProgram):
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
             if ro.length*reps > maxlen:
                 raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro.length, reps, maxlen))
-            d_buf.append(np.zeros((2, ro.length*reps)))
+            d_buf.append(np.zeros((2, ro.length*reps*readouts_per_experiment)))
 
         # load the program - it's always the same, so this only needs to be done once
         self.load_program(soc, debug=debug)
@@ -312,16 +319,19 @@ class AveragerProgram(QickProgram):
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += soc.get_decimated(ch=ch,
-                                               address=0, length=ro.length*reps)
+                                               address=0, length=ro.length*reps*readouts_per_experiment)
 
         # average the decimated data
-        if reps == 1:
+        if reps == 1 and readouts_per_experiment == 1:
             return [d/soft_avgs for d in d_buf]
         else:
             # split the data into the individual reps:
             # we reshape to slice each long buffer into reps,
             # then use moveaxis() to transpose the I/Q and rep axes
-            return [np.moveaxis(d.reshape(2, reps, -1), 0, 1)/soft_avgs for d in d_buf]
+            result = [np.moveaxis(d.reshape(2, reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
+            if reps > 1 and readouts_per_experiment > 1:
+                result = [d.reshape(reps, readouts_per_experiment, 2, -1) for d in result]
+            return result
 
 
 class RAveragerProgram(QickProgram):
@@ -418,7 +428,7 @@ class RAveragerProgram(QickProgram):
         :type angle: list
         :param readouts_per_experiment: readouts per experiment
         :type readouts_per_experiment: int
-        :param save_experiments: saved experiments
+        :param save_experiments: saved readouts (by default, save all readouts)
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
@@ -436,7 +446,7 @@ class RAveragerProgram(QickProgram):
         if angle is None:
             angle = [0, 0]
         if save_experiments is None:
-            save_experiments = [0]
+            save_experiments = range(readouts_per_experiment)
         if load_pulses:
             self.load_pulses(soc)
 
@@ -543,7 +553,7 @@ class RAveragerProgram(QickProgram):
         :type angle: list
         :param readouts_per_experiment: readouts per experiment
         :type readouts_per_experiment: int
-        :param save_experiments: saved experiments
+        :param save_experiments: saved readouts (by default, save all readouts)
         :type save_experiments: list
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
@@ -561,7 +571,7 @@ class RAveragerProgram(QickProgram):
         if angle is None:
             angle = [0, 0]
         if save_experiments is None:
-            save_experiments = [0]
+            save_experiments = range(readouts_per_experiment)
         if "rounds" not in self.cfg or self.cfg["rounds"] == 1:
             return self.acquire_round(soc, threshold=threshold, angle=angle, readouts_per_experiment=readouts_per_experiment, save_experiments=save_experiments, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 

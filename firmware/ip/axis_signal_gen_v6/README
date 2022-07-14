@@ -1,0 +1,8 @@
+Signal Generator Block:
+* 32-bit for phase/frequency of DDS.
+* Simplified output computation: only keeps real part of result.
+* Un-used imaginary part logic removed.
+* Phase coherent.
+* Phase reset with bit field.
+* Last sample logic (fixed to repeat the very last sample, in parallel).
+

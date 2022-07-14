@@ -110,7 +110,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
 
             # Check special case of "end" instruction.
             else:
-                m = re.search("\s*(end);", line)
+                m = re.search("\s*(end)\s*;", line)
 
                 # If there is a match.
                 if m:

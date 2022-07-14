@@ -36,7 +36,7 @@ input						clk;
 
 output						fifo_rd_en_o;
 input						fifo_empty_i;
-input		[82:0]			fifo_dout_i;
+input		[84:0]			fifo_dout_i;
 
 output 		[N-1:0]			mem_addr_o;
 input 		[15:0]			mem_dout_real_i;
@@ -119,13 +119,22 @@ wire 		[15:0]			round_imag			[0:N_DDS-1];
 wire 		[31:0]			round				[0:N_DDS-1];
 reg 		[31:0]			round_r				[0:N_DDS-1];
 
+// Last sample register.
+reg 		[31:0]			last_r				[0:N_DDS-1];
+
 // Output source selection.
 wire		[1:0]			src_int;
+wire		[1:0]			src_fir;
 wire		[1:0]			src_la;
+
+// Steady value selection.
+wire						stdy_int;
+wire						stdy_la;
 
 // Output enable.
 wire						en_int;
 wire						en_la;
+reg							en_la_r;
 
 /**********************/
 /* Begin Architecture */
@@ -158,6 +167,9 @@ ctrl
 
 		// Output source selection.
 		.src_o			(src_int		),
+
+		// Steady value selection.
+		.stdy_o			(stdy_int		),
 		
 		// Output enable.
 		.en_o			(en_int			)
@@ -281,6 +293,9 @@ genvar i;
 
 				// Rounding.
 				round_r					[i] <= 0;
+
+				// Last sample register.
+				last_r					[i]	<= 0;
 			end
 			else begin
 				// DDS output.
@@ -305,7 +320,11 @@ genvar i;
 				prodg_y_full_imag_r		[i] <= prodg_y_full_imag	[i];
 
 				// Rounding.
-				round_r					[i] <= round				[i];
+				round_r 				[i] <= round 				[i];
+
+				// Last sample register.
+				if (en_la)
+					last_r [i]	<= round[N_DDS-1];
 			end
 		end
 
@@ -358,13 +377,31 @@ genvar i;
 		/***********/
 		/* Outputs */
 		/***********/
-		assign m_axis_tdata_o[i*32 +: 32] = (en_la == 1'b1)? round_r[i] : 32'h0000_0000;
+		assign m_axis_tdata_o[i*32 +: 32] =	(en_la_r == 1'b1)? round_r[i] 	: 
+											(stdy_la == 1'b0)? last_r[i]	:
+											32'h0000_0000;
 
 	end
 endgenerate 
 
 
 // Latency for source selection.
+// FIR enable.
+latency_reg
+	#(
+		.N(2),
+		.B(2)
+	)
+	src_fir_latency_reg_i
+	(
+		.rstn	(rstn		),
+		.clk	(clk		),
+
+		.din	(src_int	),
+		.dout	(src_fir	)
+	);
+
+// Output mux.
 latency_reg
 	#(
 		.N(18),
@@ -377,6 +414,21 @@ latency_reg
 
 		.din	(src_int	),
 		.dout	(src_la		)
+	);
+
+// Latency for steady value selection.
+latency_reg
+	#(
+		.N(21),
+		.B(2)
+	)
+	stdy_latency_reg_i
+	(
+		.rstn	(rstn		),
+		.clk	(clk		),
+
+		.din	(stdy_int	),
+		.dout	(stdy_la	)
 	);
 
 // Latency for gain.
@@ -397,7 +449,7 @@ latency_reg
 // Latency for output enable.
 latency_reg
 	#(
-		.N(21),
+		.N(20),
 		.B(1)
 	)
 	en_latency_reg_i
@@ -422,6 +474,9 @@ always @(posedge clk) begin
 		// Memory data.
 		mem_real_r1		<= 0;
 		mem_imag_r1		<= 0;
+
+		// Output enable.
+		en_la_r			<= 0;
 	end
 	else begin
 		// Memory address.
@@ -432,8 +487,13 @@ always @(posedge clk) begin
 		dds_ctrl_int_r	<= dds_ctrl_int;
 
 		// Memory data.
-		mem_real_r1		<= mem_dout_real_i;
-		mem_imag_r1		<= mem_dout_imag_i;
+		if (src_fir != 2'b01) begin
+			mem_real_r1		<= mem_dout_real_i;
+			mem_imag_r1		<= mem_dout_imag_i;
+		end
+
+		// Output enable.
+		en_la_r			<= en_la;
 	end
 end
 
@@ -442,7 +502,7 @@ assign env_din	= {mem_imag_r1,mem_real_r1};
 
 // Outputs.
 assign mem_addr_o			= mem_addr_int_r;
-assign m_axis_tvalid_o 		= en_la;
+assign m_axis_tvalid_o 		= en_la_r;
 
 endmodule
 

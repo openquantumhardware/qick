@@ -1,0 +1,5 @@
+This block integrates a 8 Channels PFB with 50 % overlap.
+The output channels are multiplied by 8 individual DDSs.
+This block has 4 outpus. Routing of channels to inputs
+is done using CHXSEL_REG.
+

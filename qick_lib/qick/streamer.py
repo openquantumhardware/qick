@@ -2,6 +2,7 @@ from threading import Thread, Event
 from queue import Queue
 import time
 import numpy as np
+import traceback
 
 # This code originally used Process not Thread.
 # Process is much slower to start (Process.start() is ~100 ms, Thread.start() is a few ms)
@@ -43,8 +44,10 @@ class DataStreamer():
         # Passes exceptions from the worker thread to the main thread.
         self.error_queue = Queue()
         # The main thread can use this flag to tell the worker thread to stop.
+        # The main thread clears the flag when starting readout.
         self.stop_flag = Event()
         # The worker thread uses this to tell the main thread when it's done.
+        # The main thread clears the flag when starting readout.
         self.done_flag = Event()
         self.done_flag.set()
 
@@ -94,6 +97,7 @@ class DataStreamer():
             try:
                 # wait for a job
                 total_count, counter_addr, ch_list, reads_per_count = self.job_queue.get(block=True)
+                #print("streamer loop: start", total_count)
 
                 count = 0
                 last_count = 0
@@ -112,7 +116,10 @@ class DataStreamer():
                 self.soc.tproc.start()
 
                 # Keep streaming data until you get all of it
-                while (not self.stop_flag.is_set()) and last_count < total_count:
+                while last_count < total_count:
+                    if self.stop_flag.is_set():
+                        print("streamer loop: got stop flag")
+                        break
                     count = self.soc.tproc.single_read(
                         addr=counter_addr)*reads_per_count
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
@@ -143,10 +150,15 @@ class DataStreamer():
 
                         stats = (time.time()-t_start, count, addr, length)
                         self.data_queue.put((length, (d_buf, stats)))
+                #if last_count==total_count: print("streamer loop: normal completion")
 
             except Exception as e:
+                print("streamer loop: got exception")
+                # traceback.print_exc()
                 # pass the exception to the main thread
                 self.error_queue.put(e)
+                # put dummy data in the data queue, to trigger a poll_data read
+                self.data_queue.put((0, (None, None)))
             finally:
                 # we should set the done flag regardless of whether we completed readout, used the stop flag, or errored out
                 self.done_flag.set()
