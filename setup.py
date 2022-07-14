@@ -1,4 +1,11 @@
 from distutils.core import setup
+from ipq_pynq_utils import utils
+
+dependencies = ["spidev>=3.5"]
+
+if utils.python_version_lt("3.10"):
+    dependencies.append("importlib_resources")
+
 setup(name='ipq_pynq_utils',
       version='0.1.0',
       packages=['ipq_pynq_utils'],
