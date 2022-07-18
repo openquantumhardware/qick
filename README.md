@@ -17,6 +17,35 @@ $ sudo python3 -m pip install git+https://github.com/kit-ipq/ipq-pynq-utils.git
 
 ## Usage Guide
 
+This project will mostly be useful if you're trying to use the RF DataConverters on an RFSoC device with a CLK104 board to provide the clock signals. Currently only the ZCU208 has been tested. As such, the project assumes that you have instantiated a dataconverter IP block in your block design.
+
+The central idea of the module is to read out the settings of the IP block and to determine which frequencies are expected to be applied at which clock pins, and consequently to generate a clocking solution for the three PLLs that will yield the expected results. When required a SYSREF signal is also generated and MTS performed at a later stage.
+
+Note that this requires you to accurately specify the expected sample frequencies in the IP configurator. 
+
+For a simple configuration with some DACs at 4915.2 MHz see the following:
+
+![Simple DAC Config](docs/images/dataconverter_clocking_overview.png)
+
+Note that to facilitate MTS, the external PL clock should be used to interface with the ip block:
+
+![MTS Ready Block Diagram](docs/images/dataconverter_context.png)
+
+The following will be required as part of your constraints file to connect the pins:
+
+```
+set_property -dict {PACKAGE_PIN B9    IOSTANDARD LVDS_25 } [get_ports clk104_pl_sysref_n]
+set_property -dict {PACKAGE_PIN B10   IOSTANDARD LVDS_25 } [get_ports clk104_pl_sysref_p]
+set_property -dict {PACKAGE_PIN B7    IOSTANDARD LVDS_25 } [get_ports clk104_pl_clk_n]
+set_property -dict {PACKAGE_PIN B8    IOSTANDARD LVDS_25 } [get_ports clk104_pl_clk_p]
+```
+
+### Choice of sample frequency
+
+While the system is quite flexible in theory, if you want things to just work, choose sample frequencies which are multiples of 245.76 MHz.
+
+### Software usage guide
+
 ```
 # [... Other imports ...]
 
