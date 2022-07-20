@@ -342,16 +342,16 @@ class ZCU208Board:
             ADCs, DACs = self.rfdc_config.get_mts_bits()
 
             if ADCs != 0:
-                ret = self.perform_mts(getattr(overlay, self.rfdc_name), XRFDC_MTS_ADC, tiles=ADCs)
+                status,delay,offsets,latency = self.perform_mts(getattr(overlay, self.rfdc_name), XRFDC_MTS_ADC, tiles=ADCs)
 
-                if ret != XRFDC_MTS_OK:
-                    raise RuntimeError(f"Failed to perform ADC MTS: 0x{ret:08x}")
+                if status != XRFDC_MTS_OK:
+                    raise RuntimeError(f"Failed to perform ADC MTS: 0x{status:08x}")
 
             if DACs != 0:
-                ret = self.perform_mts(getattr(overlay, self.rfdc_name), XRFDC_MTS_DAC, tiles=DACs)
+                status,delay,offsets,latency = self.perform_mts(getattr(overlay, self.rfdc_name), XRFDC_MTS_DAC, tiles=DACs)
 
-                if ret != XRFDC_MTS_OK:
-                    raise RuntimeError(f"Failed to perform DAC MTS: 0x{ret:08x}")
+                if status != XRFDC_MTS_OK:
+                    raise RuntimeError(f"Failed to perform DAC MTS: 0x{status:08x}")
 
             print("done!")
 
@@ -385,14 +385,16 @@ class ZCU208Board:
         sync_config.Target_Latency = target_latency
 
         status = xrfdc._lib.XRFdc_MultiConverter_Sync(rfdc._instance, tile_type, sync_config);
+
+        del sync_config
+
         if status != XRFDC_MTS_OK:
             print(f"WARNING: Failed to perform MTS: {status_dac}")
+            return status, 0, 0, 0
 
         marker_delay = sync_config.Marker_Delay
         offsets = list(sync_config.Offset)
         latency = list(sync_config.Latency)
 
-        del sync_config
-
-        return marker_delay, offsets, latency
+        return status, marker_delay, offsets, latency
 
