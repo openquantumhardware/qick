@@ -384,9 +384,9 @@ class ZCU208Board:
         sync_config.Tiles = tiles
         sync_config.Target_Latency = target_latency
 
-        status_dac = xrfdc._lib.XRFdc_MultiConverter_Sync(rfdc._instance, tile_type, sync_config);
-        if status_dac != XRFDC_MTS_OK:
-            raise RuntimeError(f"Failed to perform MTS: {hex(status_dac)}")
+        status = xrfdc._lib.XRFdc_MultiConverter_Sync(rfdc._instance, tile_type, sync_config);
+        if status != XRFDC_MTS_OK:
+            print(f"WARNING: Failed to perform MTS: {status_dac}")
 
         marker_delay = sync_config.Marker_Delay
         offsets = list(sync_config.Offset)
