@@ -386,15 +386,15 @@ class ZCU208Board:
 
         status = xrfdc._lib.XRFdc_MultiConverter_Sync(rfdc._instance, tile_type, sync_config);
 
-        del sync_config
-
         if status != XRFDC_MTS_OK:
-            print(f"WARNING: Failed to perform MTS: {status_dac}")
+            del sync_config
             return status, 0, 0, 0
 
         marker_delay = sync_config.Marker_Delay
         offsets = list(sync_config.Offset)
         latency = list(sync_config.Latency)
+
+        del sync_config
 
         return status, marker_delay, offsets, latency
 
