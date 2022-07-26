@@ -162,3 +162,5 @@ class DataStreamer():
             finally:
                 # we should set the done flag regardless of whether we completed readout, used the stop flag, or errored out
                 self.done_flag.set()
+                # set tproc for internal start so we don't run the program repeatedly (this also clears the internal-start register)
+                self.soc.start_src("internal")
