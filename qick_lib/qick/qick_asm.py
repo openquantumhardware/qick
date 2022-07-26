@@ -627,11 +627,13 @@ class AbsGenManager:
         if outsel is None: outsel = "product"
         if stdysel is None: stdysel = "zero"
         if phrst is None: phrst = 0
+        if length >= 2**16 or length < 3:
+            raise RuntimeError("Pulse length of %d is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (length))
         stdysel_reg = {"last": 0, "zero": 1}[stdysel]
         mode_reg = {"oneshot": 0, "periodic": 1}[mode]
         outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
         mc = phrst*0b10000+stdysel_reg*0b01000+mode_reg*0b00100+outsel_reg
-        return mc << 16 | length
+        return mc << 16 | np.uint16(length)
 
 class FullSpeedGenManager(AbsGenManager):
     """Manager for the full-speed (non-interpolated, non-muxed) signal generators.
