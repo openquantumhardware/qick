@@ -24,16 +24,16 @@ This guide will show you how to set up QICK after configuring your computer and 
 * A micro SD card reader (such as IOGEAR SuperSpeed USB 3.0 SD/Micro SD Card Reader/Writer (GFR304SD) which is available for purchase at www.amazon.com). 
 * A torque wrench for tightening SMA cables
 
-### Flashing the PYNQ 2.6.0 image onto your micro SD card
-* Your ZCU111 RFSOC evaluation board kit comes with a micro SD card that is preloaded with a PYNQ image. The QICK hardware requires PYNQ 2.6.0, so let's update the micro SD card with this version of the PYNQ image. 
-* First, download the PYNQ 2.6.0 image from this URL: http://www.pynq.io/board.html under the ZCU111 row: You will see that it's quite a large file of 6.86 GB. 
+### Flashing the PYNQ image onto your micro SD card
+* Your ZCU111 RFSOC evaluation board kit comes with a micro SD card. The QICK requires an up-to-date PYNQ image (as of the writing of this guide, version 2.6.0 and 2.7 are supported), so let's update the micro SD card with this version of the PYNQ image. 
+* First, download the current PYNQ image from this URL: http://www.pynq.io/board.html under the ZCU111 row. If you downloaded it as a .zip, you need to unzip it to get a .img file. You will see that it's quite a large file.
 
 <p align="center">
  <img src="quick-start-guide-pics/largeimagefile.PNG" alt="The PYNQ 2.6.0 image file">
 </p>
 
 * Plug in your micro SD card to your personal computer via your micro SD card reader. If you look in the Windows File Explorer you will see a new disk drive pop up, for example in my case it was the `E:\` drive. This is the drive associated with your micro SD card. 
-* Now, open the Win32DiskImager utility and configure 1) the image file to be your PYNQ 2.6.0 image file and 2) the device to be the `E:\` drive, as in the below picture. Before clicking `Write`, double check that you are not flashing the image file to the wrong drive (e.g. your personal computer hard drive)!
+* Now, open the Win32DiskImager utility and configure 1) the image file to be your PYNQ image file and 2) the device to be the `E:\` drive, as in the below picture. Before clicking `Write`, double check that you are not flashing the image file to the wrong drive (e.g. your personal computer hard drive)!
 
 <p align="center">
  <img src="quick-start-guide-pics/writetoEdrive.PNG" alt="Writing the PYNQ 2.6.0 image onto the micro SD card">
@@ -141,7 +141,7 @@ This will install the qick Python package.
 ### Running a QICK program in loopback mode
 
 * Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSOC RF DACs and looping back to the RFSOC RF ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
-* You can also take the opportunity to check that you have flashed the correct PYNQ version (2.6.0): 
+* You can also take the opportunity to check that you have flashed the correct PYNQ version: 
 
 <p align="center">
  <img src="quick-start-guide-pics/correctpynqversion.PNG" alt="The correct PYNQ version">
