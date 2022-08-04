@@ -2245,6 +2245,9 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: string
         """
+        # set internal-start register to "init"
+        # otherwise we might start the tProc on a transition from external to internal start
+        self.tproc.start_reg = 0
         self.tproc.start_src_reg = {"internal": 0, "external": 1}[src]
 
     def reset_gens(self):

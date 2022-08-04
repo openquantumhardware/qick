@@ -20,7 +20,7 @@ set proj_dir [get_property directory [current_project]]
 
 # Set project properties
 set obj [current_project]
-set_property -name "board_part" -value "xilinx.com:zcu111:part0:1.1" -objects $obj
+set_property -name "board_part" -value "xilinx.com:zcu111:part0:1.4" -objects $obj
 set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
 set_property -name "dsa.accelerator_binary_content" -value "bitstream" -objects $obj
 set_property -name "dsa.accelerator_binary_format" -value "xclbin2" -objects $obj
@@ -56,7 +56,8 @@ update_ip_catalog -rebuild
 # Set 'sources_1' fileset object
 set obj [get_filesets sources_1]
 set files [list \
-	[ file normalize "$origin_dir/hdl/vect2bits_4.v"]	\
+	[ file normalize "$origin_dir/hdl/vect2bits_16.v"]	\
+	[ file normalize "$origin_dir/hdl/lo_spi_mux.vhd"]	\
 ]
 add_files -norecurse -fileset $obj $files
 
