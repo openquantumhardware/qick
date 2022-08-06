@@ -1360,10 +1360,14 @@ class AxisTProc64x32_x8(SocIp):
             self.start_pin = port[0]
         except:
             pass
+        # search for the trigger port
         for i in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
-            ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis' % (i+1))
+            try:
+                ((block, port),) = trace_net(busparser, self.fullpath, 'm%d_axis' % (i+1))
+            except: # skip disconnected tProc outputs
+                continue
             if busparser.mod2type[block] == "axis_set_reg":
                 self.trig_output = i
                 ((block, port),) = trace_net(sigparser, block, 'dout')
@@ -2007,6 +2011,11 @@ class QickSoc(Overlay, QickConfig):
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
+            print("resetting clocks:", lmk_freq, lmx_freq)
+            xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+        elif self['board'] == 'RFSoC4x2':
+            lmk_freq = self['refclk_freq']/2
+            lmx_freq = self['refclk_freq']
             print("resetting clocks:", lmk_freq, lmx_freq)
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
 
