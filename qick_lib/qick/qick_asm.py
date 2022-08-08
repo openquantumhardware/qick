@@ -82,6 +82,8 @@ class QickConfig():
                 label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
             elif self['board']=='ZCU216':
                 label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
+            elif self['board']=='RFSoC4x2':
+                label = {'00': 'DAC_B', '20': 'DAC_A'}[dac]
             lines.append("\t\tDAC tile %d, ch %d is %s" %
                          (tile, block, label))
 
@@ -93,11 +95,13 @@ class QickConfig():
                 label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
             elif self['board']=='ZCU216':
                 label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
+            elif self['board']=='RFSoC4x2':
+                label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adc]
             lines.append("\t\tADC tile %d, ch %d is %s" %
                          (tile, block, label))
 
         tproc = self['tprocs'][0]
-        lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
+        lines.append("\n\t%d digital output pins (tProc output %d):" % (len(tproc['output_pins']), tproc['trig_output']))
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 

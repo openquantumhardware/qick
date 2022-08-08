@@ -5,10 +5,11 @@ import os
 __version__ = "0.2"
 
 def bitfile_path():
-    if os.environ['BOARD'] == 'ZCU216':
-        src = os.path.join(os.path.dirname(qick.__file__), 'qick_216.bit')
-    else:  # assume ZCU111
-        src = os.path.join(os.path.dirname(qick.__file__), 'qick_111.bit')
+    board2file =  {'ZCU216' :'qick_216.bit',
+            'ZCU111' :'qick_111.bit',
+            'RFSoC4x2' :'qick_4x2.bit'}
+    filename = board2file[os.environ['BOARD']]
+    src = os.path.join(os.path.dirname(qick.__file__), filename)
     return src
 
 

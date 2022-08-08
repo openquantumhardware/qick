@@ -94,6 +94,8 @@ def trace_net(parser, blockname, portname):
     fullport = blockname+"/"+portname
     # the net connected to this port
     netname = parser.pins[fullport]
+    if netname == '__NOC__':
+        return []
     # get the list of other ports on this net, discard the port we started at and ILA ports
     return [x.split('/') for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
 
