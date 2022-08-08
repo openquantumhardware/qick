@@ -1,0 +1,37 @@
+{
+  "config": {
+    "items": [
+      {
+        "infra": {
+          "name": "rfsoc4x2",
+          "display": "Zynq UltraScale+ RFSoC 4x2 Development Board",
+          "revision": "1.0",
+          "description": "Zynq UltraScale+ RFSoC 4x2 Development Board",
+          "company": "realdigital.org",
+          "company_display": "Real Digital",
+          "author": "rhoover",
+          "contributors": [
+            {
+              "group": "RealDigital",
+              "url": "https://www.realdigital.org/"
+              "group": "Xilinx",
+              "url": "https://www.xilinx.com/"
+            }
+          ],
+          "category": "Single Part",
+          "website": "https://www.rfsoc-pynq.io",
+          "logo": "rfsoc4x2_board.png",
+          "search-keywords": [
+            "rfsoc4x2",
+	    "realdigital.org",
+            "xilinx.com",
+            "board",
+            "Single Part"
+          ]
+        }
+      }
+    ]
+  },
+  "_major": 1,
+  "_minor": 0
+}
