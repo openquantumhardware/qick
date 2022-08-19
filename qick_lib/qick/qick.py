@@ -15,6 +15,11 @@ import queue
 from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig, QickProgram
+try:
+    from rpyc.utils.classic import obtain
+except ModuleNotFoundError:
+    def obtain(i):
+        return i
 from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
@@ -2232,7 +2237,7 @@ class QickSoc(Overlay, QickConfig):
         if reset: self.tproc.reset()
 
         # cast the program words to 64-bit uints
-        self.binprog = np.array(binprog, dtype=np.uint64)
+        self.binprog = np.array(obtain(binprog), dtype=np.uint64)
         # reshape to 32 bits to match the program memory
         self.binprog = np.frombuffer(self.binprog, np.uint32)
 
