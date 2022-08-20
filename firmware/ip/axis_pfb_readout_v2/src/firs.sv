@@ -20,6 +20,9 @@ module firs
 // Number of Lanes (Input).
 parameter L = 4;
 
+// Input is interleaved I+Q, compatible with quad ADC (if false, input is not interleaved - compatible with dual ADC + combiner) 
+parameter INTERLEAVED_INPUT = 1;
+
 /*********/
 /* Ports */
 /*********/
@@ -70,7 +73,13 @@ generate
 		end
 
 		// Assign input data to vector.
-		assign data_v[i] = s_axis_tdata[i*32 +: 32];
+		if (INTERLEAVED_INPUT == 1) begin
+    		assign data_v[i] = s_axis_tdata[i*32 +: 32];
+        end
+        else begin
+    		assign data_v[i][15:0] = s_axis_tdata[i*16 +: 16];
+    		assign data_v[i][31:16] = s_axis_tdata[L*16+i*16 +: 16];
+        end
 
 		// Assign fir data to output (order to match ssrfft).
 		// Real part.
