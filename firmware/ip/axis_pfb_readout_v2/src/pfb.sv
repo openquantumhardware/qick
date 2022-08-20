@@ -20,6 +20,10 @@ module pfb
 // Number of Lanes (Input).
 parameter L = 4;
 
+// Input is interleaved I+Q, compatible with quad ADC (if false, input is not interleaved - compatible with dual ADC + combiner) 
+parameter INTERLEAVED_INPUT = 1;
+
+
 /*********/
 /* Ports */
 /*********/
@@ -52,7 +56,8 @@ reg [31:0]			QOUT_REG	= 0;
 // Polyphase Filter Bank.
 firs
 	#(
-		.L(L)
+		.L(L),
+		.INTERLEAVED_INPUT(INTERLEAVED_INPUT)
 	)
 	firs_i
 	(

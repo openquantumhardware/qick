@@ -108,7 +108,7 @@ class AveragerProgram(QickProgram):
 
         # Configure the readout down converters
         self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+        self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
         # load this program into the soc's tproc
         self.load_program(soc, debug=debug)
@@ -455,7 +455,7 @@ class RAveragerProgram(QickProgram):
 
         # Configure the readout down converters
         self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+        self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
         # load this program into the soc's tproc
         self.load_program(soc, debug=debug)

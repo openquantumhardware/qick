@@ -54,6 +54,12 @@ module axis_pfb_readout_v2
 		m3_axis_tdata
 	);
 
+/**************/
+/* Parameters */
+/**************/
+// Input is interleaved I+Q, compatible with quad ADC (if false, input is not interleaved - compatible with dual ADC + combiner) 
+parameter INTERLEAVED_INPUT = 1;
+
 /*********/
 /* Ports */
 /*********/
@@ -177,7 +183,11 @@ axi_slv axi_slv_i
 	);
 
 // PFB with DDS product.
-pfb_dds_mux pfb_dds_mux_i
+pfb_dds_mux
+	#(
+		.INTERLEAVED_INPUT(INTERLEAVED_INPUT)
+	)
+	pfb_dds_mux_i
 	(
 		// Reset and clock.
 		.aresetn		(aresetn		),
