@@ -5,7 +5,7 @@
 // 
 // Create Date: 12/14/2020 04:56:49 PM
 // Design Name: 
-// Module Name: vect2bits_4
+// Module Name: vect2bits_16
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
