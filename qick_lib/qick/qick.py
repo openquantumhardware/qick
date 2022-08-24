@@ -2327,11 +2327,13 @@ class QickSoc(Overlay, QickConfig):
             streamer.stop_readout()
             streamer.done_flag.wait()
             # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
-            streamer.data_queue.put((0, (None, None)))
+            streamer.data_queue.put((0, None))
             time.sleep(0.1)
             # reload the program (since the reset will have wiped it out)
             self.reload_program()
             print("streamer stopped")
+        streamer.stop_flag.clear()
+
         if streamer.data_available():
             # flush all the data in the streamer buffer
             print("clearing streamer buffer")
@@ -2343,7 +2345,6 @@ class QickSoc(Overlay, QickConfig):
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.stop_flag.clear()
         streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
 
     def poll_data(self, totaltime=0.1, timeout=None):
@@ -2374,7 +2375,7 @@ class QickSoc(Overlay, QickConfig):
             try:
                 length, data = streamer.data_queue.get(block=True, timeout=timeout)
                 # if we stopped the readout while we were waiting for data, break out and return
-                if streamer.stop_flag.is_set():
+                if streamer.stop_flag.is_set() or data is None:
                     break
                 streamer.count += length
                 new_data.append(data)
