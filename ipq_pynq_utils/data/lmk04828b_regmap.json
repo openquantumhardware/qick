@@ -7976,7 +7976,7 @@
                 "end": 1,
                 "start": 0,
                 "name": "PLL2_N[17:16]",
-                "description": "This register disables frequency calibration and sets the PLL2 N divider value. Programming register 0x168 starts a VCO calibration routine if PLL2_FCAL_DIS = 0. MSBs",
+                "description": "Sets the PLL2 N divider value.",
                 "valid": {
                     "type": "int"
                 }
@@ -7991,7 +7991,7 @@
                 "end": 7,
                 "start": 0,
                 "name": "PLL2_N[15:8]",
-                "description": "This register disables frequency calibration and sets the PLL2 N divider value. Programming register 0x168 starts a VCO calibration routine if PLL2_FCAL_DIS = 0. Mid bits",
+                "description": "Sets the PLL2 N divider value.",
                 "valid": {
                     "type": "int"
                 }
@@ -8006,7 +8006,7 @@
                 "end": 7,
                 "start": 0,
                 "name": "PLL2_N[7:0]",
-                "description": "This register disables frequency calibration and sets the PLL2 N divider value. Programming register 0x168 starts a VCO calibration routine if PLL2_FCAL_DIS = 0. LSBs",
+                "description": "Sets the PLL2 N divider value.",
                 "valid": {
                     "type": "int"
                 }
