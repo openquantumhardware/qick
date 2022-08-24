@@ -1243,7 +1243,8 @@ class MrBufferEt(SocIp):
         self.MAX_LENGTH = 2**self.N * self.NM
 
         # Preallocate memory buffers for DMA transfers.
-        self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
+        #self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
+        self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int16)
 
     def config(self, dma, switch):
         self.dma = dma
@@ -1252,6 +1253,11 @@ class MrBufferEt(SocIp):
     def route(self, ch):
         # Route switch to channel.
         self.switch.sel(slv=ch)
+
+    def capture(self):
+        self.dw_capture_reg = 1
+        time.sleep(1)
+        self.dw_capture_reg = 0
 
     def transfer(self):
         # Start send data mode.
@@ -1272,7 +1278,7 @@ class MrBufferEt(SocIp):
         dataI = data & 0xFFFF
         dataQ = data >> 16
 
-        return np.stack((dataI, dataQ)).astype(np.int16)
+        return buff
 
     def enable(self):
         self.dw_capture_reg = 1
@@ -1723,7 +1729,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, **kwargs):
         """
         Constructor method
         """
@@ -1752,17 +1758,18 @@ class QickSoc(Overlay, QickConfig):
         self.rf = self.usp_rf_data_converter_0
         self.rf.configure(self)
 
-        # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-        self._tproc = self.axis_tproc64x32_x8_0
-        self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-        self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+        if not no_tproc:
+            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+            self._tproc = self.axis_tproc64x32_x8_0
+            self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+            self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
 
-        self.map_signal_paths()
+            self.map_signal_paths()
 
-        self._streamer = DataStreamer(self)
+            self._streamer = DataStreamer(self)
 
-        # list of objects that need to be registered for autoproxying over Pyro
-        self.autoproxy = [self.streamer, self.tproc]
+            # list of objects that need to be registered for autoproxying over Pyro
+            self.autoproxy = [self.streamer, self.tproc]
 
     @property
     def tproc(self):
