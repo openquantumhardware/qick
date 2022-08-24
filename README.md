@@ -12,7 +12,7 @@ This is a project which aims to improve the life of those using PYNQ. More speci
 ## Installation Instructions
 
 ```
-$ sudo python3 -m pip install git+https://github.com/kit-ipq/ipq-pynq-utils.git
+$ sudo pip3 install git+https://github.com/kit-ipq/ipq-pynq-utils.git
 ```
 
 ## Usage Guide

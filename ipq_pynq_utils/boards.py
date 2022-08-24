@@ -1,4 +1,5 @@
 import spidev
+from fractions import Fraction
 
 try:
     import xrfdc
@@ -244,7 +245,7 @@ class ZCU208Board:
             data = [(word >> 16) & 0xFF, (word >> 8) & 0xFF, word & 0xFF]
             spi.writebytes(data)
 
-    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True):
+    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True, detune_factor=None):
         self.overlay = overlay
         self.rfdc_name = None
         for key in overlay.ip_dict.keys():
@@ -308,7 +309,29 @@ class ZCU208Board:
         if en:
             self.clk104.DAC_REFCLK.freq = clkreqs["DAC_REFCLK"]
 
-        ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.lmk.get_register_dump())
+        # Clock detuning
+        if detune_factor is not None:
+            f_old = self.clk104.PLL2_FREQ
+            f_target = self.clk104.PLL2_FREQ*detune_factor
+            print(f"Detuned clock requested, trying to move PLL2 to {f_target:9.4f} MHz (Offset: {100*detune_factor-100:4.2f}%)")
+
+            frac_old = Fraction(self.clk104.lmk.PLL2_N.value, self.clk104.lmk.PLL2_R.value)
+            frac_new = Fraction(frac_old * detune_factor).limit_denominator(4095)
+
+            N = frac_new.numerator
+            R = frac_new.denominator
+            f_new = f_old * frac_new / frac_old
+            f_off = f_target - f_new
+            fac = f_new / f_old - 1
+
+            print(f" - New PLL2 frequency: {f_new:9.4f} MHz")
+            print(f" - PLL Configuration: N = {N}, R = {R}")
+            print(f" - Frequency error over request: {f_off} MHz")
+            print(f" - Actual relative offset: {100*fac:4.2f}%")
+            print()
+
+            self.clk104.lmk.PLL2_R.value = int(R)
+            self.clk104.lmk.PLL2_N.value = int(N)
 
         if en_adc_pll:
             f = clkreqs["RF_CLKO_ADC"]
@@ -329,6 +352,8 @@ class ZCU208Board:
                 self.clk104.lmx_dac.set_output_frequency(f)
                 ZCU208Board._write_registers(self.spi_dac, self.clk104.lmx_dac.get_register_dump())
                 print()
+
+        ZCU208Board._write_registers(self.spi_lmk, [0x000090] + self.clk104.lmk.get_register_dump())
 
         if not download:
             return
