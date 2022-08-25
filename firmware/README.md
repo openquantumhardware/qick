@@ -59,3 +59,12 @@ The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed 
 * tProc stack size: 256 samples of 32 bits, 1k Byte total
 * Phase conversion from deg to reg: Phase resolution is 32-bit, that is \Delta \phi = 2 \pi /2^{32} or 360/2^{32}
 * Gain is 16-bit signed [-32768,32767]
+
+# Building the firmware yourself
+
+If you want to make changes to the firmware, or you just want to look at the design and dig around:
+
+* Install Vivado 2020.2, with a license that is valid for the FPGA you are using (you will have received such a license with your board). Start Vivado.
+* In the Tcl console at the bottom of the screen navigate to this directory, then run `source ./proj_111.tcl` (or whichever of the proj_ scripts matches the board you are using). This will create the firmware project and will end by showing you a block diagram of the firmware.
+* Now click "Generate Bitstream" in the navigation menu at the left: this will compile the firmware.
+* You need the .bit and .hwh files. These are not easy to find but the `qick/firmware/out` directory has symlinks to their locations.

@@ -339,7 +339,7 @@
       <spirit:parameters>
         <spirit:parameter>
           <spirit:name>POLARITY</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXI_ARESETN.POLARITY" spirit:choiceRef="choice_list_74b5137e">ACTIVE_LOW</spirit:value>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXI_ARESETN.POLARITY" spirit:choiceRef="choice_list_9d8b0d81">ACTIVE_LOW</spirit:value>
         </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
@@ -387,7 +387,7 @@
       <spirit:parameters>
         <spirit:parameter>
           <spirit:name>POLARITY</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.ARESETN.POLARITY" spirit:choiceRef="choice_list_74b5137e">ACTIVE_LOW</spirit:value>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.ARESETN.POLARITY" spirit:choiceRef="choice_list_9d8b0d81">ACTIVE_LOW</spirit:value>
         </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
@@ -424,7 +424,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>fd6a7e42</spirit:value>
+            <spirit:value>b7fc229d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -446,7 +446,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>fd6a7e42</spirit:value>
+            <spirit:value>b7fc229d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -460,7 +460,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>f92e9879</spirit:value>
+            <spirit:value>cb6eaf6e</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1001,10 +1001,17 @@
         </spirit:wire>
       </spirit:port>
     </spirit:ports>
+    <spirit:modelParameters>
+      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
+        <spirit:name>INTERLEAVED_INPUT</spirit:name>
+        <spirit:displayName>Interleaved Input</spirit:displayName>
+        <spirit:value spirit:format="bool" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.INTERLEAVED_INPUT">true</spirit:value>
+      </spirit:modelParameter>
+    </spirit:modelParameters>
   </spirit:model>
   <spirit:choices>
     <spirit:choice>
-      <spirit:name>choice_list_74b5137e</spirit:name>
+      <spirit:name>choice_list_9d8b0d81</spirit:name>
       <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>
       <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>
     </spirit:choice>
@@ -1012,38 +1019,6 @@
   <spirit:fileSets>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_7.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_5.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_3.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_1.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_6.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_4.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_2.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_0.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
       <spirit:file>
         <spirit:name>src/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
@@ -1088,6 +1063,38 @@
         <spirit:name>src/fir/fir_0/fir_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_pfb_dds_mux_i/pfb_i/firs_i/fir0_i/fir_0</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_7.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_5.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_3.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_1.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_6.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_4.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_2.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_0.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod.sv</spirit:name>
@@ -1164,14 +1171,14 @@
       <spirit:file>
         <spirit:name>src/axis_pfb_readout_v2.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_b396c95e</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_197f4331</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_xilinx_com_ip_dds_compiler_6_0__ref_view_fileset</spirit:name>
       <spirit:vendorExtensions>
         <xilinx:subCoreRef>
-          <xilinx:componentRef xsi:type="xilinx:componentRefType" xilinx:vendor="xilinx.com" xilinx:library="ip" xilinx:name="dds_compiler" xilinx:version="6.0">
+          <xilinx:componentRef xilinx:vendor="xilinx.com" xilinx:library="ip" xilinx:name="dds_compiler" xilinx:version="6.0">
             <xilinx:mode xilinx:name="create_mode"/>
           </xilinx:componentRef>
         </xilinx:subCoreRef>
@@ -1189,38 +1196,6 @@
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_7.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_5.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_3.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_1.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_6.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_4.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_2.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/fir/coef/fir_0.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
       <spirit:file>
         <spirit:name>src/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
@@ -1265,6 +1240,38 @@
         <spirit:name>src/fir/fir_0/fir_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_pfb_dds_mux_i/pfb_i/firs_i/fir0_i/fir_0</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_7.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_5.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_3.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_1.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_6.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_4.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_2.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir/coef/fir_0.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod.sv</spirit:name>
@@ -1368,7 +1375,7 @@
       <spirit:file>
         <spirit:name>xgui/axis_pfb_readout_v2_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_f92e9879</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_cb6eaf6e</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1378,6 +1385,11 @@
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
       <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">axis_pfb_readout_v2_v1_0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>INTERLEAVED_INPUT</spirit:name>
+      <spirit:displayName>Interleaved Input</spirit:displayName>
+      <spirit:value spirit:format="bool" spirit:resolve="user" spirit:id="PARAM_VALUE.INTERLEAVED_INPUT">true</spirit:value>
     </spirit:parameter>
   </spirit:parameters>
   <spirit:vendorExtensions>
@@ -1390,8 +1402,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS PFB Readout x8 V2</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>3</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2022-03-04T16:32:35Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>4</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2022-08-19T21:02:47Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@9da1484_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_pfb_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@54fcdcc1_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_pfb_readout_v2</xilinx:tag>
@@ -1418,15 +1430,59 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@12861fa0_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_pfb_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@18fee3d1_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_pfb_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@987d030_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@476b58a3_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7e3e54be_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@c5156a1_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7387ce87_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@65fbd434_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@26643f8f_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3876b02f_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6ff7e05c_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d1a9e57_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5d6815de_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@525a6215_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@321524f6_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@18105bd9_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@49da39f1_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@f665c1d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@50f9e182_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5212b62f_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@733abed8_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@28dd7668_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4e212979_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@607546eb_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7b59f487_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b1b045e_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4f1c3dc4_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@18234882_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@67f5d08e_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7fb89405_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@c36b110_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e3c4e2d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7ca1dcd4_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@303d84b5_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@354b39f_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@402171b_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7016b000_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f6f8aaf_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@23d87b6a_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73336f7a_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5cbe7f99_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@66455fcc_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@17a182f0_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6e86d105_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7171f9b0_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@71759af2_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_pfb_readout_v2</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2020.2</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="00f24907"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="45efb069"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="da41b8f7"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="8b588735"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="2d6ff6e8"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="e8c1b7dd"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="251da0d6"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="635db79e"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>

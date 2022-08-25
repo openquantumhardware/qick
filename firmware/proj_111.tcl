@@ -7,7 +7,7 @@ if { [info exists ::origin_dir_loc] } {
 }
 
 # Set the project name
-set _xil_proj_name_ "top"
+set _xil_proj_name_ "top_111"
 
 # Set the directory path for the original project from where this script was exported
 set orig_proj_dir "[file normalize "$origin_dir/"]"
@@ -57,7 +57,6 @@ update_ip_catalog -rebuild
 set obj [get_filesets sources_1]
 set files [list \
 	[ file normalize "$origin_dir/hdl/vect2bits_16.v"]	\
-	[ file normalize "$origin_dir/hdl/lo_spi_mux.vhd"]	\
 ]
 add_files -norecurse -fileset $obj $files
 
@@ -87,7 +86,7 @@ make_wrapper -files [get_files d_1.bd] -top
 
 # Add files to sources_1 fileset
 set files [list \
-  [file normalize "${origin_dir}/top/top.srcs/sources_1/bd/d_1/hdl/d_1_wrapper.v" ]\
+  [file normalize "${origin_dir}/top_111/top_111.srcs/sources_1/bd/d_1/hdl/d_1_wrapper.v" ]\
 ]
 add_files -fileset $obj $files
 

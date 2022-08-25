@@ -41,6 +41,12 @@ module pfb_dds_mux
 		CH3SEL_REG	
 	);
 
+/**************/
+/* Parameters */
+/**************/
+// Input is interleaved I+Q, compatible with quad ADC (if false, input is not interleaved - compatible with dual ADC + combiner) 
+parameter INTERLEAVED_INPUT = 1;
+
 /*********/
 /* Ports */
 /*********/
@@ -92,7 +98,8 @@ wire	[8*32-1:0]	tdata_dds;
 /**********************/
 pfb
 	#(
-		.L(4)
+		.L(4),
+		.INTERLEAVED_INPUT(INTERLEAVED_INPUT)
 	)
 	pfb_i
 	(

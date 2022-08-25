@@ -7,7 +7,11 @@ except:
     from tqdm import tqdm_notebook as tqdm
 import numpy as np
 from .qick_asm import QickProgram
-
+try:
+    from rpyc.utils.classic import obtain
+except:
+    def obtain(i):
+        return i
 
 class AveragerProgram(QickProgram):
     """
@@ -108,7 +112,7 @@ class AveragerProgram(QickProgram):
 
         # Configure the readout down converters
         self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+        self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
         # load this program into the soc's tproc
         self.load_program(soc, debug=debug)
@@ -318,8 +322,8 @@ class AveragerProgram(QickProgram):
                 count = tproc.single_read(addr=1)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                d_buf[ii] += soc.get_decimated(ch=ch,
-                                               address=0, length=ro.length*reps*readouts_per_experiment)
+                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
+                                    address=0, length=ro.length*reps*readouts_per_experiment))
 
         # average the decimated data
         if reps == 1 and readouts_per_experiment == 1:
@@ -455,7 +459,7 @@ class RAveragerProgram(QickProgram):
 
         # Configure the readout down converters
         self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+        self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
         # load this program into the soc's tproc
         self.load_program(soc, debug=debug)

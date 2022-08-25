@@ -15,7 +15,3 @@ set_clock_group -name clk_axi_to_fabric -asynchronous \
 set_clock_group -name clk_adc_to_adc_x2 -asynchronous \
     -group [get_clocks $clk_adc0] \
     -group [get_clocks $clk_adc0_x2]
-
-# Fix io critical warning on lo input mux to spi ip
-set_property IOB FALSE [get_cells d_1_i/lo_spi/U0/NO_DUAL_QUAD_MODE.QSPI_NORMAL/IO1_I_REG]    
-#
