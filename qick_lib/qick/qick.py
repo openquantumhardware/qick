@@ -106,6 +106,9 @@ class AbsSignalGen(SocIp):
             # Switch
             self.switch = axis_switch
 
+            # Define buffer.
+            self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
+
         # RF data converter
         self.rf = rf
 
@@ -172,8 +175,10 @@ class AbsSignalGen(SocIp):
             raise RuntimeError("%s: I/Q buffers must be the same length." %
                   self.__class__.__name__)
 
+        length = len(xin_i)
+
         # Check for max length.
-        if len(xin_i) > self.MAX_LENGTH:
+        if length > self.MAX_LENGTH:
             raise RuntimeError("%s: buffer length must be %d samples or less." %
                   (self.__class__.__name__, self.MAX_LENGTH))
 
@@ -181,30 +186,24 @@ class AbsSignalGen(SocIp):
         #if len(xin_i) % 2 != 0:
         #    raise RuntimeError("Buffer transfer length must be even number.")
 
-        # Check for max value.
-        if np.max(xin_i) > np.iinfo(np.int16).max or np.min(xin_i) < np.iinfo(np.int16).min:
-            raise ValueError(
-                "real part of envelope exceeds limits of int16 datatype")
+        # Pack the data into a single array; columns will be concatenated
+        # -> lower 16 bits: I value.
+        # -> higher 16 bits: Q value.
+        xin = np.stack((xin_i, xin_q), axis=1)
 
-        if np.max(xin_q) > np.iinfo(np.int16).max or np.min(xin_q) < np.iinfo(np.int16).min:
+        # Check for max value.
+        if np.max(np.abs(xin)) > self.MAXV:
             raise ValueError(
-                "imaginary part of envelope exceeds limits of int16 datatype")
+                "max magnitude of envelope (%d) exceeds limit of datatype (%d)" % (np.max(np.abs(xin)), self.MAXV))
 
         # Route switch to channel.
         self.switch.sel(mst=self.switch_ch)
 
-        # time.sleep(0.050)
-
-        # Format data.
-        xin_i = xin_i.astype(np.int32)
-        xin_q = xin_q.astype(np.int32)
-
-        xin = xin_i + (xin_q << 16)
         #print(self.fullpath, xin.shape, addr, self.switch_ch)
 
-        # Define buffer.
-        self.buff = allocate(shape=len(xin), dtype=np.int32)
-        np.copyto(self.buff, xin)
+        # Format and copy data.
+        np.copyto(self.buff[:length],
+                np.frombuffer(xin.astype(np.int16), dtype=np.int32))
 
         ################
         ### Load I/Q ###
@@ -213,7 +212,7 @@ class AbsSignalGen(SocIp):
         self._wr_enable(addr)
 
         # DMA data.
-        self.dma.sendchannel.transfer(self.buff)
+        self.dma.sendchannel.transfer(self.buff, nbytes=int(length*4))
         self.dma.sendchannel.wait()
 
         # Disable writes.
