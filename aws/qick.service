@@ -1,0 +1,25 @@
+[Unit]
+Description=QICK service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+User=heckey
+ExecStart=<path to executable> <path to QICK client> [args]
+# Example invocation for about client
+# ExecStart=/usr/bin/python3.8 /usr/bin/qick_client.py "QICK 7" https://<API Gateway Endpoint>
+ExecReload=/bin/kill -15
+TimeoutStopSec=infinity
+
+[Install]
+WantedBy=multi-user.target
+
+
+# It can then be installed by doing:
+#
+# sudo cp qick.service /usr/lib/systemd/system
+# sudo systemctl enable qick
+# sudo systemctl start qick
+# sudo systemctl status qick
