@@ -1,28 +1,36 @@
-#!/usr/bin/python3.8
-
+#!/usr/bin/env python3
 import logging
 import requests
+from multiprocessing import Process, Queue, Event
 import subprocess
 import sys
 import time
 from datetime import datetime
+#from qick import QickSoc
+
+class DummySoc:
+    def run_workload(self, workload):
+        pass
 
 class QickClient:
 
     def __init__(self, name, api):
         self.name = name
         self.api = api
+        self.cred_path = "/home/xilinx/.qick/credentials"
+        self.conf_path = "/etc/qick/config"
         self.headers = {"Authorization": f"Bearer {self._get_auth_token()}"}
         self.status = "ONLINE"
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
-        return self
+        #self.soc = QickSoc()
+        self.soc = DummySoc()
 
-    def _get_auth_token(self, path="~/.qick/credentials"):
-        with open(path) as f:
+    def _get_auth_token(self):
+        with open(self.cred_path) as f:
             return f.read().strip()
 
     def update_status(self):
-        with open("/usr/share/qick/config") as f:
+        with open(self.conf_path) as f:
             config_data = f.read()
         data = {
             "DeviceId": self.name,
@@ -33,7 +41,7 @@ class QickClient:
         logging.info(f"Updated status: {data}")
 
     def get_workload(self):
-        rsp = requests.get(self.api + "/GetDeviceWork", headers=headers).json()
+        rsp = requests.get(self.api + "/GetDeviceWork", headers=self.headers)
         if rsp.json():
             logging.info(f"Got work {rsp.json()['WorkId']}")
             return {
@@ -65,11 +73,12 @@ class QickClient:
     
 if __name__ == "__main__":
     qick = QickClient(sys.argv[1], sys.argv[2])
+    logging.getLogger().setLevel(logging.DEBUG)
     while True:
         work = None
         qick.update_status()
         if qick.status == "ONLINE":
-            work = qick.get_workload
+            work = qick.get_workload()
             if not work:
                 time.sleep(5)  # sleep 5 seconds between polling
             else:
@@ -81,7 +90,7 @@ if __name__ == "__main__":
             if qick.is_work_canceled(work["id"]) or time.time() > work["timeout"]:
                 work["process"].terminate()
                 qick.upload_results(work["upload"])
-                 qick.status = "ONLINE"
+                qick.status = "ONLINE"
             elif work["process"].poll():
                 qick.upload_results(work["upload"])
                 qick.status = "ONLINE"
