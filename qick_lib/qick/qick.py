@@ -1253,29 +1253,18 @@ class MrBufferEt(SocIp):
         # Route switch to channel.
         self.switch.sel(slv=ch)
 
-    def capture(self):
-        self.dw_capture_reg = 1
-        time.sleep(1)
-        self.dw_capture_reg = 0
-
-    def transfer(self):
+    def transfer(self, buff=None):
+        if buff is None:
+            buff = self.buff
         # Start send data mode.
         self.dr_start_reg = 1
 
         # DMA data.
-        buff = self.buff
         self.dma.recvchannel.transfer(buff)
         self.dma.recvchannel.wait()
 
         # Stop send data mode.
         self.dr_start_reg = 0
-
-        # Format:
-        # -> lower 16 bits: I value.
-        # -> higher 16 bits: Q value.
-        data = buff
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
 
         return buff
 

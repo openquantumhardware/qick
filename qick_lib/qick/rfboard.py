@@ -142,32 +142,12 @@ class AxisSignalGenV3Ctrl(SocIp):
         self.gain = gain
         self.nsamp = int(np.round(nsamp/self.NDDS))
 
-        if outsel == "product":
-            self.outsel = 0
-        elif outsel == "dds":
-            self.outsel = 1
-        elif outsel == "envelope":
-            self.outsel = 2
-        else:
-            print("AxisSignalGenV3Ctrl: %s output unknown" % outsel)
-
-        if mode == "nsamp":
-            self.mode = 0
-        elif mode == "periodic":
-            self.mode = 1
-        else:
-            print("AxisSignalGenV3Ctrl: %s mode unknown" % mode)
-
-        if stdysel == "last":
-            self.stdysel = 0
-        elif stdysel == "zero":
-            self.stdysel = 1
-        else:
-            print("AxisSignalGenV3Ctrl: %s stdysel unknown" % stdysel)
+        self.outsel = {"product": 0, "dds":1, "envelope":2}[outsel]
+        self.mode = {"nsamp": 0, "periodic":1}[mode]
+        self.stdysel = {"last": 0, "zero":1}[stdysel]
 
         # Write fifo..
         self.we = 1
-        time.sleep(0.1)
         self.we = 0
 
     def set_fs(self, fs):
@@ -1264,9 +1244,8 @@ class dac_ch():
         self.attn.append(attenuator(attn_spi, ch, le=[1]))
         self.attn.append(attenuator(attn_spi, ch, le=[2]))
 
-        # Default to 10 dB attenuation.
-        self.set_attn_db(0, 10)
-        self.set_attn_db(1, 10)
+        # Initialize in off state.
+        self.disable()
 
     # Switch selection.
     def rfsw_sel(self, sel="RF"):
@@ -1306,6 +1285,20 @@ class dac_ch():
         else:
             print("%s: attenuator %d not in chain." %
                   (self.__class__.__name__, attn))
+
+    def set_rf(self, att1, att2):
+        self.rfsw_sel("RF")
+        self.set_attn_db(attn=0, db=att1)
+        self.set_attn_db(attn=1, db=att2)
+
+    def set_dc(self):
+        self.rfsw_sel("DC")
+
+    def disable(self):
+        self.rfsw_sel("OFF")
+        self.set_attn_db(attn=0, db=31.75)
+        self.set_attn_db(attn=1, db=31.75)
+
 
 
 class RFQickSoc(QickSoc):
@@ -1402,10 +1395,7 @@ class RFQickSoc(QickSoc):
         att2 : float
             Attenuation for second stage (0-31.75 dB)
         """
-        rfb_ch = self.gens[gen_ch].rfb
-        rfb_ch.rfsw_sel("RF")
-        rfb_ch.attn[0].set_att(att1)
-        rfb_ch.attn[1].set_att(att2)
+        self.gens[gen_ch].rfb.set_rf(att1, att2)
 
     def rfb_set_ro(self, ro_ch, att):
         """Configure an RF-board input channel.
