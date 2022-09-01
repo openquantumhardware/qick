@@ -48,6 +48,7 @@ class QickClient:
                 "id": rsp.json()["WorkId"],
                 "workload": requests.get(rsp.json()["WorkloadUrl"]),
                 "upload": rsp.json()["UploadUrl"],
+                "timeout": self.timeout
             }
         return None
 
@@ -56,11 +57,13 @@ class QickClient:
         with open("/tmp/workload", "w") as f:
             print(workload, file=f)
         logging.info("Started workload")
-        return subprocess.Popen(
-            ["/usr/bin/qick_runner.py", "/tmp/workload"],
-            stdout="/tmp/workload.out",
-            stderr=subprocess.STDOUT,
-        )
+        proc = Process(target=self._run_program, daemon=True)
+        proc.start()
+        return proc
+
+    def _run_program(self):
+        time.sleep(10)
+        return
         
     def is_work_canceled(self, work_id):
         rsp = requests.get(self.api + "/IsWorkCanceled", headers=self.headers)
@@ -74,8 +77,8 @@ class QickClient:
 if __name__ == "__main__":
     qick = QickClient(sys.argv[1], sys.argv[2])
     logging.getLogger().setLevel(logging.DEBUG)
+    work = None
     while True:
-        work = None
         qick.update_status()
         if qick.status == "ONLINE":
             work = qick.get_workload()
@@ -91,7 +94,7 @@ if __name__ == "__main__":
                 work["process"].terminate()
                 qick.upload_results(work["upload"])
                 qick.status = "ONLINE"
-            elif work["process"].poll():
+            elif not work["process"].is_alive():
                 qick.upload_results(work["upload"])
                 qick.status = "ONLINE"
             else:
