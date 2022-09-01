@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import logging
+import argparse
 import requests
 import multiprocessing
 import json
 import tempfile
 import sys
 import time
-from datetime import datetime
 #from qick import QickSoc
 
 class DummySoc:
@@ -88,8 +88,15 @@ class QickClient:
         logging.info("Uploaded results")
     
 if __name__ == "__main__":
-    qick = QickClient(sys.argv[1], sys.argv[2])
     logging.getLogger().setLevel(logging.DEBUG)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("name", type=str, help="client name or device ID")
+    parser.add_argument("api", type=str, help="URL of API endpoint")
+    parser.add_argument("-n", dest='interval', type=float, default=5.0, help="polling interval")
+    args = parser.parse_args()
+
+    qick = QickClient(args.name, args.api)
+
     work = None
     while True:
         qick.update_status()
@@ -99,7 +106,7 @@ if __name__ == "__main__":
                 qick.status = "BUSY"
                 work["process"] = qick.start_workload(work["workload"])
                 work["timeout"] = time.time() + qick.timeout
-            time.sleep(5)  # sleep 5 seconds between polling
+            time.sleep(args.interval)  # sleep 5 seconds between polling
         elif qick.status == "BUSY":
             if qick.is_work_canceled(work["id"]) or time.time() > work["timeout"]:
                 logging.info("terminating workload due to cancel or timeout")
@@ -114,4 +121,4 @@ if __name__ == "__main__":
                 work["process"].close()
                 qick.status = "ONLINE"
             else:
-                time.sleep(5)  # sleep 5 seconds between polling
+                time.sleep(args.interval)  # sleep 5 seconds between polling
