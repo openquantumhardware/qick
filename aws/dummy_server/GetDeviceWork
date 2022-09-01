@@ -1,0 +1,5 @@
+{"test": "hi",
+"WorkId": 123,
+"WorkloadUrl": "http://localhost:8000/workload",
+"UploadUrl": "http://localhost:8000/upload"
+}
