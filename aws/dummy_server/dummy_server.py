@@ -13,6 +13,8 @@ class DummyServer(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
 
     def do_PUT(self):
+        length = int(self.headers['Content-Length'])
+        print(self.path, self.rfile.read(length))
         """
         path = self.translate_path(self.path)
         if path.endswith('/'):

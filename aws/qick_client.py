@@ -1,16 +1,27 @@
 #!/usr/bin/env python3
 import logging
 import requests
-from multiprocessing import Process, Queue, Event
-import subprocess
+import multiprocessing
+import json
+import tempfile
 import sys
 import time
 from datetime import datetime
 #from qick import QickSoc
 
 class DummySoc:
-    def run_workload(self, workload):
-        pass
+    def __init__(self):
+        self._cfg = {"cfg_a": "foo"}
+    def run_workload(self, workload, resultsfile):
+        logging.info("DummySoc running workload")
+        resultsfile.write(b"test")
+        time.sleep(10)
+
+    def get_cfg(self):
+        return self._cfg
+
+    def dump_cfg(self):
+        return json.dumps(self._cfg, indent=4)
 
 class QickClient:
 
@@ -24,6 +35,7 @@ class QickClient:
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
         #self.soc = QickSoc()
         self.soc = DummySoc()
+        self.soccfg = self.soc.get_cfg()
 
     def _get_auth_token(self):
         with open(self.cred_path) as f:
@@ -36,6 +48,7 @@ class QickClient:
             "DeviceId": self.name,
             "DeviceStatus": self.status,
             "DeviceData": config_data,
+            "DeviceConfig": self.soccfg,
         }
         requests.put(self.api + "/UpdateDevice", data=data, headers=self.headers)
         logging.info(f"Updated status: {data}")
@@ -52,17 +65,16 @@ class QickClient:
             }
         return None
 
-    def run_workload(self, workload):
-        # It is NOT RECOMMENDED to use files like this, it is just for the example
-        with open("/tmp/workload", "w") as f:
-            print(workload, file=f)
+    def start_workload(self, workload):
+        self.resultsfile = tempfile.TemporaryFile()
         logging.info("Started workload")
-        proc = Process(target=self._run_program, daemon=True)
+        proc = multiprocessing.Process(target=self._run_workload, daemon=True, args=(workload, self.resultsfile))
         proc.start()
         return proc
 
-    def _run_program(self):
-        time.sleep(10)
+    def _run_workload(self, workload, resultsfile):
+        logging.info(f"Running workload: {workload}")
+        self.soc.run_workload(workload, resultsfile)
         return
         
     def is_work_canceled(self, work_id):
@@ -70,8 +82,9 @@ class QickClient:
         return rsp.json().get("IsCanceled")
 
     def upload_results(self, url):
-        with open("/tmp/workload.out", "rb") as f:
-            requests.post(url, data=f.read())
+        self.resultsfile.seek(0)
+        requests.post(url, data=self.resultsfile.read())
+        self.resultsfile.close()
         logging.info("Uploaded results")
     
 if __name__ == "__main__":
@@ -82,20 +95,23 @@ if __name__ == "__main__":
         qick.update_status()
         if qick.status == "ONLINE":
             work = qick.get_workload()
-            if not work:
-                time.sleep(5)  # sleep 5 seconds between polling
-            else:
+            if work:
                 qick.status = "BUSY"
-                work["process"] = qick.run_workload(work["workload"])
+                work["process"] = qick.start_workload(work["workload"])
                 work["timeout"] = time.time() + qick.timeout
-                time.sleep(5)  # sleep 5 seconds between polling
+            time.sleep(5)  # sleep 5 seconds between polling
         elif qick.status == "BUSY":
             if qick.is_work_canceled(work["id"]) or time.time() > work["timeout"]:
+                logging.info("terminating workload due to cancel or timeout")
                 work["process"].terminate()
-                qick.upload_results(work["upload"])
+                work["process"].join()
+                work["process"].close()
+                qick.upload_results(work["upload"]) # upload partial results file
                 qick.status = "ONLINE"
             elif not work["process"].is_alive():
+                logging.info(f"workload completed, exit code {work['process'].exitcode}")
                 qick.upload_results(work["upload"])
+                work["process"].close()
                 qick.status = "ONLINE"
             else:
                 time.sleep(5)  # sleep 5 seconds between polling
