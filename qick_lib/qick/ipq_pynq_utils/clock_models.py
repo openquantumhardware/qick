@@ -390,12 +390,6 @@ class LMX2594(RegisterDevice):
         self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
         self.PLL_NUM.value = 0
         self.PLL_DEN.value = 0
-        mult = 1
-        osc_x = 2 if osc_2x else 1
-        if osc_2x:
-            osc_x = 2
-        else:
-            osc_x = 1
 
         self.OUTA_PWR.value = pwr
         self.OUTA_PD.set(self.OUTA_PD.NORMAL_OPERATION)
@@ -409,6 +403,8 @@ class LMX2594(RegisterDevice):
         chdivs = []
         f_vco_min = 7500
 
+        mult = 1
+        osc_x = 2 if osc_2x else 1
         for i,(div,f_vco_max,f_out_min,f_out_max) in enumerate(CHDIV_TABLE):
             if not (f_out_min <= f_target <= f_out_max):
                 continue

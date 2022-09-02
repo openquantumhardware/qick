@@ -1381,8 +1381,8 @@ class RFQickSoc(QickSoc):
         for lo in self.lo:
             lo.set_freq(f)
 
-    def rfb_set_genrf(self, gen_ch, att1, att2):
-        """Configure an RF-board output channel for RF output.
+    def rfb_set_gen_rf(self, gen_ch, att1, att2):
+        """Enable and configure an RF-board output channel for RF output.
 
         Parameters
         ----------
@@ -1395,18 +1395,41 @@ class RFQickSoc(QickSoc):
         """
         self.gens[gen_ch].rfb.set_rf(att1, att2)
 
-    def rfb_set_ro(self, ro_ch, att):
-        """Configure an RF-board input channel.
+    def rfb_set_gen_dc(self, gen_ch, att1, att2):
+        """Enable and configure an RF-board output channel for DC output.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        """
+        self.gens[gen_ch].rfb.set_dc()
+
+    def rfb_set_ro_rf(self, ro_ch, att):
+        """Enable and configure an RF-board RF input channel.
+        Will fail if this is not an RF input.
 
         Parameters
         ----------
         ro_ch : int
             ADC channel (index in 'readouts' list)
         att : float
-            Attenuation (0-31.75 dB)
+            Attenuation (0 to 31.75 dB)
         """
-        rfb_ch = self.readouts[ro_ch].rfb
-        rfb_ch.attn.set_att(att)
+        self.readouts[ro_ch].rfb.set_attn_db(att)
+
+    def rfb_set_ro_dc(self, ro_ch, gain):
+        """Enable and configure an RF-board DC input channel.
+        Will fail if this is not a DC input.
+
+        Parameters
+        ----------
+        ro_ch : int
+            ADC channel (index in 'readouts' list)
+        gain : float
+            Gain (-6 to 26 dB)
+        """
+        self.readouts[ro_ch].rfb.set_gain_db(gain)
 
     def rfb_set_bias(self, bias_ch, v):
         """Set a voltage on an RF-board bias DAC.
@@ -1433,7 +1456,10 @@ class lo_synth_v2:
 
         self.lmx = clock_models.LMX2594(122.88)
         self.reset()
-        self.freq = None
+
+    @property
+    def freq(self):
+        return self.lmx.f_outa
 
     def reset(self):
         self.reg_wr(0x000002)
@@ -1458,8 +1484,9 @@ class lo_synth_v2:
         #print(status.value_description)
         return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
 
-    def set_freq(self, f, pwr=31, osc_2x=False, verbose=False):
-        self.freq = self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
+    def set_freq(self, f, pwr=31, osc_2x=False, reset=True, verbose=False):
+        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
+        if reset: self.reset()
         self.program()
         time.sleep(0.01)
         self.calibrate(verbose=verbose)
@@ -1543,6 +1570,11 @@ class RFQickSocV2(RFQickSoc):
         # DAC channels.
         self.dacs = [dac_ch(ii, self.switches, self.attn_spi) for ii in range(8)]
 
+        # Link RF channels to LOs.
+        for adc in self.adcs[:4]: adc.lo = self.lo[0]
+        for dac in self.dacs[:4]: dac.lo = self.lo[1]
+        for dac in self.dacs[4:]: dac.lo = self.lo[2]
+
         if not no_tproc:
             # Link gens/readouts to the corresponding RF board channels.
             for gen in self.gens:
@@ -1552,8 +1584,8 @@ class RFQickSocV2(RFQickSoc):
                 tile, block = [int(a) for a in ro.adc]
                 ro.rfb = self.adcs[2*tile + block]
 
-    def rfb_set_lo(self, f):
-        """Set all RF-board local oscillators to the same frequency.
+    def rfb_set_lo(self, f, ch=None):
+        """Set RF-board local oscillators.
 
         LO[0]: all RF ADCs
         LO[1]: RF DACs 0-3
@@ -1563,8 +1595,30 @@ class RFQickSocV2(RFQickSoc):
         ----------
         f : float
             Frequency (4000-8000 MHz)
+        ch : int
+            LO to configure (None=all)
         """
-        for lo in self.lo:
-            lo.reset()
-            lo.set_freq(f)
+        if ch is not None:
+            self.lo[ch].set_freq(f)
+        else:
+            for lo in self.lo:
+                lo.set_freq(f)
+
+    def rfb_get_lo(self, gen_ch=None, ro_ch=None):
+        """Get local oscillator frequency for a DAC or ADC channel.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        ro_ch : int
+            ADC channel (index in 'readouts' list)
+        """
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch")
+        if gen_ch is not None:
+            return self.gens[gen_ch].rfb.lo.freq
+        if ro_ch is not None:
+            return self.readouts[ro_ch].rfb.lo.freq
+        raise RuntimeError("must specify gen_ch or ro_ch")
 
