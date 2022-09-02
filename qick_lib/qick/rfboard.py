@@ -6,7 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
-from qick.ipq_pynq_utils.clock_models import LMX2594
+from qick.ipq_pynq_utils import clock_models
 
 
 class AxisSignalGenV3(SocIp):
@@ -363,9 +363,7 @@ class spi(DefaultIP):
         else:
             # Get number of samples on fifo.
             nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
-            data_r = np.zeros(nr)
-            for i in range(nr):
-                data_r[i] = self.SPI_DRR.RX_Data
+            data_r = bytes([self.SPI_DRR.RX_Data for i in range(nr)])
             return data_r
 
     # Send/Receive.
@@ -1430,13 +1428,14 @@ class lo_synth_v2:
         # CS.
         self.ch_en = self.spi.en_level(3, [ch], "low")
         self.cs_t = ""
-
-        self.lmx = LMX2594(122.88)
-        self.reset()
-
-    def reset(self):
         # All CS to high value.
         self.spi.SPI_SSR = 0xff
+
+        self.lmx = clock_models.LMX2594(122.88)
+        self.reset()
+        self.freq = None
+
+    def reset(self):
         self.reg_wr(0x000002)
         self.reg_wr(0x000000)
 
@@ -1444,13 +1443,54 @@ class lo_synth_v2:
         data = regval.to_bytes(length=3, byteorder='big')
         rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
-    def set_freq(self, f,pwr=31):
-        self.lmx.set_output_frequency(f, pwr=pwr,en_b=True)
+    def reg_rd(self, addr):
+        data = [addr + (1<<7), 0, 0]
+        return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def read_and_parse(self, addr):
+        regval = int.from_bytes(self.reg_rd(addr), byteorder="big")
+        reg = clock_models.Register(self.lmx.registers_by_addr[addr].regdef)
+        reg.parse(regval)
+        return reg
+
+    def is_locked(self):
+        status = self.get_param("rb_LD_VTUNE")
+        #print(status.value_description)
+        return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
+
+    def set_freq(self, f, pwr=31, osc_2x=False, verbose=False):
+        self.freq = self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
         self.program()
         time.sleep(0.01)
-        self.lmx.FCAL_EN.value=1
-        self.reg_wr(self.lmx.registers_by_addr[0].get_raw())
+        self.calibrate(verbose=verbose)
 
+    def calibrate(self, timeout=1.0, n_attempts=5, verbose=False):
+        for i in range(n_attempts):
+            # you'd think FCAL_EN needs to be toggled, not just set to 1?
+            # but datasheet doesn't say so, and this seems to work
+            self.set_param("FCAL_EN", 1)
+            starttime = time.time()
+            while time.time()-starttime < timeout:
+                lock = self.is_locked()
+                if lock:
+                    if verbose: print("LO locked on attempt %d after %.2f sec"%(i+1, time.time()-starttime))
+                    return
+                time.sleep(0.01)
+            if verbose: print("lock attempt %d failed"%(i+1))
+        raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
+
+    def set_param(self, name, val):
+        param = getattr(self.lmx, name)
+        param.value = val
+        if isinstance(param, clock_models.Field):
+            self.reg_wr(self.lmx.registers_by_addr[param.addr].get_raw())
+        else: # MultiRegister
+            for field in param.fields:
+                self.reg_wr(self.lmx.registers_by_addr[field.addr].get_raw())
+
+    def get_param(self, name):
+        param = getattr(self.lmx, name)
+        return self.read_and_parse(param.addr).fields[param.index]
 
     def program(self):
         for regval in self.lmx.get_register_dump():

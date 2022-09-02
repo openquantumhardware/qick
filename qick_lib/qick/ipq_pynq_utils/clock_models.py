@@ -8,6 +8,7 @@ import numpy as np
 #from . import utils
 import os
 import fractions
+from collections import defaultdict
 
 class EnumVal:
     def __init__(self, name, value, description):
@@ -145,13 +146,16 @@ class Register:
         self.addr = obj["addr"]
         self.fields = []
         self.dw = dw 
+        self.regdef = obj
 
-        for field in obj["fields"]:
+        for field in self.regdef["fields"]:
             fieldtype = field["fieldtype"]
             if fieldtype == "constant":
                 self.fields.append(ConstantField(field))
             elif fieldtype == "normal":
-                self.fields.append(Field(field))
+                newfield = Field(field)
+                newfield.index = len(self.fields)
+                self.fields.append(newfield)
             else:
                 raise RuntimeError("Unsupported field type!")
 
@@ -211,6 +215,7 @@ class RegisterDevice:
             self.registers_by_addr[addr] = reg
 
             for field in reg.fields:
+                field.addr = addr
                 if isinstance(field, Field) and field.valid_type != "constant":
                     sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
                     if field.name.endswith("]"): # Multi-field
@@ -350,17 +355,52 @@ class LMX2594(RegisterDevice):
         # Note that this isn't the complete range, but skips the readback registers
         self.register_addresses = list(range(109, -1, -1))
 
-    def set_output_frequency(self, f_target, pwr=31, solution=None, en_b=False):
+    def get_multiplier_freqs(self):
+        """
+        Enumerate all possible multiplier output frequencies.
+        """
+        f2conf = defaultdict(list)
+        # config tuple order is mult, osc_x, r_pre - we want this to be sortable
+        # we prefer smaller mult first, then smaller osc_x
+        # add no-multiplier configs (there are no limits on using r_pre in this mode, but you usually don't need it)
+        f2conf[self.f_osc].append((1,1,1))
+        f2conf[2*self.f_osc].append((1,2,1))
+        for osc_x in [1,2]:
+            if osc_x==2 and self.f_osc>200: # max input freq of doubler
+                continue
+            for mult in range(3,8):
+                # apply limits on the multiplier's input and output freqs
+                min_r_pre = int(np.ceil(max(1, self.f_osc*osc_x/70.0, self.f_osc*osc_x*mult/250.0)))
+                max_r_pre = int(np.floor(min(255, self.f_osc*osc_x/30.0, self.f_osc*osc_x*mult/180.0)))
+                for r_pre in range(min_r_pre, max_r_pre+1):
+                    mult_out = self.f_osc*(osc_x*mult/r_pre)
+                    f2conf[mult_out].append((mult, osc_x, r_pre))
+
+        f2conf = dict(sorted(f2conf.items()))
+        for freq in f2conf.keys():
+            f2conf[freq].sort()
+            #for conf in f2conf[freq]:
+            #    print(freq, conf)
+            f2conf[freq] = f2conf[freq][0]
+        return f2conf
+
+    def set_output_frequency(self, f_target, pwr=31, solution=None, en_b=False, osc_2x=False, verbose=True):
         # We only support integer mode right now
         self.MASH_ORDER.value = 0
         self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
         self.PLL_NUM.value = 0
         self.PLL_DEN.value = 0
+        mult = 1
+        osc_x = 2 if osc_2x else 1
+        if osc_2x:
+            osc_x = 2
+        else:
+            osc_x = 1
 
         self.OUTA_PWR.value = pwr
         self.OUTA_PD.set(self.OUTA_PD.NORMAL_OPERATION)
         if en_b:
-            self.OUTB_PWR.value = 31
+            self.OUTB_PWR.value = pwr
             self.OUTB_PD.set(self.OUTB_PD.NORMAL_OPERATION)
         else:
             self.OUTB_PWR.value = 0
@@ -384,15 +424,16 @@ class LMX2594(RegisterDevice):
             raise RuntimeError("No possible integer solutions found!")
 
         solutions = []
-        print("  i |   f_vco  | DIV | MIN_N | DLY_SEL |   n  |   R  | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
-        print("----|----------|-----|-------|---------|------|------|-------|---------|----------|---------|------------")
+        if verbose:
+            print("  i |   f_vco  | DIV | DLY_SEL |   n  | osc_2x |   R  | mult | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
+            print("----|----------|-----|---------|------|--------|------|------|-------|---------|----------|---------|------------")
 
         metric_min = np.inf
         metric_min_idx = None
         for idx,(i,div,f_vco) in enumerate(chdivs):
             min_n,dly_sel = LMX2594.get_modulator_constraints(self.MASH_ORDER.value, f_vco)
 
-            ratio = fractions.Fraction(f_vco / self.f_osc).limit_denominator(255)
+            ratio = fractions.Fraction(f_vco / (self.f_osc*osc_x)).limit_denominator(255)
             n = ratio.numerator
             R = ratio.denominator
 
@@ -410,7 +451,7 @@ class LMX2594(RegisterDevice):
                 else:
                     raise RuntimeError("Failed to find solution, N limit can't be met!")
 
-            f_pd = self.f_osc / (R * R_pre)
+            f_pd = self.f_osc * osc_x / (R * R_pre)
 
             metric = R_pre * R * n * div
             if metric < metric_min:
@@ -422,22 +463,24 @@ class LMX2594(RegisterDevice):
 
             metric += delta_f*1e6
 
-            print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
+            if verbose:
+                print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {dly_sel:7d} | {n:4d} | {'  True' if osc_x==2 else ' False'} | {R:4d} | {mult:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
 
-            solutions.append((i, div, f_vco, n, R, R_pre))
+            solutions.append((i, div, f_vco, dly_sel, n, osc_x, R, mult, R_pre))
 
-        print()
+        if verbose: print()
         if solution is None:
-            print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
+            if verbose: print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
             solution = metric_min_idx
 
-        chdiv_i,chdiv,f_vco,n,R,R_pre = solutions[solution]
+        chdiv_i,chdiv,f_vco,dly_sel,n,osc_x,R,mult,R_pre = solutions[solution]
 
         self.CHDIV.value = chdiv_i % 18
         self.PFD_DLY_SEL.value = dly_sel
         self.PLL_N.value = n
-        self.PLL_N.value = n
+        self.OSC_2X.value = osc_x - 1
         self.PLL_R_PRE.value = R_pre
+        self.MULT.value = mult
         self.PLL_R.value = R
 
         if chdiv_i == 18:
@@ -531,7 +574,7 @@ class LMX2594(RegisterDevice):
                 self.VCO_CAPCTRL_FORCE.value = 1
 
     def get_modulator_constraints(mash_order, f_vco):
-        if mash_order == 0:
+        if mash_order == 0: # for now, it's always 0
             if f_vco <= 12500:
                 min_n = 28
                 dly_sel = 1
@@ -575,10 +618,13 @@ class LMX2594(RegisterDevice):
         return min_n, dly_sel
 
     def update(self):
-        if self.OSC_2X.get() == self.OSC_2X.DISABLED:
-            f_in = self.f_osc
-        else:
+        """
+        Compute the output frequencies from the register values.
+        """
+        if self.OSC_2X.get() == self.OSC_2X.ENABLED:
             f_in = 2 * self.f_osc
+        else:
+            f_in = self.f_osc
 
         f_in /= self.PLL_R_PRE.value
         f_in *= self.MULT.value
