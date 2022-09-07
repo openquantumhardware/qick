@@ -6,6 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
+from qick.ipq_pynq_utils import clock_models
 
 
 class AxisSignalGenV3(SocIp):
@@ -38,7 +39,8 @@ class AxisSignalGenV3(SocIp):
         self.dma = axi_dma
 
         # Real/imaginary selection switch.
-        self.iq_switch = AxisDdsMrSwitch(dds_mr_switch)
+        #self.iq_switch = AxisDdsMrSwitch(dds_mr_switch)
+        self.iq_switch = dds_mr_switch
 
         # switch
         self.switch = axis_switch
@@ -140,32 +142,12 @@ class AxisSignalGenV3Ctrl(SocIp):
         self.gain = gain
         self.nsamp = int(np.round(nsamp/self.NDDS))
 
-        if outsel == "product":
-            self.outsel = 0
-        elif outsel == "dds":
-            self.outsel = 1
-        elif outsel == "envelope":
-            self.outsel = 2
-        else:
-            print("AxisSignalGenV3Ctrl: %s output unknown" % outsel)
-
-        if mode == "nsamp":
-            self.mode = 0
-        elif mode == "periodic":
-            self.mode = 1
-        else:
-            print("AxisSignalGenV3Ctrl: %s mode unknown" % mode)
-
-        if stdysel == "last":
-            self.stdysel = 0
-        elif stdysel == "zero":
-            self.stdysel = 1
-        else:
-            print("AxisSignalGenV3Ctrl: %s stdysel unknown" % stdysel)
+        self.outsel = {"product": 0, "dds":1, "envelope":2}[outsel]
+        self.mode = {"nsamp": 0, "periodic":1}[mode]
+        self.stdysel = {"last": 0, "zero":1}[stdysel]
 
         # Write fifo..
         self.we = 1
-        time.sleep(0.1)
         self.we = 0
 
     def set_fs(self, fs):
@@ -381,9 +363,7 @@ class spi(DefaultIP):
         else:
             # Get number of samples on fifo.
             nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
-            data_r = np.zeros(nr)
-            for i in range(nr):
-                data_r[i] = self.SPI_DRR.RX_Data
+            data_r = bytes([self.SPI_DRR.RX_Data for i in range(nr)])
             return data_r
 
     # Send/Receive.
@@ -398,10 +378,9 @@ class spi(DefaultIP):
         return data_r
 
 # Step Attenuator PE43705.
+# Range 0-31.75 dB.
 # Parts are used in serial mode.
 # See schematics for Address/LE correspondance.
-
-
 class PE43705:
     address = 0
     nSteps = 2**7
@@ -439,9 +418,6 @@ class PE43705:
         return reg
 
 # GPIO chip MCP23S08.
-# All are used with address 0.
-
-
 class MCP23S08:
     # Commands.
     cmd_wr = 0x40
@@ -460,6 +436,9 @@ class MCP23S08:
             'GPIO_REG': 0x09,
             'OLAT_REG': 0x0A}
 
+    def __init__(self, dev_addr):
+        self.dev_addr = dev_addr
+
     # Register/address mapping.
     def reg2addr(self, reg="GPIO_REG"):
         if reg in self.REGS:
@@ -477,7 +456,7 @@ class MCP23S08:
         byte = []
 
         # Read command.
-        byte.append(self.cmd_rd)
+        byte.append(self.cmd_rd + 2*self.dev_addr)
 
         # Address.
         addr = self.reg2addr(reg)
@@ -492,7 +471,7 @@ class MCP23S08:
         byte = []
 
         # Write command.
-        byte.append(self.cmd_wr)
+        byte.append(self.cmd_wr + 2*self.dev_addr)
 
         # Address.
         addr = self.reg2addr(reg)
@@ -755,8 +734,6 @@ class AD5781:
             return int(Df)
 
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
-
-
 class attenuator:
 
     # Constructor.
@@ -771,6 +748,9 @@ class attenuator:
         self.ch_en = self.spi.en_level(nch, le, en_l)
         self.cs_t = cs_t
 
+        # Initialize with max attenuation.
+        self.set_att(31.75)
+
     # Set attenuation function.
     def set_att(self, db):
         # Register value.
@@ -781,13 +761,40 @@ class attenuator:
 
 # Power, Switch and Fan.
 
+class SwitchControl:
+    # Constructor.
+    def __init__(self, spi_ip):
+        self.spi = spi_ip
+        self.devs = []
+        self.net2port = {}
+
+    def add_MCP(self, ch_en, outputs, dev_addr=0):
+        if len(outputs) != 8:
+            raise RuntimeError("must define all 8 outputs from the MCP23S08 (use None for NC pins)")
+        defaults = 0
+        for iOutput, output in enumerate(outputs):
+            defaults <<= 1
+            if output is not None:
+                netname, defaultval = output
+                self.net2port[netname] = (len(self.devs), iOutput)
+                defaults += defaultval
+        self.devs.append(power_sw_fan(self.spi, ch_en=ch_en, dev_addr=dev_addr, defaults=defaults))
+
+    def __setitem__(self, netname, val):
+        iDev, iBit = self.net2port[netname]
+        if val == 1:
+            self.devs[iDev].bits_set(bits=[iBit])
+        elif val == 0:
+            self.devs[iDev].bits_reset(bits=[iBit])
+        else:
+            raise RuntimeError("invalid value:", val)
 
 class power_sw_fan:
 
     # Constructor.
-    def __init__(self, spi_ip, ch_en, cs_t=""):
+    def __init__(self, spi_ip, ch_en, defaults=0xFF, dev_addr=0, cs_t=""):
         # MCP23S08.
-        self.mcp = MCP23S08()
+        self.mcp = MCP23S08(dev_addr=dev_addr)
 
         # SPI.
         self.spi = spi_ip
@@ -803,8 +810,8 @@ class power_sw_fan:
         byte = self.mcp.reg_wr("IODIR_REG", 0x00)
         self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
-        # Set all outputs to logic 1.
-        byte = self.mcp.reg_wr("GPIO_REG", 0xff)
+        # Set default output values.
+        byte = self.mcp.reg_wr("GPIO_REG", defaults)
         self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
     # Write bits.
@@ -841,8 +848,6 @@ class power_sw_fan:
         self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
 # LO Synthesis.
-
-
 class lo_synth:
 
     # Constructor.
@@ -1008,8 +1013,6 @@ class lo_synth:
             self.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
 
 # Bias dac.
-
-
 class dac_bias:
 
     # Constructor.
@@ -1029,6 +1032,9 @@ class dac_bias:
 
         # Initialize control register.
         self.write(reg="CTRL_REG", val=0x312)
+
+        # Initialize to 0 volts.
+        self.set_volt(0)
 
     def read(self, reg="DAC_REG"):
         # Read command.
@@ -1052,8 +1058,6 @@ class dac_bias:
         self.write(reg="DAC_REG", val=val)
 
 # Variable Gain Amp chip LMH6401.
-
-
 class LMH6401:
     # Commands.
     cmd_wr = 0x00
@@ -1109,8 +1113,6 @@ class LMH6401:
         return byte
 
 # Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
-
-
 class gain:
 
     # Number of bits of gain setting.
@@ -1132,6 +1134,9 @@ class gain:
         self.ch_en = ch_en
         self.cs_t = cs_t
 
+        # Initalize to min gain.
+        self.set_gain(-6)
+
     # Set gain.
     def set_gain(self, db):
         # Sanity check.
@@ -1152,9 +1157,12 @@ class gain:
 # Class to describe the ADC-RF channel chain.
 class adc_rf_ch():
     # Constructor.
-    def __init__(self, ch, attn_spi):
+    def __init__(self, ch, switches, attn_spi):
         # Channel number.
         self.ch = ch
+
+        # Power switches.
+        self.switches = switches
 
         # Attenuator.
         self.attn = attenuator(attn_spi, ch, le=[0])
@@ -1165,13 +1173,28 @@ class adc_rf_ch():
     # Set attenuator.
     def set_attn_db(self, db=0):
         self.attn.set_att(db)
+        self.enable()
+
+    def enable(self):
+        # Turn on 5V power.
+        self.switches["RF2IF5V_EN%d"%(self.ch)] = 1
+
+    def disable(self):
+        # Turn off 5V power.
+        self.switches["RF2IF5V_EN%d"%(self.ch)] = 0
 
 # Class to describe the ADC-DC channel chain.
 class adc_dc_ch():
     # Constructor.
-    def __init__(self, ch, gain_spi):
+    def __init__(self, ch, switches, gain_spi, version=2):
         # Channel number.
         self.ch = ch
+
+        # RF board version.
+        self.version = version
+
+        # Power switches.
+        self.switches = switches
 
         # Variable Gain Amplifier.
         if ch < 4 or ch > 7:
@@ -1186,35 +1209,69 @@ class adc_dc_ch():
     # Set gain.
     def set_gain_db(self, db=0):
         self.gain.set_gain(db)
+        if self.version==2:
+            self.enable()
 
+    def enable(self):
+        if self.version!=2:
+            raise RuntimeError("enable/disable not supported for version", self.version)
+        # Power up.
+        self.switches["RF2IF_PD%d"%(self.ch)] = 0
+
+    def disable(self):
+        if self.version!=2:
+            raise RuntimeError("enable/disable not supported for version", self.version)
+        # Power down.
+        self.switches["RF2IF_PD%d"%(self.ch)] = 1
 
 # Class to describe the DAC channel chain.
 class dac_ch():
     # Constructor.
-    def __init__(self, ch, rfsw, attn_spi):
+    def __init__(self, ch, switches, attn_spi, version=2):
         # Channel number.
         self.ch = ch
 
-        # RF Input Switch.
-        self.rfsw = rfsw
+        # RF board version.
+        self.version = version
+
+        # RF input and power switches.
+        self.switches = switches
 
         # Attenuators.
         self.attn = []
         self.attn.append(attenuator(attn_spi, ch, le=[1]))
         self.attn.append(attenuator(attn_spi, ch, le=[2]))
 
-        # Default to 10 dB attenuation.
-        self.set_attn_db(0, 10)
-        self.set_attn_db(1, 10)
+        # Initialize in off state.
+        self.disable()
 
     # Switch selection.
     def rfsw_sel(self, sel="RF"):
         if sel == "RF":
             # Set logic one.
-            self.rfsw.bits_set(bits=[self.ch])
+            # Select RF output from switch.
+            self.switches["CH%d_PE42020_CTL"%(self.ch)] = 1
+            # Turn on 5V power to RF chain.
+            self.switches["IF2RF5V_EN%d"%(self.ch)] = 1
+            if self.version==1:
+                # Power down DC amplifier.
+                self.switches["IF2RF_PD%d"%(self.ch)] = 1
         elif sel == "DC":
-            # Set logic zero.
-            self.rfsw.bits_reset(bits=[self.ch])
+            # Select DC output from switch.
+            self.switches["CH%d_PE42020_CTL"%(self.ch)] = 0
+            # Turn off 5V power to RF chain.
+            self.switches["IF2RF5V_EN%d"%(self.ch)] = 0
+            if self.version==1:
+                # Power up DC amplifier.
+                self.switches["IF2RF_PD%d"%(self.ch)] = 0
+        elif sel == "OFF":
+            # Select RF output from switch.
+            self.switches["CH%d_PE42020_CTL"%(self.ch)] = 1
+            # Turn off 5V power to RF chain.
+            self.switches["IF2RF5V_EN%d"%(self.ch)] = 0
+            if self.version==1:
+                # Power down DC amplifier.
+                self.switches["IF2RF_PD%d"%(self.ch)] = 1
         else:
             print("%s: selection %s not recoginzed." %
                   (self.__class__.__name__, sel))
@@ -1227,6 +1284,20 @@ class dac_ch():
             print("%s: attenuator %d not in chain." %
                   (self.__class__.__name__, attn))
 
+    def set_rf(self, att1, att2):
+        self.rfsw_sel("RF")
+        self.set_attn_db(attn=0, db=att1)
+        self.set_attn_db(attn=1, db=att2)
+
+    def set_dc(self):
+        self.rfsw_sel("DC")
+
+    def disable(self):
+        self.rfsw_sel("OFF")
+        self.set_attn_db(attn=0, db=31.75)
+        self.set_attn_db(attn=1, db=31.75)
+
+
 
 class RFQickSoc(QickSoc):
     """
@@ -1235,16 +1306,17 @@ class RFQickSoc(QickSoc):
     """
     ENABLE_LO_OUTPUT = True
 
-    def __init__(self, bitfile=None, force_init_clks=True, ignore_version=True, **kwargs):
+    def __init__(self, bitfile, force_init_clks=True, ignore_version=True, no_tproc=False, **kwargs):
         """
+        A bitfile must always be provided, since the default bitstream will not work with the RF board.
         By default, re-initialize the clocks every time.
         This ensures that the LO output to the RF board is enabled.
         """
-        super().__init__(bitfile=bitfile, force_init_clks=force_init_clks, ignore_version=ignore_version, **kwargs)
+        super().__init__(bitfile=bitfile, force_init_clks=force_init_clks, ignore_version=ignore_version, no_tproc=no_tproc, **kwargs)
 
-        self.rfb_config()
+        self.rfb_config(no_tproc)
 
-    def rfb_config(self):
+    def rfb_config(self, no_tproc):
         """
         Configure the SPI interfaces to the RF board.
         """
@@ -1260,47 +1332,41 @@ class RFQickSoc(QickSoc):
         # SPI used for DAC BIAS.
         self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
+        # GPIO outputs:
         # ADC/DAC power enable, DAC RF input switch.
-        self.adc_pwr = power_sw_fan(self.psf_spi, ch_en=0)
-        self.dac_pwr = power_sw_fan(self.psf_spi, ch_en=1)
-        self.dac_sw = power_sw_fan(self.psf_spi, ch_en=2)
+        # Initialize everything with power off.
+        self.switches = SwitchControl(self.psf_spi)
+        # ADC power
+        self.switches.add_MCP(ch_en=0,
+                outputs=[("RF2IF5V_EN"+str(i), 0) for i in range(4)] 
+                + [None]*4)
+        # DAC power
+        self.switches.add_MCP(ch_en=1,
+                outputs=[("IF2RF5V_EN"+str(i), 0) for i in range(8)])
+        # DAC RF/DC switch
+        self.switches.add_MCP(ch_en=2,
+                outputs=[("CH%d_PE42020_CTL"%(i), 1) for i in range(8)])
 
         # LO Synthesizers.
-        self.lo = []
-        self.lo.append(lo_synth(self.lo_spi, le=[0]))
-        self.lo.append(lo_synth(self.lo_spi, le=[1]))
+        self.lo = [lo_synth(self.lo_spi, le=[i]) for i in range(2)]
 
         # DAC BIAS.
-        self.dac_bias = []
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=0))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=1))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=2))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=3))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=4))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=5))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=6))
-        self.dac_bias.append(dac_bias(self.dac_bias_spi, ch_en=7))
+        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
-        self.adcs = []
-        for ii in range(4):
-            self.adcs.append(adc_rf_ch(ii, self.attn_spi))
-            
-        for ii in range(4):
-            self.adcs.append(adc_dc_ch(4+ii, self.psf_spi))
+        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi, version=1) for ii in range(4,8)]
         
         # DAC channels.
-        self.dacs = []
-        for ii in range(8):            
-            self.dacs.append(dac_ch(ii, self.dac_sw, self.attn_spi))  
+        self.dacs = [dac_ch(ii, self.switches, self.attn_spi, version=1) for ii in range(8)]
 
-        # Link gens/readouts to the corresponding RF board channels.
-        for gen in self.gens:
-            tile, block = [int(a) for a in gen.dac]
-            gen.rfb = self.dacs[4*tile + block]
-        for ro in self.readouts:
-            tile, block = [int(a) for a in ro.adc]
-            ro.rfb = self.adcs[2*tile + block]
+        if not no_tproc:
+            # Link gens/readouts to the corresponding RF board channels.
+            for gen in self.gens:
+                tile, block = [int(a) for a in gen.dac]
+                gen.rfb = self.dacs[4*tile + block]
+            for ro in self.readouts:
+                tile, block = [int(a) for a in ro.adc]
+                ro.rfb = self.adcs[2*tile + block]
 
     def rfb_set_lo(self, f):
         """Set both of the RF-board local oscillators to the same frequency.
@@ -1315,8 +1381,8 @@ class RFQickSoc(QickSoc):
         for lo in self.lo:
             lo.set_freq(f)
 
-    def rfb_set_genrf(self, gen_ch, att1, att2):
-        """Configure an RF-board output channel for RF output.
+    def rfb_set_gen_rf(self, gen_ch, att1, att2):
+        """Enable and configure an RF-board output channel for RF output.
 
         Parameters
         ----------
@@ -1327,23 +1393,43 @@ class RFQickSoc(QickSoc):
         att2 : float
             Attenuation for second stage (0-31.75 dB)
         """
-        rfb_ch = self.gens[gen_ch].rfb
-        rfb_ch.rfsw_sel("RF")
-        rfb_ch.attn[0].set_att(att1)
-        rfb_ch.attn[1].set_att(att2)
+        self.gens[gen_ch].rfb.set_rf(att1, att2)
 
-    def rfb_set_ro(self, ro_ch, att):
-        """Configure an RF-board input channel.
+    def rfb_set_gen_dc(self, gen_ch, att1, att2):
+        """Enable and configure an RF-board output channel for DC output.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        """
+        self.gens[gen_ch].rfb.set_dc()
+
+    def rfb_set_ro_rf(self, ro_ch, att):
+        """Enable and configure an RF-board RF input channel.
+        Will fail if this is not an RF input.
 
         Parameters
         ----------
         ro_ch : int
             ADC channel (index in 'readouts' list)
         att : float
-            Attenuation (0-31.75 dB)
+            Attenuation (0 to 31.75 dB)
         """
-        rfb_ch = self.readouts[ro_ch].rfb
-        rfb_ch.attn.set_att(att)
+        self.readouts[ro_ch].rfb.set_attn_db(att)
+
+    def rfb_set_ro_dc(self, ro_ch, gain):
+        """Enable and configure an RF-board DC input channel.
+        Will fail if this is not a DC input.
+
+        Parameters
+        ----------
+        ro_ch : int
+            ADC channel (index in 'readouts' list)
+        gain : float
+            Gain (-6 to 26 dB)
+        """
+        self.readouts[ro_ch].rfb.set_gain_db(gain)
 
     def rfb_set_bias(self, bias_ch, v):
         """Set a voltage on an RF-board bias DAC.
@@ -1356,4 +1442,185 @@ class RFQickSoc(QickSoc):
             Voltage (-10 to 10 V)
         """
         self.dac_bias[bias_ch].set_volt(v)
+
+class lo_synth_v2:
+    def __init__(self, spi_ip, ch):
+        # SPI.
+        self.spi = spi_ip
+
+        # CS.
+        self.ch_en = self.spi.en_level(3, [ch], "low")
+        self.cs_t = ""
+        # All CS to high value.
+        self.spi.SPI_SSR = 0xff
+
+        self.lmx = clock_models.LMX2594(122.88)
+        self.reset()
+
+    @property
+    def freq(self):
+        return self.lmx.f_outa
+
+    def reset(self):
+        self.reg_wr(0x000002)
+        self.reg_wr(0x000000)
+
+    def reg_wr(self, regval):
+        data = regval.to_bytes(length=3, byteorder='big')
+        rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def reg_rd(self, addr):
+        data = [addr + (1<<7), 0, 0]
+        return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def read_and_parse(self, addr):
+        regval = int.from_bytes(self.reg_rd(addr), byteorder="big")
+        reg = clock_models.Register(self.lmx.registers_by_addr[addr].regdef)
+        reg.parse(regval)
+        return reg
+
+    def is_locked(self):
+        status = self.get_param("rb_LD_VTUNE")
+        #print(status.value_description)
+        return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
+
+    def set_freq(self, f, pwr=50, osc_2x=False, reset=True, verbose=False):
+        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
+        if reset: self.reset()
+        self.program()
+        time.sleep(0.01)
+        self.calibrate(verbose=verbose)
+
+    def calibrate(self, timeout=1.0, n_attempts=5, verbose=False):
+        for i in range(n_attempts):
+            # you'd think FCAL_EN needs to be toggled, not just set to 1?
+            # but datasheet doesn't say so, and this seems to work
+            self.set_param("FCAL_EN", 1)
+            starttime = time.time()
+            while time.time()-starttime < timeout:
+                lock = self.is_locked()
+                if lock:
+                    if verbose: print("LO locked on attempt %d after %.2f sec"%(i+1, time.time()-starttime))
+                    return
+                time.sleep(0.01)
+            if verbose: print("lock attempt %d failed"%(i+1))
+        raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
+
+    def set_param(self, name, val):
+        param = getattr(self.lmx, name)
+        param.value = val
+        if isinstance(param, clock_models.Field):
+            self.reg_wr(self.lmx.registers_by_addr[param.addr].get_raw())
+        else: # MultiRegister
+            for field in param.fields:
+                self.reg_wr(self.lmx.registers_by_addr[field.addr].get_raw())
+
+    def get_param(self, name):
+        param = getattr(self.lmx, name)
+        return self.read_and_parse(param.addr).fields[param.index]
+
+    def program(self):
+        for regval in self.lmx.get_register_dump():
+            self.reg_wr(regval)
+
+class RFQickSocV2(RFQickSoc):
+    def rfb_config(self, no_tproc):
+        """
+        Configure the SPI interfaces to the RF board.
+        """
+        # SPI used for Attenuators.
+        self.attn_spi.config(lsb="lsb")
+
+        # SPI used for Power, Switch and Fan.
+        self.psf_spi.config(lsb="msb")
+
+        # SPI used for the LO.
+        self.lo_spi.config(lsb="msb")
+
+        # SPI used for DAC BIAS.
+        self.dac_bias_spi.config(lsb="msb", cpha="invert")
+
+        # GPIO outputs:
+        # ADC/DAC power enable, DAC RF input switch.
+        # Initialize everything with power off.
+        self.switches = SwitchControl(self.psf_spi)
+        # ADC power/power-down
+        self.switches.add_MCP(ch_en=0, dev_addr=0,
+                outputs=[("RF2IF5V_EN"+str(i), 0) for i in range(4)]
+                + [("RF2IF_PD"+str(i), 1) for i in range(4, 8)])
+        # DAC power-down
+        self.switches.add_MCP(ch_en=1, dev_addr=1,
+                outputs=[("IF2RF_PD"+str(i), 0) for i in range(8)])
+        # DAC power
+        self.switches.add_MCP(ch_en=1, dev_addr=0,
+                outputs=[("IF2RF5V_EN"+str(i), 0) for i in range(8)])
+        # DAC RF/DC switch
+        self.switches.add_MCP(ch_en=2, dev_addr=0,
+                outputs=[("CH%d_PE42020_CTL"%(i), 1) for i in range(8)])
+
+        # LO Synthesizers.
+        self.lo = [lo_synth_v2(self.lo_spi, i) for i in range(3)]
+
+        # DAC BIAS.
+        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+
+        # ADC channels.
+        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+
+        # DAC channels.
+        self.dacs = [dac_ch(ii, self.switches, self.attn_spi) for ii in range(8)]
+
+        # Link RF channels to LOs.
+        for adc in self.adcs[:4]: adc.lo = self.lo[0]
+        for dac in self.dacs[:4]: dac.lo = self.lo[1]
+        for dac in self.dacs[4:]: dac.lo = self.lo[2]
+
+        if not no_tproc:
+            # Link gens/readouts to the corresponding RF board channels.
+            for gen in self.gens:
+                tile, block = [int(a) for a in gen.dac]
+                gen.rfb = self.dacs[4*tile + block]
+            for ro in self.readouts:
+                tile, block = [int(a) for a in ro.adc]
+                ro.rfb = self.adcs[2*tile + block]
+
+    def rfb_set_lo(self, f, ch=None, verbose=False):
+        """Set RF-board local oscillators.
+
+        LO[0]: all RF ADCs
+        LO[1]: RF DACs 0-3
+        LO[2]: RF DACs 4-7
+
+        Parameters
+        ----------
+        f : float
+            Frequency (4000-8000 MHz)
+        ch : int
+            LO to configure (None=all)
+        verbose : bool
+            Print freq and lock info.
+        """
+        if ch is not None:
+            self.lo[ch].set_freq(f, verbose=verbose)
+        else:
+            for lo in self.lo:
+                lo.set_freq(f, verbose=verbose)
+
+    def rfb_get_lo(self, gen_ch=None, ro_ch=None):
+        """Get local oscillator frequency for a DAC or ADC channel.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        ro_ch : int
+            ADC channel (index in 'readouts' list)
+        """
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch")
+        if gen_ch is not None:
+            return self.gens[gen_ch].rfb.lo.freq
+        if ro_ch is not None:
+            return self.readouts[ro_ch].rfb.lo.freq
+        raise RuntimeError("must specify gen_ch or ro_ch")
 
