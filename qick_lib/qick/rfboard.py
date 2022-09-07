@@ -1484,7 +1484,7 @@ class lo_synth_v2:
         #print(status.value_description)
         return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
 
-    def set_freq(self, f, pwr=31, osc_2x=False, reset=True, verbose=False):
+    def set_freq(self, f, pwr=50, osc_2x=False, reset=True, verbose=False):
         self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
         if reset: self.reset()
         self.program()
@@ -1584,7 +1584,7 @@ class RFQickSocV2(RFQickSoc):
                 tile, block = [int(a) for a in ro.adc]
                 ro.rfb = self.adcs[2*tile + block]
 
-    def rfb_set_lo(self, f, ch=None):
+    def rfb_set_lo(self, f, ch=None, verbose=False):
         """Set RF-board local oscillators.
 
         LO[0]: all RF ADCs
@@ -1597,12 +1597,14 @@ class RFQickSocV2(RFQickSoc):
             Frequency (4000-8000 MHz)
         ch : int
             LO to configure (None=all)
+        verbose : bool
+            Print freq and lock info.
         """
         if ch is not None:
-            self.lo[ch].set_freq(f)
+            self.lo[ch].set_freq(f, verbose=verbose)
         else:
             for lo in self.lo:
-                lo.set_freq(f)
+                lo.set_freq(f, verbose=verbose)
 
     def rfb_get_lo(self, gen_ch=None, ro_ch=None):
         """Get local oscillator frequency for a DAC or ADC channel.
