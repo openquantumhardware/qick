@@ -103,42 +103,10 @@ class AveragerProgram(QickProgram):
             angle = [0, 0]
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
-        # Load the pulses from the program into the soc
-        if load_pulses:
-            self.load_pulses(soc)
-
-        # Configure signal generators
-        self.config_gens(soc)
-
-        # Configure the readout down converters
-        self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=False)
-
-        # load this program into the soc's tproc
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
 
         reps = self.cfg['reps']
         total_count = reps*readouts_per_experiment
-        count = 0
-        n_ro = len(self.ro_chs)
-
-        d_buf = np.zeros((n_ro, 2, total_count))
-        self.stats = []
-
-        with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start_readout(total_count, counter_addr=1,
-                                   ch_list=list(self.ro_chs), reads_per_count=readouts_per_experiment)
-            while count<total_count:
-                new_data = soc.poll_data()
-                for d, s in new_data:
-                    new_points = d.shape[2]
-                    d_buf[:, :, count:count+new_points] = d
-                    count += new_points
-                    self.stats.append(s)
-                    pbar.update(new_points)
+        d_buf = super().acquire_round(soc, total_count, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         # reformat the data into separate I and Q arrays
         di_buf = d_buf[:,0,:]
@@ -152,6 +120,7 @@ class AveragerProgram(QickProgram):
             self.shots = self.get_single_shots(
                 di_buf, dq_buf, threshold, angle)
 
+        n_ro = len(self.ro_chs)
         avg_di = np.zeros((n_ro, len(save_experiments)))
         avg_dq = np.zeros((n_ro, len(save_experiments)))
 
@@ -451,42 +420,10 @@ class RAveragerProgram(QickProgram):
             angle = [0, 0]
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
-        if load_pulses:
-            self.load_pulses(soc)
-
-        # Configure signal generators
-        self.config_gens(soc)
-
-        # Configure the readout down converters
-        self.config_readouts(soc)
-        self.config_bufs(soc, enable_avg=True, enable_buf=False)
-
-        # load this program into the soc's tproc
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
-
         total_count = reps*expts*readouts_per_experiment
-        count = 0
-        n_ro = len(self.ro_chs)
-
-        d_buf = np.zeros((n_ro, 2, total_count))
-        self.stats = []
-
-        with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start_readout(total_count, counter_addr=1, ch_list=list(
-                self.ro_chs), reads_per_count=readouts_per_experiment)
-            while count<total_count:
-                new_data = soc.poll_data()
-                for d, s in new_data:
-                    new_points = d.shape[2]
-                    d_buf[:, :, count:count+new_points] = d
-                    count += new_points
-                    self.stats.append(s)
-                    pbar.update(new_points)
+        d_buf = super().acquire_round(soc, total_count, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         # reformat the data into separate I and Q arrays
         di_buf = d_buf[:,0,:]
@@ -502,6 +439,7 @@ class RAveragerProgram(QickProgram):
 
         expt_pts = self.get_expt_pts()
 
+        n_ro = len(self.ro_chs)
         avg_di = np.zeros((n_ro, len(save_experiments), expts))
         avg_dq = np.zeros((n_ro, len(save_experiments), expts))
 

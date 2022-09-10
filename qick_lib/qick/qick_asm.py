@@ -4,6 +4,10 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
+try:
+    from tqdm.notebook import tqdm
+except:
+    from tqdm import tqdm_notebook as tqdm
 from .helpers import gauss, triang, DRAG
 
 
@@ -929,6 +933,44 @@ class QickProgram:
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
+
+    def acquire_round(self, soc, total_count, readouts_per_experiment=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
+        # Load the pulses from the program into the soc
+        if load_pulses:
+            self.load_pulses(soc)
+
+        # Configure signal generators
+        self.config_gens(soc)
+
+        # Configure the readout down converters
+        self.config_readouts(soc)
+        self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+        count = 0
+        n_ro = len(self.ro_chs)
+
+        d_buf = np.zeros((n_ro, 2, total_count))
+        self.stats = []
+
+        with tqdm(total=total_count, disable=not progress) as pbar:
+            soc.start_readout(total_count, counter_addr=counter_addr,
+                                   ch_list=list(self.ro_chs), reads_per_count=readouts_per_experiment)
+            while count<total_count:
+                new_data = soc.poll_data()
+                for d, s in new_data:
+                    new_points = d.shape[2]
+                    d_buf[:, :, count:count+new_points] = d
+                    count += new_points
+                    self.stats.append(s)
+                    pbar.update(new_points)
+
+        return d_buf
 
     def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
