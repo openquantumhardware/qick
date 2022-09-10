@@ -934,7 +934,7 @@ class QickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
-    def acquire_round(self, soc, total_count, readouts_per_experiment=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
+    def acquire_round(self, soc, reps, steps=1, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
         # Load the pulses from the program into the soc
         if load_pulses:
             self.load_pulses(soc)
@@ -955,12 +955,14 @@ class QickProgram:
         count = 0
         n_ro = len(self.ro_chs)
 
+        total_reps = steps*reps
+        total_count = total_reps*reads_per_rep
         d_buf = np.zeros((n_ro, 2, total_count))
         self.stats = []
 
         with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start_readout(total_count, counter_addr=counter_addr,
-                                   ch_list=list(self.ro_chs), reads_per_count=readouts_per_experiment)
+            soc.start_readout(total_reps, counter_addr=counter_addr,
+                                   ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
             while count<total_count:
                 new_data = soc.poll_data()
                 for d, s in new_data:
@@ -970,7 +972,26 @@ class QickProgram:
                     self.stats.append(s)
                     pbar.update(new_points)
 
-        return d_buf
+        # reformat the data into separate I and Q arrays
+        di_buf = d_buf[:,0,:]
+        dq_buf = d_buf[:,1,:]
+
+        # save results to class in case you want to look at it later or for analysis
+        self.di_buf = di_buf
+        self.dq_buf = dq_buf
+
+        if steps==1:
+            avg_d = np.zeros((n_ro, reads_per_rep, 2))
+            for ii in range(reads_per_rep):
+                for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep], axis=1)/(total_reps)/ro.length
+        else:
+            avg_d = np.zeros((n_ro, reads_per_rep, steps, 2))
+            for ii in range(reads_per_rep):
+                for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro.length
+
+        return avg_d
 
     def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.

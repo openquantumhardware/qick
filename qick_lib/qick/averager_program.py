@@ -105,20 +105,11 @@ class AveragerProgram(QickProgram):
             save_experiments = range(readouts_per_experiment)
 
         reps = self.cfg['reps']
-        total_count = reps*readouts_per_experiment
-        d_buf = super().acquire_round(soc, total_count, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
-
-        # reformat the data into separate I and Q arrays
-        di_buf = d_buf[:,0,:]
-        dq_buf = d_buf[:,1,:]
-
-        # save results to class in case you want to look at it later or for analysis
-        self.di_buf = di_buf
-        self.dq_buf = dq_buf
+        avg_d = super().acquire_round(soc, reps, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         if threshold is not None:
             self.shots = self.get_single_shots(
-                di_buf, dq_buf, threshold, angle)
+                self.di_buf, self.dq_buf, threshold, angle)
 
         n_ro = len(self.ro_chs)
         avg_di = np.zeros((n_ro, len(save_experiments)))
@@ -127,10 +118,8 @@ class AveragerProgram(QickProgram):
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                 if threshold is None:
-                    avg_di[i_ch][nn] = np.sum(
-                        di_buf[i_ch][ii::readouts_per_experiment])/(reps)/ro.length
-                    avg_dq[i_ch][nn] = np.sum(
-                        dq_buf[i_ch][ii::readouts_per_experiment])/(reps)/ro.length
+                    avg_di[i_ch][nn] = avg_d[i_ch, ii, 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch, ii, 1]
                 else:
                     avg_di[i_ch][nn] = np.sum(
                         self.shots[i_ch][ii::readouts_per_experiment])/(reps)
@@ -422,20 +411,12 @@ class RAveragerProgram(QickProgram):
             save_experiments = range(readouts_per_experiment)
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
-        total_count = reps*expts*readouts_per_experiment
-        d_buf = super().acquire_round(soc, total_count, readouts_per_experiment=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
-
-        # reformat the data into separate I and Q arrays
-        di_buf = d_buf[:,0,:]
-        dq_buf = d_buf[:,1,:]
-
-        # save results to class in case you want to look at it later or for analysis
-        self.di_buf = di_buf
-        self.dq_buf = dq_buf
+        total_reps = reps*expts
+        avg_d = super().acquire_round(soc, reps, steps=expts, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         if threshold is not None:
             self.shots = self.get_single_shots(
-                di_buf, dq_buf, threshold, angle)
+                self.di_buf, self.dq_buf, threshold, angle)
 
         expt_pts = self.get_expt_pts()
 
@@ -446,10 +427,8 @@ class RAveragerProgram(QickProgram):
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                 if threshold is None:
-                    avg_di[i_ch][nn] = np.sum(di_buf[i_ch][ii::readouts_per_experiment].reshape(
-                        (expts, reps)), 1)/(reps)/ro.length
-                    avg_dq[i_ch][nn] = np.sum(dq_buf[i_ch][ii::readouts_per_experiment].reshape(
-                        (expts, reps)), 1)/(reps)/ro.length
+                    avg_di[i_ch][nn] = avg_d[i_ch, ii, :, 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch, ii, :, 1]
                 else:
                     avg_di[i_ch][nn] = np.sum(
                         self.shots[i_ch][ii::readouts_per_experiment].reshape((expts, reps)), 1)/(reps)
