@@ -361,7 +361,7 @@ class LMX2594(RegisterDevice):
         with the operation of multi tile synchronization and the use of the external
         PL clock. Use with caution!
 
-        f_off: Frequency offset, unit in Hz.
+        f_off: Frequency offset, unit in MHz.
         """
 
         assert self.MASH_ORDER.value > 0, "Cannot fractionally detune the VCO when MASH_ORDER is 0"
@@ -377,16 +377,16 @@ class LMX2594(RegisterDevice):
             chdiv = 1
 
         off = f_off * chdiv / self.f_pd
+
         n_off = int(np.floor(off))
         self.PLL_N.value = self.PLL_N.value + n_off
 
         off -= n_off
 
-        frac = fractions.Fraction(n_off)
-        frac.limit_denominator(den_max)
+        frac = fractions.Fraction(off).limit_denominator()
 
-        self.PLL_NUM.value = frac.numerator()
-        self.PLL_DEN.value = frac.denominator()
+        self.PLL_NUM.value = frac.numerator
+        self.PLL_DEN.value = frac.denominator
 
         self.update()
 

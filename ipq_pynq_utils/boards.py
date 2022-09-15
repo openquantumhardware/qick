@@ -248,7 +248,7 @@ class ZCU208Board:
             data = [(word >> 16) & 0xFF, (word >> 8) & 0xFF, word & 0xFF]
             spi.writebytes(data)
 
-    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True, detune_factor=None, max_denominator=4095):
+    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True, detune_factor=None, max_denominator=4095, f_off_dac=0, f_off_adc=0, modulator_order=0, pll_den_max=4294967295):
         self.overlay = overlay
         self.rfdc_name = None
 
@@ -345,7 +345,13 @@ class ZCU208Board:
                 ZCU208Board._write_registers(self.spi_adc, ZCU208Board._parse_register_file(lmxadc))
             else:
                 print("Generating ADC PLL configuration:")
-                self.clk104.lmx_adc.set_output_frequency(f)
+                self.clk104.lmx_adc.set_output_frequency(f, modulator_order=modulator_order)
+
+                if f_off_adc:
+                    print(f"- Detuning ADC PLL by {f_off_adc:7.6f} MHz using fractional PLL.")
+                    self.clk104.lmx_adc.fractional_detune(f_off_adc, den_max=pll_den_max)
+                    print(f"- New ADC PLL f_out = {self.clk104.lmx_adc.f_outa:10.6f} MHz")
+
                 ZCU208Board._write_registers(self.spi_adc, self.clk104.lmx_adc.get_register_dump())
                 print()
 
@@ -355,7 +361,13 @@ class ZCU208Board:
                 ZCU208Board._write_registers(self.spi_dac, ZCU208Board._parse_register_file(lmxdac))
             else:
                 print("Generating DAC PLL configuration:")
-                self.clk104.lmx_dac.set_output_frequency(f)
+                self.clk104.lmx_dac.set_output_frequency(f, modulator_order=modulator_order)
+
+                if f_off_dac:
+                    print(f"- Detuning DAC PLL by {f_off_dac:7.6f} MHz using fractional PLL.")
+                    self.clk104.lmx_dac.fractional_detune(f_off_dac, den_max=pll_den_max)
+                    print(f"- New DAC PLL f_out = {self.clk104.lmx_dac.f_outa:10.6f} MHz")
+
                 ZCU208Board._write_registers(self.spi_dac, self.clk104.lmx_dac.get_register_dump())
                 print()
 

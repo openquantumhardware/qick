@@ -41,7 +41,7 @@ setup(name='ipq_pynq_utils',
       author="David Winter",
       author_email="david.winter@student.kit.edu",
       description="Provides helper modules to help with common tasks",
-      url="https://git.scc.kit.edu/ipq_systemgroup/fpga/ipq_pynq_utils",
+      url="https://github.com/kit-ipq/ipq-pynq-utils/",
       python_requires=">=3.6",
       include_package_data=True,
       install_requires=[
