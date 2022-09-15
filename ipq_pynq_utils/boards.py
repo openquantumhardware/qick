@@ -4,6 +4,7 @@ try:
     import xrfdc
 except:
     # Probably on development system, ignore error for now
+    print("WARNING: Failed to import xrfdc, this can be ignored on a development system!")
     pass
 
 from .clock_models import CLK104
@@ -86,7 +87,7 @@ class RFTileConfig:
         print(f" {self.name:4} | {str(self.enabled):6} | {self.refclk_freq:9.2f} | {self.parent.rftiles[self.src].name:12s} | {str(self.pll_enable):10s} | {self.fabric_clk:10.2f} | {str(self.mts):5s} | {str(self.clk_distribution):5s}")
 
     def __str__(self):
-        return f"{self.name}(enabled={self.enabled}, freq={self.freq}, src={self.src}, pll_enable={self.pll_enable}, fabric_clk={self.fabric_clk}, mts={self.mts}, clk_distribution={self.clk_distribution})"
+        return f"{self.name}(enabled={self.enabled}, src={self.src}, pll_enable={self.pll_enable}, fabric_clk={self.fabric_clk}, mts={self.mts}, clk_distribution={self.clk_distribution})"
 
     def __repr__(self):
         return str(self)

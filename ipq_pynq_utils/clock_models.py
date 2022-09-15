@@ -104,14 +104,14 @@ class Field:
                 return "BAD ENUM VALUE"
         return self.value
 
-    def set(self, value):
-        if self.value_type == "enum":
-            if not isinstance(value, EnumVal):
-                raise RuntimeError("Expected enum value!")
-            else:
-                self.value = value.value
-        else:
-            self.value = value
+    # def set(self, value):
+    #     if self.valid_type == "enum":
+    #         if not isinstance(value, EnumVal):
+    #             raise RuntimeError("Expected enum value!")
+    #         else:
+    #             self.value = value.value
+    #     else:
+    #         self.value = value
 
     def get_raw(self):
         return self.mask & (self.value << self.start)
@@ -354,10 +354,47 @@ class LMX2594(RegisterDevice):
         # Note that this isn't the complete range, but skips the readback registers
         self.register_addresses = list(range(109, -1, -1))
 
-    def set_output_frequency(self, f_target, pwr=31, solution=None):
+    def fractional_detune(self, f_off: float, den_max=4294967295):
+        """
+        Detune the output frequency of this PLL. The detuning will be implemented using
+        the fractional MASH modulator in the LMX2594, thus this feature is incompatible
+        with the operation of multi tile synchronization and the use of the external
+        PL clock. Use with caution!
+
+        f_off: Frequency offset, unit in Hz.
+        """
+
+        assert self.MASH_ORDER.value > 0, "Cannot fractionally detune the VCO when MASH_ORDER is 0"
+        assert self.MASH_RESET_N.get() == self.MASH_RESET_N.ENABLED
+
+        self.PLL_NUM.value = 0
+        self.PLL_DEN.value = 0
+        self.update()
+
+        if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
+            chdiv = CHDIV_TABLE[self.CHDIV.value][0]
+        else:
+            chdiv = 1
+
+        off = f_off * chdiv / self.f_pd
+        n_off = int(np.floor(off))
+        self.PLL_N.value = self.PLL_N.value + n_off
+
+        off -= n_off
+
+        frac = fractions.Fraction(n_off)
+        frac.limit_denominator(den_max)
+
+        self.PLL_NUM.value = frac.numerator()
+        self.PLL_DEN.value = frac.denominator()
+
+        self.update()
+
+    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0):
         # We only support integer mode right now
-        self.MASH_ORDER.value = 0
-        self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
+        self.MASH_ORDER.value = modulator_order 
+        self.MASH_RESET_N.set(self.MASH_RESET_N.ENABLED if modulator_order else self.MASH_RESET_N.RESET)
+
         self.PLL_NUM.value = 0
         self.PLL_DEN.value = 0
 
@@ -424,18 +461,17 @@ class LMX2594(RegisterDevice):
 
             print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
 
-            solutions.append((i, div, f_vco, n, R, R_pre))
+            solutions.append((i, div, f_vco, n, R, R_pre, dly_sel))
 
         print()
         if solution is None:
             print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
             solution = metric_min_idx
 
-        chdiv_i,chdiv,f_vco,n,R,R_pre = solutions[solution]
+        chdiv_i,chdiv,f_vco,n,R,R_pre,dly_sel = solutions[solution]
 
         self.CHDIV.value = chdiv_i % 18
         self.PFD_DLY_SEL.value = dly_sel
-        self.PLL_N.value = n
         self.PLL_N.value = n
         self.PLL_R_PRE.value = R_pre
         self.PLL_R.value = R
@@ -505,8 +541,8 @@ class LMX2594(RegisterDevice):
             for vco_id, f_min, f_max, c_min, c_max, a_min, a_max in LMX2594_VCOs:
                 if f_min <= self.f_vco <= f_max:
                     self.VCO_SEL.value = vco_id
-                    self.VCO_DACISET_STRT.value = round(c_min - (c_min - c_max) * (f_vco - f_min) / (f_max - f_min))
-                    self.VCO_CAPCTRL_STRT.value = round(a_min + (a_max - a_min) * (f_vco - f_min) / (f_max - f_min))
+                    self.VCO_DACISET_STRT.value = round(c_min - (c_min - c_max) * (self.f_vco - f_min) / (f_max - f_min))
+                    self.VCO_CAPCTRL_STRT.value = round(a_min + (a_max - a_min) * (self.f_vco - f_min) / (f_max - f_min))
                     break
 
                 if vco_id == 7:
@@ -586,8 +622,13 @@ class LMX2594(RegisterDevice):
 
         self.f_pd = f_in
 
-        num = self.PLL_NUM.value
-        den = self.PLL_DEN.value
+        if self.MASH_ORDER.value > 0 and self.MASH_RESET_N.get() == self.MASH_RESET_N.ENABLED:
+            num = self.PLL_NUM.value
+            den = self.PLL_DEN.value
+        else:
+            num = 0
+            den = 0
+
         pll_n = self.PLL_N.value
 
         if den != 0 and num != 0:
