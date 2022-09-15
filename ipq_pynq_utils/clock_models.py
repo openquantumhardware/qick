@@ -1015,6 +1015,11 @@ class CLK104:
         self.EXT_REF_OUT = CLK104Output(self.lmk.clock_branches[5])
         self.ADC_REFCLK = CLK104Output(self.lmk.clock_branches[6])
 
+    def update(self):
+        self.lmk.update()
+        self.lmx_adc.update()
+        self.lmx_dac.update()
+
     @property
     def PLL2_FREQ(self):
         return self.lmk.pll2_output_freq

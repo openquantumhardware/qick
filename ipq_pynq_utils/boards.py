@@ -206,6 +206,9 @@ class ZCU208Board:
     def __init__(self, lmk_srcfile=None):
         global _cdefs_loaded,XRFDC_MTS_DAC,XRFDC_MTS_ADC
 
+        self.lmk_srcfile = lmk_srcfile
+        self.clk104 = CLK104(lmk_srcfile)
+
         self.spi_lmk = spidev.SpiDev(1, 1)
         self.spi_dac = spidev.SpiDev(1, 2)
         self.spi_adc = spidev.SpiDev(1, 3)
@@ -221,7 +224,7 @@ class ZCU208Board:
         XRFDC_MTS_DAC = xrfdc._lib.XRFDC_DAC_TILE
         XRFDC_MTS_ADC = xrfdc._lib.XRFDC_ADC_TILE
 
-        self.clk104 = CLK104(lmk_srcfile)
+        self.clk104 = None
 
     def _parse_register_file(filename):
         try:
@@ -245,9 +248,12 @@ class ZCU208Board:
             data = [(word >> 16) & 0xFF, (word >> 8) & 0xFF, word & 0xFF]
             spi.writebytes(data)
 
-    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True, detune_factor=None):
+    def configure(self, overlay, lmxdac=None, lmxadc=None, pl_clk=None, download=True, detune_factor=None, max_denominator=4095):
         self.overlay = overlay
         self.rfdc_name = None
+
+        self.clk104 = CLK104(self.lmk_srcfile)
+
         for key in overlay.ip_dict.keys():
             if key.startswith("usp_rf_data_converter_0"):
                 self.rfdc_name = key
@@ -316,7 +322,7 @@ class ZCU208Board:
             print(f"Detuned clock requested, trying to move PLL2 to {f_target:9.4f} MHz (Offset: {100*detune_factor-100:4.2f}%)")
 
             frac_old = Fraction(self.clk104.lmk.PLL2_N.value, self.clk104.lmk.PLL2_R.value)
-            frac_new = Fraction(frac_old * detune_factor).limit_denominator(4095)
+            frac_new = Fraction(frac_old * detune_factor).limit_denominator(max_denominator)
 
             N = frac_new.numerator
             R = frac_new.denominator
@@ -326,7 +332,7 @@ class ZCU208Board:
 
             print(f" - New PLL2 frequency: {f_new:9.4f} MHz")
             print(f" - PLL Configuration: N = {N}, R = {R}")
-            print(f" - Frequency error over request: {f_off} MHz")
+            print(f" - Frequency error over request: {f_off:5.3f} MHz")
             print(f" - Actual relative offset: {100*fac:4.2f}%")
             print()
 
@@ -382,6 +388,7 @@ class ZCU208Board:
             print("done!")
 
     def print_clock_summary(self):
+        self.clk104.update()
         print(f" Name            |  Frequency  | Enabled | Sysref Enabled")
         print( "-----------------|-------------|---------|----------------")
         print(f" PLL2_FREQ       | {self.clk104.PLL2_FREQ:7.2f} MHz | True    |")
