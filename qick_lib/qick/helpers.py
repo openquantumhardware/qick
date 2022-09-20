@@ -2,6 +2,7 @@
 Support functions.
 """
 import numpy as np
+import json
 
 
 def gauss(mu=0, si=25, length=100, maxv=30000):
@@ -75,6 +76,19 @@ def triang(length=100, maxv=30000):
     y[length//2:length] = np.flip(y1)
     return y
 
+class NpEncoder(json.JSONEncoder):
+    """
+    JSON encoder with support for numpy objects.
+    Taken from https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not-json-serializable
+    """
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        #if isinstance(obj, np.floating):
+        #    return float(obj)
+        #if isinstance(obj, np.ndarray):
+        #    return obj.tolist()
+        return super().default(obj)
 
 def trace_net(parser, blockname, portname):
     """

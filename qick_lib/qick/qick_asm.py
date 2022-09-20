@@ -8,7 +8,7 @@ try:
     from tqdm.notebook import tqdm
 except:
     from tqdm import tqdm_notebook as tqdm
-from .helpers import gauss, triang, DRAG
+from .helpers import gauss, triang, DRAG, NpEncoder
 
 
 class QickConfig():
@@ -888,7 +888,8 @@ class QickProgram:
                     'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
                     'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
                     'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"}
+                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'comment': {'fmt': ()}
                     }
 
     # op codes for math and bitwise operations
@@ -923,8 +924,13 @@ class QickProgram:
         Constructor method
         """
         self.soccfg = soccfg
+
+        # List of commands. This may include comments.
         self.prog_list = []
-        self.labels = {}
+
+        # Label to apply to the next instruction.
+        self.label_next = None
+
         self.dac_ts = [0]*len(soccfg['gens'])
         self.adc_ts = [0]*len(soccfg['readouts'])
         self.gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
@@ -933,6 +939,13 @@ class QickProgram:
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
+
+    def dump_prog(self):
+        prog_dict = {}
+        prog_dict['ro_chs'] = self.ro_chs
+        prog_dict['gen_chs'] = self.gen_chs
+        prog_dict['instrs'] = self.prog_list
+        return json.dumps(prog_dict, indent=4, cls=NpEncoder)
 
     def acquire_round(self, soc, reps, steps=1, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
         # Load the pulses from the program into the soc
@@ -972,14 +985,6 @@ class QickProgram:
                     self.stats.append(s)
                     pbar.update(new_points)
 
-        # reformat the data into separate I and Q arrays
-        di_buf = d_buf[:,0,:]
-        dq_buf = d_buf[:,1,:]
-
-        # save results to class in case you want to look at it later or for analysis
-        self.di_buf = di_buf
-        self.dq_buf = dq_buf
-
         if steps==1:
             avg_d = np.zeros((n_ro, reads_per_rep, 2))
             for ii in range(reads_per_rep):
@@ -991,7 +996,7 @@ class QickProgram:
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                     avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro.length
 
-        return avg_d
+        return d_buf, avg_d
 
     def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
@@ -1545,13 +1550,15 @@ class QickProgram:
         else:
             return val
 
-    def compile_instruction(self, inst, debug=False):
+    def compile_instruction(self, inst, labels, debug=False):
         """Converts an assembly instruction into a machine bytecode.
 
         Parameters
         ----------
         inst : dict
             Assembly instruction
+        labels : dict
+            Map from label name to program counter
         debug : bool
             If True, debug mode is on
 
@@ -1572,10 +1579,10 @@ class QickProgram:
             args[len(fmt)-1] = self.convert_immediate(args[len(fmt)-1])
 
         if inst['name'] == 'loopnz':
-            args[-1] = self.labels[args[-1]]  # resolve label
+            args[2] = labels[args[2]]  # resolve label
 
         if inst['name'] == 'condj':
-            args[4] = self.labels[args[4]]  # resolve label
+            args[4] = labels[args[4]]  # resolve label
             # get binary condtional op code
             args[2] = self.__class__.op_codes[inst['args'][2]]
 
@@ -1613,7 +1620,18 @@ class QickProgram:
             List of binary instructions
 
         """
-        return [self.compile_instruction(inst, debug=debug) for inst in self.prog_list]
+        labels = {}
+        # Scan the ASM instructions for labels. Skip comment lines.
+        prog_counter = 0
+        for inst in self.prog_list:
+            if inst['name']=='comment':
+                continue
+            if 'label' in inst:
+                if inst['label'] in labels:
+                    raise RuntimeError("label used twice:", inst['label'])
+                labels[inst['label']] = prog_counter
+            prog_counter += 1
+        return [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
 
     def load_program(self, soc, debug=False, reset=False):
         """Load the compiled program into the tProcessor.
@@ -1639,7 +1657,18 @@ class QickProgram:
         *args : dict
             Instruction arguments
         """
-        self.prog_list.append({'name': name, 'args': args})
+        n_args = max([f[0] for f in self.instructions[name]['fmt']]+[-1])+1
+        if len(args)==n_args:
+            inst = {'name': name, 'args': args}
+        elif len(args)==n_args+1:
+            inst = {'name': name, 'args': args[:n_args], 'comment': args[n_args]}
+        else:
+            raise RuntimeError("wrong number of args:", name, args)
+        if self.label_next is not None:
+            # store the label with the instruction, for printing
+            inst['label'] = self.label_next
+            self.label_next = None
+        self.prog_list.append(inst)
 
     def label(self, name):
         """Add line number label to the labels dictionary. This labels the instruction by its position in the program list. The loopz and condj commands use this label information.
@@ -1649,17 +1678,9 @@ class QickProgram:
         name : str
             Label name
         """
-        self.labels[name] = len(self.prog_list)
-
-    def comment(self, comment):
-        """Dummy function used for comments.
-
-        Parameters
-        ----------
-        comment : str
-            Comment
-        """
-        pass
+        if self.label_next is not None:
+            raise RuntimeError("label already defined for the next line")
+        self.label_next = name
 
     def __getattr__(self, a):
         """
@@ -1708,25 +1729,26 @@ class QickProgram:
         str
             asm file
         """
-        if self.labels == {}:
-            max_label_len = 0
+        label_list = [inst['label'] for inst in self.prog_list if 'label' in inst]
+        if label_list:
+            max_label_len = max([len(label) for label in label_list])
         else:
-            max_label_len = max([len(label) for label in self.labels.keys()])
-        lines = []
+            max_label_len = 0
         s = "\n// Program\n\n"
-        for ii, inst in enumerate(self.prog_list):
-            # print(inst)
-            template = inst['name'] + " " + \
-                self.__class__.instructions[inst['name']]['repr'] + ";"
-            num_args = len(self.__class__.instructions[inst['name']]['fmt'])
-            line = " "*(max_label_len+2) + template.format(*inst['args'])
-            if len(inst['args']) > num_args:
-                line += " "*(48-len(line)) + "//" + inst['args'][-1]
-            lines.append(line)
-
-        for label, jj in self.labels.items():
-            lines[jj] = label + ": " + lines[jj][len(label)+2:]
+        lines = [self._inst2asm(inst, max_label_len) for inst in self.prog_list]
         return s+"\n".join(lines)
+
+    def _inst2asm(self, inst, max_label_len):
+        if inst['name']=='comment':
+            return "// "+inst['comment']
+        template = inst['name'] + " " + self.__class__.instructions[inst['name']]['repr'] + ";"
+        line = " "*(max_label_len+2) + template.format(*inst['args'])
+        if 'comment' in inst:
+            line += " "*(48-len(line)) + "//" + inst['comment']
+        if 'label' in inst:
+            label = inst['label']
+            line = label + ": " + line[len(label)+2:]
+        return line
 
     def compare_program(self, fname):
         """For debugging purposes to compare binary compilation of parse_prog with the compile.
