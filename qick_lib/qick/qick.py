@@ -1110,11 +1110,11 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFFFFFF
-        dataQ = data >> 32
+        data = np.frombuffer(buff[:length], dtype=np.int32).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int32)
+        # data is a view into the data buffer, so copy it before returning
+
+        return data.T.copy()
 
     def enable_avg(self):
         """

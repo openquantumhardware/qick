@@ -105,7 +105,12 @@ class AveragerProgram(QickProgram):
             save_experiments = range(readouts_per_experiment)
 
         reps = self.cfg['reps']
-        avg_d = super().acquire_round(soc, reps, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d = super().acquire_round(soc, reps, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+
+        # reformat the data into separate I and Q arrays
+        # save results to class in case you want to look at it later or for analysis
+        self.di_buf = d_buf[:,0,:]
+        self.dq_buf = d_buf[:,1,:]
 
         if threshold is not None:
             self.shots = self.get_single_shots(
@@ -412,7 +417,12 @@ class RAveragerProgram(QickProgram):
 
         reps, expts = self.cfg['reps'], self.cfg['expts']
         total_reps = reps*expts
-        avg_d = super().acquire_round(soc, reps, steps=expts, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d = super().acquire_round(soc, reps, steps=expts, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+
+        # reformat the data into separate I and Q arrays
+        # save results to class in case you want to look at it later or for analysis
+        self.di_buf = d_buf[:,0,:]
+        self.dq_buf = d_buf[:,1,:]
 
         if threshold is not None:
             self.shots = self.get_single_shots(
