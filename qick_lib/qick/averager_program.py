@@ -242,15 +242,7 @@ class AveragerProgram(QickProgram):
         reps = self.cfg['reps']
         soft_avgs = self.cfg["soft_avgs"]
 
-        # load pulses onto soc
-        if load_pulses:
-            self.load_pulses(soc)
-
-        # Configure signal generators
-        self.config_gens(soc)
-
-        # Configure the readout down converters
-        self.config_readouts(soc)
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
         # Initialize data buffers
         d_buf = []
@@ -260,13 +252,8 @@ class AveragerProgram(QickProgram):
                 raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro.length, reps, maxlen))
             d_buf.append(np.zeros((2, ro.length*reps*readouts_per_experiment)))
 
-        # load the program - it's always the same, so this only needs to be done once
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
         tproc = soc.tproc
 
-        soc.start_src(start_src)
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
 

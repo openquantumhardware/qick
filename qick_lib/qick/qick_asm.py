@@ -948,22 +948,9 @@ class QickProgram:
         return json.dumps(prog_dict, indent=4, cls=NpEncoder)
 
     def acquire_round(self, soc, reps, steps=1, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
-        # Load the pulses from the program into the soc
-        if load_pulses:
-            self.load_pulses(soc)
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
-        # Configure signal generators
-        self.config_gens(soc)
-
-        # Configure the readout down converters
-        self.config_readouts(soc)
         self.config_bufs(soc, enable_avg=True, enable_buf=False)
-
-        # load this program into the soc's tproc
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
 
         count = 0
         n_ro = len(self.ro_chs)
@@ -997,6 +984,27 @@ class QickProgram:
                     avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro.length
 
         return d_buf, avg_d
+
+    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+        """
+        Load the waveform memory, gens, ROs, and program memory as specified for this program.
+        The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
+        """
+        # Load the pulses from the program into the soc
+        if load_pulses:
+            self.load_pulses(soc)
+
+        # Configure signal generators
+        self.config_gens(soc)
+
+        # Configure the readout down converters
+        self.config_readouts(soc)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
 
     def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
