@@ -469,7 +469,12 @@ class AbsGenManager:
         self.rp = prog.ch_page(ch)
         self.defaults = {}
         self.default_regs = set()
+
+        # dictionary of defined pulse envelopes
         self.pulses = {}
+        # type and max absolute value for envelopes
+        self.env_dtype = np.int16
+
         self.addr = 0
         self.next_pulse = None
         self.setup_done = False
@@ -482,24 +487,34 @@ class AbsGenManager:
         ----------
         name : str
             Name for this waveform
-        idata : int32 array
+        idata : array
             I values for this waveform
-        qdata : int32 array
+        qdata : array
             Q values for this waveform
 
         """
-        if qdata is None and idata is None:
+        length = [len(d) for d in [idata, qdata] if d is not None]
+        if len(length)==0:
             raise RuntimeError("Error: no data argument was supplied")
-        if qdata is None:
-            qdata = np.zeros_like(idata)
-        if idata is None:
-            idata = np.zeros_like(qdata)
-        if len(idata) != len(qdata):
+        # if both arrays were defined, they must be the same length
+        if len(length)>1 and length[0]!=length[1]:
             raise RuntimeError("Error: I and Q pulse lengths must be equal")
-        if (len(idata) % self.samps_per_clk) != 0:
+        length = length[0]
+
+        if (length % self.samps_per_clk) != 0:
             raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(self.samps_per_clk))
-        self.pulses[name] = {"idata": idata, "qdata": qdata, "addr": self.addr}
-        self.addr += len(idata)
+        data = np.zeros((length, 2), dtype=self.env_dtype)
+
+        for i, d in enumerate([idata, qdata]):
+            if d is not None:
+                # range check
+                if np.max(np.abs(d)) > self.gencfg['maxv']:
+                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.MAXV))
+                # copy data
+                data[:,i] = np.round(d)
+
+        self.pulses[name] = {"data": data, "addr": self.addr}
+        self.addr += length
 
     def load_pulses(self, soc):
         """Load all waveforms into the waveform memory.
@@ -512,8 +527,7 @@ class AbsGenManager:
         """
         for name, pulse in self.pulses.items():
             soc.load_pulse_data(self.ch,
-                    idata=pulse['idata'],
-                    qdata=pulse['qdata'],
+                    data=pulse['data'],
                     addr=pulse['addr'])
 
     def set_reg(self, name, val, comment=None, defaults=False):
@@ -686,7 +700,7 @@ class FullSpeedGenManager(AbsGenManager):
                 self.set_reg(parname, params[parname], defaults=defaults)
         if 'waveform' in params:
             pinfo = self.pulses[params['waveform']]
-            wfm_length = len(pinfo['idata']) // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
             self.set_reg('addr', addr, defaults=defaults)
         if not defaults:
@@ -765,7 +779,7 @@ class InterpolatedGenManager(AbsGenManager):
         addr = 0
         if 'waveform' in params:
             pinfo = self.pulses[params['waveform']]
-            wfm_length = len(pinfo['idata']) // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
         if 'phase' in params and 'freq' in params:
             phase, freq = [params[x] for x in ['phase', 'freq']]
@@ -945,7 +959,8 @@ class QickProgram:
         prog_dict['ro_chs'] = self.ro_chs
         prog_dict['gen_chs'] = self.gen_chs
         prog_dict['instrs'] = self.prog_list
-        return json.dumps(prog_dict, indent=4, cls=NpEncoder)
+        prog_dict['pulses'] = [mgr.pulses for mgr in self.gen_mgrs]
+        return json.dumps(prog_dict, cls=NpEncoder)
 
     def acquire_round(self, soc, reps, steps=1, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
