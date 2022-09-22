@@ -204,7 +204,7 @@ class AveragerProgram(QickProgram):
             angle = [0, 0]
         if isinstance(threshold, int):
             threshold = [threshold, threshold]
-        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
+        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch]['length']-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
     def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=1, start_src="internal", progress=True, debug=False):
         """
@@ -248,9 +248,9 @@ class AveragerProgram(QickProgram):
         d_buf = []
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro.length*reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro.length, reps, maxlen))
-            d_buf.append(np.zeros((2, ro.length*reps*readouts_per_experiment)))
+            if ro['length']*reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], reps, maxlen))
+            d_buf.append(np.zeros((2, ro['length']*reps*readouts_per_experiment)))
 
         tproc = soc.tproc
 
@@ -273,7 +273,7 @@ class AveragerProgram(QickProgram):
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro.length*reps*readouts_per_experiment))
+                                    address=0, length=ro['length']*reps*readouts_per_experiment))
 
         # average the decimated data
         if reps == 1 and readouts_per_experiment == 1:
@@ -455,7 +455,7 @@ class RAveragerProgram(QickProgram):
             angle = [0, 0]
         if type(threshold) is int:
             threshold = [threshold, threshold]
-        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch].length-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
+        return np.array([np.heaviside((di[i]*np.cos(angle[i]) - dq[i]*np.sin(angle[i]))/self.ro_chs[ch]['length']-threshold[i], 0) for i, ch in enumerate(self.ro_chs)])
 
     def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, start_src="internal", progress=False, debug=False):
         """

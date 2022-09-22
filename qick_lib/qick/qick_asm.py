@@ -471,7 +471,7 @@ class AbsGenManager:
         self.default_regs = set()
 
         # dictionary of defined pulse envelopes
-        self.pulses = {}
+        self.pulses = prog.pulses[ch]
         # type and max absolute value for envelopes
         self.env_dtype = np.int16
 
@@ -515,20 +515,6 @@ class AbsGenManager:
 
         self.pulses[name] = {"data": data, "addr": self.addr}
         self.addr += length
-
-    def load_pulses(self, soc):
-        """Load all waveforms into the waveform memory.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            The QICK to be configured
-
-        """
-        for name, pulse in self.pulses.items():
-            soc.load_pulse_data(self.ch,
-                    data=pulse['data'],
-                    addr=pulse['addr'])
 
     def set_reg(self, name, val, comment=None, defaults=False):
         """Wrapper around regwi.
@@ -869,10 +855,6 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
 
-# configuration for an enabled readout channel
-ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel', 'gen_ch'])
-GeneratorConfig = namedtuple('GeneratorConfig', ['nqz', 'mixer_freq', 'mux_freqs', 'mux_gains', 'ro_ch'])
-
 
 class QickProgram:
     """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
@@ -947,6 +929,8 @@ class QickProgram:
 
         self.dac_ts = [0]*len(soccfg['gens'])
         self.adc_ts = [0]*len(soccfg['readouts'])
+
+        self.pulses = [{} for ch in soccfg['gens']]
         self.gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
 
         # readout channels to configure before running the program
@@ -955,10 +939,14 @@ class QickProgram:
         self.gen_chs = OrderedDict()
 
     def dump_prog(self):
+        """
+        Dump the program to JSON.
+        This output contains all the information necessary to run the program.
+        """
         prog_dict = {}
+        prog_dict['prog_list'] = self.prog_list
         prog_dict['ro_chs'] = self.ro_chs
         prog_dict['gen_chs'] = self.gen_chs
-        prog_dict['instrs'] = self.prog_list
         prog_dict['pulses'] = [mgr.pulses for mgr in self.gen_mgrs]
         return json.dumps(prog_dict, cls=NpEncoder)
 
@@ -991,12 +979,12 @@ class QickProgram:
             avg_d = np.zeros((n_ro, reads_per_rep, 2))
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep], axis=1)/(total_reps)/ro.length
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep], axis=1)/(total_reps)/ro['length']
         else:
             avg_d = np.zeros((n_ro, reads_per_rep, steps, 2))
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro.length
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro['length']
 
         return d_buf, avg_d
 
@@ -1037,7 +1025,13 @@ class QickProgram:
         gen_ch : int
             DAC channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
-        self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
+        cfg = {
+                'freq': freq,
+                'length': length,
+                'sel': sel,
+                'gen_ch': gen_ch
+                }
+        self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
         """Configure the readout channels specified in this program.
@@ -1051,7 +1045,7 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
+            soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
@@ -1069,9 +1063,9 @@ class QickProgram:
         """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
-                soc.config_avg(ch, address=0, length=cfg.length, enable=True)
+                soc.config_avg(ch, address=0, length=cfg['length'], enable=True)
             if enable_buf:
-                soc.config_buf(ch, address=0, length=cfg.length, enable=True)
+                soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
     def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
@@ -1098,7 +1092,14 @@ class QickProgram:
         ro_ch : int, optional
             ADC channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
         """
-        self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, mux_gains, ro_ch)
+        cfg = {
+                'nqz': nqz,
+                'mixer_freq': mixer_freq,
+                'mux_freqs': mux_freqs,
+                'mux_gains': mux_gains,
+                'ro_ch': ro_ch
+                }
+        self.gen_chs[ch] = cfg
 
     def config_gens(self, soc):
         """Configure the signal generators specified in this program.
@@ -1111,10 +1112,10 @@ class QickProgram:
 
         """
         for ch, cfg in self.gen_chs.items():
-            soc.set_nyquist(ch, cfg.nqz)
-            soc.set_mixer_freq(ch, cfg.mixer_freq, cfg.ro_ch)
-            if cfg.mux_freqs is not None:
-                soc.set_mux_freqs(ch, freqs=cfg.mux_freqs, gains=cfg.mux_gains)
+            soc.set_nyquist(ch, cfg['nqz'])
+            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if cfg['mux_freqs'] is not None:
+                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
 
     def add_pulse(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the waveform library within the program.
@@ -1233,8 +1234,11 @@ class QickProgram:
             Qick object
 
         """
-        for gen_mgr in self.gen_mgrs:
-            gen_mgr.load_pulses(soc)
+        for iCh, pulses in enumerate(self.pulses):
+            for name, pulse in pulses.items():
+                soc.load_pulse_data(iCh,
+                        data=pulse['data'],
+                        addr=pulse['addr'])
 
     def ch_page(self, ch):
         """Gets tProc register page associated with channel.
@@ -1508,7 +1512,7 @@ class QickProgram:
                 if t_start < self.adc_ts[adc]:
                     print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self.adc_ts[adc]))
                 # convert from readout clock to tProc clock
-                ro_length = self.ro_chs[adc].length
+                ro_length = self.ro_chs[adc]['length']
                 ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
                 self.adc_ts[adc] = t_start + ro_length
         t_end = t_start + width
