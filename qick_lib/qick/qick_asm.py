@@ -3,6 +3,7 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 """
 import numpy as np
 import json
+import base64
 from collections import namedtuple, OrderedDict
 try:
     from tqdm.notebook import tqdm
@@ -908,6 +909,9 @@ class QickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+    # Attributes to dump when saving the program to JSON.
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'reps', 'expts']
+
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
                 'axis_signal_gen_v6': FullSpeedGenManager,
@@ -923,20 +927,28 @@ class QickProgram:
 
         # List of commands. This may include comments.
         self.prog_list = []
-
-        # Label to apply to the next instruction.
-        self.label_next = None
-
-        self.dac_ts = [0]*len(soccfg['gens'])
-        self.adc_ts = [0]*len(soccfg['readouts'])
-
+        # Pulse envelopes.
         self.pulses = [{} for ch in soccfg['gens']]
-        self.gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
+
+        # Number of iterations in the innermost loop.
+        self.reps = None
+        # Number of times the innermost loop is run.
+        self.expts = 1
+
+        # Label to apply to the next instruction.
+        self._label_next = None
+
+        # Timestamps, for keeping track of pulse and readout end times.
+        self._dac_ts = [0]*len(soccfg['gens'])
+        self._adc_ts = [0]*len(soccfg['readouts'])
+
+        # Generator managers, for keeping track of register values.
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+
 
     def dump_prog(self):
         """
@@ -944,13 +956,31 @@ class QickProgram:
         This output contains all the information necessary to run the program.
         """
         prog_dict = {}
-        prog_dict['prog_list'] = self.prog_list
-        prog_dict['ro_chs'] = self.ro_chs
-        prog_dict['gen_chs'] = self.gen_chs
-        prog_dict['pulses'] = [mgr.pulses for mgr in self.gen_mgrs]
+        for key in self.dump_keys:
+            prog_dict[key] = getattr(self, key)
         return json.dumps(prog_dict, cls=NpEncoder)
 
-    def acquire_round(self, soc, reps, steps=1, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
+    def load_prog(self, s):
+        """
+        Load the program from JSON.
+        """
+        # be sure to read dicts back in order (only matters for Python <3.7)
+        prog_dict = json.loads(s, object_pairs_hook=OrderedDict)
+        for key in self.dump_keys:
+            setattr(self, key, prog_dict[key])
+
+        # in JSON, dict keys are always strings, so we must cast back to int
+        self.gen_chs = OrderedDict([(int(k),v) for k,v in self.gen_chs.items()])
+        self.ro_chs = OrderedDict([(int(k),v) for k,v in self.ro_chs.items()])
+
+        # the envelope arrays need to be restored as numpy arrays with the proper type
+        for iCh, pulsedict in enumerate(self.pulses):
+            for name, pulse in pulsedict.items():
+                #pulse['data'] = np.array(pulse['data'], dtype=self._gen_mgrs[iCh].env_dtype)
+                data, shape, dtype = pulse['data']
+                pulse['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
+
+    def acquire_round(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
         self.config_bufs(soc, enable_avg=True, enable_buf=False)
@@ -958,7 +988,7 @@ class QickProgram:
         count = 0
         n_ro = len(self.ro_chs)
 
-        total_reps = steps*reps
+        total_reps = self.expts*self.reps
         total_count = total_reps*reads_per_rep
         d_buf = np.zeros((n_ro, 2, total_count))
         self.stats = []
@@ -975,16 +1005,16 @@ class QickProgram:
                     self.stats.append(s)
                     pbar.update(new_points)
 
-        if steps==1:
+        if self.expts==1:
             avg_d = np.zeros((n_ro, reads_per_rep, 2))
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
                     avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep], axis=1)/(total_reps)/ro['length']
         else:
-            avg_d = np.zeros((n_ro, reads_per_rep, steps, 2))
+            avg_d = np.zeros((n_ro, reads_per_rep, self.expts, 2))
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, steps, reps)), axis=2).T/(reps)/ro['length']
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, self.expts, self.reps)), axis=2).T/(reps)/ro['length']
 
         return d_buf, avg_d
 
@@ -1132,7 +1162,7 @@ class QickProgram:
             Q data Numpy array
 
         """
-        self.gen_mgrs[ch].add_pulse(name, idata, qdata)
+        self._gen_mgrs[ch].add_pulse(name, idata, qdata)
 
     def add_gauss(self, ch, name, sigma, length, maxv=None):
         """Adds a Gaussian pulse to the waveform library.
@@ -1295,7 +1325,7 @@ class QickProgram:
             Pulse parameters
 
         """
-        self.gen_mgrs[ch].set_defaults(kwargs)
+        self._gen_mgrs[ch].set_defaults(kwargs)
 
     def set_pulse_registers(self, ch, **kwargs):
         """Set the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
@@ -1329,7 +1359,7 @@ class QickProgram:
         mask : list of int
             for a muxed signal generator, the list of tones to enable for this pulse
         """
-        self.gen_mgrs[ch].set_registers(kwargs)
+        self._gen_mgrs[ch].set_registers(kwargs)
 
     def setup_and_pulse(self, ch, t='auto', **kwargs):
         """Set up a pulse on this DAC channel, and immediately play it.
@@ -1394,7 +1424,7 @@ class QickProgram:
         for ch in ch_list:
             rp = self.ch_page(ch)
             tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-            next_pulse = self.gen_mgrs[ch].next_pulse
+            next_pulse = self._gen_mgrs[ch].next_pulse
             if next_pulse is None:
                 raise RuntimeError("no pulse has been set up for channel %d"%(ch))
 
@@ -1402,13 +1432,13 @@ class QickProgram:
 
             if t is not None:
                 if t == 'auto':
-                    t = int(self.dac_ts[ch])
-                elif t < self.dac_ts[ch]:
-                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self.dac_ts[ch]))
+                    t = int(self._dac_ts[ch])
+                elif t < self._dac_ts[ch]:
+                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self._dac_ts[ch]))
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
                 pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
-                self.dac_ts[ch] = t + pulse_length
+                self._dac_ts[ch] = t + pulse_length
                 self.safe_regwi(rp, r_t, t, f't = {t}')
 
             # Play each pulse segment.
@@ -1451,11 +1481,11 @@ class QickProgram:
         t : int, optional
             The time offset in tProc cycles
         """
-        max_t = max(self.dac_ts+self.adc_ts)
+        max_t = max(self._dac_ts+self._adc_ts)
         if max_t+t > 0:
             self.synci(int(max_t+t))
-            self.dac_ts = [0]*len(self.dac_ts)
-            self.adc_ts = [0]*len(self.adc_ts)
+            self._dac_ts = [0]*len(self._dac_ts)
+            self._adc_ts = [0]*len(self._adc_ts)
 
     def wait_all(self, t=0):
         """Pause the tProc until all ADC readout windows are complete, plus additional time t.
@@ -1466,7 +1496,7 @@ class QickProgram:
         t : int, optional
             The time offset in tProc cycles
         """
-        self.waiti(0, int(max(self.adc_ts) + t))
+        self.waiti(0, int(max(self._adc_ts) + t))
 
     # should change behavior to only change bits that are specified
     def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
@@ -1509,12 +1539,12 @@ class QickProgram:
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
             for adc in adcs:
-                if t_start < self.adc_ts[adc]:
-                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self.adc_ts[adc]))
+                if t_start < self._adc_ts[adc]:
+                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self._adc_ts[adc]))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[adc]['length']
                 ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
-                self.adc_ts[adc] = t_start + ro_length
+                self._adc_ts[adc] = t_start + ro_length
         t_end = t_start + width
 
         trig_output = self.soccfg['tprocs'][0]['trig_output']
@@ -1691,10 +1721,10 @@ class QickProgram:
             inst = {'name': name, 'args': args[:n_args], 'comment': args[n_args]}
         else:
             raise RuntimeError("wrong number of args:", name, args)
-        if self.label_next is not None:
+        if self._label_next is not None:
             # store the label with the instruction, for printing
-            inst['label'] = self.label_next
-            self.label_next = None
+            inst['label'] = self._label_next
+            self._label_next = None
         self.prog_list.append(inst)
 
     def label(self, name):
@@ -1705,9 +1735,9 @@ class QickProgram:
         name : str
             Label name
         """
-        if self.label_next is not None:
+        if self._label_next is not None:
             raise RuntimeError("label already defined for the next line")
-        self.label_next = name
+        self._label_next = name
 
     def __getattr__(self, a):
         """

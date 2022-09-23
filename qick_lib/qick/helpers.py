@@ -87,7 +87,9 @@ class NpEncoder(json.JSONEncoder):
         if isinstance(obj, np.floating):
             return float(obj)
         if isinstance(obj, np.ndarray):
-            return obj.tolist()
+            # base64 is considerably more compact and faster to pack/unpack
+            # return obj.tolist()
+            return (base64.b64encode(obj.tobytes()).decode(), obj.shape, obj.dtype.str)
         return super().default(obj)
 
 def trace_net(parser, blockname, portname):

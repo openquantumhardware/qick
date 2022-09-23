@@ -32,6 +32,7 @@ class AveragerProgram(QickProgram):
         """
         super().__init__(soccfg)
         self.cfg = cfg
+        self.reps = cfg['reps']
         self.make_program()
 
     def initialize(self):
@@ -56,7 +57,7 @@ class AveragerProgram(QickProgram):
         rcount = 15
         p.initialize()
         p.regwi(0, rcount, 0)
-        p.regwi(0, rjj, self.cfg["reps"]-1)
+        p.regwi(0, rjj, self.reps-1)
         p.label("LOOP_J")
 
         p.body()
@@ -104,8 +105,7 @@ class AveragerProgram(QickProgram):
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
 
-        reps = self.cfg['reps']
-        d_buf, avg_d = super().acquire_round(soc, reps, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d = super().acquire_round(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -127,7 +127,7 @@ class AveragerProgram(QickProgram):
                     avg_dq[i_ch][nn] = avg_d[i_ch, ii, 1]
                 else:
                     avg_di[i_ch][nn] = np.sum(
-                        self.shots[i_ch][ii::readouts_per_experiment])/(reps)
+                        self.shots[i_ch][ii::readouts_per_experiment])/(self.reps)
                     avg_dq = np.zeros(avg_di.shape)
 
         return avg_di, avg_dq
@@ -239,7 +239,6 @@ class AveragerProgram(QickProgram):
             - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
         """
 
-        reps = self.cfg['reps']
         soft_avgs = self.cfg["soft_avgs"]
 
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
@@ -248,9 +247,9 @@ class AveragerProgram(QickProgram):
         d_buf = []
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro['length']*reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], reps, maxlen))
-            d_buf.append(np.zeros((2, ro['length']*reps*readouts_per_experiment)))
+            if ro['length']*self.reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
+            d_buf.append(np.zeros((2, ro['length']*self.reps*readouts_per_experiment)))
 
         tproc = soc.tproc
 
@@ -268,23 +267,23 @@ class AveragerProgram(QickProgram):
             tproc.start()
 
             count = 0
-            while count < reps:
+            while count < self.reps:
                 count = tproc.single_read(addr=1)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*reps*readouts_per_experiment))
+                                    address=0, length=ro['length']*self.reps*readouts_per_experiment))
 
         # average the decimated data
-        if reps == 1 and readouts_per_experiment == 1:
+        if self.reps == 1 and readouts_per_experiment == 1:
             return [d/soft_avgs for d in d_buf]
         else:
             # split the data into the individual reps:
             # we reshape to slice each long buffer into reps,
             # then use moveaxis() to transpose the I/Q and rep axes
-            result = [np.moveaxis(d.reshape(2, reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
-            if reps > 1 and readouts_per_experiment > 1:
-                result = [d.reshape(reps, readouts_per_experiment, 2, -1) for d in result]
+            result = [np.moveaxis(d.reshape(2, self.reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
+            if self.reps > 1 and readouts_per_experiment > 1:
+                result = [d.reshape(self.reps, readouts_per_experiment, 2, -1) for d in result]
             return result
 
 
@@ -304,6 +303,8 @@ class RAveragerProgram(QickProgram):
         """
         super().__init__(soccfg)
         self.cfg = cfg
+        self.reps = cfg['reps']
+        self.expts = cfg['expts']
         self.make_program()
 
     def initialize(self):
@@ -338,10 +339,10 @@ class RAveragerProgram(QickProgram):
 
         p.regwi(0, rcount, 0)
 
-        p.regwi(0, rii, self.cfg["expts"]-1)
+        p.regwi(0, rii, self.expts-1)
         p.label("LOOP_I")
 
-        p.regwi(0, rjj, self.cfg["reps"]-1)
+        p.regwi(0, rjj, self.reps-1)
         p.label("LOOP_J")
 
         p.body()
@@ -365,9 +366,9 @@ class RAveragerProgram(QickProgram):
         :return: Numpy array of experiment points
         :rtype: array
         """
-        return self.cfg["start"]+np.arange(self.cfg['expts'])*self.cfg["step"]
+        return self.cfg["start"]+np.arange(self.expts)*self.cfg["step"]
 
-    def acquire_round(self, soc, threshold=None, angle=None,  readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
+    def acquire_round(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
 
@@ -402,9 +403,7 @@ class RAveragerProgram(QickProgram):
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
 
-        reps, expts = self.cfg['reps'], self.cfg['expts']
-        total_reps = reps*expts
-        d_buf, avg_d = super().acquire_round(soc, reps, steps=expts, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d = super().acquire_round(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -418,8 +417,8 @@ class RAveragerProgram(QickProgram):
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
-        avg_di = np.zeros((n_ro, len(save_experiments), expts))
-        avg_dq = np.zeros((n_ro, len(save_experiments), expts))
+        avg_di = np.zeros((n_ro, len(save_experiments), self.expts))
+        avg_dq = np.zeros((n_ro, len(save_experiments), self.expts))
 
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
@@ -428,7 +427,7 @@ class RAveragerProgram(QickProgram):
                     avg_dq[i_ch][nn] = avg_d[i_ch, ii, :, 1]
                 else:
                     avg_di[i_ch][nn] = np.sum(
-                        self.shots[i_ch][ii::readouts_per_experiment].reshape((expts, reps)), 1)/(reps)
+                        self.shots[i_ch][ii::readouts_per_experiment].reshape((self.expts, self.reps)), 1)/(self.reps)
                     avg_dq = np.zeros(avg_di.shape)
 
         return expt_pts, avg_di, avg_dq
