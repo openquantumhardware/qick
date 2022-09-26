@@ -64,7 +64,7 @@ class AveragerProgram(QickProgram):
 
         p.mathi(0, rcount, rcount, "+", 1)
 
-        p.memwi(0, rcount, 1)
+        p.memwi(0, rcount, self.counter_addr)
 
         p.loopnz(0, rjj, 'LOOP_J')
 
@@ -349,7 +349,7 @@ class RAveragerProgram(QickProgram):
 
         p.mathi(0, rcount, rcount, "+", 1)
 
-        p.memwi(0, rcount, 1)
+        p.memwi(0, rcount, self.counter_addr)
 
         p.loopnz(0, rjj, 'LOOP_J')
 

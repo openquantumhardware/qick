@@ -3,6 +3,8 @@ Support functions.
 """
 import numpy as np
 import json
+import base64
+from collections import OrderedDict
 
 
 def gauss(mu=0, si=25, length=100, maxv=30000):
@@ -91,6 +93,27 @@ class NpEncoder(json.JSONEncoder):
             # return obj.tolist()
             return (base64.b64encode(obj.tobytes()).decode(), obj.shape, obj.dtype.str)
         return super().default(obj)
+
+def progs2json(proglist):
+    return json.dumps(proglist, cls=NpEncoder)
+
+def json2progs(s):
+    # be sure to read dicts back in order (only matters for Python <3.7)
+    proglist = json.loads(s, object_pairs_hook=OrderedDict)
+
+    for progdict in proglist:
+        # tweak data structures that got screwed up by JSON:
+        # in JSON, dict keys are always strings, so we must cast back to int
+        progdict['gen_chs'] = OrderedDict([(int(k),v) for k,v in progdict['gen_chs'].items()])
+        progdict['ro_chs'] = OrderedDict([(int(k),v) for k,v in progdict['ro_chs'].items()])
+        # the envelope arrays need to be restored as numpy arrays with the proper type
+        for iCh, pulsedict in enumerate(progdict['pulses']):
+            for name, pulse in pulsedict.items():
+                #pulse['data'] = np.array(pulse['data'], dtype=self._gen_mgrs[iCh].env_dtype)
+                data, shape, dtype = pulse['data']
+                pulse['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
+    return proglist
+
 
 def trace_net(parser, blockname, portname):
     """
