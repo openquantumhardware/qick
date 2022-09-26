@@ -1253,7 +1253,7 @@ class dac_ch():
             self.switches["CH%d_PE42020_CTL"%(self.ch)] = 1
             # Turn on 5V power to RF chain.
             self.switches["IF2RF5V_EN%d"%(self.ch)] = 1
-            if self.version==1:
+            if self.version==2:
                 # Power down DC amplifier.
                 self.switches["IF2RF_PD%d"%(self.ch)] = 1
         elif sel == "DC":
@@ -1261,7 +1261,7 @@ class dac_ch():
             self.switches["CH%d_PE42020_CTL"%(self.ch)] = 0
             # Turn off 5V power to RF chain.
             self.switches["IF2RF5V_EN%d"%(self.ch)] = 0
-            if self.version==1:
+            if self.version==2:
                 # Power up DC amplifier.
                 self.switches["IF2RF_PD%d"%(self.ch)] = 0
         elif sel == "OFF":
@@ -1269,7 +1269,7 @@ class dac_ch():
             self.switches["CH%d_PE42020_CTL"%(self.ch)] = 1
             # Turn off 5V power to RF chain.
             self.switches["IF2RF5V_EN%d"%(self.ch)] = 0
-            if self.version==1:
+            if self.version==2:
                 # Power down DC amplifier.
                 self.switches["IF2RF_PD%d"%(self.ch)] = 1
         else:
@@ -1550,7 +1550,7 @@ class RFQickSocV2(RFQickSoc):
                 + [("RF2IF_PD"+str(i), 1) for i in range(4, 8)])
         # DAC power-down
         self.switches.add_MCP(ch_en=1, dev_addr=1,
-                outputs=[("IF2RF_PD"+str(i), 0) for i in range(8)])
+                outputs=[("IF2RF_PD"+str(i), 1) for i in range(8)])
         # DAC power
         self.switches.add_MCP(ch_en=1, dev_addr=0,
                 outputs=[("IF2RF5V_EN"+str(i), 0) for i in range(8)])
