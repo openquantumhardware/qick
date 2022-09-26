@@ -241,51 +241,7 @@ class AveragerProgram(QickProgram):
 
         soft_avgs = self.cfg["soft_avgs"]
 
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
-
-        # Initialize data buffers
-        d_buf = []
-        for ch, ro in self.ro_chs.items():
-            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro['length']*self.reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
-            d_buf.append(np.zeros((2, ro['length']*self.reps*readouts_per_experiment)))
-
-        tproc = soc.tproc
-
-        # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(soft_avgs), disable=not progress):
-
-            # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=True)
-
-            # make sure count variable is reset to 0
-            tproc.single_write(addr=1, data=0)
-
-            # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every soft_avg
-            tproc.start()
-
-            count = 0
-            while count < self.reps:
-                count = tproc.single_read(addr=1)
-
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*self.reps*readouts_per_experiment))
-
-        # average the decimated data
-        if self.reps == 1 and readouts_per_experiment == 1:
-            return [d/soft_avgs for d in d_buf]
-        else:
-            # split the data into the individual reps:
-            # we reshape to slice each long buffer into reps,
-            # then use moveaxis() to transpose the I/Q and rep axes
-            result = [np.moveaxis(d.reshape(2, self.reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
-            if self.reps > 1 and readouts_per_experiment > 1:
-                result = [d.reshape(self.reps, readouts_per_experiment, 2, -1) for d in result]
-            return result
-
+        return super().acquire_decimated(soc, soft_avgs=soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
 
 class RAveragerProgram(QickProgram):
     """
