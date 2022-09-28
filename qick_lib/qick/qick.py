@@ -2280,7 +2280,7 @@ class QickSoc(Overlay, QickConfig):
         prog.load_program(self, reset=True)
         self.tproc.start()
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1, stride=None):
         """
         Start a streaming readout of the accumulated buffers.
 
@@ -2292,6 +2292,8 @@ class QickSoc(Overlay, QickConfig):
         :type ch_list: list
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
+        :param stride: Default number of measurements to transfer at a time.
+        :type stride: int
         """
         ch_list = obtain(ch_list)
         if ch_list is None: ch_list = [0, 1]
@@ -2329,7 +2331,7 @@ class QickSoc(Overlay, QickConfig):
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
+        streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """

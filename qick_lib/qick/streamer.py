@@ -96,13 +96,13 @@ class DataStreamer():
         while True:
             try:
                 # wait for a job
-                total_count, counter_addr, ch_list, reads_per_count = self.job_queue.get(block=True)
+                total_count, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
                 #print("streamer loop: start", total_count)
 
                 count = 0
                 last_count = 0
-                # how many measurements to transfer at a time
-                stride = int(0.1 * self.soc.get_avg_max_length(0))
+                if stride is None:
+                    stride = int(0.1 * self.soc.get_avg_max_length(0))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
                 # make sure count variable is reset to 0 before starting processor
