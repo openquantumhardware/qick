@@ -6,12 +6,7 @@ try:
 except:
     from tqdm import tqdm_notebook as tqdm
 import numpy as np
-from .qick_asm import QickProgram
-try:
-    from rpyc.utils.classic import obtain
-except:
-    def obtain(i):
-        return i
+from .qick_asm import QickProgram, obtain
 
 class AveragerProgram(QickProgram):
     """
@@ -132,7 +127,7 @@ class AveragerProgram(QickProgram):
             soc.start_readout(total_count, counter_addr=1,
                                    ch_list=list(self.ro_chs), reads_per_count=readouts_per_experiment)
             while count<total_count:
-                new_data = soc.poll_data()
+                new_data = obtain(soc.poll_data())
                 for d, s in new_data:
                     new_points = d.shape[2]
                     d_buf[:, :, count:count+new_points] = d

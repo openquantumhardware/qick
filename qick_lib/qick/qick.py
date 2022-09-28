@@ -14,12 +14,7 @@ import time
 import queue
 from .parser import parse_to_bin
 from .streamer import DataStreamer
-from .qick_asm import QickConfig, QickProgram
-try:
-    from rpyc.utils.classic import obtain
-except ModuleNotFoundError:
-    def obtain(i):
-        return i
+from .qick_asm import QickConfig, QickProgram, obtain
 from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
@@ -51,7 +46,7 @@ class SocIp(DefaultIP):
         """
         try:
             index = self.REGISTERS[a]
-            self.mmio.array[index] = np.uint32(v)
+            self.mmio.array[index] = np.uint32(obtain(v))
         except KeyError:
             super().__setattr__(a, v)
 
@@ -2298,6 +2293,7 @@ class QickSoc(Overlay, QickConfig):
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
         """
+        ch_list = obtain(ch_list)
         if ch_list is None: ch_list = [0, 1]
         streamer = self.streamer
 

@@ -5,7 +5,11 @@ import numpy as np
 import json
 from collections import namedtuple, OrderedDict
 from .helpers import gauss, triang, DRAG
-
+try:
+    from rpyc.utils.classic import obtain
+except ModuleNotFoundError:
+    def obtain(i):
+        return i
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -451,7 +455,7 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
             fclk = self['fs_proc']
-        return np.int64(np.round(us*fclk))
+        return np.int64(np.round(obtain(us)*fclk))
 
 class AbsGenManager:
     """Generic class for signal generator managers.
