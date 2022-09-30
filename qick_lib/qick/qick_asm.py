@@ -3,7 +3,6 @@ The higher-level driver for the QICK library. Contains an tProc assembly languag
 """
 import numpy as np
 import json
-import base64
 from collections import namedtuple, OrderedDict
 try:
     from tqdm.notebook import tqdm
@@ -910,7 +909,7 @@ class QickProgram:
                       'deg2reg', 'reg2deg']
 
     # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'reps', 'expts']
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
@@ -934,6 +933,8 @@ class QickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
+        # Address of the rep counter in the data memory.
+        self.counter_addr = 1
         # Number of iterations in the innermost loop.
         self.reps = None
         # Number of times the innermost loop is run.
@@ -949,38 +950,26 @@ class QickProgram:
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
 
-
     def dump_prog(self):
         """
-        Dump the program to JSON.
+        Dump the program to a dictionary.
         This output contains all the information necessary to run the program.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
         """
-        prog_dict = {}
+        progdict = {}
         for key in self.dump_keys:
-            prog_dict[key] = getattr(self, key)
-        return json.dumps(prog_dict, cls=NpEncoder)
+            progdict[key] = getattr(self, key)
+        return progdict
 
-    def load_prog(self, s):
+    def load_prog(self, progdict):
         """
-        Load the program from JSON.
+        Load the program from a dictionary.
         """
-        # be sure to read dicts back in order (only matters for Python <3.7)
-        prog_dict = json.loads(s, object_pairs_hook=OrderedDict)
         for key in self.dump_keys:
-            setattr(self, key, prog_dict[key])
+            setattr(self, key, progdict[key])
 
-        # in JSON, dict keys are always strings, so we must cast back to int
-        self.gen_chs = OrderedDict([(int(k),v) for k,v in self.gen_chs.items()])
-        self.ro_chs = OrderedDict([(int(k),v) for k,v in self.ro_chs.items()])
-
-        # the envelope arrays need to be restored as numpy arrays with the proper type
-        for iCh, pulsedict in enumerate(self.pulses):
-            for name, pulse in pulsedict.items():
-                #pulse['data'] = np.array(pulse['data'], dtype=self._gen_mgrs[iCh].env_dtype)
-                data, shape, dtype = pulse['data']
-                pulse['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
-
-    def acquire_round(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", counter_addr=1, progress=False, debug=False):
+    def acquire_round(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
         self.config_bufs(soc, enable_avg=True, enable_buf=False)
@@ -994,7 +983,7 @@ class QickProgram:
         self.stats = []
 
         with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start_readout(total_reps, counter_addr=counter_addr,
+            soc.start_readout(total_reps, counter_addr=self.counter_addr,
                                    ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
             while count<total_count:
                 new_data = soc.poll_data()
@@ -1014,9 +1003,55 @@ class QickProgram:
             avg_d = np.zeros((n_ro, reads_per_rep, self.expts, 2))
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, self.expts, self.reps)), axis=2).T/(reps)/ro['length']
+                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, self.expts, self.reps)), axis=2).T/(self.reps)/ro['length']
 
         return d_buf, avg_d
+
+    def acquire_decimated(self, soc, soft_avgs, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        # Initialize data buffers
+        d_buf = []
+        for ch, ro in self.ro_chs.items():
+            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
+            if ro['length']*self.reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
+            d_buf.append(np.zeros((2, ro['length']*self.reps*reads_per_rep)))
+
+        tproc = soc.tproc
+
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(soft_avgs), disable=not progress):
+
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+            # make sure count variable is reset to 0
+            tproc.single_write(addr=self.counter_addr, data=0)
+
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every soft_avg
+            tproc.start()
+
+            count = 0
+            while count < self.reps:
+                count = tproc.single_read(addr=self.counter_addr)
+
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                d_buf[ii] += soc.get_decimated(ch=ch,
+                                    address=0, length=ro['length']*self.reps*reads_per_rep)
+
+        # average the decimated data
+        if self.reps == 1 and reads_per_rep == 1:
+            return [d/soft_avgs for d in d_buf]
+        else:
+            # split the data into the individual reps:
+            # we reshape to slice each long buffer into reps,
+            # then use moveaxis() to transpose the I/Q and rep axes
+            result = [np.moveaxis(d.reshape(2, self.reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
+            if self.reps > 1 and readouts_per_experiment > 1:
+                result = [d.reshape(self.reps, readouts_per_experiment, 2, -1) for d in result]
+            return result
 
     def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
         """
