@@ -33,6 +33,8 @@ class AveragerProgram(QickProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.reps = cfg['reps']
+        if "soft_avgs" in cfg:
+            self.rounds = cfg['soft_avgs']
         self.make_program()
 
     def initialize(self):
@@ -109,8 +111,8 @@ class AveragerProgram(QickProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = d_buf[:,0,:]
-        self.dq_buf = d_buf[:,1,:]
+        self.di_buf = d_buf[:,:,0]
+        self.dq_buf = d_buf[:,:,1]
 
         if threshold is not None:
             self.shots = self.get_single_shots(
@@ -239,9 +241,9 @@ class AveragerProgram(QickProgram):
             - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
         """
 
-        soft_avgs = self.cfg["soft_avgs"]
-
-        return super().acquire_decimated(soc, soft_avgs=soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        buf = super().acquire_decimated(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        # move the I/Q axis from last to second-last
+        return np.moveaxis(buf, -1, -2)
 
 class RAveragerProgram(QickProgram):
     """
@@ -363,8 +365,8 @@ class RAveragerProgram(QickProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = d_buf[:,0,:]
-        self.dq_buf = d_buf[:,1,:]
+        self.di_buf = d_buf[:,:,0]
+        self.dq_buf = d_buf[:,:,1]
 
         if threshold is not None:
             self.shots = self.get_single_shots(

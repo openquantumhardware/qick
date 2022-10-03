@@ -1101,7 +1101,7 @@ class AxisAvgBuffer(SocIp):
 
         # data is a view into the data buffer, so copy it before returning
 
-        return data.T.copy()
+        return data.copy()
 
     def enable_avg(self):
         """
@@ -1177,11 +1177,10 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
+        data = np.frombuffer(buff[:length], dtype=np.int16).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int16)
+        # data is a view into the data buffer, so copy it before returning
+        return data.copy()
 
     def enable_buf(self):
         """
@@ -2043,7 +2042,7 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].BUF_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2].astype(float)
+        return data[2:length+2]
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -2073,7 +2072,7 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].AVG_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2]
+        return data[2:length+2]
 
     def init_readouts(self):
         """

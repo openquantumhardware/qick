@@ -909,7 +909,7 @@ class QickProgram:
                       'deg2reg', 'reg2deg']
 
     # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts']
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
@@ -937,8 +937,10 @@ class QickProgram:
         self.counter_addr = 1
         # Number of iterations in the innermost loop.
         self.reps = None
-        # Number of times the innermost loop is run.
+        # Number of times the program repeats the innermost loop.
         self.expts = 1
+        # Number of times the whole program is to be run.
+        self.rounds = 1
 
         # Label to apply to the next instruction.
         self._label_next = None
@@ -970,44 +972,109 @@ class QickProgram:
             setattr(self, key, progdict[key])
 
     def acquire_round(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+        """Acquire data using the accumulated readout.
 
-        self.config_bufs(soc, enable_avg=True, enable_buf=False)
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        ndarray
+            raw accumulated values (int32)
+            if rounds>1, only the last round is kept
+            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
+
+        ndarray
+            averaged values (float)
+            divided by the length of the RO window, and averaged over reps and rounds
+            dimensions for a simple averaging program: (n_ch, n_reads, 2)
+            dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
+        """
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
         count = 0
         n_ro = len(self.ro_chs)
 
         total_reps = self.expts*self.reps
         total_count = total_reps*reads_per_rep
-        d_buf = np.zeros((n_ro, 2, total_count))
+        d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
         self.stats = []
 
-        with tqdm(total=total_count, disable=not progress) as pbar:
-            soc.start_readout(total_reps, counter_addr=self.counter_addr,
-                                   ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
-            while count<total_count:
-                new_data = soc.poll_data()
-                for d, s in new_data:
-                    new_points = d.shape[2]
-                    d_buf[:, :, count:count+new_points] = d
-                    count += new_points
-                    self.stats.append(s)
-                    pbar.update(new_points)
+        # select which tqdm progress bar to show
+        hiderounds = True
+        hidereps = True
+        if progress:
+            if self.rounds>1:
+                hiderounds = False
+            else:
+                hidereps = False
 
-        if self.expts==1:
-            avg_d = np.zeros((n_ro, reads_per_rep, 2))
+        avg_d = np.zeros((n_ro, reads_per_rep, self.rounds, self.expts, 2))
+        for ir in tqdm(range(self.rounds), disable=hiderounds):
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+            with tqdm(total=total_count, disable=hidereps) as pbar:
+                soc.start_readout(total_reps, counter_addr=self.counter_addr,
+                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
+                while count<total_count:
+                    new_data = soc.poll_data()
+                    for d, s in new_data:
+                        new_points = d.shape[1]
+                        d_buf[:, count:count+new_points] = d
+                        count += new_points
+                        self.stats.append(s)
+                        pbar.update(new_points)
+
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep], axis=1)/(total_reps)/ro['length']
-        else:
-            avg_d = np.zeros((n_ro, reads_per_rep, self.expts, 2))
-            for ii in range(reads_per_rep):
-                for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii] = np.sum(d_buf[i_ch, :, ii::reads_per_rep].reshape((2, self.expts, self.reps)), axis=2).T/(self.reps)/ro['length']
+                    avg_d[i_ch][ii][ir] = np.sum(d_buf[i_ch, ii::reads_per_rep, :].reshape((self.expts, self.reps, 2)), axis=1)/(self.reps*ro['length'])
+
+        # average over the rounds axis
+        avg_d = np.mean(avg_d, axis=2)
+
+        if self.expts==1: # get rid of the expts axis
+            avg_d = avg_d[:,:,0,:]
 
         return d_buf, avg_d
 
-    def acquire_decimated(self, soc, soft_avgs, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+        """Acquire data using the decimating readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        list of ndarray
+            decimated values, averaged over rounds (float)
+            dimensions for a single-rep, single-read program : (length, 2)
+            multi-rep, multi-read: (n_reps, n_reads, length, 2)
+        """
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
         # Initialize data buffers
@@ -1016,13 +1083,12 @@ class QickProgram:
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
             if ro['length']*self.reps > maxlen:
                 raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
-            d_buf.append(np.zeros((2, ro['length']*self.reps*reads_per_rep)))
+            d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
 
         tproc = soc.tproc
 
         # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(soft_avgs), disable=not progress):
-
+        for ii in tqdm(range(self.rounds), disable=not progress):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
@@ -1030,7 +1096,7 @@ class QickProgram:
             tproc.single_write(addr=self.counter_addr, data=0)
 
             # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every soft_avg
+            # if start_src="external", you must pulse the trigger input once for every round
             tproc.start()
 
             count = 0
@@ -1043,14 +1109,14 @@ class QickProgram:
 
         # average the decimated data
         if self.reps == 1 and reads_per_rep == 1:
-            return [d/soft_avgs for d in d_buf]
+            return [d/self.rounds for d in d_buf]
         else:
             # split the data into the individual reps:
             # we reshape to slice each long buffer into reps,
             # then use moveaxis() to transpose the I/Q and rep axes
-            result = [np.moveaxis(d.reshape(2, self.reps*readouts_per_experiment, -1), 0, 1)/soft_avgs for d in d_buf]
-            if self.reps > 1 and readouts_per_experiment > 1:
-                result = [d.reshape(self.reps, readouts_per_experiment, 2, -1) for d in result]
+            result = [d.reshape(self.reps*reads_per_rep, -1, 2)/self.rounds for d in d_buf]
+            if self.reps > 1 and reads_per_rep > 1:
+                result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
             return result
 
     def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
