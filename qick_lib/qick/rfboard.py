@@ -1395,7 +1395,7 @@ class RFQickSoc(QickSoc):
         """
         self.gens[gen_ch].rfb.set_rf(att1, att2)
 
-    def rfb_set_gen_dc(self, gen_ch, att1, att2):
+    def rfb_set_gen_dc(self, gen_ch):
         """Enable and configure an RF-board output channel for DC output.
 
         Parameters

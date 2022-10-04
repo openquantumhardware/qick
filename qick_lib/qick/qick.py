@@ -150,14 +150,12 @@ class AbsSignalGen(SocIp):
         #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
 
     # Load waveforms.
-    def load(self, xin_i, xin_q, addr=0):
+    def load(self, xin, addr=0):
         """
         Load waveform into I,Q envelope
 
-        :param xin_i: real part of envelope
-        :type xin_i: list
-        :param xin_q: imaginary part of envelope
-        :type xin_q: list
+        :param xin: array of (I, Q) values for pulse envelope
+        :type xin: int16 array
         :param addr: starting address
         :type addr: int
         """
@@ -165,40 +163,29 @@ class AbsSignalGen(SocIp):
             raise NotImplementedError(
                 "This generator does not support waveforms.")
 
-        # Check for equal length.
-        if len(xin_i) != len(xin_q):
-            raise RuntimeError("%s: I/Q buffers must be the same length." %
-                  self.__class__.__name__)
-
-        length = len(xin_i)
+        length = xin.shape[0]
+        assert xin.dtype==np.int16
 
         # Check for max length.
-        if length > self.MAX_LENGTH:
+        if length+addr > self.MAX_LENGTH:
             raise RuntimeError("%s: buffer length must be %d samples or less." %
                   (self.__class__.__name__, self.MAX_LENGTH))
 
         # Check for even transfer size.
-        #if len(xin_i) % 2 != 0:
+        #if length % 2 != 0:
         #    raise RuntimeError("Buffer transfer length must be even number.")
-
-        # Pack the data into a single array; columns will be concatenated
-        # -> lower 16 bits: I value.
-        # -> higher 16 bits: Q value.
-        xin = np.stack((xin_i, xin_q), axis=1)
-
-        # Check for max value.
-        if np.max(np.abs(xin)) > self.MAXV:
-            raise ValueError(
-                "max magnitude of envelope (%d) exceeds limit of datatype (%d)" % (np.max(np.abs(xin)), self.MAXV))
 
         # Route switch to channel.
         self.switch.sel(mst=self.switch_ch)
 
         #print(self.fullpath, xin.shape, addr, self.switch_ch)
 
+        # Pack the data into a single array; columns will be concatenated
+        # -> lower 16 bits: I value.
+        # -> higher 16 bits: Q value.
         # Format and copy data.
         np.copyto(self.buff[:length],
-                np.frombuffer(xin.astype(np.int16), dtype=np.int32))
+                np.frombuffer(xin, dtype=np.int32))
 
         ################
         ### Load I/Q ###
@@ -1105,11 +1092,11 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFFFFFF
-        dataQ = data >> 32
+        data = np.frombuffer(buff[:length], dtype=np.int32).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int32)
+        # data is a view into the data buffer, so copy it before returning
+
+        return data.copy()
 
     def enable_avg(self):
         """
@@ -1185,11 +1172,10 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
+        data = np.frombuffer(buff[:length], dtype=np.int16).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int16)
+        # data is a view into the data buffer, so copy it before returning
+        return data.copy()
 
     def enable_buf(self):
         """
@@ -2051,7 +2037,7 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].BUF_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2].astype(float)
+        return data[2:length+2]
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -2081,7 +2067,7 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].AVG_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2]
+        return data[2:length+2]
 
     def init_readouts(self):
         """
@@ -2145,18 +2131,16 @@ class QickSoc(Overlay, QickConfig):
         """
         return self['readouts'][ch]['avg_maxlen']
 
-    def load_pulse_data(self, ch, idata, qdata, addr):
+    def load_pulse_data(self, ch, data, addr):
         """Load pulse data into signal generators
         :param ch: Channel
         :type ch: int
-        :param idata: data for ichannel
-        :type idata: ndarray(dtype=int16)
-        :param qdata: data for qchannel
-        :type qdata: ndarray(dtype=int16)
+        :param data: array of (I, Q) values for pulse envelope
+        :type data: int16 array
         :param addr: address to start data at
         :type addr: int
         """
-        return self.gens[ch].load(xin_i=idata, xin_q=qdata, addr=addr)
+        return self.gens[ch].load(xin=data, addr=addr)
 
     def set_nyquist(self, ch, nqz, force=False):
         """
@@ -2280,7 +2264,7 @@ class QickSoc(Overlay, QickConfig):
         prog.load_program(self, reset=True)
         self.tproc.start()
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1, stride=None):
+    def start_readout(self, total_reps, counter_addr=1, ch_list=None, reads_per_rep=1, stride=None):
         """
         Start a streaming readout of the accumulated buffers.
 
@@ -2327,11 +2311,11 @@ class QickSoc(Overlay, QickConfig):
             self.poll_data(totaltime=-1, timeout=0.1)
             print("buffer cleared")
 
-        streamer.total_count = total_count
+        streamer.total_count = total_reps*reads_per_rep
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count, stride))
+        streamer.job_queue.put((total_reps, counter_addr, ch_list, reads_per_rep, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """
