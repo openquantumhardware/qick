@@ -6,12 +6,7 @@ try:
 except:
     from tqdm import tqdm_notebook as tqdm
 import numpy as np
-from .qick_asm import QickProgram
-try:
-    from rpyc.utils.classic import obtain
-except:
-    def obtain(i):
-        return i
+from .qick_asm import QickProgram, obtain
 
 class AveragerProgram(QickProgram):
     """

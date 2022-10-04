@@ -9,7 +9,11 @@ try:
 except:
     from tqdm import tqdm_notebook as tqdm
 from .helpers import gauss, triang, DRAG, NpEncoder
-
+try:
+    from rpyc.utils.classic import obtain
+except ModuleNotFoundError:
+    def obtain(i):
+        return i
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -455,7 +459,7 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
             fclk = self['fs_proc']
-        return np.int64(np.round(us*fclk))
+        return np.int64(np.round(obtain(us)*fclk))
 
 class AbsGenManager:
     """Generic class for signal generator managers.
@@ -1030,7 +1034,7 @@ class QickProgram:
                 soc.start_readout(total_reps, counter_addr=self.counter_addr,
                                        ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
                 while count<total_count:
-                    new_data = soc.poll_data()
+                    new_data = obtain(soc.poll_data())
                     for d, s in new_data:
                         new_points = d.shape[1]
                         d_buf[:, count:count+new_points] = d
