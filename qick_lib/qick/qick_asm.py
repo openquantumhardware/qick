@@ -913,7 +913,7 @@ class QickProgram:
                       'deg2reg', 'reg2deg']
 
     # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds']
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
@@ -941,10 +941,13 @@ class QickProgram:
         self.counter_addr = 1
         # Number of iterations in the innermost loop.
         self.reps = None
-        # Number of times the program repeats the innermost loop.
-        self.expts = 1
+        # Number of times the program repeats the innermost loop. None means there is no outer loop.
+        self.expts = None
         # Number of times the whole program is to be run.
         self.rounds = 1
+        # Rotation angle and thresholds for single-shot readout.
+        self.shot_angle = None
+        self.shot_threshold = None
 
         # Label to apply to the next instruction.
         self._label_next = None
@@ -975,7 +978,7 @@ class QickProgram:
         for key in self.dump_keys:
             setattr(self, key, progdict[key])
 
-    def acquire_round(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
+    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -996,22 +999,25 @@ class QickProgram:
         Returns
         -------
         ndarray
-            raw accumulated values (int32)
+            raw accumulated IQ values (int32)
             if rounds>1, only the last round is kept
             dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
 
         ndarray
-            averaged values (float)
+            averaged IQ values (float)
             divided by the length of the RO window, and averaged over reps and rounds
+            if shot_threshold is defined, the I values will be the fraction of points over threshold
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
         self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
 
-        count = 0
         n_ro = len(self.ro_chs)
 
-        total_reps = self.expts*self.reps
+        expts = self.expts
+        if expts is None:
+            expts = 1
+        total_reps = expts*self.reps
         total_count = total_reps*reads_per_rep
         d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
         self.stats = []
@@ -1025,11 +1031,13 @@ class QickProgram:
             else:
                 hidereps = False
 
-        avg_d = np.zeros((n_ro, reads_per_rep, self.rounds, self.expts, 2))
+        avg_d = np.zeros((n_ro, reads_per_rep, self.rounds, expts, 2))
+        shots = None
         for ir in tqdm(range(self.rounds), disable=hiderounds):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
+            count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
                 soc.start_readout(total_reps, counter_addr=self.counter_addr,
                                        ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
@@ -1042,17 +1050,62 @@ class QickProgram:
                         self.stats.append(s)
                         pbar.update(new_points)
 
+            # if we're thresholding, apply the threshold before averaging
+            if self.shot_threshold is None:
+                d_reps = d_buf
+            else:
+                d_reps = [np.zeros_like(d_buf[i]) for i in len(self.ro_chs)]
+                shots = self.get_single_shots(d_buf)
+                for i, ch_shot in enumerate(shots):
+                    d_reps[i][...,0] = ch_shots
+
             for ii in range(reads_per_rep):
                 for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii][ir] = np.sum(d_buf[i_ch, ii::reads_per_rep, :].reshape((self.expts, self.reps, 2)), axis=1)/(self.reps*ro['length'])
+                    avg_d[i_ch][ii][ir] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1)/(self.reps*ro['length'])
 
         # average over the rounds axis
         avg_d = np.mean(avg_d, axis=2)
 
-        if self.expts==1: # get rid of the expts axis
+        if self.expts is None: # get rid of the expts axis
             avg_d = avg_d[:,:,0,:]
 
-        return d_buf, avg_d
+        return d_buf, avg_d, shots
+
+    def get_single_shots(self, d_buf):
+        """
+        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
+
+        Parameters
+        ----------
+        d_buf : ndarray
+            Raw IQ data
+
+        Returns
+        -------
+        list of ndarray
+            Single shot data
+
+        """
+        # try to convert threshold to list of floats; if that fails, assume it's already a list
+        try:
+            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
+        except TypeError:
+            thresholds = self.shot_threshold
+        # angle is 0 if not specified
+        if self.shot_angle is None:
+            angles = [0.0]*len(self.ro_chs)
+        else:
+            try:
+                angles = [float(self.shot_angle)]*len(self.ro_chs)
+            except TypeError:
+                angles = self.shot_angle
+
+        shots = []
+        for i, ch in enumerate(self.ro_chs):
+            rotated = np.inner(d_buf[i], [np.cos(angle[i]), np.sin(angle[i])])/self.ro_chs[ch]['length']
+            shots.append(np.heaviside(rotated - threshold[i], 0))
+        return shots
+
 
     def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
         """Acquire data using the decimating readout.
@@ -1108,8 +1161,8 @@ class QickProgram:
                 count = tproc.single_read(addr=self.counter_addr)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                d_buf[ii] += soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*self.reps*reads_per_rep)
+                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
+                                    address=0, length=ro['length']*self.reps*reads_per_rep))
 
         # average the decimated data
         if self.reps == 1 and reads_per_rep == 1:
