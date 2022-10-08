@@ -1,0 +1,5 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors"
+doi: https://doi.org/10.1063/5.0076249
+date-released: 2021-10-01
