@@ -1,19 +1,23 @@
 """
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
+from typing import Union, Literal
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
-try:
-    from tqdm.notebook import tqdm
-except:
-    from tqdm import tqdm_notebook as tqdm
+from tqdm.auto import tqdm
+
 from .helpers import gauss, triang, DRAG, NpEncoder
+from .parser import parse_prog
 try:
     from rpyc.utils.classic import obtain
 except ModuleNotFoundError:
     def obtain(i):
         return i
+
+RegisterType = Literal["freq", "time", "phase", "adc_freq"]
+DefaultUnits = {"freq": "MHz", "time": "us", "phase": "deg", "adc_freq": "MHz"}
+MathOperatorType = Literal["+", "-", "*"]
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -572,7 +576,7 @@ class AbsGenManager:
 
         """
         if not self.defaults.keys().isdisjoint(kwargs):
-            raise RuntimeError("these params were set for ch {0} both in default_pulse_registers and set_pulse_registers: {1}".format(ch, self.defaults.keys() & kwargs.keys()))
+            raise RuntimeError("these params were set for ch {0} both in default_pulse_registers and set_pulse_registers: {1}".format(self.ch, self.defaults.keys() & kwargs.keys()))
         merged = {**self.defaults, **kwargs}
         # check the final param set for validity
         self.check_params(merged)
@@ -816,7 +820,7 @@ class InterpolatedGenManager(AbsGenManager):
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
                 self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
                 # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
-                last_pulse['regs'].append((0, 0, 'mode', 0, 0))
+                self.next_pulse['regs'].append((0, 0, 'mode', 0, 0))
                 # set the pulse duration (including the extra duration for the FIR workaround)
                 self.next_pulse['length'] = (wfm_length//2)*2 + 2*params['length']
 
@@ -1031,7 +1035,8 @@ class QickProgram:
             else:
                 hidereps = False
 
-        avg_d = np.zeros((n_ro, reads_per_rep, self.rounds, expts, 2))
+        # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
+        avg_d = None
         shots = None
         for ir in tqdm(range(self.rounds), disable=hiderounds):
             # Configure and enable buffer capture.
@@ -1054,22 +1059,37 @@ class QickProgram:
             if self.shot_threshold is None:
                 d_reps = d_buf
             else:
-                d_reps = [np.zeros_like(d_buf[i]) for i in len(self.ro_chs)]
+                d_reps = [np.zeros_like(d_buf[i]) for i in range(len(self.ro_chs))]
                 shots = self.get_single_shots(d_buf)
                 for i, ch_shot in enumerate(shots):
-                    d_reps[i][...,0] = ch_shots
+                    d_reps[i][...,0] = ch_shot
 
-            for ii in range(reads_per_rep):
-                for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                    avg_d[i_ch][ii][ir] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1)/(self.reps*ro['length'])
-
-        # average over the rounds axis
-        avg_d = np.mean(avg_d, axis=2)
-
-        if self.expts is None: # get rid of the expts axis
-            avg_d = avg_d[:,:,0,:]
+            # calculate average over the rounds axis
+            if avg_d is None:
+                avg_d = self._average_buf(d_reps, reads_per_rep) / self.rounds
+            else:
+                avg_d += self._average_buf(d_reps, reads_per_rep) / self.rounds
 
         return d_buf, avg_d, shots
+
+    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: int) -> np.ndarray:
+        """
+        calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
+        if the data is created in a different shape.
+
+        :param d_reps: buffer data acquired in a round
+        :param reads_per_rep: readouts per experiment
+        :return: averaged iq data after each round.
+        """
+        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, self.expts, 2))
+        for ii in range(reads_per_rep):
+            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
+                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((self.expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
+
+        if self.expts is None:  # get rid of the expts axis
+            avg_d = avg_d[:, :, 0, :]
+
+        return avg_d
 
     def get_single_shots(self, d_buf):
         """
@@ -1102,8 +1122,8 @@ class QickProgram:
 
         shots = []
         for i, ch in enumerate(self.ro_chs):
-            rotated = np.inner(d_buf[i], [np.cos(angle[i]), np.sin(angle[i])])/self.ro_chs[ch]['length']
-            shots.append(np.heaviside(rotated - threshold[i], 0))
+            rotated = np.inner(d_buf[i], [np.cos(angles[i]), np.sin(angles[i])])/self.ro_chs[ch]['length']
+            shots.append(np.heaviside(rotated - thresholds[i], 0))
         return shots
 
 
@@ -1959,7 +1979,7 @@ class QickProgram:
         template = inst['name'] + " " + self.__class__.instructions[inst['name']]['repr'] + ";"
         line = " "*(max_label_len+2) + template.format(*inst['args'])
         if 'comment' in inst:
-            line += " "*(48-len(line)) + "//" + inst['comment']
+            line += " "*(48-len(line)) + "//" + (inst['comment'] if inst['comment'] is not None else "")
         if 'label' in inst:
             label = inst['label']
             line = label + ": " + line[len(label)+2:]
@@ -2028,3 +2048,225 @@ class QickProgram:
         :type traceback: str
         """
         pass
+
+
+class QickRegister:
+    def __init__(self, prog: QickProgram, page: int, addr: int, reg_type: RegisterType = None,
+                 gen_ch: int = None, ro_ch: int = None, init_val=None, name: str = None):
+        """
+        a qick register object that keeps the page, address, generator/readout channel and register type information,
+        provides functions that make it easier to set register value given input values in physical units.
+
+        :param prog: qick program in which the register is used.
+        :param page: page of the register
+        :param addr: address of the register in the register page (referred as "register number" in some other places)
+        :param reg_type: type of the register, used for automatic converting to physical values.
+        :param gen_ch: generator channel numer to which the register is associated with, for unit convert.
+        :param ro_ch: readout channel numer to which the register is associated with, for unit convert.
+        :param init_val: initial value of the register. If reg_type is not None, the value should be in its physical
+            unit. i.e. freq in MHz, time in us, phase in deg.
+        :param name: If None, an auto generated name based on the register page and address will be used
+        """
+        self.prog = prog
+        self.page = page
+        self.addr = addr
+        self.reg_type = reg_type
+        self.gen_ch = gen_ch
+        self.ro_ch = ro_ch
+        self.init_val = init_val
+        self.unit = DefaultUnits.get(str(self.reg_type))
+        if name is None:
+            self.name = f"reg_p{page}_{addr}"
+        else:
+            self.name = name
+        if init_val is not None:
+            self.reset()
+
+    def val2reg(self, val):
+        """
+        convert physical value to a qick register value
+        :param val:
+        :return:
+        """
+        if self.reg_type == "freq":
+            return self.prog.freq2reg(val, self.gen_ch, self.ro_ch)
+        elif self.reg_type == "time":
+            if self.gen_ch is not None:
+                return self.prog.us2cycles(val, self.gen_ch)
+            else:
+                return self.prog.us2cycles(val, self.gen_ch, self.ro_ch)
+        elif self.reg_type == "phase":
+            return self.prog.deg2reg(val, self.gen_ch)
+        elif self.reg_type == "adc_freq":
+            return self.prog.freq2reg_adc(val, self.ro_ch, self.gen_ch)
+        else:
+            return np.int32(val)
+
+    def reg2val(self, reg):
+        """
+        converts a qick register value to its value in physical units
+        :param reg:
+        :return:
+        """
+        if self.reg_type == "freq":
+            return self.prog.reg2freq(reg, self.gen_ch)
+        elif self.reg_type == "time":
+            if self.gen_ch is not None:
+                return self.prog.cycles2us(reg, self.gen_ch)
+            else:
+                return self.prog.cycles2us(reg, self.gen_ch, self.ro_ch)
+        elif self.reg_type == "phase":
+            return self.prog.reg2deg(reg, self.gen_ch)
+        elif self.reg_type == "adc_freq":
+            return self.prog.reg2freq_adc(reg, self.ro_ch)
+        else:
+            return reg
+
+
+    def set_to(self, a: Union["QickRegister", float, int], operator: MathOperatorType = "+",
+                  b: Union["QickRegister", float, int] = 0, physical_unit=True):
+        """
+        a shorthand function that sets the register value using different asm commands based on the input type.
+
+        if input "a" is a number, "operator" and "b" will be neglected, "a"(or the register integer that corresponds to
+        "a") will be assigned to the current register
+
+        if input "a" is a QickRegister and "b" is a number, the register will be set to the "mathi" result between "a"
+        and "b". (when physical_unit==True, "b" will be auto-converted from physical value to register value based on
+        the register type)
+
+        if both  "a" and "b" are QickRegisters, the register will be set to the "math" result between "a" and "b".
+
+        :param a: first operand register or a constant value
+        :param operator: math symbol supported by "math" and "mathi" asm commands, i.e. "+", "-" or "*".
+        :param b: second operand register or a constant value
+        :param physical_unit: when True, the constant value operands should be in its physical unit and will be
+            automatically converted to the register integer before assignment.
+        :return:
+        """
+        if type(a) != QickRegister: # assign value "a" to register, do unit conversion if physical_unit==True
+            reg = self.val2reg(a) if physical_unit else a
+            comment = f"'{self.name}' <= {reg} " + \
+                      (f"({a} {self.unit})" if physical_unit and (self.unit is not None) else "")
+            self.prog.safe_regwi(self.page, self.addr, reg, comment)
+        else:
+            if type(b) == QickRegister:
+                # do math operation between register "b" and register "a", assign the result to current register
+                comment = f" '{self.name}' <= '{a.name}' {operator} '{b.name}'"
+                if not (self.page == a.page == b.page):
+                    raise RuntimeError(f"the qick registers for mathematical operation must be on the same page. "
+                                       f"Got '{self.name}' on page {self.page}, '{a.name}' on page {a.page} "
+                                       f"and '{b.name}' on page {b.page}")
+                self.prog.math(self.page, self.addr, a.addr, operator, b.addr, comment)
+            else:
+                # do math operation between value "b" and register "a", assign the result to current register
+                reg = self.val2reg(b) if physical_unit else b # do unit conversion on "b" if physical_unit==True
+                comment = f" '{self.name}' <= '{a.name}' {operator} {reg} " \
+                          + (f"({b} {self.unit})" if physical_unit and (self.unit is not None) else "")
+                if not (self.page == a.page):
+                    raise RuntimeError(f"the qick registers for mathematical operation must be on the same page. "
+                                       f"Got '{self.name}' on page {self.page} and '{a.name}' on page {a.page}")
+                self.prog.mathi(self.page, self.addr, a.addr, operator, reg, comment)
+
+    def reset(self):
+        """
+        reset register value to its init_val
+        :return:
+        """
+        self.set_to(self.init_val)
+
+
+class QickRegisterManager:
+    """
+    A mixin class for QickProgram that provides manager functions for getting and declaring new qick registers.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
+        self._user_regs = []  # (page, addr) of all user defined registers
+        super().__init__(*args, **kwargs)
+
+    def new_reg(self, page: int, addr: int = None, name: str = None, init_val=None, reg_type: RegisterType = None,
+                gen_ch: int = None, ro_ch: int = None):
+        """ Declare a new register in a specific page.
+
+        :param page: register page
+        :param addr: address of the new register. If None, the function will automatically try to find the next
+            available address.
+        :param name: name of the new register. Optional.
+        :param init_val: initial value for the register, when reg_type is provided, the reg_val should be in the
+            physical unit of the corresponding type. i.e. freq in MHz, time in us, phase in deg.
+        :param reg_type: type of the register, e.g. "freq", "time", "phase".
+        :param gen_ch: generator channel numer to which the register is associated with, for unit convert.
+        :param ro_ch: readout channel numer to which the register is associated with, for unit convert.
+        :return: QickRegister
+        """
+        if addr is None:
+            addr = 1
+            while (page, addr) in self._user_regs:
+                addr += 1
+            if addr > 12:
+                raise RuntimeError(f"registers in page {page} is full.")
+        else:
+            if addr < 1 or addr > 12:
+                raise ValueError(f"register address must be greater than 0 and smaller than 13")
+            if (page, addr) in self._user_regs:
+                raise ValueError(f"register at address {addr} in page {page} is already occupied.")
+        self._user_regs.append((page, addr))
+
+        if name is None:
+            name = f"reg_page{page}_{addr}"
+        if name in self.user_reg_dict.keys():
+            raise NameError(f"register name '{name}' already exists")
+
+        reg = QickRegister(self, page, addr, reg_type, gen_ch, ro_ch, init_val, name=name)
+        self.user_reg_dict[name] = reg
+
+        return reg
+
+    def get_gen_reg(self, gen_ch: int, name: str) -> QickRegister:
+        """
+        Gets tProc register page and address associated with gen_ch and register name. Creates a QickRegister object for
+        return.
+
+        :param gen_ch: generator channel number
+        :param name:  name of the qick register, as in QickProgram.pulse_registers
+        :return: QickRegister
+        """
+        gen_cgf = self.gen_chs[gen_ch]
+        page = self.ch_page(gen_ch)
+        addr = self.sreg(gen_ch, name)
+        reg_type = name if name in RegisterType.__args__ else None
+        reg = QickRegister(self, page, addr, reg_type, gen_ch, gen_cgf.get("ro_ch"), name=f"gen{gen_ch}_{name}")
+        return reg
+
+    def new_gen_reg(self, gen_ch: int, name: str = None, init_val=None, reg_type: RegisterType = None,
+                    tproc_reg=False) -> QickRegister:
+        """
+        Declare a new register in the generator register page. Address automatically adds 1 one when each time a new
+        register in the same page is declared.
+
+        :param gen_ch: generator channel number
+        :param name: name of the new register. Optional.
+        :param init_val: initial value for the register, when reg_type is provided, the reg_val should be in the unit of
+            the corresponding type.
+        :param reg_type: type of the register, e.g. freq, time, phase.
+        :param tproc_reg: if True, the new register created will not be associated to a specific generator or readout
+            channel. It will still be on the same page as the gen_ch for math calculations. This is usually used for a
+            time register in t_processor, where we want to calculate "us2cycles" with the t_proc fabric clock rate
+            instead of the generator clock rate.
+        :return: QickRegister
+        """
+        gen_cgf = self.gen_chs[gen_ch]
+        page = self.ch_page(gen_ch)
+
+        addr = 1
+        while (page, addr) in self._user_regs:
+            addr += 1
+        if name is None:
+            name = f"gen{gen_ch}_reg{addr}"
+
+        if tproc_reg:
+            return self.new_reg(page, addr, name, init_val, reg_type, None, None)
+        else:
+            return self.new_reg(page, addr, name, init_val, reg_type, gen_ch, gen_cgf.get("ro_ch"))

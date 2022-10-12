@@ -1,4 +1,4 @@
-from .averager_program import AveragerProgram, RAveragerProgram, PAveragerProgram
+from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgram
 from .qick_asm import QickConfig, QickProgram
 import os
 
