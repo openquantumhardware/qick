@@ -1,6 +1,7 @@
 """
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
+import logging
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
@@ -15,6 +16,8 @@ try:
 except ModuleNotFoundError:
     def obtain(i):
         return i
+
+logger = logging.getLogger(__name__)
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -1334,6 +1337,10 @@ class QickProgram:
         if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
+            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+            # and the sum buffer values are 32 bit signed
+            if length > 2**(31-15):
+                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
             cfg = {
                     'freq': freq,
                     'length': length,
