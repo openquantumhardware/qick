@@ -7,7 +7,12 @@ import json
 import tempfile
 import sys
 import time
+#from oauthlib.oauth2 import DeviceClient
 #from qick import QickSoc
+from oauthlib.oauth2 import BackendApplicationClient
+from requests_oauthlib import OAuth2Session
+from configparser import ConfigParser
+
 
 class DummySoc:
     def __init__(self):
@@ -29,20 +34,48 @@ class QickClient:
         self.name = name
         self.api = api
         self.cred_path = "/home/xilinx/.qick/credentials"
-        self.conf_path = "/etc/qick/config"
+        self.cfg_path = "/etc/qick/config"
         self.headers = {"Authorization": f"Bearer {self._get_auth_token()}"}
         self.status = "ONLINE"
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
         #self.soc = QickSoc()
+
         self.soc = DummySoc()
         self.soccfg = self.soc.get_cfg()
+
+        clientcfg = ConfigParser()
+        clientcfg.read(self.cfg_path)
+
+        token_url = clientcfg['credentials']['token_url']
+        # the OAuth ID is also used as the device ID
+        self.id = clientcfg['credentials']['id']
+        client_secret = clientcfg['credentials']['secret']
+
+
+        oauth_client = BackendApplicationClient(client_id=self.id)
+        self.session = OAuth2Session(client=oauth_client)
+        token = self.session.fetch_token(token_url=token_url, client_id=self.id,
+                        client_secret=client_secret)
+        print(token)
+        print(token.keys())
+
+        self.api_url = clientcfg['api']['url']
+
+        rsp = self.session.get(self.api_url + '/devicework')
+        print(rsp.json())
+        data = {
+            "DeviceStatus": self.status
+            }
+        print(json.dumps(data))
+        rsp = self.session.put(self.api_url + '/devices/' + self.id, data=json.dumps(data))
+        print(rsp.json())
 
     def _get_auth_token(self):
         with open(self.cred_path) as f:
             return f.read().strip()
 
     def update_status(self):
-        with open(self.conf_path) as f:
+        with open(self.cfg_path) as f:
             config_data = f.read()
         data = {
             "DeviceId": self.name,
