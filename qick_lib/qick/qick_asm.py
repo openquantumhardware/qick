@@ -1,11 +1,23 @@
 """
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
+import logging
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
-from .helpers import gauss, triang, DRAG
+from abc import ABC, abstractmethod
+try:
+    from tqdm.notebook import tqdm
+except:
+    from tqdm import tqdm_notebook as tqdm
+from .helpers import gauss, triang, DRAG, NpEncoder
+try:
+    from rpyc.utils.classic import obtain
+except ModuleNotFoundError:
+    def obtain(i):
+        return i
 
+logger = logging.getLogger(__name__)
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -57,8 +69,8 @@ class QickConfig():
 
         lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
         for iGen, gen in enumerate(self['gens']):
-            lines.append("\t%d:\t%s - tProc output %d, switch ch %d, maxlen %d" %
-                         (iGen, gen['type'], gen['tproc_ch'], gen['switch_ch'], gen['maxlen']))
+            lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
+                         (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
 
@@ -70,8 +82,12 @@ class QickConfig():
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+            if readout['tproc_ctrl'] is None:
+                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+            else:
+                lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
+            lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -105,7 +121,7 @@ class QickConfig():
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 
-        lines.append("\n\ttProc: %d words program memory, %d words data memory" %
+        lines.append("\n\ttProc: program memory %d words, data memory %d words" %
                 (tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
@@ -451,66 +467,25 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
             fclk = self['fs_proc']
-        return np.int64(np.round(us*fclk))
+        return np.int64(np.round(obtain(us)*fclk))
 
-class AbsGenManager:
-    """Generic class for signal generator managers.
-    Manages the envelope and pulse information for a signal generator channel.
+class AbsRegisterManager(ABC):
+    """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
-    def __init__(self, prog, ch):
+    def __init__(self, prog, tproc_ch, ch_name):
         self.prog = prog
-        self.ch = ch
-        self.gencfg = prog.soccfg['gens'][ch]
-        self.samps_per_clk = self.gencfg['samps_per_clk']
-        self.rp = prog.ch_page(ch)
+        # the tProc output channel controlled by this manager
+        self.tproc_ch = tproc_ch
+        # the name of this block (for messages)
+        self.ch_name = ch_name
+        # the register page used by this manager
+        self.rp = prog.ch_page(tproc_ch)
+        # default parameters
         self.defaults = {}
+        # registers that are fully defined by the default parameters
         self.default_regs = set()
-        self.pulses = {}
-        self.addr = 0
+        # the registers to be used in the next "set" command
         self.next_pulse = None
-        self.setup_done = False
-
-    def add_pulse(self, name, idata, qdata):
-        """Add a waveform to the list of envelope waveforms available for this channel.
-        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
-
-        Parameters
-        ----------
-        name : str
-            Name for this waveform
-        idata : int32 array
-            I values for this waveform
-        qdata : int32 array
-            Q values for this waveform
-
-        """
-        if qdata is None and idata is None:
-            raise RuntimeError("Error: no data argument was supplied")
-        if qdata is None:
-            qdata = np.zeros_like(idata)
-        if idata is None:
-            idata = np.zeros_like(qdata)
-        if len(idata) != len(qdata):
-            raise RuntimeError("Error: I and Q pulse lengths must be equal")
-        if (len(idata) % self.samps_per_clk) != 0:
-            raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(self.samps_per_clk))
-        self.pulses[name] = {"idata": idata, "qdata": qdata, "addr": self.addr}
-        self.addr += len(idata)
-
-    def load_pulses(self, soc):
-        """Load all waveforms into the waveform memory.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            The QICK to be configured
-
-        """
-        for name, pulse in self.pulses.items():
-            soc.load_pulse_data(self.ch,
-                    idata=pulse['idata'],
-                    qdata=pulse['qdata'],
-                    addr=pulse['addr'])
 
     def set_reg(self, name, val, comment=None, defaults=False):
         """Wrapper around regwi.
@@ -533,7 +508,7 @@ class AbsGenManager:
         elif name in self.default_regs:
             # this reg was already written, so we skip it this time
             return
-        r = self.prog.sreg(self.ch, name)
+        r = self.prog.sreg(self.tproc_ch, name)
         if comment is None: comment = f'{name} = {val}'
         self.prog.safe_regwi(self.rp, r, val, comment)
 
@@ -549,7 +524,7 @@ class AbsGenManager:
         """
         if self.defaults:
             # complain if the default parameter dict is not empty
-            raise RuntimeError("ch %d already has a set of default parameters"%(self.ch))
+            raise RuntimeError("%s already has a set of default parameters"%(self.ch_name))
         self.defaults = kwargs
         self.write_regs(kwargs, defaults=True)
 
@@ -564,11 +539,125 @@ class AbsGenManager:
 
         """
         if not self.defaults.keys().isdisjoint(kwargs):
-            raise RuntimeError("these params were set for ch {0} both in default_pulse_registers and set_pulse_registers: {1}".format(ch, self.defaults.keys() & kwargs.keys()))
+            raise RuntimeError("these params were set for {0} both in default_pulse_registers and set_pulse_registers: {1}".format(self.ch_name, self.defaults.keys() & kwargs.keys()))
         merged = {**self.defaults, **kwargs}
         # check the final param set for validity
         self.check_params(merged)
         self.write_regs(merged, defaults=False)
+
+    @abstractmethod
+    def check_params(self, params):
+        ...
+
+    @abstractmethod
+    def write_regs(self, params, defaults):
+        ...
+
+class ReadoutManager(AbsRegisterManager):
+    """Manages the frequency and mode registers for a tProc-controlled readout channel.
+    """
+    PARAMS_REQUIRED = ['freq', 'length']
+    PARAMS_OPTIONAL = ['phrst', 'mode', 'outsel']
+
+    def __init__(self, prog, ro_ch):
+        self.rocfg = prog.soccfg['readouts'][ro_ch]
+        tproc_ch = self.rocfg['tproc_ctrl']
+        super().__init__(prog, tproc_ch, "readout %d"%(ro_ch))
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+
+        """
+        required = set(self.PARAMS_REQUIRED)
+        allowed = required | set(self.PARAMS_OPTIONAL)
+        defined = params.keys()
+        if required - defined:
+            raise RuntimeError("missing required pulse parameter(s)", required - defined)
+        if defined - allowed:
+            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+
+    def write_regs(self, params, defaults):
+        if 'freq' in params:
+            self.set_reg('freq', params['freq'], defaults=defaults)
+        if not defaults:
+            self.next_pulse = {}
+            self.next_pulse['rp'] = self.rp
+            self.next_pulse['regs'] = []
+
+            # these mode bits could be defined, or left as None
+            phrst, mode, outsel = [params.get(x) for x in ['phrst', 'mode', 'outsel']]
+            mc = self.get_mode_code(phrst=phrst, mode=mode, outsel=outsel, length=params['length'])
+            self.set_reg('mode', mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', '0', 'mode', '0', '0']])
+
+    def get_mode_code(self, length, outsel=None, mode=None, phrst=None):
+        """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
+
+        Parameters
+        ----------
+        length : int
+            The number of ADC fabric cycles in the pulse
+
+        outsel : str
+            Selects the output source. The output is complex. Tables define envelopes for I and Q.
+            The default is "product".
+
+            * If "product", the output is the product of table and DDS.
+
+            * If "dds", the output is the DDS only.
+
+            * If "input", the output is from the table for the real part, and zeros for the imaginary part.
+
+            * If "zero", the output is always zero.
+
+        mode : str
+            Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
+
+        phrst : int
+            If 1, it resets the phase coherent accumulator. The default is 0.
+
+        Returns
+        -------
+        int
+            Compiled mode code in binary
+
+        """
+        if length >= 2**16 or length < 3:
+            raise RuntimeError("Pulse length of %d is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (length))
+        if outsel is None: outsel = "product"
+        if mode is None: mode = "oneshot"
+        if phrst is None: phrst = 0
+
+        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
+        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
+        mc = phrst*0b01000+mode_reg*0b00100+outsel_reg
+        return mc << 16 | np.uint16(length)
+
+
+class AbsGenManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = {}
+    PARAMS_OPTIONAL = {}
+
+    def __init__(self, prog, gen_ch):
+        self.gencfg = prog.soccfg['gens'][gen_ch]
+        tproc_ch = self.gencfg['tproc_ch']
+        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
+        self.samps_per_clk = self.gencfg['samps_per_clk']
+
+        # dictionary of defined pulse envelopes
+        self.pulses = prog.pulses[gen_ch]
+        # type and max absolute value for envelopes
+        self.env_dtype = np.int16
+
+        self.addr = 0
 
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
@@ -588,6 +677,43 @@ class AbsGenManager:
             raise RuntimeError("missing required pulse parameter(s)", required - defined)
         if defined - allowed:
             raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+
+    def add_pulse(self, name, idata, qdata):
+        """Add a waveform to the list of envelope waveforms available for this channel.
+        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
+
+        Parameters
+        ----------
+        name : str
+            Name for this waveform
+        idata : array
+            I values for this waveform
+        qdata : array
+            Q values for this waveform
+
+        """
+        length = [len(d) for d in [idata, qdata] if d is not None]
+        if len(length)==0:
+            raise RuntimeError("Error: no data argument was supplied")
+        # if both arrays were defined, they must be the same length
+        if len(length)>1 and length[0]!=length[1]:
+            raise RuntimeError("Error: I and Q pulse lengths must be equal")
+        length = length[0]
+
+        if (length % self.samps_per_clk) != 0:
+            raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(self.samps_per_clk))
+        data = np.zeros((length, 2), dtype=self.env_dtype)
+
+        for i, d in enumerate([idata, qdata]):
+            if d is not None:
+                # range check
+                if np.max(np.abs(d)) > self.gencfg['maxv']:
+                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.gencfg['maxv']))
+                # copy data
+                data[:,i] = np.round(d)
+
+        self.pulses[name] = {"data": data, "addr": self.addr}
+        self.addr += length
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
@@ -682,7 +808,7 @@ class FullSpeedGenManager(AbsGenManager):
                 self.set_reg(parname, params[parname], defaults=defaults)
         if 'waveform' in params:
             pinfo = self.pulses[params['waveform']]
-            wfm_length = len(pinfo['idata']) // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
             self.set_reg('addr', addr, defaults=defaults)
         if not defaults:
@@ -696,12 +822,12 @@ class FullSpeedGenManager(AbsGenManager):
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 # address for ramp-down
@@ -714,9 +840,9 @@ class FullSpeedGenManager(AbsGenManager):
                 # mode for ramps
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
                 self.set_reg('mode2', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode2']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode2']])
                 self.next_pulse['length'] = (wfm_length//2)*2 + params['length']
 
 
@@ -761,7 +887,7 @@ class InterpolatedGenManager(AbsGenManager):
         addr = 0
         if 'waveform' in params:
             pinfo = self.pulses[params['waveform']]
-            wfm_length = len(pinfo['idata']) // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
         if 'phase' in params and 'freq' in params:
             phase, freq = [params[x] for x in ['phase', 'freq']]
@@ -780,12 +906,12 @@ class InterpolatedGenManager(AbsGenManager):
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 maxv_scale = self.gencfg['maxv_scale']
@@ -804,11 +930,11 @@ class InterpolatedGenManager(AbsGenManager):
                 # gain+addr for ramp-down
                 self.set_reg('addr2', (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
                 # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
-                last_pulse['regs'].append((0, 0, 'mode', 0, 0))
+                self.next_pulse['regs'].append((0, 0, 'mode', 0, 0))
                 # set the pulse duration (including the extra duration for the FIR workaround)
                 self.next_pulse['length'] = (wfm_length//2)*2 + 2*params['length']
 
@@ -848,12 +974,8 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
-            self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', '0', '0']])
+            self.next_pulse['regs'].append([self.prog.sreg(self.tproc_ch,x) for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
-
-# configuration for an enabled readout channel
-ReadoutConfig = namedtuple('ReadoutConfig', ['freq', 'length', 'sel', 'gen_ch'])
-GeneratorConfig = namedtuple('GeneratorConfig', ['nqz', 'mixer_freq', 'mux_freqs', 'mux_gains', 'ro_ch'])
 
 
 class QickProgram:
@@ -884,7 +1006,8 @@ class QickProgram:
                     'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
                     'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
                     'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"}
+                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'comment': {'fmt': ()}
                     }
 
     # op codes for math and bitwise operations
@@ -907,6 +1030,9 @@ class QickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+    # Attributes to dump when saving the program to JSON.
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
+
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
                 'axis_signal_gen_v6': FullSpeedGenManager,
@@ -919,18 +1045,279 @@ class QickProgram:
         Constructor method
         """
         self.soccfg = soccfg
-        self.prog_list = []
-        self.labels = {}
-        self.dac_ts = [0]*len(soccfg['gens'])
-        self.adc_ts = [0]*len(soccfg['readouts'])
-        self.gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
 
+        # List of commands. This may include comments.
+        self.prog_list = []
+        # Pulse envelopes.
+        self.pulses = [{} for ch in soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
-    def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
+        # Address of the rep counter in the data memory.
+        self.counter_addr = 1
+        # Number of iterations in the innermost loop.
+        self.reps = None
+        # Number of times the program repeats the innermost loop. None means there is no outer loop.
+        self.expts = None
+        # Number of times the whole program is to be run.
+        self.rounds = 1
+        # Rotation angle and thresholds for single-shot readout.
+        self.shot_angle = None
+        self.shot_threshold = None
+
+        # Label to apply to the next instruction.
+        self._label_next = None
+
+        # Timestamps, for keeping track of pulse and readout end times.
+        self._dac_ts = [0]*len(soccfg['gens'])
+        self._adc_ts = [0]*len(soccfg['readouts'])
+
+        # Generator managers, for keeping track of register values.
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) for iCh, ch in enumerate(soccfg['readouts']) if ch['tproc_ctrl'] is not None]
+
+
+    def dump_prog(self):
+        """
+        Dump the program to a dictionary.
+        This output contains all the information necessary to run the program.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
+        """
+        progdict = {}
+        for key in self.dump_keys:
+            progdict[key] = getattr(self, key)
+        return progdict
+
+    def load_prog(self, progdict):
+        """
+        Load the program from a dictionary.
+        """
+        for key in self.dump_keys:
+            setattr(self, key, progdict[key])
+
+    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
+        """Acquire data using the accumulated readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        ndarray
+            raw accumulated IQ values (int32)
+            if rounds>1, only the last round is kept
+            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
+
+        ndarray
+            averaged IQ values (float)
+            divided by the length of the RO window, and averaged over reps and rounds
+            if shot_threshold is defined, the I values will be the fraction of points over threshold
+            dimensions for a simple averaging program: (n_ch, n_reads, 2)
+            dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
+        """
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        n_ro = len(self.ro_chs)
+
+        expts = self.expts
+        if expts is None:
+            expts = 1
+        total_reps = expts*self.reps
+        total_count = total_reps*reads_per_rep
+        d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
+        self.stats = []
+
+        # select which tqdm progress bar to show
+        hiderounds = True
+        hidereps = True
+        if progress:
+            if self.rounds>1:
+                hiderounds = False
+            else:
+                hidereps = False
+
+        avg_d = np.zeros((n_ro, reads_per_rep, self.rounds, expts, 2))
+        shots = None
+        for ir in tqdm(range(self.rounds), disable=hiderounds):
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+            count = 0
+            with tqdm(total=total_count, disable=hidereps) as pbar:
+                soc.start_readout(total_reps, counter_addr=self.counter_addr,
+                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
+                while count<total_count:
+                    new_data = obtain(soc.poll_data())
+                    for d, s in new_data:
+                        new_points = d.shape[1]
+                        d_buf[:, count:count+new_points] = d
+                        count += new_points
+                        self.stats.append(s)
+                        pbar.update(new_points)
+
+            # if we're thresholding, apply the threshold before averaging
+            if self.shot_threshold is None:
+                d_reps = d_buf
+            else:
+                d_reps = [np.zeros_like(d_buf[i]) for i in len(self.ro_chs)]
+                shots = self.get_single_shots(d_buf)
+                for i, ch_shot in enumerate(shots):
+                    d_reps[i][...,0] = ch_shots
+
+            for ii in range(reads_per_rep):
+                for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
+                    avg_d[i_ch][ii][ir] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1)/(self.reps*ro['length'])
+
+        # average over the rounds axis
+        avg_d = np.mean(avg_d, axis=2)
+
+        if self.expts is None: # get rid of the expts axis
+            avg_d = avg_d[:,:,0,:]
+
+        return d_buf, avg_d, shots
+
+    def get_single_shots(self, d_buf):
+        """
+        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
+
+        Parameters
+        ----------
+        d_buf : ndarray
+            Raw IQ data
+
+        Returns
+        -------
+        list of ndarray
+            Single shot data
+
+        """
+        # try to convert threshold to list of floats; if that fails, assume it's already a list
+        try:
+            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
+        except TypeError:
+            thresholds = self.shot_threshold
+        # angle is 0 if not specified
+        if self.shot_angle is None:
+            angles = [0.0]*len(self.ro_chs)
+        else:
+            try:
+                angles = [float(self.shot_angle)]*len(self.ro_chs)
+            except TypeError:
+                angles = self.shot_angle
+
+        shots = []
+        for i, ch in enumerate(self.ro_chs):
+            rotated = np.inner(d_buf[i], [np.cos(angle[i]), np.sin(angle[i])])/self.ro_chs[ch]['length']
+            shots.append(np.heaviside(rotated - threshold[i], 0))
+        return shots
+
+
+    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+        """Acquire data using the decimating readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        list of ndarray
+            decimated values, averaged over rounds (float)
+            dimensions for a single-rep, single-read program : (length, 2)
+            multi-rep, multi-read: (n_reps, n_reads, length, 2)
+        """
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        # Initialize data buffers
+        d_buf = []
+        for ch, ro in self.ro_chs.items():
+            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
+            if ro['length']*self.reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
+            d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
+
+        tproc = soc.tproc
+
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(self.rounds), disable=not progress):
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+            # make sure count variable is reset to 0
+            tproc.single_write(addr=self.counter_addr, data=0)
+
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every round
+            tproc.start()
+
+            count = 0
+            while count < self.reps:
+                count = tproc.single_read(addr=self.counter_addr)
+
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
+                                    address=0, length=ro['length']*self.reps*reads_per_rep))
+
+        # average the decimated data
+        if self.reps == 1 and reads_per_rep == 1:
+            return [d/self.rounds for d in d_buf]
+        else:
+            # split the data into the individual reps:
+            # we reshape to slice each long buffer into reps,
+            # then use moveaxis() to transpose the I/Q and rep axes
+            result = [d.reshape(self.reps*reads_per_rep, -1, 2)/self.rounds for d in d_buf]
+            if self.reps > 1 and reads_per_rep > 1:
+                result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
+            return result
+
+    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+        """
+        Load the waveform memory, gens, ROs, and program memory as specified for this program.
+        The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
+        """
+        # Load the pulses from the program into the soc
+        if load_pulses:
+            self.load_pulses(soc)
+
+        # Configure signal generators
+        self.config_gens(soc)
+
+        # Configure the readout down converters
+        self.config_readouts(soc)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
 
         Parameters
@@ -946,7 +1333,27 @@ class QickProgram:
         gen_ch : int
             DAC channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
-        self.ro_chs[ch] = ReadoutConfig(freq, length, sel, gen_ch)
+        ro_cfg = self.soccfg['readouts'][ch]
+        if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
+            if freq is None:
+                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
+            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+            # and the sum buffer values are 32 bit signed
+            if length > 2**(31-15):
+                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
+            cfg = {
+                    'freq': freq,
+                    'length': length,
+                    'sel': sel,
+                    'gen_ch': gen_ch
+                    }
+        else: # readout is controlled by tProc
+            if (freq is not None) or sel!='product' or (gen_ch is not None):
+                raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
+            cfg = {
+                    'length': length
+                    }
+        self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
         """Configure the readout channels specified in this program.
@@ -960,7 +1367,8 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            soc.configure_readout(ch, output=cfg.sel, frequency=cfg.freq, gen_ch=cfg.gen_ch)
+            if self.soccfg['readouts'][ch]['tproc_ctrl'] is None:
+                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
@@ -978,9 +1386,9 @@ class QickProgram:
         """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
-                soc.config_avg(ch, address=0, length=cfg.length, enable=True)
+                soc.config_avg(ch, address=0, length=cfg['length'], enable=True)
             if enable_buf:
-                soc.config_buf(ch, address=0, length=cfg.length, enable=True)
+                soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
     def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
@@ -1007,7 +1415,14 @@ class QickProgram:
         ro_ch : int, optional
             ADC channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
         """
-        self.gen_chs[ch] = GeneratorConfig(nqz, mixer_freq, mux_freqs, mux_gains, ro_ch)
+        cfg = {
+                'nqz': nqz,
+                'mixer_freq': mixer_freq,
+                'mux_freqs': mux_freqs,
+                'mux_gains': mux_gains,
+                'ro_ch': ro_ch
+                }
+        self.gen_chs[ch] = cfg
 
     def config_gens(self, soc):
         """Configure the signal generators specified in this program.
@@ -1020,10 +1435,10 @@ class QickProgram:
 
         """
         for ch, cfg in self.gen_chs.items():
-            soc.set_nyquist(ch, cfg.nqz)
-            soc.set_mixer_freq(ch, cfg.mixer_freq, cfg.ro_ch)
-            if cfg.mux_freqs is not None:
-                soc.set_mux_freqs(ch, freqs=cfg.mux_freqs, gains=cfg.mux_gains)
+            soc.set_nyquist(ch, cfg['nqz'])
+            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if cfg['mux_freqs'] is not None:
+                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
 
     def add_pulse(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the waveform library within the program.
@@ -1040,7 +1455,7 @@ class QickProgram:
             Q data Numpy array
 
         """
-        self.gen_mgrs[ch].add_pulse(name, idata, qdata)
+        self._gen_mgrs[ch].add_pulse(name, idata, qdata)
 
     def add_gauss(self, ch, name, sigma, length, maxv=None):
         """Adds a Gaussian pulse to the waveform library.
@@ -1142,8 +1557,11 @@ class QickProgram:
             Qick object
 
         """
-        for gen_mgr in self.gen_mgrs:
-            gen_mgr.load_pulses(soc)
+        for iCh, pulses in enumerate(self.pulses):
+            for name, pulse in pulses.items():
+                soc.load_pulse_data(iCh,
+                        data=pulse['data'],
+                        addr=pulse['addr'])
 
     def ch_page(self, ch):
         """Gets tProc register page associated with channel.
@@ -1200,7 +1618,7 @@ class QickProgram:
             Pulse parameters
 
         """
-        self.gen_mgrs[ch].set_defaults(kwargs)
+        self._gen_mgrs[ch].set_defaults(kwargs)
 
     def set_pulse_registers(self, ch, **kwargs):
         """Set the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
@@ -1234,7 +1652,59 @@ class QickProgram:
         mask : list of int
             for a muxed signal generator, the list of tones to enable for this pulse
         """
-        self.gen_mgrs[ch].set_registers(kwargs)
+        self._gen_mgrs[ch].set_registers(kwargs)
+
+    def set_readout_registers(self, ch, **kwargs):
+        """Set the pulse parameters including frequency, phase, address of pulse, gain, stdysel, mode register (compiled from length and other flags), outsel, and length.
+        The time is scheduled when you call pulse().
+        See the write_regs() method of the relevant generator manager for the list of supported pulse styles.
+
+        Parameters
+        ----------
+        ch : int
+            DAC channel (index in 'gens' list)
+        freq : int
+            Frequency (register value)
+        phrst : int
+            If 1, it resets the phase coherent accumulator
+        mode : str
+            Selects whether the output is "oneshot" or "periodic"
+        outsel : str
+            Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        length : int
+            The number of fabric clock cycles in the flat portion of the pulse, used for "const" and "flat_top" styles
+        """
+        self._ro_mgrs[ch].set_registers(kwargs)
+
+    def readout(self, ch, t):
+        """Play the pulse currently programmed into the registers for this tProc-controlled readout channel.
+        You must have already run set_readout_registers for this channel.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        t : int
+            The number of tProc cycles at which the pulse starts
+        """
+        # try to convert pulse_ch to int; if that fails, assume it's list of ints
+        try:
+            ch_list = [int(ch)]
+        except TypeError:
+            ch_list = ch
+        for ch in ch_list:
+            tproc_ch = self.soccfg['readouts'][ch]['tproc_ctrl']
+            rp = self.ch_page(tproc_ch)
+            next_pulse = self._ro_mgrs[ch].next_pulse
+            if next_pulse is None:
+                raise RuntimeError("no pulse has been set up for channel %d"%(ch))
+
+            r_t = self.sreg(tproc_ch, 't')
+            self.safe_regwi(rp, r_t, t, f't = {t}')
+
+            for regs in next_pulse['regs']:
+                self.set(tproc_ch, rp, *regs, r_t, f"ch = {ch}, pulse @t = ${r_t}")
+
 
     def setup_and_pulse(self, ch, t='auto', **kwargs):
         """Set up a pulse on this DAC channel, and immediately play it.
@@ -1297,9 +1767,9 @@ class QickProgram:
         except TypeError:
             ch_list = ch
         for ch in ch_list:
-            rp = self.ch_page(ch)
             tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-            next_pulse = self.gen_mgrs[ch].next_pulse
+            rp = self.ch_page(tproc_ch)
+            next_pulse = self._gen_mgrs[ch].next_pulse
             if next_pulse is None:
                 raise RuntimeError("no pulse has been set up for channel %d"%(ch))
 
@@ -1307,13 +1777,13 @@ class QickProgram:
 
             if t is not None:
                 if t == 'auto':
-                    t = int(self.dac_ts[ch])
-                elif t < self.dac_ts[ch]:
-                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self.dac_ts[ch]))
+                    t = int(self._dac_ts[ch])
+                elif t < self._dac_ts[ch]:
+                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self._dac_ts[ch]))
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
                 pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
-                self.dac_ts[ch] = t + pulse_length
+                self._dac_ts[ch] = t + pulse_length
                 self.safe_regwi(rp, r_t, t, f't = {t}')
 
             # Play each pulse segment.
@@ -1356,11 +1826,11 @@ class QickProgram:
         t : int, optional
             The time offset in tProc cycles
         """
-        max_t = max(self.dac_ts+self.adc_ts)
+        max_t = max(self._dac_ts+self._adc_ts)
         if max_t+t > 0:
             self.synci(int(max_t+t))
-            self.dac_ts = [0]*len(self.dac_ts)
-            self.adc_ts = [0]*len(self.adc_ts)
+            self._dac_ts = [0]*len(self._dac_ts)
+            self._adc_ts = [0]*len(self._adc_ts)
 
     def wait_all(self, t=0):
         """Pause the tProc until all ADC readout windows are complete, plus additional time t.
@@ -1371,7 +1841,7 @@ class QickProgram:
         t : int, optional
             The time offset in tProc cycles
         """
-        self.waiti(0, int(max(self.adc_ts) + t))
+        self.waiti(0, int(max(self._adc_ts) + t))
 
     # should change behavior to only change bits that are specified
     def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
@@ -1414,12 +1884,12 @@ class QickProgram:
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
             for adc in adcs:
-                if t_start < self.adc_ts[adc]:
-                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self.adc_ts[adc]))
+                if t_start < self._adc_ts[adc]:
+                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self._adc_ts[adc]))
                 # convert from readout clock to tProc clock
-                ro_length = self.ro_chs[adc].length
+                ro_length = self.ro_chs[adc]['length']
                 ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
-                self.adc_ts[adc] = t_start + ro_length
+                self._adc_ts[adc] = t_start + ro_length
         t_end = t_start + width
 
         trig_output = self.soccfg['tprocs'][0]['trig_output']
@@ -1482,13 +1952,15 @@ class QickProgram:
         else:
             return val
 
-    def compile_instruction(self, inst, debug=False):
+    def compile_instruction(self, inst, labels, debug=False):
         """Converts an assembly instruction into a machine bytecode.
 
         Parameters
         ----------
         inst : dict
             Assembly instruction
+        labels : dict
+            Map from label name to program counter
         debug : bool
             If True, debug mode is on
 
@@ -1509,10 +1981,10 @@ class QickProgram:
             args[len(fmt)-1] = self.convert_immediate(args[len(fmt)-1])
 
         if inst['name'] == 'loopnz':
-            args[-1] = self.labels[args[-1]]  # resolve label
+            args[2] = labels[args[2]]  # resolve label
 
         if inst['name'] == 'condj':
-            args[4] = self.labels[args[4]]  # resolve label
+            args[4] = labels[args[4]]  # resolve label
             # get binary condtional op code
             args[2] = self.__class__.op_codes[inst['args'][2]]
 
@@ -1550,7 +2022,18 @@ class QickProgram:
             List of binary instructions
 
         """
-        return [self.compile_instruction(inst, debug=debug) for inst in self.prog_list]
+        labels = {}
+        # Scan the ASM instructions for labels. Skip comment lines.
+        prog_counter = 0
+        for inst in self.prog_list:
+            if inst['name']=='comment':
+                continue
+            if 'label' in inst:
+                if inst['label'] in labels:
+                    raise RuntimeError("label used twice:", inst['label'])
+                labels[inst['label']] = prog_counter
+            prog_counter += 1
+        return [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
 
     def load_program(self, soc, debug=False, reset=False):
         """Load the compiled program into the tProcessor.
@@ -1576,7 +2059,18 @@ class QickProgram:
         *args : dict
             Instruction arguments
         """
-        self.prog_list.append({'name': name, 'args': args})
+        n_args = max([f[0] for f in self.instructions[name]['fmt']]+[-1])+1
+        if len(args)==n_args:
+            inst = {'name': name, 'args': args}
+        elif len(args)==n_args+1:
+            inst = {'name': name, 'args': args[:n_args], 'comment': args[n_args]}
+        else:
+            raise RuntimeError("wrong number of args:", name, args)
+        if self._label_next is not None:
+            # store the label with the instruction, for printing
+            inst['label'] = self._label_next
+            self._label_next = None
+        self.prog_list.append(inst)
 
     def label(self, name):
         """Add line number label to the labels dictionary. This labels the instruction by its position in the program list. The loopz and condj commands use this label information.
@@ -1586,17 +2080,9 @@ class QickProgram:
         name : str
             Label name
         """
-        self.labels[name] = len(self.prog_list)
-
-    def comment(self, comment):
-        """Dummy function used for comments.
-
-        Parameters
-        ----------
-        comment : str
-            Comment
-        """
-        pass
+        if self._label_next is not None:
+            raise RuntimeError("label already defined for the next line")
+        self._label_next = name
 
     def __getattr__(self, a):
         """
@@ -1645,25 +2131,26 @@ class QickProgram:
         str
             asm file
         """
-        if self.labels == {}:
-            max_label_len = 0
+        label_list = [inst['label'] for inst in self.prog_list if 'label' in inst]
+        if label_list:
+            max_label_len = max([len(label) for label in label_list])
         else:
-            max_label_len = max([len(label) for label in self.labels.keys()])
-        lines = []
+            max_label_len = 0
         s = "\n// Program\n\n"
-        for ii, inst in enumerate(self.prog_list):
-            # print(inst)
-            template = inst['name'] + " " + \
-                self.__class__.instructions[inst['name']]['repr'] + ";"
-            num_args = len(self.__class__.instructions[inst['name']]['fmt'])
-            line = " "*(max_label_len+2) + template.format(*inst['args'])
-            if len(inst['args']) > num_args:
-                line += " "*(48-len(line)) + "//" + inst['args'][-1]
-            lines.append(line)
-
-        for label, jj in self.labels.items():
-            lines[jj] = label + ": " + lines[jj][len(label)+2:]
+        lines = [self._inst2asm(inst, max_label_len) for inst in self.prog_list]
         return s+"\n".join(lines)
+
+    def _inst2asm(self, inst, max_label_len):
+        if inst['name']=='comment':
+            return "// "+inst['comment']
+        template = inst['name'] + " " + self.__class__.instructions[inst['name']]['repr'] + ";"
+        line = " "*(max_label_len+2) + template.format(*inst['args'])
+        if 'comment' in inst:
+            line += " "*(48-len(line)) + "//" + inst['comment']
+        if 'label' in inst:
+            label = inst['label']
+            line = label + ": " + line[len(label)+2:]
+        return line
 
     def compare_program(self, fname):
         """For debugging purposes to compare binary compilation of parse_prog with the compile.

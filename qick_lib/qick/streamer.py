@@ -96,13 +96,16 @@ class DataStreamer():
         while True:
             try:
                 # wait for a job
-                total_count, counter_addr, ch_list, reads_per_count = self.job_queue.get(block=True)
+                total_reps, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
                 #print("streamer loop: start", total_count)
 
-                count = 0
+                reps = 0
+                last_reps = 0
                 last_count = 0
-                # how many measurements to transfer at a time
-                stride = int(0.1 * self.soc.get_avg_max_length(0))
+
+                # how many reps worth of data to transfer at a time
+                if stride is None:
+                    stride = int(0.1 * self.soc.get_avg_max_length(0)/reads_per_count)
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
                 # make sure count variable is reset to 0 before starting processor
@@ -116,39 +119,39 @@ class DataStreamer():
                 self.soc.tproc.start()
 
                 # Keep streaming data until you get all of it
-                while last_count < total_count:
+                while last_reps < total_reps:
                     if self.stop_flag.is_set():
                         print("streamer loop: got stop flag")
                         break
-                    count = self.soc.tproc.single_read(
-                        addr=counter_addr)*reads_per_count
+                    reps = self.soc.tproc.single_read(addr=counter_addr)
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                    if count >= min(last_count+stride, total_count):
+                    if reps >= min(last_reps+stride, total_reps):
                         addr = last_count % self.soc.get_avg_max_length(0)
-                        length = count-last_count
+                        # transfers must be of even length; trim the length (instead of padding it)
+                        # don't trim if this is the last read of the run
+                        if reps < last_reps:
+                            newreps = (reps-last_reps) % 2
+                        else:
+                            newreps = reps-last_reps
+                        length = newreps * reads_per_count
                         if length >= self.soc.get_avg_max_length(0):
                             raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
                                                % (length, self.soc.get_avg_max_length(0)) +
                                                "\nYou need to slow down the tProc by increasing relax_delay." +
                                                "\nIf the TQDM progress bar is enabled, disabling it may help.")
-                        # transfers must be of even length; trim the length (instead of padding it)
-                        # don't trim if this is the last read of the run
-                        if count < last_count:
-                            length -= length % 2
 
                         # buffer for each channel
-                        d_buf = np.zeros((len(ch_list), 2, length))
+                        d_buf = np.zeros((len(ch_list), length, 2), dtype=np.int32)
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
-                            data = self.soc.get_accumulated(
-                                ch=ch, address=addr, length=length)
-
+                            data = self.soc.get_accumulated(ch=ch, address=addr, length=length)
                             d_buf[iCh] = data
 
+                        last_reps += newreps
                         last_count += length
 
-                        stats = (time.time()-t_start, count, addr, length)
+                        stats = (time.time()-t_start, reps, addr, length)
                         self.data_queue.put((length, (d_buf, stats)))
                 #if last_count==total_count: print("streamer loop: normal completion")
 

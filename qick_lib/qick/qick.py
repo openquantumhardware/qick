@@ -14,12 +14,7 @@ import time
 import queue
 from .parser import parse_to_bin
 from .streamer import DataStreamer
-from .qick_asm import QickConfig, QickProgram
-try:
-    from rpyc.utils.classic import obtain
-except ModuleNotFoundError:
-    def obtain(i):
-        return i
+from .qick_asm import QickConfig, QickProgram, obtain
 from .helpers import trace_net, get_fclk, BusParser
 from . import bitfile_path
 
@@ -51,7 +46,7 @@ class SocIp(DefaultIP):
         """
         try:
             index = self.REGISTERS[a]
-            self.mmio.array[index] = np.uint32(v)
+            self.mmio.array[index] = np.uint32(obtain(v))
         except KeyError:
             super().__setattr__(a, v)
 
@@ -125,9 +120,17 @@ class AbsSignalGen(SocIp):
             # what tProc output port drives this generator?
             # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
             ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
-            # might need to jump through an axis_clk_cnvrt
-            while busparser.mod2type[block] == "axis_clock_converter":
-                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            while True:
+                blocktype = busparser.mod2type[block]
+                if blocktype == "axis_tproc64x32_x8": # we're done
+                    break
+                elif blocktype == "axis_clock_converter":
+                    ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+                elif blocktype == "axis_cdcsync_v1":
+                    # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                    ((block, port),) = trace_net(busparser, block, "s"+port[1:])
+                else:
+                    raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
             # port names are of the form 'm2_axis_tdata'
             # subtract 1 to get the output channel number (m0 goes to the DMA)
             self.tproc_ch = int(port.split('_')[0][1:])-1
@@ -143,26 +146,27 @@ class AbsSignalGen(SocIp):
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # might need to jump through an axis_register_slice
         while True:
-            if busparser.mod2type[block] == "axis_register_slice":
-                ((block, port),) = trace_net(busparser, block, "M_AXIS")
-            elif busparser.mod2type[block] == "axis_register_slice_nb":
-                ((block, port),) = trace_net(busparser, block, "m_axis")
-            else: # hopefully we found the data converter
+            blocktype = busparser.mod2type[block]
+            if blocktype == "usp_rf_data_converter": # we're done
                 break
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, "M_AXIS")
+            elif blocktype == "axis_register_slice_nb":
+                ((block, port),) = trace_net(busparser, block, "m_axis")
+            else:
+                raise RuntimeError("failed to trace RFDC port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
         #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
 
     # Load waveforms.
-    def load(self, xin_i, xin_q, addr=0):
+    def load(self, xin, addr=0):
         """
         Load waveform into I,Q envelope
 
-        :param xin_i: real part of envelope
-        :type xin_i: list
-        :param xin_q: imaginary part of envelope
-        :type xin_q: list
+        :param xin: array of (I, Q) values for pulse envelope
+        :type xin: int16 array
         :param addr: starting address
         :type addr: int
         """
@@ -170,40 +174,29 @@ class AbsSignalGen(SocIp):
             raise NotImplementedError(
                 "This generator does not support waveforms.")
 
-        # Check for equal length.
-        if len(xin_i) != len(xin_q):
-            raise RuntimeError("%s: I/Q buffers must be the same length." %
-                  self.__class__.__name__)
-
-        length = len(xin_i)
+        length = xin.shape[0]
+        assert xin.dtype==np.int16
 
         # Check for max length.
-        if length > self.MAX_LENGTH:
+        if length+addr > self.MAX_LENGTH:
             raise RuntimeError("%s: buffer length must be %d samples or less." %
                   (self.__class__.__name__, self.MAX_LENGTH))
 
         # Check for even transfer size.
-        #if len(xin_i) % 2 != 0:
+        #if length % 2 != 0:
         #    raise RuntimeError("Buffer transfer length must be even number.")
-
-        # Pack the data into a single array; columns will be concatenated
-        # -> lower 16 bits: I value.
-        # -> higher 16 bits: Q value.
-        xin = np.stack((xin_i, xin_q), axis=1)
-
-        # Check for max value.
-        if np.max(np.abs(xin)) > self.MAXV:
-            raise ValueError(
-                "max magnitude of envelope (%d) exceeds limit of datatype (%d)" % (np.max(np.abs(xin)), self.MAXV))
 
         # Route switch to channel.
         self.switch.sel(mst=self.switch_ch)
 
         #print(self.fullpath, xin.shape, addr, self.switch_ch)
 
+        # Pack the data into a single array; columns will be concatenated
+        # -> lower 16 bits: I value.
+        # -> higher 16 bits: Q value.
         # Format and copy data.
         np.copyto(self.buff[:length],
-                np.frombuffer(xin.astype(np.int16), dtype=np.int32))
+                np.frombuffer(xin, dtype=np.int32))
 
         ################
         ### Load I/Q ###
@@ -615,6 +608,9 @@ class AxisReadoutV2(SocIp):
     # Bits of DDS.
     B_DDS = 32
 
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
     def __init__(self, description):
         """
         Constructor method
@@ -762,6 +758,9 @@ class AxisPFBReadoutV2(SocIp):
     # index of the PFB channel that is centered around DC.
     CH_OFFSET = 4
 
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
     def __init__(self, description):
         """
         Constructor method
@@ -876,6 +875,70 @@ class AxisPFBReadoutV2(SocIp):
         # set the PFB channel's DDS frequency
         setattr(self, "freq%d_reg"%(in_ch), f_int)
 
+class AxisReadoutV3():
+    """tProc-controlled readout block.
+    This isn't a PYNQ driver, since the block has no registers for PYNQ control.
+    We still need this class to represent the block and its connectivity.
+    """
+    # Bits of DDS.
+    B_DDS = 32
+
+    def __init__(self, fullpath):
+        self.fullpath = fullpath
+        self.type = "axis_readout_v3"
+
+    # Configure this driver with the sampling frequency.
+    def configure(self, fs):
+        # Sampling frequency.
+        self.fs = fs
+
+    def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
+        # what tProc output port controls this readout?
+        ((block, port),) = trace_net(busparser, self.fullpath, 's0_axis')
+        while True:
+            blocktype = busparser.mod2type[block]
+            if blocktype == "axis_tproc64x32_x8": # we're done
+                break
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            elif blocktype == "axis_cdcsync_v1":
+                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                ((block, port),) = trace_net(busparser, block, "s"+port[1:])
+            else:
+                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what RFDC port drives this readout?
+        ((block, port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        while True:
+            blocktype = busparser.mod2type[block]
+            if blocktype == "usp_rf_data_converter": # we're done
+                break
+            elif blocktype == "axis_resampler_2x1_v1":
+                ((block, port),) = trace_net(busparser, block, 's_axis')
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            else:
+                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        if soc.hs_adc:
+            iBlock //= 2
+        self.adc = "%d%d" % (iTile, iBlock)
+
+        # what buffer does this readout drive?
+        ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        self.buffer = getattr(soc, block)
+
+        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
+
 class AxisAvgBuffer(SocIp):
     """
     AxisAvgBuffer class
@@ -976,9 +1039,17 @@ class AxisAvgBuffer(SocIp):
     def configure_connections(self, soc, sigparser, busparser):
         # which readout drives this buffer?
         ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
-        self.readout = getattr(soc, block)
-        # port names are of the form 'm1_axis'
-        self.readoutport = int(port.split('_')[0][1:], 10)
+        blocktype = busparser.mod2type[block]
+        if blocktype == "axis_readout_v3":
+            # the V3 readout block has no registers, so it doesn't get a PYNQ driver
+            # so we initialize it here
+            self.readout = AxisReadoutV3(block)
+            self.readout.configure_connections(soc, sigparser, busparser)
+        else:
+            self.readout = getattr(soc, block)
+            if blocktype == "axis_pfb_readout_v2":
+                # port names are of the form 'm1_axis'
+                self.readoutport = int(port.split('_')[0][1:], 10)
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm0_axis')
@@ -1110,11 +1181,11 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFFFFFF
-        dataQ = data >> 32
+        data = np.frombuffer(buff[:length], dtype=np.int32).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int32)
+        # data is a view into the data buffer, so copy it before returning
+
+        return data.copy()
 
     def enable_avg(self):
         """
@@ -1190,11 +1261,10 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = buff[:length]
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
+        data = np.frombuffer(buff[:length], dtype=np.int16).reshape((-1,2))
 
-        return np.stack((dataI, dataQ)).astype(np.int16)
+        # data is a view into the data buffer, so copy it before returning
+        return data.copy()
 
     def enable_buf(self):
         """
@@ -1253,29 +1323,18 @@ class MrBufferEt(SocIp):
         # Route switch to channel.
         self.switch.sel(slv=ch)
 
-    def capture(self):
-        self.dw_capture_reg = 1
-        time.sleep(1)
-        self.dw_capture_reg = 0
-
-    def transfer(self):
+    def transfer(self, buff=None):
+        if buff is None:
+            buff = self.buff
         # Start send data mode.
         self.dr_start_reg = 1
 
         # DMA data.
-        buff = self.buff
         self.dma.recvchannel.transfer(buff)
         self.dma.recvchannel.wait()
 
         # Stop send data mode.
         self.dr_start_reg = 0
-
-        # Format:
-        # -> lower 16 bits: I value.
-        # -> higher 16 bits: Q value.
-        data = buff
-        dataI = data & 0xFFFF
-        dataQ = data >> 16
 
         return buff
 
@@ -1826,6 +1885,10 @@ class QickSoc(Overlay, QickConfig):
             elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
 
+        for buf in self.avg_bufs:
+            if buf.readout not in self.readouts:
+                self.readouts.append(buf.readout)
+
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
         #TODO: bring back?
         #if len(self.readouts) != len(self.avg_bufs):
@@ -1887,6 +1950,8 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
             thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
             thiscfg['b_dds'] = buf.readout.B_DDS
+            thiscfg['ro_type'] = buf.readout.type
+            thiscfg['tproc_ctrl'] = buf.readout.tproc_ch
             thiscfg['adc'] = buf.readout.adc
             thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
             thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
@@ -2067,7 +2132,7 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].BUF_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2].astype(float)
+        return data[2:length+2]
 
     def get_accumulated(self, ch, address=0, length=None):
         """
@@ -2097,17 +2162,20 @@ class QickSoc(Overlay, QickConfig):
             (address-2) % self.avg_bufs[ch].AVG_MAX_LENGTH, transfer_len+2)
 
         # we remove the padding here
-        return data[:, 2:length+2]
+        return data[2:length+2]
 
     def init_readouts(self):
         """
         Initialize readouts, in preparation for configuring them.
         """
         for readout in self.readouts:
-            readout.initialize()
+            # if this is a tProc-controlled readout, we don't initialize it here
+            if not isinstance(readout, AxisReadoutV3):
+                readout.initialize()
 
     def configure_readout(self, ch, output, frequency, gen_ch=0):
-        """Configure readout channel output style and frequency
+        """Configure readout channel output style and frequency.
+        This method is only for use with PYNQ-controlled readouts.
         :param ch: Channel to configure
         :type ch: int
         :param output: output type from 'product', 'dds', 'input'
@@ -2117,8 +2185,9 @@ class QickSoc(Overlay, QickConfig):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        self.avg_bufs[ch].readout.set_out(sel=output)
-        self.avg_bufs[ch].set_freq(frequency, gen_ch=gen_ch)
+        buf = self.avg_bufs[ch]
+        buf.readout.set_out(sel=output)
+        buf.set_freq(frequency, gen_ch=gen_ch)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -2161,18 +2230,16 @@ class QickSoc(Overlay, QickConfig):
         """
         return self['readouts'][ch]['avg_maxlen']
 
-    def load_pulse_data(self, ch, idata, qdata, addr):
+    def load_pulse_data(self, ch, data, addr):
         """Load pulse data into signal generators
         :param ch: Channel
         :type ch: int
-        :param idata: data for ichannel
-        :type idata: ndarray(dtype=int16)
-        :param qdata: data for qchannel
-        :type qdata: ndarray(dtype=int16)
+        :param data: array of (I, Q) values for pulse envelope
+        :type data: int16 array
         :param addr: address to start data at
         :type addr: int
         """
-        return self.gens[ch].load(xin_i=idata, xin_q=qdata, addr=addr)
+        return self.gens[ch].load(xin=data, addr=addr)
 
     def set_nyquist(self, ch, nqz, force=False):
         """
@@ -2296,7 +2363,7 @@ class QickSoc(Overlay, QickConfig):
         prog.load_program(self, reset=True)
         self.tproc.start()
 
-    def start_readout(self, total_count, counter_addr=1, ch_list=None, reads_per_count=1):
+    def start_readout(self, total_reps, counter_addr=1, ch_list=None, reads_per_rep=1, stride=None):
         """
         Start a streaming readout of the accumulated buffers.
 
@@ -2308,7 +2375,10 @@ class QickSoc(Overlay, QickConfig):
         :type ch_list: list
         :param reads_per_count: Number of data points to expect per counter increment
         :type reads_per_count: int
+        :param stride: Default number of measurements to transfer at a time.
+        :type stride: int
         """
+        ch_list = obtain(ch_list)
         if ch_list is None: ch_list = [0, 1]
         streamer = self.streamer
 
@@ -2340,11 +2410,11 @@ class QickSoc(Overlay, QickConfig):
             self.poll_data(totaltime=-1, timeout=0.1)
             print("buffer cleared")
 
-        streamer.total_count = total_count
+        streamer.total_count = total_reps*reads_per_rep
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((total_count, counter_addr, ch_list, reads_per_count))
+        streamer.job_queue.put((total_reps, counter_addr, ch_list, reads_per_rep, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """
