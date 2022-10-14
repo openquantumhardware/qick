@@ -7,12 +7,10 @@ import json
 import tempfile
 import sys
 import time
-#from oauthlib.oauth2 import DeviceClient
 #from qick import QickSoc
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from configparser import ConfigParser
-
 
 class DummySoc:
     def __init__(self):
@@ -28,14 +26,36 @@ class DummySoc:
     def dump_cfg(self):
         return json.dumps(self._cfg, indent=4)
 
+class RefetchSession(OAuth2Session):
+    # requests-oauthlib doesn't support automatically requesting a new token in the "client credentials" flow:
+    # https://stackoverflow.com/questions/58697334/requests-oauthlib-auto-refresh-bearer-token-in-client-credentials-flow
+    # this workaround is based on this:
+    # https://github.com/requests/requests-oauthlib/issues/260
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # define a no-op token_updater
+        self.token_updater = lambda token: None
+
+    def fetch_token(self, token_url, **kwargs):
+        # cache the client secret (which is normally not stored)
+        self._client_secret = kwargs['client_secret']
+        # copy token_url to auto_refresh_url (which could be passed in the constructor, but this is easier)
+        self.auto_refresh_url = token_url
+        return super().fetch_token(token_url, **kwargs)
+
+    def refresh_token(self, token_url, **kwargs):
+        # use the previously cached client secret to fetch a fresh token
+        return super().fetch_token(token_url, client_id=self.client_id, client_secret=self._client_secret)
+
+
 class QickClient:
 
     def __init__(self, name, api):
         self.name = name
         self.api = api
-        self.cred_path = "/home/xilinx/.qick/credentials"
+        self.session = requests
         self.cfg_path = "/etc/qick/config"
-        self.headers = {"Authorization": f"Bearer {self._get_auth_token()}"}
+        self.cred_path = "/etc/qick/credentials"
         self.status = "ONLINE"
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
         #self.soc = QickSoc()
@@ -46,56 +66,69 @@ class QickClient:
         clientcfg = ConfigParser()
         clientcfg.read(self.cfg_path)
 
-        token_url = clientcfg['credentials']['token_url']
-        # the OAuth ID is also used as the device ID
-        self.id = clientcfg['credentials']['id']
-        client_secret = clientcfg['credentials']['secret']
+        credcfg = ConfigParser()
+        credcfg.read(self.cred_path)
 
+        if self.api is None:
+            self.api = clientcfg['service']['api_url']
+            token_url = clientcfg['service']['auth_url']
 
-        oauth_client = BackendApplicationClient(client_id=self.id)
-        self.session = OAuth2Session(client=oauth_client)
-        token = self.session.fetch_token(token_url=token_url, client_id=self.id,
-                        client_secret=client_secret)
-        print(token)
-        print(token.keys())
+            # the OAuth ID is also used as the device ID
+            self.id = credcfg['credentials']['id']
+            client_secret = credcfg['credentials']['secret']
 
-        self.api_url = clientcfg['api']['url']
+            oauth_client = BackendApplicationClient(client_id=self.id)
+            self.session = RefetchSession(client=oauth_client)
+            token = self.session.fetch_token(token_url=token_url, client_id=self.id,
+                            client_secret=client_secret)
+            logging.info(f"Got OAuth2 token, expires in {token['expires_in']} seconds")
+            #force a token refetch
+            #oauth_client._expires_at -= 3700
 
-        rsp = self.session.get(self.api_url + '/devicework')
-        print(rsp.json())
-        data = {
-            "DeviceStatus": self.status
-            }
-        print(json.dumps(data))
-        rsp = self.session.put(self.api_url + '/devices/' + self.id, data=json.dumps(data))
-        print(rsp.json())
-
-    def _get_auth_token(self):
-        with open(self.cred_path) as f:
-            return f.read().strip()
 
     def update_status(self):
-        with open(self.cfg_path) as f:
-            config_data = f.read()
         data = {
-            "DeviceId": self.name,
-            "DeviceStatus": self.status,
-            "DeviceData": config_data,
-            "DeviceConfig": self.soccfg,
+            "DeviceStatus": self.status
         }
-        requests.put(self.api + "/UpdateDevice", data=data, headers=self.headers)
-        logging.info(f"Updated status: {data}")
+        rsp = self.session.put(self.api + "/devices/" + self.id, json=data)
+        if rsp.status_code == 200:
+            logging.info(f"UpdateDevice request: {data}")
+            logging.info(f"UpdateDevice response: {rsp.json()}")
+
+            # TODO: not sure what UploadUrl is for
+            if False:
+                uploadurl = rsp.json()['UploadUrl']
+                rsp2 = requests.put(uploadurl, data=b'test upload', headers={'Content-Type': 'application/octet-stream'})
+                logging.info(f"test upload response: {rsp2.status_code}")
+
+            # TODO: GetDevice gives 401 error
+            if False:
+                rsp = self.session.get(self.api + '/devices/' + self.id)
+                print(rsp.status_code)
 
     def get_workload(self):
-        rsp = requests.get(self.api + "/GetDeviceWork", headers=self.headers)
-        if rsp.json():
-            logging.info(f"Got work {rsp.json()['WorkId']}")
-            return {
-                "id": rsp.json()["WorkId"],
-                "workload": requests.get(rsp.json()["WorkloadUrl"]),
-                "upload": rsp.json()["UploadUrl"],
-                "timeout": self.timeout
-            }
+        rsp = self.session.get(self.api + "/devicework")
+        if rsp.status_code == 200:
+            logging.info(f"GetDeviceWork response: {rsp.json()}")
+            rsp = rsp.json()
+
+            workid = rsp['WorkId']
+            logging.info(f"Got work {workid}")
+            workurl = rsp['WorkloadUrl']
+
+            try:
+                rsp_s3get = requests.get(workurl)
+                if rsp_s3get.status_code == 200:
+                    workload = rsp_s3get.content
+                    return {
+                        "id": workid,
+                        "workload": workload,
+                        "upload": None
+                    }
+            except Exception as e:
+                print(e)
+                return None
+
         return None
 
     def start_workload(self, workload):
@@ -111,20 +144,25 @@ class QickClient:
         return
         
     def is_work_canceled(self, work_id):
-        rsp = requests.get(self.api + "/IsWorkCanceled", headers=self.headers)
-        return rsp.json().get("IsCanceled")
+        # not yet implemented on the service
+        return False
+        #rsp = requests.get(self.api + "/IsWorkCanceled")
+        #return rsp.json().get("IsCanceled")
 
     def upload_results(self, url):
         self.resultsfile.seek(0)
-        requests.post(url, data=self.resultsfile.read())
+        # TODO: figure out upload flow
+        if url is not None:
+            requests.post(url, data=self.resultsfile.read())
+            logging.info("Uploaded results")
         self.resultsfile.close()
-        logging.info("Uploaded results")
     
 if __name__ == "__main__":
-    logging.getLogger().setLevel(logging.DEBUG)
+    #logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("name", type=str, help="client name or device ID")
-    parser.add_argument("api", type=str, help="URL of API endpoint")
+    parser.add_argument("--api", type=str, default=None, help="URL of API endpoint")
     parser.add_argument("-n", dest='interval', type=float, default=5.0, help="polling interval")
     args = parser.parse_args()
 
