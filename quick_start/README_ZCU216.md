@@ -72,7 +72,15 @@ This guide will show you how to set up QICK after configuring your computer and 
 
 * Connect your Ethernet cable from a router LAN port to the ZCU216 Ethernet port. 
 * Power up your router (note that you may have to contact your system administrator to register your router's MAC address to a wall outlet in your building/laboratory).  
-* Connect the 12 V power cable to the ZCU216. Flip the ZCU216 power switch on (it's next to the power cable). You should hear the fan above the RFSOC chip begin to whir and you should see green LED lights blinking all over the board. You should also see a green LED blinking repeatedly above the ZCU216 Ethernet port to signal that it is connected to the router's network. 
+* Connect the 12 V power cable to the ZCU216. Flip the ZCU216 power switch on (it's next to the power cable). You should hear the fan above the RFSOC chip begin to whir and you should see green LED lights blinking all over the board. You should also see a green LED blinking repeatedly above the ZCU216 Ethernet port to signal that it is connected to the router's network. Note that at this point, you should see the 3 LEDs be as follows:
+
+`PS_LED = flashing green`
+
+`DONE LED = off`
+
+`INT_B LED = red`
+
+It is only after you initialize the QICK firmware that the FPGA has been loaded with its bitstream, so it makes sense that those LEDs are that "unfinished" color since you haven't loaded the firmware onto the FPGA yet. However, the RFSOC processor is running and so you can at this point connect to it via its IP address. So every single time you boot the RFSOC board you will see those same LED patterns that you describe, that is normal. The firmware is loaded later, using the QICK software, every time. The RFSOC processor (which runs Linux and has an IP address like a normal computer) is separate from the RFSOC FPGA. Once you see those LEDs, proceed to the next step.
 
 ### Finding your RFSOC on the router's network
 * In the last section, you powered your router on and you connected your ZCU216 board via an Ethernet cable to one of the router's LAN ports. You verified that a green LED was blinking repeatedly above the ZCU216 Ethernet port. 
