@@ -1076,7 +1076,7 @@ class QickProgram:
 
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) for iCh, ch in enumerate(soccfg['readouts']) if ch['tproc_ctrl'] is not None]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if ch['tproc_ctrl'] is not None else None for iCh, ch in enumerate(soccfg['readouts'])]
 
 
     def dump_prog(self):
