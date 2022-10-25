@@ -120,9 +120,17 @@ class AbsSignalGen(SocIp):
             # what tProc output port drives this generator?
             # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
             ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
-            # might need to jump through an axis_clk_cnvrt
-            while busparser.mod2type[block] == "axis_clock_converter":
-                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            while True:
+                blocktype = busparser.mod2type[block]
+                if blocktype == "axis_tproc64x32_x8": # we're done
+                    break
+                elif blocktype == "axis_clock_converter":
+                    ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+                elif blocktype == "axis_cdcsync_v1":
+                    # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                    ((block, port),) = trace_net(busparser, block, "s"+port[1:])
+                else:
+                    raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
             # port names are of the form 'm2_axis_tdata'
             # subtract 1 to get the output channel number (m0 goes to the DMA)
             self.tproc_ch = int(port.split('_')[0][1:])-1
@@ -138,12 +146,15 @@ class AbsSignalGen(SocIp):
         ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
         # might need to jump through an axis_register_slice
         while True:
-            if busparser.mod2type[block] == "axis_register_slice":
-                ((block, port),) = trace_net(busparser, block, "M_AXIS")
-            elif busparser.mod2type[block] == "axis_register_slice_nb":
-                ((block, port),) = trace_net(busparser, block, "m_axis")
-            else: # hopefully we found the data converter
+            blocktype = busparser.mod2type[block]
+            if blocktype == "usp_rf_data_converter": # we're done
                 break
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, "M_AXIS")
+            elif blocktype == "axis_register_slice_nb":
+                ((block, port),) = trace_net(busparser, block, "m_axis")
+            else:
+                raise RuntimeError("failed to trace RFDC port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -597,6 +608,9 @@ class AxisReadoutV2(SocIp):
     # Bits of DDS.
     B_DDS = 32
 
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
     def __init__(self, description):
         """
         Constructor method
@@ -744,6 +758,9 @@ class AxisPFBReadoutV2(SocIp):
     # index of the PFB channel that is centered around DC.
     CH_OFFSET = 4
 
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
     def __init__(self, description):
         """
         Constructor method
@@ -858,6 +875,70 @@ class AxisPFBReadoutV2(SocIp):
         # set the PFB channel's DDS frequency
         setattr(self, "freq%d_reg"%(in_ch), f_int)
 
+class AxisReadoutV3():
+    """tProc-controlled readout block.
+    This isn't a PYNQ driver, since the block has no registers for PYNQ control.
+    We still need this class to represent the block and its connectivity.
+    """
+    # Bits of DDS.
+    B_DDS = 32
+
+    def __init__(self, fullpath):
+        self.fullpath = fullpath
+        self.type = "axis_readout_v3"
+
+    # Configure this driver with the sampling frequency.
+    def configure(self, fs):
+        # Sampling frequency.
+        self.fs = fs
+
+    def configure_connections(self, soc, sigparser, busparser):
+        self.soc = soc
+
+        # what tProc output port controls this readout?
+        ((block, port),) = trace_net(busparser, self.fullpath, 's0_axis')
+        while True:
+            blocktype = busparser.mod2type[block]
+            if blocktype == "axis_tproc64x32_x8": # we're done
+                break
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            elif blocktype == "axis_cdcsync_v1":
+                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                ((block, port),) = trace_net(busparser, block, "s"+port[1:])
+            else:
+                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        # port names are of the form 'm2_axis_tdata'
+        # subtract 1 to get the output channel number (m0 goes to the DMA)
+        self.tproc_ch = int(port.split('_')[0][1:])-1
+
+        # what RFDC port drives this readout?
+        ((block, port),) = trace_net(busparser, self.fullpath, 's1_axis')
+        while True:
+            blocktype = busparser.mod2type[block]
+            if blocktype == "usp_rf_data_converter": # we're done
+                break
+            elif blocktype == "axis_resampler_2x1_v1":
+                ((block, port),) = trace_net(busparser, block, 's_axis')
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = trace_net(busparser, block, 'S_AXIS')
+            else:
+                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        if soc.hs_adc:
+            iBlock //= 2
+        self.adc = "%d%d" % (iTile, iBlock)
+
+        # what buffer does this readout drive?
+        ((block, port),) = trace_net(busparser, self.fullpath, 'm_axis')
+        self.buffer = getattr(soc, block)
+
+        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
+
 class AxisAvgBuffer(SocIp):
     """
     AxisAvgBuffer class
@@ -958,9 +1039,17 @@ class AxisAvgBuffer(SocIp):
     def configure_connections(self, soc, sigparser, busparser):
         # which readout drives this buffer?
         ((block, port),) = trace_net(busparser, self.fullpath, 's_axis')
-        self.readout = getattr(soc, block)
-        # port names are of the form 'm1_axis'
-        self.readoutport = int(port.split('_')[0][1:], 10)
+        blocktype = busparser.mod2type[block]
+        if blocktype == "axis_readout_v3":
+            # the V3 readout block has no registers, so it doesn't get a PYNQ driver
+            # so we initialize it here
+            self.readout = AxisReadoutV3(block)
+            self.readout.configure_connections(soc, sigparser, busparser)
+        else:
+            self.readout = getattr(soc, block)
+            if blocktype == "axis_pfb_readout_v2":
+                # port names are of the form 'm1_axis'
+                self.readoutport = int(port.split('_')[0][1:], 10)
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = trace_net(busparser, self.fullpath, 'm0_axis')
@@ -1796,6 +1885,10 @@ class QickSoc(Overlay, QickConfig):
             elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
 
+        for buf in self.avg_bufs:
+            if buf.readout not in self.readouts:
+                self.readouts.append(buf.readout)
+
         # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
         #TODO: bring back?
         #if len(self.readouts) != len(self.avg_bufs):
@@ -1857,9 +1950,14 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
             thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
             thiscfg['b_dds'] = buf.readout.B_DDS
+            thiscfg['ro_type'] = buf.readout.type
+            thiscfg['tproc_ctrl'] = buf.readout.tproc_ch
             thiscfg['adc'] = buf.readout.adc
             thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
             thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
+            if thiscfg['ro_type'] == 'axis_readout_v3':
+                # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
+                thiscfg['f_fabric'] *= 2
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
@@ -2074,10 +2172,13 @@ class QickSoc(Overlay, QickConfig):
         Initialize readouts, in preparation for configuring them.
         """
         for readout in self.readouts:
-            readout.initialize()
+            # if this is a tProc-controlled readout, we don't initialize it here
+            if not isinstance(readout, AxisReadoutV3):
+                readout.initialize()
 
     def configure_readout(self, ch, output, frequency, gen_ch=0):
-        """Configure readout channel output style and frequency
+        """Configure readout channel output style and frequency.
+        This method is only for use with PYNQ-controlled readouts.
         :param ch: Channel to configure
         :type ch: int
         :param output: output type from 'product', 'dds', 'input'
@@ -2087,8 +2188,9 @@ class QickSoc(Overlay, QickConfig):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        self.avg_bufs[ch].readout.set_out(sel=output)
-        self.avg_bufs[ch].set_freq(frequency, gen_ch=gen_ch)
+        buf = self.avg_bufs[ch]
+        buf.readout.set_out(sel=output)
+        buf.set_freq(frequency, gen_ch=gen_ch)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer

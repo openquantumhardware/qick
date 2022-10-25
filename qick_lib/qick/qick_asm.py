@@ -1,10 +1,12 @@
 """
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
+import logging
 from typing import Union, Literal
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
+from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from .helpers import gauss, triang, DRAG, NpEncoder
@@ -18,6 +20,7 @@ except ModuleNotFoundError:
 RegisterType = Literal["freq", "time", "phase", "adc_freq"]
 DefaultUnits = {"freq": "MHz", "time": "us", "phase": "deg", "adc_freq": "MHz"}
 MathOperatorType = Literal["+", "-", "*"]
+logger = logging.getLogger(__name__)
 
 class QickConfig():
     """Uses the QICK configuration to convert frequencies and clock delays.
@@ -69,8 +72,8 @@ class QickConfig():
 
         lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
         for iGen, gen in enumerate(self['gens']):
-            lines.append("\t%d:\t%s - tProc output %d, switch ch %d, maxlen %d" %
-                         (iGen, gen['type'], gen['tproc_ch'], gen['switch_ch'], gen['maxlen']))
+            lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
+                         (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
 
@@ -82,8 +85,12 @@ class QickConfig():
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            lines.append("\t%d:\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (iReadout, *readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+            if readout['tproc_ctrl'] is None:
+                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+            else:
+                lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
+            lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -117,7 +124,7 @@ class QickConfig():
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 
-        lines.append("\n\ttProc: %d words program memory, %d words data memory" %
+        lines.append("\n\ttProc: program memory %d words, data memory %d words" %
                 (tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
@@ -154,7 +161,7 @@ class QickConfig():
         return json.dumps(self._cfg, indent=4)
 
     def calc_fstep(self, dict1, dict2):
-        """Finds the least common multiple of the frequency steps of two channels (typically a DAC and ADC)
+        """Finds the least common multiple of the frequency steps of two channels (typically a generator and readout)
 
         Parameters
         ----------
@@ -184,7 +191,7 @@ class QickConfig():
         return refclk * mult_lcm / 2**b_max
 
     def roundfreq(self, f, dict1, dict2):
-        """Round a frequency to the LCM of the frequency steps of two channels (typically a DAC and ADC).
+        """Round a frequency to the LCM of the frequency steps of two channels (typically a generator and readout).
 
         Parameters
         ----------
@@ -206,8 +213,8 @@ class QickConfig():
 
     def freq2int(self, f, thisch, otherch=None):
         """Converts frequency in MHz to integer value suitable for writing to a register.
-        This method works for both DACs and ADCs.
-        If a DAC will be connected to an ADC, the two channels must have exactly the same frequency, and you must supply the config for the other channel.
+        This method works for both generators and readouts.
+        If a gen will be connected to an RO, the two channels must have exactly the same frequency, and you must supply the config for the other channel.
 
         Parameters
         ----------
@@ -233,7 +240,7 @@ class QickConfig():
 
     def int2freq(self, r, thisch):
         """Converts register value to MHz.
-        This method works for both DACs and ADCs.
+        This method works for both generators and readouts.
 
         Parameters
         ----------
@@ -251,16 +258,16 @@ class QickConfig():
         return r * thisch['fs'] / 2**thisch['b_dds']
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
-        """Converts frequency in MHz to tProc DAC register value.
+        """Converts frequency in MHz to tProc generator register value.
 
         Parameters
         ----------
         f : float
             frequency (MHz)
         gen_ch : int
-            DAC channel
+            generator channel
         ro_ch : int
-            readout channel (use None if you don't want to frequency-match to an ADC)
+            readout channel (use None if you don't want to frequency-match to a readout)
 
         Returns
         -------
@@ -280,7 +287,7 @@ class QickConfig():
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
     def freq2reg_adc(self, f, ro_ch=0, gen_ch=None):
-        """Converts frequency in MHz to ADC register value.
+        """Converts frequency in MHz to readout register value.
 
         Parameters
         ----------
@@ -289,7 +296,7 @@ class QickConfig():
         ro_ch : int
             readout channel
         gen_ch : int
-            DAC channel (use None if you don't want to frequency-match to a DAC)
+            generator channel (use None if you don't want to frequency-match to a generator)
 
         Returns
         -------
@@ -304,14 +311,14 @@ class QickConfig():
         return self.freq2int(f, self['readouts'][ro_ch], gencfg)
 
     def reg2freq(self, r, gen_ch=0):
-        """Converts frequency from format readable by tProc DAC to MHz.
+        """Converts frequency from format readable by generator to MHz.
 
         Parameters
         ----------
         r : int
-            frequency in tProc DAC format
+            frequency in generator format
         gen_ch : int
-            DAC channel
+            generator channel
 
         Returns
         -------
@@ -322,14 +329,14 @@ class QickConfig():
         return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['fs']
 
     def reg2freq_adc(self, r, ro_ch=0):
-        """Converts frequency from format readable by tProc ADC to MHz.
+        """Converts frequency from format readable by readout to MHz.
 
         Parameters
         ----------
         r : int
-            frequency in tProc ADC format
+            frequency in readout format
         ro_ch : int
-            ADC channel
+            readout channel
 
         Returns
         -------
@@ -347,7 +354,7 @@ class QickConfig():
         f : float
             frequency (MHz)
         gen_ch : int
-            DAC channel
+            generator channel
         ro_ch : int
             readout channel
 
@@ -367,7 +374,7 @@ class QickConfig():
         deg : float
             Number of degrees
         gen_ch : int
-             DAC channel (index in 'gens' list)
+             generator channel (index in 'gens' list)
 
         Returns
         -------
@@ -390,7 +397,7 @@ class QickConfig():
         reg : int
             Re-formatted number of degrees
         gen_ch : int
-             DAC channel (index in 'gens' list)
+             generator channel (index in 'gens' list)
 
         Returns
         -------
@@ -408,16 +415,16 @@ class QickConfig():
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
         Uses tProc clock frequency by default.
-        If gen_ch or ro_ch is specified, uses that DAC/ADC channel's fabric clock.
+        If gen_ch or ro_ch is specified, uses that generator/readout channel's fabric clock.
 
         Parameters
         ----------
         cycles : int
             Number of clock cycles
         gen_ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         ro_ch : int
-            ADC channel (index in 'readouts' list)
+            readout channel (index in 'readouts' list)
 
         Returns
         -------
@@ -438,16 +445,16 @@ class QickConfig():
     def us2cycles(self, us, gen_ch=None, ro_ch=None):
         """Converts microseconds to integer number of clock cycles.
         Uses tProc clock frequency by default.
-        If gen_ch or ro_ch is specified, uses that DAC/ADC channel's fabric clock.
+        If gen_ch or ro_ch is specified, uses that generator/readout channel's fabric clock.
 
         Parameters
         ----------
         us : float
             Number of microseconds
         gen_ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         ro_ch : int
-            ADC channel (index in 'readouts' list)
+            readout channel (index in 'readouts' list)
 
         Returns
         -------
@@ -465,27 +472,214 @@ class QickConfig():
             fclk = self['fs_proc']
         return np.int64(np.round(obtain(us)*fclk))
 
-class AbsGenManager:
-    """Generic class for signal generator managers.
-    Manages the envelope and pulse information for a signal generator channel.
+class AbsRegisterManager(ABC):
+    """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
-    def __init__(self, prog, ch):
+    def __init__(self, prog, tproc_ch, ch_name):
         self.prog = prog
-        self.ch = ch
-        self.gencfg = prog.soccfg['gens'][ch]
-        self.samps_per_clk = self.gencfg['samps_per_clk']
-        self.rp = prog.ch_page(ch)
+        # the tProc output channel controlled by this manager
+        self.tproc_ch = tproc_ch
+        # the name of this block (for messages)
+        self.ch_name = ch_name
+        # the register page used by this manager
+        self.rp = prog._ch_page_tproc(tproc_ch)
+        # default parameters
         self.defaults = {}
+        # registers that are fully defined by the default parameters
         self.default_regs = set()
+        # the registers to be used in the next "set" command
+        self.next_pulse = None
+
+    def set_reg(self, name, val, comment=None, defaults=False):
+        """Wrapper around regwi.
+        Looks up the register name and keeps track of whether the register already has a default value.
+
+        Parameters
+        ----------
+        name : str
+            Register name
+        val : int
+            Register value
+        comment : str
+            Comment to be printed in ASM output
+        defaults : bool
+            This is a default value, which doesn't need to be rewritten for every pulse
+
+        """
+        if defaults:
+            self.default_regs.add(name)
+        elif name in self.default_regs:
+            # this reg was already written, so we skip it this time
+            return
+        r = self.prog._sreg_tproc(self.tproc_ch, name)
+        if comment is None: comment = f'{name} = {val}'
+        self.prog.safe_regwi(self.rp, r, val, comment)
+
+    def set_defaults(self, kwargs):
+        """Set default values for parameters.
+        This is called by QickProgram.set_default_registers().
+
+        Parameters
+        ----------
+        kwargs : dict
+            Parameter values
+
+        """
+        if self.defaults:
+            # complain if the default parameter dict is not empty
+            raise RuntimeError("%s already has a set of default parameters"%(self.ch_name))
+        self.defaults = kwargs
+        self.write_regs(kwargs, defaults=True)
+
+    def set_registers(self, kwargs):
+        """Set pulse parameters.
+        This is called by QickProgram.set_pulse_registers().
+
+        Parameters
+        ----------
+        kwargs : dict
+            Parameter values
+
+        """
+        if not self.defaults.keys().isdisjoint(kwargs):
+            raise RuntimeError("these params were set for {0} both in default_pulse_registers and set_pulse_registers: {1}".format(self.ch_name, self.defaults.keys() & kwargs.keys()))
+        merged = {**self.defaults, **kwargs}
+        # check the final param set for validity
+        self.check_params(merged)
+        self.write_regs(merged, defaults=False)
+
+    @abstractmethod
+    def check_params(self, params):
+        ...
+
+    @abstractmethod
+    def write_regs(self, params, defaults):
+        ...
+
+class ReadoutManager(AbsRegisterManager):
+    """Manages the frequency and mode registers for a tProc-controlled readout channel.
+    """
+    PARAMS_REQUIRED = ['freq', 'length']
+    PARAMS_OPTIONAL = ['phrst', 'mode', 'outsel']
+
+    def __init__(self, prog, ro_ch):
+        self.rocfg = prog.soccfg['readouts'][ro_ch]
+        tproc_ch = self.rocfg['tproc_ctrl']
+        super().__init__(prog, tproc_ch, "readout %d"%(ro_ch))
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+
+        """
+        required = set(self.PARAMS_REQUIRED)
+        allowed = required | set(self.PARAMS_OPTIONAL)
+        defined = params.keys()
+        if required - defined:
+            raise RuntimeError("missing required pulse parameter(s)", required - defined)
+        if defined - allowed:
+            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+
+    def write_regs(self, params, defaults):
+        if 'freq' in params:
+            self.set_reg('freq', params['freq'], defaults=defaults)
+        if not defaults:
+            self.next_pulse = {}
+            self.next_pulse['rp'] = self.rp
+            self.next_pulse['regs'] = []
+
+            # these mode bits could be defined, or left as None
+            phrst, mode, outsel = [params.get(x) for x in ['phrst', 'mode', 'outsel']]
+            mc = self.get_mode_code(phrst=phrst, mode=mode, outsel=outsel, length=params['length'])
+            self.set_reg('mode', mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
+            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', '0', 'mode', '0', '0']])
+
+    def get_mode_code(self, length, outsel=None, mode=None, phrst=None):
+        """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
+
+        Parameters
+        ----------
+        length : int
+            The number of ADC fabric cycles in the pulse
+
+        outsel : str
+            Selects the output source. The output is complex. Tables define envelopes for I and Q.
+            The default is "product".
+
+            * If "product", the output is the product of table and DDS.
+
+            * If "dds", the output is the DDS only.
+
+            * If "input", the output is from the table for the real part, and zeros for the imaginary part.
+
+            * If "zero", the output is always zero.
+
+        mode : str
+            Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
+
+        phrst : int
+            If 1, it resets the phase coherent accumulator. The default is 0.
+
+        Returns
+        -------
+        int
+            Compiled mode code in binary
+
+        """
+        if length >= 2**16 or length < 3:
+            raise RuntimeError("Pulse length of %d is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (length))
+        if outsel is None: outsel = "product"
+        if mode is None: mode = "oneshot"
+        if phrst is None: phrst = 0
+
+        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
+        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
+        mc = phrst*0b01000+mode_reg*0b00100+outsel_reg
+        return mc << 16 | np.uint16(length)
+
+
+class AbsGenManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = {}
+    PARAMS_OPTIONAL = {}
+
+    def __init__(self, prog, gen_ch):
+        self.gencfg = prog.soccfg['gens'][gen_ch]
+        tproc_ch = self.gencfg['tproc_ch']
+        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
+        self.samps_per_clk = self.gencfg['samps_per_clk']
 
         # dictionary of defined pulse envelopes
-        self.pulses = prog.pulses[ch]
+        self.pulses = prog.pulses[gen_ch]
         # type and max absolute value for envelopes
         self.env_dtype = np.int16
 
         self.addr = 0
-        self.next_pulse = None
-        self.setup_done = False
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+
+        """
+        style = params['style']
+        required = set(self.PARAMS_REQUIRED[style])
+        allowed = required | set(self.PARAMS_OPTIONAL[style])
+        defined = params.keys()
+        if required - defined:
+            raise RuntimeError("missing required pulse parameter(s)", required - defined)
+        if defined - allowed:
+            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
     def add_pulse(self, name, idata, qdata):
         """Add a waveform to the list of envelope waveforms available for this channel.
@@ -517,89 +711,12 @@ class AbsGenManager:
             if d is not None:
                 # range check
                 if np.max(np.abs(d)) > self.gencfg['maxv']:
-                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.MAXV))
+                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.gencfg['maxv']))
                 # copy data
                 data[:,i] = np.round(d)
 
         self.pulses[name] = {"data": data, "addr": self.addr}
         self.addr += length
-
-    def set_reg(self, name, val, comment=None, defaults=False):
-        """Wrapper around regwi.
-        Looks up the register name and keeps track of whether the register already has a default value.
-
-        Parameters
-        ----------
-        name : str
-            Register name
-        val : int
-            Register value
-        comment : str
-            Comment to be printed in ASM output
-        defaults : bool
-            This is a default value, which doesn't need to be rewritten for every pulse
-
-        """
-        if defaults:
-            self.default_regs.add(name)
-        elif name in self.default_regs:
-            # this reg was already written, so we skip it this time
-            return
-        r = self.prog.sreg(self.ch, name)
-        if comment is None: comment = f'{name} = {val}'
-        self.prog.safe_regwi(self.rp, r, val, comment)
-
-    def set_defaults(self, kwargs):
-        """Set default values for parameters.
-        This is called by QickProgram.set_default_registers().
-
-        Parameters
-        ----------
-        kwargs : dict
-            Parameter values
-
-        """
-        if self.defaults:
-            # complain if the default parameter dict is not empty
-            raise RuntimeError("ch %d already has a set of default parameters"%(self.ch))
-        self.defaults = kwargs
-        self.write_regs(kwargs, defaults=True)
-
-    def set_registers(self, kwargs):
-        """Set pulse parameters.
-        This is called by QickProgram.set_pulse_registers().
-
-        Parameters
-        ----------
-        kwargs : dict
-            Parameter values
-
-        """
-        if not self.defaults.keys().isdisjoint(kwargs):
-            raise RuntimeError("these params were set for ch {0} both in default_pulse_registers and set_pulse_registers: {1}".format(self.ch, self.defaults.keys() & kwargs.keys()))
-        merged = {**self.defaults, **kwargs}
-        # check the final param set for validity
-        self.check_params(merged)
-        self.write_regs(merged, defaults=False)
-
-    def check_params(self, params):
-        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
-        Raise an exception if there is a problem.
-
-        Parameters
-        ----------
-        params : dict
-            Parameter values
-
-        """
-        style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
@@ -708,12 +825,12 @@ class FullSpeedGenManager(AbsGenManager):
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 # address for ramp-down
@@ -726,9 +843,9 @@ class FullSpeedGenManager(AbsGenManager):
                 # mode for ramps
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
                 self.set_reg('mode2', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode2']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode2']])
                 self.next_pulse['length'] = (wfm_length//2)*2 + params['length']
 
 
@@ -792,12 +909,12 @@ class InterpolatedGenManager(AbsGenManager):
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 maxv_scale = self.gencfg['maxv_scale']
@@ -816,9 +933,9 @@ class InterpolatedGenManager(AbsGenManager):
                 # gain+addr for ramp-down
                 self.set_reg('addr2', (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
-                self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
                 # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
                 self.next_pulse['regs'].append((0, 0, 'mode', 0, 0))
                 # set the pulse duration (including the extra duration for the FIR workaround)
@@ -860,7 +977,7 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
-            self.next_pulse['regs'].append([self.prog.sreg(self.ch,x) for x in ['freq', 'phase', '0', '0', '0']])
+            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
 
 
@@ -888,7 +1005,7 @@ class QickProgram:
                     'set':  {'type': "R", 'bin': 0b01010001, 'fmt': ((1, 53), (0, 50), (2, 36), (7, 31), (3, 26), (4, 21), (5, 16), (6, 11)), 'repr': "{0}, {1}, ${2}, ${3}, ${4}, ${5}, ${6}, ${7}"},
                     'sync': {'type': "R", 'bin': 0b01010010, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, ${1}"},
                     'read': {'type': "R", 'bin': 0b01010011, 'fmt': ((1, 53), (0, 50), (2, 46), (3, 41)), 'repr': "{0}, {1}, {2} ${3}"},
-                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, {1}, ${2}"},
+                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((1, 53), (0, 50), (2, 31)), 'repr': "{0}, {1}, ${2}"},
                     'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
                     'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
                     'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
@@ -962,6 +1079,8 @@ class QickProgram:
 
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if ch['tproc_ctrl'] is not None else None for iCh, ch in enumerate(soccfg['readouts'])]
+
 
     def dump_prog(self):
         """
@@ -1217,13 +1336,13 @@ class QickProgram:
         # configure tproc for internal/external start
         soc.start_src(start_src)
 
-    def declare_readout(self, ch, freq, length, sel='product', gen_ch=None):
+    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
 
         Parameters
         ----------
         ch : int
-            ADC channel number (index in 'readouts' list)
+            readout channel number (index in 'readouts' list)
         freq : float
             downconverting frequency (MHz)
         length : int
@@ -1231,14 +1350,28 @@ class QickProgram:
         sel : str
             output select ('product', 'dds', 'input')
         gen_ch : int
-            DAC channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
-        cfg = {
-                'freq': freq,
-                'length': length,
-                'sel': sel,
-                'gen_ch': gen_ch
-                }
+        ro_cfg = self.soccfg['readouts'][ch]
+        if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
+            if freq is None:
+                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
+            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+            # and the sum buffer values are 32 bit signed
+            if length > 2**(31-15):
+                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
+            cfg = {
+                    'freq': freq,
+                    'length': length,
+                    'sel': sel,
+                    'gen_ch': gen_ch
+                    }
+        else: # readout is controlled by tProc
+            if (freq is not None) or sel!='product' or (gen_ch is not None):
+                raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
+            cfg = {
+                    'length': length
+                    }
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -1253,7 +1386,8 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+            if self.soccfg['readouts'][ch]['tproc_ctrl'] is None:
+                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
@@ -1286,7 +1420,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         nqz : int, optional
             Nyquist zone (must be 1 or 2).
             Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
@@ -1298,7 +1432,7 @@ class QickProgram:
         mux_gains : list of int, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
         ro_ch : int, optional
-            ADC channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
+            readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
         """
         cfg = {
                 'nqz': nqz,
@@ -1331,7 +1465,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         name : str
             Name of the pulse
         idata : array
@@ -1349,7 +1483,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         name : str
             Name of the pulse
         sigma : float
@@ -1377,7 +1511,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         name : str
             Name of the pulse
         sigma : float
@@ -1416,7 +1550,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         name : str
             Name of the pulse
         length : int
@@ -1448,15 +1582,18 @@ class QickProgram:
                         data=pulse['data'],
                         addr=pulse['addr'])
 
-    def ch_page(self, ch):
+    def _ch_page_tproc(self, ch):
         """Gets tProc register page associated with channel.
-        Page 0 gets one DAC channel because it also has some other registers.
-        Other pages get two DACs each.
+        Page 0 gets one tProc output because it also has some other registers.
+        Other pages get two outputs each.
+
+        This method is for internal use only.
+        User code should use ch_page() (for generators) or ch_page_ro() (for readouts).
 
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            tProc output channel
 
         Returns
         -------
@@ -1466,13 +1603,16 @@ class QickProgram:
         """
         return (ch+1)//2
 
-    def sreg(self, ch, name):
-        """Gets tProc special register number associated with a channel and register name.
+    def _sreg_tproc(self, ch, name):
+        """Gets tProc register number associated with a channel and register name.
+
+        This method is for internal use only.
+        User code should use sreg() (for generators) or sreg_ro() (for readouts).
 
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            tProc output channel
         name : str
             Name of special register ("gain", "freq")
 
@@ -1487,6 +1627,78 @@ class QickProgram:
         n_regs = len(self.pulse_registers)
         return 31 - (n_regs * 2) + n_regs*((ch+1)%2) + self.pulse_registers.index(name)
 
+    def ch_page(self, gen_ch):
+        """Gets tProc register page associated with generator channel.
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+
+        Returns
+        -------
+        int
+            tProc page number
+
+        """
+        tproc_ch = self.soccfg['gens'][gen_ch]['tproc_ch']
+        return self._ch_page_tproc(tproc_ch)
+
+    def sreg(self, gen_ch, name):
+        """Gets tProc special register number associated with a generator channel and register name.
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of special register ("gain", "freq")
+
+        Returns
+        -------
+        int
+            tProc special register number
+
+        """
+        tproc_ch = self.soccfg['gens'][gen_ch]['tproc_ch']
+        return self._sreg_tproc(tproc_ch, name)
+
+    def ch_page_ro(self, ro_ch):
+        """Gets tProc register page associated with tProc-controlled readout channel.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        int
+            tProc page number
+
+        """
+        tproc_ch = self.soccfg['readouts'][ro_ch]['tproc_ctrl']
+        return self._ch_page_tproc(tproc_ch)
+
+    def sreg_ro(self, ro_ch, name):
+        """Gets tProc special register number associated with a readout channel and register name.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            Name of special register ("gain", "freq")
+
+        Returns
+        -------
+        int
+            tProc special register number
+
+        """
+        tproc_ch = self.soccfg['readouts'][ro_ch]['tproc_ctrl']
+        return self._sreg_tproc(tproc_ch, name)
+
     def default_pulse_registers(self, ch, **kwargs):
         """Set default values for pulse parameters.
         If any registers can be written at this point, write them in order to save time later.
@@ -1498,7 +1710,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         **kwargs : dict
             Pulse parameters
 
@@ -1513,7 +1725,7 @@ class QickProgram:
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         style : str
             Pulse style ("const", "arb", "flat_top")
         freq : int
@@ -1539,15 +1751,84 @@ class QickProgram:
         """
         self._gen_mgrs[ch].set_registers(kwargs)
 
-    def setup_and_pulse(self, ch, t='auto', **kwargs):
-        """Set up a pulse on this DAC channel, and immediately play it.
-        This is a wrapper around set_pulse_registers() and pulse(), and takes the arguments from both.
-        You can only run this on a single DAC channel.
+    def set_readout_registers(self, ch, **kwargs):
+        """Set the readout parameters including frequency, mode, outsel, and length.
+        The time is scheduled when you call readout().
 
         Parameters
         ----------
         ch : int
-            DAC channel (index in 'gens' list)
+            readout channel (index in 'readouts' list)
+        freq : int
+            Frequency (register value)
+        phrst : int
+            If 1, it resets the phase coherent accumulator
+        mode : str
+            Selects whether the output is "oneshot" or "periodic"
+        outsel : str
+            Selects the output source. The output is complex. The input comes from the ADC and is purely real. If "product", the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        length : int
+            The number of fabric clock cycles for which these readout parameters are defined.
+        """
+        self._ro_mgrs[ch].set_registers(kwargs)
+
+    def default_readout_registers(self, ch, **kwargs):
+        """Set default values for readout parameters.
+        If any registers can be written at this point, write them in order to save time later.
+
+        This is optional (you can set all parameters in set_readout_registers).
+        You can only call this method once per channel.
+        There cannot be any overlap between the parameters defined here and the parameters you define in set_readout_registers.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        **kwargs : dict
+            Pulse parameters
+
+        """
+        self._ro_mgrs[ch].set_defaults(kwargs)
+
+    def readout(self, ch, t):
+        """Play the pulse currently programmed into the registers for this tProc-controlled readout channel.
+        You must have already run set_readout_registers for this channel.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        t : int
+            The number of tProc cycles at which the pulse starts
+        """
+        # try to convert pulse_ch to int; if that fails, assume it's list of ints
+        try:
+            ch_list = [int(ch)]
+        except TypeError:
+            ch_list = ch
+        for ch in ch_list:
+            tproc_ch = self.soccfg['readouts'][ch]['tproc_ctrl']
+            rp = self._ch_page_tproc(tproc_ch)
+            next_pulse = self._ro_mgrs[ch].next_pulse
+            if next_pulse is None:
+                raise RuntimeError("no pulse has been set up for channel %d"%(ch))
+
+            r_t = self._sreg_tproc(tproc_ch, 't')
+            self.safe_regwi(rp, r_t, t, f't = {t}')
+
+            for regs in next_pulse['regs']:
+                self.set(tproc_ch, rp, *regs, r_t, f"ch = {ch}, pulse @t = ${r_t}")
+
+
+    def setup_and_pulse(self, ch, t='auto', **kwargs):
+        """Set up a pulse on this generator channel, and immediately play it.
+        This is a wrapper around set_pulse_registers() and pulse(), and takes the arguments from both.
+        You can only run this on a single generator channel.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
         t : int, optional
             Pulse time, in tProc cycles
         **kwargs : dict
@@ -1557,16 +1838,16 @@ class QickProgram:
         self.pulse(ch, t)
 
     def setup_and_measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, t='auto', wait=False, syncdelay=None, **kwargs):
-        """Set up a pulse on this DAC channel, and immediately do a measurement with it.
+        """Set up a pulse on this generator channel, and immediately do a measurement with it.
         This is a wrapper around set_pulse_registers() and measure(), and takes the arguments from both.
-        You can only run this on a single DAC channel.
+        You can only run this on a single generator channel.
 
         Parameters
         ----------
         adcs : list of int
-            ADC channels (index in 'readouts' list)
+            readout channels (index in 'readouts' list)
         pulse_ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         pins : list of int, optional
             refer to trigger()
         adc_trig_offset : int, optional
@@ -1584,13 +1865,13 @@ class QickProgram:
         self.measure(adcs, pulse_ch, pins=pins, adc_trig_offset=adc_trig_offset, t=t, wait=wait, syncdelay=syncdelay)
 
     def pulse(self, ch, t='auto'):
-        """Play the pulse currently programmed into the registers for this DAC channel.
+        """Play the pulse currently programmed into the registers for this generator channel.
         You must have already run set_pulse_registers for this channel.
 
         Parameters
         ----------
         ch : int or list of int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         t : int, optional
             The number of tProc cycles at which the pulse starts (None to use the time register as is, 'auto' to start whenever the last pulse ends)
         """
@@ -1600,13 +1881,13 @@ class QickProgram:
         except TypeError:
             ch_list = ch
         for ch in ch_list:
-            rp = self.ch_page(ch)
             tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
+            rp = self._ch_page_tproc(tproc_ch)
             next_pulse = self._gen_mgrs[ch].next_pulse
             if next_pulse is None:
                 raise RuntimeError("no pulse has been set up for channel %d"%(ch))
 
-            r_t = self.sreg(ch, 't')
+            r_t = self._sreg_tproc(tproc_ch, 't')
 
             if t is not None:
                 if t == 'auto':
@@ -1651,7 +1932,7 @@ class QickProgram:
 
     def sync_all(self, t=0):
         """Aligns and syncs all channels with additional time t.
-        Accounts for both DAC pulses and ADC readout windows.
+        Accounts for both generator pulses and readout windows.
         This does not pause the tProc.
 
         Parameters
@@ -1678,13 +1959,13 @@ class QickProgram:
 
     # should change behavior to only change bits that are specified
     def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
-        """Pulse the ADC(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
-        If no ADCs are specified, the adc_trig_offset is not applied.
+        """Pulse the readout(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
+        If no readouts are specified, the adc_trig_offset is not applied.
 
         Parameters
         ----------
         adcs : list of int
-            List of ADC channels to trigger (index in 'readouts' list)
+            List of readout channels to trigger (index in 'readouts' list)
         pins : list of int
             List of marker pins to pulse.
             Use the pin numbers in the QickConfig printout.
@@ -1740,9 +2021,9 @@ class QickProgram:
         Parameters
         ----------
         adcs : list of int
-            ADC channels (index in 'readouts' list)
+            readout channels (index in 'readouts' list)
         pulse_ch : int or list of int
-            DAC channel(s) (index in 'gens' list)
+            generator channel(s) (index in 'gens' list)
         pins : list of int, optional
             refer to trigger()
         adc_trig_offset : int, optional
