@@ -1200,10 +1200,14 @@ class QickProgram:
         :param reads_per_rep: readouts per experiment
         :return: averaged iq data after each round.
         """
-        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, self.expts, 2))
+        expts = self.expts
+        if expts is None:
+            expts = 1
+
+        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
         for ii in range(reads_per_rep):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((self.expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
+                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
 
         if self.expts is None:  # get rid of the expts axis
             avg_d = avg_d[:, :, 0, :]
