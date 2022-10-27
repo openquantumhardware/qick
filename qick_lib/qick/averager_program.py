@@ -3,7 +3,7 @@ Several helper classes for writing qubit experiments.
 """
 from typing import List, Union
 import numpy as np
-from .qick_asm import QickProgram, obtain, QickRegister, QickRegisterManager
+from .qick_asm import QickProgram, obtain, QickRegister, QickRegisterManagerMixin
 
 class AveragerProgram(QickProgram):
     """
@@ -24,12 +24,12 @@ class AveragerProgram(QickProgram):
         """
         super().__init__(soccfg)
         self.cfg = cfg
-        self.reps = cfg['reps']
+        self.make_program()
         if "soft_avgs" in cfg:
             self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
-        self.make_program()
+        self.reps = cfg['reps']
 
     def initialize(self):
         """
@@ -53,7 +53,7 @@ class AveragerProgram(QickProgram):
         rcount = 15
         p.initialize()
         p.regwi(0, rcount, 0)
-        p.regwi(0, rjj, self.reps-1)
+        p.regwi(0, rjj, self.cfg['reps']-1)
         p.label("LOOP_J")
 
         p.body()
@@ -178,11 +178,11 @@ class RAveragerProgram(QickProgram):
         """
         super().__init__(soccfg)
         self.cfg = cfg
+        self.make_program()
         self.reps = cfg['reps']
         self.expts = cfg['expts']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
-        self.make_program()
 
     def initialize(self):
         """
@@ -216,10 +216,10 @@ class RAveragerProgram(QickProgram):
 
         p.regwi(0, rcount, 0)
 
-        p.regwi(0, rii, self.expts-1)
+        p.regwi(0, rii, self.cfg['expts']-1)
         p.label("LOOP_I")
 
-        p.regwi(0, rjj, self.reps-1)
+        p.regwi(0, rjj, self.cfg['reps']-1)
         p.label("LOOP_J")
 
         p.body()
@@ -424,7 +424,7 @@ def merge_sweeps(sweeps: List[QickSweep]) -> AbsQickSweep:
     return merged
 
 
-class NDAveragerProgram(QickRegisterManager, QickProgram):
+class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
     """
     NDAveragerProgram class, for experiments that sweep over multiple variables in qick. The order of experiment runs
     follow outer->inner: reps, sweep_n,... sweep_0.
@@ -439,15 +439,15 @@ class NDAveragerProgram(QickRegisterManager, QickProgram):
         """
         super().__init__(soccfg)
         self.cfg = cfg
+        self.qick_sweeps: List[AbsQickSweep] = []
+        self.expts = 1
+        self.sweep_axes = []
+        self.make_program()
         self.reps = cfg['reps']
         if "soft_avgs" in cfg:
             self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
-        self.qick_sweeps: List[AbsQickSweep] = []
-        self.expts = 1
-        self.sweep_axes = []
-        self.make_program()
 
     def initialize(self):
         """

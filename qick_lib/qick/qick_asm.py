@@ -2461,7 +2461,7 @@ class QickRegister:
         self.set_to(self.init_val)
 
 
-class QickRegisterManager:
+class QickRegisterManagerMixin:
     """
     A mixin class for QickProgram that provides manager functions for getting and declaring new qick registers.
     """
