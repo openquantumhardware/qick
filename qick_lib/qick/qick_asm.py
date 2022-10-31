@@ -2,7 +2,7 @@
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
 import logging
-from typing import Union, Literal
+from typing import Union
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
@@ -17,9 +17,9 @@ except ModuleNotFoundError:
     def obtain(i):
         return i
 
-RegisterType = Literal["freq", "time", "phase", "adc_freq"]
+RegisterType = ["freq", "time", "phase", "adc_freq"]
 DefaultUnits = {"freq": "MHz", "time": "us", "phase": "deg", "adc_freq": "MHz"}
-MathOperatorType = Literal["+", "-", "*"]
+MathOperators = ["+", "-", "*"]
 logger = logging.getLogger(__name__)
 
 class QickConfig():
@@ -2336,7 +2336,7 @@ class QickProgram:
 
 
 class QickRegister:
-    def __init__(self, prog: QickProgram, page: int, addr: int, reg_type: RegisterType = None,
+    def __init__(self, prog: QickProgram, page: int, addr: int, reg_type: str = None,
                  gen_ch: int = None, ro_ch: int = None, init_val=None, name: str = None):
         """
         a qick register object that keeps the page, address, generator/readout channel and register type information,
@@ -2345,7 +2345,8 @@ class QickRegister:
         :param prog: qick program in which the register is used.
         :param page: page of the register
         :param addr: address of the register in the register page (referred as "register number" in some other places)
-        :param reg_type: type of the register, used for automatic converting to physical values.
+        :param reg_type: {"freq", "time", "phase", "adc_freq"} or None,
+            type of the register, used for automatic converting to physical values.
         :param gen_ch: generator channel numer to which the register is associated with, for unit convert.
         :param ro_ch: readout channel numer to which the register is associated with, for unit convert.
         :param init_val: initial value of the register. If reg_type is not None, the value should be in its physical
@@ -2408,7 +2409,7 @@ class QickRegister:
             return reg
 
 
-    def set_to(self, a: Union["QickRegister", float, int], operator: MathOperatorType = "+",
+    def set_to(self, a: Union["QickRegister", float, int], operator: str = "+",
                   b: Union["QickRegister", float, int] = 0, physical_unit=True):
         """
         a shorthand function that sets the register value using different asm commands based on the input type.
@@ -2423,12 +2424,14 @@ class QickRegister:
         if both  "a" and "b" are QickRegisters, the register will be set to the "math" result between "a" and "b".
 
         :param a: first operand register or a constant value
-        :param operator: math symbol supported by "math" and "mathi" asm commands, i.e. "+", "-" or "*".
+        :param operator: {"+", "-", "*"}. math symbol supported by "math" and "mathi" asm commands
         :param b: second operand register or a constant value
         :param physical_unit: when True, the constant value operands should be in its physical unit and will be
             automatically converted to the register integer before assignment.
         :return:
         """
+        if operator not in MathOperators:
+            raise ValueError(f"operator {operator} is not supported.")
         if type(a) != QickRegister: # assign value "a" to register, do unit conversion if physical_unit==True
             reg = self.val2reg(a) if physical_unit else a
             comment = f"'{self.name}' <= {reg} " + \
@@ -2471,7 +2474,7 @@ class QickRegisterManagerMixin:
         self._user_regs = []  # (page, addr) of all user defined registers
         super().__init__(*args, **kwargs)
 
-    def new_reg(self, page: int, addr: int = None, name: str = None, init_val=None, reg_type: RegisterType = None,
+    def new_reg(self, page: int, addr: int = None, name: str = None, init_val=None, reg_type: str = None,
                 gen_ch: int = None, ro_ch: int = None):
         """ Declare a new register in a specific page.
 
@@ -2481,7 +2484,7 @@ class QickRegisterManagerMixin:
         :param name: name of the new register. Optional.
         :param init_val: initial value for the register, when reg_type is provided, the reg_val should be in the
             physical unit of the corresponding type. i.e. freq in MHz, time in us, phase in deg.
-        :param reg_type: type of the register, e.g. "freq", "time", "phase".
+        :param reg_type: {"freq", "time", "phase", "adc_freq"} or None, type of the register
         :param gen_ch: generator channel numer to which the register is associated with, for unit convert.
         :param ro_ch: readout channel numer to which the register is associated with, for unit convert.
         :return: QickRegister
@@ -2521,11 +2524,11 @@ class QickRegisterManagerMixin:
         gen_cgf = self.gen_chs[gen_ch]
         page = self.ch_page(gen_ch)
         addr = self.sreg(gen_ch, name)
-        reg_type = name if name in RegisterType.__args__ else None
+        reg_type = name if name in RegisterType else None
         reg = QickRegister(self, page, addr, reg_type, gen_ch, gen_cgf.get("ro_ch"), name=f"gen{gen_ch}_{name}")
         return reg
 
-    def new_gen_reg(self, gen_ch: int, name: str = None, init_val=None, reg_type: RegisterType = None,
+    def new_gen_reg(self, gen_ch: int, name: str = None, init_val=None, reg_type: str = None,
                     tproc_reg=False) -> QickRegister:
         """
         Declare a new register in the generator register page. Address automatically adds 1 one when each time a new
@@ -2535,7 +2538,7 @@ class QickRegisterManagerMixin:
         :param name: name of the new register. Optional.
         :param init_val: initial value for the register, when reg_type is provided, the reg_val should be in the unit of
             the corresponding type.
-        :param reg_type: type of the register, e.g. freq, time, phase.
+        :param reg_type: {"freq", "time", "phase", "adc_freq"} or None, type of the register.
         :param tproc_reg: if True, the new register created will not be associated to a specific generator or readout
             channel. It will still be on the same page as the gen_ch for math calculations. This is usually used for a
             time register in t_processor, where we want to calculate "us2cycles" with the t_proc fabric clock rate
