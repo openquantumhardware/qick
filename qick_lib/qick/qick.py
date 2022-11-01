@@ -1955,6 +1955,9 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['adc'] = buf.readout.adc
             thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
             thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
+            if thiscfg['ro_type'] == 'axis_readout_v3':
+                # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
+                thiscfg['f_fabric'] *= 2
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
