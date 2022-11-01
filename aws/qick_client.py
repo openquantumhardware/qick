@@ -86,7 +86,27 @@ class QickClient:
             #oauth_client._expires_at -= 3700
 
 
+    def _s3put(self, s3url, payload):
+        rsp = requests.put(s3url, data=payload, headers={'Content-Type': 'application/octet-stream'})
+        if rsp.status_code == 200:
+            logging.info(f"s3 upload success")
+        else:
+            logging.warning(f"s3 upload fail: {rsp.status_code}")
+
+    def _s3get(self, s3url):
+        rsp = requests.get(s3url)
+        if rsp.status_code == 200:
+            payload = rsp.content
+            return payload
+        else:
+            logging.warning(f"s3 download fail: {rsp.status_code}")
+            return None
+
     def update_status(self):
+        """
+        Send the updated device status to the service. This is used as a heartbeat.
+        As a side effect, this returns an S3 upload URL that can be used to update the device config file.
+        """
         data = {
             "DeviceStatus": self.status
         }
@@ -94,17 +114,37 @@ class QickClient:
         if rsp.status_code == 200:
             logging.info(f"UpdateDevice request: {data}")
             logging.info(f"UpdateDevice response: {rsp.json()}")
+            rsp = rsp.json()
+            #logging.info(f"ID check: {rsp['DeviceId']} {self.id}")
+            # if you want to update the device config
+            return rsp['UploadUrl']
+        else:
+            logging.warning(f"UpdateDevice API error: {rsp.status_code}")
+            return None
 
-            # TODO: not sure what UploadUrl is for
-            if False:
-                uploadurl = rsp.json()['UploadUrl']
-                rsp2 = requests.put(uploadurl, data=b'test upload', headers={'Content-Type': 'application/octet-stream'})
-                logging.info(f"test upload response: {rsp2.status_code}")
+    def update_status_and_config(self, devcfg):
+        s3url = self.update_status()
+        qick._s3put(s3url, devcfg)
 
-            # TODO: GetDevice gives 401 error
-            if False:
-                rsp = self.session.get(self.api + '/devices/' + self.id)
-                print(rsp.status_code)
+    def get_device(self):
+        rsp = self.session.get(self.api + '/devices/' + self.id)
+        if rsp.status_code == 200:
+            logging.info(f"GetDevice response: {rsp.json()}")
+            rsp = rsp.json()
+            deviceid = rsp['DeviceId']
+            devicestatus = rsp['DeviceStatus']
+            lastrefreshed = rsp['LastRefreshed']
+            configurl = rsp['DeviceConfigurationUrl']
+            try:
+                devcfg = self._s3get(configurl)
+                logging.info(f"GetDevice device config from S3: {devcfg}")
+                return devcfg
+            except Exception as e:
+                logging.warning(f"GetDevice S3 error: {e}")
+                return None
+        else:
+            logging.warning(f"GetDevice API error: {rsp.status_code}")
+            return None
 
     def get_workload(self):
         rsp = self.session.get(self.api + "/devicework")
@@ -115,21 +155,20 @@ class QickClient:
             workid = rsp['WorkId']
             logging.info(f"Got work {workid}")
             workurl = rsp['WorkloadUrl']
-
+            #self._s3put(workurl, b'dummy workload response')
             try:
-                rsp_s3get = requests.get(workurl)
-                if rsp_s3get.status_code == 200:
-                    workload = rsp_s3get.content
-                    return {
-                        "id": workid,
-                        "workload": workload,
-                        "upload": None
-                    }
+                workload = self._s3get(workurl)
+                return {
+                    "id": workid,
+                    "workload": workload,
+                    "upload": None
+                }
             except Exception as e:
-                print(e)
+                logging.warning(f"GetDeviceWork S3 error: {e}")
                 return None
-
-        return None
+        else:
+            logging.warning(f"GetDeviceWork API error: {rsp.status_code}")
+            return None
 
     def start_workload(self, workload):
         self.resultsfile = tempfile.TemporaryFile()
@@ -169,8 +208,9 @@ if __name__ == "__main__":
     qick = QickClient(args.name, args.api)
 
     work = None
+    qick.update_status_and_config(b'dummy device config')
     while True:
-        qick.update_status()
+        #qick.get_device()
         if qick.status == "ONLINE":
             work = qick.get_workload()
             if work:
@@ -193,3 +233,4 @@ if __name__ == "__main__":
                 qick.status = "ONLINE"
             else:
                 time.sleep(args.interval)  # sleep 5 seconds between polling
+        qick.update_status()
