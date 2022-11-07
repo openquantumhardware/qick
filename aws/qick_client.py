@@ -7,7 +7,6 @@ import json
 import tempfile
 import sys
 import time
-#from qick import QickSoc
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from configparser import ConfigParser
@@ -15,6 +14,7 @@ from configparser import ConfigParser
 class DummySoc:
     def __init__(self):
         self._cfg = {"cfg_a": "foo"}
+
     def run_workload(self, workload, resultsfile):
         logging.info("DummySoc running workload")
         resultsfile.write(b"test")
@@ -50,17 +50,19 @@ class RefetchSession(OAuth2Session):
 
 class QickClient:
 
-    def __init__(self, name, api):
-        self.name = name
+    def __init__(self, api, dummy_mode=False):
         self.api = api
         self.session = requests
         self.cfg_path = "/etc/qick/config"
         self.cred_path = "/etc/qick/credentials"
         self.status = "ONLINE"
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
-        #self.soc = QickSoc()
+        if dummy_mode:
+            self.soc = DummySoc()
+        else:
+            from qick import QickSoc
+            self.soc = QickSoc()
 
-        self.soc = DummySoc()
         self.soccfg = self.soc.get_cfg()
 
         clientcfg = ConfigParser()
@@ -102,7 +104,7 @@ class QickClient:
             logging.warning(f"s3 download fail: {rsp.status_code}")
             return None
 
-    def update_status(self):
+    def update_status(self, update_config=False):
         """
         Send the updated device status to the service. This is used as a heartbeat.
         As a side effect, this returns an S3 upload URL that can be used to update the device config file.
@@ -117,14 +119,10 @@ class QickClient:
             rsp = rsp.json()
             #logging.info(f"ID check: {rsp['DeviceId']} {self.id}")
             # if you want to update the device config
-            return rsp['UploadUrl']
+            if update_config:
+                self._s3put(rsp['UploadUrl'], json.dumps(self.soccfg))
         else:
             logging.warning(f"UpdateDevice API error: {rsp.status_code}")
-            return None
-
-    def update_status_and_config(self, devcfg):
-        s3url = self.update_status()
-        qick._s3put(s3url, devcfg)
 
     def get_device(self):
         rsp = self.session.get(self.api + '/devices/' + self.id)
@@ -155,17 +153,18 @@ class QickClient:
             workid = rsp['WorkId']
             logging.info(f"Got work {workid}")
             workurl = rsp['WorkloadUrl']
-            #self._s3put(workurl, b'dummy workload response')
             try:
                 workload = self._s3get(workurl)
                 return {
                     "id": workid,
-                    "workload": workload,
-                    "upload": None
+                    "workload": workload
                 }
             except Exception as e:
                 logging.warning(f"GetDeviceWork S3 error: {e}")
                 return None
+        elif rsp.status_code == 404:
+            logging.info(f"GetDeviceWork: no work for device")
+            return None
         else:
             logging.warning(f"GetDeviceWork API error: {rsp.status_code}")
             return None
@@ -188,27 +187,36 @@ class QickClient:
         #rsp = requests.get(self.api + "/IsWorkCanceled")
         #return rsp.json().get("IsCanceled")
 
-    def upload_results(self, url):
+    def upload_results(self, work_id):
         self.resultsfile.seek(0)
-        # TODO: figure out upload flow
-        if url is not None:
-            requests.post(url, data=self.resultsfile.read())
-            logging.info("Uploaded results")
-        self.resultsfile.close()
+        #logging.info(f"PutDeviceWork request: {work_id}")
+        rsp = self.session.put(self.api + "/devicework/" + work_id)
+        if rsp.status_code == 200:
+            logging.info(f"PutDeviceWork response: {rsp.json()}")
+            rsp = rsp.json()
+            try:
+                self._s3put(rsp['UploadUrl'], self.resultsfile.read())
+                logging.info("Uploaded results")
+                self.resultsfile.close()
+            except Exception as e:
+                logging.warning(f"PutDeviceWork S3 error: {e}")
+        else:
+            logging.warning(f"PutDeviceWork API error: {rsp.status_code}")
     
 if __name__ == "__main__":
     #logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger().setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
-    parser.add_argument("name", type=str, help="client name or device ID")
+    #parser.add_argument("name", type=str, help="client name or device ID")
     parser.add_argument("--api", type=str, default=None, help="URL of API endpoint")
     parser.add_argument("-n", dest='interval', type=float, default=5.0, help="polling interval")
+    parser.add_argument("-d", action='store_true', help="run in dummy mode (use DummySoc instead of QickSoc)")
     args = parser.parse_args()
 
-    qick = QickClient(args.name, args.api)
+    qick = QickClient(args.api, args.d)
 
     work = None
-    qick.update_status_and_config(b'dummy device config')
+    qick.update_status(update_config=True)
     while True:
         #qick.get_device()
         if qick.status == "ONLINE":
@@ -224,12 +232,13 @@ if __name__ == "__main__":
                 work["process"].terminate()
                 work["process"].join()
                 work["process"].close()
-                qick.upload_results(work["upload"]) # upload partial results file
+                qick.upload_results(work["id"]) # upload partial results file
                 qick.status = "ONLINE"
             elif not work["process"].is_alive():
                 logging.info(f"workload completed, exit code {work['process'].exitcode}")
-                qick.upload_results(work["upload"])
                 work["process"].close()
+                qick.upload_results(work["id"])
+                time.sleep(args.interval)  # sleep 5 seconds between polling TODO: this is a workaround
                 qick.status = "ONLINE"
             else:
                 time.sleep(args.interval)  # sleep 5 seconds between polling
