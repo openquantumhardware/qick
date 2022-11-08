@@ -3,23 +3,22 @@ Description=QICK service
 After=multi-user.target
 
 [Service]
-Type=simple
-Restart=always
-RestartSec=5
-User=heckey
-ExecStart=<path to executable> <path to QICK client> [args]
-# Example invocation for about client
-# ExecStart=/usr/bin/python3.8 /usr/bin/qick_client.py "QICK 7" https://<API Gateway Endpoint>
-ExecReload=/bin/kill -15
-TimeoutStopSec=infinity
+Type=forking
+ExecStart=/home/xilinx/jupyter_notebooks/qick/aws/start_qick_client.sh
+PIDFile=/tmp/qick.pid
+#Restart=always
+#RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 
-
-# It can then be installed by doing:
+# Note the ExecStart parameter must point to the actual location of the start script.
 #
-# sudo cp qick.service /usr/lib/systemd/system
+# The service can then be installed by doing:
+#
+# sudo cp qick.service /etc/systemd/system/
+# sudo cp start_qick_client.sh qick_client.py /usr/local/bin/
+# sudo systemctl daemon-reload
 # sudo systemctl enable qick
 # sudo systemctl start qick
 # sudo systemctl status qick
