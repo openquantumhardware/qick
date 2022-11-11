@@ -17,7 +17,6 @@ WantedBy=multi-user.target
 # The service can then be installed by doing:
 #
 # sudo cp qick.service /etc/systemd/system/
-# sudo cp start_qick_client.sh qick_client.py /usr/local/bin/
 # sudo systemctl daemon-reload
 # sudo systemctl enable qick
 # sudo systemctl start qick

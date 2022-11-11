@@ -5,20 +5,23 @@ import requests
 import multiprocessing
 import json
 import tempfile
+import shutil
 import sys
 import time
+import gzip
+import h5py
 from oauthlib.oauth2 import BackendApplicationClient
 from requests_oauthlib import OAuth2Session
 from configparser import ConfigParser
+try:
+    from qick import QickSoc, QickProgram
+    from qick.helpers import json2progs
+except:
+    pass
 
 class DummySoc:
     def __init__(self):
         self._cfg = {"cfg_a": "foo"}
-
-    def run_workload(self, workload, resultsfile):
-        logging.info("DummySoc running workload")
-        resultsfile.write(b"test")
-        time.sleep(10)
 
     def get_cfg(self):
         return self._cfg
@@ -59,8 +62,8 @@ class QickClient:
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
         if dummy_mode:
             self.soc = DummySoc()
+            #print("dummy")
         else:
-            from qick import QickSoc
             self.soc = QickSoc()
 
         self.soccfg = self.soc.get_cfg()
@@ -89,6 +92,8 @@ class QickClient:
 
 
     def _s3put(self, s3url, payload):
+        """payload can be byte string or open file handle
+        """
         rsp = requests.put(s3url, data=payload, headers={'Content-Type': 'application/octet-stream'})
         if rsp.status_code == 200:
             logging.info(f"s3 upload success")
@@ -96,21 +101,25 @@ class QickClient:
             logging.warning(f"s3 upload fail: {rsp.status_code}")
 
     def _s3get(self, s3url):
-        rsp = requests.get(s3url)
-        if rsp.status_code == 200:
-            payload = rsp.content
-            return payload
-        else:
-            logging.warning(f"s3 download fail: {rsp.status_code}")
-            return None
+        """return an open file handle
+        """
+        with requests.get(s3url, stream=True) as rsp:
+            if rsp.status_code == 200:
+                getfile = tempfile.TemporaryFile()
+                shutil.copyfileobj(rsp.raw, getfile)
+                getfile.seek(0)
+                return getfile
+            else:
+                logging.warning(f"s3 download fail: {rsp.status_code}")
+                return None
 
     def update_status(self, update_config=False):
         """
         Send the updated device status to the service. This is used as a heartbeat.
-        As a side effect, this returns an S3 upload URL that can be used to update the device config file.
         """
         data = {
-            "DeviceStatus": self.status
+            "DeviceStatus": self.status,
+            "Filename": "test.txt"
         }
         rsp = self.session.put(self.api + "/devices/" + self.id, json=data)
         if rsp.status_code == 200:
@@ -122,7 +131,7 @@ class QickClient:
             if update_config:
                 self._s3put(rsp['UploadUrl'], json.dumps(self.soccfg))
         else:
-            logging.warning(f"UpdateDevice API error: {rsp.status_code}")
+            logging.warning(f"UpdateDevice API error: {rsp.status_code}, {rsp.content}")
 
     def get_device(self):
         rsp = self.session.get(self.api + '/devices/' + self.id)
@@ -134,51 +143,84 @@ class QickClient:
             lastrefreshed = rsp['LastRefreshed']
             configurl = rsp['DeviceConfigurationUrl']
             try:
-                devcfg = self._s3get(configurl)
-                logging.info(f"GetDevice device config from S3: {devcfg}")
-                return devcfg
+                cfgfile = self._s3get(configurl)
+                devcfg = cfgfile.read()
+                cfgfile.close()
             except Exception as e:
                 logging.warning(f"GetDevice S3 error: {e}")
                 return None
+            logging.info(f"GetDevice device config from S3: {devcfg}")
+            return devcfg
         else:
-            logging.warning(f"GetDevice API error: {rsp.status_code}")
+            logging.warning(f"GetDevice API error: {rsp.status_code}, {rsp.content}")
             return None
 
     def get_workload(self):
         rsp = self.session.get(self.api + "/devicework")
         if rsp.status_code == 200:
-            logging.info(f"GetDeviceWork response: {rsp.json()}")
             rsp = rsp.json()
+            if not rsp: # if no workload is available, the response will be an empty list
+                logging.info(f"GetDeviceWork: no work for device")
+                return None
 
+            logging.info(f"GetDeviceWork response: {rsp}")
             workid = rsp['WorkId']
             logging.info(f"Got work {workid}")
             workurl = rsp['WorkloadUrl']
             try:
-                workload = self._s3get(workurl)
+                workfile = self._s3get(workurl)
                 return {
                     "id": workid,
-                    "workload": workload
+                    "workload": workfile
                 }
             except Exception as e:
                 logging.warning(f"GetDeviceWork S3 error: {e}")
                 return None
-        elif rsp.status_code == 404:
-            logging.info(f"GetDeviceWork: no work for device")
-            return None
         else:
-            logging.warning(f"GetDeviceWork API error: {rsp.status_code}")
+            logging.warning(f"GetDeviceWork API error: {rsp.status_code}, {rsp.content}")
             return None
 
     def start_workload(self, workload):
         self.resultsfile = tempfile.TemporaryFile()
         logging.info("Started workload")
-        proc = multiprocessing.Process(target=self._run_workload, daemon=True, args=(workload, self.resultsfile))
+        proc = multiprocessing.Process(target=self._run_workload, daemon=True, args=(self.soc, workload, self.resultsfile))
         proc.start()
         return proc
 
-    def _run_workload(self, workload, resultsfile):
-        logging.info(f"Running workload: {workload}")
-        self.soc.run_workload(workload, resultsfile)
+    def _run_workload(self, soc, workfile, resultsfile):
+
+        logging.info(f"Running workload")
+        #self.soc.run_workload(workload, resultsfile)
+
+        if isinstance(soc, DummySoc):
+            workload = workfile.read()
+            workfile.close()
+            logging.info("DummySoc running workload: {workload}")
+            resultsfile.write(b"test")
+            resultsfile.seek(0)
+            time.sleep(10)
+        else:
+            with gzip.GzipFile(fileobj=workfile, mode='rb') as f:
+                proglist = json2progs(f)
+                logging.info(f"unpacked {len(proglist)} programs from workload")
+                with h5py.File(resultsfile,'w') as outf:
+                    datagrp = outf.create_group("data", track_order=True)
+                    newprog = QickProgram(soc)
+                    #for iProg, progdict in enumerate(tqdm(json2progs(dump))):
+                    for iProg, progdict in enumerate(proglist):
+                        proggrp = datagrp.create_group(str(iProg))
+                        newprog.load_prog(progdict)
+                        if progdict['acqtype']=='accumulated':
+                            d_buf, d_avg, d_shots = newprog.acquire(soc)
+                            proggrp.create_dataset("avg", data=d_avg)
+                            if progdict['save_raw']:
+                                proggrp.create_dataset("raw", data=d_buf, compression="lzf")
+                            if progdict['save_shots']:
+                                proggrp.create_dataset("shots", data=d_shots, compression="lzf")
+                        elif progdict['acqtype']=='decimated':
+                            d_dec = newprog.acquire_decimated(soc)
+                            proggrp.create_dataset("dec", data=d_dec)
+                resultsfile.seek(0)
         return
         
     def is_work_canceled(self, work_id):
@@ -195,13 +237,13 @@ class QickClient:
             logging.info(f"PutDeviceWork response: {rsp.json()}")
             rsp = rsp.json()
             try:
-                self._s3put(rsp['UploadUrl'], self.resultsfile.read())
+                self._s3put(rsp['UploadUrl'], self.resultsfile)
                 logging.info("Uploaded results")
                 self.resultsfile.close()
             except Exception as e:
                 logging.warning(f"PutDeviceWork S3 error: {e}")
         else:
-            logging.warning(f"PutDeviceWork API error: {rsp.status_code}")
+            logging.warning(f"PutDeviceWork API error: {rsp.status_code}, {rsp.content}")
     
 if __name__ == "__main__":
     #logging.getLogger().setLevel(logging.DEBUG)
@@ -217,8 +259,8 @@ if __name__ == "__main__":
 
     work = None
     qick.update_status(update_config=True)
+    #qick.get_device()
     while True:
-        #qick.get_device()
         if qick.status == "ONLINE":
             work = qick.get_workload()
             if work:
