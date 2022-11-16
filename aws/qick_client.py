@@ -78,13 +78,16 @@ class QickClient:
             self.api = clientcfg['service']['api_url']
             token_url = clientcfg['service']['auth_url']
 
+            self.devid = clientcfg['device']['id']
+            self.devname = clientcfg['device']['name']
+
             # the OAuth ID is also used as the device ID
-            self.id = credcfg['credentials']['id']
+            self.authid = credcfg['credentials']['id']
             client_secret = credcfg['credentials']['secret']
 
-            oauth_client = BackendApplicationClient(client_id=self.id)
+            oauth_client = BackendApplicationClient(client_id=self.authid)
             self.session = RefetchSession(client=oauth_client)
-            token = self.session.fetch_token(token_url=token_url, client_id=self.id,
+            token = self.session.fetch_token(token_url=token_url, client_id=self.authid,
                             client_secret=client_secret)
             logging.info(f"Got OAuth2 token, expires in {token['expires_in']} seconds")
             #force a token refetch
@@ -119,14 +122,14 @@ class QickClient:
         """
         data = {
             "DeviceStatus": self.status,
-            "Filename": "test.txt"
+            "DeviceConfigurationFileExtension": "json"
         }
-        rsp = self.session.put(self.api + "/devices/" + self.id, json=data)
+        rsp = self.session.put(self.api + "/devices/" + self.devid, json=data)
         if rsp.status_code == 200:
             logging.info(f"UpdateDevice request: {data}")
             logging.info(f"UpdateDevice response: {rsp.json()}")
             rsp = rsp.json()
-            #logging.info(f"ID check: {rsp['DeviceId']} {self.id}")
+            #logging.info(f"ID check: {rsp['DeviceId']} {self.devid}")
             # if you want to update the device config
             if update_config:
                 self._s3put(rsp['UploadUrl'], json.dumps(self.soccfg))
@@ -134,13 +137,15 @@ class QickClient:
             logging.warning(f"UpdateDevice API error: {rsp.status_code}, {rsp.content}")
 
     def get_device(self):
-        rsp = self.session.get(self.api + '/devices/' + self.id)
+        rsp = self.session.get(self.api + '/devices/' + self.devid)
         if rsp.status_code == 200:
             logging.info(f"GetDevice response: {rsp.json()}")
             rsp = rsp.json()
             deviceid = rsp['DeviceId']
+            devicename = rsp['DeviceName']
             devicestatus = rsp['DeviceStatus']
             lastrefreshed = rsp['LastRefreshed']
+            refreshtimeout = rsp['RefreshTimeout']
             configurl = rsp['DeviceConfigurationUrl']
             try:
                 cfgfile = self._s3get(configurl)
@@ -156,7 +161,7 @@ class QickClient:
             return None
 
     def get_workload(self):
-        rsp = self.session.get(self.api + "/devicework")
+        rsp = self.session.get(self.api + "/devices/" + self.devid + "/workload")
         if rsp.status_code == 200:
             rsp = rsp.json()
             if not rsp: # if no workload is available, the response will be an empty list
@@ -232,7 +237,7 @@ class QickClient:
     def upload_results(self, work_id):
         self.resultsfile.seek(0)
         #logging.info(f"PutDeviceWork request: {work_id}")
-        rsp = self.session.put(self.api + "/devicework/" + work_id)
+        rsp = self.session.put(self.api + "/devices/" + self.devid + "/workloads/" + work_id)
         if rsp.status_code == 200:
             logging.info(f"PutDeviceWork response: {rsp.json()}")
             rsp = rsp.json()
@@ -249,7 +254,6 @@ if __name__ == "__main__":
     #logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger().setLevel(logging.INFO)
     parser = argparse.ArgumentParser()
-    #parser.add_argument("name", type=str, help="client name or device ID")
     parser.add_argument("--api", type=str, default=None, help="URL of API endpoint")
     parser.add_argument("-n", dest='interval', type=float, default=5.0, help="polling interval")
     parser.add_argument("-d", action='store_true', help="run in dummy mode (use DummySoc instead of QickSoc)")
