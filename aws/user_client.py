@@ -10,6 +10,8 @@ import datetime
 import sys
 import os
 from configparser import ConfigParser
+import tempfile
+import shutil
 # dependencies
 import requests
 from fire import Fire
@@ -25,7 +27,7 @@ class CognitoAuth(requests.auth.AuthBase):
         self.tokens = None
 
         if os.path.exists(self.TOKEN_PATH):
-            with open(TOKEN_PATH, 'rt') as f:
+            with open(self.TOKEN_PATH, 'rt') as f:
                 self.update_tokens(json.load(f), replace_tokens=True, write_tokens=False)
 
     def __call__(self, r):
@@ -36,16 +38,21 @@ class CognitoAuth(requests.auth.AuthBase):
 
         # if we have less than 60 seconds till expiry, refresh tokens
         if self.expire_time - time.time() < 60:
-            self.refresh_auth()
+            try:
+                self.refresh_auth()
+            except:
+                # if anything goes wrong with refresh, re-auth from scratch
+                # this should cover expired refresh tokens
+                self.initial_auth()
 
         r.headers['Authorization'] = self.auth_header
         return r
 
-    def update_tokens(self, tokens, replace_tokens=False, write_tokens=True):
+    def update_tokens(self, new_tokens, replace_tokens=False, write_tokens=True):
         if replace_tokens or self.tokens is None:
-            self.tokens = tokens
+            self.tokens = new_tokens
         else:
-            self.tokens.update(tokens)
+            self.tokens.update(new_tokens)
 
         access_token = self.tokens['AccessToken']
         # unpack the JWT to get the expiry timestamp
@@ -53,12 +60,13 @@ class CognitoAuth(requests.auth.AuthBase):
         # https://stackoverflow.com/questions/2941995/python-ignore-incorrect-padding-error-when-base64-decoding
         payload = json.loads(base64.b64decode(access_token.split('.')[1] + '=='))
         self.expire_time = payload['exp']
+
         self.auth_header = ' '.join([self.tokens['TokenType'], access_token])
 
         if write_tokens:
             logging.info("writing updated tokens")
             with open(self.TOKEN_PATH, 'wt') as f:
-                json.dump(tokens, f)
+                json.dump(self.tokens, f)
 
     def initial_auth(self):
         logging.info("initial auth")
@@ -73,7 +81,7 @@ class CognitoAuth(requests.auth.AuthBase):
         logging.info("refreshing tokens")
         refresh_response = self._auth_refresh(self.tokens['RefreshToken'])
         if 'AuthenticationResult' not in refresh_response:
-            raise RuntimeError("Login failed")
+            raise RuntimeError("Refresh failed")
         # update tokens
         self.update_tokens(refresh_response['AuthenticationResult'])
 
@@ -316,6 +324,57 @@ class UserClient():
         else:
             logging.warning(f"GetDevices API error: {rsp.status_code}, {rsp.content}")
             return None
+
+    def _s3put(self, s3url, payload):
+        """payload can be byte string or open file handle
+        """
+        rsp = requests.put(s3url, data=payload, headers={'Content-Type': 'application/octet-stream'})
+        if rsp.status_code == 200:
+            logging.info(f"s3 upload success")
+        else:
+            logging.warning(f"s3 upload fail: {rsp.status_code}")
+
+    def _s3get(self, s3url):
+        """return an open file handle
+        """
+        with requests.get(s3url, stream=True) as rsp:
+            if rsp.status_code == 200:
+                getfile = tempfile.TemporaryFile()
+                shutil.copyfileobj(rsp.raw, getfile)
+                getfile.seek(0)
+                return getfile
+            else:
+                logging.warning(f"s3 download fail: {rsp.status_code}")
+                return None
+
+    def get_soccfg(self, device_id=None):
+        if device_id is None:
+            device_id = self.config['device']['id']
+        rsp = self.session.get(self.api_url + '/devices/' + device_id)
+        if rsp.status_code == 200:
+            logging.info(f"GetDevice response: {rsp.json()}")
+            rsp = rsp.json()
+            deviceid = rsp['DeviceId']
+            devicename = rsp['DeviceName']
+            devicestatus = rsp['DeviceStatus']
+            lastrefreshed = rsp['LastRefreshed']
+            refreshtimeout = rsp['RefreshTimeout']
+            configurl = rsp['DeviceConfigurationUrl']
+            try:
+                cfgfile = self._s3get(configurl)
+                devcfg = cfgfile.read()
+                cfgfile.close()
+            except Exception as e:
+                logging.warning(f"GetDevice S3 error: {e}")
+                return None
+            logging.info(f"GetDevice device config from S3: {devcfg}")
+            return devcfg
+        else:
+            logging.warning(f"GetDevice API error: {rsp.status_code}, {rsp.content}")
+            return None
+
+
+
 
 
 if __name__ == "__main__":
