@@ -136,30 +136,6 @@ class QickClient:
         else:
             logging.warning(f"UpdateDevice API error: {rsp.status_code}, {rsp.content}")
 
-    def get_device(self):
-        rsp = self.session.get(self.api_url + '/devices/' + self.devid)
-        if rsp.status_code == 200:
-            logging.info(f"GetDevice response: {rsp.json()}")
-            rsp = rsp.json()
-            deviceid = rsp['DeviceId']
-            devicename = rsp['DeviceName']
-            devicestatus = rsp['DeviceStatus']
-            lastrefreshed = rsp['LastRefreshed']
-            refreshtimeout = rsp['RefreshTimeout']
-            configurl = rsp['DeviceConfigurationUrl']
-            try:
-                cfgfile = self._s3get(configurl)
-                devcfg = cfgfile.read()
-                cfgfile.close()
-            except Exception as e:
-                logging.warning(f"GetDevice S3 error: {e}")
-                return None
-            logging.info(f"GetDevice device config from S3: {devcfg}")
-            return devcfg
-        else:
-            logging.warning(f"GetDevice API error: {rsp.status_code}, {rsp.content}")
-            return None
-
     def get_workload(self):
         rsp = self.session.get(self.api_url + "/devices/" + self.devid + "/workload")
         if rsp.status_code == 200:
@@ -263,7 +239,6 @@ if __name__ == "__main__":
 
     work = None
     qick.update_status(update_config=True)
-    #qick.get_device()
     while True:
         if qick.status == "ONLINE":
             work = qick.get_workload()
