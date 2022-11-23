@@ -259,7 +259,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", action='store_true', help="run in dummy mode (use DummySoc instead of QickSoc)")
     args = parser.parse_args()
 
-    qick = QickClient(args.api_url, args.d)
+    qick = QickClient(args.api, args.d)
 
     work = None
     qick.update_status(update_config=True)
