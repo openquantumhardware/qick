@@ -342,7 +342,7 @@ class WorkloadManager():
 
 class UserClient():
     def __init__(self):
-        configpaths = [os.path.expanduser('~/.config/qick/config'),
+        configpaths = [os.path.expanduser('~/.config/qick'),
                 '/etc/qick/config']
 
         self.config = ConfigParser()
@@ -350,9 +350,9 @@ class UserClient():
 
 
         auth = CognitoAuth()
-        auth.client_id = self.config['service']['cognito_clientid']
         auth.username = self.config['user']['username']
         auth.auth_url = self.config['service']['cognito_url']
+        auth.client_id = self.config['service']['cognito_clientid']
         auth.pool_id = self.config['service']['cognito_userpool'] # only needed for SRP
 
         self.api_url = self.config['service']['api_url']
@@ -365,9 +365,20 @@ class UserClient():
                 "Email": email,
                 "FullName": fullname
                 }
-        rsp = self.session.post(self.api_url + 'users', json=data)
+        rsp = self.session.post(self.api_url + '/users', json=data)
         if rsp.status_code == 200:
             print("User successfully added! They should check their e-mail for a temporary password.")
+            print()
+            print("They should put the following in ~/.config/qick:")
+            print("[service]")
+            print(f"api_url = {self.api_url}")
+            print(f"cognito_url = {self.session.auth.auth_url}")
+            print(f"cognito_clientid = {self.session.auth.client_id}")
+            print(f"cognito_userpool = {self.session.auth.pool_id}")
+            print("# needed for user client")
+            print("[user]")
+            print(f"username = {email}")
+
         else:
             logging.warning(f"AddUser API error: {rsp.status_code}, {rsp.content}")
 
@@ -376,17 +387,17 @@ class UserClient():
                 "DeviceName": device_name,
                 "RefreshTimeout": refresh_timeout
                 }
-        rsp = self.session.post(self.api_url + 'devices', json=data)
+        rsp = self.session.post(self.api_url + '/devices', json=data)
         if rsp.status_code == 201:
             rsp = rsp.json()
             print("Device successfully added!")
             print()
-            print("Put the following in the config file:")
+            print("Put the following in the config file /etc/qick/config:")
             print("[device]")
             print(f"name = {rsp['DeviceName']}")
             print(f"id = {rsp['DeviceId']}")
             print()
-            print("Put the following in the device credentials file:")
+            print("Put the following in the device credentials file /etc/qick/credentials:")
             print("[credentials]")
             print(f"id = {rsp['ClientId']}")
             print(f"secret = {rsp['ClientSecret']}")
@@ -394,7 +405,7 @@ class UserClient():
             logging.warning(f"AddDevice API error: {rsp.status_code}, {rsp.content}")
 
     def get_devices(self):
-        rsp = self.session.get(self.api_url + 'devices')
+        rsp = self.session.get(self.api_url + '/devices')
         if rsp.status_code == 200:
             return rsp.json()
         else:
@@ -476,7 +487,7 @@ class UserClient():
             return None
 
     def get_work(self, work_id):
-        rsp = self.session.get(self.api_url + 'workloads/' + work_id)
+        rsp = self.session.get(self.api_url + '/workloads/' + work_id)
         if rsp.status_code == 200:
             return rsp.json()
         else:
@@ -500,7 +511,7 @@ class UserClient():
             if progress: print('.', end='')
 
     def get_results(self, work_id):
-        rsp = self.session.get(self.api_url + 'workloads/' + work_id)
+        rsp = self.session.get(self.api_url + '/workloads/' + work_id)
         if rsp.status_code == 200:
             rsp = rsp.json()
             if rsp['WorkStatus'] != 'DONE':
