@@ -3,6 +3,7 @@
 import logging
 import argparse
 import json
+import gzip
 import base64
 import getpass
 import time
@@ -15,6 +16,12 @@ import shutil
 # dependencies
 import requests
 from fire import Fire
+# WorkloadManager dependencies - not needed for UserClient
+try:
+    import h5py
+    from qick.helpers import progs2json
+except:
+    pass
 
 class CognitoAuth(requests.auth.AuthBase):
     TOKEN_PATH = os.path.expanduser('~/.cache/qick.tokens')
@@ -263,6 +270,75 @@ class CognitoAuth(requests.auth.AuthBase):
         else:
             raise RuntimeException(f"token refresh error: {rsp.status_code}, {rsp.content}")
 
+class WorkloadManager():
+    def __init__(self, soccfg):
+        self.soccfg = soccfg
+        self.proglist = []
+        self.progdicts = []
+        self.results = None
+        self.make_progs()
+
+    def add_program(self, prog):
+        self.proglist.append(prog)
+
+    def add_acquire(self, prog, save_raw=False, save_shots=False):
+        dump = prog.dump_prog()
+        dump['acqtype'] = "accumulated"
+        dump['save_raw'] = save_raw
+        dump['save_shots'] = save_shots
+        self.progdicts.append(dump)
+
+    def add_decimated(self, prog):
+        dump = prog.dump_prog()
+        dump['acqtype'] = "decimated"
+        self.progdicts.append(dump)
+
+    def make_progs(self):
+        """make all the programs
+        """
+        self.do_stuff(make_progs=True)
+
+    def _get_progs(self):
+        """generator function that returns datasets from a results file
+        """
+        for prog in self.proglist:
+            yield prog
+
+    def write_progs(self, filepath=None):
+        """make all the programs and write them to a workload file
+        if filepath is given, create the file there
+        if None, create and return a tempfile
+        """
+        if filepath is None:
+            outfile = tempfile.TemporaryFile()
+        else:
+            outfile = open(filepath, 'wb')
+        self.prog_iterator = self._get_progs()
+        self.do_stuff(write_progs=True)
+        with gzip.GzipFile(fileobj=outfile, mode='wb') as f:
+            f.write(progs2json(self.progdicts).encode())
+        if filepath is None:
+            return outfile
+        else:
+            outfile.close()
+
+    def _get_results(self, outf, name="avg"):
+        """generator function that returns datasets from a results file
+        """
+        datagrp = outf["data"]
+        for name, proggrp in datagrp.items():
+            yield proggrp
+
+    def read_results(self, resultsfile):
+        """iterate through a results file (can be path or file object)
+        """
+        self.prog_iterator = self._get_progs()
+        with h5py.File(resultsfile,'r') as outf:
+            self.result_iterator = self._get_results(outf)
+            self.do_stuff(read_results=True)
+
+    def do_stuff(self, make_progs=False, write_progs=False, read_results=False):
+        pass
 
 class UserClient():
     def __init__(self):
@@ -362,7 +438,7 @@ class UserClient():
             configurl = rsp['DeviceConfigurationUrl']
             try:
                 cfgfile = self._s3get(configurl)
-                devcfg = cfgfile.read()
+                devcfg = json.load(cfgfile)
                 cfgfile.close()
             except Exception as e:
                 logging.warning(f"GetDevice S3 error: {e}")
@@ -373,8 +449,71 @@ class UserClient():
             logging.warning(f"GetDevice API error: {rsp.status_code}, {rsp.content}")
             return None
 
+    def create_work(self, workloadfile, device_id=None, priority="LOW"):
+        workloadfile.seek(0)
+        if device_id is None:
+            device_id = self.config['device']['id']
+        data = {
+            "DeviceId": device_id,
+            "Priority": priority
+        }
+        rsp = self.session.post(self.api_url + "/workloads", json=data)
+        if rsp.status_code == 201:
+            logging.info(f"UpdateDevice request: {data}")
+            logging.info(f"UpdateDevice response: {rsp.json()}")
+            rsp = rsp.json()
+            work_id = rsp['WorkId']
+            upload_url = rsp['UploadUrl']
+            try:
+                self._s3put(rsp['UploadUrl'], workloadfile)
+                logging.info("Uploaded workload")
+                workloadfile.close()
+            except Exception as e:
+                logging.warning(f"CreateWork S3 error: {e}")
+            return work_id
+        else:
+            logging.warning(f"CreateWork API error: {rsp.status_code}, {rsp.content}")
+            return None
 
+    def get_work(self, work_id):
+        rsp = self.session.get(self.api_url + 'workloads/' + work_id)
+        if rsp.status_code == 200:
+            return rsp.json()
+        else:
+            logging.warning(f"GetWork API error: {rsp.status_code}, {rsp.content}")
+            return None
 
+    def wait_until_done(self, work_id, progress=True):
+        last_state = None
+        while True:
+            state = self.get_work(work_id)['WorkStatus']
+            if state != last_state:
+                if progress:
+                    if last_state is not None:
+                        print()
+                    print("workload is " + state, end='')
+                if state == 'DONE':
+                    if progress: print()
+                    break
+            last_state = state
+            time.sleep(1)
+            if progress: print('.', end='')
+
+    def get_results(self, work_id):
+        rsp = self.session.get(self.api_url + 'workloads/' + work_id)
+        if rsp.status_code == 200:
+            rsp = rsp.json()
+            if rsp['WorkStatus'] != 'DONE':
+                raise RuntimeException("get_results error: workload is not in DONE status")
+            try:
+                resultsfile = self._s3get(rsp['WorkloadResultUrl'])
+                return resultsfile
+            except Exception as e:
+                logging.warning(f"GetWork S3 error: {e}")
+                return None
+        else:
+            logging.warning(f"GetWork API error: {rsp.status_code}, {rsp.content}")
+            return None
 
 
 if __name__ == "__main__":
