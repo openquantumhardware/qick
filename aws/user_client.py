@@ -342,7 +342,7 @@ class WorkloadManager():
 
 class UserClient():
     def __init__(self):
-        configpaths = [os.path.expanduser('~/.config/qick'),
+        configpaths = [os.path.expanduser('~/.config/qick.conf'),
                 '/etc/qick/config']
 
         self.config = ConfigParser()
@@ -369,7 +369,7 @@ class UserClient():
         if rsp.status_code == 200:
             print("User successfully added! They should check their e-mail for a temporary password.")
             print()
-            print("They should put the following in ~/.config/qick:")
+            print("They should put the following in ~/.config/qick.conf:")
             print("[service]")
             print(f"api_url = {self.api_url}")
             print(f"cognito_url = {self.session.auth.auth_url}")
