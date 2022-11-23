@@ -375,7 +375,6 @@ class UserClient():
             print(f"cognito_url = {self.session.auth.auth_url}")
             print(f"cognito_clientid = {self.session.auth.client_id}")
             print(f"cognito_userpool = {self.session.auth.pool_id}")
-            print("# needed for user client")
             print("[user]")
             print(f"username = {email}")
 
@@ -389,10 +388,14 @@ class UserClient():
                 }
         rsp = self.session.post(self.api_url + '/devices', json=data)
         if rsp.status_code == 201:
+            #TODO: oauth endpoint is hard-coded here!
             rsp = rsp.json()
             print("Device successfully added!")
             print()
             print("Put the following in the config file /etc/qick/config:")
+            print("[service]")
+            print(f"api_url = {self.api_url}")
+            print("oauth_url = https://qickworkloadmgmt-prod.auth.us-east-1.amazoncognito.com/oauth2/token")
             print("[device]")
             print(f"name = {rsp['DeviceName']}")
             print(f"id = {rsp['DeviceId']}")
