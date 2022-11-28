@@ -15,7 +15,11 @@ import tempfile
 import shutil
 # dependencies
 import requests
-from fire import Fire
+# CLI dependency - not needed for the rest of the library
+try:
+    from fire import Fire
+except:
+    pass
 # WorkloadManager dependencies - not needed for UserClient
 try:
     import h5py
@@ -30,8 +34,9 @@ class CognitoAuth(requests.auth.AuthBase):
         self.client_id = None
         self.username = None
         self.pool_id = None
-        self.expire_time = None
         self.tokens = None
+        self.expire_time = None
+        self.token_email = None
 
         if os.path.exists(self.TOKEN_PATH):
             with open(self.TOKEN_PATH, 'rt') as f:
@@ -40,7 +45,7 @@ class CognitoAuth(requests.auth.AuthBase):
     def __call__(self, r):
         """This is called by the Session to set auth headers.
         """
-        if self.tokens is None:
+        if self.tokens is None or self.token_email != self.username:
             self.initial_auth()
 
         # if we have less than 60 seconds till expiry, refresh tokens
@@ -61,12 +66,18 @@ class CognitoAuth(requests.auth.AuthBase):
         else:
             self.tokens.update(new_tokens)
 
-        access_token = self.tokens['AccessToken']
         # unpack the JWT to get the expiry timestamp
         # JWT uses unpadded base64, need to add dummy padding:
         # https://stackoverflow.com/questions/2941995/python-ignore-incorrect-padding-error-when-base64-decoding
-        payload = json.loads(base64.b64decode(access_token.split('.')[1] + '=='))
-        self.expire_time = payload['exp']
+        access_token = self.tokens['AccessToken']
+        access_payload = json.loads(base64.b64decode(access_token.split('.')[1] + '=='))
+        # the expiration time will tell us when to refresh
+        self.expire_time = access_payload['exp']
+
+        id_payload = json.loads(base64.b64decode(self.tokens['IdToken'].split('.')[1] + '=='))
+        # the e-mail will be checked against the config username
+        self.token_email = id_payload['email']
+        logging.info(f"updated tokens: for user {self.token_email}, in groups {id_payload['cognito:groups']}")
 
         self.auth_header = ' '.join([self.tokens['TokenType'], access_token])
 
@@ -76,10 +87,15 @@ class CognitoAuth(requests.auth.AuthBase):
                 json.dump(self.tokens, f)
 
     def initial_auth(self):
-        logging.info("initial auth")
-        auth_response = self._do_auth_srp()
-        #auth_response = self._do_auth_srp_warrant()
-        #auth_response = self._do_auth_password()
+        logging.info("initial auth for " + self.username)
+        auth_response = self._do_auth_password()
+        """
+        try:
+            auth_response = self._do_auth_srp()
+            #auth_response = self._do_auth_srp_warrant()
+        except:
+            auth_response = self._do_auth_password()
+        """
         if 'AuthenticationResult' not in auth_response:
             raise RuntimeError("Login failed")
         self.update_tokens(auth_response['AuthenticationResult'], replace_tokens=True)
@@ -96,6 +112,7 @@ class CognitoAuth(requests.auth.AuthBase):
         """this uses pysrp (standard SRP implementation) with patches from warrant (Cognito-specific)
         https://stackoverflow.com/questions/41526205/implementing-user-srp-auth-with-python-boto3-for-aws-cognito
         """
+        logging.info("using pysrp-based SRP for initial auth")
         import srp
         import six, hmac, hashlib
         def long_to_bytes(n):
@@ -195,7 +212,7 @@ class CognitoAuth(requests.auth.AuthBase):
         if rsp.status_code == 200:
             rsp = rsp.json()
         else:
-            raise RuntimeException(f"SRP auth error: {rsp.status_code}, {rsp.content}")
+            raise RuntimeError(f"SRP auth error: {rsp.status_code}, {rsp.content}")
 
         assert rsp['ChallengeName']=="PASSWORD_VERIFIER"
         challenge = rsp['ChallengeParameters']
@@ -230,10 +247,11 @@ class CognitoAuth(requests.auth.AuthBase):
         if rsp.status_code == 200:
             return rsp.json()
         else:
-            raise RuntimeException(f"SRP challenge error: {rsp.status_code}, {rsp.content}")
+            raise RuntimeError(f"SRP challenge error: {rsp.status_code}, {rsp.content}")
 
 
     def _do_auth_srp_warrant(self):
+        logging.info("using warrant-based SRP for initial auth")
         """this uses aws_srp.py from https://github.com/capless/warrant
         """
         from aws_srp import AWSSRP
@@ -243,6 +261,7 @@ class CognitoAuth(requests.auth.AuthBase):
 
 
     def _do_auth_password(self):
+        logging.info("using password for initial auth")
         data = {"AuthFlow": "USER_PASSWORD_AUTH",
                 "ClientId": self.client_id,
                 "AuthParameters": {"USERNAME":self.username, "PASSWORD":getpass.getpass()}
@@ -254,7 +273,7 @@ class CognitoAuth(requests.auth.AuthBase):
         if rsp.status_code == 200:
             return rsp.json()
         else:
-            raise RuntimeException(f"password authentication error: {rsp.status_code}, {rsp.content}")
+            raise RuntimeError(f"password authentication error: {rsp.status_code}, {rsp.content}")
 
     def _auth_refresh(self, refresh_token):
         data = {"AuthFlow": "REFRESH_TOKEN_AUTH",
@@ -268,7 +287,7 @@ class CognitoAuth(requests.auth.AuthBase):
         if rsp.status_code == 200:
             return rsp.json()
         else:
-            raise RuntimeException(f"token refresh error: {rsp.status_code}, {rsp.content}")
+            raise RuntimeError(f"token refresh error: {rsp.status_code}, {rsp.content}")
 
 class WorkloadManager():
     def __init__(self, soccfg):
@@ -342,7 +361,7 @@ class WorkloadManager():
 
 class UserClient():
     def __init__(self):
-        configpaths = [os.path.expanduser('~/.config/qick'),
+        configpaths = [os.path.expanduser('~/.config/qick.conf'),
                 '/etc/qick/config']
 
         self.config = ConfigParser()
@@ -369,7 +388,7 @@ class UserClient():
         if rsp.status_code == 200:
             print("User successfully added! They should check their e-mail for a temporary password.")
             print()
-            print("They should put the following in ~/.config/qick:")
+            print("They should put the following in ~/.config/qick.conf:")
             print("[service]")
             print(f"api_url = {self.api_url}")
             print(f"cognito_url = {self.session.auth.auth_url}")
@@ -520,7 +539,7 @@ class UserClient():
         if rsp.status_code == 200:
             rsp = rsp.json()
             if rsp['WorkStatus'] != 'DONE':
-                raise RuntimeException("get_results error: workload is not in DONE status")
+                raise RuntimeError("get_results error: workload is not in DONE status")
             try:
                 resultsfile = self._s3get(rsp['WorkloadResultUrl'])
                 return resultsfile

@@ -3,7 +3,7 @@
 # Not all parameters are needed in all cases.
 #
 # The user client will check for this file in the following locations (in order):
-# ~/.config/qick
+# ~/.config/qick.conf
 # /etc/qick/config
 #
 # The device client requires this file to be in /etc/qick/config.
