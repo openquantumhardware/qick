@@ -87,7 +87,7 @@ class CognitoAuth(requests.auth.AuthBase):
                 json.dump(self.tokens, f)
 
     def initial_auth(self):
-        logging.info("initial auth for " + self.username)
+        print(f"initial auth for {self.username}:")
         auth_response = self._do_auth_password()
         """
         try:
