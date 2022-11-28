@@ -62,7 +62,6 @@ class QickClient:
         self.timeout = 24 * 60 * 60  # Run a workload for 24 hours max
         if dummy_mode:
             self.soc = DummySoc()
-            #print("dummy")
         else:
             self.soc = QickSoc()
 
@@ -110,6 +109,7 @@ class QickClient:
             if rsp.status_code == 200:
                 getfile = tempfile.TemporaryFile()
                 shutil.copyfileobj(rsp.raw, getfile)
+                logging.info(f"s3 download success")
                 getfile.seek(0)
                 return getfile
             else:
@@ -126,12 +126,14 @@ class QickClient:
         }
         rsp = self.session.put(self.api_url + "/devices/" + self.devid, json=data)
         if rsp.status_code == 200:
-            logging.info(f"UpdateDevice request: {data}")
-            logging.info(f"UpdateDevice response: {rsp.json()}")
+            logging.info(f"UpdateDevice with status {data['DeviceStatus']}")
+            logging.debug(f"UpdateDevice request: {data}")
             rsp = rsp.json()
+            logging.debug(f"UpdateDevice response: {rsp}")
             #logging.info(f"ID check: {rsp['DeviceId']} {self.devid}")
             # if you want to update the device config
             if update_config:
+                logging.info(f"UpdateDevice: uploading soccfg")
                 self._s3put(rsp['UploadUrl'], json.dumps(self.soccfg))
         else:
             logging.warning(f"UpdateDevice API error: {rsp.status_code}, {rsp.content}")
@@ -140,13 +142,12 @@ class QickClient:
         rsp = self.session.get(self.api_url + "/devices/" + self.devid + "/workload")
         if rsp.status_code == 200:
             rsp = rsp.json()
+            logging.debug(f"GetDeviceWork response: {rsp}")
             if not rsp: # if no workload is available, the response will be an empty list
                 logging.info(f"GetDeviceWork: no work for device")
                 return None
-
-            logging.info(f"GetDeviceWork response: {rsp}")
             workid = rsp['WorkId']
-            logging.info(f"Got work {workid}")
+            logging.info(f"GetDeviceWork: got work {workid}")
             workurl = rsp['WorkloadUrl']
             try:
                 workfile = self._s3get(workurl)
@@ -187,21 +188,21 @@ class QickClient:
                 with h5py.File(resultsfile,'w') as outf:
                     datagrp = outf.create_group("data", track_order=True)
                     newprog = QickProgram(soc)
-                    #for iProg, progdict in enumerate(tqdm(json2progs(dump))):
                     for iProg, progdict in enumerate(proglist):
                         proggrp = datagrp.create_group(str(iProg))
                         newprog.load_prog(progdict)
                         if progdict['acqtype']=='accumulated':
-                            d_buf, d_avg, d_shots = newprog.acquire(soc)
+                            d_buf, d_avg, d_shots = newprog.acquire(soc, progress=False)
                             proggrp.create_dataset("avg", data=d_avg)
                             if progdict['save_raw']:
                                 proggrp.create_dataset("raw", data=d_buf, compression="lzf")
                             if progdict['save_shots']:
                                 proggrp.create_dataset("shots", data=d_shots, compression="lzf")
                         elif progdict['acqtype']=='decimated':
-                            d_dec = newprog.acquire_decimated(soc)
+                            d_dec = newprog.acquire_decimated(soc, progress=False)
                             proggrp.create_dataset("dec", data=d_dec)
                 resultsfile.seek(0)
+        logging.info(f"Workload complete")
         return
         
     def is_work_canceled(self, work_id):
@@ -215,8 +216,8 @@ class QickClient:
         #logging.info(f"PutDeviceWork request: {work_id}")
         rsp = self.session.put(self.api_url + "/devices/" + self.devid + "/workloads/" + work_id)
         if rsp.status_code == 200:
-            logging.info(f"PutDeviceWork response: {rsp.json()}")
             rsp = rsp.json()
+            logging.debug(f"PutDeviceWork response: {rsp}")
             try:
                 self._s3put(rsp['UploadUrl'], self.resultsfile)
                 logging.info("Uploaded results")
@@ -259,7 +260,7 @@ if __name__ == "__main__":
                 logging.info(f"workload completed, exit code {work['process'].exitcode}")
                 work["process"].close()
                 qick.upload_results(work["id"])
-                time.sleep(args.interval)  # sleep 5 seconds between polling TODO: this is a workaround
+                #time.sleep(args.interval)  # sleep 5 seconds between polling TODO: this is a workaround
                 qick.status = "ONLINE"
             else:
                 time.sleep(args.interval)  # sleep 5 seconds between polling

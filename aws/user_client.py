@@ -400,6 +400,8 @@ class UserClient():
             print(f"name = {rsp['DeviceName']}")
             print(f"id = {rsp['DeviceId']}")
             print()
+            print("If using UserClient for workload submission, the [devices] block is needed in the client config as well.")
+            print()
             print("Put the following in the device credentials file /etc/qick/credentials:")
             print("[credentials]")
             print(f"id = {rsp['ClientId']}")
