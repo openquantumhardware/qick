@@ -213,7 +213,7 @@ class QickClient:
 
     def upload_results(self, work_id):
         self.resultsfile.seek(0)
-        #logging.info(f"PutDeviceWork request: {work_id}")
+        logging.info(f"PutDeviceWork request for work {work_id}")
         rsp = self.session.put(self.api_url + "/devices/" + self.devid + "/workloads/" + work_id)
         if rsp.status_code == 200:
             rsp = rsp.json()
@@ -260,7 +260,7 @@ if __name__ == "__main__":
                 logging.info(f"workload completed, exit code {work['process'].exitcode}")
                 work["process"].close()
                 qick.upload_results(work["id"])
-                #time.sleep(args.interval)  # sleep 5 seconds between polling TODO: this is a workaround
+                time.sleep(args.interval)  # sleep 5 seconds between polling TODO: this is a workaround
                 qick.status = "ONLINE"
             else:
                 time.sleep(args.interval)  # sleep 5 seconds between polling
