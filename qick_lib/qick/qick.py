@@ -1787,7 +1787,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, external_clock=False, **kwargs):
         """
         Constructor method
         """
@@ -1810,7 +1810,7 @@ class QickSoc(Overlay, QickConfig):
         self.list_rf_blocks(
             self.ip_dict['usp_rf_data_converter_0']['parameters'])
 
-        self.config_clocks(force_init_clks)
+        self.config_clocks(force_init_clks, external_clock)
 
         # RF data converter (for configuring ADCs and DACs, and setting NCOs)
         self.rf = self.usp_rf_data_converter_0
@@ -1978,17 +1978,17 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
-    def config_clocks(self, force_init_clks):
+    def config_clocks(self, force_init_clks, external_clock):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         """
         if force_init_clks:
-            self.set_all_clks()
+            self.set_all_clks(external_clock)
             self.download()
         else:
             self.download()
             if not self.clocks_locked():
-                self.set_all_clks()
+                self.set_all_clks(external_clock)
                 self.download()
         if not self.clocks_locked():
             print(
@@ -2072,7 +2072,7 @@ class QickSoc(Overlay, QickConfig):
 
         self['refclk_freq'] = get_common_freq(refclk_freqs)
 
-    def set_all_clks(self):
+    def set_all_clks(self, external_clock):
         """
         Resets all the board clocks
         """
@@ -2100,8 +2100,29 @@ class QickSoc(Overlay, QickConfig):
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
-            print("resetting clocks:", lmk_freq, lmx_freq)
-            xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+            if external_clock== False: 
+                print("resetting clocks:", lmk_freq, lmx_freq)
+                if hasattr(xrfclk, "xrfclk"):
+                    xrfclk.xrfclk._find_devices()
+                    xrfclk.xrfclk._read_tics_output()
+                    xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01471A
+                else:                   
+                    xrfclk._Config['lmk04828'][245.76][80] = 0x01471A
+                xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+            else:
+                if hasattr(xrfclk, "xrfclk"):
+                    xrfclk.xrfclk._find_devices()
+                    xrfclk.xrfclk._read_tics_output()
+                    print("resetting clocks:", lmk_freq, lmx_freq)
+                    xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
+                    xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+                else:
+                    xrfclk._find_devices()
+                    xrfclk._read_tics_output()
+                    print("resetting clocks:", lmk_freq, lmx_freq)
+                    xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
+                    xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+
         elif self['board'] == 'RFSoC4x2':
             lmk_freq = self['refclk_freq']/2
             lmx_freq = self['refclk_freq']
