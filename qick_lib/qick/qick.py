@@ -1762,7 +1762,7 @@ class QickSoc(Overlay, QickConfig):
     :type bitfile: str
     :param force_init_clks: Whether the board clocks are re-initialized
     :type force_init_clks: bool
-    :param external_clk: When set to true it will use the Input_Ref_CLK J11 port on the ZCU216 and expects an external 10 MHz clock
+    :param external_clk: When set to true it will use the Input_Ref_CLK J11 port on the ZCU216 and expects an external 10 MHz clock. Use force_init_clks=True to change to or from an external reference clock.
     :type external_clk: bool
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
