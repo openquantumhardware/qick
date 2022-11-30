@@ -1762,6 +1762,8 @@ class QickSoc(Overlay, QickConfig):
     :type bitfile: str
     :param force_init_clks: Whether the board clocks are re-initialized
     :type force_init_clks: bool
+    :param external_clk: When set to true it will use the Input_Ref_CLK J11 port on the ZCU216 and expects an external 10 MHz clock
+    :type external_clk: bool
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
     """
@@ -1787,7 +1789,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, external_clock=False, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, external_clk=False, **kwargs):
         """
         Constructor method
         """
@@ -1810,7 +1812,7 @@ class QickSoc(Overlay, QickConfig):
         self.list_rf_blocks(
             self.ip_dict['usp_rf_data_converter_0']['parameters'])
 
-        self.config_clocks(force_init_clks, external_clock)
+        self.config_clocks(force_init_clks, external_clk)
 
         # RF data converter (for configuring ADCs and DACs, and setting NCOs)
         self.rf = self.usp_rf_data_converter_0
@@ -1978,17 +1980,17 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['dmem_size'] = 2**tproc.DMEM_N
             self['tprocs'].append(thiscfg)
 
-    def config_clocks(self, force_init_clks, external_clock):
+    def config_clocks(self, force_init_clks, external_clk):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         """
         if force_init_clks:
-            self.set_all_clks(external_clock)
+            self.set_all_clks(external_clk)
             self.download()
         else:
             self.download()
             if not self.clocks_locked():
-                self.set_all_clks(external_clock)
+                self.set_all_clks(external_clk)
                 self.download()
         if not self.clocks_locked():
             print(
@@ -2072,7 +2074,7 @@ class QickSoc(Overlay, QickConfig):
 
         self['refclk_freq'] = get_common_freq(refclk_freqs)
 
-    def set_all_clks(self, external_clock):
+    def set_all_clks(self, external_clk):
         """
         Resets all the board clocks
         """
@@ -2100,7 +2102,7 @@ class QickSoc(Overlay, QickConfig):
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
-            if external_clock== False: 
+            if external_clk== False: 
                 print("resetting clocks:", lmk_freq, lmx_freq)
                 if hasattr(xrfclk, "xrfclk"):
                     xrfclk.xrfclk._find_devices()
