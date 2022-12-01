@@ -1762,9 +1762,9 @@ class QickSoc(Overlay, QickConfig):
     :type bitfile: str
     :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Enabling the clk_output or external_clk options will also force clock initialization.
     :type force_init_clks: bool
-    :param clk_output: Output a copy of the RF refclk. This option is supported for the ZCU111 (use J108) and ZCU216 (use OUTPUT_REF J10).
+    :param clk_output: Output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
     :type clk_output: bool
-    :param external_clk: Lock the board clocks to an external 10 MHz reference. This option is supported for the ZCU216 (use INPUT_REF_CLK J11).
+    :param external_clk: Lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109) and ZCU216 (put 10 MHz on INPUT_REF_CLK J11).
     :type external_clk: bool
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
@@ -2093,6 +2093,9 @@ class QickSoc(Overlay, QickConfig):
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+                if self.external_clk:
+                    # default value is 0x2302886D
+                    xrfclk.xrfclk._Config['lmk04208'][122.88][14] = 0x2302826D
             else: # pynq 2.6
                 if self.clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
@@ -2101,6 +2104,10 @@ class QickSoc(Overlay, QickConfig):
                 else:
                     # restore the default clock config
                     xrfclk._lmk04208Config[122.88][6] = 0x80141E05
+                if self.external_clk:
+                    xrfclk._lmk04208Config[122.88][14] = 0x2302826D
+                else:
+                    xrfclk._lmk04208Config[122.88][14] = 0x2302886D
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']
