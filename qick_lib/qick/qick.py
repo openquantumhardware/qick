@@ -1760,13 +1760,15 @@ class QickSoc(Overlay, QickConfig):
 
     :param bitfile: Name of the bitfile
     :type bitfile: str
-    :param force_init_clks: Whether the board clocks are re-initialized
+    :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Enabling the clk_output or external_clk options will also force clock initialization.
     :type force_init_clks: bool
+    :param clk_output: Output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
+    :type clk_output: bool
+    :param external_clk: Lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
+    :type external_clk: bool
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
     """
-
-    ENABLE_LO_OUTPUT = False
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
     # fs_adc = 384*8 # MHz
@@ -1787,10 +1789,13 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=False, external_clk=False, **kwargs):
         """
         Constructor method
         """
+
+        self.external_clk = external_clk
+        self.clk_output = clk_output
         # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
         # We need to program the clocks first.
         if bitfile is None:
@@ -1982,7 +1987,8 @@ class QickSoc(Overlay, QickConfig):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         """
-        if force_init_clks:
+        # if we're using any nonstandard clock configuration, we must set the clocks to apply the config
+        if force_init_clks or self.external_clk or self.clk_output:
             self.set_all_clks()
             self.download()
         else:
@@ -2079,33 +2085,55 @@ class QickSoc(Overlay, QickConfig):
         if self['board'] == 'ZCU111':
             print("resetting clocks:", self['refclk_freq'])
 
-            if hasattr(xrfclk, "xrfclk"):
+            if hasattr(xrfclk, "xrfclk"): # pynq 2.7
                 # load the default clock chip configurations from file, so we can then modify them
                 xrfclk.xrfclk._find_devices()
                 xrfclk.xrfclk._read_tics_output()
-                if self.ENABLE_LO_OUTPUT:
+                if self.clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
-            else:
-                if self.ENABLE_LO_OUTPUT:
+                if self.external_clk:
+                    # default value is 0x2302886D
+                    xrfclk.xrfclk._Config['lmk04208'][122.88][14] = 0x2302826D
+            else: # pynq 2.6
+                if self.clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk._lmk04208Config[122.88][6] = 0x00140325
                 else:
                     # restore the default clock config
                     xrfclk._lmk04208Config[122.88][6] = 0x80141E05
-
+                if self.external_clk:
+                    xrfclk._lmk04208Config[122.88][14] = 0x2302826D
+                else:
+                    xrfclk._lmk04208Config[122.88][14] = 0x2302886D
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
             print("resetting clocks:", lmk_freq, lmx_freq)
+
+            assert hasattr(xrfclk, "xrfclk") # ZCU216 only has a pynq 2.7 image
+            xrfclk.xrfclk._find_devices()
+            xrfclk.xrfclk._read_tics_output()
+            if self.external_clk:
+                # default value is 0x01471A
+                xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
+            if self.clk_output:
+                # default value is 0x012C22
+                xrfclk.xrfclk._Config['lmk04828'][245.76][55] = 0x012C02
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
         elif self['board'] == 'RFSoC4x2':
             lmk_freq = self['refclk_freq']/2
             lmx_freq = self['refclk_freq']
             print("resetting clocks:", lmk_freq, lmx_freq)
+            xrfclk.xrfclk._find_devices()
+            xrfclk.xrfclk._read_tics_output()
+            print(xrfclk.xrfclk._Config['lmk04828'][245.76][80])
+            if self.external_clk:
+                # default value is 0x01471A
+                xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
 
     def get_decimated(self, ch, address=0, length=None):
