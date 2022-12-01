@@ -1987,13 +1987,24 @@ class QickSoc(Overlay, QickConfig):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         """
+        try:
+            if self['board'] == 'ZCU111':
+                if hasattr(xrfclk, "xrfclk"): # pynq 2.7
+                    clock_initialized = (xrfclk.xrfclk._Config['lmk04208'][122.88][14] == 0x2302826D)
+                else: # pynq 2.6
+                    clock_initialized = xrfclk._lmk04208Config[122.88][14] = 0x2302826D
+            elif self['board'] == 'ZCU216' or self['board'] == 'RFSoC4x2': # both boards only have pynq 2.7
+                clock_initialized = (xrfclk.xrfclk._Config['lmk04828'][245.76][80] == 0x01470A) 
+        except KeyError:
+            clock_initialized = False
+              
         # if we're using any nonstandard clock configuration, we must set the clocks to apply the config
         if force_init_clks or self.external_clk or self.clk_output:
             self.set_all_clks()
             self.download()
         else:
             self.download()
-            if not self.clocks_locked():
+            if not self.clocks_locked() or clock_initialized:
                 self.set_all_clks()
                 self.download()
         if not self.clocks_locked():
