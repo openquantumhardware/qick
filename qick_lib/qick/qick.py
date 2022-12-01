@@ -1789,7 +1789,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=False, external_clk=None, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=None, external_clk=None, **kwargs):
         """
         Constructor method
         """
@@ -1989,7 +1989,7 @@ class QickSoc(Overlay, QickConfig):
         """
               
         # if we're using any nonstandard clock configuration, we must set the clocks to apply the config
-        if force_init_clks or (self.external_clk!=None) or self.clk_output:
+        if force_init_clks or (self.external_clk!=None) or (self.clk_output!= None):
             self.set_all_clks()
             self.download()
         else:
