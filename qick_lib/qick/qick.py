@@ -1764,7 +1764,7 @@ class QickSoc(Overlay, QickConfig):
     :type force_init_clks: bool
     :param clk_output: Output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
     :type clk_output: bool
-    :param external_clk: Lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109) and ZCU216 (put 10 MHz on INPUT_REF_CLK J11).
+    :param external_clk: Lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
     :type external_clk: bool
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
@@ -2128,6 +2128,12 @@ class QickSoc(Overlay, QickConfig):
             lmk_freq = self['refclk_freq']/2
             lmx_freq = self['refclk_freq']
             print("resetting clocks:", lmk_freq, lmx_freq)
+            xrfclk.xrfclk._find_devices()
+            xrfclk.xrfclk._read_tics_output()
+            print(xrfclk.xrfclk._Config['lmk04828'][245.76][80])
+            if self.external_clk:
+                # default value is 0x01471A
+                xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
 
     def get_decimated(self, ch, address=0, length=None):
