@@ -1304,13 +1304,13 @@ class RFQickSoc(QickSoc):
     Overrides the __init__ method of QickSoc in order to add the drivers for the preproduction (V1) version of the RF board.
     Otherwise supports all the QickSoc functionality.
     """
-    def __init__(self, bitfile, **kwargs):
+    def __init__(self, bitfile, no_tproc=False, **kwargs):
         """
         A bitfile must always be provided, since the default bitstream will not work with the RF board.
         By default, re-initialize the clocks every time.
         This ensures that the LO output to the RF board is enabled.
         """
-        super().__init__(bitfile=bitfile, clk_output=True, **kwargs)
+        super().__init__(bitfile=bitfile, clk_output=True, no_tproc=no_tproc, **kwargs)
 
         self.rfb_config(no_tproc)
 
