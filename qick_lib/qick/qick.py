@@ -1760,12 +1760,12 @@ class QickSoc(Overlay, QickConfig):
 
     :param bitfile: Name of the bitfile
     :type bitfile: str
-    :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Enabling the clk_output or external_clk options will also force clock initialization.
+    :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
     :type force_init_clks: bool
-    :param clk_output: Output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
-    :type clk_output: bool
-    :param external_clk: Lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
-    :type external_clk: bool
+    :param clk_output: If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
+    :type clk_output: bool or None
+    :param external_clk: If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
+    :type external_clk: bool or None
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
     """
@@ -1789,7 +1789,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=False, external_clk=False, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=None, external_clk=None, **kwargs):
         """
         Constructor method
         """
@@ -1987,8 +1987,9 @@ class QickSoc(Overlay, QickConfig):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         """
-        # if we're using any nonstandard clock configuration, we must set the clocks to apply the config
-        if force_init_clks or self.external_clk or self.clk_output:
+              
+        # if we're changing the clock config, we must set the clocks to apply the config
+        if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
             self.set_all_clks()
             self.download()
         else:
@@ -2101,12 +2102,11 @@ class QickSoc(Overlay, QickConfig):
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk._lmk04208Config[122.88][6] = 0x00140325
-                else:
-                    # restore the default clock config
+                else: # restore the default
                     xrfclk._lmk04208Config[122.88][6] = 0x80141E05
                 if self.external_clk:
                     xrfclk._lmk04208Config[122.88][14] = 0x2302826D
-                else:
+                else: # restore the default
                     xrfclk._lmk04208Config[122.88][14] = 0x2302886D
             xrfclk.set_all_ref_clks(self['refclk_freq'])
         elif self['board'] == 'ZCU216':
