@@ -1437,7 +1437,7 @@ class QickProgram:
         mux_freqs : list of float, optional
             Tone frequencies for the muxed generator (in MHz).
             Positive and negative values are allowed.
-        mux_gains : list of int, optional
+        mux_gains : list of float, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
         ro_ch : int, optional
             readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
