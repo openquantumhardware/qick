@@ -1758,7 +1758,7 @@ class QickSoc(Overlay, QickConfig):
     """
     QickSoc class. This class will create all object to access system blocks
 
-    :param bitfile: Name of the bitfile
+    :param bitfile: Path to the bitfile. This should end with .bit, and the corresponding .hwh file must be in the same directory.
     :type bitfile: str
     :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
     :type force_init_clks: bool
