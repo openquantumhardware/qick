@@ -966,6 +966,8 @@ class MultiplexedGenManager(AbsGenManager):
 
         """
         if 'length' in params:
+            if params['length'] >= 2**32 or params['length'] < 3:
+                raise RuntimeError("Pulse length of %d is out of range (exceeds 32 bits, or less than 3) - use multiple pulses" % (params['length']))
             self.set_reg('freq', params['length'], defaults=defaults)
         if 'mask' in params:
             val_mask = 0
