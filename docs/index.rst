@@ -17,11 +17,13 @@ Getting started with QICK
 
    * First, for a global overview of the QICK and its capabilities, read `our instrumentation paper introducing the QICK <https://arxiv.org/abs/2110.00557>`_.
 
-   * If you have a ZCU111 board and you want to configure it as a QICK board, follow `the quick start guide on our Github repository <https://github.com/openquantumhardware/qick/tree/main/quick_start>`_.
+   * If you have an RFSoC board and you want to configure it as a QICK board, follow `the quick start guide on our Github repository <https://github.com/openquantumhardware/qick/tree/main/quick_start>`_.
 
    * After you configure your board, you can test it with `our library of loopback demos <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_.
 
-   * The source code for the QICK software library is available `at this link <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_. To learn more about the QICK software, see the following documentation.
+   * The source code for the QICK software library is available `at this link <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_. To learn more about the QICK software, see the next section.
+
+   * Chat with us in the #qick channel on the `Unitary Fund Discord <http://discord.unitary.fund/>`_.
 
 QICK software
 #############
