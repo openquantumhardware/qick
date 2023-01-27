@@ -122,18 +122,19 @@ class AbsSignalGen(SocIp):
             ((block, port),) = trace_net(busparser, self.fullpath, self.TPROC_PORT)
             while True:
                 blocktype = busparser.mod2type[block]
-                if blocktype == "axis_tproc64x32_x8": # we're done
+                if blocktype in ["axis_tproc64x32_x8", "axis_tproc_v2"]: # we're done
                     break
                 elif blocktype == "axis_clock_converter":
                     ((block, port),) = trace_net(busparser, block, 'S_AXIS')
                 elif blocktype == "axis_cdcsync_v1":
                     # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
                     ((block, port),) = trace_net(busparser, block, "s"+port[1:])
+                elif blocktype == "sg_translator":
+                    ((block, port),) = trace_net(busparser, block, "s_tproc_axis")
                 else:
                     raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
-            # port names are of the form 'm2_axis_tdata'
-            # subtract 1 to get the output channel number (m0 goes to the DMA)
-            self.tproc_ch = int(port.split('_')[0][1:])-1
+            # ask the tproc to translate this port name to a channel number
+            self.tproc_ch = getattr(soc, block).port2ch(port)
 
         if self.HAS_WAVEFORM:
             # what switch port drives this generator?
@@ -1077,8 +1078,9 @@ class AxisAvgBuffer(SocIp):
             ((block, port),) = trace_net(busparser, block, 'M_AXIS')
         # port names are of the form 's1_axis'
         # subtract 1 to get the channel number (s0 comes from the DMA)
-        if busparser.mod2type[block] == "axis_tproc64x32_x8":
-            self.tproc_ch = int(port.split('_')[0][1:])-1
+        if busparser.mod2type[block] in ["axis_tproc64x32_x8", "axis_tproc_v2"]:
+            # ask the tproc to translate this port name to a channel number
+            self.tproc_ch = getattr(soc, block).port2ch(port)
         else:
             # this buffer doesn't feed back into the tProc
             self.tproc_ch = -1
@@ -1461,6 +1463,14 @@ class AxisTProc64x32_x8(SocIp):
                     except KeyError:
                         pass
 
+    def port2ch(self, portname):
+        """
+        Translate a port name to a channel number.
+        Used in connection mapping.
+        """
+        # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
+        # subtract 1 to get the output channel number (s0/m0 goes to the DMA)
+        return int(portname.split('_')[0][1:])-1
 
     def start(self):
         """
@@ -1569,6 +1579,408 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_start_reg = 0
 
         return buff
+
+    class AxisTProc_v2_tmp(SocIp):
+        """
+        AxisTProc_v2_tmp class
+     
+        AXIS tProcessor registers:
+        TPROC_CTRL       Write / Read 32-Bits
+        RAND             Read Only    32-Bits
+        TPROC_CFG        Write / Read  2-Bits
+        MEM_ADDR         Write / Read 16-Bits
+        MEM_LEN          Write / Read 16-Bits
+        MEM_DT_I         Write / Read 32-Bits
+        TPROC_EXT_DT1_I  Write / Read 32-Bits
+        TPROC_EXT_DT2_I  Write / Read 32-Bits
+        PORT_LSW         Read Only    32-Bits
+        PORT_MSW         Read Only    32-Bits
+        TIME_USR         Read Only    32-Bits
+        TPROC_EXT_DT1_O  Read Only    32-Bits
+        TPROC_EXT_DT2_O  Read Only    32-Bits
+        MEM_DT_O         Read Only    32-Bits
+        TPROC_STATUS     Read Only    32-Bits
+        TPROC_DEBUG      Read Only    32-Bits
+     
+        TPROC_CTRL[0] - Reset       : Reset the tProc
+        TPROC_CTRL[1] - Stop        : Stop the tProc
+        TPROC_CTRL[2] - Pause       : Pause the tProc(Time continue Running)
+        TPROC_CTRL[3] - Freeze      : Freeze Time (tProc Runs, but time stops)
+        TPROC_CTRL[4] - Play        : Starts / Continue running the tProc
+        TPROC_CTRL[10] - COND_set   : Set External Condition Flag from
+        TPROC_CTRL[11] - COND_clear : Clears External Condition Flag from
+        TPROC_CFG[0] - START_REG
+        * 0 : init
+        * 1 : Start
+        TPROC_CFG[1] - OPERATION_REG
+        * 0 : Read
+        * 1 : Write
+        TPROC_CFG[3:2] - MEM_BANK_REG 
+        * 0 : None Selected
+        * 1 : Program memory 
+        * 2 : Data Memory
+        * 3 : WaveParam Memory
+        TPROC_CFG[4] - SOURCE_REG
+        * 0 : AXIS Operation     (Using MEM_ADDR, MEM_LEN, (s0_axis / m0_axis) )
+        * 1 : REGISTER Operation (Using MEM_ADDR, (MEM_DT_I, MEM_DT_O) )
+     
+        MEM_ADDR : starting memory address for AXIS read/write mode.
+     
+        MEM_LEN : number of samples to be transferred in AXIS read/write mode.
+     
+        :param mem: memory address
+        :type mem: int
+        :param axi_dma: axi_dma address
+        :type axi_dma: int
+        """
+        bindto = ['Fermi:user:axis_tproc_v2:2.0']
+     
+        REGISTERS = {
+           'tproc_ctrl':0, 'rand':1, 'tproc_cfg':2,
+           'mem_addr'  :3, 'mem_len'  :4, 'mem_dt_i':5, 'mem_dt_o':6,
+           'tproc_ext_dt1_i':7 , 'tproc_ext_dt2_i':8,
+           'port_lsw':9, 'port_msw':10, 'time_usr':11,
+           'tproc_ext_dt1_o':12, 'tproc_ext_dt2_o':13,
+           'tproc_status':14, 'tproc_debug':15,}
+     
+        def __init__(self, description):
+            """
+            Constructor method
+            """
+            super().__init__(description)
+            # Parameters
+            self.PMEM_SIZE = pow( 2, int(description['parameters']['PMEM_AW']) )
+            self.DMEM_SIZE = pow( 2, int(description['parameters']['DMEM_AW']) )
+            self.WMEM_SIZE = pow( 2, int(description['parameters']['WMEM_AW']) )
+            self.DREG_QTY  = pow( 2, int(description['parameters']['REG_AW'])  )
+            self.IN_PORT_QTY   = int(description['parameters']['IN_PORT_QTY'])
+            self.OUT_DPORT_QTY = int(description['parameters']['OUT_DPORT_QTY'])
+            self.OUT_WPORT_QTY = int(description['parameters']['OUT_WPORT_QTY'])
+            self.LFSR      = int(description['parameters']['LFSR'])
+            self.DIVIDER   = int(description['parameters']['DIVIDER'])
+            self.ARITH     = int(description['parameters']['ARITH'])
+            self.TIME_CMP  = int(description['parameters']['TIME_CMP'])
+            self.TIME_READ = int(description['parameters']['TIME_READ'])
+            
+            # Initial Values 
+            self.tproc_ctrl = 0
+            self.tproc_cfg  = 0
+            self.mem_addr   = 0
+            self.mem_len    = 100
+            self.mem_dt_i   = 0
+            self.tproc_ext_dt1_i = 0
+            self.tproc_ext_dt2_i = 0
+            
+            #COmpatible with previous Version
+            self.DMEM_N = int(description['parameters']['DMEM_AW']) 
+
+      
+        # Configure this driver with links to its memory and DMA.
+        def configure(self, mem, axi_dma):
+            # Program memory.
+            self.mem = mem
+            # dma
+            self.dma = axi_dma
+     
+        def configure_connections(self, soc, sigparser, busparser):
+            self.output_pins = []
+            self.start_pin = None
+            try:
+                ((port),) = trace_net(sigparser, self.fullpath, 'start')
+                self.start_pin = port[0]
+            except:
+                pass
+           # search for the trigger port
+            for i in range(4):
+                
+                # what block does this output drive?
+                # add 1, because output 0 goes to the DMA
+                try:
+                    ((block, port),) = trace_net(sigparser, self.fullpath, 'port_%d_dt_o' % (i))
+                except: # skip disconnected tProc outputs
+                    continue
+                if busparser.mod2type[block].startswith("vect2bits"):
+                    self.trig_output = i
+                    for iPin in range(16):
+                        try:
+                            #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
+                            ports = trace_net(sigparser, block, "dout%d"%(iPin))
+                            if len(ports)==1 and len(ports[0])==1:
+                                # it's an FPGA pin, save it
+                                pinname = ports[0][0]
+                                self.output_pins.append((iPin, pinname))
+                        except KeyError:
+                            pass
+
+        def port2ch(self, portname):
+            """
+            Translate a port name to a channel number.
+            Used in connection mapping.
+            """
+            # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
+            return int(portname.split('_')[0][1:])
+                        
+        def reset(self):
+            print('-tProc RESET')
+            self.tproc_ctrl      = 1
+        def stop(self):
+            print('-tProc STOP')
+            self.tproc_ctrl      = 2
+        def pause(self):
+            print('-tProc PAUSE')
+            self.tproc_ctrl      = 4
+        def freeze(self):
+            print('-tProc FREEZE')
+            self.tproc_ctrl      = 8
+        def run(self):
+            print('-tProc RUN')
+            self.tproc_ctrl      = 16
+        def set_cond(self):
+            print('-tProc RESET')
+            self.tproc_ctrl      = 1024
+        def clear_cond(self):
+            print('-tProc RESET')
+            self.tproc_ctrl      = 2048
+            
+        def info(self):
+            print('---------------------------------------------')
+            print(' TPROC INFO ')
+            print('---------------------------------------------')
+            print("Initializing tproc_v2")
+            print("PMEM_SIZE     : ", self.PMEM_SIZE)
+            print("DMEM_SIZE     : ", self.DMEM_SIZE)
+            print("WMEM_SIZE     : ", self.WMEM_SIZE)
+            print("DREG_QTY      : ", self.DREG_QTY)
+            print("IN_PORT_QTY   : ", self.IN_PORT_QTY)
+            print("OUT_DPORT_QTY : ", self.OUT_DPORT_QTY)
+            print("OUT_WPORT_QTY : ", self.OUT_WPORT_QTY)
+            print("Peripherals:")
+            if (self.LFSR == 1):
+                print("LFSR      : YES")
+            else:
+                print("LFSR      : NO")
+            if (self.DIVIDER == 1):
+                print("DIVIDER   : YES")
+            else:
+                print("DIVIDER   : NO")
+            if (self.ARITH == 1):
+                print("ARITH     : YES")
+            else:
+                print("ARITH     : NO")
+            if (self.TIME_CMP == 1):
+                print("TIME_CMP  : YES")
+            else:
+                print("TIME_CMP  : NO")
+            if (self.TIME_READ == 1): 
+                print("TIME_READ : YES")
+            else:
+                print("TIME_READ : NO")
+            
+        def single_read(self, addr):
+            """
+            Reads one sample of tProc data memory using AXI access
+           
+            :param addr: reading address
+            :type addr: int
+            :return: requested value
+            :rtype: int
+            """
+            # Read data.
+            # Address should be translated to upper map.
+            return self.mmio.array[addr + self.NREG]
+     
+        def single_write(self, addr=0, data=0):
+            """
+            Writes one sample of tProc data memory using AXI access
+            
+            :param addr: writing address
+            :type addr: int
+            :param data: value to be written
+            :type data: int
+            """
+            # Write data.
+            # Address should be translated to upper map.
+            self.mmio.array[addr + self.NREG] = np.uint32(data)
+     
+
+        def load_mem(self,mem_sel, buff_in, addr=0):
+            """
+            Writes tProc Selected memory using DMA
+            PARAMETERS> 
+              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
+              buff_in   : Input buffer ( int )
+              addr      : Starting destination address ( int )
+            """
+            # Length.
+            length = len(buff_in)
+            # Configure Memory arbiter. (Write MEM)
+            self.mem_addr        = addr
+            self.mem_len         = length
+
+            # Define buffer.
+            self.buff = allocate(shape=(length,8), dtype=np.int32)
+            # Copy buffer.
+            np.copyto(self.buff, buff_in)
+            print(self.buff)
+            #Start operation
+            if (mem_sel==1):       # WRITE PMEM
+                self.tproc_cfg       = 7
+            elif (mem_sel==2):     # WRITE DMEM
+                self.tproc_cfg       = 11
+            elif (mem_sel==3):     # WRITE WMEM
+                self.tproc_cfg       = 15
+            else:
+                print('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value :', mem_sel )
+
+            # DMA data.
+            self.dma.sendchannel.transfer(self.buff)
+            self.dma.sendchannel.wait()
+            
+            # End Operation
+            self.tproc_cfg       = 0
+
+        
+        
+        def read_mem(self,mem_sel, addr=0, length=100):
+            """
+            Read tProc Selected memory using DMA
+            PARAMETERS> 
+              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
+              buff_in   : Input buffer ( int )
+              addr      : Starting destination address ( int )
+            """
+        # Configure Memory arbiter. (Read DMEM)
+            self.mem_addr        = addr
+            self.mem_len         = length
+
+            # Define buffer.
+            buff_rd = allocate(shape=(length,8), dtype=np.int32)
+
+            #Start operation
+            if (mem_sel==1):       # READ PMEM
+                self.tproc_cfg       = 5
+            elif (mem_sel==2):     # READ DMEM
+                self.tproc_cfg       = 9
+            elif (mem_sel==3):     # READ WMEM
+                self.tproc_cfg       = 13
+            else:
+                print('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value :', mem_sel )
+
+            # DMA data.
+            self.dma.recvchannel.transfer(buff_rd)
+            self.dma.recvchannel.wait()
+            
+            # End Operation
+            self.tproc_cfg       = 0      
+            return buff_rd
+        
+        def Load_PMEM(self, p_mem):
+            print('---------------------------------------------')
+            print('Loading Program in PMEM')
+            print('---------------------------------------------')
+            # Length.
+            length = len(p_mem)
+            # Configure Memory arbiter.
+            self.mem_addr        = 0
+            self.mem_len         = length
+            # Define buffer.
+            self.buff = allocate(shape=(length,8), dtype=np.int32)
+            # Copy buffer.
+            np.copyto(self.buff, p_mem)
+            #Start operation
+            self.tproc_cfg       = 7
+            # DMA data.
+            print('P1', end = ' ')
+            self.dma.sendchannel.transfer(self.buff)
+            print('P2', end = ' ')
+            self.dma.sendchannel.wait()
+            print('P3', end = ' ')
+            # End Operation
+            self.tproc_cfg       = 0
+            
+            #Read PROGRAM MEMORY
+            # Configure Memory arbiter.
+            self.mem_addr        = 0
+            self.mem_len         = length
+            self.tproc_cfg       = 5
+            # DMA data.
+            print('P4', end = ' ')
+            self.dma.recvchannel.transfer(self.buff)
+            print('P5', end = ' ')
+            self.dma.recvchannel.wait()
+            print('P6')
+            # End Operation
+            self.tproc_cfg       = 0      
+            
+            if ( (np.max(self.buff - p_mem) )  == 0):
+                print('Program Loaded OK')
+            else:
+                print('Error Loading Program')
+
+            
+        def getALL(self):
+            print('---------------------------------------------')
+            print('--- AXI Registers')
+            print('TPROC_CTRL  : ', self.tproc_ctrl)
+            print('TPROC_CFG   : ', self.tproc_cfg)
+            print('RAND        : ', self.rand)
+            print('MEM_ADDR    : ', self.mem_addr)
+            print('MEM_LEN     : ', self.mem_len)
+            print('MEM_DT_I    : ', self.mem_dt_i)
+            print('MEM_DT_O    : ', self.mem_dt_o)
+            print('PORT_LSW    : ', self.port_lsw)
+            print('PORT_MSW    : ', self.port_msw)
+            print('TPROC_EXT_DT1_I: ', self.tproc_ext_dt1_i)
+            print('TPROC_EXT_DT2_I: ', self.tproc_ext_dt2_i)
+            print('TPROC_EXT_DT1_O: ', self.tproc_ext_dt1_o)
+            print('TPROC_EXT_DT2_O: ', self.tproc_ext_dt2_o)
+            print('TIME_USR     : ', self.time_usr)
+            a = self.tproc_status
+            print('TPROC_STATUS : ', a, end = ' - ' )
+            print('{:039_b}'.format(a))
+            a = self.tproc_debug
+            print('TPROC_DEBUG  : ', a, end = ' - ' )
+            print('{:039_b}'.format(a))
+     
+
+        def getStatus(self):
+            debug_num = self.tproc_debug
+            print('---------------------------------------------')
+            print('--- Debug signals')
+            print('EXT_MEM_ADDR :' + '{:032b}'.format(debug_num)[0:8])
+            print('PMEM_ADDR    :' + '{:032b}'.format(debug_num)[8:16])
+            print('Time Ref     :' + '{:032b}'.format(debug_num)[16:24])
+            print('FIFO[0] Time :' + '{:032b}'.format(debug_num)[24:27], end = ' - ' )
+            print('FIFO_OK :'      + '{:032b}'.format(debug_num)[28] )
+            print('Header  :'      + '{:032b}'.format(debug_num)[29:32])
+            status_num = self.tproc_status
+            print('---------------------------------------------')
+            print('--- Memory Unit Status signals')
+            print('AXI_Read  :'+ '{:032b}'.format(status_num)[0], end = ' - ' )
+            print('AXI_Write :'+ '{:032b}'.format(status_num)[1] )
+            print('ext_P_Mem_EN  :'+ '{:032b}'.format(status_num)[2], end = ' - ' )
+            print('ext_P_Mem_WEN :'+ '{:032b}'.format(status_num)[3] )
+            print('ext_D_Mem_EN  :'+ '{:032b}'.format(status_num)[4], end = ' - ' )
+            print('ext_D_Mem_WEN :'+ '{:032b}'.format(status_num)[5] )
+            print('ext_W_Mem_EN  :'+ '{:032b}'.format(status_num)[6], end = ' - ' )
+            print('ext_W_Mem_WEN :'+ '{:032b}'.format(status_num)[7] )
+            print('--- Processing Unit Status signals')
+            print('FD0_Empty:'+ '{:032b}'.format(status_num)[8], end = ' - ' )
+            print('FD1_Empty:'+ '{:032b}'.format(status_num)[10], end = ' - ' )
+            print('FD0_Full:'+ '{:032b}'.format(status_num)[9], end = ' - ' )
+            print('FD1_Full:'+ '{:032b}'.format(status_num)[11] )
+            print('FW0_Empty:'+ '{:032b}'.format(status_num)[12], end = ' - ' )
+            print('FW1_Empty:'+ '{:032b}'.format(status_num)[14], end = ' - ' )
+            print('FW0_Full:'+ '{:032b}'.format(status_num)[13], end = ' - ' )
+            print('FW1_Full:'+ '{:032b}'.format(status_num)[15])
+            print('PMEM_EN:'+ '{:032b}'.format(status_num)[16], end = ' - ' )
+            print('DMEM_WE:'+ '{:032b}'.format(status_num)[17], end = ' - ' )
+            print('WMEM_WE:'+ '{:032b}'.format(status_num)[18], end = ' - ' )
+            print('PORT_WE:'+ '{:032b}'.format(status_num)[19])
+            print('T_en:'+ '{:032b}'.format(status_num)[26], end = ' - ' )
+            print('P_en:'+ '{:032b}'.format(status_num)[27], end = ' - ' )
+            print('STATE:'+ '{:032b}'.format(status_num)[29:32])
+
 
 
 class AxisSwitch(SocIp):
@@ -1823,9 +2235,14 @@ class QickSoc(Overlay, QickConfig):
 
         if not no_tproc:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-            self._tproc = self.axis_tproc64x32_x8_0
-            self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-            self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+            if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self._tproc = self.axis_tproc64x32_x8_0
+                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+                self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "aclk")
+            else:
+                self._tproc = self.axis_tproc_v2_0
+                self._tproc.configure(self.axis_tproc_v2_0, self.axi_dma_tproc)
+                self['fs_proc'] = get_fclk(self.parser, self.tproc.fullpath, "t_clk_i")
 
             self.map_signal_paths()
 
