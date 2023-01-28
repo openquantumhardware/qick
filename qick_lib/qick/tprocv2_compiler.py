@@ -5,7 +5,9 @@ Created on Tue Aug  9 13:40:39 2022
 @author: mdifeder
 """
 import re
+import logging
 
+logger = logging.getLogger('tprocv2_compiler')
 
 
 # ALU OPERATIONS 
@@ -195,15 +197,14 @@ def tprocv2_compile(prog_list, Dict_Label):
             elif current['CMD'] == 'ARITH':
                 error, CODE = cmd_ARITH(current)
             else:
-                print ('\n[ERROR-S2]- Command not recognized > ' + current['CMD'])
+                logger.error('[ERROR-S2]- Command not recognized > ' + current['CMD'])
                 error=1
             long = CODE.count('0') + CODE.count('1')
             if (long != 72):
                 error = 1
-                print (CODE)
-                print ("INSTRUCIONT LONG > " + str(long) +' '+ str(current['LINE']))
+                logger.error(CODE+"INSTRUCIONT LONG > " + str(long) +' '+ str(current['LINE']))
         else:    
-            print ("\n[ERROR-S2]-No Command ")
+            logger.error("[ERROR-S2]-No Command")
             error=1
     ###################################################################################
         if (error==0):
@@ -211,9 +212,9 @@ def tprocv2_compile(prog_list, Dict_Label):
         else:
             break
     if (error!=0):
-        print ("S2-Exit With ERROR")
+        logger.error("S2-Exit With ERROR")
     else:    
-        print ('\n ##### STEP_4 - BINARY CREATION')
+        logger.info('##### STEP_4 - BINARY CREATION')
         p_mem = []
         for line_bin in PROGRAM:
             tmp = line_bin.replace('_', '')
@@ -225,25 +226,23 @@ def tprocv2_compile(prog_list, Dict_Label):
             n2 = int(b2,2)
             p_mem_line = [n0, n1, n2, 0, 0, 0, 0, 0]
             p_mem.append(p_mem_line)
-        print ("\n#######################\n Finished Successfully\n#######################")
+        logger.info("\n#######################\n Finished Successfully\n#######################")
         return p_mem, PROGRAM, asm
    
     
 def msg (severity, locator, msg):
-    error = 0
     if (severity == 4):
-        print  ('\nERROR : [', end = '')
-        error = 1
+        logger.error('[%s] > %s' % (locator, msg))
+        return 1
     elif (severity == 3 ):   
-        print  ('\nWARNING: [', end = '')
+        logger.warning('[%s] > %s' % (locator, msg))
     elif (severity == 2 ):   
-        print  ('\nINFO   : [', end = '')
+        logger.info('[%s] > %s' % (locator, msg))
     elif (severity == 1 ):   
-        print  ('\nSTATUS : [', end = '')
+        logger.debug('[%s] > %s' % (locator, msg))
     else:
-        print  ('\nMSG    : [', end = '')
-    print (locator+'] > ' + msg)
-    return error
+        logger.debug('[%s] > %s' % (locator, msg))
+    return 0
 
     
 def integer2bin(strin, bits=8):
@@ -262,11 +261,11 @@ def integer2bin(strin, bits=8):
             dec = int(strin, 10)
         # Check max.
         if dec < minv:
-            print ("Error: number %d is smaller than %d" % (dec, minv))
+            logger.error("number %d is smaller than %d" % (dec, minv))
             return None
         # Check max.
         if dec > maxv:
-            print ("Error: number %d is bigger than %d" % (dec, maxv))
+            logger.error("number %d is bigger than %d" % (dec, maxv))
             return None
         # Check if number is negative.
         if dec < 0:
@@ -422,7 +421,7 @@ def proc_SOURCE (cmd):
                         if ( int(cmd ['LIT']) >= 65535):
                             error = msg(4, 'proc_SOURCE',  ('Literal '+ cmd ['LIT'] + ' should be 16 Bits.') )
                         else:
-                            print ("[OK] Literal " + cmd ['LIT'] + " can be represented with 16 Bits.")
+                            logger.info("[OK] Literal " + cmd ['LIT'] + " can be represented with 16 Bits.")
                             df    = '01'
                             DataImm = '_'+integer2bin(cmd ['LIT'], 16)
                     else:
@@ -738,7 +737,7 @@ def cmd_CFG (current):
 
 
 def cmd_BRANCH (current, cj):
-    print(current)
+    #print(current)
     error   = 0
     #### CONDITIONAL
     COND    = '000'
@@ -768,14 +767,14 @@ def cmd_BRANCH (current, cj):
                 ADDR     = '_00000000000_000000' 
                 AI = '0'
             else:
-                print ('[ERROR-cmd_BRANCH] > JUMP Memory Address not recognized (imm or s15)')
+                logger.error('[cmd_BRANCH] > JUMP Memory Address not recognized (imm or s15)')
                 error = 1
 
     if (error==0):
         CFG = current['UF'] +'_'+ Wr+Rdi +'_'+ alu_op
         CODE = '001_'+AI+DF+'__'+COND+'__'+cj+'___'+CFG+"____"+ADDR+'____'+DATA+"_"+RD
     else:
-        print ("[ERROR-cmd_BRANCH] > Exit with Error in instruction " + str(current['LINE']) )
+        logger.error("[cmd_BRANCH] > Exit with Error in instruction " + str(current['LINE']) )
         CODE = 'X'
     return error, CODE
 
@@ -876,7 +875,7 @@ def cmd_PORT_WR (current):
         ADDR  = RsF+'_'+RsE
         CODE = '110'+'_'+AI+DF+'__'+COND+'___'+CFG+ '______'+ADDR +'__'+ DATA+'_'+RD
     else:
-        print ("[ERROR-cmd_PORT_WR] > Exit with Error in instruction " + str(current['LINE']) )
+        logger.error("[cmd_PORT_WR] > Exit with Error in instruction " + str(current['LINE']) )
         CODE = 'X'
     return error, CODE
 
@@ -940,11 +939,11 @@ def cmd_CTRL (current):
                 error, RD1 = get_reg_addr (current['DEN'], 'Source')
 
             else:
-                print ('[ERROR-cmd_BRANCH] > JUMP Memory Address not recognized (imm or s15)')
+                logger.error('[cmd_BRANCH] > JUMP Memory Address not recognized (imm or s15)')
                 error = 1
 
     if (error):
-        print ('Error in instruction ' + str(current['LINE']) )
+        logger.error('Error in instruction ' + str(current['LINE']) )
         CODE = 'X'
     else:
         CODE = '111_'+AI+DF+'______'+OPERATION+'___'+CTRL+'_____00000___'+RA0+'_'+RA1+'__'+RD0+'__'+RD1+'_'+RE+'_0000000'
@@ -986,7 +985,7 @@ def cmd_ARITH (current):
     if (error==0):
         CODE = '111_000______'+ARITH_OP +'___00100_____00000___'+RsC+'__'+RsD+'__'+RsA+'__'+RsB+'___0000000000000000_0000000'
     else:
-        print ("[ERROR-cmd_ARITH] > Exit with Error in instruction " + str(current['LINE']) )
+        logger.error("[cmd_ARITH] > Exit with Error in instruction " + str(current['LINE']) )
         CODE = 'X'
     return error, CODE
     

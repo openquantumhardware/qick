@@ -12,6 +12,7 @@ except:
 import numpy as np
 import time
 import queue
+import logging
 from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig, QickProgram, obtain
@@ -34,6 +35,7 @@ class SocIp(DefaultIP):
         self.fullpath = description['fullpath']
         self.type = description['type'].split(':')[-2]
         #self.ip = description
+        self.logger = logging.getLogger(self.type)
 
     def __setattr__(self, a, v):
         """
@@ -1580,9 +1582,9 @@ class AxisTProc64x32_x8(SocIp):
 
         return buff
 
-    class AxisTProc_v2_tmp(SocIp):
+    class AxisTProc_v2(SocIp):
         """
-        AxisTProc_v2_tmp class
+        AxisTProc_v2 class
      
         AXIS tProcessor registers:
         TPROC_CTRL       Write / Read 32-Bits
@@ -1648,6 +1650,7 @@ class AxisTProc64x32_x8(SocIp):
             Constructor method
             """
             super().__init__(description)
+
             # Parameters
             self.PMEM_SIZE = pow( 2, int(description['parameters']['PMEM_AW']) )
             self.DMEM_SIZE = pow( 2, int(description['parameters']['DMEM_AW']) )
@@ -1721,61 +1724,42 @@ class AxisTProc64x32_x8(SocIp):
             return int(portname.split('_')[0][1:])
                         
         def reset(self):
-            print('-tProc RESET')
+            self.logger.info('RESET')
             self.tproc_ctrl      = 1
         def stop(self):
-            print('-tProc STOP')
+            self.logger.info('STOP')
             self.tproc_ctrl      = 2
         def pause(self):
-            print('-tProc PAUSE')
+            self.logger.info('PAUSE')
             self.tproc_ctrl      = 4
         def freeze(self):
-            print('-tProc FREEZE')
+            self.logger.info('FREEZE')
             self.tproc_ctrl      = 8
         def run(self):
-            print('-tProc RUN')
+            self.logger.info('RUN')
             self.tproc_ctrl      = 16
         def set_cond(self):
-            print('-tProc RESET')
+            self.logger.info('RESET')
             self.tproc_ctrl      = 1024
         def clear_cond(self):
-            print('-tProc RESET')
+            self.logger.info('RESET')
             self.tproc_ctrl      = 2048
             
         def info(self):
-            print('---------------------------------------------')
-            print(' TPROC INFO ')
-            print('---------------------------------------------')
-            print("Initializing tproc_v2")
-            print("PMEM_SIZE     : ", self.PMEM_SIZE)
-            print("DMEM_SIZE     : ", self.DMEM_SIZE)
-            print("WMEM_SIZE     : ", self.WMEM_SIZE)
-            print("DREG_QTY      : ", self.DREG_QTY)
-            print("IN_PORT_QTY   : ", self.IN_PORT_QTY)
-            print("OUT_DPORT_QTY : ", self.OUT_DPORT_QTY)
-            print("OUT_WPORT_QTY : ", self.OUT_WPORT_QTY)
-            print("Peripherals:")
-            if (self.LFSR == 1):
-                print("LFSR      : YES")
-            else:
-                print("LFSR      : NO")
-            if (self.DIVIDER == 1):
-                print("DIVIDER   : YES")
-            else:
-                print("DIVIDER   : NO")
-            if (self.ARITH == 1):
-                print("ARITH     : YES")
-            else:
-                print("ARITH     : NO")
-            if (self.TIME_CMP == 1):
-                print("TIME_CMP  : YES")
-            else:
-                print("TIME_CMP  : NO")
-            if (self.TIME_READ == 1): 
-                print("TIME_READ : YES")
-            else:
-                print("TIME_READ : NO")
+            print(self)
             
+        def __str__(self):
+            lines = []
+            lines.append('---------------------------------------------')
+            lines.append(' TPROC V2 INFO ')
+            lines.append('---------------------------------------------')
+            for param in ["PMEM_SIZE", "DMEM_SIZE", "WMEM_SIZE", "DREG_QTY", "IN_PORT_QTY", "OUT_DPORT_QTY", "OUT_WPORT_QTY"]:
+                lines.append("%-14s: %d" % (param, getattr(self, param)))
+            lines.append("\nPeripherals:")
+            for param in ["LFSR", "DIVIDER", "ARITH", "TIME_CMP", "TIME_READ"]:
+                lines.append("%-14s: %s" % (param, ["NO", "YES"][getattr(self, param)]))
+            return "\n".join(lines)
+
         def single_read(self, addr):
             """
             Reads one sample of tProc data memory using AXI access
@@ -1818,6 +1802,7 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_len         = length
 
             # Define buffer.
+            # TODO: pre-allocate buffer
             self.buff = allocate(shape=(length,8), dtype=np.int32)
             # Copy buffer.
             np.copyto(self.buff, buff_in)
@@ -1830,7 +1815,7 @@ class AxisTProc64x32_x8(SocIp):
             elif (mem_sel==3):     # WRITE WMEM
                 self.tproc_cfg       = 15
             else:
-                print('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value :', mem_sel )
+                raise RuntimeError('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
             self.dma.sendchannel.transfer(self.buff)
@@ -1854,6 +1839,7 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_len         = length
 
             # Define buffer.
+            # TODO: pre-allocate buffer
             buff_rd = allocate(shape=(length,8), dtype=np.int32)
 
             #Start operation
@@ -1864,7 +1850,7 @@ class AxisTProc64x32_x8(SocIp):
             elif (mem_sel==3):     # READ WMEM
                 self.tproc_cfg       = 13
             else:
-                print('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value :', mem_sel )
+                raise RuntimeError('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
             self.dma.recvchannel.transfer(buff_rd)
@@ -1875,9 +1861,7 @@ class AxisTProc64x32_x8(SocIp):
             return buff_rd
         
         def Load_PMEM(self, p_mem):
-            print('---------------------------------------------')
-            print('Loading Program in PMEM')
-            print('---------------------------------------------')
+            self.logger.info('Loading Program in PMEM')
             # Length.
             length = len(p_mem)
             # Configure Memory arbiter.
@@ -1890,11 +1874,11 @@ class AxisTProc64x32_x8(SocIp):
             #Start operation
             self.tproc_cfg       = 7
             # DMA data.
-            print('P1', end = ' ')
+            self.logger.debug('P1')
             self.dma.sendchannel.transfer(self.buff)
-            print('P2', end = ' ')
+            self.logger.debug('P2')
             self.dma.sendchannel.wait()
-            print('P3', end = ' ')
+            self.logger.debug('P3')
             # End Operation
             self.tproc_cfg       = 0
             
@@ -1904,82 +1888,89 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_len         = length
             self.tproc_cfg       = 5
             # DMA data.
-            print('P4', end = ' ')
+            self.logger.debug('P4')
             self.dma.recvchannel.transfer(self.buff)
-            print('P5', end = ' ')
+            self.logger.debug('P5')
             self.dma.recvchannel.wait()
-            print('P6')
+            self.logger.debug('P6')
             # End Operation
             self.tproc_cfg       = 0      
             
             if ( (np.max(self.buff - p_mem) )  == 0):
-                print('Program Loaded OK')
+                self.logger.info('Program Loaded OK')
             else:
-                print('Error Loading Program')
+                self.logger.error('Error Loading Program')
 
             
         def getALL(self):
-            print('---------------------------------------------')
-            print('--- AXI Registers')
-            print('TPROC_CTRL  : ', self.tproc_ctrl)
-            print('TPROC_CFG   : ', self.tproc_cfg)
-            print('RAND        : ', self.rand)
-            print('MEM_ADDR    : ', self.mem_addr)
-            print('MEM_LEN     : ', self.mem_len)
-            print('MEM_DT_I    : ', self.mem_dt_i)
-            print('MEM_DT_O    : ', self.mem_dt_o)
-            print('PORT_LSW    : ', self.port_lsw)
-            print('PORT_MSW    : ', self.port_msw)
-            print('TPROC_EXT_DT1_I: ', self.tproc_ext_dt1_i)
-            print('TPROC_EXT_DT2_I: ', self.tproc_ext_dt2_i)
-            print('TPROC_EXT_DT1_O: ', self.tproc_ext_dt1_o)
-            print('TPROC_EXT_DT2_O: ', self.tproc_ext_dt2_o)
-            print('TIME_USR     : ', self.time_usr)
-            a = self.tproc_status
-            print('TPROC_STATUS : ', a, end = ' - ' )
-            print('{:039_b}'.format(a))
-            a = self.tproc_debug
-            print('TPROC_DEBUG  : ', a, end = ' - ' )
-            print('{:039_b}'.format(a))
-     
+            print(self.status_axi())
 
+        def status_axi(self):
+            lines = []
+            lines.append('---------------------------------------------')
+            lines.append('--- AXI Registers')
+            for param in ["tproc_ctrl",
+                    "tproc_cfg",
+                    "rand",
+                    "mem_addr",
+                    "mem_len",
+                    "mem_dt_i",
+                    "mem_dt_o",
+                    "port_lsw",
+                    "port_msw",
+                    "tproc_ext_dt1_i",
+                    "tproc_ext_dt2_i",
+                    "tproc_ext_dt1_o",
+                    "tproc_ext_dt2_o",
+                    "time_usr"]:
+                lines.append("%-16s: %d" % (param.upper(), getattr(self, param)))
+            lines.append('TPROC_STATUS : {0:12d} - {0:039_b}'.format(self.tproc_status))
+            lines.append('TPROC_DEBUG  : {0:12d} - {0:039_b}'.format(self.tproc_debug))
+            return "\n".join(lines)
+     
         def getStatus(self):
+            print(self.status())
+
+        def status(self):
+            lines = []
             debug_num = self.tproc_debug
-            print('---------------------------------------------')
-            print('--- Debug signals')
-            print('EXT_MEM_ADDR :' + '{:032b}'.format(debug_num)[0:8])
-            print('PMEM_ADDR    :' + '{:032b}'.format(debug_num)[8:16])
-            print('Time Ref     :' + '{:032b}'.format(debug_num)[16:24])
-            print('FIFO[0] Time :' + '{:032b}'.format(debug_num)[24:27], end = ' - ' )
-            print('FIFO_OK :'      + '{:032b}'.format(debug_num)[28] )
-            print('Header  :'      + '{:032b}'.format(debug_num)[29:32])
+            lines.append('---------------------------------------------')
+            lines.append('--- Debug signals')
+            lines.append('EXT_MEM_ADDR :' + '{:032b}'.format(debug_num)[0:8])
+            lines.append('PMEM_ADDR    :' + '{:032b}'.format(debug_num)[8:16])
+            lines.append('Time Ref     :' + '{:032b}'.format(debug_num)[16:24])
+            lines.append("")
+            lines.append('FIFO[0] Time :' + '{:032b}'.format(debug_num)[24:27])
+            lines[-1] += ('FIFO_OK :'      + '{:032b}'.format(debug_num)[28])
+            lines.append('Header  :'      + '{:032b}'.format(debug_num)[29:32])
             status_num = self.tproc_status
-            print('---------------------------------------------')
-            print('--- Memory Unit Status signals')
-            print('AXI_Read  :'+ '{:032b}'.format(status_num)[0], end = ' - ' )
-            print('AXI_Write :'+ '{:032b}'.format(status_num)[1] )
-            print('ext_P_Mem_EN  :'+ '{:032b}'.format(status_num)[2], end = ' - ' )
-            print('ext_P_Mem_WEN :'+ '{:032b}'.format(status_num)[3] )
-            print('ext_D_Mem_EN  :'+ '{:032b}'.format(status_num)[4], end = ' - ' )
-            print('ext_D_Mem_WEN :'+ '{:032b}'.format(status_num)[5] )
-            print('ext_W_Mem_EN  :'+ '{:032b}'.format(status_num)[6], end = ' - ' )
-            print('ext_W_Mem_WEN :'+ '{:032b}'.format(status_num)[7] )
-            print('--- Processing Unit Status signals')
-            print('FD0_Empty:'+ '{:032b}'.format(status_num)[8], end = ' - ' )
-            print('FD1_Empty:'+ '{:032b}'.format(status_num)[10], end = ' - ' )
-            print('FD0_Full:'+ '{:032b}'.format(status_num)[9], end = ' - ' )
-            print('FD1_Full:'+ '{:032b}'.format(status_num)[11] )
-            print('FW0_Empty:'+ '{:032b}'.format(status_num)[12], end = ' - ' )
-            print('FW1_Empty:'+ '{:032b}'.format(status_num)[14], end = ' - ' )
-            print('FW0_Full:'+ '{:032b}'.format(status_num)[13], end = ' - ' )
-            print('FW1_Full:'+ '{:032b}'.format(status_num)[15])
-            print('PMEM_EN:'+ '{:032b}'.format(status_num)[16], end = ' - ' )
-            print('DMEM_WE:'+ '{:032b}'.format(status_num)[17], end = ' - ' )
-            print('WMEM_WE:'+ '{:032b}'.format(status_num)[18], end = ' - ' )
-            print('PORT_WE:'+ '{:032b}'.format(status_num)[19])
-            print('T_en:'+ '{:032b}'.format(status_num)[26], end = ' - ' )
-            print('P_en:'+ '{:032b}'.format(status_num)[27], end = ' - ' )
-            print('STATE:'+ '{:032b}'.format(status_num)[29:32])
+            lines.append('---------------------------------------------')
+            lines.append('--- Memory Unit Status signals')
+            lines.append('AXI_Read  :'+ '{:032b}'.format(status_num)[0])
+            lines[-1] += ('AXI_Write :'+ '{:032b}'.format(status_num)[1] )
+            lines.append('ext_P_Mem_EN  :'+ '{:032b}'.format(status_num)[2])
+            lines[-1] += ('ext_P_Mem_WEN :'+ '{:032b}'.format(status_num)[3])
+            lines.append('ext_D_Mem_EN  :'+ '{:032b}'.format(status_num)[4])
+            lines[-1] += ('ext_D_Mem_WEN :'+ '{:032b}'.format(status_num)[5])
+            lines.append('ext_W_Mem_EN  :'+ '{:032b}'.format(status_num)[6])
+            lines[-1] += ('ext_W_Mem_WEN :'+ '{:032b}'.format(status_num)[7])
+            lines.append('--- Processing Unit Status signals')
+            lines.append('FD0_Empty:'+ '{:032b}'.format(status_num)[8])
+            lines[-1] += ('FD1_Empty:'+ '{:032b}'.format(status_num)[10])
+            lines[-1] += ('FD0_Full:'+ '{:032b}'.format(status_num)[9])
+            lines[-1] += ('FD1_Full:'+ '{:032b}'.format(status_num)[11])
+            lines.append('FW0_Empty:'+ '{:032b}'.format(status_num)[12])
+            lines[-1] += ('FW1_Empty:'+ '{:032b}'.format(status_num)[14])
+            lines[-1] += ('FW0_Full:'+ '{:032b}'.format(status_num)[13])
+            lines[-1] += ('FW1_Full:'+ '{:032b}'.format(status_num)[15])
+            lines.append('PMEM_EN:'+ '{:032b}'.format(status_num)[16])
+            lines[-1] += ('DMEM_WE:'+ '{:032b}'.format(status_num)[17])
+            lines[-1] += ('WMEM_WE:'+ '{:032b}'.format(status_num)[18])
+            lines[-1] += ('PORT_WE:'+ '{:032b}'.format(status_num)[19])
+            lines.append('T_en:'+ '{:032b}'.format(status_num)[26])
+            lines[-1] += ('P_en:'+ '{:032b}'.format(status_num)[27])
+            lines[-1] += ('STATE:'+ '{:032b}'.format(status_num)[29:32])
+            return "\n".join(lines)
 
 
 
