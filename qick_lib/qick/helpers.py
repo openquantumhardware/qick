@@ -1,6 +1,7 @@
 """
 Support functions.
 """
+from typing import Union, List
 import numpy as np
 import json
 import base64
@@ -183,3 +184,19 @@ class BusParser:
                     self.nets[busname] |= set([port])
                 else:
                     self.nets[busname] = set([port])
+
+
+def ch2list(ch: Union[List[int], int]) -> List[int]:
+    """
+    convert a channel number or a list of ch numbers to list of integers
+
+    :param ch: channel number or list of channel numbers
+    :return: list of channel number(s)
+    """
+    if ch is None:
+        return []
+    try:
+        ch_list = [int(ch)]
+    except TypeError:
+        ch_list = ch
+    return ch_list

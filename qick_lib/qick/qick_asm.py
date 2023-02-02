@@ -2,14 +2,14 @@
 The higher-level driver for the QICK library. Contains an tProc assembly language wrapper class and auxiliary functions.
 """
 import logging
-from typing import Union
+from typing import Union, List
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict
 from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
-from .helpers import gauss, triang, DRAG, NpEncoder
+from .helpers import gauss, triang, DRAG, NpEncoder, ch2list
 from .parser import parse_prog
 try:
     from rpyc.utils.classic import obtain
@@ -489,6 +489,8 @@ class AbsRegisterManager(ABC):
         self.default_regs = set()
         # the registers to be used in the next "set" command
         self.next_pulse = None
+        # registers values used in the last set_registers() call
+        self.last_set_regs = {}
 
     def set_reg(self, name, val, comment=None, defaults=False):
         """Wrapper around regwi.
@@ -541,6 +543,7 @@ class AbsRegisterManager(ABC):
             Parameter values
 
         """
+        self.last_set_regs = kwargs
         if not self.defaults.keys().isdisjoint(kwargs):
             raise RuntimeError("these params were set for {0} both in default_pulse_registers and set_pulse_registers: {1}".format(self.ch_name, self.defaults.keys() & kwargs.keys()))
         merged = {**self.defaults, **kwargs}
@@ -1812,10 +1815,7 @@ class QickProgram:
             The number of tProc cycles at which the pulse starts
         """
         # try to convert pulse_ch to int; if that fails, assume it's list of ints
-        try:
-            ch_list = [int(ch)]
-        except TypeError:
-            ch_list = ch
+        ch_list = ch2list(ch)
         for ch in ch_list:
             tproc_ch = self.soccfg['readouts'][ch]['tproc_ctrl']
             rp = self._ch_page_tproc(tproc_ch)
@@ -1886,10 +1886,7 @@ class QickProgram:
             The number of tProc cycles at which the pulse starts (None to use the time register as is, 'auto' to start whenever the last pulse ends)
         """
         # try to convert pulse_ch to int; if that fails, assume it's list of ints
-        try:
-            ch_list = [int(ch)]
-        except TypeError:
-            ch_list = ch
+        ch_list = ch2list(ch)
         for ch in ch_list:
             tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
             rp = self._ch_page_tproc(tproc_ch)
@@ -2053,6 +2050,67 @@ class QickProgram:
             self.wait_all()
         if syncdelay is not None:
             self.sync_all(syncdelay)
+
+    def reset_phase(self, gen_ch: Union[int, List[int]] = None, ro_ch: Union[int, List[int]] = None, t: int = 0):
+        """
+        Reset the phase of generator and tproc-controlled readout channels at tproc time t.
+        This will play an empty pulse that lasts 3 fabric clock cycles, just to trigger the phase reset.
+
+        This command is designed to be transparent to previous 'set_pulse/readout_registers()' calls. i.e. the register
+        values set using 'set_pulse/readout_registers()' before this command will remain the same after this command.
+        However, pulse registers set using other functions will need to be re-set, e.g. if a pulse register value was
+        set by directly calling 'regwi()', calling this function will overwrite that register value, and user need to
+        redo the 'regwi()' after this phase reset.
+
+        :param gen_ch: generator channel(s) to reset phase (index in 'gens' list)
+        :param ro_ch: tProc-controlled readout channel(s) to reset phase (index in 'readouts' list)
+        :param t: the number of tProc cycles at which the phase reset happens
+        """
+        # todo: not sure if it is possible to perform the phase reset without playing the empty pulses
+
+        # convert gen and readout channels to lists of ints
+        channels = {"generator": ch2list(gen_ch), "readout": ch2list(ro_ch)}
+
+        # reset phase for each generator and readout channel
+        for ch_type, ch_list in channels.items():
+            for ch in ch_list:
+                # check time and get generator/readout manager
+                if ch_type == "generator":
+                    if t < self._dac_ts[ch]:
+                        print(f"warning: generator {ch} phase reset at t={t} appears to conflict "
+                              f"with previous pulse ending at {self._dac_ts[ch]}")
+                    ch_mgr = self._gen_mgrs[ch]
+                    phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
+                    tproc_ch = self.soccfg["gens"][ch]['tproc_ch']
+                else:  # for readout channels
+                    if t < self._adc_ts[ch]:
+                        print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
+                              f"with previous readout ending at {self._adc_ts[ch]}")
+                    ch_mgr = self._ro_mgrs[ch]
+                    phrst_params = dict(freq=0, length=3, phrst=1)
+                    tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
+
+                # keeps a record of the last set registers and the default registers
+                last_set_regs_ = ch_mgr.last_set_regs
+                defaults_regs_ = ch_mgr.defaults
+                # temporarily ignore the default registers
+                ch_mgr.defaults = {}
+                # set registers for phase reset
+                ch_mgr.set_registers(phrst_params)
+
+                # write phase reset time register
+                rp = self._ch_page_tproc(tproc_ch)
+                r_t = self._sreg_tproc(tproc_ch, 't')
+                self.safe_regwi(rp, r_t, t, f't = {t}')
+                # schedule phrst at $r_t
+                for regs in ch_mgr.next_pulse["regs"]:
+                    self.set(tproc_ch, rp, *regs, r_t, f" {ch_type} ch{ch} phase reset @t = ${r_t}")
+
+                # set the default and last set registers back
+                ch_mgr.set_defaults(defaults_regs_)
+                ch_mgr.set_registers(last_set_regs_)
+
+        self.sync_all(3)
 
     def convert_immediate(self, val):
         """Convert the register value to ensure that it is positive and not too large. Throws an error if you ever try to use a value greater than 2**31 as an immediate value.
