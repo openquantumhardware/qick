@@ -290,17 +290,45 @@ class CognitoAuth(requests.auth.AuthBase):
             raise RuntimeError(f"token refresh error: {rsp.status_code}, {rsp.content}")
 
 class WorkloadManager():
+    """A base class which allows you to encapsulate a list of programs as a workload.
+    You should overload the do_stuff() method to handle the creation of programs and processing of results.
+
+    Parameters
+    ----------
+    soccfg : QickConfig
+        Configuration for the device this workload will run on.
+    """
     def __init__(self, soccfg):
         self.soccfg = soccfg
         self.proglist = []
         self.progdicts = []
         self.results = None
-        self.make_progs()
+        self._make_progs()
 
     def add_program(self, prog):
+        """Add a program to the program list.
+        This should be called inside do_stuff() when make_progs=True.
+
+        Parameters
+        ----------
+        prog : QickProgram
+            A program to add to the workload
+        """
         self.proglist.append(prog)
 
     def add_acquire(self, prog, save_raw=False, save_shots=False):
+        """Add accumulated readout of a program.
+        This should be called inside do_stuff() when write_progs=True.
+
+        Parameters
+        ----------
+        prog : QickProgram
+            A program to execute
+        save_raw : bool
+            Save raw IQ values for each shot.
+        save_shots : bool
+            Save thresholded values for each shot.
+        """
         dump = prog.dump_prog()
         dump['acqtype'] = "accumulated"
         dump['save_raw'] = save_raw
@@ -308,25 +336,38 @@ class WorkloadManager():
         self.progdicts.append(dump)
 
     def add_decimated(self, prog):
+        """Add decimated readout of a program.
+        This should be called inside do_stuff() when write_progs=True.
+        """
         dump = prog.dump_prog()
         dump['acqtype'] = "decimated"
         self.progdicts.append(dump)
 
-    def make_progs(self):
-        """make all the programs
+    def _make_progs(self):
+        """Make all the programs.
         """
         self.do_stuff(make_progs=True)
 
     def _get_progs(self):
-        """generator function that returns datasets from a results file
+        """Generator function that returns datasets from a results file.
         """
         for prog in self.proglist:
             yield prog
 
     def write_progs(self, filepath=None):
-        """make all the programs and write them to a workload file
-        if filepath is given, create the file there
-        if None, create and return a tempfile
+        """Write all programs to a workload file.
+
+        Parameters
+        ----------
+        filepath : str or None
+            Path for the workload file.
+            If provided, write and close the file.
+            If None, create and return an open tempfile.
+
+        Returns
+        -------
+        file or None
+            Workload as a temporary file, if filepath was None.
         """
         if filepath is None:
             outfile = tempfile.TemporaryFile()
@@ -341,15 +382,25 @@ class WorkloadManager():
         else:
             outfile.close()
 
-    def _get_results(self, outf, name="avg"):
-        """generator function that returns datasets from a results file
+    def _get_results(self, outf):
+        """Generator function that returns datasets from a results file.
+
+        Parameters
+        ----------
+        outf : h5py.File
+            HDF5 results file.
         """
         datagrp = outf["data"]
         for name, proggrp in datagrp.items():
             yield proggrp
 
     def read_results(self, resultsfile):
-        """iterate through a results file (can be path or file object)
+        """Iterate through a results file.
+
+        Parameters
+        ----------
+        resultsfile : str or file
+            HDF5 results file path or file object.
         """
         self.prog_iterator = self._get_progs()
         with h5py.File(resultsfile,'r') as outf:
@@ -357,9 +408,33 @@ class WorkloadManager():
             self.do_stuff(read_results=True)
 
     def do_stuff(self, make_progs=False, write_progs=False, read_results=False):
-        pass
+        """Initialize the workload and process results.
+        You will not call this method directly; it is called internally at initialization and by write_progs() and read_results().
+        For each program you run as part of this workload, you must do the following:
+
+        * If make_progs is True, create a QickProgram and call add_program() to add it to the program list.
+          If False, call next(self.prog_iterator) to pop a program from the program list.
+
+        * If write_progs is True, call add_acquire() or add_decimated() to define how you want this program to be run.
+
+        * If read_results is True, call next(self.result_iterator) to pop a dataset from the results file.
+          Process the dataset as needed.
+
+        Parameters
+        ----------
+        make_progs : bool
+            Create program objects and fill the program list.
+        write_progs : bool
+            For each program in the program list, define how to run it and what results to save.
+        read_results : bool
+            Read and analyze the results file.
+        """
 
 class UserClient():
+    """Provides a Python API to make requests to the cloud service.
+    A configuration file (containing API URLs and a username) is expected at ~/.config/qick.conf or /etc/qick/config.
+    A default device ID may also be included in the configuration file.
+    """
     def __init__(self):
         configpaths = [os.path.expanduser('~/.config/qick.conf'),
                 '/etc/qick/config']
@@ -380,6 +455,17 @@ class UserClient():
         self.session.auth = auth
 
     def add_user(self, email, fullname):
+        """Create a user account on the cloud service.
+        A suggested config file will be printed.
+        The user will get an e-mail with a temporary password.
+
+        Parameters
+        ----------
+        email : str
+            A valid e-mail address for the user, required to be unique
+        fullname : str
+            A display name for the user, not required to be unique
+        """
         data = {
                 "Email": email,
                 "FullName": fullname
@@ -401,6 +487,17 @@ class UserClient():
             logging.warning(f"AddUser API error: {rsp.status_code}, {rsp.content}")
 
     def add_device(self, device_name, refresh_timeout=60):
+        """Create a workload queue on the cloud service.
+        Suggested config and credentials files will be printed.
+
+        Parameters
+        ----------
+        device_name : str
+            A display name for the device, not required to be unique
+        refresh_timeout : int
+            A timeout (in seconds), after which the service will decide the device is offline if it hasn't received a status update.
+            The normal update interval for the device client is 5 seconds.
+        """
         data = {
                 "DeviceName": device_name,
                 "RefreshTimeout": refresh_timeout
@@ -429,6 +526,13 @@ class UserClient():
             logging.warning(f"AddDevice API error: {rsp.status_code}, {rsp.content}")
 
     def get_devices(self):
+        """Query the cloud service for a list of devices.
+
+        Returns
+        -------
+        list of dict
+            All devices
+        """
         rsp = self.session.get(self.api_url + '/devices')
         if rsp.status_code == 200:
             return rsp.json()
@@ -437,7 +541,14 @@ class UserClient():
             return None
 
     def _s3put(self, s3url, payload):
-        """payload can be byte string or open file handle
+        """Upload a payload to a pre-signed S3 PUT URL.
+
+        Parameters
+        ----------
+        s3url : str
+            Pre-signed S3 URL
+        payload : file
+            A file to be uplaoded
         """
         rsp = requests.put(s3url, data=payload, headers={'Content-Type': 'application/octet-stream'})
         if rsp.status_code == 200:
@@ -446,7 +557,17 @@ class UserClient():
             logging.warning(f"s3 upload fail: {rsp.status_code}")
 
     def _s3get(self, s3url):
-        """return an open file handle
+        """Download a pre-signed S3 GET URL.
+
+        Parameters
+        ----------
+        s3url : str
+            Pre-signed S3 URL
+
+        Returns
+        -------
+        file
+            The downloaded file, as a temporary file
         """
         with requests.get(s3url, stream=True) as rsp:
             if rsp.status_code == 200:
@@ -459,6 +580,20 @@ class UserClient():
                 return None
 
     def get_soccfg(self, device_id=None):
+        """Query the cloud service for the most recently uploaded configuration of a device.
+        The config file is parsed as JSON.
+
+        Parameters
+        ----------
+        device_id : str or None
+            The unique ID of the device.
+            If None, the device ID will be read from the user client configuration.
+
+        Returns
+        -------
+        dict
+            Device configuration, to be loaded into a QickCOnfig object
+        """
         if device_id is None:
             device_id = self.config['device']['id']
         rsp = self.session.get(self.api_url + '/devices/' + device_id)
@@ -485,6 +620,25 @@ class UserClient():
             return None
 
     def create_work(self, workloadfile, device_id=None, priority="LOW"):
+        """Upload a workload into a device queue on the cloud service.
+        The config file is parsed as JSON.
+
+        Parameters
+        ----------
+        workloadfile : file
+            A file-like object to be uploaded to the queue.
+        device_id : str or None
+            The unique ID of the device.
+            If None, the device ID will be read from the user client configuration.
+        priority : str
+            The priority to be assigned to this workload.
+            The valid values are defined by the cloud service.
+
+        Returns
+        -------
+        str
+            Workload ID, for checking status and downloading results
+        """
         workloadfile.seek(0)
         if device_id is None:
             device_id = self.config['device']['id']
@@ -511,6 +665,18 @@ class UserClient():
             return None
 
     def get_work(self, work_id):
+        """Query the cloud service for the status of a workload.
+
+        Parameters
+        ----------
+        work_id : str
+            The workload ID.
+
+        Returns
+        -------
+        dict
+            Information about the workload.
+        """
         rsp = self.session.get(self.api_url + '/workloads/' + work_id)
         if rsp.status_code == 200:
             return rsp.json()
@@ -518,7 +684,18 @@ class UserClient():
             logging.warning(f"GetWork API error: {rsp.status_code}, {rsp.content}")
             return None
 
-    def wait_until_done(self, work_id, progress=True):
+    def wait_until_done(self, work_id, interval, progress=True):
+        """Poll the cloud service until the workload reaches DONE status.
+
+        Parameters
+        ----------
+        work_id : str
+            The workload ID.
+        progress : bool
+            Print the workload status as it progresses.
+        interval : float
+            Polling interval (in seconds).
+        """
         last_state = None
         while True:
             state = self.get_work(work_id)['WorkStatus']
@@ -531,10 +708,23 @@ class UserClient():
                     if progress: print()
                     break
             last_state = state
-            time.sleep(1)
+            time.sleep(interval)
             if progress: print('.', end='')
 
     def get_results(self, work_id):
+        """Download workload results from the cloud service.
+        If the workload is not in DONE status, raise an error.
+
+        Parameters
+        ----------
+        work_id : str
+            The workload ID.
+
+        Returns
+        -------
+        file
+            A temporary file with the workload results (typically an HDF5 file).
+        """
         rsp = self.session.get(self.api_url + '/workloads/' + work_id)
         if rsp.status_code == 200:
             rsp = rsp.json()
