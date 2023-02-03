@@ -99,8 +99,14 @@ def progs2json(proglist):
     return json.dumps(proglist, cls=NpEncoder)
 
 def json2progs(s):
-    # be sure to read dicts back in order (only matters for Python <3.7)
-    proglist = json.loads(s, object_pairs_hook=OrderedDict)
+    if hasattr(s, 'read'):
+        # input is file-like, we should use json.load()
+        # be sure to read dicts back in order (only matters for Python <3.7)
+        proglist = json.load(s, object_pairs_hook=OrderedDict)
+    else:
+        # input is string or bytes
+        # be sure to read dicts back in order (only matters for Python <3.7)
+        proglist = json.loads(s, object_pairs_hook=OrderedDict)
 
     for progdict in proglist:
         # tweak data structures that got screwed up by JSON:
