@@ -290,61 +290,43 @@ initial begin
 	wait (tb_load_wave);
 	wait (s1_axis_tready);
 
-	/***************/
-	/* Simple Test */
-	/***************/
+	/************/
+	/* Flat Top */
+	/************/
+
 	@(posedge aclk);
 	$display("t = %0t", $time);
 	s1_axis_tvalid	<= 1;
 	freq_r			<= freq_calc(100, N_DDS, 15);
 	addr_r			<= 0;
 	gain_r			<= 22000;
-	nsamp_r			<= 100;
-	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
+	nsamp_r			<= 300;
+	outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
 	mode_r			<= 0;	// 0: nsamp, 1: periodic	
-	stdysel_r		<= 0;
-	phrst_r			<= 0;
+
+	@(posedge aclk);
+	$display("t = %0t", $time);
+	s1_axis_tvalid	<= 1;
+	addr_r			<= 300;
+	gain_r			<= 11000;
+	nsamp_r			<= 200;
+	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
+	mode_r			<= 1;	// 0: nsamp, 1: periodic	
 
 	@(posedge aclk);
 	s1_axis_tvalid	<= 0;
 
-	/************/
-	/* Flat Top */
-	/************/
+	#15000;
 
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//freq_r			<= freq_calc(100, N_DDS, 15);
-	//addr_r			<= 0;
-	//gain_r			<= 22000;
-	//nsamp_r			<= 300;
-	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
-
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//addr_r			<= 300;
-	//gain_r			<= 11000;
-	//nsamp_r			<= 200;
-	//outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
-
-	////@(posedge aclk);
-	////s1_axis_tvalid	<= 0;
-
-	////#5000;
-
-	//@(posedge aclk);
-	//$display("t = %0t", $time);
-	//s1_axis_tvalid	<= 1;
-	//addr_r			<= 300;
-	//gain_r			<= 22000;
-	//nsamp_r			<= 300;
-	//outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
-	//mode_r			<= 0;	// 0: nsamp, 1: periodic	
-	//stdysel_r		<= 1;
+	@(posedge aclk);
+	$display("t = %0t", $time);
+	s1_axis_tvalid	<= 1;
+	addr_r			<= 300;
+	gain_r			<= 22000;
+	nsamp_r			<= 300;
+	outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+	mode_r			<= 0;	// 0: nsamp, 1: periodic	
+	stdysel_r		<= 1;
 
 	/*****************/
 	/* Latency Check */
