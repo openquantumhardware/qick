@@ -1,6 +1,7 @@
 """
 Support functions.
 """
+from typing import Union, List
 import numpy as np
 import json
 import base64
@@ -98,8 +99,14 @@ def progs2json(proglist):
     return json.dumps(proglist, cls=NpEncoder)
 
 def json2progs(s):
-    # be sure to read dicts back in order (only matters for Python <3.7)
-    proglist = json.loads(s, object_pairs_hook=OrderedDict)
+    if hasattr(s, 'read'):
+        # input is file-like, we should use json.load()
+        # be sure to read dicts back in order (only matters for Python <3.7)
+        proglist = json.load(s, object_pairs_hook=OrderedDict)
+    else:
+        # input is string or bytes
+        # be sure to read dicts back in order (only matters for Python <3.7)
+        proglist = json.loads(s, object_pairs_hook=OrderedDict)
 
     for progdict in proglist:
         # tweak data structures that got screwed up by JSON:
@@ -183,3 +190,19 @@ class BusParser:
                     self.nets[busname] |= set([port])
                 else:
                     self.nets[busname] = set([port])
+
+
+def ch2list(ch: Union[List[int], int]) -> List[int]:
+    """
+    convert a channel number or a list of ch numbers to list of integers
+
+    :param ch: channel number or list of channel numbers
+    :return: list of channel number(s)
+    """
+    if ch is None:
+        return []
+    try:
+        ch_list = [int(ch)]
+    except TypeError:
+        ch_list = ch
+    return ch_list
