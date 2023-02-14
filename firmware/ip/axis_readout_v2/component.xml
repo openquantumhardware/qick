@@ -435,7 +435,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>0460503f</spirit:value>
+            <spirit:value>f835ce2d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1109,7 +1109,7 @@
       <spirit:file>
         <spirit:name>xgui/axis_readout_v2_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_0460503f</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f835ce2d</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1136,8 +1136,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Readout V2</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>7</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2023-02-03T14:59:43Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>8</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2023-02-13T23:05:36Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@2e046dd_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@47cc16d8_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_readout_v2</xilinx:tag>
@@ -1224,13 +1224,19 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@2bbb6fec_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@1575d0a2_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@121a8497_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6dc73d58_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1cabf5c7_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1d8ffc9d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@d912ec8_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d99260d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@55d0feb7_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2020.2</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="b5de9ec3"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="d5a1aad7"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="b798febf"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="1a5415bc"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="66bc7859"/>
     </xilinx:packagingInfo>

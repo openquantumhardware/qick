@@ -4,6 +4,8 @@ proc init_gui { IPINST } {
   #Adding Page
   ipgui::add_page $IPINST -name "Page 0"
 
+  set FULLSPEED_OUTPUT [ipgui::add_param $IPINST -name "FULLSPEED_OUTPUT"]
+  set_property tooltip {Enable additional output port for non-decimated data} ${FULLSPEED_OUTPUT}
 
 }
 
