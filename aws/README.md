@@ -6,7 +6,7 @@ The code in this directory provides two components of the system:
 * A "user client," which is a library and CLI tool that you run on your computer to make requests to the cloud service. This is used for admin operations (adding new devices or users to the cloud service) or Python access to workloads as an alternative to the web UI. The user client also includes a WorkloadManager class which can be used to encapsulate QickPrograms into a workload and process the results.
 * A "device client," which is a systemd service that runs on the QICK board and allows the board to be controlled by the cloud service.
 
-The code for the cloud service, which you can deploy to your AWS account, is soon to be released.
+You will first need to deploy the cloud service to your AWS account: https://github.com/aws-samples/aws-cloud-queue-for-quantum-devices.
 
 See the [demo notebook](aws_demo.ipynb) for an example of the user client in operation.
 
