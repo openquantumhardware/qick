@@ -684,7 +684,7 @@ class UserClient():
             logging.warning(f"GetWork API error: {rsp.status_code}, {rsp.content}")
             return None
 
-    def wait_until_done(self, work_id, interval, progress=True):
+    def wait_until_done(self, work_id, interval=1.0, progress=True):
         """Poll the cloud service until the workload reaches DONE status.
 
         Parameters
