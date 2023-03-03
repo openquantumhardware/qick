@@ -8,7 +8,7 @@
 The QICK is a kit of firmware and software to use the Xilinx RFSoC to control quantum systems.
 
 It consists of:
-* Firmware for the ZCU111 and ZCU216 RFSoC evaluation boards
+* Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
@@ -49,14 +49,6 @@ We guarantee the following for releases:
 
 We recommend that you "watch" this repository on GitHub to get automatic notifications of pull requests and releases.
 
-Related Packages
-----------------
-
-There is one related package on Github:
-
-Documentation source code: https://github.com/openquantumhardware/qick-docs
-
-
 Contribute
 ----------
 
@@ -65,6 +57,8 @@ You are welcome to contribute to QICK development by forking this repository and
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
 We welcome comments, bug reports, and feature requests via GitHub Issues.
+
+You can chat with us in the #qick channel on the [Unitary Fund Discord](http://discord.unitary.fund/).
 
 License
 -------
