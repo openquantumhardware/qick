@@ -11,11 +11,12 @@
 # needed for device and user clients
 [service]
 api_url = <URL of the API endpoint>
+# only for device client
+oauth_url = <URL of the OAuth2 endpoint>
 # only for user client
 cognito_url = <URL of the Cognito endpoint>
 cognito_clientid = <Cognito client ID>
-# only for device client
-oauth_url = <URL of the OAuth2 endpoint>
+cognito_userpool = <Cognito user pool ID>
 
 # needed for user client
 [user]
