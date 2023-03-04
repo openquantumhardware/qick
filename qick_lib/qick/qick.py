@@ -1435,7 +1435,9 @@ class AxisTProc64x32_x8(SocIp):
         self.start_pin = None
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-            self.start_pin = port[0]
+            # check if the start pin is driven by a port of the top-level design
+            if len(port)==1:
+                self.start_pin = port[0]
         except:
             pass
         # search for the trigger port

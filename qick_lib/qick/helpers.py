@@ -157,12 +157,19 @@ class QickMetadata:
         :param portname: the port we want to trace
         :type portname: string
 
-        :return: a list of (block, port) pairs
+        :return: a list of [block, port] pairs, or just [port] for ports of the top-level design
         :rtype: list
         """
         if self.systemgraph is not None:
-            dests = self.systemgraph.blocks[blockname].ports[portname].destinations().items()
-            return [(block.parent().name, port) for port,block in dests]
+            dests = self.systemgraph.blocks[blockname].ports[portname].destinations()
+            result = []
+            for port, block in dests.items():
+                blockname = block.parent().name
+                if blockname==self.systemgraph.name:
+                    result.append([port])
+                else:
+                    result.append([blockname, port])
+            return result
 
         fullport = blockname+"/"+portname
         # the net connected to this port
