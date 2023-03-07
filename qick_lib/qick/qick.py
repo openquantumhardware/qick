@@ -1645,7 +1645,8 @@ class RFDC(xrfdc.RFdc):
     Since operations on the RFdc tend to be slow (tens of ms), we cache the Nyquist zone and frequency.
     """
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
-              "xilinx.com:ip:usp_rf_data_converter:2.4"]
+              "xilinx.com:ip:usp_rf_data_converter:2.4",
+              "xilinx.com:ip:usp_rf_data_converter:2.6"]
 
     def __init__(self, description):
         """

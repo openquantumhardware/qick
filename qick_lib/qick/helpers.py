@@ -135,12 +135,25 @@ class QickMetadata:
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
             self.systemgraph = soc.systemgraph
+            # TODO: We shouldn't need to use BusParser, but we think there's a bug in how pynqmetadata handles axis_switch.
+            self.busparser = BusParser(self.systemgraph._root)
         else:
             self.sigparser = soc.parser
             # Since the HWH parser doesn't parse buses, we also make our own BusParser.
-            self.busparser = BusParser(self.sigparser)
+            self.busparser = BusParser(self.sigparser.root)
 
     def trace_sig(self, blockname, portname):
+        if self.systemgraph is not None:
+            dests = self.systemgraph.blocks[blockname].ports[portname].destinations()
+            result = []
+            for port, block in dests.items():
+                blockname = block.parent().name
+                if blockname==self.systemgraph.name:
+                    result.append([port])
+                else:
+                    result.append([blockname, port])
+            return result
+
         return self._trace_net(self.sigparser, blockname, portname)
 
     def trace_bus(self, blockname, portname):
@@ -160,17 +173,6 @@ class QickMetadata:
         :return: a list of [block, port] pairs, or just [port] for ports of the top-level design
         :rtype: list
         """
-        if self.systemgraph is not None:
-            dests = self.systemgraph.blocks[blockname].ports[portname].destinations()
-            result = []
-            for port, block in dests.items():
-                blockname = block.parent().name
-                if blockname==self.systemgraph.name:
-                    result.append([port])
-                else:
-                    result.append([blockname, port])
-            return result
-
         fullport = blockname+"/"+portname
         # the net connected to this port
         netname = parser.pins[fullport]
@@ -206,7 +208,7 @@ class QickMetadata:
         return self.busparser.mod2type[blockname]
 
 class BusParser:
-    def __init__(self, parser):
+    def __init__(self, root):
         """
         Matching all the buses in the modules from the HWH file.
         This is essentially a copy of the HWH parser's match_nets() and match_pins(),
@@ -214,12 +216,12 @@ class BusParser:
 
         In addition, there's a map from module names to module types.
 
-        :param parser: HWH parser object (from Overlay.parser)
+        :param root: HWH XML tree (from Overlay.parser.root)
         """
         self.nets = {}
         self.pins = {}
         self.mod2type = {}
-        for module in parser.root.findall('./MODULES/MODULE'):
+        for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
