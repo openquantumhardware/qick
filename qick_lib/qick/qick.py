@@ -1806,9 +1806,6 @@ class QickSoc(Overlay, QickConfig):
             Overlay.__init__(
                 self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
 
-        # Extract the IP connectivity information from the HWH parser and metadata.
-        self.metadata = QickMetadata(self)
-
         # Initialize the configuration
         self._cfg = {}
         QickConfig.__init__(self)
@@ -1824,6 +1821,9 @@ class QickSoc(Overlay, QickConfig):
         # RF data converter (for configuring ADCs and DACs, and setting NCOs)
         self.rf = self.usp_rf_data_converter_0
         self.rf.configure(self)
+
+        # Extract the IP connectivity information from the HWH parser and metadata.
+        self.metadata = QickMetadata(self)
 
         if not no_tproc:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
