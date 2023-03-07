@@ -121,52 +121,94 @@ def json2progs(s):
                 pulse['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
     return proglist
 
-
-def trace_net(parser, blockname, portname):
+class QickMetadata:
     """
-    Find the block and port that connect to this block and port.
-    If you expect to only get one block+port as a result, you can assign the result to ((block, port),)
-
-    :param parser: HWH parser object (from Overlay.parser, or BusParser)
-    :param blockname: the IP block of interest
-    :type blockname: string
-    :param portname: the port we want to trace
-    :type portname: string
-
-    :return: a list of (block, port) pairs
-    :rtype: list
+    Provides information about the connections between IP blocks, extracted from the HWH file.
+    The HWH parser is very different between PYNQ 2.6/2.7 and 3.0+, so this class serves as a common interface.
     """
+    def __init__(self, soc):
+        # We will use the HWH parser to extract information about signal connections between blocks.
+        self.sigparser = None
+        self.busparser = None
+        self.systemgraph = None
 
-    fullport = blockname+"/"+portname
-    # the net connected to this port
-    netname = parser.pins[fullport]
-    if netname == '__NOC__':
-        return []
-    # get the list of other ports on this net, discard the port we started at and ILA ports
-    return [x.split('/') for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
+        if hasattr(soc, 'systemgraph'):
+            # PYNQ 3.0 and higher have a "system graph"
+            self.systemgraph = soc.systemgraph
+            # TODO: We shouldn't need to use BusParser, but we think there's a bug in how pynqmetadata handles axis_switch.
+            self.busparser = BusParser(self.systemgraph._root)
+        else:
+            self.sigparser = soc.parser
+            # Since the HWH parser doesn't parse buses, we also make our own BusParser.
+            self.busparser = BusParser(self.sigparser.root)
 
+    def trace_sig(self, blockname, portname):
+        if self.systemgraph is not None:
+            dests = self.systemgraph.blocks[blockname].ports[portname].destinations()
+            result = []
+            for port, block in dests.items():
+                blockname = block.parent().name
+                if blockname==self.systemgraph.name:
+                    result.append([port])
+                else:
+                    result.append([blockname, port])
+            return result
 
-def get_fclk(parser, blockname, portname):
-    """
-    Find the frequency of a clock port.
+        return self._trace_net(self.sigparser, blockname, portname)
 
-    :param parser: HWH parser object (from Overlay.parser, or BusParser)
-    :param blockname: the IP block of interest
-    :type blockname: string
-    :param portname: the port we want to trace
-    :type portname: string
+    def trace_bus(self, blockname, portname):
+        return self._trace_net(self.busparser, blockname, portname)
 
-    :return: frequency in MHz
-    :rtype: float
-    """
-    xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
-        blockname, portname)
-    port = parser.root.find(xmlpath)
-    return float(port.get('CLKFREQUENCY'))/1e6
+    def _trace_net(self, parser, blockname, portname):
+        """
+        Find the block and port that connect to this block and port.
+        If you expect to only get one block+port as a result, you can assign the result to ((block, port),)
 
+        :param parser: HWH parser object (from Overlay.parser, or BusParser)
+        :param blockname: the IP block of interest
+        :type blockname: string
+        :param portname: the port we want to trace
+        :type portname: string
+
+        :return: a list of [block, port] pairs, or just [port] for ports of the top-level design
+        :rtype: list
+        """
+        fullport = blockname+"/"+portname
+        # the net connected to this port
+        netname = parser.pins[fullport]
+        if netname == '__NOC__':
+            return []
+        # get the list of other ports on this net, discard the port we started at and ILA ports
+        return [x.split('/') for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
+
+    def get_fclk(self, blockname, portname):
+        """
+        Find the frequency of a clock port.
+
+        :param parser: HWH parser object (from Overlay.parser, or BusParser)
+        :param blockname: the IP block of interest
+        :type blockname: string
+        :param portname: the port we want to trace
+        :type portname: string
+
+        :return: frequency in MHz
+        :rtype: float
+        """
+        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
+            blockname, portname)
+        if self.systemgraph is not None:
+            port = self.systemgraph._element_tree.find(xmlpath)
+        else:
+            port = self.sigparser.root.find(xmlpath)
+        return float(port.get('CLKFREQUENCY'))/1e6
+
+    def mod2type(self, blockname):
+        if self.systemgraph is not None:
+            return self.systemgraph.blocks[blockname].vlnv.name
+        return self.busparser.mod2type[blockname]
 
 class BusParser:
-    def __init__(self, parser):
+    def __init__(self, root):
         """
         Matching all the buses in the modules from the HWH file.
         This is essentially a copy of the HWH parser's match_nets() and match_pins(),
@@ -174,12 +216,12 @@ class BusParser:
 
         In addition, there's a map from module names to module types.
 
-        :param parser: HWH parser object (from Overlay.parser)
+        :param root: HWH XML tree (from Overlay.parser.root)
         """
         self.nets = {}
         self.pins = {}
         self.mod2type = {}
-        for module in parser.root.findall('./MODULES/MODULE'):
+        for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
