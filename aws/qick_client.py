@@ -53,8 +53,8 @@ class RefetchSession(OAuth2Session):
 
 class QickClient:
 
-    def __init__(self, api_url, dummy_mode=False):
-        self.api_url = api_url
+    def __init__(self, api_endpoint, dummy_mode=False):
+        self.api_endpoint = api_endpoint
         self.session = requests
         self.cfg_path = "/etc/qick/config"
         self.cred_path = "/etc/qick/credentials"
@@ -73,9 +73,9 @@ class QickClient:
         credcfg = ConfigParser()
         credcfg.read(self.cred_path)
 
-        if self.api_url is None:
-            self.api_url = clientcfg['service']['api_url']
-            token_url = clientcfg['service']['oauth_url']
+        if self.api_endpoint is None:
+            self.api_endpoint = clientcfg['service']['api_endpoint']
+            token_url = clientcfg['service']['oauth_endpoint']
 
             self.devid = clientcfg['device']['id']
             self.devname = clientcfg['device']['name']
@@ -86,7 +86,7 @@ class QickClient:
 
             oauth_client = BackendApplicationClient(client_id=self.authid)
             self.session = RefetchSession(client=oauth_client)
-            token = self.session.fetch_token(token_url=token_url, client_id=self.authid,
+            token = self.session.fetch_token(token_url=token_url+"/oauth2/token", client_id=self.authid,
                             client_secret=client_secret)
             logging.info(f"Got OAuth2 token, expires in {token['expires_in']} seconds")
             #force a token refetch
@@ -124,7 +124,7 @@ class QickClient:
             "DeviceStatus": self.status,
             "DeviceConfigurationFileExtension": "json"
         }
-        rsp = self.session.put(self.api_url + "/devices/" + self.devid, json=data)
+        rsp = self.session.put(self.api_endpoint + "/devices/" + self.devid, json=data)
         if rsp.status_code == 200:
             logging.info(f"UpdateDevice with status {data['DeviceStatus']}")
             logging.debug(f"UpdateDevice request: {data}")
@@ -139,7 +139,7 @@ class QickClient:
             logging.warning(f"UpdateDevice API error: {rsp.status_code}, {rsp.content}")
 
     def get_workload(self):
-        rsp = self.session.get(self.api_url + "/devices/" + self.devid + "/workload")
+        rsp = self.session.get(self.api_endpoint + "/devices/" + self.devid + "/workload")
         if rsp.status_code == 200:
             rsp = rsp.json()
             logging.debug(f"GetDeviceWork response: {rsp}")
@@ -208,13 +208,13 @@ class QickClient:
     def is_work_canceled(self, work_id):
         # not yet implemented on the service
         return False
-        #rsp = requests.get(self.api_url + "/IsWorkCanceled")
+        #rsp = requests.get(self.api_endpoint + "/IsWorkCanceled")
         #return rsp.json().get("IsCanceled")
 
     def upload_results(self, work_id):
         self.resultsfile.seek(0)
         logging.info(f"PutDeviceWork request for work {work_id}")
-        rsp = self.session.put(self.api_url + "/devices/" + self.devid + "/workloads/" + work_id)
+        rsp = self.session.put(self.api_endpoint + "/devices/" + self.devid + "/workloads/" + work_id)
         if rsp.status_code == 200:
             rsp = rsp.json()
             logging.debug(f"PutDeviceWork response: {rsp}")

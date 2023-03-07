@@ -446,10 +446,10 @@ class UserClient():
         auth = CognitoAuth()
         auth.username = self.config['user']['username']
         auth.auth_url = self.config['service']['cognito_url']
-        auth.client_id = self.config['service']['cognito_clientid']
+        auth.client_id = self.config['service']['clientid']
         auth.pool_id = self.config['service']['cognito_userpool'] # only needed for SRP
 
-        self.api_url = self.config['service']['api_url']
+        self.api_endpoint = self.config['service']['api_endpoint']
 
         self.session = requests.Session()
         self.session.auth = auth
@@ -470,15 +470,15 @@ class UserClient():
                 "Email": email,
                 "FullName": fullname
                 }
-        rsp = self.session.post(self.api_url + '/users', json=data)
+        rsp = self.session.post(self.api_endpoint + '/users', json=data)
         if rsp.status_code == 200:
             print("User successfully added! They should check their e-mail for a temporary password.")
             print()
             print("They should put the following in ~/.config/qick.conf:")
             print("[service]")
-            print(f"api_url = {self.api_url}")
+            print(f"api_endpoint = {self.api_endpoint}")
             print(f"cognito_url = {self.session.auth.auth_url}")
-            print(f"cognito_clientid = {self.session.auth.client_id}")
+            print(f"clientid = {self.session.auth.client_id}")
             print(f"cognito_userpool = {self.session.auth.pool_id}")
             print("[user]")
             print(f"username = {email}")
@@ -502,15 +502,15 @@ class UserClient():
                 "DeviceName": device_name,
                 "RefreshTimeout": refresh_timeout
                 }
-        rsp = self.session.post(self.api_url + '/devices', json=data)
+        rsp = self.session.post(self.api_endpoint + '/devices', json=data)
         if rsp.status_code == 201:
             rsp = rsp.json()
             print("Device successfully added!")
             print()
             print("Put the following in the config file /etc/qick/config:")
             print("[service]")
-            print(f"api_url = {self.api_url}")
-            print(f"oauth_url = {self.config['service']['oauth_url']}")
+            print(f"api_endpoint = {self.api_endpoint}")
+            print(f"oauth_endpoint = {self.config['service']['oauth_endpoint']}")
             print("[device]")
             print(f"name = {rsp['DeviceName']}")
             print(f"id = {rsp['DeviceId']}")
@@ -532,7 +532,7 @@ class UserClient():
         list of dict
             All devices
         """
-        rsp = self.session.get(self.api_url + '/devices')
+        rsp = self.session.get(self.api_endpoint + '/devices')
         if rsp.status_code == 200:
             return rsp.json()
         else:
@@ -595,7 +595,7 @@ class UserClient():
         """
         if device_id is None:
             device_id = self.config['device']['id']
-        rsp = self.session.get(self.api_url + '/devices/' + device_id)
+        rsp = self.session.get(self.api_endpoint + '/devices/' + device_id)
         if rsp.status_code == 200:
             logging.info(f"GetDevice response: {rsp.json()}")
             rsp = rsp.json()
@@ -645,7 +645,7 @@ class UserClient():
             "DeviceId": device_id,
             "Priority": priority
         }
-        rsp = self.session.post(self.api_url + "/workloads", json=data)
+        rsp = self.session.post(self.api_endpoint + "/workloads", json=data)
         if rsp.status_code == 201:
             logging.info(f"UpdateDevice request: {data}")
             logging.info(f"UpdateDevice response: {rsp.json()}")
@@ -676,7 +676,7 @@ class UserClient():
         dict
             Information about the workload.
         """
-        rsp = self.session.get(self.api_url + '/workloads/' + work_id)
+        rsp = self.session.get(self.api_endpoint + '/workloads/' + work_id)
         if rsp.status_code == 200:
             return rsp.json()
         else:
@@ -724,7 +724,7 @@ class UserClient():
         file
             A temporary file with the workload results (typically an HDF5 file).
         """
-        rsp = self.session.get(self.api_url + '/workloads/' + work_id)
+        rsp = self.session.get(self.api_endpoint + '/workloads/' + work_id)
         if rsp.status_code == 200:
             rsp = rsp.json()
             if rsp['WorkStatus'] != 'DONE':
