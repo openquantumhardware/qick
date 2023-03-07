@@ -1,6 +1,6 @@
 # SideQICK: AWS-based workload management for QICK
 
-SideQICK is a QICK interface to the [Cloud Queue for Quantum Devices]{https://github.com/aws-samples/cloud-queue-for-quantum-devices}, and was developed in collaboration with Amazon Web Services.
+SideQICK is a QICK interface to the [Cloud Queue for Quantum Devices](https://github.com/aws-samples/cloud-queue-for-quantum-devices), and was developed in collaboration with Amazon Web Services.
 
 The Cloud Queue for Quantum Devices is a cloud-based application for managing queues of workloads to be executed on quantum devices.
 The application is composed of standard AWS services and can be deployed to an AWS account using the open-source code and instructions at https://github.com/aws-samples/cloud-queue-for-quantum-devices.
