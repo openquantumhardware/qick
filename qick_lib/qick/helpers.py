@@ -131,16 +131,19 @@ class QickMetadata:
         self.sigparser = None
         self.busparser = None
         self.systemgraph = None
+        self.xml = None
 
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
             self.systemgraph = soc.systemgraph
             # TODO: We shouldn't need to use BusParser, but we think there's a bug in how pynqmetadata handles axis_switch.
             self.busparser = BusParser(self.systemgraph._root)
+            self.xml = soc.systemgraph._element_tree
         else:
             self.sigparser = soc.parser
             # Since the HWH parser doesn't parse buses, we also make our own BusParser.
             self.busparser = BusParser(self.sigparser.root)
+            self.xml = soc.parser.root
 
     def trace_sig(self, blockname, portname):
         if self.systemgraph is not None:
@@ -196,11 +199,26 @@ class QickMetadata:
         """
         xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
             blockname, portname)
-        if self.systemgraph is not None:
-            port = self.systemgraph._element_tree.find(xmlpath)
-        else:
-            port = self.sigparser.root.find(xmlpath)
+        port = self.xml.find(xmlpath)
         return float(port.get('CLKFREQUENCY'))/1e6
+
+    def get_param(self, blockname, parname):
+        """
+        Find the value of an IP parameter. This works for all IPs, including those that do not show up in ip_dict because they're not addressable.
+
+        :param parser: HWH parser object (from Overlay.parser, or BusParser)
+        :param blockname: the IP block of interest
+        :type blockname: string
+        :param parname: the parameter of interest
+        :type parname: string
+
+        :return: parameter value
+        :rtype: string
+        """
+        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PARAMETERS/PARAMETER[@NAME='{1}']".format(
+            blockname, parname)
+        param = self.xml.find(xmlpath)
+        return param.get('VALUE')
 
     def mod2type(self, blockname):
         if self.systemgraph is not None:
