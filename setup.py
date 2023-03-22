@@ -150,8 +150,8 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    setup_requires=["numpy","cffi"],
-    
+    # setup_requires=["numpy","cffi"],
+
     # Only install pynq on the supported architectures.
     # If you're not installing this on a Zynq, you won't be able to use qick.py (hardware interface)
     # but qick_asm.py, averager_program.py, and the notebooks should still work.
