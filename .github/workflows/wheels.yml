@@ -2,10 +2,10 @@ name: Build wheels
 
 on:
   push:
-  release:
-    types:
-      - published
-
+    branches:
+      - "*"
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
