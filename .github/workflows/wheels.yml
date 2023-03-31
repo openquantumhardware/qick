@@ -1,4 +1,5 @@
 # Build a wheel and publish to PyPI when a pull request merges.
+# https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
 
 name: Build wheel
