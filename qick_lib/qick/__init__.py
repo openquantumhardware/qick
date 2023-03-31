@@ -2,7 +2,16 @@ from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgr
 from .qick_asm import QickConfig, QickProgram
 import os
 
-__version__ = "0.2"
+def get_version():
+    """
+    qick_lib/qick/VERSION is a text file containing only the version number.
+    """
+    versionpath = os.path.join(os.path.dirname(__file__), 'VERSION')
+    with open(versionpath) as version_file:
+        version = version_file.read().strip()
+        return version
+
+__version__ = get_version()
 
 def bitfile_path():
     board2file =  {'ZCU216' :'qick_216.bit',

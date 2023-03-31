@@ -40,6 +40,10 @@ We hope that this will help you decide whether or not to update your local code 
 We strive for, but cannot guarantee, bug-free and fully functional pull requests.
 We also do not guarantee that the demo notebooks will keep pace with every pull request, though we make an effort to update the demos after major API changes.
 
+Our version numbering follows the format major.minor.PR, where PR is the number of the most recently merged pull request.
+This will result in the PR number often skipping values, and occasionally decreasing.
+The tagged release of a new minor version will have the format major.minor.0.
+
 Tagged releases can be expected periodically.
 We recommend that everyone should be using at least the most recent release.
 We guarantee the following for releases:
