@@ -33,8 +33,8 @@ jobs:
         if [ $file_version != $PR_NUMBER ]; then
           echo "updating VERSION"
           echo "$(cut -d '.' -f -2 $versionpath).$PR_NUMBER" > "$versionpath"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
+          git config user.email "129547417+qickbot@users.noreply.github.com"
+          git config user.name "QICK actions [bot]"
           git add "$versionpath"
           git commit -am "update version"
           git push
