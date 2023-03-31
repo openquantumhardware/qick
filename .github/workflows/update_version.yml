@@ -1,0 +1,41 @@
+# Automatically update the package version.
+# The version has the format major.minor.PR, where PR is the number of the most recent pull request.
+# This action runs automatically when a pull request is opened, or a commit is added to an open pull request.
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+#
+# It checks the version number against the PR number; if it does not match, the version number is updated in a new commit.
+# The commit will be credited to the GitHub Actions user.
+# https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
+# 
+# If you don't want this action to run (e.g. if you want a different version number for a certain PR), include [skip actions] in the commit message.
+# https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  
+jobs:
+  update_version:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        versionpath=qick_lib/qick/VERSION
+        gh pr checkout $PR_NUMBER
+        file_version=$(cut -d '.' -f 3 "$versionpath")
+        echo "PR number: $PR_NUMBER, VERSION number: $file_version"
+        if [ $file_version != $PR_NUMBER ]; then
+          echo "updating VERSION"
+          echo "$(cut -d '.' -f -2 $versionpath).$PR_NUMBER" > "$versionpath"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add "$versionpath"
+          git commit -am "update version"
+          git push
+        fi
