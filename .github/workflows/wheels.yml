@@ -1,14 +1,16 @@
+# Build a wheel and publish to PyPI when a pull request merges.
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+
 name: Build wheel
 
 on:
-  push:
-    branches:
-      - "*"
-    tags:
-      - "v*.*.*"
+  pull_request:
+    types:
+      - closed
 
 jobs:
-  build:
+  build_and_publish:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -24,5 +26,4 @@ jobs:
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_API_TOKEN }}
