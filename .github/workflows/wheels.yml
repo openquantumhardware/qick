@@ -1,13 +1,22 @@
 # Build a wheel and publish to PyPI when a pull request merges.
 # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+#
+# We need access to the repo secrets, which are only available using the pull_request_target trigger.
+# For security this requires us to use the repo HEAD and not the PR merge commit.
+# But since this action only executes on merge, those are the same thing.
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
 
 name: Build wheel
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - closed
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
 
 jobs:
   build_and_publish:
@@ -16,6 +25,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: Print state
+        run: |
+          git log -n 2
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -27,4 +39,5 @@ jobs:
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
