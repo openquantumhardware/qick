@@ -22,22 +22,27 @@ permissions:
 jobs:
   update_version:
     runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      VERSION_PATH: qick_lib/qick/VERSION
     steps:
     - uses: actions/checkout@v3
-    - env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
-        GH_TOKEN: ${{ github.token }}
+    - name: Checkout pull request
+      run: gh pr checkout $PR_NUMBER
+    - name: Compare version numbers
       run: |
-        versionpath=qick_lib/qick/VERSION
-        gh pr checkout $PR_NUMBER
-        file_version=$(cut -d '.' -f 3 "$versionpath")
+        file_version=$(cut -d '.' -f 3 "$VERSION_PATH")
         echo "PR number: $PR_NUMBER, VERSION number: $file_version"
-        if [ $file_version != $PR_NUMBER ]; then
-          echo "updating VERSION"
-          echo "$(cut -d '.' -f -2 $versionpath).$PR_NUMBER" > "$versionpath"
-          git config user.email "129547417+qickbot@users.noreply.github.com"
-          git config user.name "QICK actions [bot]"
-          git add "$versionpath"
-          git commit -am "update version"
-          git push
-        fi
+        echo "file_version=$file_version" >> $GITHUB_ENV
+    - name: Update VERSION if necessary
+      if: env.file_version != github.event.pull_request.number
+      run: |
+        echo "updating VERSION"
+        echo "$(cut -d '.' -f -2 $VERSION_PATH).$PR_NUMBER" > "$VERSION_PATH"
+        git config user.email "129547417+qickbot@users.noreply.github.com"
+        git config user.name "QICK actions [bot]"
+        git config push.default upstream
+        git add "$VERSION_PATH"
+        git commit -am "update version"
+        git push
