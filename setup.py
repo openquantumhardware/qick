@@ -11,12 +11,10 @@ import pathlib
 here = pathlib.Path(__file__).parent.resolve()
 
 def get_version(rel_path):
-    for line in (here / rel_path).read_text().splitlines():
-        if line.startswith('__version__'):
-            delim = '"' if '"' in line else "'"
-            return line.split(delim)[1]
-    else:
-        raise RuntimeError("Unable to find version string.")
+    """
+    qick_lib/qick/VERSION is a text file containing only the version number.
+    """
+    return (here / rel_path).read_text().strip()
 
 # Get the long description from the README file
 long_description = (here / 'README.md').read_text(encoding='utf-8')
@@ -44,7 +42,7 @@ setup(
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version=get_version("qick_lib/qick/__init__.py"),  # Required
+    version=get_version("qick_lib/qick/VERSION"),  # Required
 
     # This is a one-line description or tagline of what your project does. This
     # corresponds to the "Summary" metadata field:
@@ -150,8 +148,8 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    setup_requires=["numpy","cffi"],
-    
+    # setup_requires=["numpy","cffi"],
+
     # Only install pynq on the supported architectures.
     # If you're not installing this on a Zynq, you won't be able to use qick.py (hardware interface)
     # but qick_asm.py, averager_program.py, and the notebooks should still work.
@@ -176,7 +174,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     package_data={  # Optional
-        'qick': ['*.bit', '*.hwh']
+        'qick': ['*.bit', '*.hwh', 'VERSION']
     },
     include_package_data=True,
 
