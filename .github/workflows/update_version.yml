@@ -9,6 +9,8 @@
 # 
 # If you don't want this action to run (e.g. if you want a different version number for a certain PR), include [skip actions] in the commit message.
 # https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+name: Update version
+
 on:
   pull_request:
     types: [opened, reopened, synchronize]
