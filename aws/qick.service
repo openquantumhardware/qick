@@ -1,0 +1,23 @@
+[Unit]
+Description=QICK service
+After=multi-user.target
+
+[Service]
+Type=forking
+ExecStart=/home/xilinx/jupyter_notebooks/qick/aws/start_qick_client.sh
+PIDFile=/tmp/qick.pid
+#Restart=always
+#RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+# Note the ExecStart parameter must point to the actual location of the start script.
+#
+# The service can then be installed by doing:
+#
+# sudo cp qick.service /etc/systemd/system/
+# sudo systemctl daemon-reload
+# sudo systemctl enable qick
+# sudo systemctl start qick
+# sudo systemctl status qick

@@ -1,0 +1,31 @@
+# This is the QICK client config file.
+# Because the device and user clients use a lot of the same parameters, the same config file can be used for both.
+# Not all parameters are needed in all cases.
+#
+# The user client will check for this file in the following locations (in order):
+# ~/.config/qick.conf
+# /etc/qick/config
+#
+# The device client requires this file to be in /etc/qick/config.
+
+# needed for device and user clients
+[service]
+# only for user client
+cognito_userpool = <Cognito user pool ID>
+cognito_url = <URL of the Cognito endpoint>
+clientid = <Cognito client ID>
+# only for device client and device registration
+oauth_endpoint = <URL of the OAuth2 endpoint>
+# for all clients
+api_endpoint = <URL of the API endpoint>
+
+# needed for user client
+[user]
+username = <user e-mail address>
+
+# needed for device client
+[device]
+id = <unique ID of the device>
+# not needed, but useful to put here as a reminder of what device the ID corresponds to
+name = <name of the device>
+

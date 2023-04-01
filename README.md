@@ -8,7 +8,7 @@
 The QICK is a kit of firmware and software to use the Xilinx RFSoC to control quantum systems.
 
 It consists of:
-* Firmware for the ZCU111 and ZCU216 RFSoC evaluation boards
+* Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
@@ -40,6 +40,10 @@ We hope that this will help you decide whether or not to update your local code 
 We strive for, but cannot guarantee, bug-free and fully functional pull requests.
 We also do not guarantee that the demo notebooks will keep pace with every pull request, though we make an effort to update the demos after major API changes.
 
+Our version numbering follows the format major.minor.PR, where PR is the number of the most recently merged pull request.
+This will result in the PR number often skipping values, and occasionally decreasing.
+The tagged release of a new minor version will have the format major.minor.0.
+
 Tagged releases can be expected periodically.
 We recommend that everyone should be using at least the most recent release.
 We guarantee the following for releases:
@@ -49,14 +53,6 @@ We guarantee the following for releases:
 
 We recommend that you "watch" this repository on GitHub to get automatic notifications of pull requests and releases.
 
-Related Packages
-----------------
-
-There is one related package on Github:
-
-Documentation source code: https://github.com/openquantumhardware/qick-docs
-
-
 Contribute
 ----------
 
@@ -65,6 +61,8 @@ You are welcome to contribute to QICK development by forking this repository and
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
 We welcome comments, bug reports, and feature requests via GitHub Issues.
+
+You can chat with us in the #qick channel on the [Unitary Fund Discord](http://discord.unitary.fund/).
 
 License
 -------

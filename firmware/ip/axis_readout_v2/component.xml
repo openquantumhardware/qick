@@ -399,7 +399,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>08579539</spirit:value>
+            <spirit:value>6e284896</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -421,7 +421,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>08579539</spirit:value>
+            <spirit:value>6e284896</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -435,7 +435,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>5dad8ec1</spirit:value>
+            <spirit:value>f835ce2d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -960,10 +960,6 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/fir.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>src/fir_compiler_0/fir_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/fir_i/fir_compiler_0</spirit:userFileType>
@@ -972,6 +968,10 @@
         <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i/dds_compiler_0</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/down_conversion.v</spirit:name>
@@ -1034,10 +1034,6 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/fir.coe</spirit:name>
-        <spirit:userFileType>coe</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>src/fir_compiler_0/fir_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/fir_i/fir_compiler_0</spirit:userFileType>
@@ -1046,6 +1042,10 @@
         <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i/dds_compiler_0</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/fir.coe</spirit:name>
+        <spirit:userFileType>coe</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/down_conversion.v</spirit:name>
@@ -1109,7 +1109,7 @@
       <spirit:file>
         <spirit:name>xgui/axis_readout_v2_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_5dad8ec1</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f835ce2d</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1136,8 +1136,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Readout V2</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>6</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2023-01-19T00:23:04Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>8</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2023-02-13T23:05:36Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@2e046dd_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@47cc16d8_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_readout_v2</xilinx:tag>
@@ -1207,13 +1207,36 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@4742d039_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@63c8930d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@6737d14d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1be95097_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1959d6f2_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@438c1eff_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@126b6e40_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1a1ab8b4_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@63f9d3fe_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@431bfd54_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@8748439_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c31507f_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@53f658a0_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@720b5ac2_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2120953f_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2159fb42_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2932a4d7_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2bbb6fec_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1575d0a2_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@121a8497_ARCHIVE_LOCATION">/home/lstefana/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6dc73d58_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1cabf5c7_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1d8ffc9d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@d912ec8_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d99260d_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@55d0feb7_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_readout_v2</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2020.2</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="b5de9ec3"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="6745715a"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="b798febf"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="1a5415bc"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="66bc7859"/>
     </xilinx:packagingInfo>

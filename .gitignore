@@ -32,6 +32,10 @@ __pycache__/
 .installed.cfg
 *.egg
 
+# Distribution / packaging
+build/
+dist/
+
 # Sphinx documentation
 docs/_build/
 docs/_autosummary/

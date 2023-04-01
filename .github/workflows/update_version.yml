@@ -1,0 +1,54 @@
+# Automatically update the package version.
+# The version has the format major.minor.PR, where PR is the number of the most recent pull request.
+# This action runs automatically when a pull request is opened, or a commit is added to an open pull request.
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target
+#
+# It checks the version number against the PR number; if it does not match, the version number is updated in a new commit.
+# The commit will be credited to the GitHub Actions user.
+# https://github.com/orgs/community/discussions/26560#discussioncomment-3252339
+# 
+# We need write access, which is only available using the pull_request_target trigger.
+# It is dangerous to have write access at the same time that you are checking out untrusted code from a PR.
+# However, we are only extracting a version number and (possibly) committing a new version number back to the PR, which is relatively safe.
+# In other words, we are doing a bad thing ("pull_request_target with an explicit PR checkout") but our workflow is safe ("Reformat and commit the code"):
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+#
+# If you don't want this action to run (e.g. if you want a different version number for a certain PR), include [skip actions] in the commit message.
+# https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+name: Update version
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+  pull-requests: write
+  
+jobs:
+  update_version:
+    runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
+      VERSION_PATH: qick_lib/qick/VERSION
+    steps:
+    - uses: actions/checkout@v3
+    - name: Checkout pull request
+      run: gh pr checkout $PR_NUMBER
+    - name: Compare version numbers
+      run: |
+        file_version=$(cut -d '.' -f 3 "$VERSION_PATH")
+        echo "PR number: $PR_NUMBER, VERSION number: $file_version"
+        echo "file_version=$file_version" >> $GITHUB_ENV
+    - name: Update VERSION if necessary
+      if: env.file_version != github.event.pull_request.number
+      run: |
+        echo "updating VERSION"
+        echo "$(cut -d '.' -f -2 $VERSION_PATH).$PR_NUMBER" > "$VERSION_PATH"
+        git config user.email "129547417+qickbot@users.noreply.github.com"
+        git config user.name "QICK actions [bot]"
+        git config push.default upstream
+        git add "$VERSION_PATH"
+        git commit -am "update version"
+        git push
