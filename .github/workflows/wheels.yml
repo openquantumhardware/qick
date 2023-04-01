@@ -25,9 +25,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Print state
-        run: |
-          git log -n 2
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
