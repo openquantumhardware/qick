@@ -1686,11 +1686,11 @@ class AxisTProc64x32_x8(SocIp):
             # dma
             self.dma = axi_dma
      
-        def configure_connections(self, soc, sigparser, busparser):
+        def configure_connections(self, soc):
             self.output_pins = []
             self.start_pin = None
             try:
-                ((port),) = trace_net(sigparser, self.fullpath, 'start')
+                ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
                 self.start_pin = port[0]
             except:
                 pass
@@ -1700,15 +1700,15 @@ class AxisTProc64x32_x8(SocIp):
                 # what block does this output drive?
                 # add 1, because output 0 goes to the DMA
                 try:
-                    ((block, port),) = trace_net(sigparser, self.fullpath, 'port_%d_dt_o' % (i))
+                    ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'port_%d_dt_o' % (i))
                 except: # skip disconnected tProc outputs
                     continue
-                if busparser.mod2type[block].startswith("vect2bits"):
+                if soc.metadata.mod2type(block).startswith("vect2bits"):
                     self.trig_output = i
                     for iPin in range(16):
                         try:
                             #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
-                            ports = trace_net(sigparser, block, "dout%d"%(iPin))
+                            ports = soc.metadata.trace_sig(block, "dout%d"%(iPin))
                             if len(ports)==1 and len(ports[0])==1:
                                 # it's an FPGA pin, save it
                                 pinname = ports[0][0]
