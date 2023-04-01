@@ -30,11 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
+      GH_TOKEN: ${{ github.token }}
       VERSION_PATH: qick_lib/qick/VERSION
     steps:
     - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
+    - name: Checkout pull request
+      run: gh pr checkout $PR_NUMBER
     - name: Compare version numbers
       run: |
         file_version=$(cut -d '.' -f 3 "$VERSION_PATH")
