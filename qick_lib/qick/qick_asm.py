@@ -308,7 +308,8 @@ class QickConfig():
             gencfg = None
         else:
             gencfg = self['gens'][gen_ch]
-        return self.freq2int(f, self['readouts'][ro_ch], gencfg)
+        rocfg = self['readouts'][ro_ch]
+        return self.freq2int(f, rocfg, gencfg) % 2**rocfg['b_dds']
 
     def reg2freq(self, r, gen_ch=0):
         """Converts frequency from format readable by generator to MHz.
