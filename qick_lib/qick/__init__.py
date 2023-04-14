@@ -1,6 +1,7 @@
 from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgram
 from .qick_asm import QickConfig, QickProgram
 import os
+import platform
 
 def get_version():
     """
@@ -22,7 +23,9 @@ def bitfile_path():
     return src
 
 
-try:
-    from .qick import QickSoc
-except Exception as e:
-    print("Could not import QickSoc:", e)
+# only import the hardware drivers if running on a Zynq
+if platform.machine() in ['aarch64', 'armv7l']:
+    try:
+        from .qick import QickSoc
+    except Exception as e:
+        print("Could not import QickSoc:", e)
