@@ -6,6 +6,11 @@ QICK software library
 
    qick
    qick.qick
+   qick.ip
+   qick.drivers
+   qick.drivers.tproc
+   qick.drivers.generator
+   qick.drivers.readout
    qick.qick_asm
    qick.averager_program
    qick.helpers
