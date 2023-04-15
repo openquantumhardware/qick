@@ -1,5 +1,3 @@
-from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgram
-from .qick_asm import QickConfig, QickProgram
 import os
 import platform
 
@@ -39,10 +37,20 @@ def bitfile_path():
     src = os.path.join(os.path.dirname(qick.__file__), filename)
     return src
 
+# tie in to rpyc, if using
+try:
+    from rpyc.utils.classic import obtain
+except ModuleNotFoundError:
+    def obtain(i):
+        return i
+
+from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgram
+from .qick_asm import QickConfig, QickProgram
 
 # only import the hardware drivers if running on a Zynq
 if platform.machine() in ['aarch64', 'armv7l']:
     try:
+        from .ip import SocIp
         from .qick import QickSoc
     except Exception as e:
         print("Could not import QickSoc:", e)

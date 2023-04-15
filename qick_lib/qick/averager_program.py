@@ -3,7 +3,8 @@ Several helper classes for writing qubit experiments.
 """
 from typing import List, Union
 import numpy as np
-from .qick_asm import QickProgram, obtain, QickRegister, QickRegisterManagerMixin
+from qick import obtain
+from .qick_asm import QickProgram, QickRegister, QickRegisterManagerMixin
 
 class AveragerProgram(QickProgram):
     """
