@@ -448,10 +448,15 @@ class AxisTProc64x32_x8(SocIp):
         def load_mem(self,mem_sel, buff_in, addr=0):
             """
             Writes tProc Selected memory using DMA
-            PARAMETERS> 
-              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
-              buff_in   : Input buffer ( int )
-              addr      : Starting destination address ( int )
+
+            Parameters
+            ----------
+            mem_sel : int
+                PMEM=1, DMEM=2, WMEM=3
+            buff_in : array
+                Data to be loaded
+            addr : int
+                Starting write address
             """
             # Length.
             length = len(buff_in)
@@ -487,10 +492,15 @@ class AxisTProc64x32_x8(SocIp):
         def read_mem(self,mem_sel, addr=0, length=100):
             """
             Read tProc Selected memory using DMA
-            PARAMETERS> 
-              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
-              buff_in   : Input buffer ( int )
-              addr      : Starting destination address ( int )
+
+            Parameters
+            ----------
+            mem_sel : int
+                PMEM=1, DMEM=2, WMEM=3
+            addr : int
+                Starting read address
+            length : int
+                Number of words to read
             """
         # Configure Memory arbiter. (Read DMEM)
             self.mem_addr        = addr
