@@ -9,13 +9,9 @@ from collections import namedtuple, OrderedDict
 from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
+from qick import obtain
 from .helpers import gauss, triang, DRAG, NpEncoder, ch2list
 from .parser import parse_prog
-try:
-    from rpyc.utils.classic import obtain
-except ModuleNotFoundError:
-    def obtain(i):
-        return i
 
 RegisterType = ["freq", "time", "phase", "adc_freq"]
 DefaultUnits = {"freq": "MHz", "time": "us", "phase": "deg", "adc_freq": "MHz"}
