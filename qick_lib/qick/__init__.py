@@ -48,7 +48,8 @@ from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgr
 from .qick_asm import QickConfig, QickProgram
 
 # only import the hardware drivers if running on a Zynq
-if platform.machine() in ['aarch64', 'armv7l']:
+# also import if we're in the ReadTheDocs Sphinx build (the imports won't really work but they will be mocked)
+if platform.machine() in ['aarch64', 'armv7l'] or os.getenv('READTHEDOCS', default='True')=='True':
     try:
         from .ip import SocIp
         from .qick import QickSoc
