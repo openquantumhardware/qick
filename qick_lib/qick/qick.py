@@ -311,7 +311,6 @@ class QickSoc(Overlay, QickConfig):
 
         # Signal generators (anything driven by the tProc)
         self.gens = []
-        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1, AxisSgMux4V2])
 
         # Constant generators
         self.iqs = []
@@ -325,7 +324,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
-            if val['driver'] in gen_drivers:
+            if issubclass(val['driver'], AbsPulsedSignalGen):
                 self.gens.append(getattr(self, key))
             elif val['driver'] == AxisConstantIQ:
                 self.iqs.append(getattr(self, key))
@@ -344,9 +343,10 @@ class QickSoc(Overlay, QickConfig):
             self.switch_gen = self.axis_switch_gen
 
             """
-            if self.switch_gen.NMI != len(self.gens):
-                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-wavefrom generator blocks." %
-                                   (self.switch_gen.NMI, len(self.gens)))
+            arb_gens = [key for key,val in self.ip_dict.items() if issubclass(val['driver'], AbsArbSignalGen)]
+            if self.switch_gen.NMI != len(arb_gens):
+                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
+                                   (self.switch_gen.NMI, len(arb_gens)))
             """
 
         # AXIS Switch to read samples from averager.
@@ -845,7 +845,7 @@ class QickSoc(Overlay, QickConfig):
         """
         prog = QickProgram(self)
         for gen in self.gens:
-            if gen.HAS_WAVEFORM:
+            if isinstance(gen, AbsArbSignalGen):
                 prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
