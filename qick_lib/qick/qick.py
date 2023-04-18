@@ -309,15 +309,6 @@ class QickSoc(Overlay, QickConfig):
             if hasattr(val['driver'], 'configure_connections'):
                 getattr(self, key).configure_connections(self)
 
-        # AXIS Switch to upload samples into Signal Generators.
-        self.switch_gen = self.axis_switch_gen
-
-        # AXIS Switch to read samples from averager.
-        self.switch_avg = self.axis_switch_avg
-
-        # AXIS Switch to read samples from buffer.
-        self.switch_buf = self.axis_switch_buf
-
         # Signal generators (anything driven by the tProc)
         self.gens = []
         gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1, AxisSgMux4V2])
@@ -348,17 +339,32 @@ class QickSoc(Overlay, QickConfig):
             if buf.readout not in self.readouts:
                 self.readouts.append(buf.readout)
 
-        # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
-        #TODO: bring back?
-        #if len(self.readouts) != len(self.avg_bufs):
-        #    raise RuntimeError("We have %d readouts but %d avg/buffer blocks." %
-        #                       (len(self.readouts), len(self.avg_bufs)))
-        if self.switch_avg.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
-                               (self.switch_avg.NSL, len(self.avg_bufs)))
-        if self.switch_buf.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
-                               (self.switch_buf.NSL, len(self.avg_bufs)))
+        # AXIS Switch to upload samples into Signal Generators.
+        if 'axis_switch_gen' in self.ip_dict.keys():
+            self.switch_gen = self.axis_switch_gen
+
+            """
+            if self.switch_gen.NMI != len(self.gens):
+                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-wavefrom generator blocks." %
+                                   (self.switch_gen.NMI, len(self.gens)))
+            """
+
+        # AXIS Switch to read samples from averager.
+        if 'axis_switch_avg' in self.ip_dict.keys():
+            self.switch_avg = self.axis_switch_avg
+
+            # Sanity check: we should have the same number of buffer blocks as switch ports.
+            if self.switch_avg.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
+                                   (self.switch_avg.NSL, len(self.avg_bufs)))
+
+        # AXIS Switch to read samples from buffer.
+        if 'axis_switch_buf' in self.ip_dict.keys():
+            self.switch_buf = self.axis_switch_buf
+
+            if self.switch_buf.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
+                                   (self.switch_buf.NSL, len(self.avg_bufs)))
 
         # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
