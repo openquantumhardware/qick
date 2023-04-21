@@ -21,7 +21,7 @@ class AbsSignalGen(SocIp):
     MAXV_SCALE = 1.0
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, rf, fs, axi_dma=None, axis_switch=None):
+    def configure(self, ch, rf, fs):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
 
@@ -33,6 +33,11 @@ class AbsSignalGen(SocIp):
 
         # DDS sampling frequency.
         self.fs_dds = fs/self.FS_INTERPOLATION
+
+        self.cfg['type'] = self.type
+        self.cfg['fullpath'] = self.fullpath
+        self.cfg['dac'] = self.dac
+        self.cfg['fs'] = self.fs_dds
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -83,17 +88,11 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
-    def configure(self, ch, rf, fs, axi_dma, axis_switch):
-        super().configure(ch, rf, fs)
-
-        # dma
-        self.dma = axi_dma
-
-        # Switch
-        self.switch = axis_switch
-
+    def configure(self, ch, rf, fs):
         # Define buffer.
         self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
+
+        super().configure(ch, rf, fs)
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -102,6 +101,13 @@ class AbsArbSignalGen(AbsSignalGen):
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
         # port names are of the form 'M01_AXIS'
         self.switch_ch = int(port.split('_')[0][1:])
+
+    def configure_dma(self, axi_dma, axis_switch):
+        # dma
+        self.dma = axi_dma
+
+        # Switch
+        self.switch = axis_switch
 
     # Load waveforms.
     def load(self, xin, addr=0):
@@ -169,6 +175,18 @@ class AbsPulsedSignalGen(AbsSignalGen):
     """
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
+
+    def configure(self, ch, rf, fs):
+        self.cfg['maxlen'] = self.MAX_LENGTH
+        self.cfg['b_dds'] = self.B_DDS
+        self.cfg['switch_ch'] = self.switch_ch
+        self.cfg['tproc_ch'] = self.tproc_ch
+        self.cfg['f_fabric'] = self.soc.dacs[self.dac]['f_fabric']
+        self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
+        self.cfg['maxv'] = self.MAXV
+        self.cfg['maxv_scale'] = self.MAXV_SCALE
+
+        super().configure(ch, rf, fs)
 
     def configure_connections(self, soc):
         super().configure_connections(soc)

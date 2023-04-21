@@ -18,10 +18,14 @@ class SocIp(DefaultIP):
         """
         #print("SocIp init", description)
         super().__init__(description)
+        # this block's unique identifier in the firmware
         self.fullpath = description['fullpath']
+        # this block's type
         self.type = description['type'].split(':')[-2]
-        #self.ip = description
+        # logger for messages associated with this block
         self.logger = logging.getLogger(self.type)
+        # config dictionary for QickConfig
+        self.cfg = {}
 
     def __setattr__(self, a, v):
         """

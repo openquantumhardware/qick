@@ -338,34 +338,6 @@ class QickSoc(Overlay, QickConfig):
             if buf.readout not in self.readouts:
                 self.readouts.append(buf.readout)
 
-        # AXIS Switch to upload samples into Signal Generators.
-        if 'axis_switch_gen' in self.ip_dict.keys():
-            self.switch_gen = self.axis_switch_gen
-
-            """
-            arb_gens = [key for key,val in self.ip_dict.items() if issubclass(val['driver'], AbsArbSignalGen)]
-            if self.switch_gen.NMI != len(arb_gens):
-                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
-                                   (self.switch_gen.NMI, len(arb_gens)))
-            """
-
-        # AXIS Switch to read samples from averager.
-        if 'axis_switch_avg' in self.ip_dict.keys():
-            self.switch_avg = self.axis_switch_avg
-
-            # Sanity check: we should have the same number of buffer blocks as switch ports.
-            if self.switch_avg.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
-                                   (self.switch_avg.NSL, len(self.avg_bufs)))
-
-        # AXIS Switch to read samples from buffer.
-        if 'axis_switch_buf' in self.ip_dict.keys():
-            self.switch_buf = self.axis_switch_buf
-
-            if self.switch_buf.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
-                                   (self.switch_buf.NSL, len(self.avg_bufs)))
-
         # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
         # Those orderings are important, since those indices get used in programs.
@@ -375,41 +347,58 @@ class QickSoc(Overlay, QickConfig):
         self.iqs.sort(key=lambda x: x.dac)
         self.readouts.sort(key=lambda x: x.adc)
 
+        # which generators have waveform memories?
+        arb_gens = filter(lambda x: isinstance(x, AbsArbSignalGen), self.gens)
+        # Configure the DMA connections to upload waveforms to generators.
+        if arb_gens:
+            # AXIS Switch to upload samples into Signal Generators.
+            self.switch_gen = self.axis_switch_gen
+
+            """
+            # This sanity check doesn't always pass, we have firmwares that don't use all the switch ports.
+            if self.switch_gen.NMI != len(arb_gens):
+                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
+                                   (self.switch_gen.NMI, len(arb_gens)))
+            """
+
+            for gen in arb_gens:
+                gen.configure_dma(self.axi_dma_gen, self.switch_gen)
+
+        # Configure the DMA connections to download data from avg+buffer blocks.
+        if self.avg_bufs:
+            # AXIS Switch to read samples from averager.
+            self.switch_avg = self.axis_switch_avg
+            # AXIS Switch to read samples from buffer.
+            self.switch_buf = self.axis_switch_buf
+            # Sanity check: we should have the same number of buffer blocks as switch ports.
+            if self.switch_avg.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
+                                   (self.switch_avg.NSL, len(self.avg_bufs)))
+            if self.switch_buf.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
+                                   (self.switch_buf.NSL, len(self.avg_bufs)))
+
+            for buf in self.avg_bufs:
+                buf.configure(self.axi_dma_avg, self.switch_avg,
+                              self.axi_dma_buf, self.switch_buf)
+
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
-            gen.configure(i, self.rf,
-                          self.dacs[gen.dac]['fs'], self.axi_dma_gen, self.switch_gen)
+            gen.configure(i, self.rf, self.dacs[gen.dac]['fs'])
 
         for i, iq in enumerate(self.iqs):
             iq.configure(i, self.rf, self.dacs[iq.dac]['fs'])
 
-        for buf in self.avg_bufs:
-            buf.configure(self.axi_dma_avg, self.switch_avg,
-                          self.axi_dma_buf, self.switch_buf)
         for readout in self.readouts:
             readout.configure(self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
         self['dacs'] = list(self.dacs.keys())
         self['adcs'] = list(self.adcs.keys())
-        self['gens'] = []
-        self['readouts'] = []
-        self['iqs'] = []
-        for gen in self.gens:
-            thiscfg = {}
-            thiscfg['type'] = gen.type
-            thiscfg['maxlen'] = gen.MAX_LENGTH
-            thiscfg['b_dds'] = gen.B_DDS
-            thiscfg['switch_ch'] = gen.switch_ch
-            thiscfg['tproc_ch'] = gen.tproc_ch
-            thiscfg['dac'] = gen.dac
-            thiscfg['fs'] = gen.fs_dds
-            thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
-            thiscfg['samps_per_clk'] = gen.SAMPS_PER_CLK
-            thiscfg['maxv'] = gen.MAXV
-            thiscfg['maxv_scale'] = gen.MAXV_SCALE
-            self['gens'].append(thiscfg)
+        self['gens'] = [gen.cfg for gen in self.gens]
+        self['iqs'] = [iq.cfg for iq in self.iqs]
 
+        self['readouts'] = []
         for buf in self.avg_bufs:
             thiscfg = {}
             thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
@@ -426,12 +415,6 @@ class QickSoc(Overlay, QickConfig):
             thiscfg['trigger_bit'] = buf.trigger_bit
             thiscfg['tproc_ch'] = buf.tproc_ch
             self['readouts'].append(thiscfg)
-
-        for iq in self.iqs:
-            thiscfg = {}
-            thiscfg['dac'] = iq.dac
-            thiscfg['fs'] = iq.fs_dac
-            self['iqs'].append(thiscfg)
 
         self['tprocs'] = []
         for tproc in [self.tproc]:
