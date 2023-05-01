@@ -71,7 +71,7 @@ class QickConfig():
             lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
                          (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
             lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
+                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['f_dds']))
 
         if self['iqs']:
             lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
@@ -86,7 +86,7 @@ class QickConfig():
             else:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -176,8 +176,8 @@ class QickConfig():
         # Calculate least common multiple of sampling frequencies.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        fsmult1 = round(dict1['fs']/refclk)
-        fsmult2 = round(dict2['fs']/refclk)
+        fsmult1 = round(dict1['f_dds']/refclk)
+        fsmult2 = round(dict2['f_dds']/refclk)
 
         # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
@@ -231,7 +231,7 @@ class QickConfig():
             f_round = f
         else:
             f_round = self.roundfreq(f, thisch, otherch)
-        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
+        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['f_dds'])
         return np.int64(k_i)
 
     def int2freq(self, r, thisch):
@@ -251,7 +251,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['fs'] / 2**thisch['b_dds']
+        return r * thisch['f_dds'] / 2**thisch['b_dds']
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -278,7 +278,7 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['fs']/2:
+            if abs(f)>gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -323,7 +323,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['fs']
+        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -341,7 +341,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['fs']
+        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.

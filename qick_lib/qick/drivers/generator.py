@@ -29,15 +29,11 @@ class AbsSignalGen(SocIp):
         self.rf = rf
 
         # DAC sampling frequency.
-        self.fs_dac = fs
-
-        # DDS sampling frequency.
-        self.fs_dds = fs/self.FS_INTERPOLATION
+        self.cfg['fs'] = fs
 
         self.cfg['type'] = self.type
         self.cfg['fullpath'] = self.fullpath
         self.cfg['dac'] = self.dac
-        self.cfg['fs'] = self.fs_dds
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -70,7 +66,7 @@ class AbsSignalGen(SocIp):
             rounded_f = f
         else:
             mixercfg = {}
-            mixercfg['fs'] = self.fs_dac
+            mixercfg['f_dds'] = self.cfg['fs']
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
@@ -177,6 +173,9 @@ class AbsPulsedSignalGen(AbsSignalGen):
     TPROC_PORT = 's1_axis'
 
     def configure(self, ch, rf, fs):
+        # DDS sampling frequency.
+        self.cfg['f_dds'] = fs/self.FS_INTERPOLATION
+
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
         self.cfg['switch_ch'] = self.switch_ch
@@ -208,7 +207,7 @@ class AbsPulsedSignalGen(AbsSignalGen):
             else:
                 raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
         # ask the tproc to translate this port name to a channel number
-        self.tproc_ch = getattr(soc, block).port2ch(port)
+        self.cfg['tproc_ch'] = getattr(soc, block).port2ch(port)
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
@@ -227,6 +226,7 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
               'user.org:user:axis_signal_gen_v6:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     SAMPS_PER_CLK = 16
+    B_DDS = 32
 
     def __init__(self, description):
         """
@@ -245,9 +245,6 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
 
         # Maximum number of samples
         self.MAX_LENGTH = 2**self.N*self.NDDS
-
-        # Frequency resolution
-        self.B_DDS = 32
 
     def rndq(self, sel_):
         """
@@ -279,6 +276,7 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     MAXV_SCALE = 0.9
+    B_DDS = 16
 
     def __init__(self, description):
         """
@@ -293,9 +291,6 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
         # Generics
         self.N = int(description['parameters']['N'])
         self.NDDS = 4  # Fixed by design, not accesible.
-
-        # Frequency resolution
-        self.B_DDS = 16
 
         # Maximum number of samples
         # Table is interpolated. Length is given only by parameter N.
@@ -327,6 +322,7 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     TPROC_PORT = 's_axis'
+    B_DDS = 16
 
     def __init__(self, description):
         """
@@ -336,9 +332,6 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
 
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
-
-        # Frequency resolution
-        self.B_DDS = 16
 
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
@@ -383,7 +376,7 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
         self.update()
 
     def get_freq(self, out=0):
-        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self.cfg['f_dds'] / (2**self.B_DDS)
 
 class AxisSgMux4V2(AbsPulsedSignalGen):
     """
@@ -417,6 +410,7 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
 
     HAS_MIXER = True
     FS_INTERPOLATION = 4
+    B_DDS = 32
     TPROC_PORT = 's_axis'
 
     def __init__(self, description):
@@ -427,9 +421,6 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
 
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
-
-        # Frequency resolution
-        self.B_DDS = 32
 
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
@@ -477,7 +468,7 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
         self.update()
 
     def get_freq(self, out):
-        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self.cfg['f_dds'] / (2**self.B_DDS)
 
     def set_gain(self, g, out):
         """

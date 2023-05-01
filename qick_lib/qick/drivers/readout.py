@@ -116,7 +116,7 @@ class AxisReadoutV2(SocIp):
         :type gen_ch: int
         """
         thiscfg = {}
-        thiscfg['fs'] = self.fs
+        thiscfg['f_dds'] = self.fs
         thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
@@ -260,7 +260,7 @@ class AxisPFBReadoutV2(SocIp):
         :type gen_ch: int
         """
         thiscfg = {}
-        thiscfg['fs'] = self.fs
+        thiscfg['f_dds'] = self.fs
         thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
@@ -292,7 +292,7 @@ class AxisPFBReadoutV2(SocIp):
             lofreq = centerfreq - self.fs/32
             hifreq = centerfreq + self.fs/32
             thiscfg = {}
-            thiscfg['fs'] = self.fs
+            thiscfg['f_dds'] = self.fs
             thiscfg['b_dds'] = self.B_DDS
             oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], thiscfg)
             newfreq = centerfreq + self.soc.int2freq(f_int, thiscfg)
