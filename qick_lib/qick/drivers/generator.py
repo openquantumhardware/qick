@@ -31,8 +31,6 @@ class AbsSignalGen(SocIp):
         # DAC sampling frequency.
         self.cfg['fs'] = fs
 
-        self.cfg['type'] = self.type
-        self.cfg['fullpath'] = self.fullpath
         self.cfg['dac'] = self.dac
 
     def configure_connections(self, soc):
@@ -66,7 +64,7 @@ class AbsSignalGen(SocIp):
             rounded_f = f
         else:
             mixercfg = {}
-            mixercfg['f_dds'] = self.cfg['fs']
+            mixercfg['f_dds'] = self['fs']
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
@@ -375,7 +373,7 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
         self.update()
 
     def get_freq(self, out=0):
-        return getattr(self, "pinc%d_reg" % (out)) * self.cfg['f_dds'] / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
 
 class AxisSgMux4V2(AbsPulsedSignalGen):
     """
@@ -467,7 +465,7 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
         self.update()
 
     def get_freq(self, out):
-        return getattr(self, "pinc%d_reg" % (out)) * self.cfg['f_dds'] / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
 
     def set_gain(self, g, out):
         """

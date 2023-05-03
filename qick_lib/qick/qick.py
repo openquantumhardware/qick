@@ -107,6 +107,7 @@ class RFDC(xrfdc.RFdc):
 
     def configure(self, soc):
         self.daccfg = soc.dacs
+        self.adccfg = soc.adcs
 
     def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
@@ -341,7 +342,7 @@ class QickSoc(Overlay, QickConfig):
         # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
         # Those orderings are important, since those indices get used in programs.
-        self.gens.sort(key=lambda x: x.cfg['tproc_ch'])
+        self.gens.sort(key=lambda x: x['tproc_ch'])
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
         self.iqs.sort(key=lambda x: x.dac)
@@ -390,7 +391,7 @@ class QickSoc(Overlay, QickConfig):
             iq.configure(i, self.rf, self.dacs[iq.dac]['fs'])
 
         for readout in self.readouts:
-            readout.configure(self.adcs[readout.adc]['fs'])
+            readout.configure(self.rf, self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
         self['dacs'] = list(self.dacs.keys())
@@ -398,24 +399,15 @@ class QickSoc(Overlay, QickConfig):
         self['gens'] = [gen.cfg for gen in self.gens]
         self['iqs'] = [iq.cfg for iq in self.iqs]
 
-        self['readouts'] = []
-        for buf in self.avg_bufs:
-            thiscfg = {}
-            thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
-            thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
-            thiscfg['b_dds'] = buf.readout.B_DDS
-            thiscfg['ro_type'] = buf.readout.type
-            thiscfg['tproc_ctrl'] = buf.readout.tproc_ch
-            thiscfg['adc'] = buf.readout.adc
-            thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
-            thiscfg['f_dds'] = self.adcs[buf.readout.adc]['fs']
-            thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
-            if thiscfg['ro_type'] == 'axis_readout_v3':
-                # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
-                thiscfg['f_fabric'] *= 2
-            thiscfg['trigger_bit'] = buf.trigger_bit
-            thiscfg['tproc_ch'] = buf.tproc_ch
-            self['readouts'].append(thiscfg)
+        # In the config, we define a "readout" as the chain of ADC+readout+buffer.
+        def merge_cfgs(bufcfg, rocfg):
+            merged = {**bufcfg, **rocfg}
+            for k in set(bufcfg.keys()) & set(rocfg.keys()):
+                del merged[k]
+                merged["avgbuf_"+k] = bufcfg[k]
+                merged["ro_"+k] = rocfg[k]
+            return merged
+        self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
 
         self['tprocs'] = []
         for tproc in [self.tproc]:

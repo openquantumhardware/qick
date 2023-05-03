@@ -81,7 +81,7 @@ class QickConfig():
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            if readout['tproc_ctrl'] is None:
+            if 'tproc_ctrl' not in readout:
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
             else:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
@@ -555,6 +555,22 @@ class AbsRegisterManager(ABC):
     @abstractmethod
     def write_regs(self, params, defaults):
         ...
+
+class DummyIp:
+    """Stores the configuration constants for a firmware IP block.
+    """
+    def __init__(self, iptype, fullpath):
+        # config dictionary for QickConfig
+        self._cfg = {'type': iptype,
+                    'fullpath': fullpath}
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
 
 class ReadoutManager(AbsRegisterManager):
     """Manages the frequency and mode registers for a tProc-controlled readout channel.
