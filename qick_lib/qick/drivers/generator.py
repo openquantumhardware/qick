@@ -179,7 +179,6 @@ class AbsPulsedSignalGen(AbsSignalGen):
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
         self.cfg['switch_ch'] = self.switch_ch
-        self.cfg['tproc_ch'] = self.tproc_ch
         self.cfg['f_fabric'] = self.soc.dacs[self.dac]['f_fabric']
         self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
         self.cfg['maxv'] = self.MAXV

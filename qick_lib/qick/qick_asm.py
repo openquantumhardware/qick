@@ -70,13 +70,13 @@ class QickConfig():
         for iGen, gen in enumerate(self['gens']):
             lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
                          (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
-            lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+            lines.append("\t\tDAC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
                          (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['f_dds']))
 
         if self['iqs']:
             lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
             for iIQ, iq in enumerate(self['iqs']):
-                lines.append("\t%d:\tDAC tile %s, ch %s, fs=%.3f MHz" %
+                lines.append("\t%d:\tDAC tile %s, blk %s, fs=%.3f MHz" %
                              (iIQ, *iq['dac'], iq['fs']))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
@@ -85,7 +85,7 @@ class QickConfig():
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
             else:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
-            lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
@@ -99,7 +99,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'DAC_B', '20': 'DAC_A'}[dac]
-            lines.append("\t\tDAC tile %d, ch %d is %s" %
+            lines.append("\t\tDAC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         lines.append("\n\t%d ADCs:" % (len(self['adcs'])))
@@ -112,7 +112,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adc]
-            lines.append("\t\tADC tile %d, ch %d is %s" %
+            lines.append("\t\tADC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         tproc = self['tprocs'][0]

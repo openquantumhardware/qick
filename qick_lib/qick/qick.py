@@ -341,7 +341,7 @@ class QickSoc(Overlay, QickConfig):
         # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
         # Those orderings are important, since those indices get used in programs.
-        self.gens.sort(key=lambda x: x.tproc_ch)
+        self.gens.sort(key=lambda x: x.cfg['tproc_ch'])
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
         self.iqs.sort(key=lambda x: x.dac)
