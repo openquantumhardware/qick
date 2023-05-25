@@ -1,0 +1,16 @@
+# copy to /etc/systemd/system
+# reload services "sudo systemctl daemon-reload"
+# enable "sudo systemctl enable qick_pyro.service"
+
+[Unit]
+Description=RFSoC QICK pyro server
+After=network.target
+
+[Service]
+Type=idle
+Restart=always
+User=root
+ExecStart=/bin/bash -c 'source /etc/profile && python /home/xilinx/jupyter_notebooks/qick/pyro4/pyro_service.py'
+
+[Install]
+WantedBy=multi-user.target

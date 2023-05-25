@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
-# Typically (use the IP and port of your Pyro nameserver):
-# sudo -s ./server.py myqick -n 192.168.133.17 -p 8888
-import sys, getopt
 import psutil, socket
 import Pyro4
 import Pyro4.naming
-from qick import QickSoc, QickConfig
+from .qick import QickSoc
+from .qick_asm import QickConfig
 
-def start_nameserver(ns_port=8888):
-    """Starts a Pyro4 nameserver that listens on all network interfaces.
+def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
+    """Starts a Pyro4 nameserver.
 
     Parameters
     ----------
+    ns_host : str
+        the nameserver hostname
     ns_port : int
         the port number for the nameserver to listen on
 
@@ -20,7 +19,7 @@ def start_nameserver(ns_port=8888):
     """
     Pyro4.config.SERIALIZERS_ACCEPTED = set(['pickle'])
     Pyro4.config.PICKLE_PROTOCOL_VERSION=4
-    Pyro4.naming.startNSloop(host='0.0.0.0', port=ns_port)
+    Pyro4.naming.startNSloop(host=ns_host, port=ns_port)
 
 def start_server(ns_host, ns_port=8888, proxy_name='myqick', **kwargs):
     """Initializes the QickSoc and starts a Pyro4 proxy server.
@@ -113,37 +112,3 @@ def make_proxy(ns_host, ns_port='8888', proxy_name='myqick'):
     soc = Pyro4.Proxy(ns.lookup(proxy_name))
     soccfg = QickConfig(soc.get_cfg())
     return(soc, soccfg)
-
-if __name__ == '__main__':
-
-    ns_host = None
-    ns_port = None
-    proxy_name = "myqick"
-
-    options, remainder = getopt.gnu_getopt(sys.argv[1:], 'n:p:h')
-    for opt, arg in options:
-        if opt == '-n':
-            ns_host = arg
-        elif opt == '-p':
-            ns_port = int(arg)
-        elif opt == '-h':
-            print("\nUsage: "+sys.argv[0]+" [server name]")
-            print("Must be run as root.")
-            print("Arguments: ")
-            print("\t-n: nameserver hostname (default localhost)")
-            print("\t-p: nameserver port (default 9090)")
-            print("\t-i: network interface (default eth0)")
-            print("\t-h: this message")
-            print("\n")
-            print("On pynq 2.7 you may get an error relating to pynq not loading, or no XRT devices being found.")
-            print("If this happens, try the following (taken from /usr/local/bin/start_jupyter.sh):")
-            print("\tsudo -s")
-            print("\tfor f in /etc/profile.d/*.sh; do source $f; done")
-            print("\t"+sys.argv[0]+" [options]")
-            print("\n")
-            sys.exit(0)
-
-    if remainder:
-        proxy_name = remainder[0]
-
-    start_server(ns_host, ns_port, proxy_name)
