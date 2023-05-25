@@ -70,23 +70,23 @@ class QickConfig():
         for iGen, gen in enumerate(self['gens']):
             lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
                          (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
-            lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
+            lines.append("\t\tDAC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
+                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['f_dds']))
 
         if self['iqs']:
             lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
             for iIQ, iq in enumerate(self['iqs']):
-                lines.append("\t%d:\tDAC tile %s, ch %s, fs=%.3f MHz" %
+                lines.append("\t%d:\tDAC tile %s, blk %s, fs=%.3f MHz" %
                              (iIQ, *iq['dac'], iq['fs']))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            if readout['tproc_ctrl'] is None:
-                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            else:
+            if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
-            lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+            else:
+                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -99,7 +99,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'DAC_B', '20': 'DAC_A'}[dac]
-            lines.append("\t\tDAC tile %d, ch %d is %s" %
+            lines.append("\t\tDAC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         lines.append("\n\t%d ADCs:" % (len(self['adcs'])))
@@ -112,7 +112,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adc]
-            lines.append("\t\tADC tile %d, ch %d is %s" %
+            lines.append("\t\tADC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         tproc = self['tprocs'][0]
@@ -176,8 +176,8 @@ class QickConfig():
         # Calculate least common multiple of sampling frequencies.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        fsmult1 = round(dict1['fs']/refclk)
-        fsmult2 = round(dict2['fs']/refclk)
+        fsmult1 = round(dict1['f_dds']/refclk)
+        fsmult2 = round(dict2['f_dds']/refclk)
 
         # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
@@ -231,7 +231,7 @@ class QickConfig():
             f_round = f
         else:
             f_round = self.roundfreq(f, thisch, otherch)
-        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
+        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['f_dds'])
         return np.int64(k_i)
 
     def int2freq(self, r, thisch):
@@ -251,7 +251,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['fs'] / 2**thisch['b_dds']
+        return r * thisch['f_dds'] / 2**thisch['b_dds']
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -278,7 +278,7 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['fs']/2:
+            if abs(f)>gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -323,7 +323,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['fs']
+        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -341,7 +341,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['fs']
+        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.
@@ -555,6 +555,22 @@ class AbsRegisterManager(ABC):
     @abstractmethod
     def write_regs(self, params, defaults):
         ...
+
+class DummyIp:
+    """Stores the configuration constants for a firmware IP block.
+    """
+    def __init__(self, iptype, fullpath):
+        # config dictionary for QickConfig
+        self._cfg = {'type': iptype,
+                    'fullpath': fullpath}
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
 
 class ReadoutManager(AbsRegisterManager):
     """Manages the frequency and mode registers for a tProc-controlled readout channel.
@@ -1085,7 +1101,7 @@ class QickProgram:
 
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) if ch['tproc_ctrl'] is not None else None for iCh, ch in enumerate(soccfg['readouts'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
 
 
     def dump_prog(self):
@@ -1363,7 +1379,7 @@ class QickProgram:
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         ro_cfg = self.soccfg['readouts'][ch]
-        if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
+        if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
             # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
@@ -1396,7 +1412,7 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            if self.soccfg['readouts'][ch]['tproc_ctrl'] is None:
+            if 'tproc_ctrl' not in self.soccfg['readouts'][ch]:
                 soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
@@ -2080,10 +2096,12 @@ class QickProgram:
                     phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["gens"][ch]['tproc_ch']
                 else:  # for readout channels
+                    ch_mgr = self._ro_mgrs[ch]
+                    # skip PYNQ-controlled readouts, which can't be reset
+                    if ch_mgr is None: continue
                     if t < self._adc_ts[ch]:
                         print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
                               f"with previous readout ending at {self._adc_ts[ch]}")
-                    ch_mgr = self._ro_mgrs[ch]
                     phrst_params = dict(freq=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
 

@@ -3,9 +3,28 @@ Drivers for readouts (FPGA blocks that receive data from ADCs) and buffers (bloc
 """
 from pynq.buffer import allocate
 import numpy as np
-from qick import SocIp
+from qick import DummyIp, SocIp
 
-class AxisReadoutV2(SocIp):
+class AbsReadout(DummyIp):
+    # Configure this driver with the sampling frequency.
+    def configure(self, rf, fs):
+        self.rf = rf
+        # Sampling frequency.
+        self.fs = fs
+        self.cfg['fs'] = self.fs
+        self.cfg['adc'] = self.adc
+        self.cfg['b_dds'] = self.B_DDS
+        self.cfg['fs'] = self.rf.adccfg[self['adc']]['fs']
+        self.cfg['f_dds'] = self.rf.adccfg[self['adc']]['fs']
+        self.cfg['f_fabric'] = self.rf.adccfg[self['adc']]['f_fabric']
+
+    def initialize(self):
+        """
+        Reset the readout configuration.
+        """
+        pass
+
+class AxisReadoutV2(SocIp, AbsReadout):
     """
     AxisReadoutV2 class
 
@@ -56,11 +75,6 @@ class AxisReadoutV2(SocIp):
         # Register update.
         self.update()
 
-    # Configure this driver with the sampling frequency.
-    def configure(self, fs):
-        # Sampling frequency.
-        self.fs = fs
-
     def configure_connections(self, soc):
         self.soc = soc
 
@@ -80,12 +94,6 @@ class AxisReadoutV2(SocIp):
         self.buffer = getattr(soc, block)
 
         #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
-
-    def initialize(self):
-        """
-        Does nothing.
-        """
-        pass
 
     def update(self):
         """
@@ -116,7 +124,7 @@ class AxisReadoutV2(SocIp):
         :type gen_ch: int
         """
         thiscfg = {}
-        thiscfg['fs'] = self.fs
+        thiscfg['f_dds'] = self.fs
         thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
@@ -144,7 +152,7 @@ class AxisReadoutV2(SocIp):
     def get_freq(self):
         return self.freq_reg * self.fs / (2**self.B_DDS)
 
-class AxisPFBReadoutV2(SocIp):
+class AxisPFBReadoutV2(SocIp, AbsReadout):
     """
     AxisPFBReadoutV2 class.
 
@@ -196,11 +204,6 @@ class AxisPFBReadoutV2(SocIp):
         """
         super().__init__(description)
         self.initialize()
-
-    # Configure this driver with the sampling frequency.
-    def configure(self, fs):
-        # Sampling frequency.
-        self.fs = fs
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -260,7 +263,7 @@ class AxisPFBReadoutV2(SocIp):
         :type gen_ch: int
         """
         thiscfg = {}
-        thiscfg['fs'] = self.fs
+        thiscfg['f_dds'] = self.fs
         thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
@@ -292,7 +295,7 @@ class AxisPFBReadoutV2(SocIp):
             lofreq = centerfreq - self.fs/32
             hifreq = centerfreq + self.fs/32
             thiscfg = {}
-            thiscfg['fs'] = self.fs
+            thiscfg['f_dds'] = self.fs
             thiscfg['b_dds'] = self.B_DDS
             oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], thiscfg)
             newfreq = centerfreq + self.soc.int2freq(f_int, thiscfg)
@@ -304,7 +307,7 @@ class AxisPFBReadoutV2(SocIp):
         # set the PFB channel's DDS frequency
         setattr(self, "freq%d_reg"%(in_ch), f_int)
 
-class AxisReadoutV3():
+class AxisReadoutV3(AbsReadout):
     """tProc-controlled readout block.
     This isn't a PYNQ driver, since the block has no registers for PYNQ control.
     We still need this class to represent the block and its connectivity.
@@ -313,19 +316,19 @@ class AxisReadoutV3():
     B_DDS = 32
 
     def __init__(self, fullpath):
-        self.fullpath = fullpath
-        self.type = "axis_readout_v3"
+        super().__init__("axis_readout_v3", fullpath)
 
-    # Configure this driver with the sampling frequency.
-    def configure(self, fs):
-        # Sampling frequency.
-        self.fs = fs
+    def configure(self, rf, fs):
+        super().configure(rf, fs)
+        self.cfg['tproc_ctrl'] = self.tproc_ch
+        # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
+        self.cfg['f_fabric'] *= 2
 
     def configure_connections(self, soc):
         self.soc = soc
 
         # what tProc output port controls this readout?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's0_axis')
+        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 's0_axis')
         while True:
             blocktype = soc.metadata.mod2type(block)
             if blocktype == "axis_tproc64x32_x8": # we're done
@@ -342,7 +345,7 @@ class AxisReadoutV3():
         self.tproc_ch = int(port.split('_')[0][1:])-1
 
         # what RFDC port drives this readout?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's1_axis')
+        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 's1_axis')
         while True:
             blocktype = soc.metadata.mod2type(block)
             if blocktype == "usp_rf_data_converter": # we're done
@@ -363,7 +366,7 @@ class AxisReadoutV3():
         self.adc = "%d%d" % (iTile, iBlock)
 
         # what buffer does this readout drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm_axis')
+        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 'm_axis')
         self.buffer = getattr(soc, block)
 
         #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
@@ -464,6 +467,11 @@ class AxisAvgBuffer(SocIp):
         # Switches.
         self.switch_avg = switch_avg
         self.switch_buf = switch_buf
+
+        self.cfg['avg_maxlen'] = self.AVG_MAX_LENGTH
+        self.cfg['buf_maxlen'] = self.BUF_MAX_LENGTH
+        self.cfg['trigger_bit'] = self.trigger_bit
+        self.cfg['tproc_ch'] = self.tproc_ch
 
     def configure_connections(self, soc):
         # which readout drives this buffer?
