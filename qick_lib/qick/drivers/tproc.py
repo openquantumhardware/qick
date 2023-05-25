@@ -336,8 +336,8 @@ class AxisTProc64x32_x8(SocIp):
             self.tproc_ext_dt1_i = 0
             self.tproc_ext_dt2_i = 0
             
-            #COmpatible with previous Version
-            self.DMEM_N = int(description['parameters']['DMEM_AW']) 
+            self.cfg['dmem_size'] = self.DMEM_SIZE
+            self.cfg['pmem_size'] = self.PMEM_SIZE
 
       
         # Configure this driver with links to its memory and DMA.
@@ -348,11 +348,11 @@ class AxisTProc64x32_x8(SocIp):
             self.dma = axi_dma
      
         def configure_connections(self, soc):
-            self.output_pins = []
-            self.start_pin = None
+            self.cfg['output_pins'] = []
+            self.cfg['start_pin'] = None
             try:
                 ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-                self.start_pin = port[0]
+                self.cfg['start_pin'] = port[0]
             except:
                 pass
            # search for the trigger port
@@ -365,7 +365,7 @@ class AxisTProc64x32_x8(SocIp):
                 except: # skip disconnected tProc outputs
                     continue
                 if soc.metadata.mod2type(block).startswith("vect2bits"):
-                    self.trig_output = i
+                    self.cfg['trig_output'] = i
                     for iPin in range(16):
                         try:
                             #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
@@ -373,7 +373,7 @@ class AxisTProc64x32_x8(SocIp):
                             if len(ports)==1 and len(ports[0])==1:
                                 # it's an FPGA pin, save it
                                 pinname = ports[0][0]
-                                self.output_pins.append((iPin, pinname))
+                                self.cfg['output_pins'].append((iPin, pinname))
                         except KeyError:
                             pass
 
