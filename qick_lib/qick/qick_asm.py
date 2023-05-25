@@ -81,10 +81,10 @@ class QickConfig():
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            if 'tproc_ctrl' not in readout:
-                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            else:
+            if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
+            else:
+                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
@@ -1101,7 +1101,7 @@ class QickProgram:
 
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) if ch['tproc_ctrl'] is not None else None for iCh, ch in enumerate(soccfg['readouts'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
 
 
     def dump_prog(self):
@@ -1379,7 +1379,7 @@ class QickProgram:
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         ro_cfg = self.soccfg['readouts'][ch]
-        if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
+        if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
             # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
@@ -1412,7 +1412,7 @@ class QickProgram:
         """
         soc.init_readouts()
         for ch, cfg in self.ro_chs.items():
-            if self.soccfg['readouts'][ch]['tproc_ctrl'] is None:
+            if 'tproc_ctrl' not in self.soccfg['readouts'][ch]:
                 soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
@@ -2096,10 +2096,12 @@ class QickProgram:
                     phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["gens"][ch]['tproc_ch']
                 else:  # for readout channels
+                    ch_mgr = self._ro_mgrs[ch]
+                    # skip PYNQ-controlled readouts, which can't be reset
+                    if ch_mgr is None: continue
                     if t < self._adc_ts[ch]:
                         print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
                               f"with previous readout ending at {self._adc_ts[ch]}")
-                    ch_mgr = self._ro_mgrs[ch]
                     phrst_params = dict(freq=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
 
