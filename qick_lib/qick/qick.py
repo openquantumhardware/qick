@@ -281,7 +281,7 @@ class QickSoc(Overlay, QickConfig):
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
             else:
                 self._tproc = self.axis_tproc_v2_0
-                self._tproc.configure(self.axis_tproc_v2_0, self.axi_dma_tproc)
+                self._tproc.configure(self.axi_dma_tproc)
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "t_clk_i")
 
             self.map_signal_paths()

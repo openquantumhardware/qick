@@ -86,7 +86,6 @@ class AxisTProc64x32_x8(SocIp):
         self.cfg['dmem_size'] = 2**self.DMEM_N
 
     # Configure this driver with links to its memory and DMA.
-    # TODO: is this "mem" argument actually used? we are not setting it to anything sensible.
     def configure(self, mem, axi_dma):
         # Program memory.
         self.mem = mem
@@ -340,12 +339,15 @@ class AxisTProc64x32_x8(SocIp):
             self.cfg['pmem_size'] = self.PMEM_SIZE
 
       
-        # Configure this driver with links to its memory and DMA.
-        def configure(self, mem, axi_dma):
-            # Program memory.
-            self.mem = mem
+        # Configure this driver with links to its DMA.
+        def configure(self, axi_dma):
             # dma
             self.dma = axi_dma
+
+            # allocate DMA buffers, using the size of the largest memory
+            maxlen = max(self.DMEM_SIZE, self.PMEM_SIZE, self.WMEM_SIZE)
+            self.buff_wr = allocate(shape=(maxlen, 8), dtype=np.int32)
+            self.buff_rd = allocate(shape=(maxlen, 8), dtype=np.int32)
      
         def configure_connections(self, soc):
             self.cfg['output_pins'] = []
@@ -468,12 +470,8 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_addr        = addr
             self.mem_len         = length
 
-            # Define buffer.
-            # TODO: pre-allocate buffer
-            self.buff = allocate(shape=(length,8), dtype=np.int32)
             # Copy buffer.
-            np.copyto(self.buff, buff_in)
-            print(self.buff)
+            np.copyto(self.buff_wr[:length], buff_in)
             #Start operation
             if (mem_sel==1):       # WRITE PMEM
                 self.tproc_cfg       = 7
@@ -485,8 +483,11 @@ class AxisTProc64x32_x8(SocIp):
                 raise RuntimeError('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
-            self.dma.sendchannel.transfer(self.buff)
+            self.logger.debug('DMA write 1')
+            self.dma.sendchannel.transfer(self.buff_wr, nbytes=int(length*32))
+            self.logger.debug('DMA write 2')
             self.dma.sendchannel.wait()
+            self.logger.debug('DMA write 3')
             
             # End Operation
             self.tproc_cfg       = 0
@@ -510,10 +511,6 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_addr        = addr
             self.mem_len         = length
 
-            # Define buffer.
-            # TODO: pre-allocate buffer
-            buff_rd = allocate(shape=(length,8), dtype=np.int32)
-
             #Start operation
             if (mem_sel==1):       # READ PMEM
                 self.tproc_cfg       = 5
@@ -525,53 +522,30 @@ class AxisTProc64x32_x8(SocIp):
                 raise RuntimeError('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
-            self.dma.recvchannel.transfer(buff_rd)
+            self.logger.debug('DMA read 1')
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(length*32))
+            self.logger.debug('DMA read 2')
             self.dma.recvchannel.wait()
+            self.logger.debug('DMA read 3')
             
             # End Operation
             self.tproc_cfg       = 0      
-            return buff_rd
+
+            # truncate and copy
+            return self.buff_rd[:length].copy()
         
-        def Load_PMEM(self, p_mem):
-            self.logger.info('Loading Program in PMEM')
-            # Length.
+        def Load_PMEM(self, p_mem, check=True):
             length = len(p_mem)
-            # Configure Memory arbiter.
-            self.mem_addr        = 0
-            self.mem_len         = length
-            # Define buffer.
-            self.buff = allocate(shape=(length,8), dtype=np.int32)
-            # Copy buffer.
-            np.copyto(self.buff, p_mem)
-            #Start operation
-            self.tproc_cfg       = 7
-            # DMA data.
-            self.logger.debug('P1')
-            self.dma.sendchannel.transfer(self.buff)
-            self.logger.debug('P2')
-            self.dma.sendchannel.wait()
-            self.logger.debug('P3')
-            # End Operation
-            self.tproc_cfg       = 0
-            
-            #Read PROGRAM MEMORY
-            # Configure Memory arbiter.
-            self.mem_addr        = 0
-            self.mem_len         = length
-            self.tproc_cfg       = 5
-            # DMA data.
-            self.logger.debug('P4')
-            self.dma.recvchannel.transfer(self.buff)
-            self.logger.debug('P5')
-            self.dma.recvchannel.wait()
-            self.logger.debug('P6')
-            # End Operation
-            self.tproc_cfg       = 0      
-            
-            if ( (np.max(self.buff - p_mem) )  == 0):
-                self.logger.info('Program Loaded OK')
-            else:
-                self.logger.error('Error Loading Program')
+
+            self.logger.info('Loading Program in PMEM')
+            self.load_mem(1, p_mem)
+
+            if check:
+                readback = self.read_mem(1, length=length)
+                if ( (np.max(readback - p_mem) )  == 0):
+                    self.logger.info('Program Loaded OK')
+                else:
+                    self.logger.error('Error Loading Program')
 
             
         def getALL(self):
