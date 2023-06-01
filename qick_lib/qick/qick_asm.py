@@ -120,8 +120,8 @@ class QickConfig():
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 
-        lines.append("\n\ttProc: program memory %d words, data memory %d words" %
-                (tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
+                (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)

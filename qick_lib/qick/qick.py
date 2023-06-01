@@ -281,7 +281,7 @@ class QickSoc(Overlay, QickConfig):
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
             else:
                 self._tproc = self.axis_tproc_v2_0
-                self._tproc.configure(self.axis_tproc_v2_0, self.axi_dma_tproc)
+                self._tproc.configure(self.axi_dma_tproc)
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "t_clk_i")
 
             self.map_signal_paths()
@@ -409,15 +409,7 @@ class QickSoc(Overlay, QickConfig):
             return merged
         self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
 
-        self['tprocs'] = []
-        for tproc in [self.tproc]:
-            thiscfg = {}
-            thiscfg['trig_output'] = tproc.trig_output
-            thiscfg['output_pins'] = tproc.output_pins
-            thiscfg['start_pin'] = tproc.start_pin
-            thiscfg['pmem_size'] = tproc.mem.mmio.length//8
-            thiscfg['dmem_size'] = 2**tproc.DMEM_N
-            self['tprocs'].append(thiscfg)
+        self['tprocs'] = [self.tproc.cfg]
 
     def config_clocks(self, force_init_clks):
         """
