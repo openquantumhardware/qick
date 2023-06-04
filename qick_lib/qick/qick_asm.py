@@ -1002,77 +1002,13 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
 
-
-class QickProgram:
-    """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
-    # Instruction set for the tproc describing how to automatically generate methods for these instructions
-    instructions = {'pushi': {'type': "I", 'bin': 0b00010000, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 0)), 'repr': "{0}, ${1}, ${2}, {3}"},
-                    'popi':  {'type': "I", 'bin': 0b00010001, 'fmt': ((0, 53), (1, 41)), 'repr': "{0}, ${1}"},
-                    'mathi': {'type': "I", 'bin': 0b00010010, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
-                    'seti':  {'type': "I", 'bin': 0b00010011, 'fmt': ((1, 53), (0, 50), (2, 36), (3, 0)), 'repr': "{0}, {1}, ${2}, {3}"},
-                    'synci': {'type': "I", 'bin': 0b00010100, 'fmt': ((0, 0),), 'repr': "{0}"},
-                    'waiti': {'type': "I", 'bin': 0b00010101, 'fmt': ((0, 50), (1, 0)), 'repr': "{0}, {1}"},
-                    'bitwi': {'type': "I", 'bin': 0b00010110, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
-                    'memri': {'type': "I", 'bin': 0b00010111, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'memwi': {'type': "I", 'bin': 0b00011000, 'fmt': ((0, 53), (1, 31), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'regwi': {'type': "I", 'bin': 0b00011001, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'setbi': {'type': "I", 'bin': 0b00011010, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-
-                    'loopnz': {'type': "J1", 'bin': 0b00110000, 'fmt': ((0, 53), (1, 41), (1, 36), (2, 0)), 'repr': "{0}, ${1}, @{2}"},
-                    'end':    {'type': "J1", 'bin': 0b00111111, 'fmt': (), 'repr': ""},
-
-                    'condj':  {'type': "J2", 'bin': 0b00110001, 'fmt': ((0, 53), (2, 46), (1, 36), (3, 31), (4, 0)), 'repr': "{0}, ${1}, {2}, ${3}, @{4}"},
-
-                    'math':  {'type': "R", 'bin': 0b01010000, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
-                    'set':  {'type': "R", 'bin': 0b01010001, 'fmt': ((1, 53), (0, 50), (2, 36), (7, 31), (3, 26), (4, 21), (5, 16), (6, 11)), 'repr': "{0}, {1}, ${2}, ${3}, ${4}, ${5}, ${6}, ${7}"},
-                    'sync': {'type': "R", 'bin': 0b01010010, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, ${1}"},
-                    'read': {'type': "R", 'bin': 0b01010011, 'fmt': ((1, 53), (0, 50), (2, 46), (3, 41)), 'repr': "{0}, {1}, {2} ${3}"},
-                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((1, 53), (0, 50), (2, 31)), 'repr': "{0}, {1}, ${2}"},
-                    'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
-                    'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
-                    'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'comment': {'fmt': ()}
-                    }
-
-    # op codes for math and bitwise operations
-    op_codes = {">": 0b0000, ">=": 0b0001, "<": 0b0010, "<=": 0b0011, "==": 0b0100, "!=": 0b0101,
-                "+": 0b1000, "-": 0b1001, "*": 0b1010,
-                "&": 0b0000, "|": 0b0001, "^": 0b0010, "~": 0b0011, "<<": 0b0100, ">>": 0b0101,
-                "upper": 0b1010, "lower": 0b0101
-                }
-
-    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
-    # In each page, register 0 is hard-wired with the value 0.
-    # In page 0 we reserve the following additional registers:
-    # 13, 14 and 15 for loop counters, 31 for the trigger time.
-    # Pairs of channels share a register page.
-    # The flat_top pulse uses some extra registers.
-    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
-
-    soccfg_methods = ['freq2reg', 'freq2reg_adc',
-                      'reg2freq', 'reg2freq_adc',
-                      'cycles2us', 'us2cycles',
-                      'deg2reg', 'reg2deg']
-
-    # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
-
-    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
-                'axis_signal_gen_v5': FullSpeedGenManager,
-                'axis_signal_gen_v6': FullSpeedGenManager,
-                'axis_sg_int4_v1': InterpolatedGenManager,
-                'axis_sg_mux4_v1': MultiplexedGenManager,
-                'axis_sg_mux4_v2': MultiplexedGenManager}
-
+class AbsQickProgram:
     def __init__(self, soccfg):
         """
         Constructor method
         """
         self.soccfg = soccfg
 
-        # List of commands. This may include comments.
-        self.prog_list = []
         # Pulse envelopes.
         self.pulses = [{} for ch in soccfg['gens']]
         # readout channels to configure before running the program
@@ -1080,268 +1016,7 @@ class QickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
-        # Address of the rep counter in the data memory.
-        self.counter_addr = 1
-        # Number of iterations in the innermost loop.
-        self.reps = None
-        # Number of times the program repeats the innermost loop. None means there is no outer loop.
-        self.expts = None
-        # Number of times the whole program is to be run.
-        self.rounds = 1
-        # Rotation angle and thresholds for single-shot readout.
-        self.shot_angle = None
-        self.shot_threshold = None
-
-        # Label to apply to the next instruction.
-        self._label_next = None
-
-        # Timestamps, for keeping track of pulse and readout end times.
-        self._dac_ts = [0]*len(soccfg['gens'])
-        self._adc_ts = [0]*len(soccfg['readouts'])
-
-        # Generator managers, for keeping track of register values.
-        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
-
-
-    def dump_prog(self):
-        """
-        Dump the program to a dictionary.
-        This output contains all the information necessary to run the program.
-        Caution: don't modify the sub-dictionaries of this dict!
-        You will be modifying the original program (this is not a deep copy).
-        """
-        progdict = {}
-        for key in self.dump_keys:
-            progdict[key] = getattr(self, key)
-        return progdict
-
-    def load_prog(self, progdict):
-        """
-        Load the program from a dictionary.
-        """
-        for key in self.dump_keys:
-            setattr(self, key, progdict[key])
-
-    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
-        """Acquire data using the accumulated readout.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            Qick object
-        reads_per_rep : int
-            number of readout triggers in the loop body
-        load_pulses : bool
-            if True, load pulse envelopes
-        start_src: str
-            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        progress: bool
-            if true, displays progress bar
-        debug: bool
-            if true, displays assembly code for tProc program
-
-        Returns
-        -------
-        ndarray
-            raw accumulated IQ values (int32)
-            if rounds>1, only the last round is kept
-            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
-
-        ndarray
-            averaged IQ values (float)
-            divided by the length of the RO window, and averaged over reps and rounds
-            if shot_threshold is defined, the I values will be the fraction of points over threshold
-            dimensions for a simple averaging program: (n_ch, n_reads, 2)
-            dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
-        """
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
-
-        n_ro = len(self.ro_chs)
-
-        expts = self.expts
-        if expts is None:
-            expts = 1
-        total_reps = expts*self.reps
-        total_count = total_reps*reads_per_rep
-        d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
-        self.stats = []
-
-        # select which tqdm progress bar to show
-        hiderounds = True
-        hidereps = True
-        if progress:
-            if self.rounds>1:
-                hiderounds = False
-            else:
-                hidereps = False
-
-        # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
-        avg_d = None
-        shots = None
-        for ir in tqdm(range(self.rounds), disable=hiderounds):
-            # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=False)
-
-            count = 0
-            with tqdm(total=total_count, disable=hidereps) as pbar:
-                soc.start_readout(total_reps, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
-                while count<total_count:
-                    new_data = obtain(soc.poll_data())
-                    for d, s in new_data:
-                        new_points = d.shape[1]
-                        d_buf[:, count:count+new_points] = d
-                        count += new_points
-                        self.stats.append(s)
-                        pbar.update(new_points)
-
-            # if we're thresholding, apply the threshold before averaging
-            if self.shot_threshold is None:
-                d_reps = d_buf
-            else:
-                d_reps = [np.zeros_like(d_buf[i]) for i in range(len(self.ro_chs))]
-                shots = self.get_single_shots(d_buf)
-                for i, ch_shot in enumerate(shots):
-                    d_reps[i][...,0] = ch_shot
-
-            # calculate average over the rounds axis
-            if avg_d is None:
-                avg_d = self._average_buf(d_reps, reads_per_rep) / self.rounds
-            else:
-                avg_d += self._average_buf(d_reps, reads_per_rep) / self.rounds
-
-        return d_buf, avg_d, shots
-
-    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: int) -> np.ndarray:
-        """
-        calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
-        if the data is created in a different shape.
-
-        :param d_reps: buffer data acquired in a round
-        :param reads_per_rep: readouts per experiment
-        :return: averaged iq data after each round.
-        """
-        expts = self.expts
-        if expts is None:
-            expts = 1
-
-        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
-        for ii in range(reads_per_rep):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
-
-        if self.expts is None:  # get rid of the expts axis
-            avg_d = avg_d[:, :, 0, :]
-
-        return avg_d
-
-    def get_single_shots(self, d_buf):
-        """
-        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
-
-        Parameters
-        ----------
-        d_buf : ndarray
-            Raw IQ data
-
-        Returns
-        -------
-        list of ndarray
-            Single shot data
-
-        """
-        # try to convert threshold to list of floats; if that fails, assume it's already a list
-        try:
-            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
-        except TypeError:
-            thresholds = self.shot_threshold
-        # angle is 0 if not specified
-        if self.shot_angle is None:
-            angles = [0.0]*len(self.ro_chs)
-        else:
-            try:
-                angles = [float(self.shot_angle)]*len(self.ro_chs)
-            except TypeError:
-                angles = self.shot_angle
-
-        shots = []
-        for i, ch in enumerate(self.ro_chs):
-            rotated = np.inner(d_buf[i], [np.cos(angles[i]), np.sin(angles[i])])/self.ro_chs[ch]['length']
-            shots.append(np.heaviside(rotated - thresholds[i], 0))
-        return shots
-
-
-    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
-        """Acquire data using the decimating readout.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            Qick object
-        reads_per_rep : int
-            number of readout triggers in the loop body
-        load_pulses : bool
-            if True, load pulse envelopes
-        start_src: str
-            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        progress: bool
-            if true, displays progress bar
-        debug: bool
-            if true, displays assembly code for tProc program
-
-        Returns
-        -------
-        list of ndarray
-            decimated values, averaged over rounds (float)
-            dimensions for a single-rep, single-read program : (length, 2)
-            multi-rep, multi-read: (n_reps, n_reads, length, 2)
-        """
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
-
-        # Initialize data buffers
-        d_buf = []
-        for ch, ro in self.ro_chs.items():
-            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro['length']*self.reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
-            d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
-
-        tproc = soc.tproc
-
-        # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(self.rounds), disable=not progress):
-            # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=True)
-
-            # make sure count variable is reset to 0
-            tproc.single_write(addr=self.counter_addr, data=0)
-
-            # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every round
-            tproc.start()
-
-            count = 0
-            while count < self.reps:
-                count = tproc.single_read(addr=self.counter_addr)
-
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*self.reps*reads_per_rep))
-
-        # average the decimated data
-        if self.reps == 1 and reads_per_rep == 1:
-            return [d/self.rounds for d in d_buf]
-        else:
-            # split the data into the individual reps:
-            # we reshape to slice each long buffer into reps,
-            # then use moveaxis() to transpose the I/Q and rep axes
-            result = [d.reshape(self.reps*reads_per_rep, -1, 2)/self.rounds for d in d_buf]
-            if self.reps > 1 and reads_per_rep > 1:
-                result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
-            return result
-
-    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+    def config_all(self, soc, load_pulses=True):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
@@ -1355,12 +1030,6 @@ class QickProgram:
 
         # Configure the readout down converters
         self.config_readouts(soc)
-
-        # load this program into the soc's tproc
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
 
     def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
@@ -1607,6 +1276,350 @@ class QickProgram:
                 soc.load_pulse_data(iCh,
                         data=pulse['data'],
                         addr=pulse['addr'])
+
+
+class QickProgram(AbsQickProgram):
+    """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
+    # Instruction set for the tproc describing how to automatically generate methods for these instructions
+    instructions = {'pushi': {'type': "I", 'bin': 0b00010000, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 0)), 'repr': "{0}, ${1}, ${2}, {3}"},
+                    'popi':  {'type': "I", 'bin': 0b00010001, 'fmt': ((0, 53), (1, 41)), 'repr': "{0}, ${1}"},
+                    'mathi': {'type': "I", 'bin': 0b00010010, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
+                    'seti':  {'type': "I", 'bin': 0b00010011, 'fmt': ((1, 53), (0, 50), (2, 36), (3, 0)), 'repr': "{0}, {1}, ${2}, {3}"},
+                    'synci': {'type': "I", 'bin': 0b00010100, 'fmt': ((0, 0),), 'repr': "{0}"},
+                    'waiti': {'type': "I", 'bin': 0b00010101, 'fmt': ((0, 50), (1, 0)), 'repr': "{0}, {1}"},
+                    'bitwi': {'type': "I", 'bin': 0b00010110, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
+                    'memri': {'type': "I", 'bin': 0b00010111, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'memwi': {'type': "I", 'bin': 0b00011000, 'fmt': ((0, 53), (1, 31), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'regwi': {'type': "I", 'bin': 0b00011001, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'setbi': {'type': "I", 'bin': 0b00011010, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+
+                    'loopnz': {'type': "J1", 'bin': 0b00110000, 'fmt': ((0, 53), (1, 41), (1, 36), (2, 0)), 'repr': "{0}, ${1}, @{2}"},
+                    'end':    {'type': "J1", 'bin': 0b00111111, 'fmt': (), 'repr': ""},
+
+                    'condj':  {'type': "J2", 'bin': 0b00110001, 'fmt': ((0, 53), (2, 46), (1, 36), (3, 31), (4, 0)), 'repr': "{0}, ${1}, {2}, ${3}, @{4}"},
+
+                    'math':  {'type': "R", 'bin': 0b01010000, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
+                    'set':  {'type': "R", 'bin': 0b01010001, 'fmt': ((1, 53), (0, 50), (2, 36), (7, 31), (3, 26), (4, 21), (5, 16), (6, 11)), 'repr': "{0}, {1}, ${2}, ${3}, ${4}, ${5}, ${6}, ${7}"},
+                    'sync': {'type': "R", 'bin': 0b01010010, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, ${1}"},
+                    'read': {'type': "R", 'bin': 0b01010011, 'fmt': ((1, 53), (0, 50), (2, 46), (3, 41)), 'repr': "{0}, {1}, {2} ${3}"},
+                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((1, 53), (0, 50), (2, 31)), 'repr': "{0}, {1}, ${2}"},
+                    'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
+                    'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
+                    'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'comment': {'fmt': ()}
+                    }
+
+    # op codes for math and bitwise operations
+    op_codes = {">": 0b0000, ">=": 0b0001, "<": 0b0010, "<=": 0b0011, "==": 0b0100, "!=": 0b0101,
+                "+": 0b1000, "-": 0b1001, "*": 0b1010,
+                "&": 0b0000, "|": 0b0001, "^": 0b0010, "~": 0b0011, "<<": 0b0100, ">>": 0b0101,
+                "upper": 0b1010, "lower": 0b0101
+                }
+
+    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
+    # In each page, register 0 is hard-wired with the value 0.
+    # In page 0 we reserve the following additional registers:
+    # 13, 14 and 15 for loop counters, 31 for the trigger time.
+    # Pairs of channels share a register page.
+    # The flat_top pulse uses some extra registers.
+    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
+
+    soccfg_methods = ['freq2reg', 'freq2reg_adc',
+                      'reg2freq', 'reg2freq_adc',
+                      'cycles2us', 'us2cycles',
+                      'deg2reg', 'reg2deg']
+
+    # Attributes to dump when saving the program to JSON.
+    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
+
+    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
+                'axis_signal_gen_v5': FullSpeedGenManager,
+                'axis_signal_gen_v6': FullSpeedGenManager,
+                'axis_sg_int4_v1': InterpolatedGenManager,
+                'axis_sg_mux4_v1': MultiplexedGenManager,
+                'axis_sg_mux4_v2': MultiplexedGenManager}
+
+    def __init__(self, soccfg):
+        """
+        Constructor method
+        """
+        super().__init__(soccfg)
+
+        # List of commands. This may include comments.
+        self.prog_list = []
+
+        # Label to apply to the next instruction.
+        self._label_next = None
+
+        # Address of the rep counter in the data memory.
+        self.counter_addr = 1
+        # Number of iterations in the innermost loop.
+        self.reps = None
+        # Number of times the program repeats the innermost loop. None means there is no outer loop.
+        self.expts = None
+
+        # Generator managers, for keeping track of register values.
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
+
+
+        # Number of times the whole program is to be run.
+        self.rounds = 1
+        # Rotation angle and thresholds for single-shot readout.
+        self.shot_angle = None
+        self.shot_threshold = None
+
+        # Timestamps, for keeping track of pulse and readout end times.
+        self._dac_ts = [0]*len(soccfg['gens'])
+        self._adc_ts = [0]*len(soccfg['readouts'])
+
+
+    def dump_prog(self):
+        """
+        Dump the program to a dictionary.
+        This output contains all the information necessary to run the program.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
+        """
+        progdict = {}
+        for key in self.dump_keys:
+            progdict[key] = getattr(self, key)
+        return progdict
+
+    def load_prog(self, progdict):
+        """
+        Load the program from a dictionary.
+        """
+        for key in self.dump_keys:
+            setattr(self, key, progdict[key])
+
+    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
+        """Acquire data using the accumulated readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        ndarray
+            raw accumulated IQ values (int32)
+            if rounds>1, only the last round is kept
+            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
+
+        ndarray
+            averaged IQ values (float)
+            divided by the length of the RO window, and averaged over reps and rounds
+            if shot_threshold is defined, the I values will be the fraction of points over threshold
+            dimensions for a simple averaging program: (n_ch, n_reads, 2)
+            dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
+        """
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        n_ro = len(self.ro_chs)
+
+        expts = self.expts
+        if expts is None:
+            expts = 1
+        total_reps = expts*self.reps
+        total_count = total_reps*reads_per_rep
+        d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
+        self.stats = []
+
+        # select which tqdm progress bar to show
+        hiderounds = True
+        hidereps = True
+        if progress:
+            if self.rounds>1:
+                hiderounds = False
+            else:
+                hidereps = False
+
+        # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
+        avg_d = None
+        shots = None
+        for ir in tqdm(range(self.rounds), disable=hiderounds):
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+            count = 0
+            with tqdm(total=total_count, disable=hidereps) as pbar:
+                soc.start_readout(total_reps, counter_addr=self.counter_addr,
+                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
+                while count<total_count:
+                    new_data = obtain(soc.poll_data())
+                    for d, s in new_data:
+                        new_points = d.shape[1]
+                        d_buf[:, count:count+new_points] = d
+                        count += new_points
+                        self.stats.append(s)
+                        pbar.update(new_points)
+
+            # if we're thresholding, apply the threshold before averaging
+            if self.shot_threshold is None:
+                d_reps = d_buf
+            else:
+                d_reps = [np.zeros_like(d_buf[i]) for i in range(len(self.ro_chs))]
+                shots = self.get_single_shots(d_buf)
+                for i, ch_shot in enumerate(shots):
+                    d_reps[i][...,0] = ch_shot
+
+            # calculate average over the rounds axis
+            if avg_d is None:
+                avg_d = self._average_buf(d_reps, reads_per_rep) / self.rounds
+            else:
+                avg_d += self._average_buf(d_reps, reads_per_rep) / self.rounds
+
+        return d_buf, avg_d, shots
+
+    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: int) -> np.ndarray:
+        """
+        calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
+        if the data is created in a different shape.
+
+        :param d_reps: buffer data acquired in a round
+        :param reads_per_rep: readouts per experiment
+        :return: averaged iq data after each round.
+        """
+        expts = self.expts
+        if expts is None:
+            expts = 1
+
+        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
+        for ii in range(reads_per_rep):
+            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
+                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
+
+        if self.expts is None:  # get rid of the expts axis
+            avg_d = avg_d[:, :, 0, :]
+
+        return avg_d
+
+    def get_single_shots(self, d_buf):
+        """
+        This method converts the raw I/Q data to single shots according to the threshold and rotation angle
+
+        Parameters
+        ----------
+        d_buf : ndarray
+            Raw IQ data
+
+        Returns
+        -------
+        list of ndarray
+            Single shot data
+
+        """
+        # try to convert threshold to list of floats; if that fails, assume it's already a list
+        try:
+            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
+        except TypeError:
+            thresholds = self.shot_threshold
+        # angle is 0 if not specified
+        if self.shot_angle is None:
+            angles = [0.0]*len(self.ro_chs)
+        else:
+            try:
+                angles = [float(self.shot_angle)]*len(self.ro_chs)
+            except TypeError:
+                angles = self.shot_angle
+
+        shots = []
+        for i, ch in enumerate(self.ro_chs):
+            rotated = np.inner(d_buf[i], [np.cos(angles[i]), np.sin(angles[i])])/self.ro_chs[ch]['length']
+            shots.append(np.heaviside(rotated - thresholds[i], 0))
+        return shots
+
+
+    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+        """Acquire data using the decimating readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        reads_per_rep : int
+            number of readout triggers in the loop body
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        debug: bool
+            if true, displays assembly code for tProc program
+
+        Returns
+        -------
+        list of ndarray
+            decimated values, averaged over rounds (float)
+            dimensions for a single-rep, single-read program : (length, 2)
+            multi-rep, multi-read: (n_reps, n_reads, length, 2)
+        """
+        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        # Initialize data buffers
+        d_buf = []
+        for ch, ro in self.ro_chs.items():
+            maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
+            if ro['length']*self.reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
+            d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
+
+        tproc = soc.tproc
+
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(self.rounds), disable=not progress):
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+            # make sure count variable is reset to 0
+            tproc.single_write(addr=self.counter_addr, data=0)
+
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every round
+            tproc.start()
+
+            count = 0
+            while count < self.reps:
+                count = tproc.single_read(addr=self.counter_addr)
+
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
+                                    address=0, length=ro['length']*self.reps*reads_per_rep))
+
+        # average the decimated data
+        if self.reps == 1 and reads_per_rep == 1:
+            return [d/self.rounds for d in d_buf]
+        else:
+            # split the data into the individual reps:
+            # we reshape to slice each long buffer into reps,
+            # then use moveaxis() to transpose the I/Q and rep axes
+            result = [d.reshape(self.reps*reads_per_rep, -1, 2)/self.rounds for d in d_buf]
+            if self.reps > 1 and reads_per_rep > 1:
+                result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
+            return result
+
+    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+        super().config_all(soc, load_pulses)
+
+        # load this program into the soc's tproc
+        self.load_program(soc, debug=debug)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
 
     def _ch_page_tproc(self, ch):
         """Gets tProc register page associated with channel.
