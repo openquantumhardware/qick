@@ -77,8 +77,8 @@ def dac_processing(x):
     x_write = [0]*int(len(x)/2)
 
     for i in range(len(x_write)): 
-        x_bin_1    = proc.get_bin(int(x[i*2]),14)
-        x_bin_2    = proc.get_bin(int(x[i*2+1]),14)
+        x_bin_1    = get_bin(int(x[i*2]),14)
+        x_bin_2    = get_bin(int(x[i*2+1]),14)
         x_bin_12   = x_bin_2 + '00' + x_bin_1 + '00'
         x_write[i] = int(x_bin_12,2)
 
