@@ -38,11 +38,11 @@ def adc_processing(x,nbit):
     x_out    = [0]*len(x)*2
     
     for i in range(len(x)):
-        x_bin[i] = get_bin(x[i],32)                  # convert back to binary representation
+        x_bin = get_bin(x[i],32)                  # convert back to binary representation
           
         # split 32bit word to 2 samples à 16bits and remove the 2 redundant bits
-        x_split[i*2+1]   = x_bin[i][0:nbit]          # MSB aligned sample is second sample
-        x_split[i*2]     = x_bin[i][16:16+nbit]      # LSB aligned sample is first sample
+        x_split[i*2+1]   = x_bin[0:nbit]          # MSB aligned sample is second sample
+        x_split[i*2]     = x_bin[16:16+nbit]      # LSB aligned sample is first sample
         
     for i in range(len(x)*2):
         x_out[i] = int(x_split[i],2)                 # convert back to integer
