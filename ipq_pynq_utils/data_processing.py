@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def get_bin(x, n=0): 
     """
     Get the binary representation of x. 
