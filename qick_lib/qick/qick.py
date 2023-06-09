@@ -279,10 +279,14 @@ class QickSoc(Overlay, QickConfig):
                 self._tproc = self.axis_tproc64x32_x8_0
                 self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
-            else:
-                self._tproc = self.axis_tproc_v2_0
+            elif 'qick_processor_0' in self.ip_dict:
+                self._tproc = self.qick_processor_0
                 self._tproc.configure(self.axi_dma_tproc)
-                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "t_clk_i")
+                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "c_clk_i")
+            else:
+                print('ERROR QICK PROCESSOR')
+
+            #self.tnet = self.qick_net_0
 
             self.map_signal_paths()
 
