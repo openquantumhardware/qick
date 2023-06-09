@@ -5,10 +5,13 @@ from pynq.overlay import DefaultIP
 import numpy as np
 import logging
 from qick import obtain
+from .qick_asm import DummyIp
 
-class SocIp(DefaultIP):
+class SocIp(DefaultIP, DummyIp):
     """
-    SocIp class
+    Base class for firmware IP drivers.
+    Registers are accessed as attributes.
+    Configuration constants are accessed as dictionary items.
     """
     REGISTERS = {}
 
@@ -16,11 +19,13 @@ class SocIp(DefaultIP):
         """
         Constructor method
         """
-        #print("SocIp init", description)
-        super().__init__(description)
+        DefaultIP.__init__(self, description)
+        # this block's unique identifier in the firmware
         self.fullpath = description['fullpath']
+        # this block's type
         self.type = description['type'].split(':')[-2]
-        #self.ip = description
+        DummyIp.__init__(self, self.type, self.fullpath)
+        # logger for messages associated with this block
         self.logger = logging.getLogger(self.type)
 
     def __setattr__(self, a, v):

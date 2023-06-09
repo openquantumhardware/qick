@@ -156,7 +156,8 @@ setup(
     install_requires=[
         "numpy",
         "pynq>=2.6;platform_machine=='aarch64' or platform_machine=='armv7l'",
-        "tqdm"],  # Optional
+        "tqdm", # Optional
+    ],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -166,10 +167,10 @@ setup(
     #
     # Similar to `install_requires` above, these must be valid existing
     # projects.
-    # extras_require={  # Optional
-    #     'dev': ['check-manifest'],
-    #     'test': ['coverage'],
-    # },
+    extras_require={
+        # install all extra optional dependencies
+        'full': ['pyro4'],
+    },
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.

@@ -70,23 +70,23 @@ class QickConfig():
         for iGen, gen in enumerate(self['gens']):
             lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
                          (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
-            lines.append("\t\tDAC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['fs']))
+            lines.append("\t\tDAC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
+                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['f_dds']))
 
         if self['iqs']:
             lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
             for iIQ, iq in enumerate(self['iqs']):
-                lines.append("\t%d:\tDAC tile %s, ch %s, fs=%.3f MHz" %
+                lines.append("\t%d:\tDAC tile %s, blk %s, fs=%.3f MHz" %
                              (iIQ, *iq['dac'], iq['fs']))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
-            if readout['tproc_ctrl'] is None:
-                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            else:
+            if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
-            lines.append("\t\tADC tile %s, ch %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
-                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['fs']))
+            else:
+                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
 
@@ -99,7 +99,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'DAC_B', '20': 'DAC_A'}[dac]
-            lines.append("\t\tDAC tile %d, ch %d is %s" %
+            lines.append("\t\tDAC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         lines.append("\n\t%d ADCs:" % (len(self['adcs'])))
@@ -112,7 +112,7 @@ class QickConfig():
                 label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
             elif self['board']=='RFSoC4x2':
                 label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adc]
-            lines.append("\t\tADC tile %d, ch %d is %s" %
+            lines.append("\t\tADC tile %d, blk %d is %s" %
                          (tile, block, label))
 
         tproc = self['tprocs'][0]
@@ -120,8 +120,8 @@ class QickConfig():
         for pin, name in tproc['output_pins']:
             lines.append("\t%d:\t%s" % (pin, name))
 
-        lines.append("\n\ttProc: program memory %d words, data memory %d words" %
-                (tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
+                (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
@@ -176,8 +176,8 @@ class QickConfig():
         # Calculate least common multiple of sampling frequencies.
 
         # clock multipliers from refclk to DAC/ADC - always integer
-        fsmult1 = round(dict1['fs']/refclk)
-        fsmult2 = round(dict2['fs']/refclk)
+        fsmult1 = round(dict1['f_dds']/refclk)
+        fsmult2 = round(dict2['f_dds']/refclk)
 
         # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
@@ -231,7 +231,7 @@ class QickConfig():
             f_round = f
         else:
             f_round = self.roundfreq(f, thisch, otherch)
-        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['fs'])
+        k_i = np.round(f_round*(2**thisch['b_dds'])/thisch['f_dds'])
         return np.int64(k_i)
 
     def int2freq(self, r, thisch):
@@ -251,7 +251,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['fs'] / 2**thisch['b_dds']
+        return r * thisch['f_dds'] / 2**thisch['b_dds']
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -278,7 +278,7 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['fs']/2:
+            if abs(f)>gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -323,7 +323,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['fs']
+        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -341,7 +341,7 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['fs']
+        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.
@@ -555,6 +555,22 @@ class AbsRegisterManager(ABC):
     @abstractmethod
     def write_regs(self, params, defaults):
         ...
+
+class DummyIp:
+    """Stores the configuration constants for a firmware IP block.
+    """
+    def __init__(self, iptype, fullpath):
+        # config dictionary for QickConfig
+        self._cfg = {'type': iptype,
+                    'fullpath': fullpath}
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
 
 class ReadoutManager(AbsRegisterManager):
     """Manages the frequency and mode registers for a tProc-controlled readout channel.
@@ -986,8 +1002,283 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
 
+class AbsQickProgram:
+    def __init__(self, soccfg):
+        """
+        Constructor method
+        """
+        self.soccfg = soccfg
 
-class QickProgram:
+        # Pulse envelopes.
+        self.pulses = [{} for ch in soccfg['gens']]
+        # readout channels to configure before running the program
+        self.ro_chs = OrderedDict()
+        # signal generator channels to configure before running the program
+        self.gen_chs = OrderedDict()
+
+    def config_all(self, soc, load_pulses=True):
+        """
+        Load the waveform memory, gens, ROs, and program memory as specified for this program.
+        The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
+        """
+        # Load the pulses from the program into the soc
+        if load_pulses:
+            self.load_pulses(soc)
+
+        # Configure signal generators
+        self.config_gens(soc)
+
+        # Configure the readout down converters
+        self.config_readouts(soc)
+
+    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
+        """Add a channel to the program's list of readouts.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel number (index in 'readouts' list)
+        freq : float
+            downconverting frequency (MHz)
+        length : int
+            readout length (number of samples)
+        sel : str
+            output select ('product', 'dds', 'input')
+        gen_ch : int
+            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+        """
+        ro_cfg = self.soccfg['readouts'][ch]
+        if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
+            if freq is None:
+                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
+            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+            # and the sum buffer values are 32 bit signed
+            if length > 2**(31-15):
+                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
+            cfg = {
+                    'freq': freq,
+                    'length': length,
+                    'sel': sel,
+                    'gen_ch': gen_ch
+                    }
+        else: # readout is controlled by tProc
+            if (freq is not None) or sel!='product' or (gen_ch is not None):
+                raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
+            cfg = {
+                    'length': length
+                    }
+        self.ro_chs[ch] = cfg
+
+    def config_readouts(self, soc):
+        """Configure the readout channels specified in this program.
+        This is usually called as part of an acquire() method.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            the QickSoc that will execute this program
+
+        """
+        soc.init_readouts()
+        for ch, cfg in self.ro_chs.items():
+            if 'tproc_ctrl' not in self.soccfg['readouts'][ch]:
+                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+
+    def config_bufs(self, soc, enable_avg=True, enable_buf=True):
+        """Configure the readout buffers specified in this program.
+        This is usually called as part of an acquire() method.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            the QickSoc that will execute this program
+        enable_avg : bool
+            enable the accumulated (averaging) buffer
+        enable_buf : bool
+            enable the decimated (waveform) buffer
+
+        """
+        for ch, cfg in self.ro_chs.items():
+            if enable_avg:
+                soc.config_avg(ch, address=0, length=cfg['length'], enable=True)
+            if enable_buf:
+                soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
+
+    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
+        """Add a channel to the program's list of signal generators.
+
+        If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
+
+        If this is a muxed generator, the mux_freqs and mux_gains lists must be long enough to define all the tones you will play.
+        (in other words, if your mask list ever enables tone 2 you must define at least 3 freqs+gains)
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        nqz : int, optional
+            Nyquist zone (must be 1 or 2).
+            Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
+        mixer_freq : float, optional
+            Mixer frequency (in MHz)
+        mux_freqs : list of float, optional
+            Tone frequencies for the muxed generator (in MHz).
+            Positive and negative values are allowed.
+        mux_gains : list of float, optional
+            Tone amplitudes for the muxed generator (in range -1 to 1).
+        ro_ch : int, optional
+            readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
+        """
+        cfg = {
+                'nqz': nqz,
+                'mixer_freq': mixer_freq,
+                'mux_freqs': mux_freqs,
+                'mux_gains': mux_gains,
+                'ro_ch': ro_ch
+                }
+        self.gen_chs[ch] = cfg
+
+    def config_gens(self, soc):
+        """Configure the signal generators specified in this program.
+        This is usually called as part of an acquire() method.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            the QickSoc that will execute this program
+
+        """
+        for ch, cfg in self.gen_chs.items():
+            soc.set_nyquist(ch, cfg['nqz'])
+            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if cfg['mux_freqs'] is not None:
+                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
+
+    def add_pulse(self, ch, name, idata=None, qdata=None):
+        """Adds a waveform to the waveform library within the program.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        idata : array
+            I data Numpy array
+        qdata : array
+            Q data Numpy array
+
+        """
+        self._gen_mgrs[ch].add_pulse(name, idata, qdata)
+
+    def add_gauss(self, ch, name, sigma, length, maxv=None):
+        """Adds a Gaussian pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        sigma : float
+            Standard deviation of the Gaussian (in units of fabric clocks)
+        length : int
+            Total pulse length (in units of fabric clocks)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+
+        """
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+
+        length = np.round(length) * samps_per_clk
+        sigma *= samps_per_clk
+
+        self.add_pulse(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
+
+
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
+        """Adds a DRAG pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        sigma : float
+            Standard deviation of the Gaussian (in units of fabric clocks)
+        length : int
+            Total pulse length (in units of fabric clocks)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+        delta : float
+            anharmonicity of the qubit (units of MHz)
+        alpha : float
+            alpha parameter of DRAG (order-1 scale factor)
+
+        Returns
+        -------
+
+        """
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+        f_fabric = gencfg['f_fabric']
+
+        delta /= samps_per_clk*f_fabric
+
+        length = np.round(length) * samps_per_clk
+        sigma *= samps_per_clk
+
+        idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
+
+        self.add_pulse(ch, name, idata=idata, qdata=qdata)
+
+    def add_triangle(self, ch, name, length, maxv=None):
+        """Adds a triangle pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        length : int
+            Total pulse length (in units of fabric clocks)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+
+        """
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+
+        length = np.round(length) * samps_per_clk
+
+        self.add_pulse(ch, name, idata=triang(length=length, maxv=maxv))
+
+    def load_pulses(self, soc):
+        """Loads pulses that were added using add_pulse into the SoC's signal generator memories.
+
+        Parameters
+        ----------
+        soc : Qick object
+            Qick object
+
+        """
+        for iCh, pulses in enumerate(self.pulses):
+            for name, pulse in pulses.items():
+                soc.load_pulse_data(iCh,
+                        data=pulse['data'],
+                        addr=pulse['addr'])
+
+
+class QickProgram(AbsQickProgram):
     """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
     # Instruction set for the tproc describing how to automatically generate methods for these instructions
     instructions = {'pushi': {'type': "I", 'bin': 0b00010000, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 0)), 'repr': "{0}, ${1}, ${2}, {3}"},
@@ -1053,16 +1344,13 @@ class QickProgram:
         """
         Constructor method
         """
-        self.soccfg = soccfg
+        super().__init__(soccfg)
 
         # List of commands. This may include comments.
         self.prog_list = []
-        # Pulse envelopes.
-        self.pulses = [{} for ch in soccfg['gens']]
-        # readout channels to configure before running the program
-        self.ro_chs = OrderedDict()
-        # signal generator channels to configure before running the program
-        self.gen_chs = OrderedDict()
+
+        # Label to apply to the next instruction.
+        self._label_next = None
 
         # Address of the rep counter in the data memory.
         self.counter_addr = 1
@@ -1070,22 +1358,21 @@ class QickProgram:
         self.reps = None
         # Number of times the program repeats the innermost loop. None means there is no outer loop.
         self.expts = None
+
+        # Generator managers, for keeping track of register values.
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
+
+
         # Number of times the whole program is to be run.
         self.rounds = 1
         # Rotation angle and thresholds for single-shot readout.
         self.shot_angle = None
         self.shot_threshold = None
 
-        # Label to apply to the next instruction.
-        self._label_next = None
-
         # Timestamps, for keeping track of pulse and readout end times.
         self._dac_ts = [0]*len(soccfg['gens'])
         self._adc_ts = [0]*len(soccfg['readouts'])
-
-        # Generator managers, for keeping track of register values.
-        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) if ch['tproc_ctrl'] is not None else None for iCh, ch in enumerate(soccfg['readouts'])]
 
 
     def dump_prog(self):
@@ -1326,271 +1613,13 @@ class QickProgram:
             return result
 
     def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
-        """
-        Load the waveform memory, gens, ROs, and program memory as specified for this program.
-        The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
-        """
-        # Load the pulses from the program into the soc
-        if load_pulses:
-            self.load_pulses(soc)
-
-        # Configure signal generators
-        self.config_gens(soc)
-
-        # Configure the readout down converters
-        self.config_readouts(soc)
+        super().config_all(soc, load_pulses)
 
         # load this program into the soc's tproc
         self.load_program(soc, debug=debug)
 
         # configure tproc for internal/external start
         soc.start_src(start_src)
-
-    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
-        """Add a channel to the program's list of readouts.
-
-        Parameters
-        ----------
-        ch : int
-            readout channel number (index in 'readouts' list)
-        freq : float
-            downconverting frequency (MHz)
-        length : int
-            readout length (number of samples)
-        sel : str
-            output select ('product', 'dds', 'input')
-        gen_ch : int
-            generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
-        """
-        ro_cfg = self.soccfg['readouts'][ch]
-        if ro_cfg['tproc_ctrl'] is None: # readout is controlled by PYNQ
-            if freq is None:
-                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
-            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
-            # and the sum buffer values are 32 bit signed
-            if length > 2**(31-15):
-                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
-            cfg = {
-                    'freq': freq,
-                    'length': length,
-                    'sel': sel,
-                    'gen_ch': gen_ch
-                    }
-        else: # readout is controlled by tProc
-            if (freq is not None) or sel!='product' or (gen_ch is not None):
-                raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
-            cfg = {
-                    'length': length
-                    }
-        self.ro_chs[ch] = cfg
-
-    def config_readouts(self, soc):
-        """Configure the readout channels specified in this program.
-        This is usually called as part of an acquire() method.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            the QickSoc that will execute this program
-
-        """
-        soc.init_readouts()
-        for ch, cfg in self.ro_chs.items():
-            if self.soccfg['readouts'][ch]['tproc_ctrl'] is None:
-                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
-
-    def config_bufs(self, soc, enable_avg=True, enable_buf=True):
-        """Configure the readout buffers specified in this program.
-        This is usually called as part of an acquire() method.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            the QickSoc that will execute this program
-        enable_avg : bool
-            enable the accumulated (averaging) buffer
-        enable_buf : bool
-            enable the decimated (waveform) buffer
-
-        """
-        for ch, cfg in self.ro_chs.items():
-            if enable_avg:
-                soc.config_avg(ch, address=0, length=cfg['length'], enable=True)
-            if enable_buf:
-                soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
-
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
-        """Add a channel to the program's list of signal generators.
-
-        If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
-
-        If this is a muxed generator, the mux_freqs and mux_gains lists must be long enough to define all the tones you will play.
-        (in other words, if your mask list ever enables tone 2 you must define at least 3 freqs+gains)
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        nqz : int, optional
-            Nyquist zone (must be 1 or 2).
-            Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
-        mixer_freq : float, optional
-            Mixer frequency (in MHz)
-        mux_freqs : list of float, optional
-            Tone frequencies for the muxed generator (in MHz).
-            Positive and negative values are allowed.
-        mux_gains : list of float, optional
-            Tone amplitudes for the muxed generator (in range -1 to 1).
-        ro_ch : int, optional
-            readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
-        """
-        cfg = {
-                'nqz': nqz,
-                'mixer_freq': mixer_freq,
-                'mux_freqs': mux_freqs,
-                'mux_gains': mux_gains,
-                'ro_ch': ro_ch
-                }
-        self.gen_chs[ch] = cfg
-
-    def config_gens(self, soc):
-        """Configure the signal generators specified in this program.
-        This is usually called as part of an acquire() method.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            the QickSoc that will execute this program
-
-        """
-        for ch, cfg in self.gen_chs.items():
-            soc.set_nyquist(ch, cfg['nqz'])
-            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
-            if cfg['mux_freqs'] is not None:
-                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
-
-    def add_pulse(self, ch, name, idata=None, qdata=None):
-        """Adds a waveform to the waveform library within the program.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the pulse
-        idata : array
-            I data Numpy array
-        qdata : array
-            Q data Numpy array
-
-        """
-        self._gen_mgrs[ch].add_pulse(name, idata, qdata)
-
-    def add_gauss(self, ch, name, sigma, length, maxv=None):
-        """Adds a Gaussian pulse to the waveform library.
-        The pulse will peak at length/2.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the pulse
-        sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
-
-        """
-        gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
-        samps_per_clk = gencfg['samps_per_clk']
-
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
-
-        self.add_pulse(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
-
-
-    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
-        """Adds a DRAG pulse to the waveform library.
-        The pulse will peak at length/2.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the pulse
-        sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
-        delta : float
-            anharmonicity of the qubit (units of MHz)
-        alpha : float
-            alpha parameter of DRAG (order-1 scale factor)
-
-        Returns
-        -------
-
-        """
-        gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
-        samps_per_clk = gencfg['samps_per_clk']
-        f_fabric = gencfg['f_fabric']
-
-        delta /= samps_per_clk*f_fabric
-
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
-
-        idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
-
-        self.add_pulse(ch, name, idata=idata, qdata=qdata)
-
-    def add_triangle(self, ch, name, length, maxv=None):
-        """Adds a triangle pulse to the waveform library.
-        The pulse will peak at length/2.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the pulse
-        length : int
-            Total pulse length (in units of fabric clocks)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
-
-        """
-        gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
-        samps_per_clk = gencfg['samps_per_clk']
-
-        length = np.round(length) * samps_per_clk
-
-        self.add_pulse(ch, name, idata=triang(length=length, maxv=maxv))
-
-    def load_pulses(self, soc):
-        """Loads pulses that were added using add_pulse into the SoC's signal generator memories.
-
-        Parameters
-        ----------
-        soc : Qick object
-            Qick object
-
-        """
-        for iCh, pulses in enumerate(self.pulses):
-            for name, pulse in pulses.items():
-                soc.load_pulse_data(iCh,
-                        data=pulse['data'],
-                        addr=pulse['addr'])
 
     def _ch_page_tproc(self, ch):
         """Gets tProc register page associated with channel.
@@ -2080,10 +2109,12 @@ class QickProgram:
                     phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["gens"][ch]['tproc_ch']
                 else:  # for readout channels
+                    ch_mgr = self._ro_mgrs[ch]
+                    # skip PYNQ-controlled readouts, which can't be reset
+                    if ch_mgr is None: continue
                     if t < self._adc_ts[ch]:
                         print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
                               f"with previous readout ending at {self._adc_ts[ch]}")
-                    ch_mgr = self._ro_mgrs[ch]
                     phrst_params = dict(freq=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
 

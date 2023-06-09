@@ -83,8 +83,9 @@ class AxisTProc64x32_x8(SocIp):
         # program memory address size (log2 of the number of 64-bit words, though the actual memory is usually smaller)
         self.PMEM_N = int(description['parameters']['PMEM_N'])
 
+        self.cfg['dmem_size'] = 2**self.DMEM_N
+
     # Configure this driver with links to its memory and DMA.
-    # TODO: is this "mem" argument actually used? we are not setting it to anything sensible.
     def configure(self, mem, axi_dma):
         # Program memory.
         self.mem = mem
@@ -92,14 +93,16 @@ class AxisTProc64x32_x8(SocIp):
         # dma
         self.dma = axi_dma
 
+        self.cfg['pmem_size'] = self.mem.mmio.length//8
+
     def configure_connections(self, soc):
-        self.output_pins = []
-        self.start_pin = None
+        self.cfg['output_pins'] = []
+        self.cfg['start_pin'] = None
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
             # check if the start pin is driven by a port of the top-level design
             if len(port)==1:
-                self.start_pin = port[0]
+                self.cfg['start_pin'] = port[0]
         except:
             pass
         # search for the trigger port
@@ -111,7 +114,7 @@ class AxisTProc64x32_x8(SocIp):
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "axis_set_reg":
-                self.trig_output = i
+                self.cfg['trig_output'] = i
                 ((block, port),) = soc.metadata.trace_sig(block, 'dout')
                 for iPin in range(16):
                     try:
@@ -119,7 +122,7 @@ class AxisTProc64x32_x8(SocIp):
                         if len(ports)==1 and len(ports[0])==1:
                             # it's an FPGA pin, save it
                             pinname = ports[0][0]
-                            self.output_pins.append((iPin, pinname))
+                            self.cfg['output_pins'].append((iPin, pinname))
                     except KeyError:
                         pass
 
@@ -310,18 +313,14 @@ class AxisTProc64x32_x8(SocIp):
             super().__init__(description)
 
             # Parameters
-            self.PMEM_SIZE = pow( 2, int(description['parameters']['PMEM_AW']) )
-            self.DMEM_SIZE = pow( 2, int(description['parameters']['DMEM_AW']) )
-            self.WMEM_SIZE = pow( 2, int(description['parameters']['WMEM_AW']) )
-            self.DREG_QTY  = pow( 2, int(description['parameters']['REG_AW'])  )
-            self.IN_PORT_QTY   = int(description['parameters']['IN_PORT_QTY'])
-            self.OUT_DPORT_QTY = int(description['parameters']['OUT_DPORT_QTY'])
-            self.OUT_WPORT_QTY = int(description['parameters']['OUT_WPORT_QTY'])
-            self.LFSR      = int(description['parameters']['LFSR'])
-            self.DIVIDER   = int(description['parameters']['DIVIDER'])
-            self.ARITH     = int(description['parameters']['ARITH'])
-            self.TIME_CMP  = int(description['parameters']['TIME_CMP'])
-            self.TIME_READ = int(description['parameters']['TIME_READ'])
+            self.cfg['pmem_size'] = pow( 2, int(description['parameters']['PMEM_AW']) )
+            self.cfg['dmem_size'] = pow( 2, int(description['parameters']['DMEM_AW']) )
+            self.cfg['wmem_size'] = pow( 2, int(description['parameters']['WMEM_AW']) )
+            self.cfg['dreg_qty']  = pow( 2, int(description['parameters']['REG_AW'])  )
+            for param in ['in_port_qty', 'out_dport_qty', 'out_wport_qty']:
+                self.cfg[param] = int(description['parameters'][param.upper()])
+            for param in ['lfsr', 'divider', 'arith', 'time_cmp', 'time_read']:
+                self.cfg['has_'+param] = int(description['parameters'][param.upper()])
             
             # Initial Values 
             self.tproc_ctrl = 0
@@ -332,23 +331,23 @@ class AxisTProc64x32_x8(SocIp):
             self.tproc_ext_dt1_i = 0
             self.tproc_ext_dt2_i = 0
             
-            #COmpatible with previous Version
-            self.DMEM_N = int(description['parameters']['DMEM_AW']) 
-
       
-        # Configure this driver with links to its memory and DMA.
-        def configure(self, mem, axi_dma):
-            # Program memory.
-            self.mem = mem
+        # Configure this driver with links to its DMA.
+        def configure(self, axi_dma):
             # dma
             self.dma = axi_dma
+
+            # allocate DMA buffers, using the size of the largest memory
+            maxlen = max(self['dmem_size'], self['pmem_size'], self['wmem_size'])
+            self.buff_wr = allocate(shape=(maxlen, 8), dtype=np.int32)
+            self.buff_rd = allocate(shape=(maxlen, 8), dtype=np.int32)
      
         def configure_connections(self, soc):
-            self.output_pins = []
-            self.start_pin = None
+            self.cfg['output_pins'] = []
+            self.cfg['start_pin'] = None
             try:
                 ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-                self.start_pin = port[0]
+                self.cfg['start_pin'] = port[0]
             except:
                 pass
            # search for the trigger port
@@ -361,7 +360,7 @@ class AxisTProc64x32_x8(SocIp):
                 except: # skip disconnected tProc outputs
                     continue
                 if soc.metadata.mod2type(block).startswith("vect2bits"):
-                    self.trig_output = i
+                    self.cfg['trig_output'] = i
                     for iPin in range(16):
                         try:
                             #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
@@ -369,7 +368,7 @@ class AxisTProc64x32_x8(SocIp):
                             if len(ports)==1 and len(ports[0])==1:
                                 # it's an FPGA pin, save it
                                 pinname = ports[0][0]
-                                self.output_pins.append((iPin, pinname))
+                                self.cfg['output_pins'].append((iPin, pinname))
                         except KeyError:
                             pass
 
@@ -411,16 +410,17 @@ class AxisTProc64x32_x8(SocIp):
             lines.append('---------------------------------------------')
             lines.append(' TPROC V2 INFO ')
             lines.append('---------------------------------------------')
-            for param in ["PMEM_SIZE", "DMEM_SIZE", "WMEM_SIZE", "DREG_QTY", "IN_PORT_QTY", "OUT_DPORT_QTY", "OUT_WPORT_QTY"]:
-                lines.append("%-14s: %d" % (param, getattr(self, param)))
+            for param in ["pmem_size", "dmem_size", "wmem_size", "dreg_qty", "in_port_qty", "out_dport_qty", "out_wport_qty"]:
+                lines.append("%-14s: %d" % (param.upper(), self[param]))
             lines.append("\nPeripherals:")
             for param in ["LFSR", "DIVIDER", "ARITH", "TIME_CMP", "TIME_READ"]:
-                lines.append("%-14s: %s" % (param, ["NO", "YES"][getattr(self, param)]))
+                lines.append("%-14s: %s" % (param, ["NO", "YES"][self['has_'+param.lower()]]))
             return "\n".join(lines)
 
-        def single_read(self, addr):
+        def single_read(self, mem_sel, addr):
             """
-            Reads one sample of tProc data memory using AXI access
+            Reads the bottom 32 bits of one sample of tProc memory using AXI access
+            Do not use! Use the DMA instead.
            
             :param addr: reading address
             :type addr: int
@@ -428,12 +428,16 @@ class AxisTProc64x32_x8(SocIp):
             :rtype: int
             """
             # Read data.
-            # Address should be translated to upper map.
-            return self.mmio.array[addr + self.NREG]
+            self.mem_addr = i
+            self.tproc_cfg = 0x11 + (mem_sel << 2)
+            val = self.mem_dt_o
+            self.tproc_cfg = 0
+            return val
      
-        def single_write(self, addr=0, data=0):
+        def single_write(self, mem_sel, addr=0, data=0):
             """
-            Writes one sample of tProc data memory using AXI access
+            Writes the bottom 32 bits of one sample of tProc memory using AXI access
+            Do not use! This seems to crash the DMA. Use the DMA instead.
             
             :param addr: writing address
             :type addr: int
@@ -441,17 +445,23 @@ class AxisTProc64x32_x8(SocIp):
             :type data: int
             """
             # Write data.
-            # Address should be translated to upper map.
-            self.mmio.array[addr + self.NREG] = np.uint32(data)
-     
+            self.mem_addr = i
+            self.tproc_cfg = 0x13 + (mem_sel << 2)
+            self.mem_dt_i = data
+            self.tproc_cfg = 0
 
         def load_mem(self,mem_sel, buff_in, addr=0):
             """
             Writes tProc Selected memory using DMA
-            PARAMETERS> 
-              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
-              buff_in   : Input buffer ( int )
-              addr      : Starting destination address ( int )
+
+            Parameters
+            ----------
+            mem_sel : int
+                PMEM=1, DMEM=2, WMEM=3
+            buff_in : array
+                Data to be loaded
+            addr : int
+                Starting write address
             """
             # Length.
             length = len(buff_in)
@@ -459,12 +469,8 @@ class AxisTProc64x32_x8(SocIp):
             self.mem_addr        = addr
             self.mem_len         = length
 
-            # Define buffer.
-            # TODO: pre-allocate buffer
-            self.buff = allocate(shape=(length,8), dtype=np.int32)
             # Copy buffer.
-            np.copyto(self.buff, buff_in)
-            print(self.buff)
+            np.copyto(self.buff_wr[:length], buff_in)
             #Start operation
             if (mem_sel==1):       # WRITE PMEM
                 self.tproc_cfg       = 7
@@ -476,8 +482,11 @@ class AxisTProc64x32_x8(SocIp):
                 raise RuntimeError('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
-            self.dma.sendchannel.transfer(self.buff)
+            self.logger.debug('DMA write 1')
+            self.dma.sendchannel.transfer(self.buff_wr, nbytes=int(length*32))
+            self.logger.debug('DMA write 2')
             self.dma.sendchannel.wait()
+            self.logger.debug('DMA write 3')
             
             # End Operation
             self.tproc_cfg       = 0
@@ -487,18 +496,19 @@ class AxisTProc64x32_x8(SocIp):
         def read_mem(self,mem_sel, addr=0, length=100):
             """
             Read tProc Selected memory using DMA
-            PARAMETERS> 
-              mem_sel   : Destination Memory ( int PMEM=1, DMEM=2, WMEM=3 )
-              buff_in   : Input buffer ( int )
-              addr      : Starting destination address ( int )
+
+            Parameters
+            ----------
+            mem_sel : int
+                PMEM=1, DMEM=2, WMEM=3
+            addr : int
+                Starting read address
+            length : int
+                Number of words to read
             """
         # Configure Memory arbiter. (Read DMEM)
             self.mem_addr        = addr
             self.mem_len         = length
-
-            # Define buffer.
-            # TODO: pre-allocate buffer
-            buff_rd = allocate(shape=(length,8), dtype=np.int32)
 
             #Start operation
             if (mem_sel==1):       # READ PMEM
@@ -511,53 +521,30 @@ class AxisTProc64x32_x8(SocIp):
                 raise RuntimeError('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
             # DMA data.
-            self.dma.recvchannel.transfer(buff_rd)
+            self.logger.debug('DMA read 1')
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(length*32))
+            self.logger.debug('DMA read 2')
             self.dma.recvchannel.wait()
+            self.logger.debug('DMA read 3')
             
             # End Operation
             self.tproc_cfg       = 0      
-            return buff_rd
+
+            # truncate and copy
+            return self.buff_rd[:length].copy()
         
-        def Load_PMEM(self, p_mem):
-            self.logger.info('Loading Program in PMEM')
-            # Length.
+        def Load_PMEM(self, p_mem, check=True):
             length = len(p_mem)
-            # Configure Memory arbiter.
-            self.mem_addr        = 0
-            self.mem_len         = length
-            # Define buffer.
-            self.buff = allocate(shape=(length,8), dtype=np.int32)
-            # Copy buffer.
-            np.copyto(self.buff, p_mem)
-            #Start operation
-            self.tproc_cfg       = 7
-            # DMA data.
-            self.logger.debug('P1')
-            self.dma.sendchannel.transfer(self.buff)
-            self.logger.debug('P2')
-            self.dma.sendchannel.wait()
-            self.logger.debug('P3')
-            # End Operation
-            self.tproc_cfg       = 0
-            
-            #Read PROGRAM MEMORY
-            # Configure Memory arbiter.
-            self.mem_addr        = 0
-            self.mem_len         = length
-            self.tproc_cfg       = 5
-            # DMA data.
-            self.logger.debug('P4')
-            self.dma.recvchannel.transfer(self.buff)
-            self.logger.debug('P5')
-            self.dma.recvchannel.wait()
-            self.logger.debug('P6')
-            # End Operation
-            self.tproc_cfg       = 0      
-            
-            if ( (np.max(self.buff - p_mem) )  == 0):
-                self.logger.info('Program Loaded OK')
-            else:
-                self.logger.error('Error Loading Program')
+
+            self.logger.info('Loading Program in PMEM')
+            self.load_mem(1, p_mem)
+
+            if check:
+                readback = self.read_mem(1, length=length)
+                if ( (np.max(readback - p_mem) )  == 0):
+                    self.logger.info('Program Loaded OK')
+                else:
+                    self.logger.error('Error Loading Program')
 
             
         def getALL(self):

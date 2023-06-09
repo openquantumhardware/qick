@@ -9,77 +9,32 @@ class AbsSignalGen(SocIp):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
-    # This signal generator has a waveform memory.
-    HAS_WAVEFORM = False
-    # This signal generator is controlled by the tProc.
-    HAS_TPROC = False
     # The DAC channel has a mixer.
     HAS_MIXER = False
     # Interpolation factor relating the generator and DAC sampling freqs.
     FS_INTERPOLATION = 1
     # Waveform samples per fabric clock.
     SAMPS_PER_CLK = 1
-    # Name of the input driven by the tProc (if applicable).
-    TPROC_PORT = 's1_axis'
-    # Name of the input driven by the waveform DMA (if applicable).
-    WAVEFORM_PORT = 's0_axis'
     # Maximum waveform amplitude.
     MAXV = 2**15-2
     # Scale factor between MAXV and the default maximum amplitude (necessary to avoid overshoot).
     MAXV_SCALE = 1.0
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, rf, fs, axi_dma=None, axis_switch=None):
+    def configure(self, ch, rf, fs):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
-
-        if self.HAS_WAVEFORM:
-            # dma
-            self.dma = axi_dma
-
-            # Switch
-            self.switch = axis_switch
-
-            # Define buffer.
-            self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
 
         # RF data converter
         self.rf = rf
 
         # DAC sampling frequency.
-        self.fs_dac = fs
+        self.cfg['fs'] = fs
 
-        # DDS sampling frequency.
-        self.fs_dds = fs/self.FS_INTERPOLATION
+        self.cfg['dac'] = self.dac
 
     def configure_connections(self, soc):
         self.soc = soc
-
-        if self.HAS_TPROC:
-            # what tProc output port drives this generator?
-            # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.TPROC_PORT)
-            while True:
-                blocktype = soc.metadata.mod2type(block)
-                if blocktype in ["axis_tproc64x32_x8", "axis_tproc_v2"]: # we're done
-                    break
-                elif blocktype == "axis_clock_converter":
-                    ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
-                elif blocktype == "axis_cdcsync_v1":
-                    # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
-                    ((block, port),) = soc.metadata.trace_bus(block, "s"+port[1:])
-                elif blocktype == "sg_translator":
-                    ((block, port),) = soc.metadata.trace_bus(block, "s_tproc_axis")
-                else:
-                    raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
-            # ask the tproc to translate this port name to a channel number
-            self.tproc_ch = getattr(soc, block).port2ch(port)
-
-        if self.HAS_WAVEFORM:
-            # what switch port drives this generator?
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
-            # port names are of the form 'M01_AXIS'
-            self.switch_ch = int(port.split('_')[0][1:])
 
         # what RFDC port does this generator drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm_axis')
@@ -99,6 +54,55 @@ class AbsSignalGen(SocIp):
 
         #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
 
+    def set_nyquist(self, nqz):
+        self.rf.set_nyquist(self.dac, nqz)
+
+    def set_mixer_freq(self, f, ro_ch=None):
+        if not self.HAS_MIXER:
+            raise NotImplementedError("This channel does not have a mixer.")
+        if ro_ch is None:
+            rounded_f = f
+        else:
+            mixercfg = {}
+            mixercfg['f_dds'] = self['fs']
+            mixercfg['b_dds'] = 48
+            fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
+            rounded_f = round(f/fstep)*fstep
+        self.rf.set_mixer_freq(self.dac, rounded_f)
+
+    def get_mixer_freq(self):
+        if not self.HAS_MIXER:
+            raise NotImplementedError("This channel does not have a mixer.")
+        return self.rf.get_mixer_freq(self.dac)
+
+class AbsArbSignalGen(AbsSignalGen):
+    """
+    A signal generator with a memory for envelope waveforms.
+    """
+    # Name of the input driven by the waveform DMA (if applicable).
+    WAVEFORM_PORT = 's0_axis'
+
+    def configure(self, ch, rf, fs):
+        # Define buffer.
+        self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
+
+        super().configure(ch, rf, fs)
+
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+
+        # what switch port drives this generator?
+        ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
+        # port names are of the form 'M01_AXIS'
+        self.switch_ch = int(port.split('_')[0][1:])
+
+    def configure_dma(self, axi_dma, axis_switch):
+        # dma
+        self.dma = axi_dma
+
+        # Switch
+        self.switch = axis_switch
+
     # Load waveforms.
     def load(self, xin, addr=0):
         """
@@ -109,10 +113,6 @@ class AbsSignalGen(SocIp):
         :param addr: starting address
         :type addr: int
         """
-        if not self.HAS_WAVEFORM:
-            raise NotImplementedError(
-                "This generator does not support waveforms.")
-
         length = xin.shape[0]
         assert xin.dtype==np.int16
 
@@ -163,29 +163,50 @@ class AbsSignalGen(SocIp):
         """
         self.we_reg = 0
 
-    def set_nyquist(self, nqz):
-        self.rf.set_nyquist(self.dac, nqz)
+class AbsPulsedSignalGen(AbsSignalGen):
+    """
+    A signal generator controlled by the TProcessor.
+    """
+    # Name of the input driven by the tProc (if applicable).
+    TPROC_PORT = 's1_axis'
 
-    def set_mixer_freq(self, f, ro_ch=None):
-        if not self.HAS_MIXER:
-            raise NotImplementedError("This channel does not have a mixer.")
-        if ro_ch is None:
-            rounded_f = f
-        else:
-            mixercfg = {}
-            mixercfg['fs'] = self.fs_dac
-            mixercfg['b_dds'] = 48
-            fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
-            rounded_f = round(f/fstep)*fstep
-        self.rf.set_mixer_freq(self.dac, rounded_f)
+    def configure(self, ch, rf, fs):
+        # DDS sampling frequency.
+        self.cfg['f_dds'] = fs/self.FS_INTERPOLATION
 
-    def get_mixer_freq(self):
-        if not self.HAS_MIXER:
-            raise NotImplementedError("This channel does not have a mixer.")
-        return self.rf.get_mixer_freq(self.dac)
+        self.cfg['maxlen'] = self.MAX_LENGTH
+        self.cfg['b_dds'] = self.B_DDS
+        self.cfg['switch_ch'] = self.switch_ch
+        self.cfg['f_fabric'] = self.soc.dacs[self.dac]['f_fabric']
+        self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
+        self.cfg['maxv'] = self.MAXV
+        self.cfg['maxv_scale'] = self.MAXV_SCALE
 
+        super().configure(ch, rf, fs)
 
-class AxisSignalGen(AbsSignalGen):
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+
+        # what tProc output port drives this generator?
+        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
+        ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.TPROC_PORT)
+        while True:
+            blocktype = soc.metadata.mod2type(block)
+            if blocktype in ["axis_tproc64x32_x8", "axis_tproc_v2"]: # we're done
+                break
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_cdcsync_v1":
+                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                ((block, port),) = soc.metadata.trace_bus(block, "s"+port[1:])
+            elif blocktype == "sg_translator":
+                ((block, port),) = soc.metadata.trace_bus(block, "s_tproc_axis")
+            else:
+                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        # ask the tproc to translate this port name to a channel number
+        self.cfg['tproc_ch'] = getattr(soc, block).port2ch(port)
+
+class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
     AxisSignalGen class
     Supports AxisSignalGen V4+V5+V6, since they have the same software interface (ignoring registers that are not used)
@@ -201,9 +222,8 @@ class AxisSignalGen(AbsSignalGen):
               'user.org:user:axis_signal_gen_v5:1.0',
               'user.org:user:axis_signal_gen_v6:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
-    HAS_TPROC = True
-    HAS_WAVEFORM = True
     SAMPS_PER_CLK = 16
+    B_DDS = 32
 
     def __init__(self, description):
         """
@@ -223,16 +243,13 @@ class AxisSignalGen(AbsSignalGen):
         # Maximum number of samples
         self.MAX_LENGTH = 2**self.N*self.NDDS
 
-        # Frequency resolution
-        self.B_DDS = 32
-
     def rndq(self, sel_):
         """
            TODO: remove this function. This functionality was removed from IP block.
         """
         self.rndq_reg = sel_
 
-class AxisSgInt4V1(AbsSignalGen):
+class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     """
     AxisSgInt4V1
 
@@ -253,11 +270,10 @@ class AxisSgInt4V1(AbsSignalGen):
     """
     bindto = ['user.org:user:axis_sg_int4_v1:1.0']
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
-    HAS_TPROC = True
-    HAS_WAVEFORM = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     MAXV_SCALE = 0.9
+    B_DDS = 16
 
     def __init__(self, description):
         """
@@ -273,15 +289,12 @@ class AxisSgInt4V1(AbsSignalGen):
         self.N = int(description['parameters']['N'])
         self.NDDS = 4  # Fixed by design, not accesible.
 
-        # Frequency resolution
-        self.B_DDS = 16
-
         # Maximum number of samples
         # Table is interpolated. Length is given only by parameter N.
         self.MAX_LENGTH = 2**self.N
 
 
-class AxisSgMux4V1(AbsSignalGen):
+class AxisSgMux4V1(AbsPulsedSignalGen):
     """
     AxisSgMux4V1
 
@@ -303,10 +316,10 @@ class AxisSgMux4V1(AbsSignalGen):
             'pinc3_reg': 3,
             'we_reg': 4}
 
-    HAS_TPROC = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     TPROC_PORT = 's_axis'
+    B_DDS = 16
 
     def __init__(self, description):
         """
@@ -316,9 +329,6 @@ class AxisSgMux4V1(AbsSignalGen):
 
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
-
-        # Frequency resolution
-        self.B_DDS = 16
 
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
@@ -363,9 +373,9 @@ class AxisSgMux4V1(AbsSignalGen):
         self.update()
 
     def get_freq(self, out=0):
-        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
 
-class AxisSgMux4V2(AbsSignalGen):
+class AxisSgMux4V2(AbsPulsedSignalGen):
     """
     AxisSgMux4V2
 
@@ -395,9 +405,9 @@ class AxisSgMux4V2(AbsSignalGen):
                  'gain3_reg':7,
                  'we_reg':8}
 
-    HAS_TPROC = True
     HAS_MIXER = True
     FS_INTERPOLATION = 4
+    B_DDS = 32
     TPROC_PORT = 's_axis'
 
     def __init__(self, description):
@@ -408,9 +418,6 @@ class AxisSgMux4V2(AbsSignalGen):
 
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
-
-        # Frequency resolution
-        self.B_DDS = 32
 
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
@@ -458,7 +465,7 @@ class AxisSgMux4V2(AbsSignalGen):
         self.update()
 
     def get_freq(self, out):
-        return getattr(self, "pinc%d_reg" % (out)) * self.fs_dds / (2**self.B_DDS)
+        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
 
     def set_gain(self, g, out):
         """

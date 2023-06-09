@@ -107,6 +107,7 @@ class RFDC(xrfdc.RFdc):
 
     def configure(self, soc):
         self.daccfg = soc.dacs
+        self.adccfg = soc.adcs
 
     def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
@@ -280,7 +281,7 @@ class QickSoc(Overlay, QickConfig):
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
             else:
                 self._tproc = self.axis_tproc_v2_0
-                self._tproc.configure(self.axis_tproc_v2_0, self.axi_dma_tproc)
+                self._tproc.configure(self.axi_dma_tproc)
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "t_clk_i")
 
             self.map_signal_paths()
@@ -309,18 +310,8 @@ class QickSoc(Overlay, QickConfig):
             if hasattr(val['driver'], 'configure_connections'):
                 getattr(self, key).configure_connections(self)
 
-        # AXIS Switch to upload samples into Signal Generators.
-        self.switch_gen = self.axis_switch_gen
-
-        # AXIS Switch to read samples from averager.
-        self.switch_avg = self.axis_switch_avg
-
-        # AXIS Switch to read samples from buffer.
-        self.switch_buf = self.axis_switch_buf
-
         # Signal generators (anything driven by the tProc)
         self.gens = []
-        gen_drivers = set([AxisSignalGen, AxisSgInt4V1, AxisSgMux4V1, AxisSgMux4V2])
 
         # Constant generators
         self.iqs = []
@@ -334,7 +325,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
-            if val['driver'] in gen_drivers:
+            if issubclass(val['driver'], AbsPulsedSignalGen):
                 self.gens.append(getattr(self, key))
             elif val['driver'] == AxisConstantIQ:
                 self.iqs.append(getattr(self, key))
@@ -348,94 +339,77 @@ class QickSoc(Overlay, QickConfig):
             if buf.readout not in self.readouts:
                 self.readouts.append(buf.readout)
 
-        # Sanity check: we should have the same number of readouts and buffer blocks as switch ports.
-        #TODO: bring back?
-        #if len(self.readouts) != len(self.avg_bufs):
-        #    raise RuntimeError("We have %d readouts but %d avg/buffer blocks." %
-        #                       (len(self.readouts), len(self.avg_bufs)))
-        if self.switch_avg.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
-                               (self.switch_avg.NSL, len(self.avg_bufs)))
-        if self.switch_buf.NSL != len(self.avg_bufs):
-            raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
-                               (self.switch_buf.NSL, len(self.avg_bufs)))
-
         # Sort the lists.
         # We order gens by the tProc port number and buffers by the switch port number.
         # Those orderings are important, since those indices get used in programs.
-        self.gens.sort(key=lambda x: x.tproc_ch)
+        self.gens.sort(key=lambda x: x['tproc_ch'])
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
         self.iqs.sort(key=lambda x: x.dac)
         self.readouts.sort(key=lambda x: x.adc)
 
+        # which generators have waveform memories?
+        arb_gens = filter(lambda x: isinstance(x, AbsArbSignalGen), self.gens)
+        # Configure the DMA connections to upload waveforms to generators.
+        if arb_gens:
+            # AXIS Switch to upload samples into Signal Generators.
+            self.switch_gen = self.axis_switch_gen
+
+            """
+            # This sanity check doesn't always pass, we have firmwares that don't use all the switch ports.
+            if self.switch_gen.NMI != len(arb_gens):
+                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
+                                   (self.switch_gen.NMI, len(arb_gens)))
+            """
+
+            for gen in arb_gens:
+                gen.configure_dma(self.axi_dma_gen, self.switch_gen)
+
+        # Configure the DMA connections to download data from avg+buffer blocks.
+        if self.avg_bufs:
+            # AXIS Switch to read samples from averager.
+            self.switch_avg = self.axis_switch_avg
+            # AXIS Switch to read samples from buffer.
+            self.switch_buf = self.axis_switch_buf
+            # Sanity check: we should have the same number of buffer blocks as switch ports.
+            if self.switch_avg.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
+                                   (self.switch_avg.NSL, len(self.avg_bufs)))
+            if self.switch_buf.NSL != len(self.avg_bufs):
+                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
+                                   (self.switch_buf.NSL, len(self.avg_bufs)))
+
+            for buf in self.avg_bufs:
+                buf.configure(self.axi_dma_avg, self.switch_avg,
+                              self.axi_dma_buf, self.switch_buf)
+
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
-            gen.configure(i, self.rf,
-                          self.dacs[gen.dac]['fs'], self.axi_dma_gen, self.switch_gen)
+            gen.configure(i, self.rf, self.dacs[gen.dac]['fs'])
 
         for i, iq in enumerate(self.iqs):
             iq.configure(i, self.rf, self.dacs[iq.dac]['fs'])
 
-        for buf in self.avg_bufs:
-            buf.configure(self.axi_dma_avg, self.switch_avg,
-                          self.axi_dma_buf, self.switch_buf)
         for readout in self.readouts:
-            readout.configure(self.adcs[readout.adc]['fs'])
+            readout.configure(self.rf, self.adcs[readout.adc]['fs'])
 
         # Fill the config dictionary with driver parameters.
         self['dacs'] = list(self.dacs.keys())
         self['adcs'] = list(self.adcs.keys())
-        self['gens'] = []
-        self['readouts'] = []
-        self['iqs'] = []
-        for gen in self.gens:
-            thiscfg = {}
-            thiscfg['type'] = gen.type
-            thiscfg['maxlen'] = gen.MAX_LENGTH
-            thiscfg['b_dds'] = gen.B_DDS
-            thiscfg['switch_ch'] = gen.switch_ch
-            thiscfg['tproc_ch'] = gen.tproc_ch
-            thiscfg['dac'] = gen.dac
-            thiscfg['fs'] = gen.fs_dds
-            thiscfg['f_fabric'] = self.dacs[gen.dac]['f_fabric']
-            thiscfg['samps_per_clk'] = gen.SAMPS_PER_CLK
-            thiscfg['maxv'] = gen.MAXV
-            thiscfg['maxv_scale'] = gen.MAXV_SCALE
-            self['gens'].append(thiscfg)
+        self['gens'] = [gen.cfg for gen in self.gens]
+        self['iqs'] = [iq.cfg for iq in self.iqs]
 
-        for buf in self.avg_bufs:
-            thiscfg = {}
-            thiscfg['avg_maxlen'] = buf.AVG_MAX_LENGTH
-            thiscfg['buf_maxlen'] = buf.BUF_MAX_LENGTH
-            thiscfg['b_dds'] = buf.readout.B_DDS
-            thiscfg['ro_type'] = buf.readout.type
-            thiscfg['tproc_ctrl'] = buf.readout.tproc_ch
-            thiscfg['adc'] = buf.readout.adc
-            thiscfg['fs'] = self.adcs[buf.readout.adc]['fs']
-            thiscfg['f_fabric'] = self.adcs[buf.readout.adc]['f_fabric']
-            if thiscfg['ro_type'] == 'axis_readout_v3':
-                # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
-                thiscfg['f_fabric'] *= 2
-            thiscfg['trigger_bit'] = buf.trigger_bit
-            thiscfg['tproc_ch'] = buf.tproc_ch
-            self['readouts'].append(thiscfg)
+        # In the config, we define a "readout" as the chain of ADC+readout+buffer.
+        def merge_cfgs(bufcfg, rocfg):
+            merged = {**bufcfg, **rocfg}
+            for k in set(bufcfg.keys()) & set(rocfg.keys()):
+                del merged[k]
+                merged["avgbuf_"+k] = bufcfg[k]
+                merged["ro_"+k] = rocfg[k]
+            return merged
+        self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
 
-        for iq in self.iqs:
-            thiscfg = {}
-            thiscfg['dac'] = iq.dac
-            thiscfg['fs'] = iq.fs_dac
-            self['iqs'].append(thiscfg)
-
-        self['tprocs'] = []
-        for tproc in [self.tproc]:
-            thiscfg = {}
-            thiscfg['trig_output'] = tproc.trig_output
-            thiscfg['output_pins'] = tproc.output_pins
-            thiscfg['start_pin'] = tproc.start_pin
-            thiscfg['pmem_size'] = tproc.mem.mmio.length//8
-            thiscfg['dmem_size'] = 2**tproc.DMEM_N
-            self['tprocs'].append(thiscfg)
+        self['tprocs'] = [self.tproc.cfg]
 
     def config_clocks(self, force_init_clks):
         """
@@ -839,7 +813,7 @@ class QickSoc(Overlay, QickConfig):
         """
         prog = QickProgram(self)
         for gen in self.gens:
-            if gen.HAS_WAVEFORM:
+            if isinstance(gen, AbsArbSignalGen):
                 prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
