@@ -61,7 +61,7 @@ class AbsSignalGen(SocIp):
             ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.TPROC_PORT)
             while True:
                 blocktype = soc.metadata.mod2type(block)
-                if blocktype in ["axis_tproc64x32_x8", "qick_processor"]: # we're done
+                if blocktype in ["axis_tproc64x32_x8", "axis_tproc_v2"]: # we're done
                     break
                 elif blocktype == "axis_clock_converter":
                     ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
