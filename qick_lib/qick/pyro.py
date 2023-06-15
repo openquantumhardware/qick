@@ -1,8 +1,12 @@
 import psutil, socket
 import Pyro4
 import Pyro4.naming
-from .qick import QickSoc
 from .qick_asm import QickConfig
+# QickSoc is needed for the server but not the client
+try:
+    from .qick import QickSoc
+except:
+    pass
 
 def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     """Starts a Pyro4 nameserver.
