@@ -1016,6 +1016,10 @@ class AbsQickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
+        # Timestamps, for keeping track of pulse and readout end times.
+        self._gen_ts = [0]*len(soccfg['gens'])
+        self._ro_ts = [0]*len(soccfg['readouts'])
+
     def config_all(self, soc, load_pulses=True):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
@@ -1277,6 +1281,36 @@ class AbsQickProgram:
                         data=pulse['data'],
                         addr=pulse['addr'])
 
+    def reset_timestamps(self):
+        self._gen_ts = [0]*len(self._gen_ts)
+        self._ro_ts = [0]*len(self._ro_ts)
+
+    def get_timestamp(self, gen_ch=None, ro_ch=None):
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        if gen_ch is not None:
+            return self._gen_ts[gen_ch]
+        elif ro_ch is not None:
+            return self._ro_ts[ro_ch]
+        else:
+            raise RuntimeError("must specify gen_ch or ro_ch!")
+
+    def set_timestamp(self, val, gen_ch=None, ro_ch=None):
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        if gen_ch is not None:
+            self._gen_ts[gen_ch] = val
+        elif ro_ch is not None:
+            self._ro_ts[ro_ch] = val
+        else:
+            raise RuntimeError("must specify gen_ch or ro_ch!")
+
+    def get_max_timestamp(self, gens=True, ros=True):
+        timestamps = []
+        if gens: timestamps += self._gen_ts
+        if ros: timestamps += self._ro_ts
+        return max(timestamps)
+
 
 class QickProgram(AbsQickProgram):
     """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
@@ -1363,16 +1397,11 @@ class QickProgram(AbsQickProgram):
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
 
-
         # Number of times the whole program is to be run.
         self.rounds = 1
         # Rotation angle and thresholds for single-shot readout.
         self.shot_angle = None
         self.shot_threshold = None
-
-        # Timestamps, for keeping track of pulse and readout end times.
-        self._dac_ts = [0]*len(soccfg['gens'])
-        self._adc_ts = [0]*len(soccfg['readouts'])
 
 
     def dump_prog(self):
@@ -1923,14 +1952,15 @@ class QickProgram(AbsQickProgram):
             r_t = self._sreg_tproc(tproc_ch, 't')
 
             if t is not None:
+                ts = self.get_timestamp(gen_ch=ch)
                 if t == 'auto':
-                    t = int(self._dac_ts[ch])
-                elif t < self._dac_ts[ch]:
-                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, self._dac_ts[ch]))
+                    t = int(ts)
+                elif t < ts:
+                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
                 pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
-                self._dac_ts[ch] = t + pulse_length
+                self.set_timestamp(t + pulse_length, gen_ch=ch)
                 self.safe_regwi(rp, r_t, t, f't = {t}')
 
             # Play each pulse segment.
@@ -1973,11 +2003,10 @@ class QickProgram(AbsQickProgram):
         t : int, optional
             The time offset in tProc cycles
         """
-        max_t = max(self._dac_ts+self._adc_ts)
+        max_t = self.get_max_timestamp()
         if max_t+t > 0:
             self.synci(int(max_t+t))
-            self._dac_ts = [0]*len(self._dac_ts)
-            self._adc_ts = [0]*len(self._adc_ts)
+            self.reset_timestamps()
 
     def wait_all(self, t=0):
         """Pause the tProc until all ADC readout windows are complete, plus additional time t.
@@ -1988,7 +2017,7 @@ class QickProgram(AbsQickProgram):
         t : int, optional
             The time offset in tProc cycles
         """
-        self.waiti(0, int(max(self._adc_ts) + t))
+        self.waiti(0, int(self.get_max_timestamp(gens=False, ros=True) + t))
 
     # should change behavior to only change bits that are specified
     def trigger(self, adcs=None, pins=None, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
@@ -2031,12 +2060,13 @@ class QickProgram(AbsQickProgram):
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
             for adc in adcs:
-                if t_start < self._adc_ts[adc]:
-                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, self._adc_ts[adc]))
+                ts = self.get_timestamp(ro_ch=adc)
+                if t_start < ts:
+                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[adc]['length']
                 ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
-                self._adc_ts[adc] = t_start + ro_length
+                self.set_timestamp(t_start + ro_length, ro_ch=adc)
         t_end = t_start + width
 
         trig_output = self.soccfg['tprocs'][0]['trig_output']
@@ -2102,9 +2132,10 @@ class QickProgram(AbsQickProgram):
             for ch in ch_list:
                 # check time and get generator/readout manager
                 if ch_type == "generator":
-                    if t < self._dac_ts[ch]:
+                    ts = self.get_timestamp(gen_ch=ch)
+                    if t < ts:
                         print(f"warning: generator {ch} phase reset at t={t} appears to conflict "
-                              f"with previous pulse ending at {self._dac_ts[ch]}")
+                              f"with previous pulse ending at {ts}")
                     ch_mgr = self._gen_mgrs[ch]
                     phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["gens"][ch]['tproc_ch']
@@ -2112,9 +2143,10 @@ class QickProgram(AbsQickProgram):
                     ch_mgr = self._ro_mgrs[ch]
                     # skip PYNQ-controlled readouts, which can't be reset
                     if ch_mgr is None: continue
-                    if t < self._adc_ts[ch]:
+                    ts = self.get_timestamp(ro_ch=ch)
+                    if t < ts:
                         print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
-                              f"with previous readout ending at {self._adc_ts[ch]}")
+                              f"with previous readout ending at {ts}")
                     phrst_params = dict(freq=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
 
