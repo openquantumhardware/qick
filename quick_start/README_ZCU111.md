@@ -76,6 +76,14 @@ This guide will show you how to set up QICK after configuring your computer and 
  <img src="quick-start-guide-pics/ciscorouter.PNG" alt="Devices found by the router">
 </p>
 
+### Finding your RFSOC via Serial connection
+* The IP address of the RFSoC can also be directly obtained via serial connection. 
+* Connect a PC to the board via the micro USB port. Under the Device Manager under COM ports the RFSoC should show up as a COM connection. Take note of the Port number.
+* Using PuTTY, select "Serial" connection type, enter the port number (e.g. `COM12`), and the serial speed, which by default is `115200`.
+* This will open a terminal that directly connects to the RFSoC CPU. `ifconfig` should give the assigned IP address.
+* If connection problems persist, the default gateway may not be set; this can be checked with `ip route`. There should be an IP address marked as `default`. If this is not present, a default must be set using `sudo ip route add default via xxx.xxx.xxx.1`, replacing the IP address with the local network address.
+* Finally, the RFSoC may need to be configured to properly access the internet. Open `/etc/resolv.conf` in a text editor such as `vim` or `nano`, and ensure that it contains `nameserver 8.8.8.8`, `options eth0`. Note that `resolv.conf` may be re-generated when the board is power-cycled.
+
 
 ### Connecting to your RFSOC via Jupyter and via SSH
 
