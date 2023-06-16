@@ -542,11 +542,11 @@ class Axis_QICK_Proc(SocIp):
         np.copyto(self.buff_wr[:length], buff_in)
         #Start operation
         if (mem_sel==1):       # WRITE PMEM
-            self.tproc_cfg       = 7
+            self.tproc_cfg     |= 7
         elif (mem_sel==2):     # WRITE DMEM
-            self.tproc_cfg       = 11
+            self.tproc_cfg     |= 11
         elif (mem_sel==3):     # WRITE WMEM
-            self.tproc_cfg       = 15
+            self.tproc_cfg     |= 15
         else:
             raise RuntimeError('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
@@ -558,7 +558,7 @@ class Axis_QICK_Proc(SocIp):
         self.logger.debug('DMA write 3')
         
         # End Operation
-        self.tproc_cfg       = 0
+        self.tproc_cfg         &= ~63
 
     def read_mem(self,mem_sel, addr=0, length=100):
         """
@@ -579,11 +579,11 @@ class Axis_QICK_Proc(SocIp):
 
         #Start operation
         if (mem_sel==1):       # READ PMEM
-            self.tproc_cfg       = 5
+            self.tproc_cfg     |= 5
         elif (mem_sel==2):     # READ DMEM
-            self.tproc_cfg       = 9
+            self.tproc_cfg     |= 9
         elif (mem_sel==3):     # READ WMEM
-            self.tproc_cfg       = 13
+            self.tproc_cfg     |= 13
         else:
             raise RuntimeError('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
 
@@ -595,7 +595,7 @@ class Axis_QICK_Proc(SocIp):
         self.logger.debug('DMA read 3')
         
         # End Operation
-        self.tproc_cfg       = 0      
+        self.tproc_cfg         &= ~63
 
         # truncate and copy
         return self.buff_rd[:length].copy()
