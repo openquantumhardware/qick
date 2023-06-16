@@ -368,9 +368,6 @@ class Axis_QICK_Proc(SocIp):
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
         self.cfg['trig_output'] = 0 
-        self.output_pins = []
-        self.start_pin = None
-        self.trig_output = 0
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
             self.start_pin = port[0]
@@ -380,17 +377,18 @@ class Axis_QICK_Proc(SocIp):
         # those can go to vec2bits or to the output...
         ## Number of triggers is in ther parameter 'out_trig_qty', the MAX is 8
         ## Number of data ports  is in ther parameter 'out_dport_qty', the MAX is 4
-        for iPin in range(8): 
+        for iPin in range(self['out_trig_qty']):
             try:
                 ports = soc.metadata.trace_sig(self.fullpath, "trig_%d_o"%(iPin))
+                print(iPin, ports)
                 if len(ports)==1 and len(ports[0])==1:
                     # it's an FPGA pin, save it
                     pinname = ports[0][0]
-                    self.output_pins.append((iPin, pinname))
+                    self.cfg['output_pins'].append((iPin, pinname))
             except KeyError:
                 pass
        # search for the trigger port
-        for i in range(4):
+        for i in range(self['out_dport_qty']):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
             try:
