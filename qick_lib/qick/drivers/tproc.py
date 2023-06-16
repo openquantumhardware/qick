@@ -83,8 +83,9 @@ class AxisTProc64x32_x8(SocIp):
         # program memory address size (log2 of the number of 64-bit words, though the actual memory is usually smaller)
         self.PMEM_N = int(description['parameters']['PMEM_N'])
 
+        self.cfg['dmem_size'] = 2**self.DMEM_N
+
     # Configure this driver with links to its memory and DMA.
-    # TODO: is this "mem" argument actually used? we are not setting it to anything sensible.
     def configure(self, mem, axi_dma):
         # Program memory.
         self.mem = mem
@@ -92,14 +93,16 @@ class AxisTProc64x32_x8(SocIp):
         # dma
         self.dma = axi_dma
 
+        self.cfg['pmem_size'] = self.mem.mmio.length//8
+
     def configure_connections(self, soc):
-        self.output_pins = []
-        self.start_pin = None
+        self.cfg['output_pins'] = []
+        self.cfg['start_pin'] = None
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
             # check if the start pin is driven by a port of the top-level design
             if len(port)==1:
-                self.start_pin = port[0]
+                self.cfg['start_pin'] = port[0]
         except:
             pass
         # search for the trigger port
@@ -111,7 +114,7 @@ class AxisTProc64x32_x8(SocIp):
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "axis_set_reg":
-                self.trig_output = i
+                self.cfg['trig_output'] = i
                 ((block, port),) = soc.metadata.trace_sig(block, 'dout')
                 for iPin in range(16):
                     try:
@@ -119,7 +122,7 @@ class AxisTProc64x32_x8(SocIp):
                         if len(ports)==1 and len(ports[0])==1:
                             # it's an FPGA pin, save it
                             pinname = ports[0][0]
-                            self.output_pins.append((iPin, pinname))
+                            self.cfg['output_pins'].append((iPin, pinname))
                     except KeyError:
                         pass
 

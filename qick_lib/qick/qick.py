@@ -284,7 +284,7 @@ class QickSoc(Overlay, QickConfig):
                 self._tproc.configure(self.axi_dma_tproc)
                 self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "c_clk_i")
             else:
-                print('ERROR QICK PROCESSOR')
+                raise RuntimeError('No tProcessor found')
 
             #self.tnet = self.qick_net_0
 
