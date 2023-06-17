@@ -91,6 +91,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
 
         # what buffer does this readout drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
+        blocktype = soc.metadata.mod2type(block)
+        if blocktype == "axis_broadcaster":
+                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
         self.buffer = getattr(soc, block)
 
         #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
@@ -477,6 +480,11 @@ class AxisAvgBuffer(SocIp):
         # which readout drives this buffer?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's_axis')
         blocktype = soc.metadata.mod2type(block)
+
+        if blocktype == "axis_broadcaster":
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+                blocktype = soc.metadata.mod2type(block)
+
         if blocktype == "axis_readout_v3":
             # the V3 readout block has no registers, so it doesn't get a PYNQ driver
             # so we initialize it here
@@ -514,7 +522,7 @@ class AxisAvgBuffer(SocIp):
             ((block, port),) = soc.metadata.trace_bus(block, 'M_AXIS')
         # port names are of the form 's1_axis'
         # subtract 1 to get the channel number (s0 comes from the DMA)
-        if soc.metadata.mod2type(block) in ["axis_tproc64x32_x8", "axis_tproc_v2"]:
+        if soc.metadata.mod2type(block) in ["axis_tproc64x32_x8", "qick_processor"]:
             # ask the tproc to translate this port name to a channel number
             self.tproc_ch = getattr(soc, block).port2ch(port)
         else:
