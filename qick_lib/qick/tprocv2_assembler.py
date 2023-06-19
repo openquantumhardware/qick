@@ -841,6 +841,7 @@ class Assembler():
             binary_array.append(binary_line)
         return binary_program_list, binary_array
 
+    @staticmethod
     def file_asm2bin(filename : str, save_unparsed_filename : str = "") -> list:
         """  opens file with assembler and returns the binary
         
@@ -855,6 +856,8 @@ class Assembler():
             binary_program_list = [[],[]]
             Logger.error("ASM2BIN", "Program list with errors.")
         return binary_program_list
+
+    @staticmethod
     def str_asm2bin(str_asm : str, save_unparsed_filename : str = "") -> list:
         """  get STR with assembler and returns the binary
         
