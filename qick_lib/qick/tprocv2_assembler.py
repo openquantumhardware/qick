@@ -739,82 +739,85 @@ class Assembler():
         error = 0
         CODE = 'x'
         for command in program_list:
-            if ('CMD' in command):
-                if not ('UF' in command):
-                    command['UF'] = '0'
-            ###############################################################################
-                if command['CMD'] == 'NOP':
-                    CODE = '000_000__000___00__0_00_00_____00000000000_000000_________00000000000000000000000000000000__0000000'
-            ###############################################################################
-                elif (command['CMD'] == 'REG_WR'):
-                    error, CODE = Instruction.REG_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'DMEM_WR':
-                    error, CODE = Instruction.DMEM_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'WMEM_WR':
-                    error, CODE = Instruction.WMEM_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'JUMP':
-                    error, CODE = Instruction.BRANCH(command, '00')
-            ###############################################################################
-                elif command['CMD'] == 'WAIT':
-                    command['TIME'] = str(int(command['TIME'])-10)
-                    command['UF'] = '1'
-                    command['IF'] = '1'
-                    command['OP'] = 's11-#' + command['TIME']
-                    error, CODE = Instruction.CFG(command)
-                    if (error==0):
-                        binary_program_list.append(CODE)
-                        command['IF'] = 'S'
+            try:
+                if ('CMD' in command):
+                    if not ('UF' in command):
+                        command['UF'] = '0'
+                ###############################################################################
+                    if command['CMD'] == 'NOP':
+                        CODE = '000_000__000___00__0_00_00_____00000000000_000000_________00000000000000000000000000000000__0000000'
+                ###############################################################################
+                    elif (command['CMD'] == 'REG_WR'):
+                        error, CODE = Instruction.REG_WR(command)
+                ###############################################################################
+                    elif command['CMD'] == 'DMEM_WR':
+                        error, CODE = Instruction.DMEM_WR(command)
+                ###############################################################################
+                    elif command['CMD'] == 'WMEM_WR':
+                        error, CODE = Instruction.WMEM_WR(command)
+                ###############################################################################
+                    elif command['CMD'] == 'JUMP':
                         error, CODE = Instruction.BRANCH(command, '00')
-           ###############################################################################
-                elif command['CMD'] == 'CALL':
-                    error, CODE = Instruction.BRANCH(command, '10')
-            ###############################################################################
-                elif command['CMD'] == 'RET':
-                    error, CODE = Instruction.BRANCH(command, '11')
-            ###############################################################################
-                elif command['CMD']=='DPORT_WR' or command['CMD'] == 'DPORT_RD' or command['CMD'] == 'WPORT_WR':
-                    error, CODE = Instruction.PORT_WR(command)
-            ###############################################################################
-                elif command['CMD']=='TRIG':
-                    error, CODE = Instruction.PORT_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'TIME':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'TEST':
-                    command['UF'] = '1'
-                    error, CODE = Instruction.CFG(command)
-            ###############################################################################
-                elif command['CMD'] == 'DIV':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'FLAG':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'NET':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'CUSTOM':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'ARITH':
-                    error, CODE = Instruction.ARITH(command)
-                else:
-                    error = Logger.error("COMMAND_TRANSLATION", "Command Listed but not programmed > " + command['CMD'])
-            else:    
-                error = Logger.error("COMMAND_TRANSLATION", "No Command at line " + str(command['LINE']))
-        ###################################################################################
-        
-            length = CODE.count('0') + CODE.count('1')
-            if (length != 72):
-                error = 72
-                Logger.error("COMMAND_TRANSLATION", f"{CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
+                ###############################################################################
+                    elif command['CMD'] == 'WAIT':
+                        command['TIME'] = str(int(command['TIME'])-10)
+                        command['UF'] = '1'
+                        command['IF'] = '1'
+                        command['OP'] = 's11-#' + command['TIME']
+                        error, CODE = Instruction.CFG(command)
+                        if (error==0):
+                            binary_program_list.append(CODE)
+                            command['IF'] = 'S'
+                            error, CODE = Instruction.BRANCH(command, '00')
+               ###############################################################################
+                    elif command['CMD'] == 'CALL':
+                        error, CODE = Instruction.BRANCH(command, '10')
+                ###############################################################################
+                    elif command['CMD'] == 'RET':
+                        error, CODE = Instruction.BRANCH(command, '11')
+                ###############################################################################
+                    elif command['CMD']=='DPORT_WR' or command['CMD'] == 'DPORT_RD' or command['CMD'] == 'WPORT_WR':
+                        error, CODE = Instruction.PORT_WR(command)
+                ###############################################################################
+                    elif command['CMD']=='TRIG':
+                        error, CODE = Instruction.PORT_WR(command)
+                ###############################################################################
+                    elif command['CMD'] == 'TIME':
+                        error, CODE = Instruction.CTRL(command)
+                ###############################################################################
+                    elif command['CMD'] == 'TEST':
+                        command['UF'] = '1'
+                        error, CODE = Instruction.CFG(command)
+                ###############################################################################
+                    elif command['CMD'] == 'DIV':
+                        error, CODE = Instruction.CTRL(command)
+                ###############################################################################
+                    elif command['CMD'] == 'FLAG':
+                        error, CODE = Instruction.CTRL(command)
+                ###############################################################################
+                    elif command['CMD'] == 'NET':
+                        error, CODE = Instruction.CTRL(command)
+                ###############################################################################
+                    elif command['CMD'] == 'CUSTOM':
+                        error, CODE = Instruction.CTRL(command)
+                ###############################################################################
+                    elif command['CMD'] == 'ARITH':
+                        error, CODE = Instruction.ARITH(command)
+                    else:
+                        error = Logger.error("COMMAND_TRANSLATION", "Command Listed but not programmed > " + command['CMD'])
+                else:    
+                    error = Logger.error("COMMAND_TRANSLATION", "No Command at line " + str(command['LINE']))
+            ###################################################################################
+                length = CODE.count('0') + CODE.count('1')
+                if (length != 72):
+                    error = 72
+                    Logger.error("COMMAND_TRANSLATION", f"{CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
+            except:
+                raise ValueError(f"Error in assembler line "+ str(command['LINE']))
         
             if (error):
-                return []
+                raise ValueError(f"Error in assembler line "+ str(command['LINE']))
+                #return []
             binary_program_list.append(CODE)
         
         if (save_unparsed_filename):
