@@ -49,7 +49,7 @@ from .qick_asm import QickConfig, QickProgram, DummyIp
 
 # only import the hardware drivers if running on a Zynq
 # also import if we're in the ReadTheDocs Sphinx build (the imports won't really work but they will be mocked)
-if platform.machine() in ['aarch64', 'armv7l'] or os.getenv('READTHEDOCS', default='True')=='True':
+if platform.machine() in ['aarch64', 'armv7l'] or os.getenv('READTHEDOCS', default='False')=='True':
     try:
         from .ip import SocIp
         from .qick import QickSoc
