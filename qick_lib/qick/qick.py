@@ -516,7 +516,12 @@ class QickSoc(Overlay, QickConfig):
         Resets all the board clocks
         """
         if self['board'] == 'ZCU111':
-            print("resetting clocks:", self['refclk_freq'])
+            # master clock generator is LMK04208, always outputs 122.88
+            # DAC/ADC are clocked by LMX2594
+            # available: 102.4, 204.8, 409.6, 737.0
+            lmk_freq = 122.88
+            lmx_freq = self['refclk_freq']
+            print("resetting clocks:", lmk_freq, lmx_freq)
 
             if hasattr(xrfclk, "xrfclk"): # pynq 2.7
                 # load the default clock chip configurations from file, so we can then modify them
@@ -525,23 +530,27 @@ class QickSoc(Overlay, QickConfig):
                 if self.clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
-                    xrfclk.xrfclk._Config['lmk04208'][122.88][6] = 0x00140325
+                    xrfclk.xrfclk._Config['lmk04208'][lmk_freq][6] = 0x00140325
                 if self.external_clk:
                     # default value is 0x2302886D
-                    xrfclk.xrfclk._Config['lmk04208'][122.88][14] = 0x2302826D
+                    xrfclk.xrfclk._Config['lmk04208'][lmk_freq][14] = 0x2302826D
             else: # pynq 2.6
                 if self.clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
-                    xrfclk._lmk04208Config[122.88][6] = 0x00140325
+                    xrfclk._lmk04208Config[lmk_freq][6] = 0x00140325
                 else: # restore the default
-                    xrfclk._lmk04208Config[122.88][6] = 0x80141E05
+                    xrfclk._lmk04208Config[lmk_freq][6] = 0x80141E05
                 if self.external_clk:
-                    xrfclk._lmk04208Config[122.88][14] = 0x2302826D
+                    xrfclk._lmk04208Config[lmk_freq][14] = 0x2302826D
                 else: # restore the default
-                    xrfclk._lmk04208Config[122.88][14] = 0x2302886D
-            xrfclk.set_all_ref_clks(self['refclk_freq'])
+                    xrfclk._lmk04208Config[lmk_freq][14] = 0x2302886D
+            xrfclk.set_all_ref_clks(lmx_freq)
         elif self['board'] == 'ZCU216':
+            # master clock generator is LMK04828, which is used for DAC/ADC clocks
+            # only 245.76 available by default
+            # LMX2594 is not used
+            # available: 102.4, 204.8, 409.6, 491.52, 737.0
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
             print("resetting clocks:", lmk_freq, lmx_freq)
@@ -551,21 +560,24 @@ class QickSoc(Overlay, QickConfig):
             xrfclk.xrfclk._read_tics_output()
             if self.external_clk:
                 # default value is 0x01471A
-                xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
+                xrfclk.xrfclk._Config['lmk04828'][lmk_freq][80] = 0x01470A
             if self.clk_output:
                 # default value is 0x012C22
-                xrfclk.xrfclk._Config['lmk04828'][245.76][55] = 0x012C02
+                xrfclk.xrfclk._Config['lmk04828'][lmk_freq][55] = 0x012C02
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
         elif self['board'] == 'RFSoC4x2':
-            lmk_freq = self['refclk_freq']/2
+            # master clock generator is LMK04828, always outputs 245.76
+            # DAC/ADC are clocked by LMX2594
+            # available: 102.4, 204.8, 409.6, 491.52, 737.0
+            lmk_freq = 245.76
             lmx_freq = self['refclk_freq']
             print("resetting clocks:", lmk_freq, lmx_freq)
+
             xrfclk.xrfclk._find_devices()
             xrfclk.xrfclk._read_tics_output()
-            print(xrfclk.xrfclk._Config['lmk04828'][245.76][80])
             if self.external_clk:
                 # default value is 0x01471A
-                xrfclk.xrfclk._Config['lmk04828'][245.76][80] = 0x01470A
+                xrfclk.xrfclk._Config['lmk04828'][lmk_freq][80] = 0x01470A
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
 
     def get_decimated(self, ch, address=0, length=None):
