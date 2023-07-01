@@ -117,8 +117,8 @@ class QickConfig():
 
         tproc = self['tprocs'][0]
         lines.append("\n\t%d digital output pins (tProc output %d):" % (len(tproc['output_pins']), tproc['trig_output']))
-        for pin, name in tproc['output_pins']:
-            lines.append("\t%d:\t%s" % (pin, name))
+        for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
+            lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
         lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
                 (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))

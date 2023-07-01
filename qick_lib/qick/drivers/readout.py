@@ -454,12 +454,12 @@ class AxisAvgBuffer(SocIp):
         self.N_BUF = int(description['parameters']['N_BUF'])
 
         # Maximum number of samples
-        self.AVG_MAX_LENGTH = 2**self.N_AVG
-        self.BUF_MAX_LENGTH = 2**self.N_BUF
+        self.cfg['avg_maxlen'] = 2**self.N_AVG
+        self.cfg['buf_maxlen'] = 2**self.N_BUF
 
         # Preallocate memory buffers for DMA transfers.
-        self.avg_buff = allocate(shape=self.AVG_MAX_LENGTH, dtype=np.int64)
-        self.buf_buff = allocate(shape=self.BUF_MAX_LENGTH, dtype=np.int32)
+        self.avg_buff = allocate(shape=self['avg_maxlen'], dtype=np.int64)
+        self.buf_buff = allocate(shape=self['buf_maxlen'], dtype=np.int32)
 
     # Configure this driver with links to the other drivers.
     def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf):
@@ -470,11 +470,6 @@ class AxisAvgBuffer(SocIp):
         # Switches.
         self.switch_avg = switch_avg
         self.switch_buf = switch_buf
-
-        self.cfg['avg_maxlen'] = self.AVG_MAX_LENGTH
-        self.cfg['buf_maxlen'] = self.BUF_MAX_LENGTH
-        self.cfg['trigger_bit'] = self.trigger_bit
-        self.cfg['tproc_ch'] = self.tproc_ch
 
     def configure_connections(self, soc):
         # which readout drives this buffer?
@@ -512,8 +507,18 @@ class AxisAvgBuffer(SocIp):
 
         # which tProc output bit triggers this buffer?
         ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
-        # port names are of the form 'dout14'
-        self.trigger_bit = int(port[4:])
+        # vect2bits/qick_vec2bit port names are of the form 'dout14'
+        self.cfg['trigger_bit'] = int(port[4:])
+
+        # which tProc output port triggers this buffer?
+        # two possibilities:
+        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
+        # tproc v2 data port -> vect2bits -> buffer
+        ((block, port),) = soc.metadata.trace_sig(block, 'din')
+        if soc.metadata.mod2type(block) == "axis_set_reg":
+            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
+        # ask the tproc to translate this port name to a channel number
+        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
 
         # which tProc input port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm2_axis')
@@ -524,10 +529,10 @@ class AxisAvgBuffer(SocIp):
         # subtract 1 to get the channel number (s0 comes from the DMA)
         if soc.metadata.mod2type(block) in ["axis_tproc64x32_x8", "qick_processor"]:
             # ask the tproc to translate this port name to a channel number
-            self.tproc_ch = getattr(soc, block).port2ch(port)
+            self.cfg['tproc_ch'], _ = getattr(soc, block).port2ch(port)
         else:
             # this buffer doesn't feed back into the tProc
-            self.tproc_ch = -1
+            self.cfg['tproc_ch'] = -1
 
         # print("%s: readout %s, switch %d, trigger %d, tProc port %d"%
         # (self.fullpath, self.readout.fullpath, self.switch_ch, self.trigger_bit, self.tproc_ch))
@@ -597,9 +602,9 @@ class AxisAvgBuffer(SocIp):
 
         if length % 2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.AVG_MAX_LENGTH:
+        if length >= self['avg_maxlen']:
             raise RuntimeError("length=%d longer than %d" %
-                               (length, self.AVG_MAX_LENGTH))
+                               (length, self['avg_maxlen']))
 
         # Route switch to channel.
         self.switch_avg.sel(slv=self.switch_ch)
@@ -675,9 +680,9 @@ class AxisAvgBuffer(SocIp):
 
         if length % 2 != 0:
             raise RuntimeError("Buffer transfer length must be even number.")
-        if length >= self.BUF_MAX_LENGTH:
+        if length >= self['buf_maxlen']:
             raise RuntimeError("length=%d longer or equal to %d" %
-                               (length, self.BUF_MAX_LENGTH))
+                               (length, self['buf_maxlen']))
 
         # Route switch to channel.
         self.switch_buf.sel(slv=self.switch_ch)

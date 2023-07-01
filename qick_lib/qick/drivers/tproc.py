@@ -106,15 +106,15 @@ class AxisTProc64x32_x8(SocIp):
         except:
             pass
         # search for the trigger port
-        for i in range(8):
+        for iPort in range(8):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
             try:
-                ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis' % (i+1))
+                ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis' % (iPort+1))
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "axis_set_reg":
-                self.cfg['trig_output'] = i
+                self.cfg['trig_output'] = iPort
                 ((block, port),) = soc.metadata.trace_sig(block, 'dout')
                 for iPin in range(16):
                     try:
@@ -122,7 +122,7 @@ class AxisTProc64x32_x8(SocIp):
                         if len(ports)==1 and len(ports[0])==1:
                             # it's an FPGA pin, save it
                             pinname = ports[0][0]
-                            self.cfg['output_pins'].append((iPin, pinname))
+                            self.cfg['output_pins'].append(('output', iPort, iPin, pinname))
                     except KeyError:
                         pass
 
@@ -133,7 +133,8 @@ class AxisTProc64x32_x8(SocIp):
         """
         # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
         # subtract 1 to get the output channel number (s0/m0 goes to the DMA)
-        return int(portname.split('_')[0][1:])-1
+        chtype = {'m':'output', 's':'input'}[portname[0]]
+        return int(portname.split('_')[0][1:])-1, chtype
 
     def start(self):
         """
@@ -380,42 +381,46 @@ class Axis_QICK_Proc(SocIp):
         for iPin in range(self['out_trig_qty']):
             try:
                 ports = soc.metadata.trace_sig(self.fullpath, "trig_%d_o"%(iPin))
-                print(iPin, ports)
                 if len(ports)==1 and len(ports[0])==1:
                     # it's an FPGA pin, save it
                     pinname = ports[0][0]
-                    self.cfg['output_pins'].append((iPin, pinname))
+                    self.cfg['output_pins'].append(('trig', iPin, 0, pinname))
             except KeyError:
                 pass
        # search for the trigger port
-        for i in range(self['out_dport_qty']):
+        for iPort in range(self['out_dport_qty']):
             # what block does this output drive?
-            # add 1, because output 0 goes to the DMA
             try:
-                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'port_%d_dt_o' % (i))
+                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'port_%d_dt_o' % (iPort))
             except: # skip disconnected tProc outputs
                 continue
-            if soc.metadata.mod2type(block).startswith("vect2bits"):
-                self.cfg['trig_output'] = i
-                for iPin in range(16):
+            if soc.metadata.mod2type(block) == "qick_vec2bit":
+                #self.cfg['trig_output'] = i
+                n_outputs = int(soc.metadata.get_param(block, 'OUT_QTY'))
+                for iPin in range(n_outputs):
                     try:
-                        #print(iPin, trace_net(sigparser, block, "dout%d"%(iPin)))
                         ports = soc.metadata.trace_sig(block, "dout%d"%(iPin))
                         if len(ports)==1 and len(ports[0])==1:
                             # it's an FPGA pin, save it
                             pinname = ports[0][0]
-                            self.cfg['output_pins'].append((iPin, pinname))
+                            self.cfg['output_pins'].append(('dport', iPort, iPin, pinname))
                     except KeyError:
                         pass
 
 
     def port2ch(self, portname):
         """
-        Translate a port name to a channel number.
+        Translate a port name to a channel number and type
         Used in connection mapping.
         """
-        # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
-        return int(portname.split('_')[0][1:])
+        words = portname.split('_')
+        if words[-1] == 'axis':
+            # port names are of the form 'm2_axis' (for outputs) and 's2_axis' (for inputs)
+            chtype = {'m':'wport', 's':'input'}[words[0][0]]
+            return int(words[0][1:]), chtype
+        else:
+            chtype = {'trig':'trig', 'port':'dport'}[words[0]]
+            return int(words[1]), chtype
 
                     
     def time_reset(self):
