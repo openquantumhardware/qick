@@ -82,6 +82,8 @@ class QickMetadata:
             self.busparser = BusParser(self.sigparser.root)
             self.xml = soc.parser.root
 
+        self.timestamp = self.xml.getroot().get('TIMESTAMP')
+
     def trace_sig(self, blockname, portname):
         if self.systemgraph is not None:
             dests = self.systemgraph.blocks[blockname].ports[portname].destinations()

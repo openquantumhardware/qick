@@ -63,6 +63,8 @@ class QickConfig():
         """
         lines = []
         lines.append("\n\tBoard: " + self['board'])
+        lines.append("\n\tSoftware version: " + self['sw_version'])
+        lines.append("\tFirmware timestamp: " + self['fw_timestamp'])
         lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
             self['fs_proc'], self['refclk_freq']))
 

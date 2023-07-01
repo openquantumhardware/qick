@@ -8,7 +8,7 @@ import xrfdc
 import numpy as np
 import time
 import queue
-from . import bitfile_path, obtain
+from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
 from .streamer import DataStreamer
@@ -259,6 +259,7 @@ class QickSoc(Overlay, QickConfig):
         QickConfig.__init__(self)
 
         self['board'] = os.environ["BOARD"]
+        self['sw_version'] = get_version()
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(
@@ -272,6 +273,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
+        self['fw_timestamp'] = self.metadata.timestamp
 
         if not no_tproc:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
