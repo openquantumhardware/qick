@@ -1008,6 +1008,12 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse['length'] = params['length']
 
 class AbsQickProgram:
+    # Calls to these methods will be passed through to the soccfg object.
+    soccfg_methods = ['freq2reg', 'freq2reg_adc',
+                      'reg2freq', 'reg2freq_adc',
+                      'cycles2us', 'us2cycles',
+                      'deg2reg', 'reg2deg']
+
     def __init__(self, soccfg):
         """
         Constructor method
@@ -1025,6 +1031,21 @@ class AbsQickProgram:
         # Timestamps, for keeping track of pulse and readout end times.
         self._gen_ts = [0]*len(soccfg['gens'])
         self._ro_ts = [0]*len(soccfg['readouts'])
+
+    def __getattr__(self, a):
+        """
+        Include QickConfig methods as methods of the QickProgram.
+        This allows e.g. this.freq2reg(f) instead of this.soccfg.freq2reg(f).
+
+        :param a: Instruction name
+        :type a: str
+        :return: Instruction arguments
+        :rtype: *args object
+        """
+        if a in self.__class__.soccfg_methods:
+            return getattr(self.soccfg, a)
+        else:
+            return object.__getattribute__(self, a)
 
     def config_all(self, soc, load_pulses=True):
         """
@@ -1364,11 +1385,6 @@ class QickProgram(AbsQickProgram):
     # Pairs of channels share a register page.
     # The flat_top pulse uses some extra registers.
     pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
-
-    soccfg_methods = ['freq2reg', 'freq2reg_adc',
-                      'reg2freq', 'reg2freq_adc',
-                      'cycles2us', 'us2cycles',
-                      'deg2reg', 'reg2deg']
 
     # Attributes to dump when saving the program to JSON.
     dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
