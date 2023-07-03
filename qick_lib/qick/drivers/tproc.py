@@ -98,6 +98,7 @@ class AxisTProc64x32_x8(SocIp):
     def configure_connections(self, soc):
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
+        self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "aclk")
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
             # check if the start pin is driven by a port of the top-level design
@@ -114,7 +115,6 @@ class AxisTProc64x32_x8(SocIp):
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "axis_set_reg":
-                self.cfg['trig_output'] = iPort
                 ((block, port),) = soc.metadata.trace_sig(block, 'dout')
                 for iPin in range(16):
                     try:
@@ -153,6 +153,42 @@ class AxisTProc64x32_x8(SocIp):
         """
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
+
+    def load_bin_program(self, binprog, reset=False):
+        """
+        Write the program to the tProc program memory.
+
+        :param reset: Reset the tProc before writing the program.
+        :type reset: bool
+        """
+        if reset: self.reset()
+
+        # cast the program words to 64-bit uints
+        self.binprog = np.array(binprog, dtype=np.uint64)
+        # reshape to 32 bits to match the program memory
+        self.binprog = np.frombuffer(self.binprog, np.uint32)
+
+        self.reload_program()
+
+    def reload_program(self):
+        """
+        Write the most recently written program to the tProc program memory.
+        This is normally useful after a reset (which erases the program memory)
+        """
+        # write the program to memory with a fast copy
+        np.copyto(self.mem.mmio.array[:len(self.binprog)], self.binprog)
+
+    def start_src(self, src):
+        """
+        Sets the start source of tProc
+
+        :param src: start source "internal" or "external"
+        :type src: string
+        """
+        # set internal-start register to "init"
+        # otherwise we might start the tProc on a transition from external to internal start
+        self.start_reg = 0
+        self.start_src_reg = {"internal": 0, "external": 1}[src]
 
     def single_read(self, addr):
         """
@@ -243,6 +279,7 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_start_reg = 0
 
         return buff
+
 
 class Axis_QICK_Proc(SocIp):
     """
@@ -368,7 +405,8 @@ class Axis_QICK_Proc(SocIp):
     def configure_connections(self, soc):
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
-        self.cfg['trig_output'] = 0 
+        self.cfg['f_core'] = soc.metadata.get_fclk(self.fullpath, "c_clk_i")
+        self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "t_clk_i")
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
             self.start_pin = port[0]
@@ -395,7 +433,6 @@ class Axis_QICK_Proc(SocIp):
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "qick_vec2bit":
-                #self.cfg['trig_output'] = i
                 n_outputs = int(soc.metadata.get_param(block, 'OUT_QTY'))
                 for iPin in range(n_outputs):
                     try:

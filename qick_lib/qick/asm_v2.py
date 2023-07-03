@@ -84,7 +84,7 @@ class QickProgramV2(AbsQickProgram):
         
     def pulse(self, ch, name, t=0):
         pulse_length = self.waves[name].length
-        pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
+        pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
         ts = self.get_timestamp(gen_ch=ch)
         if t == 'auto':
             t = int(ts) #TODO: 0?
@@ -131,7 +131,7 @@ class QickProgramV2(AbsQickProgram):
             ts = self.get_timestamp(ro_ch=ro)
             if t < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
             ro_length = self.ro_chs[ro]['length']
-            ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][ro]['f_fabric']
+            ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
             self.set_timestamp(int(t + ro_length), ro_ch=ro)
         for pin in pins:
             porttype, portnum, pinnum, _ = self.soccfg['tprocs'][0]['output_pins'][pin]
@@ -155,7 +155,7 @@ class QickProgramV2(AbsQickProgram):
     def sync_all(self, t=0):
         max_t = self.get_max_timestamp()
         if max_t+t > 0:
-            self.add_instruction( {'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{int(max_t+t)}' } )
+            self.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{int(max_t+t)}'})
             self.reset_timestamps()
 
     def compile_prog(self):

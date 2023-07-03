@@ -61,12 +61,14 @@ class QickConfig():
             description
 
         """
+        tproc = self['tprocs'][0]
+
         lines = []
         lines.append("\n\tBoard: " + self['board'])
         lines.append("\n\tSoftware version: " + self['sw_version'])
         lines.append("\tFirmware timestamp: " + self['fw_timestamp'])
         lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
-            self['fs_proc'], self['refclk_freq']))
+            tproc['f_time'], self['refclk_freq']))
 
         lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
         for iGen, gen in enumerate(self['gens']):
@@ -119,7 +121,6 @@ class QickConfig():
             lines.append("\t\tADC tile %d, blk %d is %s" %
                          (tile, block, label))
 
-        tproc = self['tprocs'][0]
         lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
         for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
             lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
@@ -440,7 +441,7 @@ class QickConfig():
         elif ro_ch is not None:
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
-            fclk = self['fs_proc']
+            fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
 
     def us2cycles(self, us, gen_ch=None, ro_ch=None):
@@ -470,7 +471,7 @@ class QickConfig():
         elif ro_ch is not None:
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
-            fclk = self['fs_proc']
+            fclk = self['tprocs'][0]['f_time']
         return np.int64(np.round(obtain(us)*fclk))
 
 class AbsRegisterManager(ABC):
@@ -1012,6 +1013,7 @@ class AbsQickProgram:
         Constructor method
         """
         self.soccfg = soccfg
+        self.tproccfg = self.soccfg['tprocs'][0]
 
         # Pulse envelopes.
         self.pulses = [{} for ch in soccfg['gens']]
@@ -1963,7 +1965,7 @@ class QickProgram(AbsQickProgram):
                     print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
-                pulse_length *= self.soccfg['fs_proc']/self.soccfg['gens'][ch]['f_fabric']
+                pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
                 self.set_timestamp(t + pulse_length, gen_ch=ch)
                 self.safe_regwi(rp, r_t, t, f't = {t}')
 
@@ -2071,7 +2073,7 @@ class QickProgram(AbsQickProgram):
                     print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[ro]['length']
-                ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][ro]['f_fabric']
+                ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
                 self.set_timestamp(t_start + ro_length, ro_ch=ro)
         t_end = t_start + width
 

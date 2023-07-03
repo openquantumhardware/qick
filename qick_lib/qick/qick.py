@@ -280,11 +280,9 @@ class QickSoc(Overlay, QickConfig):
             if 'axis_tproc64x32_x8_0' in self.ip_dict:
                 self._tproc = self.axis_tproc64x32_x8_0
                 self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
             elif 'qick_processor_0' in self.ip_dict:
                 self._tproc = self.qick_processor_0
                 self._tproc.configure(self.axi_dma_tproc)
-                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "c_clk_i")
             else:
                 raise RuntimeError('No tProcessor found')
 
@@ -794,23 +792,7 @@ class QickSoc(Overlay, QickConfig):
         :param reset: Reset the tProc before writing the program.
         :type reset: bool
         """
-        if reset: self.tproc.reset()
-
-        # cast the program words to 64-bit uints
-        self.binprog = np.array(obtain(binprog), dtype=np.uint64)
-        # reshape to 32 bits to match the program memory
-        self.binprog = np.frombuffer(self.binprog, np.uint32)
-
-        self.reload_program()
-
-    def reload_program(self):
-        """
-        Write the most recently written program to the tProc program memory.
-        This is normally useful after a reset (which erases the program memory)
-        """
-        # write the program to memory with a fast copy
-        #print(self.binprog)
-        np.copyto(self.tproc.mem.mmio.array[:len(self.binprog)], self.binprog)
+        self.tproc.load_bin_program(obtain(binprog), reset)
 
     def start_src(self, src):
         """
@@ -819,10 +801,7 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: string
         """
-        # set internal-start register to "init"
-        # otherwise we might start the tProc on a transition from external to internal start
-        self.tproc.start_reg = 0
-        self.tproc.start_src_reg = {"internal": 0, "external": 1}[src]
+        self.tproc.start_src(src)
 
     def reset_gens(self):
         """
