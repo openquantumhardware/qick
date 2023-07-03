@@ -5,7 +5,7 @@ import logging
 from typing import Union, List
 import numpy as np
 import json
-from collections import namedtuple, OrderedDict
+from collections import namedtuple, OrderedDict, defaultdict
 from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
@@ -89,8 +89,10 @@ class QickConfig():
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
                          (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
-            lines.append("\t\tmaxlen %d (avg) %d (decimated), trigger bit %d, tProc input %d" % (
-                readout['avg_maxlen'], readout['buf_maxlen'], readout['trigger_bit'], readout['tproc_ch']))
+            lines.append("\t\tmaxlen %d (avg) %d (decimated)" % (
+                readout['avg_maxlen'], readout['buf_maxlen']))
+            lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
+                readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
 
         lines.append("\n\t%d DACs:" % (len(self['dacs'])))
         for dac in self['dacs']:
@@ -118,7 +120,7 @@ class QickConfig():
                          (tile, block, label))
 
         tproc = self['tprocs'][0]
-        lines.append("\n\t%d digital output pins (tProc output %d):" % (len(tproc['output_pins']), tproc['trig_output']))
+        lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
         for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
             lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
@@ -2051,31 +2053,33 @@ class QickProgram(AbsQickProgram):
         if not adcs and not pins:
             raise RuntimeError("must pulse at least one ADC or pin")
 
-        out = 0
-        for adc in adcs:
-            out |= (1 << self.soccfg['readouts'][adc]['trigger_bit'])
+        outdict = defaultdict(int)
+        for ro in adcs:
+            rocfg = self.soccfg['readouts'][ro]
+            outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
         for pin in pins:
-            out |= (1 << pin)
+            pincfg = self.soccfg['tprocs'][0]['output_pins'][pin]
+            outdict[pincfg[1]] |= (1 << pincfg[2])
 
         t_start = t
         if adcs:
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
-            for adc in adcs:
-                ts = self.get_timestamp(ro_ch=adc)
+            for ro in adcs:
+                ts = self.get_timestamp(ro_ch=ro)
                 if t_start < ts:
                     print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
-                ro_length = self.ro_chs[adc]['length']
-                ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][adc]['f_fabric']
-                self.set_timestamp(t_start + ro_length, ro_ch=adc)
+                ro_length = self.ro_chs[ro]['length']
+                ro_length *= self.soccfg['fs_proc']/self.soccfg['readouts'][ro]['f_fabric']
+                self.set_timestamp(t_start + ro_length, ro_ch=ro)
         t_end = t_start + width
 
-        trig_output = self.soccfg['tprocs'][0]['trig_output']
+        for outport, out in outdict.items():
+            self.regwi(rp, r_out, out, f'out = 0b{out:>016b}')
+            self.seti(outport, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
+            self.seti(outport, rp, 0, t_end, f'ch =0 out = 0 @t = {t}')
 
-        self.regwi(rp, r_out, out, f'out = 0b{out:>016b}')
-        self.seti(trig_output, rp, r_out, t_start, f'ch =0 out = ${r_out} @t = {t}')
-        self.seti(trig_output, rp, 0, t_end, f'ch =0 out = 0 @t = {t}')
 
     def measure(self, adcs, pulse_ch, pins=None, adc_trig_offset=270, t='auto', wait=False, syncdelay=None):
         """Wrapper method that combines an ADC trigger, a pulse, and (optionally) the appropriate wait and a sync_all.
