@@ -20,7 +20,13 @@ class QickProgramV2(AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
         self.prog_list = []
-        self.labels = {}
+        self.labels = {'s15': 's15'} # register 15 predefinition
+
+        # address in program memory
+        self.p_addr = 1
+        # line number
+        self.line = 1
+        # first instruction is always NOP, so both counters start at 1
 
         self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
         self._user_regs = []  # addr of all user defined registers
@@ -31,9 +37,21 @@ class QickProgramV2(AbsQickProgram):
         self.waves = OrderedDict()
         self.wave2idx = {}
 
-    def add_instruction(self, inst):
+    def add_instruction(self, inst, addr_inc=1):
         # copy the instruction dict in case it's getting reused and modified
-        self.prog_list.append(inst.copy())
+        inst = inst.copy()
+        inst['P_ADDR'] = self.p_addr
+        inst['LINE'] = self.line
+        self.p_addr += addr_inc
+        self.line += 1
+        self.prog_list.append(inst)
+
+    def end(self):
+        self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}', 'UF':'0'})
+
+    def wait(self, time):
+        # the assembler translates "WAIT" into two instructions
+        self.add_instruction({'CMD':'WAIT', 'ADDR':f'&{self.p_addr + 1}', 'TIME': f'{time}'}, addr_inc=2)
 
     def add_label(self, label):
         """apply the specified label to the next instruction
