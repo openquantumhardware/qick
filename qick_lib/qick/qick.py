@@ -8,7 +8,7 @@ import xrfdc
 import numpy as np
 import time
 import queue
-from . import bitfile_path, obtain
+from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
 from .streamer import DataStreamer
@@ -259,6 +259,7 @@ class QickSoc(Overlay, QickConfig):
         QickConfig.__init__(self)
 
         self['board'] = os.environ["BOARD"]
+        self['sw_version'] = get_version()
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
         self.list_rf_blocks(
@@ -272,17 +273,16 @@ class QickSoc(Overlay, QickConfig):
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
+        self['fw_timestamp'] = self.metadata.timestamp
 
         if not no_tproc:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
             if 'axis_tproc64x32_x8_0' in self.ip_dict:
                 self._tproc = self.axis_tproc64x32_x8_0
                 self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "aclk")
             elif 'qick_processor_0' in self.ip_dict:
                 self._tproc = self.qick_processor_0
                 self._tproc.configure(self.axi_dma_tproc)
-                self['fs_proc'] = self.metadata.get_fclk(self.tproc.fullpath, "c_clk_i")
             else:
                 raise RuntimeError('No tProcessor found')
 
@@ -596,7 +596,7 @@ class QickSoc(Overlay, QickConfig):
         if length is None:
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
-            length = self.avg_bufs[ch].BUF_MAX_LENGTH
+            length = self.avg_bufs[ch]['buf_maxlen']
 
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length % 2
@@ -604,7 +604,7 @@ class QickSoc(Overlay, QickConfig):
         # there is a bug which causes the first sample of a transfer to always be the sample at address 0
         # we work around this by requesting an extra 2 samples at the beginning
         data = self.avg_bufs[ch].transfer_buf(
-            (address-2) % self.avg_bufs[ch].BUF_MAX_LENGTH, transfer_len+2)
+            (address-2) % self.avg_bufs[ch]['buf_maxlen'], transfer_len+2)
 
         # we remove the padding here
         return data[2:length+2]
@@ -626,7 +626,7 @@ class QickSoc(Overlay, QickConfig):
         if length is None:
             # this default will always cause a RuntimeError
             # TODO: remove the default, or pick a better fallback value
-            length = self.avg_bufs[ch].AVG_MAX_LENGTH
+            length = self.avg_bufs[ch]['avg_maxlen']
 
         # we must transfer an even number of samples, so we pad the transfer size
         transfer_len = length + length % 2
@@ -634,7 +634,7 @@ class QickSoc(Overlay, QickConfig):
         # there is a bug which causes the first sample of a transfer to always be the sample at address 0
         # we work around this by requesting an extra 2 samples at the beginning
         data = self.avg_bufs[ch].transfer_avg(
-            (address-2) % self.avg_bufs[ch].AVG_MAX_LENGTH, transfer_len+2)
+            (address-2) % self.avg_bufs[ch]['avg_maxlen'], transfer_len+2)
 
         # we remove the padding here
         return data[2:length+2]
@@ -792,23 +792,7 @@ class QickSoc(Overlay, QickConfig):
         :param reset: Reset the tProc before writing the program.
         :type reset: bool
         """
-        if reset: self.tproc.reset()
-
-        # cast the program words to 64-bit uints
-        self.binprog = np.array(obtain(binprog), dtype=np.uint64)
-        # reshape to 32 bits to match the program memory
-        self.binprog = np.frombuffer(self.binprog, np.uint32)
-
-        self.reload_program()
-
-    def reload_program(self):
-        """
-        Write the most recently written program to the tProc program memory.
-        This is normally useful after a reset (which erases the program memory)
-        """
-        # write the program to memory with a fast copy
-        #print(self.binprog)
-        np.copyto(self.tproc.mem.mmio.array[:len(self.binprog)], self.binprog)
+        self.tproc.load_bin_program(obtain(binprog), reset)
 
     def start_src(self, src):
         """
@@ -817,10 +801,7 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: string
         """
-        # set internal-start register to "init"
-        # otherwise we might start the tProc on a transition from external to internal start
-        self.tproc.start_reg = 0
-        self.tproc.start_src_reg = {"internal": 0, "external": 1}[src]
+        self.tproc.start_src(src)
 
     def reset_gens(self):
         """

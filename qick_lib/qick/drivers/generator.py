@@ -204,7 +204,7 @@ class AbsPulsedSignalGen(AbsSignalGen):
             else:
                 raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
         # ask the tproc to translate this port name to a channel number
-        self.cfg['tproc_ch'] = getattr(soc, block).port2ch(port)
+        self.cfg['tproc_ch'],_ = getattr(soc, block).port2ch(port)
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
