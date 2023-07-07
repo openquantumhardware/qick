@@ -65,24 +65,26 @@ class QickMetadata:
     """
     def __init__(self, soc):
         # We will use the HWH parser to extract information about signal connections between blocks.
+        # system graph object, if available
+        self.systemgraph = None
+        # root element of the HWH file
+        self.xml = None
+        # parsers for signals and busses, using system graph or XML as appropriate
         self.sigparser = None
         self.busparser = None
-        self.systemgraph = None
-        self.xml = None
 
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
             self.systemgraph = soc.systemgraph
-            # TODO: We shouldn't need to use BusParser, but we think there's a bug in how pynqmetadata handles axis_switch.
-            self.busparser = BusParser(self.systemgraph._root)
-            self.xml = soc.systemgraph._element_tree
+            self.xml = soc.systemgraph._root
         else:
             self.sigparser = soc.parser
             # Since the HWH parser doesn't parse buses, we also make our own BusParser.
-            self.busparser = BusParser(self.sigparser.root)
             self.xml = soc.parser.root
+        # TODO: We shouldn't need to use BusParser for PYNQ 3.0, but we think there's a bug in how pynqmetadata handles axis_switch.
+        self.busparser = BusParser(self.xml)
 
-        self.timestamp = self.xml.getroot().get('TIMESTAMP')
+        self.timestamp = self.xml.get('TIMESTAMP')
 
     def trace_sig(self, blockname, portname):
         if self.systemgraph is not None:
