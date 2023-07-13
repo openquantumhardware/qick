@@ -2015,20 +2015,32 @@ class QickProgram(AbsQickProgram):
             if imm % 4 != 0:
                 self.mathi(rp, reg, reg, "+", imm % 4)
 
-    def sync_all(self, t=0):
+
+    def sync_all(self, t=0, dac_t0=None):
         """Aligns and syncs all channels with additional time t.
         Accounts for both generator pulses and readout windows.
-        This does not pause the tProc.
+        This does not pause the tProc. dac_t0 is an optional list of
+        additional delays for each individual DAC channel, e.g. when 
+        the channels are on different tiles so they don't natively sync.
 
         Parameters
         ----------
         t : int, optional
             The time offset in tProc cycles
+        dac_t0 : list, optional
+            List of additional delays for each individual DAC channel, in tProc cycles
         """
-        max_t = self.get_max_timestamp()
-        if max_t+t > 0:
-            self.synci(int(max_t+t))
-            self.reset_timestamps()
+        time_offset_dac = [0] * len(self._dac_ts) if dac_t0 is None else list(np.copy(dac_t0))
+        dac_ts_copy = np.copy(self._dac_ts)
+        self._dac_ts = [max(time - offset, 0) for time, offset in zip(dac_ts_copy, time_offset_dac)]
+        max_t = max(self._dac_ts + self._adc_ts)
+        if max_t + t > 0:
+            self.synci(int(max_t + t))
+            self._dac_ts = [0] * len(self._dac_ts) if dac_t0 is None else list(np.copy(dac_t0))
+            self._adc_ts = [0] * len(self._adc_ts)
+        elif dac_t0:
+            self._dac_ts = list(np.copy(dac_t0))
+
 
     def wait_all(self, t=0):
         """Pause the tProc until all ADC readout windows are complete, plus additional time t.
