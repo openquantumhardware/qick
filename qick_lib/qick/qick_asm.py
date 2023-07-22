@@ -1308,8 +1308,8 @@ class AbsQickProgram:
                         data=pulse['data'],
                         addr=pulse['addr'])
 
-    def reset_timestamps(self):
-        self._gen_ts = [0]*len(self._gen_ts)
+    def reset_timestamps(self, gen_t0=None):
+        self._gen_ts = [0]*len(self._gen_ts) if gen_t0 is None else gen_t0.copy()
         self._ro_ts = [0]*len(self._ro_ts)
 
     def get_timestamp(self, gen_ch=None, ro_ch=None):
@@ -1332,10 +1332,16 @@ class AbsQickProgram:
         else:
             raise RuntimeError("must specify gen_ch or ro_ch!")
 
-    def get_max_timestamp(self, gens=True, ros=True):
+    def get_max_timestamp(self, gens=True, ros=True, gen_t0=None):
         timestamps = []
-        if gens: timestamps += self._gen_ts
-        if ros: timestamps += self._ro_ts
+        if gens:
+            if gen_t0 is None:
+                timestamps += list(self._gen_ts)
+            else:
+                gen_ts_copy = np.copy(self._gen_ts)
+                gen_t0_copy = np.copy(gen_t0)
+                timestamps += list(np.maximum(gen_ts_copy - gen_t0_copy, 0))
+        if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
 
@@ -2015,20 +2021,31 @@ class QickProgram(AbsQickProgram):
             if imm % 4 != 0:
                 self.mathi(rp, reg, reg, "+", imm % 4)
 
-    def sync_all(self, t=0):
+
+    def sync_all(self, t=0, gen_t0=None):
         """Aligns and syncs all channels with additional time t.
         Accounts for both generator pulses and readout windows.
-        This does not pause the tProc.
+        This does not pause the tProc. gen_t0 is an optional list of
+        additional delays for each individual generator channel, e.g. when 
+        the channels are on different tiles so they don't natively sync.
 
         Parameters
         ----------
         t : int, optional
             The time offset in tProc cycles
+        gen_t0 : list, optional
+            List of additional delays for each individual generator channel, in tProc cycles
         """
-        max_t = self.get_max_timestamp()
-        if max_t+t > 0:
-            self.synci(int(max_t+t))
-            self.reset_timestamps()
+        # subtract gen_t0 from the timestamps
+        max_t = self.get_max_timestamp(gen_t0=gen_t0)
+        if max_t + t > 0:
+            self.synci(int(max_t + t))
+            # reset all timestamps to 0 or gen_t0 (if defined)
+            self.reset_timestamps(gen_t0=gen_t0)
+        elif gen_t0:
+            # we just want to set the timestamps to gen_t0
+            self.reset_timestamps(gen_t0=gen_t0)
+
 
     def wait_all(self, t=0):
         """Pause the tProc until all ADC readout windows are complete, plus additional time t.
