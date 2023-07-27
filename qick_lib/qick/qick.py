@@ -271,6 +271,17 @@ class QickSoc(Overlay, QickConfig):
         self.rf = self.usp_rf_data_converter_0
         self.rf.configure(self)
 
+        try:
+            self.ddr4_array = self.ddr4_0.mmio.array.view('uint32')
+            self['ddr4_size'] = self.ddr4_array.shape[0]
+        except:
+            pass
+
+        try:
+            self.ddr4_buff = self.axis_buffer_ddr_v1_0
+        except:
+            pass
+
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
@@ -907,3 +918,19 @@ class QickSoc(Overlay, QickConfig):
             except queue.Empty:
                 break
         return new_data
+
+    def clear_ddr4(self, length=None):
+        if length is None:
+            np.copyto(self.ddr4_array, 0)
+        else:
+            np.copyto(self.ddr4_array[:length], 0)
+
+    def get_ddr4(self, length, address=0):
+        iq = np.frombuffer(self.ddr4_array[address:address+length], dtype=np.int16).reshape((-1,2))
+        return iq.copy()
+
+    def arm_ddr4(self, ch, nt):
+        self.ddr4_buff.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
+        self.ddr4_buff.wlen(nt)
+        self.ddr4_buff.wstop()
+        self.ddr4_buff.wstart()

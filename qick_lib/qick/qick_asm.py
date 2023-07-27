@@ -129,6 +129,9 @@ class QickConfig():
                 (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
+        if "ddr4_size" in self._cfg:
+            lines.append("\n\tDDR4 memory buffer: %d IQ pairs" % (self['ddr4_size']))
+
         return "\nQICK configuration:\n"+"\n".join(lines)
 
     def get_cfg(self):
