@@ -796,3 +796,137 @@ class MrBufferEt(SocIp):
         self.dw_capture_reg = 0
 
 
+class AxisBufferDdrV1(SocIp):
+    """
+    The DDR4 buffer block is similar to the decimated buffer in the avg_buffer block, except that data is written to DDR4 memory instead of FPGA memory.
+
+    Typically multiple readouts will be connected to this buffer through a switch.
+    The driver assumes that input(s) to this buffer are also sent to avg_buffer blocks.
+    """
+    # AXIS Buffer DDR V1 Registers.
+    bindto = ['user.org:user:axis_buffer_ddr_v1:1.0']
+    REGISTERS = {   'rstart_reg' : 0,
+                    'raddr_reg'  : 1,
+                    'rlength_reg': 2,
+                    'wstart_reg' : 3,
+                    'waddr_reg'  : 4,
+                    'wnburst_reg': 5
+                }
+
+    # Stream Input Port.
+    STREAM_IN_PORT  = "s_axis"
+
+    def __init__(self, description):
+        # Initialize ip
+        super().__init__(description)
+
+        # Default registers.
+        self.rstart_reg  = 0
+        self.raddr_reg   = 0
+        self.rlength_reg = 10
+        self.wstart_reg  = 0
+        self.waddr_reg   = 0
+        self.wnburst_reg = 10
+
+        # Switch for selecting input.
+        self.switch = None
+        # Map from avg_buf name to switch port.
+        self.buf2switch = {}
+
+        # Generics.
+        self.TARGET_SLAVE_BASE_ADDR   = int(description['parameters']['TARGET_SLAVE_BASE_ADDR'],0)
+        self.ID_WIDTH                 = int(description['parameters']['ID_WIDTH'])
+        self.DATA_WIDTH               = int(description['parameters']['DATA_WIDTH'])
+        self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1
+
+        self.cfg['burst_len'] = self.DATA_WIDTH*self.BURST_SIZE//32
+        self.cfg['readouts'] = []
+
+    def configure_connections(self, soc):
+        self.soc = soc
+
+        # Typical: buffer_ddr -> clock_converter -> dwidth_converter -> switch (optional) -> broadcaster
+        # the broadcaster will feed this block and a regular avg_buf
+        ((block,port),) = soc.metadata.trace_bus(self.fullpath, self.STREAM_IN_PORT)
+
+        while True:
+            blocktype = soc.metadata.mod2type(block)
+            if blocktype == "axis_clock_converter":
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_dwidth_converter":
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_broadcaster":
+                # no switch, just wired to a single readout
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+                for iOut in range(int(soc.metadata.get_param(block, 'NUM_MI'))):
+                    outname = "M%02d_AXIS" % (iOut)
+                    if outname != port:
+                        ((bufname, _),) = soc.metadata.trace_bus(block, outname)
+                        self.avg_buf = bufname
+                        self.buf2switch[bufname] = 0
+                break
+            elif blocktype == "axis_switch":
+                # Add switch
+                self.switch = getattr(soc, block)
+
+                # Number of slave interfaces.
+                NUM_SI_param = int(soc.metadata.get_param(block, 'NUM_SI'))
+
+                # Back trace all slaves.
+                sw_block = block
+                for iIn in range(NUM_SI_param):
+                    inname = "S%02d_AXIS" % (iIn)
+                    ((block, port),) = soc.metadata.trace_bus(sw_block, inname)
+
+                    blocktype = soc.metadata.mod2type(block)
+                    if blocktype == "axis_broadcaster":
+                        for iOut in range(int(soc.metadata.get_param(block, 'NUM_MI'))):
+                            outname = "M%02d_AXIS" % (iOut)
+                            if outname != port:
+                                ((bufname, _),) = soc.metadata.trace_bus(block, outname)
+                                self.buf2switch[bufname] = iIn
+                                self.cfg['readouts'].append(bufname)
+                    else:
+                        raise RuntimeError("tracing inputs to DDR4 switch and found something other than a broadcaster")
+                break
+            else:
+                raise RuntimeError("falied to trace port for %s - unrecognized IP block %s" % (self.fullpath, block))
+
+        # which tProc output bit triggers this buffer?
+        ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
+        # vect2bits/qick_vec2bit port names are of the form 'dout14'
+        self.cfg['trigger_bit'] = int(port[4:])
+
+        # which tProc output port triggers this buffer?
+        # two possibilities:
+        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
+        # tproc v2 data port -> vect2bits -> buffer
+        ((block, port),) = soc.metadata.trace_sig(block, 'din')
+        if soc.metadata.mod2type(block) == "axis_set_reg":
+            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
+        # ask the tproc to translate this port name to a channel number
+        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
+
+    def rstop(self):
+        self.rstart_reg = 0
+
+    def rstart(self):
+        self.rstart_reg = 1
+
+    def wstop(self):
+        self.wstart_reg = 0
+
+    def wstart(self):
+        self.wstart_reg = 1
+
+    def wlen(self, len_=10):
+        """
+        Set the number of bursts. Each burst is 256 IQ pairs.
+        """
+        self.wnburst_reg = len_
+
+    def set_switch(self, bufname):
+        # if there's no switch, just check that the specified buffer is the one that's hardwired
+        if self.switch is None:
+            assert self.buf2switch[bufname]==0
+        self.switch.sel(slv=self.buf2switch[bufname])

@@ -397,6 +397,19 @@ class QickSoc(Overlay, QickConfig):
         for readout in self.readouts:
             readout.configure(self.rf, self.adcs[readout.adc]['fs'])
 
+        # Find the DDR4 controller and buffer, if present.
+        try:
+            self.ddr4_array = self.ddr4_0.mmio.array.view('uint32')
+            self['ddr4_size'] = self.ddr4_array.shape[0]
+        except:
+            pass
+
+        try:
+            self.ddr4_buf = self.axis_buffer_ddr_v1_0
+            self['ddr4_buf'] = self.ddr4_buf.cfg
+        except:
+            pass
+
         # Fill the config dictionary with driver parameters.
         self['dacs'] = list(self.dacs.keys())
         self['adcs'] = list(self.adcs.keys())
@@ -907,3 +920,53 @@ class QickSoc(Overlay, QickConfig):
             except queue.Empty:
                 break
         return new_data
+
+    def clear_ddr4(self, length=None):
+        """Clear the DDR4 buffer, filling it with 0's.
+        This is not necessary (the buffer will overwrite old data), but may be useful for debugging.
+        Clearing the full buffer (4 GB) typically takes 4-5 seconds.
+
+        Parameters
+        ----------
+        length : int
+            Number of samples to clear (starting at the beginning of the buffer). If None, clear the entire buffer.
+        """
+        if length is None:
+            np.copyto(self.ddr4_array, 0)
+        else:
+            np.copyto(self.ddr4_array[:length], 0)
+
+    def get_ddr4(self, length, address=0, copy=True):
+        """Get data from the DDR4 buffer.
+
+        Parameters
+        ----------
+        length : int
+            Number of samples to retrieve.
+        address : int
+            Number of samples to skip at the beginning of the buffer.
+        copy : bool
+            Return a copy of the buffer contents instead of a view.
+            A view is faster, but risky (it will change when the buffer is triggered again).
+        """
+        iq = np.frombuffer(self.ddr4_array[address:address+length], dtype=np.int16).reshape((-1,2))
+        if copy: iq = iq.copy()
+        return iq
+
+    def arm_ddr4(self, ch, nt):
+        """Prepare the DDR4 buffer to take data.
+        This must be called before starting a program that triggers the buffer.
+        Once the buffer is armed, the first trigger it receives will cause the buffer to record the specified amount of data.
+        Later triggers will have no effect.
+
+        Parameters
+        ----------
+        ch : int
+            The readout channel to record (index in 'readouts' list)
+        nt : int
+            Number of data transfers to record; the number of IQ samples/transfer (typically 256) is printed in the QickSoc config
+        """
+        self.ddr4_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
+        self.ddr4_buf.wlen(nt)
+        self.ddr4_buf.wstop()
+        self.ddr4_buf.wstart()
