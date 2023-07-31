@@ -1016,6 +1016,8 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse['length'] = params['length']
 
 class AbsQickProgram:
+    """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
+    """
     # Calls to these methods will be passed through to the soccfg object.
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
                       'reg2freq', 'reg2freq_adc',
@@ -2514,12 +2516,12 @@ class QickProgram(AbsQickProgram):
 
 
 class QickRegister:
+    """A qick register object that keeps the page, address, generator/readout channel and register type information,
+       provides functions that make it easier to set register value given input values in physical units.
+    """
     def __init__(self, prog: QickProgram, page: int, addr: int, reg_type: str = None,
                  gen_ch: int = None, ro_ch: int = None, init_val=None, name: str = None):
         """
-        a qick register object that keeps the page, address, generator/readout channel and register type information,
-        provides functions that make it easier to set register value given input values in physical units.
-
         :param prog: qick program in which the register is used.
         :param page: page of the register
         :param addr: address of the register in the register page (referred as "register number" in some other places)
