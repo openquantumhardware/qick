@@ -490,6 +490,8 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
         self.update()
 
 class AxisConstantIQ(AbsSignalGen):
+    """Plays a constant IQ value, which gets mixed with the DAC's built-in oscillator.
+    """
     # AXIS Constant IQ registers:
     # REAL_REG : 16-bit.
     # IMAG_REG : 16-bit.
@@ -514,6 +516,16 @@ class AxisConstantIQ(AbsSignalGen):
         self.we_reg = 0
 
     def set_iq(self, i=1, q=1):
+        """
+        Set gain.
+
+        Parameters
+        ----------
+        i : float
+            signed gain, I component (in range -1 to 1)
+        q : float
+            signed gain, Q component (in range -1 to 1)
+        """
         # Set registers.
         self.real_reg = np.int16(i*self.MAXV)
         self.imag_reg = np.int16(q*self.MAXV)
