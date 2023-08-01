@@ -55,9 +55,30 @@ class AbsSignalGen(SocIp):
         #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
 
     def set_nyquist(self, nqz):
+        """Set the Nyquist zone mode for the DAC linked to this generator.
+        For tProc-controlled generators, this method is called automatically during program config.
+        You should normally only call this method directly for a constant-IQ output.
+
+        Parameters
+        ----------
+        nqz : int
+            Nyquist zone (must be 1 or 2).
+            Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
+        """
         self.rf.set_nyquist(self.dac, nqz)
 
     def set_mixer_freq(self, f, ro_ch=None):
+        """Set the mixer frequency for the DAC linked to this generator.
+        For tProc-controlled generators, this method is called automatically during program config.
+        You should normally only call this method directly for a constant-IQ output.
+
+        Parameters
+        ----------
+        mixer_freq : float
+            Mixer frequency (in MHz)
+        ro_ch : int
+            readout channel for frequency matching (use None if you don't want mixer freq to be rounded to a valid readout frequency)
+        """
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
         if ro_ch is None:
