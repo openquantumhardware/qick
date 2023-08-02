@@ -96,9 +96,33 @@ class NpEncoder(json.JSONEncoder):
         return super().default(obj)
 
 def progs2json(proglist):
+    """Dump QICK programs to a JSON string.
+
+    Parameters
+    ----------
+    proglist : list of dict
+        A list of program dictionaries to dump.
+
+    Returns
+    -------
+    str
+        A JSON string.
+    """
     return json.dumps(proglist, cls=NpEncoder)
 
 def json2progs(s):
+    """Read QICK programs from JSON.
+
+    Parameters
+    ----------
+    s : file-like object or string
+        A JSON file or JSON string.
+
+    Returns
+    -------
+    list of dict
+        A list of program dictionaries.
+    """
     if hasattr(s, 'read'):
         # input is file-like, we should use json.load()
         # be sure to read dicts back in order (only matters for Python <3.7)

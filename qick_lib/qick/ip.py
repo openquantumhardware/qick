@@ -167,6 +167,8 @@ class QickMetadata:
         return self.busparser.mod2type[blockname]
 
 class BusParser:
+    """Parses the HWH XML file to extract information on the buses connecting IP blocks.
+    """
     def __init__(self, root):
         """
         Matching all the buses in the modules from the HWH file.
