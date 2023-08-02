@@ -68,3 +68,109 @@ If you want to make changes to the firmware, or you just want to look at the des
 * In the Tcl console at the bottom of the screen navigate to this directory, then run `source ./proj_111.tcl` (or whichever of the proj_ scripts matches the board you are using). This will create the firmware project and will end by showing you a block diagram of the firmware.
 * Now click "Generate Bitstream" in the navigation menu at the left: this will compile the firmware.
 * You need the .bit and .hwh files. These are not easy to find but the `qick/firmware/out` directory has symlinks to their locations.
+
+To save your block design:
+
+```
+write_bd_tcl -force -include_layout bd.tcl
+```
+
+## Generators and readouts
+
+### standard readout (`axis_readout_v2`):
+
+RFDC ADC settings:
+* Digital Output Data: Real
+* Decimation Mode: 1x
+* Samples per AXI4-Stream Cycle: 8
+* Mixer Type: Coarse
+* Mixer Mode: Real->Real
+
+connect: RFDC -> axis register slice (optional, defaults) -> readout
+
+### mux readout (`axis_pfb_readout_v2`) on 111:
+
+RFDC ADC settings:
+* Digital Output Data: I/Q
+* Decimation Mode: 2x
+* Samples per AXI4-Stream Cycle: 4
+* Mixer Type: Coarse
+* Mixer Mode: Real->I/Q
+* Frequency: -Fs/4
+
+connect: RFDC -> axis combiner (default settings) -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" unchecked)
+
+need a clock wizard to double the clock coming out of the RFDC
+
+### mux readout (`axis_pfb_readout_v2`) on 216:
+
+RFDC ADC settings:
+* Digital Output Data: I/Q
+* Decimation Mode: 2x
+* Samples per AXI4-Stream Cycle: 8
+* Mixer Type: Coarse
+* Mixer Mode: Real->I/Q
+* Frequency: -Fs/4
+
+connect: RFDC -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" checked)
+
+### full-speed gen (`axis_signal_gen_v6`):
+
+gen settings: N Dds=16, N is up to you (buffer size will be `16*2^N`)
+
+RFDC DAC settings:
+* Interpolation Mode: 1x
+* Samples per AXI4-Stream Cycle: 16
+* Datapath Mode: No DUC 0 to Fs/2
+* Mixer Type: Coarse
+* Mixer Mode: Real->Real
+
+### mux gen (`axis_sg_mux4_v2`):
+
+gen settings: N_DDS=4
+
+RFDC DAC settings:
+* Interpolation Mode: 4x
+* Samples per AXI4-Stream Cycle: 8
+* Datapath Mode: DUC 0 to Fs/2
+* Mixer Type: Fine
+* Mixer Mode: I/Q->Real
+
+### I/Q gen (`axis_constant_iq`):
+
+gen settings: B=16, N=8
+
+RFDC DAC settings:
+* Interpolation Mode: 2x
+* Samples per AXI4-Stream Cycle: 16
+* Datapath Mode: DUC 0 to Fs/2
+* Mixer Type: Fine
+* Mixer Mode: I/Q->Real
+
+### int4 gen (`axis_sg_int4_v1`):
+
+gen settings: N is up to you (buffer size will be `2^N`)
+
+RFDC DAC settings:
+* Interpolation Mode: 4x
+* Samples per AXI4-Stream Cycle: 8
+* Datapath Mode: DUC 0 to Fs/2
+* Mixer Type: Fine
+* Mixer Mode: I/Q->Real
+
+## Expanding the program memory
+
+In theory you just need to change it in the address editor and it will propagate to the block design, but there is some bug in Vivado which leads to an error message that complains about asymmetry between the two memory ports:
+
+https://support.xilinx.com/s/question/0D52E00007GSLhKSAX/block-memory-generator-asymmetry-error
+
+This will even cause a saved bd.tcl script to fail: if you make a big memory with the workaround below, and save the bd.tcl, you will not be able to regenerate the project using that bd.tcl. So we give you a bd.tcl with a small program memory.
+
+THe solution is similar to what is suggested in the forum post:
+
+* reconfigure the memory controller for 2 ports
+* disconnect the port B signals from the memory
+* connect the memory controller port B to the memory port B
+* now you can expand the memory and validate the design
+* put things back the way they were - disconnect and remove controller port B, reconnect the memory to the tProc
+
