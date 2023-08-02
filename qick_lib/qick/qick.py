@@ -490,8 +490,10 @@ class QickSoc(Overlay, QickConfig):
             for iBlock in range(4):
                 if rf_config['C_DAC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
                     continue
+                interpolation = int(rf_config['C_DAC_Interpolation_Mode%d%d' % (iTile, iBlock)])
                 self.dacs["%d%d" % (iTile, iBlock)] = {'fs': fs,
-                                                       'f_fabric': f_fabric}
+                                                       'f_fabric': f_fabric,
+                                                       'interpolation': interpolation}
 
         for iTile in range(4):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
@@ -509,8 +511,10 @@ class QickSoc(Overlay, QickConfig):
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
                         continue
+                decimation = int(rf_config['C_ADC_Decimation_Mode%d%d' % (iTile, iBlock)])
                 self.adcs["%d%d" % (iTile, iBlock)] = {'fs': fs,
-                                                       'f_fabric': f_fabric}
+                                                       'f_fabric': f_fabric,
+                                                       'decimation': decimation}
 
         def get_common_freq(freqs):
             """
