@@ -461,16 +461,6 @@ class AxisAvgBuffer(SocIp):
         self.avg_buff = allocate(shape=self['avg_maxlen'], dtype=np.int64)
         self.buf_buff = allocate(shape=self['buf_maxlen'], dtype=np.int32)
 
-    # Configure this driver with links to the other drivers.
-    def configure(self, axi_dma_avg, switch_avg, axi_dma_buf, switch_buf):
-        # DMAs.
-        self.dma_avg = axi_dma_avg
-        self.dma_buf = axi_dma_buf
-
-        # Switches.
-        self.switch_avg = switch_avg
-        self.switch_buf = switch_buf
-
     def configure_connections(self, soc):
         # which readout drives this buffer?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's_axis')
@@ -493,13 +483,20 @@ class AxisAvgBuffer(SocIp):
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm0_axis')
+        self.switch_avg = getattr(soc, block)
         # port names are of the form 'S01_AXIS'
         switch_avg_ch = int(port.split('_')[0][1:], 10)
+        ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
+        self.dma_avg = getattr(soc, block)
 
         # which switch_buf port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
+        self.switch_buf = getattr(soc, block)
         # port names are of the form 'S01_AXIS'
         switch_buf_ch = int(port.split('_')[0][1:], 10)
+        ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
+        self.dma_buf = getattr(soc, block)
+
         if switch_avg_ch != switch_buf_ch:
             raise RuntimeError(
                 "switch_avg and switch_buf port numbers do not match:", self.fullpath)

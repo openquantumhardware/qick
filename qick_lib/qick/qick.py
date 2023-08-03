@@ -352,41 +352,6 @@ class QickSoc(Overlay, QickConfig):
         self.iqs.sort(key=lambda x: x.dac)
         self.readouts.sort(key=lambda x: x.adc)
 
-        # which generators have waveform memories?
-        arb_gens = filter(lambda x: isinstance(x, AbsArbSignalGen), self.gens)
-        # Configure the DMA connections to upload waveforms to generators.
-        if arb_gens:
-            # AXIS Switch to upload samples into Signal Generators.
-            self.switch_gen = self.axis_switch_gen
-
-            """
-            # This sanity check doesn't always pass, we have firmwares that don't use all the switch ports.
-            if self.switch_gen.NMI != len(arb_gens):
-                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
-                                   (self.switch_gen.NMI, len(arb_gens)))
-            """
-
-            for gen in arb_gens:
-                gen.configure_dma(self.axi_dma_gen, self.switch_gen)
-
-        # Configure the DMA connections to download data from avg+buffer blocks.
-        if self.avg_bufs:
-            # AXIS Switch to read samples from averager.
-            self.switch_avg = self.axis_switch_avg
-            # AXIS Switch to read samples from buffer.
-            self.switch_buf = self.axis_switch_buf
-            # Sanity check: we should have the same number of buffer blocks as switch ports.
-            if self.switch_avg.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
-                                   (self.switch_avg.NSL, len(self.avg_bufs)))
-            if self.switch_buf.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
-                                   (self.switch_buf.NSL, len(self.avg_bufs)))
-
-            for buf in self.avg_bufs:
-                buf.configure(self.axi_dma_avg, self.switch_avg,
-                              self.axi_dma_buf, self.switch_buf)
-
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
             gen.configure(i, self.rf, self.dacs[gen.dac]['fs'])

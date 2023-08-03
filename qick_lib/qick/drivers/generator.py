@@ -114,15 +114,11 @@ class AbsArbSignalGen(AbsSignalGen):
 
         # what switch port drives this generator?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
+        self.switch = getattr(soc, block)
         # port names are of the form 'M01_AXIS'
         self.switch_ch = int(port.split('_')[0][1:])
-
-    def configure_dma(self, axi_dma, axis_switch):
-        # dma
-        self.dma = axi_dma
-
-        # Switch
-        self.switch = axis_switch
+        ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
+        self.dma = getattr(soc, block)
 
     # Load waveforms.
     def load(self, xin, addr=0):
