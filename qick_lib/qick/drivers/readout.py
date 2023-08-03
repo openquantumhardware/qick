@@ -757,19 +757,65 @@ class MrBufferEt(SocIp):
         self.NM = int(description['parameters']['NM'])
 
         # Maximum number of samples
-        self.MAX_LENGTH = 2**self.N * self.NM
+        self.cfg['maxlen'] = 2**self.N * self.NM
 
         # Preallocate memory buffers for DMA transfers.
-        #self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
-        self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int16)
+        self.buff = allocate(shape=self['maxlen'], dtype=np.uint32)
 
-    def config(self, dma, switch):
-        self.dma = dma
-        self.switch = switch
+        # Map from avg_buf name to switch port.
+        self.buf2switch = {}
+        self.cfg['readouts'] = []
+
+    def configure_connections(self, soc):
+        self.soc = soc
+
+        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm00_axis')
+        self.dma = getattr(soc, block)
+
+        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's00_axis')
+        self.switch = getattr(soc, block)
+
+        # Number of slave interfaces.
+        NUM_SI_param = int(soc.metadata.get_param(block, 'NUM_SI'))
+
+        # Back trace all slaves.
+        sw_block = block
+        for iIn in range(NUM_SI_param):
+            inname = "S%02d_AXIS" % (iIn)
+            ((block, port),) = soc.metadata.trace_bus(sw_block, inname)
+
+            if soc.metadata.mod2type(block) == "axis_clock_converter":
+                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+            if soc.metadata.mod2type(block) == "axis_readout_v2":
+                # we want to find the avg_buf driven by this readout
+                ((bufname, _),) = soc.metadata.trace_bus(block, 'm1_axis')
+                self.buf2switch[bufname] = iIn
+                self.cfg['readouts'].append(bufname)
+            else:
+                raise RuntimeError("failed to trace port for %s - unrecognized IP block %s" % (self.fullpath, block))
+
+
+        # which tProc output bit triggers this buffer?
+        ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
+        # vect2bits/qick_vec2bit port names are of the form 'dout14'
+        self.cfg['trigger_bit'] = int(port[4:])
+
+        # which tProc output port triggers this buffer?
+        # two possibilities:
+        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
+        # tproc v2 data port -> vect2bits -> buffer
+        ((block, port),) = soc.metadata.trace_sig(block, 'din')
+        if soc.metadata.mod2type(block) == "axis_set_reg":
+            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
+        # ask the tproc to translate this port name to a channel number
+        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
 
     def route(self, ch):
         # Route switch to channel.
         self.switch.sel(slv=ch)
+
+    def set_switch(self, bufname):
+        self.route(self.buf2switch[bufname])
 
     def transfer(self, buff=None):
         if buff is None:
@@ -784,7 +830,7 @@ class MrBufferEt(SocIp):
         # Stop send data mode.
         self.dr_start_reg = 0
 
-        return buff
+        return buff.copy().view(dtype=np.int16).reshape((-1,2))
 
     def enable(self):
         self.dw_capture_reg = 1
@@ -887,7 +933,7 @@ class AxisBufferDdrV1(SocIp):
                         raise RuntimeError("tracing inputs to DDR4 switch and found something other than a broadcaster")
                 break
             else:
-                raise RuntimeError("falied to trace port for %s - unrecognized IP block %s" % (self.fullpath, block))
+                raise RuntimeError("failed to trace port for %s - unrecognized IP block %s" % (self.fullpath, block))
 
         # which tProc output bit triggers this buffer?
         ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')

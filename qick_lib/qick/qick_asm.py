@@ -129,13 +129,21 @@ class QickConfig():
                 (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
+        bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
         if "ddr4_buf" in self._cfg:
             buf = self['ddr4_buf']
-            bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
             buflist = [bufnames.index(x) for x in buf['readouts']]
             lines.append("\n\tDDR4 memory buffer: %d samples, %d samples/transfer" % (self['ddr4_size'], buf['burst_len']))
             lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
                 buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
+
+        if "mr_buf" in self._cfg:
+            buf = self['mr_buf']
+            buflist = [bufnames.index(x) for x in buf['readouts']]
+            lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
+                buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
+            #lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
+            #    buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
@@ -2069,7 +2077,7 @@ class QickProgram(AbsQickProgram):
         self.waiti(0, int(self.get_max_timestamp(gens=False, ros=True) + t))
 
     # should change behavior to only change bits that are specified
-    def trigger(self, adcs=None, pins=None, ddr4=False, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
+    def trigger(self, adcs=None, pins=None, ddr4=False, mr=False, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
         """Pulse the readout(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no readouts are specified, the adc_trig_offset is not applied.
 
@@ -2082,6 +2090,8 @@ class QickProgram(AbsQickProgram):
             Use the pin numbers in the QickConfig printout.
         ddr4 : bool
             If True, trigger the DDR4 buffer.
+        mr : bool
+            If True, trigger the MR buffer.
         adc_trig_offset : int, optional
             Offset time at which the ADC is triggered (in tProc cycles)
         t : int, optional
@@ -2109,6 +2119,9 @@ class QickProgram(AbsQickProgram):
             outdict[pincfg[1]] |= (1 << pincfg[2])
         if ddr4:
             rocfg = self.soccfg['ddr4_buf']
+            outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
+        if mr:
+            rocfg = self.soccfg['mr_buf']
             outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
 
         t_start = t

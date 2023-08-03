@@ -362,6 +362,13 @@ class QickSoc(Overlay, QickConfig):
         for readout in self.readouts:
             readout.configure(self.rf, self.adcs[readout.adc]['fs'])
 
+        # Find the MR buffer, if present.
+        try:
+            self.mr_buf = self.mr_buffer_et_0
+            self['mr_buf'] = self.mr_buf.cfg
+        except:
+            pass
+
         # Find the DDR4 controller and buffer, if present.
         try:
             self.ddr4_array = self.ddr4_0.mmio.array.view('uint32')
@@ -955,3 +962,18 @@ class QickSoc(Overlay, QickConfig):
         self.ddr4_buf.wlen(nt + extra)
         self.ddr4_buf.wstop()
         self.ddr4_buf.wstart()
+
+    def arm_mr(self, ch):
+        """Prepare the Multi-Rate buffer to take data.
+        This must be called before starting a program that triggers the buffer.
+        Once the buffer is armed, the first trigger it receives will cause the buffer to record until the buffer is filled.
+        Later triggers will have no effect.
+
+        Parameters
+        ----------
+        ch : int
+            The readout channel to record (index in 'readouts' list).
+        """
+        self.mr_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
+        self.mr_buf.disable()
+        self.mr_buf.enable()
