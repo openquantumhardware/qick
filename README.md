@@ -65,7 +65,7 @@ All contributions are expected to be consistent with [PEP 8 -- Style Guide for P
 
 We welcome comments, bug reports, and feature requests via GitHub Issues.
 
-You can chat with us in the #qick channel on the [Unitary Fund Discord](http://discord.unitary.fund/).
+You can chat with us in the #qick channel on the [Unitary Fund Discord](http://discord.unitary.fund/), where we also have [weekly office hours](https://www.addevent.com/event/lw18055508).
 
 License
 -------
