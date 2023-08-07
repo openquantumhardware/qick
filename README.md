@@ -16,7 +16,7 @@ It consists of:
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
 <p align="center">
- <img src="graphics/QCE2023_banner.svg" alt="QCE2023 banner" width=80% height=auto>
+ <img src="graphics/QCE2023_banner.svg" alt="QCE2023 banner" width=100% height=auto>
 </p>
 
 Download and Installation
