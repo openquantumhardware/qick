@@ -175,7 +175,7 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     package_data={  # Optional
-        'qick': ['*.bit', '*.hwh', 'VERSION']
+        'qick': ['*.bit', '*.hwh', 'VERSION', 'ipq_pynq_utils/*.json']
     },
     include_package_data=True,
 
