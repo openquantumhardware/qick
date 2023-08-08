@@ -772,6 +772,10 @@ class MrBufferEt(SocIp):
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm00_axis')
         self.dma = getattr(soc, block)
 
+        # readout, fullspeed output -> clock converter (optional) -> many-to-one switch -> MR buffer
+        # readout, decimated output -> broadcaster (optional, for DDR) -> avg_buf
+
+        # get the MR switch
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 's00_axis')
         self.switch = getattr(soc, block)
 
@@ -784,13 +788,22 @@ class MrBufferEt(SocIp):
             inname = "S%02d_AXIS" % (iIn)
             ((block, port),) = soc.metadata.trace_bus(sw_block, inname)
 
+            # there may be a clock converter between the readout and the Mr switch
             if soc.metadata.mod2type(block) == "axis_clock_converter":
                 ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
+
+            # now we have the readout
             if soc.metadata.mod2type(block) == "axis_readout_v2":
                 # we want to find the avg_buf driven by this readout
-                ((bufname, _),) = soc.metadata.trace_bus(block, 'm1_axis')
-                self.buf2switch[bufname] = iIn
-                self.cfg['readouts'].append(bufname)
+                ((block, port),) = soc.metadata.trace_bus(block, 'm1_axis')
+                if soc.metadata.mod2type(block) == "axis_broadcaster":
+                    br_block = block
+                    for iOut in range(int(soc.metadata.get_param(br_block, 'NUM_MI'))):
+                        ((block, port),) = soc.metadata.trace_bus(br_block, "M%02d_AXIS" % (iOut))
+                        if soc.metadata.mod2type(block) == "axis_avg_buffer":
+                            self.buf2switch[block] = iIn
+                            self.cfg['readouts'].append(block)
+                            break
             else:
                 raise RuntimeError("failed to trace port for %s - unrecognized IP block %s" % (self.fullpath, block))
 
@@ -923,12 +936,12 @@ class AxisBufferDdrV1(SocIp):
 
                     blocktype = soc.metadata.mod2type(block)
                     if blocktype == "axis_broadcaster":
-                        for iOut in range(int(soc.metadata.get_param(block, 'NUM_MI'))):
-                            outname = "M%02d_AXIS" % (iOut)
-                            if outname != port:
-                                ((bufname, _),) = soc.metadata.trace_bus(block, outname)
-                                self.buf2switch[bufname] = iIn
-                                self.cfg['readouts'].append(bufname)
+                        br_block = block
+                        for iOut in range(int(soc.metadata.get_param(br_block, 'NUM_MI'))):
+                            ((block, port),) = soc.metadata.trace_bus(br_block, "M%02d_AXIS" % (iOut))
+                            if soc.metadata.mod2type(block) == "axis_avg_buffer":
+                                self.buf2switch[block] = iIn
+                                self.cfg['readouts'].append(block)
                     else:
                         raise RuntimeError("tracing inputs to DDR4 switch and found something other than a broadcaster")
                 break
