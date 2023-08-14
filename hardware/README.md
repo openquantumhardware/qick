@@ -2,7 +2,7 @@
 
 Last updated on 9/25/2022.
 
-Please download the linked zip file to see the gerbers, BOM and spec file for the ZCU111 RF board V4: https://drive.google.com/drive/folders/1Fn6O4_VWpmnVYbzh4Vd3sZ7TfodG5d2U?usp=sharing. 
+Please download the [linked zip file](https://drive.google.com/file/d/18OvfUnnmzwmpfNI-T6RhhX2rVHdvlVzb/view?usp=sharing) to see the gerbers, BOM and spec file for the ZCU111 RF board V4. 
 As of 9/25/2022, there are some modifications that the assembler will need to make: 
  
 * C518 should not be installed.
