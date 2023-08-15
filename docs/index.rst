@@ -17,6 +17,8 @@ Getting started with QICK
 
    * First, for a global overview of the QICK and its capabilities, read `our instrumentation paper introducing the QICK <https://arxiv.org/abs/2110.00557>`_.
 
+   * For a list of academic papers produced using the QICK system, check out :doc:`our papers page </papers>`
+
    * If you have an RFSoC board and you want to configure it as a QICK board, follow `the quick start guide on our Github repository <https://github.com/openquantumhardware/qick/tree/main/quick_start>`_.
 
    * After you configure your board, you can test it with `our library of loopback demos <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_.
@@ -34,6 +36,7 @@ QICK software
    cheatsheet
    firmware
    modules
+   papers
 
 QICK firmware
 #############
