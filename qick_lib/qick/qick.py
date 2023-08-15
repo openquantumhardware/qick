@@ -352,41 +352,6 @@ class QickSoc(Overlay, QickConfig):
         self.iqs.sort(key=lambda x: x.dac)
         self.readouts.sort(key=lambda x: x.adc)
 
-        # which generators have waveform memories?
-        arb_gens = filter(lambda x: isinstance(x, AbsArbSignalGen), self.gens)
-        # Configure the DMA connections to upload waveforms to generators.
-        if arb_gens:
-            # AXIS Switch to upload samples into Signal Generators.
-            self.switch_gen = self.axis_switch_gen
-
-            """
-            # This sanity check doesn't always pass, we have firmwares that don't use all the switch ports.
-            if self.switch_gen.NMI != len(arb_gens):
-                raise RuntimeError("We have %d switch_gen outputs but %d arbitrary-waveform generator blocks." %
-                                   (self.switch_gen.NMI, len(arb_gens)))
-            """
-
-            for gen in arb_gens:
-                gen.configure_dma(self.axi_dma_gen, self.switch_gen)
-
-        # Configure the DMA connections to download data from avg+buffer blocks.
-        if self.avg_bufs:
-            # AXIS Switch to read samples from averager.
-            self.switch_avg = self.axis_switch_avg
-            # AXIS Switch to read samples from buffer.
-            self.switch_buf = self.axis_switch_buf
-            # Sanity check: we should have the same number of buffer blocks as switch ports.
-            if self.switch_avg.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_avg inputs but %d avg/buffer blocks." %
-                                   (self.switch_avg.NSL, len(self.avg_bufs)))
-            if self.switch_buf.NSL != len(self.avg_bufs):
-                raise RuntimeError("We have %d switch_buf inputs but %d avg/buffer blocks." %
-                                   (self.switch_buf.NSL, len(self.avg_bufs)))
-
-            for buf in self.avg_bufs:
-                buf.configure(self.axi_dma_avg, self.switch_avg,
-                              self.axi_dma_buf, self.switch_buf)
-
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
             gen.configure(i, self.rf, self.dacs[gen.dac]['fs'])
@@ -396,6 +361,13 @@ class QickSoc(Overlay, QickConfig):
 
         for readout in self.readouts:
             readout.configure(self.rf, self.adcs[readout.adc]['fs'])
+
+        # Find the MR buffer, if present.
+        try:
+            self.mr_buf = self.mr_buffer_et_0
+            self['mr_buf'] = self.mr_buf.cfg
+        except:
+            pass
 
         # Find the DDR4 controller and buffer, if present.
         try:
@@ -680,6 +652,9 @@ class QickSoc(Overlay, QickConfig):
         buf = self.avg_bufs[ch]
         buf.readout.set_out(sel=output)
         buf.set_freq(frequency, gen_ch=gen_ch)
+        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
+        # this has only really been seen with setting the V2 (standard) readout to a downconversion freq of 0.
+        buf.readout.update()
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -990,3 +965,31 @@ class QickSoc(Overlay, QickConfig):
         self.ddr4_buf.wlen(nt + extra)
         self.ddr4_buf.wstop()
         self.ddr4_buf.wstart()
+
+    def arm_mr(self, ch):
+        """Prepare the Multi-Rate buffer to take data.
+        This must be called before starting a program that triggers the buffer.
+        Once the buffer is armed, the first trigger it receives will cause the buffer to record until the buffer is filled.
+        Later triggers will have no effect.
+
+        Parameters
+        ----------
+        ch : int
+            The readout channel to record (index in 'readouts' list).
+        """
+        self.mr_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
+        self.mr_buf.disable()
+        self.mr_buf.enable()
+
+    def get_mr(self, discard=8):
+        """Get data from the multi-rate buffer.
+
+        Parameters
+        ----------
+        discard : int
+            The first 8 samples are always stale data from the previous acquisition.
+            This parameter is added to the address parameter, so the stale data is skipped.
+            Note that this slightly reduces the usable size of the buffer.
+        """
+        return self.mr_buf.transfer()[discard:]
+
