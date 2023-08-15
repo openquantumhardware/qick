@@ -166,6 +166,7 @@ localparam FW	= 5*B + TW + 8;
 // Synced regs.
 wire 				START_SRC_REG_resync;
 wire 				START_REG_resync;
+wire                start_input_resync;
 
 // Muxed start.
 wire 				start_i;
@@ -322,6 +323,19 @@ synchronizer_n
 		.data_out	(START_REG_resync	)
 	);
 
+// start_input_resync
+synchronizer_n
+    #(
+    .N(2)
+    )
+    start_input_resync_i
+    (
+        .rstn       (rstn               ),
+        .clk        (clk                ),
+        .data_in    (start              ),
+        .data_out   (start_input_resync )
+    );
+
 // Control block.
 ctrl
     ctrl_i 
@@ -382,7 +396,7 @@ ctrl
     );
 
 // Muxed start.
-assign start_i	= (START_SRC_REG_resync == 1)? start : START_REG_resync;
+assign start_i = (START_SRC_REG_resync == 1)? start_input_resync : START_REG_resync;
 
 // Instruction fields.
 assign opcode_i		= ir_r[63:56];

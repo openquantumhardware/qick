@@ -21,9 +21,10 @@ set proj_dir [get_property directory [current_project]]
 # Set project properties
 set obj [current_project]
 set_property -name "board_part" -value "xilinx.com:zcu111:part0:1.4" -objects $obj
+set_property -name "corecontainer.enable" -value "1" -objects $obj
 set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
-set_property -name "dsa.accelerator_binary_content" -value "bitstream" -objects $obj
-set_property -name "dsa.accelerator_binary_format" -value "xclbin2" -objects $obj
+set_property -name "enable_core_container" -value "1" -objects $obj
+set_property -name "enable_resource_estimation" -value "0" -objects $obj
 set_property -name "dsa.board_id" -value "zcu111" -objects $obj
 set_property -name "dsa.description" -value "Vivado generated DSA" -objects $obj
 set_property -name "dsa.dr_bd_base_address" -value "0" -objects $obj
@@ -41,6 +42,8 @@ set_property -name "enable_vhdl_2008" -value "1" -objects $obj
 set_property -name "ip_cache_permissions" -value "read write" -objects $obj
 set_property -name "ip_output_repo" -value "$proj_dir/${_xil_proj_name_}.cache/ip" -objects $obj
 set_property -name "mem.enable_memory_map_generation" -value "1" -objects $obj
+set_property -name "platform.board_id" -value "zcu111" -objects $obj
+set_property -name "revised_directory_structure" -value "1" -objects $obj
 set_property -name "sim.central_dir" -value "$proj_dir/${_xil_proj_name_}.ip_user_files" -objects $obj
 set_property -name "sim.ip.auto_export_scripts" -value "1" -objects $obj
 set_property -name "simulator_language" -value "Mixed" -objects $obj
@@ -71,8 +74,7 @@ set files [list \
 add_files -fileset $obj $files
 
 # Source Block Design.
-#set file "[file normalize "$origin_dir/bd/bd-2019-1.tcl"]"
-set file "[file normalize "$origin_dir/bd/bd_111_2020-2.tcl"]"
+set file "[file normalize "$origin_dir/bd/bd_111_2022-1.tcl"]"
 source $file
 
 # Update compile order.
