@@ -36,6 +36,7 @@ QICK software
    cheatsheet
    firmware
    modules
+   papers
 
 QICK firmware
 #############
