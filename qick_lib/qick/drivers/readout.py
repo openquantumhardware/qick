@@ -24,6 +24,12 @@ class AbsReadout(DummyIp):
         """
         pass
 
+    def update(self):
+        """
+        Push the register values to the readout logic.
+        """
+        pass
+
 class AxisReadoutV2(SocIp, AbsReadout):
     """
     AxisReadoutV2 class
@@ -760,7 +766,7 @@ class MrBufferEt(SocIp):
         self.cfg['maxlen'] = 2**self.N * self.NM
 
         # Preallocate memory buffers for DMA transfers.
-        self.buff = allocate(shape=self['maxlen'], dtype=np.uint32)
+        self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)
 
         # Map from avg_buf name to switch port.
         self.buf2switch = {}
@@ -830,20 +836,18 @@ class MrBufferEt(SocIp):
     def set_switch(self, bufname):
         self.route(self.buf2switch[bufname])
 
-    def transfer(self, buff=None):
-        if buff is None:
-            buff = self.buff
+    def transfer(self):
         # Start send data mode.
         self.dr_start_reg = 1
 
         # DMA data.
-        self.dma.recvchannel.transfer(buff)
+        self.dma.recvchannel.transfer(self.buff)
         self.dma.recvchannel.wait()
 
         # Stop send data mode.
         self.dr_start_reg = 0
 
-        return buff.copy().view(dtype=np.int16).reshape((-1,2))
+        return self.buff.copy().reshape((-1,2))
 
     def enable(self):
         self.dw_capture_reg = 1

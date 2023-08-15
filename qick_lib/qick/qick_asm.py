@@ -2125,7 +2125,7 @@ class QickProgram(AbsQickProgram):
             outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
 
         t_start = t
-        if adcs:
+        if any([adcs, ddr4, mr]):
             t_start += adc_trig_offset
             # update timestamps with the end of the readout window
             for ro in adcs:

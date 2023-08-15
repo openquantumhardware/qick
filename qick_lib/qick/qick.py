@@ -652,6 +652,9 @@ class QickSoc(Overlay, QickConfig):
         buf = self.avg_bufs[ch]
         buf.readout.set_out(sel=output)
         buf.set_freq(frequency, gen_ch=gen_ch)
+        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
+        # this has only really been seen with setting the V2 (standard) readout to a downconversion freq of 0.
+        buf.readout.update()
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -977,3 +980,16 @@ class QickSoc(Overlay, QickConfig):
         self.mr_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
         self.mr_buf.disable()
         self.mr_buf.enable()
+
+    def get_mr(self, discard=8):
+        """Get data from the multi-rate buffer.
+
+        Parameters
+        ----------
+        discard : int
+            The first 8 samples are always stale data from the previous acquisition.
+            This parameter is added to the address parameter, so the stale data is skipped.
+            Note that this slightly reduces the usable size of the buffer.
+        """
+        return self.mr_buf.transfer()[discard:]
+
