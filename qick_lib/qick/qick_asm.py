@@ -133,7 +133,7 @@ class QickConfig():
         if "ddr4_buf" in self._cfg:
             buf = self['ddr4_buf']
             buflist = [bufnames.index(x) for x in buf['readouts']]
-            lines.append("\n\tDDR4 memory buffer: %d samples, %d samples/transfer" % (self['ddr4_size'], buf['burst_len']))
+            lines.append("\n\tDDR4 memory buffer: %d samples, %d samples/transfer" % (buf['maxlen'], buf['burst_len']))
             lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
                 buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
