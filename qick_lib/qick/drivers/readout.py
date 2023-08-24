@@ -765,6 +765,8 @@ class MrBufferEt(SocIp):
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
 
+        self.cfg['junk_len'] = 8
+
         # Preallocate memory buffers for DMA transfers.
         self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)
 
@@ -836,7 +838,9 @@ class MrBufferEt(SocIp):
     def set_switch(self, bufname):
         self.route(self.buf2switch[bufname])
 
-    def transfer(self):
+    def transfer(self, start=None):
+        if start is None: start = self['junk_len']
+
         # Start send data mode.
         self.dr_start_reg = 1
 
@@ -847,7 +851,7 @@ class MrBufferEt(SocIp):
         # Stop send data mode.
         self.dr_start_reg = 0
 
-        return np.copy(self.buff).reshape((-1,2))
+        return np.copy(self.buff).reshape((-1,2))[start:]
 
     def enable(self):
         self.dw_capture_reg = 1
@@ -1012,11 +1016,14 @@ class AxisBufferDdrV1(SocIp):
         else:
             np.copyto(self.ddr4_array[:length], 0)
 
-    def get_mem(self, length, address, discard=None):
-        if discard is None: discard = self['junk_len']
+    def get_mem(self, nt, start=None):
+        if start is None:
+            start = self['junk_len']
+            end = nt*self['burst_len']
+        else:
+            end = start + nt*self['burst_len']
+        length = end-start
 
-        start = address + discard
-        end = address + discard + length
         # when we access memory-mapped data, the start and end need to be aligned to multiples of 64 bits.
         # violations result in the Python interpreter crashing on SIGBUS/BUS_ADRALN
         # this doesn't matter for all operations, but np.copy() definitely seems to care
@@ -1026,11 +1033,9 @@ class AxisBufferDdrV1(SocIp):
         buf_copy = self.ddr4_array[start - (start%2):end + (end%2)].copy()
         return buf_copy[start%2:length + start%2].view(dtype=np.int16).reshape((-1,2))
 
-    def arm(self, nt, extra=None, force_overwrite=False):
-        if extra is None: extra = self['junk_nt']
-
-        if nt+extra > self['maxlen']//self['burst_len'] and not force_overwrite:
-            raise RuntimeError("the requested number of DDR4 transfers (nt+extra) exceeds the memory size; the buffer will overwrite itself. You can disable this error message with force_overwrite=True.")
-        self.wlen(nt + extra)
+    def arm(self, nt, force_overwrite=False):
+        if nt > self['maxlen']//self['burst_len'] and not force_overwrite:
+            raise RuntimeError("the requested number of DDR4 transfers (nt) exceeds the memory size; the buffer will overwrite itself. You can disable this error message with force_overwrite=True.")
+        self.wlen(nt)
         self.wstop()
         self.wstart()

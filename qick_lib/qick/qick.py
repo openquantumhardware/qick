@@ -906,24 +906,24 @@ class QickSoc(Overlay, QickConfig):
         """
         self.ddr4_buf.clear_mem(length)
 
-    def get_ddr4(self, length, address=0, discard=None):
+    def get_ddr4(self, nt, start=None):
         """Get data from the DDR4 buffer.
+        The first samples (typically 401 or 801) of the buffer are always stale data from the previous acquisition.
 
         Parameters
         ----------
-        length : int
-            Number of samples to retrieve.
-        address : int
+        nt : int
+            Number of data transfers (each transfer is 128 or 256 decimated samples) to retrieve.
+            If start=None, the amount of data will be reduced (see below).
+        start : int
             Number of samples to skip at the beginning of the buffer.
-        discard : int
-            The first samples (typically 401 or 801) are always stale data from the previous acquisition.
-            This parameter is added to the address parameter, so the stale data is skipped.
-            Note that this slightly reduces the usable size of the DDR4 buffer.
-            The default of None will be replaced with the typical junk data length for this firmware.
+            If a value is specified, the end address of the transfer window will also be incremented.
+            If None, the junk at the start of the buffer will be skipped but the end address will not be incremented.
+            This reduces the amount of data, giving you exactly the block of valid data from a DDR4 trigger with the same value of nt.
         """
-        return self.ddr4_buf.get_mem(length, address, discard)
+        return self.ddr4_buf.get_mem(nt, start)
 
-    def arm_ddr4(self, ch, nt, extra=None, force_overwrite=False):
+    def arm_ddr4(self, ch, nt, force_overwrite=False):
         """Prepare the DDR4 buffer to take data.
         This must be called before starting a program that triggers the buffer.
         Once the buffer is armed, the first trigger it receives will cause the buffer to record the specified amount of data.
@@ -934,17 +934,14 @@ class QickSoc(Overlay, QickConfig):
         ch : int
             The readout channel to record (index in 'readouts' list).
         nt : int
-            Number of data transfers to record; the number of IQ samples/transfer (typically 256) is printed in the QickSoc config.
-        extra : int
-            As explained in get_ddr4(), there are junk samples at the start of each acquisition.
-            This parameter is added to nt so we still get the full amount of data that we want.
-            The default of None will be replaced with a value (typ. 4) appropriate for this firmware.
+            Number of data transfers to record; the number of IQ samples/transfer (128 or 256) is printed in the QickSoc config.
+            Note that the amount of useful data is less (see ``get_ddr4``)
         force_overwrite : bool
             Allow a DDR4 acqusition that exceeds the DDR4 memory capacity. The memory will be used as a circular buffer:
             later transfers will wrap around to the beginning of the memory and overwrite older data.
         """
         self.ddr4_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
-        self.ddr4_buf.arm(nt, extra, force_overwrite)
+        self.ddr4_buf.arm(nt, force_overwrite)
 
     def arm_mr(self, ch):
         """Prepare the Multi-Rate buffer to take data.
@@ -961,15 +958,16 @@ class QickSoc(Overlay, QickConfig):
         self.mr_buf.disable()
         self.mr_buf.enable()
 
-    def get_mr(self, discard=8):
+    def get_mr(self, start=None):
         """Get data from the multi-rate buffer.
+        The first 8 samples are always stale data from the previous acquisition.
+        The transfer window always extends to the end of the buffer.
 
         Parameters
         ----------
-        discard : int
-            The first 8 samples are always stale data from the previous acquisition.
-            This parameter is added to the address parameter, so the stale data is skipped.
-            Note that this slightly reduces the usable size of the buffer.
+        start : int
+            Number of samples to skip at the beginning of the buffer.
+            If None, the junk at the start of the buffer is skipped.
         """
-        return self.mr_buf.transfer()[discard:]
+        return self.mr_buf.transfer(start)
 
