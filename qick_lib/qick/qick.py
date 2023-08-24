@@ -371,12 +371,6 @@ class QickSoc(Overlay, QickConfig):
 
         # Find the DDR4 controller and buffer, if present.
         try:
-            self.ddr4_array = self.ddr4_0.mmio.array.view('uint32')
-            self['ddr4_size'] = self.ddr4_array.shape[0]
-        except:
-            pass
-
-        try:
             self.ddr4_buf = self.axis_buffer_ddr_v1_0
             self['ddr4_buf'] = self.ddr4_buf.cfg
         except:
@@ -910,37 +904,26 @@ class QickSoc(Overlay, QickConfig):
         length : int
             Number of samples to clear (starting at the beginning of the buffer). If None, clear the entire buffer.
         """
-        if length is None:
-            np.copyto(self.ddr4_array, 0)
-        else:
-            np.copyto(self.ddr4_array[:length], 0)
+        self.ddr4_buf.clear_mem(length)
 
-    def get_ddr4(self, length, address=0, discard=801):
+    def get_ddr4(self, nt, start=None):
         """Get data from the DDR4 buffer.
+        The first samples (typically 401 or 801) of the buffer are always stale data from the previous acquisition.
 
         Parameters
         ----------
-        length : int
-            Number of samples to retrieve.
-        address : int
+        nt : int
+            Number of data transfers (each transfer is 128 or 256 decimated samples) to retrieve.
+            If start=None, the amount of data will be reduced (see below).
+        start : int
             Number of samples to skip at the beginning of the buffer.
-        discard : int
-            The first 801 samples are always stale data from the previous acquisition.
-            This parameter is added to the address parameter, so the stale data is skipped.
-            Note that this slightly reduces the usable size of the DDR4 buffer.
+            If a value is specified, the end address of the transfer window will also be incremented.
+            If None, the junk at the start of the buffer will be skipped but the end address will not be incremented.
+            This reduces the amount of data, giving you exactly the block of valid data from a DDR4 trigger with the same value of nt.
         """
-        start = address + discard
-        end = address + discard + length
-        # when we access memory-mapped data, the start and end need to be aligned to multiples of 64 bits.
-        # violations result in the Python interpreter crashing on SIGBUS/BUS_ADRALN
-        # this doesn't matter for all operations, but np.copy() definitely seems to care
-        # it seems that even if you slice out an address-aligned chunk of data and just print it, sometimes that will access it in an illegal way
-        # therefore we pad out the requested address block, copy the data, and trim
-        # this way, no special care needs to be taken with the returned array
-        buf_copy = self.ddr4_array[start - (start%2):end + (end%2)].copy()
-        return buf_copy[start%2:length + start%2].view(dtype=np.int16).reshape((-1,2))
+        return self.ddr4_buf.get_mem(nt, start)
 
-    def arm_ddr4(self, ch, nt, extra=4, force_overwrite=False):
+    def arm_ddr4(self, ch, nt, force_overwrite=False):
         """Prepare the DDR4 buffer to take data.
         This must be called before starting a program that triggers the buffer.
         Once the buffer is armed, the first trigger it receives will cause the buffer to record the specified amount of data.
@@ -951,20 +934,14 @@ class QickSoc(Overlay, QickConfig):
         ch : int
             The readout channel to record (index in 'readouts' list).
         nt : int
-            Number of data transfers to record; the number of IQ samples/transfer (typically 256) is printed in the QickSoc config.
-        extra : int
-            As explained in get_ddr4(), there are 801 junk samples at the start of each acquisition.
-            This parameter is added to nt so we still get the full amount of data that we want.
+            Number of data transfers to record; the number of IQ samples/transfer (128 or 256) is printed in the QickSoc config.
+            Note that the amount of useful data is less (see ``get_ddr4``)
         force_overwrite : bool
             Allow a DDR4 acqusition that exceeds the DDR4 memory capacity. The memory will be used as a circular buffer:
             later transfers will wrap around to the beginning of the memory and overwrite older data.
         """
-        if nt+extra > self['ddr4_size']//self['ddr4_buf']['burst_len'] and not force_overwrite:
-            raise RuntimeError("the requested number of DDR4 transfers (nt+extra) exceeds the memory size; the buffer will overwrite itself. You can disable this error message with force_overwrite=True.")
         self.ddr4_buf.set_switch(self['readouts'][ch]['avgbuf_fullpath'])
-        self.ddr4_buf.wlen(nt + extra)
-        self.ddr4_buf.wstop()
-        self.ddr4_buf.wstart()
+        self.ddr4_buf.arm(nt, force_overwrite)
 
     def arm_mr(self, ch):
         """Prepare the Multi-Rate buffer to take data.
@@ -981,15 +958,16 @@ class QickSoc(Overlay, QickConfig):
         self.mr_buf.disable()
         self.mr_buf.enable()
 
-    def get_mr(self, discard=8):
+    def get_mr(self, start=None):
         """Get data from the multi-rate buffer.
+        The first 8 samples are always stale data from the previous acquisition.
+        The transfer window always extends to the end of the buffer.
 
         Parameters
         ----------
-        discard : int
-            The first 8 samples are always stale data from the previous acquisition.
-            This parameter is added to the address parameter, so the stale data is skipped.
-            Note that this slightly reduces the usable size of the buffer.
+        start : int
+            Number of samples to skip at the beginning of the buffer.
+            If None, the junk at the start of the buffer is skipped.
         """
-        return self.mr_buf.transfer()[discard:]
+        return self.mr_buf.transfer(start)
 
