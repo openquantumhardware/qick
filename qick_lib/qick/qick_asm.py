@@ -9,7 +9,7 @@ from collections import namedtuple, OrderedDict, defaultdict
 from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
-from qick import obtain
+from qick import obtain, get_version
 from .helpers import gauss, triang, DRAG, NpEncoder, ch2list
 from .parser import parse_prog
 
@@ -34,11 +34,21 @@ class QickConfig():
     """
 
     def __init__(self, cfg=None):
-        if isinstance(cfg, str):
-            with open(cfg) as f:
-                self._cfg = json.load(f)
-        elif cfg is not None:
-            self._cfg = cfg
+        if cfg is not None:
+            # we are getting an external config dictionary (e.g. from a Pyro server)
+            if isinstance(cfg, str):
+                with open(cfg) as f:
+                    self._cfg = json.load(f)
+            else:
+                self._cfg = cfg
+            # compare the remote and local versions, warn on mismatch
+            # if the remote library is so old that it doesn't have sw_version, get() will return None
+            extversion = self._cfg.get('sw_version')
+            ourversion = get_version()
+            if extversion != ourversion:
+                logger.warning("QICK library version mismatch: %s remote (the board), %s local (the PC)\n\
+                        This may cause errors, usually KeyError in QickConfig initialization.\n\
+                        If this happens, you must bring your versions in sync."%(extversion, ourversion))
 
     def __str__(self):
         return self.description()
