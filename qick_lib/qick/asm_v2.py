@@ -34,8 +34,12 @@ class QickProgramV2(AbsQickProgram):
         self.loop_list = []
         self.loop_stack = []
 
+        # waveforms, to be written to the wave memory
         self.waves = OrderedDict()
         self.wave2idx = {}
+
+        # pulses are software constructs, each is a set of 1 or more waveforms
+        self.pulses = {}
 
     def add_instruction(self, inst, addr_inc=1):
         # copy the instruction dict in case it's getting reused and modified
@@ -100,8 +104,70 @@ class QickProgramV2(AbsQickProgram):
         self.waves[name] = Wave(freq, phase, env, gain, length, conf)
         self.wave2idx[name] = len(self.waves)-1
         
+    def cfg2reg(self, outsel, mode, stdysel, phrst):
+        """Creates generator config register value, by setting flags.
+
+        Parameters
+        ----------
+        outsel : str
+        Selects the output source. The output is complex. Tables define envelopes for I and Q.
+        The default is "product".
+
+        * If "product", the output is the product of table and DDS.
+
+        * If "dds", the output is the DDS only.
+
+        * If "input", the output is from the table for the real part, and zeros for the imaginary part.
+
+        * If "zero", the output is always zero.
+
+        mode : str
+        Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
+
+        stdysel : str
+        Selects what value is output continuously by the signal generator after the generation of a pulse.
+        The default is "zero".
+
+        phrst : int
+        If 1, it resets the phase coherent accumulator. The default is 0.
+
+        * If "last", it is the last calculated sample of the pulse.
+
+        * If "zero", it is a zero value.
+
+        Returns
+        -------
+        int
+        Compiled mode code in binary
+        """
+        outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
+        mode_reg = {"oneshot": 0, "periodic": 1}[mode]
+        stdysel_reg = {"last": 0, "zero": 1}[stdysel]
+        return phrst*0b010000 + stdysel_reg*0b01000 + mode_reg*0b00100 + outsel_reg
+
+    def add_pulse(self, ch, name, style, freq, gain, phase=0, phrst=0, stdysel="zero", mode="oneshot", outsel="product", length=None, env=None):
+        gencfg = self.soccfg['gens'][ch]
+        
+        freqreg = self.freq2reg(gen_ch=ch, f=freq, ro_ch=self.gen_chs[ch]['ro_ch'])
+        phasereg = self.deg2reg(gen_ch=ch, deg=phase)
+        gainreg = int(gain*gencfg['maxv']*gencfg['maxv_scale'])
+
+        if style=="const": outsel="dds"
+        modereg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
+        
+        if env is None: env = 0
+        if length is None: length = 0
+        
+        wavename = name + "_w1"
+        self.add_wave(name=wavename, freq=freqreg, phase=phase, env=env, gain=gainreg, length=length, conf=modereg)
+        pulsedict = {}
+        pulsedict['waves'] = [wavename]
+        pulsedict['length'] = length
+        self.pulses[name] = pulsedict
+
     def pulse(self, ch, name, t=0):
-        pulse_length = self.waves[name].length
+        pulse = self.pulses[name]
+        pulse_length = pulse['length']
         pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
         ts = self.get_timestamp(gen_ch=ch)
         if t == 'auto':
@@ -114,10 +180,11 @@ class QickProgramV2(AbsQickProgram):
             else:
                 self.set_timestamp(int(t + pulse_length), gen_ch=ch)
         
-        idx = self.wave2idx[name]
         tproc_ch = ch # TODO: actually translate
         self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t), 'UF':'0'})
-        self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx), 'UF':'0'})
+        for wavename in pulse['waves']:
+            idx = self.wave2idx[wavename]
+            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx), 'UF':'0'})
 
     def open_loop(self, n, name=None, addr=None):
         if name is None: name = f"loop_{len(self.loop_list)}"
@@ -136,6 +203,7 @@ class QickProgramV2(AbsQickProgram):
 #         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
     
     def trigger(self, ros=None, pins=None, t=0, width=10):
+        #TODO: add DDR4+MR buffers, ADC offset
         if ros is None: ros = []
         if pins is None: pins = []
         outdict = defaultdict(int)
@@ -175,6 +243,9 @@ class QickProgramV2(AbsQickProgram):
         if max_t+t > 0:
             self.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{int(max_t+t)}'})
             self.reset_timestamps()
+
+    def wait_all(self, t=0):
+        self.wait(int(self.get_max_timestamp(gens=False, ros=True) + t))
 
     def compile_prog(self):
         _, p_mem = Assembler.list2bin(self.prog_list, self.labels)

@@ -703,7 +703,7 @@ class AbsGenManager(AbsRegisterManager):
         self.samps_per_clk = self.gencfg['samps_per_clk']
 
         # dictionary of defined pulse envelopes
-        self.pulses = prog.pulses[gen_ch]
+        self.envelopes = prog.envelopes[gen_ch]
         # type and max absolute value for envelopes
         self.env_dtype = np.int16
 
@@ -762,7 +762,7 @@ class AbsGenManager(AbsRegisterManager):
                 # copy data
                 data[:,i] = np.round(d)
 
-        self.pulses[name] = {"data": data, "addr": self.addr}
+        self.envelopes[name] = {"data": data, "addr": self.addr}
         self.addr += length
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
@@ -857,7 +857,7 @@ class FullSpeedGenManager(AbsGenManager):
             if parname in params:
                 self.set_reg(parname, params[parname], defaults=defaults)
         if 'waveform' in params:
-            pinfo = self.pulses[params['waveform']]
+            pinfo = self.envelopes[params['waveform']]
             wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
             self.set_reg('addr', addr, defaults=defaults)
@@ -940,7 +940,7 @@ class InterpolatedGenManager(AbsGenManager):
         """
         addr = 0
         if 'waveform' in params:
-            pinfo = self.pulses[params['waveform']]
+            pinfo = self.envelopes[params['waveform']]
             wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
             addr = pinfo['addr'] // self.samps_per_clk
         if 'phase' in params and 'freq' in params:
@@ -1050,7 +1050,7 @@ class AbsQickProgram:
         self.tproccfg = self.soccfg['tprocs'][0]
 
         # Pulse envelopes.
-        self.pulses = [{} for ch in soccfg['gens']]
+        self.envelopes = [{} for ch in soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
@@ -1330,7 +1330,7 @@ class AbsQickProgram:
             Qick object
 
         """
-        for iCh, pulses in enumerate(self.pulses):
+        for iCh, pulses in enumerate(self.envelopes):
             for name, pulse in pulses.items():
                 soc.load_pulse_data(iCh,
                         data=pulse['data'],
@@ -1421,7 +1421,7 @@ class QickProgram(AbsQickProgram):
     pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
 
     # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'pulses', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
+    dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
