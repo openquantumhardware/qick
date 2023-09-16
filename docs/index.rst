@@ -10,7 +10,7 @@ Welcome to the QICK documentation!
    :width: 100%
    :align: center
 
-.. figure:: ../graphics/ZCU216Board.pdf
+.. figure:: ../graphics/ZCU216Board.jpg
    :width: 100%
    :align: center
 
