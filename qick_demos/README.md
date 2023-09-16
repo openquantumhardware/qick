@@ -27,9 +27,9 @@ Below is a brief summary of the QICK software capabilities.
 
 ## Measurements on quantum devices
 
-* Our single-qubit measurement [Demo 06_qubit_demos](https://github.com/openquantumhardware/qick/blob/main/qick_demos/06_qubit_demos.ipynb)
+* Measuring a single qubit [Demo 06_qubit_demos](https://github.com/openquantumhardware/qick/blob/main/qick_demos/06_qubit_demos.ipynb)
 * N-dimensional sweeps [Demo 07_Sweep_ND_variables](https://github.com/openquantumhardware/qick/blob/main/qick_demos/07_Sweep_ND_variables.ipynb)
-Learn how labs have used the QICK! Check out [our papers page](https://qick-docs.readthedocs.io/en/latest/papers.html)
+* Learn how labs have used the QICK! Check out [our papers page](https://qick-docs.readthedocs.io/en/latest/papers.html)
 
 ## Other examples of QICK measurement code, shared by QICK collaborators
 
