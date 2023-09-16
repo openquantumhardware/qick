@@ -517,15 +517,16 @@ proc create_root_design { parentCell } {
   # Create instance: clk_adc0_x2, and set properties
   set clk_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_adc0_x2 ]
   set_property -dict [ list \
-   CONFIG.CLKIN1_JITTER_PS {52.08} \
-   CONFIG.CLKOUT1_JITTER {81.938} \
-   CONFIG.CLKOUT1_PHASE_ERROR {82.655} \
-   CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {384} \
-   CONFIG.MMCM_CLKFBOUT_MULT_F {6.250} \
-   CONFIG.MMCM_CLKIN1_PERIOD {5.208} \
+   CONFIG.CLKIN1_JITTER_PS {39.06} \
+   CONFIG.CLKOUT1_JITTER {73.505} \
+   CONFIG.CLKOUT1_PHASE_ERROR {77.298} \
+   CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {512} \
+   CONFIG.MMCM_CLKFBOUT_MULT_F {4.750} \
+   CONFIG.MMCM_CLKIN1_PERIOD {3.906} \
    CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
-   CONFIG.MMCM_CLKOUT0_DIVIDE_F {3.125} \
+   CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.375} \
    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
+   CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
  ] $clk_adc0_x2
 
   # Create instance: ddr4_0, and set properties
@@ -581,11 +582,11 @@ proc create_root_design { parentCell } {
   set usp_rf_data_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:usp_rf_data_converter:2.6 usp_rf_data_converter_0 ]
   set_property -dict [ list \
    CONFIG.ADC0_Enable {1} \
-   CONFIG.ADC0_Fabric_Freq {384.000} \
-   CONFIG.ADC0_Outclk_Freq {192.000} \
+   CONFIG.ADC0_Fabric_Freq {512.000} \
+   CONFIG.ADC0_Outclk_Freq {256.000} \
    CONFIG.ADC0_PLL_Enable {true} \
    CONFIG.ADC0_Refclk_Freq {204.800} \
-   CONFIG.ADC0_Sampling_Rate {3.072} \
+   CONFIG.ADC0_Sampling_Rate {4.096} \
    CONFIG.ADC_Decimation_Mode00 {1} \
    CONFIG.ADC_Decimation_Mode01 {1} \
    CONFIG.ADC_Decimation_Mode02 {1} \
@@ -2567,6 +2568,13 @@ preplace inst axis_tproc64x32_x8_0 -pg 1 -lvl 2 -x 820 -y 2250 -defaultsOSRD
 preplace inst axi_intc_0 -pg 1 -lvl 3 -x 1280 -y -140 -defaultsOSRD
 preplace netloc PMOD1_0_LS_1 1 0 2 N 2350 300J
 preplace netloc axi_bram_ctrl_0_bram_doutb 1 1 1 370 2400n
+preplace netloc axi_dma_avg_s2mm_introut 1 1 13 330 1110 N 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 6380
+preplace netloc axi_dma_buf_s2mm_introut 1 1 13 360 1090 N 1090 NJ 1090 2240J 680 NJ 680 NJ 680 NJ 680 4300J 610 NJ 610 4990J 560 5490J 550 NJ 550 6340
+preplace netloc axi_dma_gen_mm2s_introut 1 1 2 370 -260 1000
+preplace netloc axi_dma_mr_s2mm_introut 1 1 13 370 1070 N 1070 NJ 1070 2250J 690 NJ 690 NJ 690 NJ 690 4320J 620 NJ 620 5030J 570 5520J 560 NJ 560 6350
+preplace netloc axi_dma_tproc_mm2s_introut 1 1 2 360 -280 1020
+preplace netloc axi_dma_tproc_s2mm_introut 1 1 2 380 -250 1010
+preplace netloc axi_intc_0_irq 1 3 1 1430 -340n
 preplace netloc axis_set_reg_0_dout 1 6 6 N 3510 N 3510 N 3510 N 3510 N 3510 N
 preplace netloc axis_tproc64x32_x8_0_pmem_addr 1 1 2 380 2470 1000
 preplace netloc clk_adc0_x2_clk_out1 1 3 10 1520 1060 2190 1060 N 1060 3320 1020 3980 710 4390 640 4660 650 5080 1090 5560 1210 5900
@@ -2592,28 +2600,22 @@ preplace netloc vect2bits_16_0_dout5 1 12 5 NJ 3460 N 3460 N 3460 NJ 3460 N
 preplace netloc vect2bits_16_0_dout6 1 12 5 NJ 3480 N 3480 N 3480 NJ 3480 N
 preplace netloc vect2bits_16_0_dout7 1 12 5 NJ 3500 N 3500 N 3500 NJ 3500 N
 preplace netloc vect2bits_16_0_dout8 1 12 2 5970 1190 6400
+preplace netloc vect2bits_16_0_dout9 1 11 2 5570 610 5890
 preplace netloc vect2bits_16_0_dout14 1 10 3 5120 2320 N 2320 5880
 preplace netloc vect2bits_16_0_dout15 1 10 3 5130 2330 N 2330 5870
+preplace netloc xlconcat_0_dout 1 2 1 1070 -140n
 preplace netloc xlconstant_0_dout 1 1 1 320 2550n
 preplace netloc xlconstant_1_dout 1 1 1 340 2650n
 preplace netloc xlconstant_2_dout 1 1 1 320 2670n
 preplace netloc xlconstant_3_dout 1 1 1 370 2690n
 preplace netloc zynq_ultra_ps_e_0_pl_clk0 1 0 14 -10 2300 290 1450 1030 -550 1460 -550 2280 60 2750 1050 3310 1050 N 1050 4310 670 N 670 5040 260 5540 580 5970 1090 6420
 preplace netloc zynq_ultra_ps_e_0_pl_resetn0 1 3 2 1500 1030 2160
-preplace netloc vect2bits_16_0_dout9 1 11 2 5570 610 5890
-preplace netloc axi_dma_tproc_mm2s_introut 1 1 2 360 -280 1020
-preplace netloc axi_dma_tproc_s2mm_introut 1 1 2 380 -250 1010
-preplace netloc axi_dma_gen_mm2s_introut 1 1 2 370 -260 1000
-preplace netloc axi_dma_avg_s2mm_introut 1 1 13 330 1110 N 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 NJ 1110 6380
-preplace netloc axi_dma_buf_s2mm_introut 1 1 13 360 1090 N 1090 NJ 1090 2240J 680 NJ 680 NJ 680 NJ 680 4300J 610 NJ 610 4990J 560 5490J 550 NJ 550 6340
-preplace netloc axi_dma_mr_s2mm_introut 1 1 13 370 1070 N 1070 NJ 1070 2250J 690 NJ 690 NJ 690 NJ 690 4320J 620 NJ 620 5030J 570 5520J 560 NJ 560 6350
-preplace netloc axi_intc_0_irq 1 3 1 1430 -340n
-preplace netloc xlconcat_0_dout 1 2 1 1070 -140n
 preplace netloc adc0_clk_1 1 6 11 3370 2060 N 2060 N 2060 N 2060 N 2060 N 2060 N 2060 N 2060 N 2060 N 2060 N
 preplace netloc axi_bram_ctrl_0_BRAM_PORTA 1 1 1 320 2430n
 preplace netloc axi_dma_0_M_AXIS_MM2S 1 1 2 380 2020 1000
 preplace netloc axi_dma_0_M_AXI_MM2S 1 2 1 1040 -490n
 preplace netloc axi_dma_0_M_AXI_S2MM 1 2 1 1060J -470n
+preplace netloc axi_dma_0_M_AXI_S2MM1 1 2 12 1110 -280 N -280 2230 70 2920 220 N 220 N 220 N 220 N 220 N 220 5560 270 N 270 6370
 preplace netloc axi_dma_1_M_AXIS_MM2S 1 2 1 N 1340
 preplace netloc axi_dma_1_M_AXI_MM2S 1 2 1 1050J -450n
 preplace netloc axi_dma_avg_M_AXI_S2MM 1 2 12 1080 -1230 N -1230 N -1230 N -1230 N -1230 N -1230 N -1230 N -1230 N -1230 N -1230 N -1230 6340
@@ -2642,7 +2644,9 @@ preplace netloc axis_clk_cnvrt_avg_0_M_AXIS 1 1 12 310 -270 NJ -270 N -270 2270J
 preplace netloc axis_clk_cnvrt_avg_1_M_AXIS 1 1 12 340 1010 NJ 1010 N 1010 2180J 990 N 990 NJ 990 3960 700 4350 630 NJ 630 5060 580 5530 570 5870
 preplace netloc axis_clock_converter_0_M_AXIS 1 13 1 6360 1210n
 preplace netloc axis_dwidth_converter_0_M_AXIS 1 12 1 5980 1250n
+preplace netloc axis_readout_v2_0_m0_axis 1 9 2 4670 640 5030
 preplace netloc axis_readout_v2_0_m1_axis 1 9 1 N 440
+preplace netloc axis_readout_v2_1_m0_axis 1 9 2 4640 930 N
 preplace netloc axis_readout_v2_1_m1_axis 1 9 1 N 790
 preplace netloc axis_register_slice_0_M_AXIS 1 8 1 4300 380n
 preplace netloc axis_register_slice_1_M_AXIS 1 8 1 4370 730n
@@ -2663,6 +2667,7 @@ preplace netloc axis_switch_0_M06_AXIS 1 3 3 1420 1460 N 1460 2710
 preplace netloc axis_switch_avg_M00_AXIS 1 12 1 N 420
 preplace netloc axis_switch_buf_M00_AXIS 1 12 1 5940 700n
 preplace netloc axis_switch_ddr_M00_AXIS 1 11 1 N 1280
+preplace netloc axis_switch_mr_M00_AXIS 1 11 1 5450 890n
 preplace netloc axis_tproc64x32_x8_0_m0_axis 1 1 2 370 2030 1000
 preplace netloc axis_tproc64x32_x8_0_m1_axis 1 2 4 N 2180 N 2180 N 2180 2680
 preplace netloc axis_tproc64x32_x8_0_m2_axis 1 2 1 1070 1800n
@@ -2676,6 +2681,7 @@ preplace netloc dac0_clk_1 1 6 11 3360 2100 N 2100 N 2100 N 2100 N 2100 N 2100 N
 preplace netloc dac1_clk_1 1 6 11 3380 2080 N 2080 N 2080 N 2080 N 2080 N 2080 N 2080 N 2080 N 2080 N 2080 N
 preplace netloc ddr4_0_C0_DDR4 1 16 1 N 1210
 preplace netloc default_sysclk1_300mhz_1 1 15 2 7000 1140 N
+preplace netloc mr_buffer_et_0_m00_axis 1 12 1 5960 940n
 preplace netloc ps8_0_axi_periph_M00_AXI 1 1 5 350 470 N 470 N 470 NJ 470 2710
 preplace netloc ps8_0_axi_periph_M01_AXI 1 1 5 320 480 N 480 N 480 NJ 480 2700
 preplace netloc ps8_0_axi_periph_M02_AXI 1 5 1 2940 -800n
@@ -2699,6 +2705,10 @@ preplace netloc ps8_0_axi_periph_M19_AXI 1 5 8 N -460 N -460 N -460 N -460 N -46
 preplace netloc ps8_0_axi_periph_M20_AXI 1 5 8 N -440 N -440 N -440 N -440 N -440 N -440 N -440 5960
 preplace netloc ps8_0_axi_periph_M21_AXI 1 5 9 N -420 NJ -420 NJ -420 N -420 NJ -420 NJ -420 N -420 N -420 6440
 preplace netloc ps8_0_axi_periph_M22_AXI 1 5 6 N -400 NJ -400 N -400 N -400 N -400 5020
+preplace netloc ps8_0_axi_periph_M23_AXI 1 5 6 N -380 N -380 N -380 N -380 N -380 5050
+preplace netloc ps8_0_axi_periph_M24_AXI 1 5 7 N -360 N -360 N -360 N -360 N -360 N -360 5470
+preplace netloc ps8_0_axi_periph_M25_AXI 1 5 8 N -340 N -340 N -340 N -340 N -340 N -340 N -340 5950
+preplace netloc ps8_0_axi_periph_M26_AXI 1 2 4 1110 1020 N 1020 N 1020 2690
 preplace netloc sysref_in_1 1 6 11 3410 2040 N 2040 N 2040 N 2040 N 2040 N 2040 N 2040 N 2040 N 2040 N 2040 N
 preplace netloc usp_rf_data_converter_0_m00_axis 1 7 1 3970 440n
 preplace netloc usp_rf_data_converter_0_m02_axis 1 7 1 4020 790n
@@ -2713,15 +2723,6 @@ preplace netloc vin0_1 1 6 11 3390 1990 N 1990 N 1990 N 1990 N 1990 N 1990 N 199
 preplace netloc vin1_1 1 6 11 3400 2010 N 2010 N 2010 N 2010 N 2010 N 2010 N 2010 N 2010 N 2010 N 2010 N
 preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM0_FPD 1 4 1 2170J -1160n
 preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM1_FPD 1 4 11 2160J -1220 NJ -1220 NJ -1220 NJ -1220 N -1220 NJ -1220 NJ -1220 NJ -1220 NJ -1220 N -1220 6690
-preplace netloc axis_readout_v2_0_m0_axis 1 9 2 4670 640 5030
-preplace netloc axis_readout_v2_1_m0_axis 1 9 2 4640 930 N
-preplace netloc ps8_0_axi_periph_M23_AXI 1 5 6 N -380 N -380 N -380 N -380 N -380 5050
-preplace netloc axis_switch_mr_M00_AXIS 1 11 1 5450 890n
-preplace netloc mr_buffer_et_0_m00_axis 1 12 1 5960 940n
-preplace netloc axi_dma_0_M_AXI_S2MM1 1 2 12 1110 -280 N -280 2230 70 2920 220 N 220 N 220 N 220 N 220 N 220 5560 270 N 270 6370
-preplace netloc ps8_0_axi_periph_M24_AXI 1 5 7 N -360 N -360 N -360 N -360 N -360 N -360 5470
-preplace netloc ps8_0_axi_periph_M25_AXI 1 5 8 N -340 N -340 N -340 N -340 N -340 N -340 N -340 5950
-preplace netloc ps8_0_axi_periph_M26_AXI 1 2 4 1110 1020 N 1020 N 1020 2690
 levelinfo -pg 1 -40 150 820 1280 1840 2530 3080 3820 4190 4520 4830 5290 5730 6160 6560 6840 7220 7420
 pagesize -pg 1 -db -bbox -sgen -190 -1790 7570 4060
 "

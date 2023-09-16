@@ -765,6 +765,8 @@ class MrBufferEt(SocIp):
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
 
+        self.cfg['junk_len'] = 8
+
         # Preallocate memory buffers for DMA transfers.
         self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)
 
@@ -836,7 +838,9 @@ class MrBufferEt(SocIp):
     def set_switch(self, bufname):
         self.route(self.buf2switch[bufname])
 
-    def transfer(self):
+    def transfer(self, start=None):
+        if start is None: start = self['junk_len']
+
         # Start send data mode.
         self.dr_start_reg = 1
 
@@ -847,7 +851,7 @@ class MrBufferEt(SocIp):
         # Stop send data mode.
         self.dr_start_reg = 0
 
-        return self.buff.copy().reshape((-1,2))
+        return np.copy(self.buff).reshape((-1,2))[start:]
 
     def enable(self):
         self.dw_capture_reg = 1
@@ -888,6 +892,11 @@ class AxisBufferDdrV1(SocIp):
         self.waddr_reg   = 0
         self.wnburst_reg = 10
 
+        # DDR4 controller.
+        self.ddr4_mem = None
+        # DDR4 data array.
+        self.ddr4_array = None
+
         # Switch for selecting input.
         self.switch = None
         # Map from avg_buf name to switch port.
@@ -896,14 +905,24 @@ class AxisBufferDdrV1(SocIp):
         # Generics.
         self.TARGET_SLAVE_BASE_ADDR   = int(description['parameters']['TARGET_SLAVE_BASE_ADDR'],0)
         self.ID_WIDTH                 = int(description['parameters']['ID_WIDTH'])
-        self.DATA_WIDTH               = int(description['parameters']['DATA_WIDTH'])
-        self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1
+        self.DATA_WIDTH               = int(description['parameters']['DATA_WIDTH']) # width of the AXI bus, in bits
+        self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1 # words per AXI burst
 
         self.cfg['burst_len'] = self.DATA_WIDTH*self.BURST_SIZE//32
         self.cfg['readouts'] = []
+        self.cfg['junk_len'] = 50*self.DATA_WIDTH//32 + 1 # not clear where this 50 comes from, presumably some FIFO somewhere
+        self.cfg['junk_nt'] = int(np.ceil(self['junk_len']/self.cfg['burst_len']))
 
     def configure_connections(self, soc):
         self.soc = soc
+
+        # follow the output to find the DDR4 controller
+        ((block,port),) = soc.metadata.trace_bus(self.fullpath, 'm_axi')
+        # jump through the smartconnect
+        ((block,port),) = soc.metadata.trace_bus(block, 'M00_AXI')
+        self.ddr4_mem = getattr(soc, block)
+        self.ddr4_array = self.ddr4_mem.mmio.array.view('uint32')
+        self.cfg['maxlen'] = self.ddr4_array.shape[0]
 
         # Typical: buffer_ddr -> clock_converter -> dwidth_converter -> switch (optional) -> broadcaster
         # the broadcaster will feed this block and a regular avg_buf
@@ -990,3 +1009,33 @@ class AxisBufferDdrV1(SocIp):
         if self.switch is None:
             assert self.buf2switch[bufname]==0
         self.switch.sel(slv=self.buf2switch[bufname])
+
+    def clear_mem(self, length=None):
+        if length is None:
+            np.copyto(self.ddr4_array, 0)
+        else:
+            np.copyto(self.ddr4_array[:length], 0)
+
+    def get_mem(self, nt, start=None):
+        if start is None:
+            start = self['junk_len']
+            end = nt*self['burst_len']
+        else:
+            end = start + nt*self['burst_len']
+        length = end-start
+
+        # when we access memory-mapped data, the start and end need to be aligned to multiples of 64 bits.
+        # violations result in the Python interpreter crashing on SIGBUS/BUS_ADRALN
+        # this doesn't matter for all operations, but np.copy() definitely seems to care
+        # it seems that even if you slice out an address-aligned chunk of data and just print it, sometimes that will access it in an illegal way
+        # therefore we pad out the requested address block, copy the data, and trim
+        # this way, no special care needs to be taken with the returned array
+        buf_copy = self.ddr4_array[start - (start%2):end + (end%2)].copy()
+        return buf_copy[start%2:length + start%2].view(dtype=np.int16).reshape((-1,2))
+
+    def arm(self, nt, force_overwrite=False):
+        if nt > self['maxlen']//self['burst_len'] and not force_overwrite:
+            raise RuntimeError("the requested number of DDR4 transfers (nt) exceeds the memory size; the buffer will overwrite itself. You can disable this error message with force_overwrite=True.")
+        self.wlen(nt)
+        self.wstop()
+        self.wstart()
