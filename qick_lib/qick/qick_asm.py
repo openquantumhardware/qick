@@ -728,7 +728,7 @@ class AbsGenManager(AbsRegisterManager):
         if defined - allowed:
             raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
-    def add_pulse(self, name, idata, qdata):
+    def add_envelope(self, name, idata, qdata):
         """Add a waveform to the list of envelope waveforms available for this channel.
         The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
 
@@ -837,7 +837,7 @@ class FullSpeedGenManager(AbsGenManager):
 
         * flat_top: A flattop pulse with arbitrary ramps.
           The waveform is played in three segments: ramp up, flat, and ramp down.
-          To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
+          To use these pulses one should use add_envelope to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
           If the waveform is not of even length, the middle sample will be skipped.
           It's recommended to use an even-length waveform with flat_top.
@@ -922,7 +922,7 @@ class InterpolatedGenManager(AbsGenManager):
 
         * flat_top: A flattop pulse with arbitrary ramps.
           The waveform is played in three segments: ramp up, flat, and ramp down.
-          To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
+          To use these pulses one should use add_envelope to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
           If the waveform is not of even length, the middle sample will be skipped.
           It's recommended to use an even-length waveform with flat_top.
@@ -1213,7 +1213,7 @@ class AbsQickProgram:
             if cfg['mux_freqs'] is not None:
                 soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
 
-    def add_pulse(self, ch, name, idata=None, qdata=None):
+    def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the waveform library within the program.
 
         Parameters
@@ -1228,7 +1228,7 @@ class AbsQickProgram:
             Q data Numpy array
 
         """
-        self._gen_mgrs[ch].add_pulse(name, idata, qdata)
+        self._gen_mgrs[ch].add_envelope(name, idata, qdata)
 
     def add_gauss(self, ch, name, sigma, length, maxv=None):
         """Adds a Gaussian pulse to the waveform library.
@@ -1255,7 +1255,7 @@ class AbsQickProgram:
         length = np.round(length) * samps_per_clk
         sigma *= samps_per_clk
 
-        self.add_pulse(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
 
 
     def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
@@ -1295,7 +1295,7 @@ class AbsQickProgram:
 
         idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
 
-        self.add_pulse(ch, name, idata=idata, qdata=qdata)
+        self.add_envelope(ch, name, idata=idata, qdata=qdata)
 
     def add_triangle(self, ch, name, length, maxv=None):
         """Adds a triangle pulse to the waveform library.
@@ -1319,10 +1319,10 @@ class AbsQickProgram:
 
         length = np.round(length) * samps_per_clk
 
-        self.add_pulse(ch, name, idata=triang(length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=triang(length=length, maxv=maxv))
 
     def load_pulses(self, soc):
-        """Loads pulses that were added using add_pulse into the SoC's signal generator memories.
+        """Loads pulses that were added using add_envelope into the SoC's signal generator memories.
 
         Parameters
         ----------
@@ -1823,6 +1823,23 @@ class QickProgram(AbsQickProgram):
         tproc_ch = self.soccfg['readouts'][ro_ch]['tproc_ctrl']
         return self._sreg_tproc(tproc_ch, name)
 
+    def add_pulse(self, ch, name, idata=None, qdata=None):
+        """Adds a waveform to the waveform library within the program.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        idata : array
+            I data Numpy array
+        qdata : array
+            Q data Numpy array
+
+        """
+        self.add_envelope(name, idata, qdata
+
     def default_pulse_registers(self, ch, **kwargs):
         """Set default values for pulse parameters.
         If any registers can be written at this point, write them in order to save time later.
@@ -1869,7 +1886,7 @@ class QickProgram(AbsQickProgram):
         length : int
             The number of fabric clock cycles in the flat portion of the pulse, used for "const" and "flat_top" styles
         waveform : str
-            Name of the envelope waveform loaded with add_pulse(), used for "arb" and "flat_top" styles
+            Name of the envelope waveform loaded with add_envelope(), used for "arb" and "flat_top" styles
         mask : list of int
             for a muxed signal generator, the list of tones to enable for this pulse
         """
