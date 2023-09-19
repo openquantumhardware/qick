@@ -1838,7 +1838,7 @@ class QickProgram(AbsQickProgram):
             Q data Numpy array
 
         """
-        self.add_envelope(name, idata, qdata
+        self.add_envelope(name, idata, qdata)
 
     def default_pulse_registers(self, ch, **kwargs):
         """Set default values for pulse parameters.
