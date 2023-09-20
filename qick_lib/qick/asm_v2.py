@@ -188,12 +188,8 @@ class FullSpeedGenManager(AbsGenManager):
             'arb': ['phrst', 'stdysel', 'mode', 'outsel'],
             'flat_top': ['phrst', 'stdysel']}
 
-    def params2wave(self, freq, phase, gain, length, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
-        ro_ch=0 #TODO
-        freqreg = self.prog.freq2reg(gen_ch=self.ch, f=freq, ro_ch=ro_ch)
-        phasereg = self.prog.deg2reg(gen_ch=self.ch, deg=phase)
-        gainreg = int(gain*self.gencfg['maxv']*self.gencfg['maxv_scale'])
-        lenreg = int(self.prog.us2cycles(gen_ch=self.ch, us=length))
+    def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
+        #lenreg = int(self.prog.us2cycles(gen_ch=self.ch, us=length))
         if lenreg >= 2**16 or lenreg < 3:
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
@@ -224,23 +220,31 @@ class FullSpeedGenManager(AbsGenManager):
         params : dict
             Pulse parameters
         """
-        wavepars = {k:params.get(k) for k in ['freq', 'phase', 'gain', 'phrst', 'stdysel']}
+        wavepars = {k:params.get(k) for k in ['phrst', 'stdysel']}
+        ro_ch=0 #TODO
+        wavepars['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=params['freq'], ro_ch=ro_ch)
+        wavepars['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=params['phase'])
+        wavepars['gainreg'] = int(params['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale'])
 
         if 'envelope' in params:
             pinfo = self.envelopes[params['envelope']]
-            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
-            addr = pinfo['addr'] // self.samps_per_clk
-            self.set_reg('addr', addr, defaults=defaults)
-            wavepars['env'] = 'envelope'
+            env_length = pinfo['data'].shape[0] // self.samps_per_clk
+            env_addr = pinfo['addr'] // self.samps_per_clk
         style = params['style']
 
         pulse = {}
         pulse['waves'] = []
         if style=='const':
-            wavepars.update({k:params.get(k) for k in ['length', 'mode']})
+            wavepars.update({k:params.get(k) for k in ['mode']})
             wavepars['outsel'] = 'dds'
             pulse['waves'].append(self.params2wave(**wavepars))
-            pulse['length'] = params['length']
+            pulse['lenreg'] = int(self.prog.us2cycles(gen_ch=self.ch, us=params['length']))
+        elif style=='arb':
+            wavepars.update({k:params.get(k) for k in ['mode', 'outsel']})
+            wavepars['env'] = env_addr
+            wavepars['lenreg'] = env_length
+            pulse['waves'].append(self.params2wave(**wavepars))
+            pulse['length'] = env_length
 
         return pulse
         """
@@ -360,6 +364,31 @@ class QickProgramV2(AbsQickProgram):
 
         return reg
     
+
+    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
+        """Adds a Gaussian pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        sigma : float
+            Standard deviation of the Gaussian (in units of us)
+        length : int
+            Total pulse length (in units of us)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+        """
+        if even_length:
+            lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+        else:
+            lenreg = self.us2cycles(gen_ch=ch, us=length)
+        sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        super().add_gauss(ch, name, sigreg, lenreg, maxv)
+
     def add_wave(self, name, wave):
         self.waves[name] = wave
         self.wave2idx[name] = len(self.waves)-1
