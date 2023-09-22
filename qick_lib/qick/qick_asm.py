@@ -1663,23 +1663,21 @@ class QickProgram(AbsQickProgram):
                 raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
             d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
 
-        tproc = soc.tproc
-
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(self.rounds), disable=not progress):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
             # make sure count variable is reset to 0
-            tproc.single_write(addr=self.counter_addr, data=0)
+            soc.set_tproc_counter(addr=self.counter_addr, val=0)
 
             # run the assembly program
             # if start_src="external", you must pulse the trigger input once for every round
-            tproc.start()
+            soc.start_tproc()
 
             count = 0
             while count < self.reps:
-                count = tproc.single_read(addr=self.counter_addr)
+                count = soc.get_tproc_counter(addr=self.counter_addr)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += obtain(soc.get_decimated(ch=ch,

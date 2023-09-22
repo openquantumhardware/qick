@@ -293,7 +293,8 @@ class QickSoc(Overlay, QickConfig):
             self._streamer = DataStreamer(self)
 
             # list of objects that need to be registered for autoproxying over Pyro
-            self.autoproxy = [self.streamer, self.tproc]
+            #self.autoproxy = [self.streamer, self.tproc]
+            self.autoproxy = []
 
     @property
     def tproc(self):
