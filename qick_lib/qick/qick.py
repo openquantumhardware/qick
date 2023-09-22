@@ -789,6 +789,42 @@ class QickSoc(Overlay, QickConfig):
         """
         self.tproc.start_src(src)
 
+    def start_tproc(self):
+        """
+        Start the tProc.
+        """
+        self.tproc.start()
+
+    def set_tproc_counter(self, addr, val):
+        """
+        Initialize the tProc rep counter.
+        Parameters
+        ----------
+        addr : int
+            Counter address
+
+        Returns
+        -------
+        int
+            Counter value
+        """
+        self.tproc.single_write(addr=addr, data=val)
+
+    def get_tproc_counter(self, addr):
+        """
+        Read the tProc rep counter.
+        Parameters
+        ----------
+        addr : int
+            Counter address
+
+        Returns
+        -------
+        int
+            Counter value
+        """
+        return self.tproc.single_read(addr=addr)
+
     def reset_gens(self):
         """
         Reset the tProc and run a minimal tProc program that drives all signal generators with 0's.

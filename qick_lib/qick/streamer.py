@@ -109,21 +109,21 @@ class DataStreamer():
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
                 # make sure count variable is reset to 0 before starting processor
-                self.soc.tproc.single_write(addr=counter_addr, data=0)
+                self.soc.set_tproc_counter(addr=counter_addr, val=0)
                 stats = []
 
                 t_start = time.time()
 
                 # if the tproc is configured for internal start, this will start the program
                 # for external start, the program will not start until a start pulse is received
-                self.soc.tproc.start()
+                self.soc.start_tproc()
 
                 # Keep streaming data until you get all of it
                 while last_reps < total_reps:
                     if self.stop_flag.is_set():
                         print("streamer loop: got stop flag")
                         break
-                    reps = self.soc.tproc.single_read(addr=counter_addr)
+                    reps = self.soc.get_tproc_counter(addr=counter_addr)
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                     if reps >= min(last_reps+stride, total_reps):
                         addr = last_count % self.soc.get_avg_max_length(0)
