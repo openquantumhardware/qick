@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, QickRegister
 
+logger = logging.getLogger(__name__)
+
 class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"])):
     widths = [4, 4, 3, 4, 4, 2]
     def compile(self):
@@ -184,18 +186,17 @@ class FullSpeedGenManager(AbsGenManager):
     PARAMS_REQUIRED = {'const': ['style', 'freq', 'phase', 'gain', 'length'],
             'arb': ['style', 'freq', 'phase', 'gain', 'envelope'],
             'flat_top': ['style', 'freq', 'phase', 'gain', 'length', 'envelope']}
-    PARAMS_OPTIONAL = {'const': ['phrst', 'stdysel', 'mode'],
-            'arb': ['phrst', 'stdysel', 'mode', 'outsel'],
-            'flat_top': ['phrst', 'stdysel']}
+    PARAMS_OPTIONAL = {'const': ['ro_ch', 'phrst', 'stdysel', 'mode'],
+            'arb': ['ro_ch', 'phrst', 'stdysel', 'mode', 'outsel'],
+            'flat_top': ['ro_ch', 'phrst', 'stdysel']}
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
-        #lenreg = int(self.prog.us2cycles(gen_ch=self.ch, us=length))
         if lenreg >= 2**16 or lenreg < 3:
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
         return Wave(freqreg, phasereg, env, gainreg, lenreg, confreg)
 
-    def params2pulse(self, params):
+    def params2pulse(self, par):
         """Write whichever pulse registers are fully determined by the defined parameters.
 
         The following pulse styles are supported:
@@ -217,62 +218,59 @@ class FullSpeedGenManager(AbsGenManager):
 
         Parameters
         ----------
-        params : dict
+        par : dict
             Pulse parameters
         """
-        wavepars = {k:params.get(k) for k in ['phrst', 'stdysel']}
-        ro_ch=0 #TODO
-        wavepars['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=params['freq'], ro_ch=ro_ch)
-        wavepars['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=params['phase'])
-        wavepars['gainreg'] = int(params['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale'])
+        w = {k:par.get(k) for k in ['phrst', 'stdysel']}
+        w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
+        w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
+        if par['style']=='flat_top':
+            # since the flat segment is played at half gain, the ramps should have even gain
+            w['gainreg'] = int(2*np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']/2))
+        else:
+            w['gainreg'] = int(np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']))
 
-        if 'envelope' in params:
-            pinfo = self.envelopes[params['envelope']]
-            env_length = pinfo['data'].shape[0] // self.samps_per_clk
-            env_addr = pinfo['addr'] // self.samps_per_clk
-        style = params['style']
+        if 'envelope' in par:
+            env = self.envelopes[par['envelope']]
+            env_length = env['data'].shape[0] // self.samps_per_clk
+            env_addr = env['addr'] // self.samps_per_clk
 
         pulse = {}
         pulse['waves'] = []
-        if style=='const':
-            wavepars.update({k:params.get(k) for k in ['mode']})
-            wavepars['outsel'] = 'dds'
-            pulse['waves'].append(self.params2wave(**wavepars))
-            pulse['lenreg'] = int(self.prog.us2cycles(gen_ch=self.ch, us=params['length']))
-        elif style=='arb':
-            wavepars.update({k:params.get(k) for k in ['mode', 'outsel']})
-            wavepars['env'] = env_addr
-            wavepars['lenreg'] = env_length
-            pulse['waves'].append(self.params2wave(**wavepars))
+        if par['style']=='const':
+            w.update({k:par.get(k) for k in ['mode']})
+            w['outsel'] = 'dds'
+            w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
+            pulse['waves'].append(self.params2wave(**w))
+            pulse['length'] = w['lenreg']
+        elif par['style']=='arb':
+            w.update({k:par.get(k) for k in ['mode', 'outsel']})
+            w['env'] = env_addr
+            w['lenreg'] = env_length
+            pulse['waves'].append(self.params2wave(**w))
             pulse['length'] = env_length
+        elif par['style']=='flat_top':
+            w['mode'] = 'oneshot'
+            if env_length % 2 != 0:
+                logger.warning("Envelope length %d is an odd number of fabric cycles.\n"
+                "The middle cycle of the envelope will not be used.\n"
+                "If this is a problem, you could use the even_length parameter for your envelope."%(env_length))
+            w1 = w.copy()
+            w1['env'] = env_addr
+            w1['outsel'] = 'product'
+            w1['lenreg'] = env_length//2
+            w2 = w.copy()
+            w2['outsel'] = 'dds'
+            w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
+            w2['gainreg'] = w2['gainreg']//2
+            w3 = w1.copy()
+            w3['env'] = env_addr + (env_length+1)//2
+            pulse['waves'].append(self.params2wave(**w1))
+            pulse['waves'].append(self.params2wave(**w2))
+            pulse['waves'].append(self.params2wave(**w3))
+            pulse['length'] = (env_length//2)*2 + w2['lenreg']
 
         return pulse
-        """
-        elif style=='arb':
-            mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
-            self.set_reg('mode', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
-            self.next_pulse['length'] = wfm_length
-        elif style=='flat_top':
-            # address for ramp-down
-            self.set_reg('addr2', addr+(wfm_length+1)//2)
-            # gain for flat segment
-            self.set_reg('gain2', params['gain']//2)
-            # mode for ramp up
-            mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
-            self.set_reg('mode2', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-            # mode for flat segment
-            mc = self.get_mode_code(phrst=False, stdysel=stdysel, mode='oneshot', outsel='dds', length=params['length'])
-            self.set_reg('mode', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-            # mode for ramp down
-            mc = self.get_mode_code(phrst=False, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
-            self.set_reg('mode3', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode3']])
-            self.next_pulse['length'] = (wfm_length//2)*2 + params['length']
-        """
 
 class QickProgramV2(AbsQickProgram):
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
@@ -377,10 +375,13 @@ class QickProgramV2(AbsQickProgram):
             Name of the pulse
         sigma : float
             Standard deviation of the Gaussian (in units of us)
-        length : int
+        length : float
             Total pulse length (in units of us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
+        even_length : bool
+            Round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         if even_length:
             lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
@@ -422,16 +423,26 @@ class QickProgramV2(AbsQickProgram):
         reg = self.new_reg(name=name, addr=addr)
         self.loop_list.append(name)
         self.loop_stack.append(name)
+        # initialize the loop counter to zero and set the loop label
         self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n), 'UF':'0'})
         self.add_label(name.upper())
     
     def close_loop(self):
         name = self.loop_stack.pop()
         reg = self.user_reg_dict[name]
+        # increment and test the loop counter
         self.add_instruction({'CMD':'REG_WR', 'DST':f'r{reg.addr}', 'SRC':'op', 'OP':f'r{reg.addr}-#1', 'UF':'1'})
         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'UF':'0'})
         
 #         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
+
+    def init_data_counter(self):
+        # initialize the data counter to zero
+        self.add_instruction({'CMD':"REG_WR", 'DST':'s12','SRC':'imm','LIT': '0', 'UF':'0'})
+
+    def inc_data_counter(self):
+        # increment the data counter
+        self.add_instruction({'CMD':"REG_WR", 'DST':'s12','SRC':'op','OP': 's12 + #1', 'UF':'0'})
     
     def trigger(self, ros=None, pins=None, t=0, width=10):
         treg = self.us2cycles(t)
