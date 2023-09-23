@@ -436,13 +436,15 @@ class QickProgramV2(AbsQickProgram):
         
 #         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
 
-    def init_data_counter(self):
+    def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s12','SRC':'imm','LIT': '0', 'UF':'0'})
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val), 'UF':'0'})
 
-    def inc_data_counter(self):
+    def inc_ext_counter(self, addr=1, val=1):
         # increment the data counter
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s12','SRC':'op','OP': 's12 + #1', 'UF':'0'})
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val), 'UF':'0'})
     
     def trigger(self, ros=None, pins=None, t=0, width=10):
         treg = self.us2cycles(t)
@@ -510,7 +512,7 @@ class QickProgramV2(AbsQickProgram):
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
 
-    def config_all(self, soc):
+    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
         soc.tproc.proc_stop()
         super().config_all(soc)
         soc.tproc.Load_PMEM(self.compile_prog())

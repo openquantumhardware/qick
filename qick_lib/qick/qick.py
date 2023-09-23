@@ -275,12 +275,16 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
-        if not no_tproc:
+        if no_tproc:
+            self.TPROC_VERSION = 0
+        else:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
             if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self.TPROC_VERSION = 1
                 self._tproc = self.axis_tproc64x32_x8_0
                 self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
             elif 'qick_processor_0' in self.ip_dict:
+                self.TPROC_VERSION = 2
                 self._tproc = self.qick_processor_0
                 self._tproc.configure(self.axi_dma_tproc)
             else:
@@ -788,13 +792,18 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: string
         """
-        self.tproc.start_src(src)
+        if self.TPROC_VERSION == 1:
+            self.tproc.start_src(src)
 
     def start_tproc(self):
         """
         Start the tProc.
         """
-        self.tproc.start()
+        if self.TPROC_VERSION == 1:
+            self.tproc.start()
+        elif self.TPROC_VERSION == 2:
+            self.tproc.proc_stop()
+            self.tproc.proc_start()
 
     def set_tproc_counter(self, addr, val):
         """
@@ -809,7 +818,8 @@ class QickSoc(Overlay, QickConfig):
         int
             Counter value
         """
-        self.tproc.single_write(addr=addr, data=val)
+        if self.TPROC_VERSION == 1:
+            self.tproc.single_write(addr=addr, data=val)
 
     def get_tproc_counter(self, addr):
         """
@@ -824,7 +834,12 @@ class QickSoc(Overlay, QickConfig):
         int
             Counter value
         """
-        return self.tproc.single_read(addr=addr)
+        if self.TPROC_VERSION == 1:
+            return self.tproc.single_read(addr=addr)
+        elif self.TPROC_VERSION == 2:
+            self.tproc.read_sel=1
+            reg = {1:'tproc_r_dt1', 2:'tproc_r_dt2'}[addr]
+            return getattr(self.tproc, reg)
 
     def reset_gens(self):
         """

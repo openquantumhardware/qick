@@ -1372,113 +1372,6 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-
-class QickProgram(AbsQickProgram):
-    """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
-    # Instruction set for the tproc describing how to automatically generate methods for these instructions
-    instructions = {'pushi': {'type': "I", 'bin': 0b00010000, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 0)), 'repr': "{0}, ${1}, ${2}, {3}"},
-                    'popi':  {'type': "I", 'bin': 0b00010001, 'fmt': ((0, 53), (1, 41)), 'repr': "{0}, ${1}"},
-                    'mathi': {'type': "I", 'bin': 0b00010010, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
-                    'seti':  {'type': "I", 'bin': 0b00010011, 'fmt': ((1, 53), (0, 50), (2, 36), (3, 0)), 'repr': "{0}, {1}, ${2}, {3}"},
-                    'synci': {'type': "I", 'bin': 0b00010100, 'fmt': ((0, 0),), 'repr': "{0}"},
-                    'waiti': {'type': "I", 'bin': 0b00010101, 'fmt': ((0, 50), (1, 0)), 'repr': "{0}, {1}"},
-                    'bitwi': {'type': "I", 'bin': 0b00010110, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
-                    'memri': {'type': "I", 'bin': 0b00010111, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'memwi': {'type': "I", 'bin': 0b00011000, 'fmt': ((0, 53), (1, 31), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'regwi': {'type': "I", 'bin': 0b00011001, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-                    'setbi': {'type': "I", 'bin': 0b00011010, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
-
-                    'loopnz': {'type': "J1", 'bin': 0b00110000, 'fmt': ((0, 53), (1, 41), (1, 36), (2, 0)), 'repr': "{0}, ${1}, @{2}"},
-                    'end':    {'type': "J1", 'bin': 0b00111111, 'fmt': (), 'repr': ""},
-
-                    'condj':  {'type': "J2", 'bin': 0b00110001, 'fmt': ((0, 53), (2, 46), (1, 36), (3, 31), (4, 0)), 'repr': "{0}, ${1}, {2}, ${3}, @{4}"},
-
-                    'math':  {'type': "R", 'bin': 0b01010000, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
-                    'set':  {'type': "R", 'bin': 0b01010001, 'fmt': ((1, 53), (0, 50), (2, 36), (7, 31), (3, 26), (4, 21), (5, 16), (6, 11)), 'repr': "{0}, {1}, ${2}, ${3}, ${4}, ${5}, ${6}, ${7}"},
-                    'sync': {'type': "R", 'bin': 0b01010010, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, ${1}"},
-                    'read': {'type': "R", 'bin': 0b01010011, 'fmt': ((1, 53), (0, 50), (2, 46), (3, 41)), 'repr': "{0}, {1}, {2} ${3}"},
-                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((1, 53), (0, 50), (2, 31)), 'repr': "{0}, {1}, ${2}"},
-                    'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
-                    'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
-                    'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
-                    'comment': {'fmt': ()}
-                    }
-
-    # op codes for math and bitwise operations
-    op_codes = {">": 0b0000, ">=": 0b0001, "<": 0b0010, "<=": 0b0011, "==": 0b0100, "!=": 0b0101,
-                "+": 0b1000, "-": 0b1001, "*": 0b1010,
-                "&": 0b0000, "|": 0b0001, "^": 0b0010, "~": 0b0011, "<<": 0b0100, ">>": 0b0101,
-                "upper": 0b1010, "lower": 0b0101
-                }
-
-    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
-    # In each page, register 0 is hard-wired with the value 0.
-    # In page 0 we reserve the following additional registers:
-    # 13, 14 and 15 for loop counters, 31 for the trigger time.
-    # Pairs of channels share a register page.
-    # The flat_top pulse uses some extra registers.
-    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
-
-    # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
-
-    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
-                'axis_signal_gen_v5': FullSpeedGenManager,
-                'axis_signal_gen_v6': FullSpeedGenManager,
-                'axis_sg_int4_v1': InterpolatedGenManager,
-                'axis_sg_mux4_v1': MultiplexedGenManager,
-                'axis_sg_mux4_v2': MultiplexedGenManager}
-
-    def __init__(self, soccfg):
-        """
-        Constructor method
-        """
-        super().__init__(soccfg)
-
-        # List of commands. This may include comments.
-        self.prog_list = []
-
-        # Label to apply to the next instruction.
-        self._label_next = None
-
-        # Address of the rep counter in the data memory.
-        self.counter_addr = 1
-        # Number of iterations in the innermost loop.
-        self.reps = None
-        # Number of times the program repeats the innermost loop. None means there is no outer loop.
-        self.expts = None
-
-        # Generator managers, for keeping track of register values.
-        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
-        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
-
-        # Number of times the whole program is to be run.
-        self.rounds = 1
-        # Rotation angle and thresholds for single-shot readout.
-        self.shot_angle = None
-        self.shot_threshold = None
-
-
-    def dump_prog(self):
-        """
-        Dump the program to a dictionary.
-        This output contains all the information necessary to run the program.
-        Caution: don't modify the sub-dictionaries of this dict!
-        You will be modifying the original program (this is not a deep copy).
-        """
-        progdict = {}
-        for key in self.dump_keys:
-            progdict[key] = getattr(self, key)
-        return progdict
-
-    def load_prog(self, progdict):
-        """
-        Load the program from a dictionary.
-        """
-        for key in self.dump_keys:
-            setattr(self, key, progdict[key])
-
     def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
         """Acquire data using the accumulated readout.
 
@@ -1694,6 +1587,116 @@ class QickProgram(AbsQickProgram):
             if self.reps > 1 and reads_per_rep > 1:
                 result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
             return result
+
+
+class QickProgram(AbsQickProgram):
+    """QickProgram is a Python representation of the QickSoc processor assembly program. It can be used to compile simple assembly programs and also contains macros to help make it easy to configure and schedule pulses."""
+    # Instruction set for the tproc describing how to automatically generate methods for these instructions
+    instructions = {'pushi': {'type': "I", 'bin': 0b00010000, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 0)), 'repr': "{0}, ${1}, ${2}, {3}"},
+                    'popi':  {'type': "I", 'bin': 0b00010001, 'fmt': ((0, 53), (1, 41)), 'repr': "{0}, ${1}"},
+                    'mathi': {'type': "I", 'bin': 0b00010010, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
+                    'seti':  {'type': "I", 'bin': 0b00010011, 'fmt': ((1, 53), (0, 50), (2, 36), (3, 0)), 'repr': "{0}, {1}, ${2}, {3}"},
+                    'synci': {'type': "I", 'bin': 0b00010100, 'fmt': ((0, 0),), 'repr': "{0}"},
+                    'waiti': {'type': "I", 'bin': 0b00010101, 'fmt': ((0, 50), (1, 0)), 'repr': "{0}, {1}"},
+                    'bitwi': {'type': "I", 'bin': 0b00010110, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 0)), 'repr': "{0}, ${1}, ${2} {3} {4}"},
+                    'memri': {'type': "I", 'bin': 0b00010111, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'memwi': {'type': "I", 'bin': 0b00011000, 'fmt': ((0, 53), (1, 31), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'regwi': {'type': "I", 'bin': 0b00011001, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+                    'setbi': {'type': "I", 'bin': 0b00011010, 'fmt': ((0, 53), (1, 41), (2, 0)), 'repr': "{0}, ${1}, {2}"},
+
+                    'loopnz': {'type': "J1", 'bin': 0b00110000, 'fmt': ((0, 53), (1, 41), (1, 36), (2, 0)), 'repr': "{0}, ${1}, @{2}"},
+                    'end':    {'type': "J1", 'bin': 0b00111111, 'fmt': (), 'repr': ""},
+
+                    'condj':  {'type': "J2", 'bin': 0b00110001, 'fmt': ((0, 53), (2, 46), (1, 36), (3, 31), (4, 0)), 'repr': "{0}, ${1}, {2}, ${3}, @{4}"},
+
+                    'math':  {'type': "R", 'bin': 0b01010000, 'fmt': ((0, 53), (3, 46), (1, 41), (2, 36), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
+                    'set':  {'type': "R", 'bin': 0b01010001, 'fmt': ((1, 53), (0, 50), (2, 36), (7, 31), (3, 26), (4, 21), (5, 16), (6, 11)), 'repr': "{0}, {1}, ${2}, ${3}, ${4}, ${5}, ${6}, ${7}"},
+                    'sync': {'type': "R", 'bin': 0b01010010, 'fmt': ((0, 53), (1, 31)), 'repr': "{0}, ${1}"},
+                    'read': {'type': "R", 'bin': 0b01010011, 'fmt': ((1, 53), (0, 50), (2, 46), (3, 41)), 'repr': "{0}, {1}, {2} ${3}"},
+                    'wait': {'type': "R", 'bin': 0b01010100, 'fmt': ((1, 53), (0, 50), (2, 31)), 'repr': "{0}, {1}, ${2}"},
+                    'bitw': {'type': "R", 'bin': 0b01010101, 'fmt': ((0, 53), (1, 41), (2, 36), (3, 46), (4, 31)), 'repr': "{0}, ${1}, ${2} {3} ${4}"},
+                    'memr': {'type': "R", 'bin': 0b01010110, 'fmt': ((0, 53), (1, 41), (2, 36)), 'repr': "{0}, ${1}, ${2}"},
+                    'memw': {'type': "R", 'bin': 0b01010111, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'setb': {'type': "R", 'bin': 0b01011000, 'fmt': ((0, 53), (2, 36), (1, 31)), 'repr': "{0}, ${1}, ${2}"},
+                    'comment': {'fmt': ()}
+                    }
+
+    # op codes for math and bitwise operations
+    op_codes = {">": 0b0000, ">=": 0b0001, "<": 0b0010, "<=": 0b0011, "==": 0b0100, "!=": 0b0101,
+                "+": 0b1000, "-": 0b1001, "*": 0b1010,
+                "&": 0b0000, "|": 0b0001, "^": 0b0010, "~": 0b0011, "<<": 0b0100, ">>": 0b0101,
+                "upper": 0b1010, "lower": 0b0101
+                }
+
+    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
+    # In each page, register 0 is hard-wired with the value 0.
+    # In page 0 we reserve the following additional registers:
+    # 13, 14 and 15 for loop counters, 31 for the trigger time.
+    # Pairs of channels share a register page.
+    # The flat_top pulse uses some extra registers.
+    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
+
+    # Attributes to dump when saving the program to JSON.
+    dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
+
+    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
+                'axis_signal_gen_v5': FullSpeedGenManager,
+                'axis_signal_gen_v6': FullSpeedGenManager,
+                'axis_sg_int4_v1': InterpolatedGenManager,
+                'axis_sg_mux4_v1': MultiplexedGenManager,
+                'axis_sg_mux4_v2': MultiplexedGenManager}
+
+    def __init__(self, soccfg):
+        """
+        Constructor method
+        """
+        super().__init__(soccfg)
+
+        # List of commands. This may include comments.
+        self.prog_list = []
+
+        # Label to apply to the next instruction.
+        self._label_next = None
+
+        # Address of the rep counter in the data memory.
+        self.counter_addr = 1
+        # Number of iterations in the innermost loop.
+        self.reps = None
+        # Number of times the program repeats the innermost loop. None means there is no outer loop.
+        self.expts = None
+
+        # Generator managers, for keeping track of register values.
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
+
+        # Number of times the whole program is to be run.
+        self.rounds = 1
+        # Rotation angle and thresholds for single-shot readout.
+        self.shot_angle = None
+        self.shot_threshold = None
+
+
+    def dump_prog(self):
+        """
+        Dump the program to a dictionary.
+        This output contains all the information necessary to run the program.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
+        """
+        progdict = {}
+        for key in self.dump_keys:
+            progdict[key] = getattr(self, key)
+        return progdict
+
+    def load_prog(self, progdict):
+        """
+        Load the program from a dictionary.
+        """
+        for key in self.dump_keys:
+            setattr(self, key, progdict[key])
+
+    #def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
+    #    super().acquire()
 
     def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
         super().config_all(soc, load_pulses)
