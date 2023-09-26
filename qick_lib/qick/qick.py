@@ -783,7 +783,11 @@ class QickSoc(Overlay, QickConfig):
         :param reset: Reset the tProc before writing the program.
         :type reset: bool
         """
-        self.tproc.load_bin_program(obtain(binprog), reset)
+        if self.TPROC_VERSION == 1:
+            self.tproc.load_bin_program(obtain(binprog), reset)
+        elif self.TPROC_VERSION == 2:
+            self.tproc.Load_PMEM(binprog['pmem'])
+            self.tproc.load_mem(3, binprog['wmem'])
 
     def start_src(self, src):
         """
@@ -824,6 +828,9 @@ class QickSoc(Overlay, QickConfig):
     def get_tproc_counter(self, addr):
         """
         Read the tProc rep counter.
+        For tProc V1, this accesses the data memory at the given address.
+        For tProc V2, this accesses one of the two special AXI-readable registers.
+
         Parameters
         ----------
         addr : int
@@ -853,9 +860,9 @@ class QickSoc(Overlay, QickConfig):
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
         # this should always run with internal trigger
+        prog.config_all(self, reset=True)
         self.start_src("internal")
-        prog.load_program(self, reset=True)
-        self.tproc.start()
+        self.start_tproc()
 
     def start_readout(self, total_reps, counter_addr=1, ch_list=None, reads_per_rep=1, stride=None):
         """
@@ -886,14 +893,14 @@ class QickSoc(Overlay, QickConfig):
             print("cleaning up previous readout: stopping tProc and streamer loop")
             # stop the tProc
             self.tproc.reset()
+            # reload the program (since the reset will have wiped it out)
+            self.tproc.reload_program()
             # tell the readout to stop (this will break the readout loop)
             streamer.stop_readout()
             streamer.done_flag.wait()
             # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
             streamer.data_queue.put((0, None))
             time.sleep(0.1)
-            # reload the program (since the reset will have wiped it out)
-            self.reload_program()
             print("streamer stopped")
         streamer.stop_flag.clear()
 

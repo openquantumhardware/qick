@@ -508,12 +508,17 @@ class QickProgramV2(AbsQickProgram):
         else:
             return np.zeros((0,8), dtype=np.int32)
 
+    def compile(self):
+        binprog = {}
+        binprog['pmem'] = self.compile_prog()
+        binprog['wmem'] = self.compile_waves()
+        return binprog
+
     def asm(self):
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
 
-    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+    def config_all(self, soc, load_pulses=True):
         soc.tproc.proc_stop()
-        super().config_all(soc)
-        soc.tproc.Load_PMEM(self.compile_prog())
-        soc.tproc.load_mem(3, self.compile_waves())
+        super().config_all(soc, load_pulses=load_pulses)
+        soc.load_bin_program(self.compile())

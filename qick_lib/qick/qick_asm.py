@@ -1079,7 +1079,11 @@ class AbsQickProgram:
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
+        The tProc is set to internal start before any other configuration is done, to prevent spurious external starts.
         """
+        # set tproc to internal-start, to prevent spurious starts
+        soc.start_src("internal")
+
         # Load the pulses from the program into the soc
         if load_pulses:
             self.load_pulses(soc)
@@ -1089,6 +1093,7 @@ class AbsQickProgram:
 
         # Configure the readout down converters
         self.config_readouts(soc)
+
 
     def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
@@ -1372,7 +1377,7 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
+    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1387,8 +1392,6 @@ class AbsQickProgram:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
-        debug: bool
-            if true, displays assembly code for tProc program
 
         Returns
         -------
@@ -1404,7 +1407,11 @@ class AbsQickProgram:
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+
+        self.config_all(soc, load_pulses=load_pulses)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
 
         n_ro = len(self.ro_chs)
 
@@ -1521,7 +1528,7 @@ class AbsQickProgram:
         return shots
 
 
-    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True, debug=False):
+    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1536,8 +1543,6 @@ class AbsQickProgram:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
-        debug: bool
-            if true, displays assembly code for tProc program
 
         Returns
         -------
@@ -1546,7 +1551,10 @@ class AbsQickProgram:
             dimensions for a single-rep, single-read program : (length, 2)
             multi-rep, multi-read: (n_reps, n_reads, length, 2)
         """
-        self.config_all(soc, load_pulses=load_pulses, start_src=start_src, debug=debug)
+        self.config_all(soc, load_pulses=load_pulses)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
 
         # Initialize data buffers
         d_buf = []
@@ -1695,17 +1703,11 @@ class QickProgram(AbsQickProgram):
         for key in self.dump_keys:
             setattr(self, key, progdict[key])
 
-    #def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False, debug=False):
-    #    super().acquire()
-
-    def config_all(self, soc, load_pulses=True, start_src="internal", debug=False):
+    def config_all(self, soc, load_pulses=True, reset=False, debug=False):
         super().config_all(soc, load_pulses)
 
         # load this program into the soc's tproc
-        self.load_program(soc, debug=debug)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
+        soc.load_bin_program(self.compile(debug=debug), reset=reset)
 
     def _ch_page_tproc(self, ch):
         """Gets tProc register page associated with channel.
@@ -1839,7 +1841,7 @@ class QickProgram(AbsQickProgram):
             Q data Numpy array
 
         """
-        self.add_envelope(name, idata, qdata)
+        self.add_envelope(ch=ch, name=name, idata=idata, qdata=qdata)
 
     def default_pulse_registers(self, ch, **kwargs):
         """Set default values for pulse parameters.
@@ -2373,20 +2375,6 @@ class QickProgram(AbsQickProgram):
                 labels[inst['label']] = prog_counter
             prog_counter += 1
         return [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
-
-    def load_program(self, soc, debug=False, reset=False):
-        """Load the compiled program into the tProcessor.
-
-        Parameters
-        ----------
-        debug : bool
-            If True, debug mode is on
-        soc : QickSoc
-            The QICK to be configured
-        reset : bool
-            Reset the tProc before loading
-        """
-        soc.load_bin_program(self.compile(debug=debug), reset=reset)
 
     def append_instruction(self, name, *args):
         """Append instruction to the program list
