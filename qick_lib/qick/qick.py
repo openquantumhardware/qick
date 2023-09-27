@@ -12,7 +12,8 @@ from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
 from .streamer import DataStreamer
-from .qick_asm import QickConfig, QickProgram
+from .qick_asm import QickConfig
+from .asm_v1 import QickProgram
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
@@ -297,8 +298,7 @@ class QickSoc(Overlay, QickConfig):
             self._streamer = DataStreamer(self)
 
             # list of objects that need to be registered for autoproxying over Pyro
-            #self.autoproxy = [self.streamer, self.tproc]
-            self.autoproxy = []
+            self.autoproxy = [self.streamer, self.tproc]
 
     @property
     def tproc(self):
