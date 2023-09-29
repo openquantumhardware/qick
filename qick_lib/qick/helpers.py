@@ -7,6 +7,27 @@ import json
 import base64
 from collections import OrderedDict
 
+def cosine(ramp=10, length=100, maxv=30000):
+    """
+    Create a numpy array containing a cosine flattop function
+
+    :param ramp: Length of cosine ramp up and down
+    :type param: int
+    :param length: Length of array
+    :type length: int
+    :param maxv: Maximum amplitude of cosine flattop function
+    :type maxv: float
+    :return: Numpy array containing a cosine flattop function
+    :rtype: array
+    """
+    x=np.arange(0,length)
+    y=np.zeros_like(x)
+    ramp_array=np.arange(0,ramp)
+    y[0:ramp]=maxv/2 *(-1*np.cos(2*np.pi*1/(2*ramp)*ramp_array)+1)
+    y[ramp:-ramp]=maxv
+    y[-ramp:]=maxv/2 *(np.cos(2*np.pi*1/(2*ramp)*ramp_array)+1)
+    return y
+
 
 def gauss(mu=0, si=25, length=100, maxv=30000):
     """
