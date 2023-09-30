@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 #from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
-from .qick_asm import AbsQickProgram, QickRegister
+from .qick_asm import AbsQickProgram
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,11 @@ class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"]
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
+
+class QickRegister:
+    def __init__(self, addr: int, name: str = None):
+        self.addr = addr
+        self.name = name
 
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
@@ -324,19 +329,12 @@ class QickProgramV2(AbsQickProgram):
         """
         self.labels[label] = '&' + str(len(self.prog_list)+1)
 
-    def new_reg(self, addr: int = None, name: str = None, init_val=None, reg_type: str = None,
-                gen_ch: int = None, ro_ch: int = None):
+    def new_reg(self, addr: int = None, name: str = None):
         """ Declare a new data register.
 
-        :param page: register page
         :param addr: address of the new register. If None, the function will automatically try to find the next
             available address.
         :param name: name of the new register. Optional.
-        :param init_val: initial value for the register, when reg_type is provided, the reg_val should be in the
-            physical unit of the corresponding type. i.e. freq in MHz, time in us, phase in deg.
-        :param reg_type: {"freq", "time", "phase", "adc_freq"} or None, type of the register
-        :param gen_ch: generator channel numer to which the register is associated with, for unit convert.
-        :param ro_ch: readout channel numer to which the register is associated with, for unit convert.
         :return: QickRegister
         """
         if addr is None:
@@ -357,7 +355,7 @@ class QickProgramV2(AbsQickProgram):
         if name in self.user_reg_dict.keys():
             raise NameError(f"register name '{name}' already exists")
 
-        reg = QickRegister(self, 0, addr, reg_type, gen_ch, ro_ch, init_val, name=name)
+        reg = QickRegister(addr=addr, name=name)
         self.user_reg_dict[name] = reg
 
         return reg
@@ -412,7 +410,7 @@ class QickProgramV2(AbsQickProgram):
             else:
                 self.set_timestamp(int(t + pulse_length), gen_ch=ch)
         
-        tproc_ch = ch # TODO: actually translate
+        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
         self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t), 'UF':'0'})
         for wavename in pulse['wavenames']:
             idx = self.wave2idx[wavename]

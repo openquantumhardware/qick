@@ -68,7 +68,7 @@ class AveragerProgram(QickProgram):
         p.end()
 
 
-    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False, debug=False):
+    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -90,8 +90,6 @@ class AveragerProgram(QickProgram):
         :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
-        :param debug: If true, displays assembly code for tProc program
-        :type debug: bool
         :returns:
             - expt_pts (:py:class:`list`) - list of experiment points
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
@@ -104,7 +102,7 @@ class AveragerProgram(QickProgram):
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
 
-        d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -126,7 +124,7 @@ class AveragerProgram(QickProgram):
         return avg_di, avg_dq
 
 
-    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=1, start_src="internal", progress=True, debug=False):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=1, start_src="internal", progress=True):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -153,13 +151,11 @@ class AveragerProgram(QickProgram):
         :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
-        :param debug: If true, displays assembly code for tProc program
-        :type debug: bool
         :returns:
             - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
         """
 
-        buf = super().acquire_decimated(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        buf = super().acquire_decimated(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
@@ -246,7 +242,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.expts)*self.cfg["step"]
 
-    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, start_src="internal", progress=False, debug=False):
+    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, start_src="internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -268,8 +264,6 @@ class RAveragerProgram(QickProgram):
         :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
-        :param debug: If true, displays assembly code for tProc program
-        :type debug: bool
         :returns:
             - expt_pts (:py:class:`list`) - list of experiment points
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
@@ -281,7 +275,7 @@ class RAveragerProgram(QickProgram):
         if save_experiments is None:
             save_experiments = range(readouts_per_experiment)
 
-        d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress, debug=debug)
+        d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -527,7 +521,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         return sweep_pts
 
     def acquire(self, soc, threshold: int = None, angle: List = None, load_pulses=True, readouts_per_experiment=1,
-                save_experiments: List = None, start_src: str = "internal", progress=False, debug=False):
+                save_experiments: List = None, start_src: str = "internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code
         representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python,
@@ -546,7 +540,6 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         :param load_pulses: If true, loads pulses into the tProc
         :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         :param progress: If true, displays progress bar
-        :param debug: If true, displays assembly code for tProc program
         :returns:
             - expt_pts (:py:class:`list`) - list of experiment points
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
@@ -562,7 +555,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         # avg_d calculated in QickProgram.acquire() assumes a different data shape, here we will recalculate based on
         # the d_buf returned.
         d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses,
-                                              start_src=start_src, progress=progress, debug=debug)
+                                              start_src=start_src, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
