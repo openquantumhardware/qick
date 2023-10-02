@@ -873,14 +873,17 @@ class QickSoc(Overlay, QickConfig):
         :param counter_addr: Data memory address for the loop counter
         :type counter_addr: int
         :param ch_list: List of readout channels
-        :type ch_list: list
-        :param reads_per_count: Number of data points to expect per counter increment
-        :type reads_per_count: int
+        :type ch_list: list of int
+        :param reads_per_rep: Number of data points to expect per counter increment
+        :type reads_per_rep: list of int
         :param stride: Default number of measurements to transfer at a time.
         :type stride: int
         """
         ch_list = obtain(ch_list)
+        reads_per_rep = obtain(reads_per_rep)
         if ch_list is None: ch_list = [0, 1]
+        if isinstance(reads_per_rep, int):
+            reads_per_rep = [reads_per_rep]*len(ch_list)
         streamer = self.streamer
 
         if not streamer.readout_worker.is_alive():
@@ -911,7 +914,7 @@ class QickSoc(Overlay, QickConfig):
             self.poll_data(totaltime=-1, timeout=0.1)
             print("buffer cleared")
 
-        streamer.total_count = total_reps*reads_per_rep
+        streamer.total_count = total_reps
         streamer.count = 0
 
         streamer.done_flag.clear()
@@ -948,7 +951,7 @@ class QickSoc(Overlay, QickConfig):
                 if streamer.stop_flag.is_set() or data is None:
                     break
                 streamer.count += length
-                new_data.append(data)
+                new_data.append((length, data))
             except queue.Empty:
                 break
         return new_data

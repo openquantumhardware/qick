@@ -536,6 +536,15 @@ class AbsQickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
+        # data dimensions:
+        # TODO use these in NDAverager, and probably replace self.expts/self.reps
+        # rounds, aka soft averages
+        self.rounds = None
+        # loop dimensions
+        self.loop_dims = None
+        # which loop level to average over (0 is outermost)
+        self.average_depth = None
+
         # Timestamps, for keeping track of pulse and readout end times.
         self._gen_ts = [0]*len(soccfg['gens'])
         self._ro_ts = [0]*len(soccfg['readouts'])
@@ -603,13 +612,15 @@ class AbsQickProgram:
                     'freq': freq,
                     'length': length,
                     'sel': sel,
-                    'gen_ch': gen_ch
+                    'gen_ch': gen_ch,
+                    'trigs': 0
                     }
         else: # readout is controlled by tProc
             if (freq is not None) or sel!='product' or (gen_ch is not None):
                 raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
             cfg = {
-                    'length': length
+                    'length': length,
+                    'trigs': 0
                     }
         self.ro_chs[ch] = cfg
 
@@ -894,13 +905,17 @@ class AbsQickProgram:
         soc.start_src(start_src)
 
         n_ro = len(self.ro_chs)
+        for ro_ch in self.ro_chs.values():
+            ro_ch['trigs'] = reads_per_rep
+        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
         expts = self.expts
         if expts is None:
             expts = 1
         total_reps = expts*self.reps
-        total_count = total_reps*reads_per_rep
-        d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
+        total_count = total_reps
+        d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in reads_per_rep]
+        #d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -925,9 +940,9 @@ class AbsQickProgram:
                                        ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
-                    for d, s in new_data:
-                        new_points = d.shape[1]
-                        d_buf[:, count:count+new_points] = d
+                    for new_points, (d, s) in new_data:
+                        for ii, ro in enumerate(self.ro_chs.values()):
+                            d_buf[ii][count:count+new_points] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
@@ -936,20 +951,24 @@ class AbsQickProgram:
             if self.shot_threshold is None:
                 d_reps = d_buf
             else:
-                d_reps = [np.zeros_like(d_buf[i]) for i in range(len(self.ro_chs))]
+                d_reps = [np.zeros_like(d) for d in d_buf]
                 shots = self.get_single_shots(d_buf)
                 for i, ch_shot in enumerate(shots):
                     d_reps[i][...,0] = ch_shot
 
-            # calculate average over the rounds axis
+            # sum over rounds axis
+            round_d = self._average_buf(d_reps, reads_per_rep)
             if avg_d is None:
-                avg_d = self._average_buf(d_reps, reads_per_rep) / self.rounds
+                avg_d = round_d
             else:
-                avg_d += self._average_buf(d_reps, reads_per_rep) / self.rounds
+                for ii, d in enumerate(round_d): avg_d[ii] += d
+
+        # divide total by rounds
+        for d in avg_d: d /= self.rounds
 
         return d_buf, avg_d, shots
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: int) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: list) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
@@ -962,13 +981,14 @@ class AbsQickProgram:
         if expts is None:
             expts = 1
 
-        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
-        for ii in range(reads_per_rep):
+        #avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
+        avg_d = [np.zeros((nreads, expts, 2)) for nreads in reads_per_rep]
+        for ii, nreads in enumerate(reads_per_rep):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
+                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::nreads, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
 
         if self.expts is None:  # get rid of the expts axis
-            avg_d = avg_d[:, :, 0, :]
+            avg_d = [d[:, 0, :] for d in avg_d]
 
         return avg_d
 
@@ -978,7 +998,7 @@ class AbsQickProgram:
 
         Parameters
         ----------
-        d_buf : ndarray
+        d_buf : list of ndarray
             Raw IQ data
 
         Returns
@@ -1029,20 +1049,24 @@ class AbsQickProgram:
         list of ndarray
             decimated values, averaged over rounds (float)
             dimensions for a single-rep, single-read program : (length, 2)
-            multi-rep, multi-read: (n_reps, n_reads, length, 2)
+            multi-rep or multi-read: (n_reps*n_reads, length, 2)
+            multi-rep and multi-read: (n_reps, n_reads, length, 2)
         """
         self.config_all(soc, load_pulses=load_pulses)
 
         # configure tproc for internal/external start
         soc.start_src(start_src)
 
+        for ro_ch in self.ro_chs.values():
+            ro_ch['trigs'] = reads_per_rep
+
         # Initialize data buffers
         d_buf = []
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro['length']*self.reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d reps) exceeds buffer size (%d)"%(ro['length'], self.reps, maxlen))
-            d_buf.append(np.zeros((ro['length']*self.reps*reads_per_rep, 2), dtype=float))
+            if ro['length']*ro['trigs']*self.reps > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], self.reps, maxlen))
+            d_buf.append(np.zeros((ro['length']*self.reps*ro['trigs'], 2), dtype=float))
 
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(self.rounds), disable=not progress):
@@ -1062,18 +1086,23 @@ class AbsQickProgram:
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*self.reps*reads_per_rep))
+                                    address=0, length=ro['length']*ro['trigs']*self.reps))
+
+        onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
         # average the decimated data
-        if self.reps == 1 and reads_per_rep == 1:
+        if self.reps == 1 and onetrig:
+            # simple case: data is 1D, just average over rounds
             return [d/self.rounds for d in d_buf]
         else:
-            # split the data into the individual reps:
-            # we reshape to slice each long buffer into reps,
-            # then use moveaxis() to transpose the I/Q and rep axes
-            result = [d.reshape(self.reps*reads_per_rep, -1, 2)/self.rounds for d in d_buf]
-            if self.reps > 1 and reads_per_rep > 1:
-                result = [d.reshape(self.reps, reads_per_rep, -1, 2) for d in result]
+            # split the data into the individual reps
+            result = []
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                if onetrig or self.reps==1:
+                    d_reshaped = d_buf[ii].reshape(self.reps*ro['trigs'], -1, 2)/self.rounds
+                else:
+                    d_reshaped = d_buf[ii].reshape(self.reps, ro['trigs'], -1, 2)/self.rounds
+                result.append(d_reshaped)
             return result
 
 

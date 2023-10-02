@@ -106,20 +106,20 @@ class AveragerProgram(QickProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = d_buf[:,:,0]
-        self.dq_buf = d_buf[:,:,1]
+        self.di_buf = [d[:,0] for d in d_buf]
+        self.dq_buf = [d[:,1] for d in d_buf]
 
         if threshold is not None:
             self.shots = shots
 
         n_ro = len(self.ro_chs)
-        avg_di = np.zeros((n_ro, len(save_experiments)))
-        avg_dq = np.zeros((n_ro, len(save_experiments)))
+        avg_di = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
+        avg_dq = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
 
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_di[i_ch][nn] = avg_d[i_ch, ii, 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch, ii, 1]
+                avg_di[i_ch][nn] = avg_d[i_ch][ii, 0]
+                avg_dq[i_ch][nn] = avg_d[i_ch][ii, 1]
 
         return avg_di, avg_dq
 
@@ -279,8 +279,8 @@ class RAveragerProgram(QickProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = d_buf[:,:,0]
-        self.dq_buf = d_buf[:,:,1]
+        self.di_buf = [d[:,0] for d in d_buf]
+        self.dq_buf = [d[:,1] for d in d_buf]
 
         if threshold is not None:
             self.shots = shots
@@ -288,13 +288,13 @@ class RAveragerProgram(QickProgram):
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
-        avg_di = np.zeros((n_ro, len(save_experiments), self.expts))
-        avg_dq = np.zeros((n_ro, len(save_experiments), self.expts))
+        avg_di = [np.zeros((len(save_experiments), self.expts)) for ro in self.ro_chs]
+        avg_dq = [np.zeros((len(save_experiments), self.expts)) for ro in self.ro_chs]
 
         for nn, ii in enumerate(save_experiments):
             for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_di[i_ch][nn] = avg_d[i_ch, ii, :, 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch, ii, :, 1]
+                avg_di[i_ch][nn] = avg_d[i_ch][ii, :, 0]
+                avg_dq[i_ch][nn] = avg_d[i_ch][ii, :, 1]
 
         return expt_pts, avg_di, avg_dq
 

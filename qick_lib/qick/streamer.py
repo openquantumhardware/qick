@@ -89,9 +89,9 @@ class DataStreamer():
         :param counter_addr: Data memory address for the loop counter
         :type counter_addr: int
         :param ch_list: List of readout channels
-        :type addr: list
+        :type addr: list of int
         :param reads_per_count: Number of data points to expect per counter increment
-        :type reads_per_count: int
+        :type reads_per_count: list of int
         """
         while True:
             try:
@@ -105,7 +105,7 @@ class DataStreamer():
 
                 # how many reps worth of data to transfer at a time
                 if stride is None:
-                    stride = int(0.1 * self.soc.get_avg_max_length(0)/reads_per_count)
+                    stride = int(0.1 * self.soc.get_avg_max_length(0)/max(reads_per_count))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
                 # make sure count variable is reset to 0 before starting processor
@@ -126,14 +126,8 @@ class DataStreamer():
                     reps = self.soc.get_tproc_counter(addr=counter_addr)
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                     if reps >= min(last_reps+stride, total_reps):
-                        addr = last_count % self.soc.get_avg_max_length(0)
-                        # transfers must be of even length; trim the length (instead of padding it)
-                        # don't trim if this is the last read of the run
-                        if reps < last_reps:
-                            newreps = (reps-last_reps) % 2
-                        else:
-                            newreps = reps-last_reps
-                        length = newreps * reads_per_count
+                        newreps = reps-last_reps
+                        length = newreps
                         if length >= self.soc.get_avg_max_length(0):
                             raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
                                                % (length, self.soc.get_avg_max_length(0)) +
@@ -141,11 +135,13 @@ class DataStreamer():
                                                "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
                         # buffer for each channel
-                        d_buf = np.zeros((len(ch_list), length, 2), dtype=np.int32)
+                        #d_buf = np.zeros((len(ch_list), length, 2), dtype=np.int32)
+                        d_buf = [np.zeros((length*nreads, 2), dtype=np.int32) for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
-                            data = self.soc.get_accumulated(ch=ch, address=addr, length=length)
+                            addr = last_count * reads_per_count[iCh] % self.soc.get_avg_max_length(0)
+                            data = self.soc.get_accumulated(ch=ch, address=addr, length=length*reads_per_count[iCh])
                             d_buf[iCh] = data
 
                         last_reps += newreps
