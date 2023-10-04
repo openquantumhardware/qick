@@ -539,8 +539,6 @@ class AbsQickProgram:
         self.gen_chs = OrderedDict()
 
         # data dimensions:
-        # rounds, aka soft averages
-        self.rounds = None
         # list of loop dimensions, outermost loop first
         self.loop_dims = None
         # which loop level to average over (0 is outermost)
@@ -869,13 +867,15 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-    def acquire(self, soc, reads_per_rep=None, load_pulses=True, start_src="internal", progress=False):
+    def acquire(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=False):
         """Acquire data using the accumulated readout.
 
         Parameters
         ----------
         soc : QickSoc
             Qick object
+        soft_avgs : int
+            number of times to rerun the program, averaging results in software (aka "rounds")
         reads_per_rep : int
             number of readout triggers in the loop body
             by default, this is automatically detected based on calls to trigger()
@@ -920,7 +920,7 @@ class AbsQickProgram:
         hiderounds = True
         hidereps = True
         if progress:
-            if self.rounds>1:
+            if soft_avgs>1:
                 hiderounds = False
             else:
                 hidereps = False
@@ -928,7 +928,7 @@ class AbsQickProgram:
         # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
         avg_d = None
         shots = None
-        for ir in tqdm(range(self.rounds), disable=hiderounds):
+        for ir in tqdm(range(soft_avgs), disable=hiderounds):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
@@ -962,7 +962,7 @@ class AbsQickProgram:
                 for ii, d in enumerate(round_d): avg_d[ii] += d
 
         # divide total by rounds
-        for d in avg_d: d /= self.rounds
+        for d in avg_d: d /= soft_avgs
 
         return d_buf, avg_d, shots
 
@@ -1021,15 +1021,18 @@ class AbsQickProgram:
         return shots
 
 
-    def acquire_decimated(self, soc, reads_per_rep=None, load_pulses=True, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
 
         Parameters
         ----------
         soc : QickSoc
             Qick object
+        soft_avgs : int
+            number of times to rerun the program, averaging results in software (aka "rounds")
         reads_per_rep : int
             number of readout triggers in the loop body
+            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
@@ -1066,7 +1069,7 @@ class AbsQickProgram:
             d_buf.append(np.zeros((ro['length']*total_count*ro['trigs'], 2), dtype=float))
 
         # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(self.rounds), disable=not progress):
+        for ii in tqdm(range(soft_avgs), disable=not progress):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
@@ -1090,15 +1093,15 @@ class AbsQickProgram:
         # average the decimated data
         if total_count == 1 and onetrig:
             # simple case: data is 1D (one rep and one shot), just average over rounds
-            return [d/self.rounds for d in d_buf]
+            return [d/soft_avgs for d in d_buf]
         else:
             # split the data into the individual reps
             result = []
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 if onetrig or total_count==1:
-                    d_reshaped = d_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/self.rounds
+                    d_reshaped = d_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/soft_avgs
                 else:
-                    d_reshaped = d_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/self.rounds
+                    d_reshaped = d_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/soft_avgs
                 result.append(d_reshaped)
             return result
 
