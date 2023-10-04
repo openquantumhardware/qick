@@ -462,6 +462,8 @@ class QickProgramV2(AbsQickProgram):
             ro_length = self.ro_chs[ro]['length']
             ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
             self.set_timestamp(int(treg + ro_length), ro_ch=ro)
+            # update trigger count for this readout
+            self.ro_chs[ro]['trigs'] += 1
         for pin in pins:
             porttype, portnum, pinnum, _ = self.soccfg['tprocs'][0]['output_pins'][pin]
             if porttype == 'dport':

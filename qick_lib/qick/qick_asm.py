@@ -538,15 +538,22 @@ class AbsQickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
-        # data dimensions:
+        # Timestamps, for keeping track of pulse and readout end times.
+        self._gen_ts = [0]*len(soccfg['gens'])
+        self._ro_ts = [0]*len(soccfg['readouts'])
+
+        # tProc address of the rep counter, must be defined
+        self.counter_addr = None
+
+        # data dimensions, must be defined:
         # list of loop dimensions, outermost loop first
         self.loop_dims = None
         # which loop level to average over (0 is outermost)
         self.avg_level = None
 
-        # Timestamps, for keeping track of pulse and readout end times.
-        self._gen_ts = [0]*len(soccfg['gens'])
-        self._ro_ts = [0]*len(soccfg['readouts'])
+        # threshold and angle for single-shot discrimination, if desired
+        self.shot_threshold = None
+        self.shot_angle = None
 
     def __getattr__(self, a):
         """
