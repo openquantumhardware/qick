@@ -539,7 +539,6 @@ class AbsQickProgram:
         self.gen_chs = OrderedDict()
 
         # data dimensions:
-        # TODO use these in NDAverager, and probably replace self.expts/self.reps
         # rounds, aka soft averages
         self.rounds = None
         # list of loop dimensions, outermost loop first
@@ -1022,7 +1021,7 @@ class AbsQickProgram:
         return shots
 
 
-    def acquire_decimated(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, reads_per_rep=None, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1051,16 +1050,20 @@ class AbsQickProgram:
         # configure tproc for internal/external start
         soc.start_src(start_src)
 
-        for ro_ch in self.ro_chs.values():
-            ro_ch['trigs'] = reads_per_rep
+        if reads_per_rep is not None:
+            for ro_ch in self.ro_chs.values():
+                ro_ch['trigs'] = reads_per_rep
+        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
+
+        total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # Initialize data buffers
         d_buf = []
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
-            if ro['length']*ro['trigs']*self.reps > maxlen:
-                raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], self.reps, maxlen))
-            d_buf.append(np.zeros((ro['length']*self.reps*ro['trigs'], 2), dtype=float))
+            if ro['length']*ro['trigs']*total_count > maxlen:
+                raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
+            d_buf.append(np.zeros((ro['length']*total_count*ro['trigs'], 2), dtype=float))
 
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(self.rounds), disable=not progress):
@@ -1075,27 +1078,27 @@ class AbsQickProgram:
             soc.start_tproc()
 
             count = 0
-            while count < self.reps:
+            while count < total_count:
                 count = soc.get_tproc_counter(addr=self.counter_addr)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 d_buf[ii] += obtain(soc.get_decimated(ch=ch,
-                                    address=0, length=ro['length']*ro['trigs']*self.reps))
+                                    address=0, length=ro['length']*ro['trigs']*total_count))
 
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
         # average the decimated data
-        if self.reps == 1 and onetrig:
-            # simple case: data is 1D, just average over rounds
+        if total_count == 1 and onetrig:
+            # simple case: data is 1D (one rep and one shot), just average over rounds
             return [d/self.rounds for d in d_buf]
         else:
             # split the data into the individual reps
             result = []
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                if onetrig or self.reps==1:
-                    d_reshaped = d_buf[ii].reshape(self.reps*ro['trigs'], -1, 2)/self.rounds
+                if onetrig or total_count==1:
+                    d_reshaped = d_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/self.rounds
                 else:
-                    d_reshaped = d_buf[ii].reshape(self.reps, ro['trigs'], -1, 2)/self.rounds
+                    d_reshaped = d_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/self.rounds
                 result.append(d_reshaped)
             return result
 

@@ -30,7 +30,6 @@ class AveragerProgram(QickProgram):
             self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
-        self.reps = cfg['reps']
         # this is a 1-D loop
         self.loop_dims = [cfg['reps']]
         # average over the reps axis
@@ -128,7 +127,7 @@ class AveragerProgram(QickProgram):
         return avg_di, avg_dq
 
 
-    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=1, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -180,8 +179,6 @@ class RAveragerProgram(QickProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.make_program()
-        self.reps = cfg['reps']
-        self.expts = cfg['expts']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
         # expts loop is the outer loop, reps loop is the inner loop
@@ -248,7 +245,7 @@ class RAveragerProgram(QickProgram):
         :return: Numpy array of experiment points
         :rtype: array
         """
-        return self.cfg["start"]+np.arange(self.expts)*self.cfg["step"]
+        return self.cfg["start"]+np.arange(self.cfg["expts"])*self.cfg["step"]
 
     def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=None, save_experiments=None, start_src="internal", progress=False):
         """
@@ -443,10 +440,8 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.qick_sweeps: List[AbsQickSweep] = []
-        self.expts = 1
         self.sweep_axes = []
         self.make_program()
-        self.reps = cfg['reps']
         if "soft_avgs" in cfg:
             self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
@@ -476,7 +471,6 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         :return:
         """
         self.qick_sweeps.append(sweep)
-        self.expts *= sweep.expts
         self.sweep_axes.append(sweep.expts)
 
     def make_program(self):
