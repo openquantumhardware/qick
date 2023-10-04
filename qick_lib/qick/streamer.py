@@ -135,7 +135,6 @@ class DataStreamer():
                                                "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
                         # buffer for each channel
-                        #d_buf = np.zeros((len(ch_list), length, 2), dtype=np.int32)
                         d_buf = [np.zeros((length*nreads, 2), dtype=np.int32) for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer

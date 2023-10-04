@@ -870,7 +870,7 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-    def acquire(self, soc, reads_per_rep=1, load_pulses=True, start_src="internal", progress=False):
+    def acquire(self, soc, reads_per_rep=None, load_pulses=True, start_src="internal", progress=False):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -879,6 +879,7 @@ class AbsQickProgram:
             Qick object
         reads_per_rep : int
             number of readout triggers in the loop body
+            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
@@ -907,14 +908,13 @@ class AbsQickProgram:
         soc.start_src(start_src)
 
         n_ro = len(self.ro_chs)
-        for ro_ch in self.ro_chs.values():
-            ro_ch['trigs'] = reads_per_rep
+        if reads_per_rep is not None:
+            for ro_ch in self.ro_chs.values():
+                ro_ch['trigs'] = reads_per_rep
         reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
-        total_reps = functools.reduce(operator.mul, self.loop_dims)
-        total_count = total_reps
+        total_count = functools.reduce(operator.mul, self.loop_dims)
         d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in reads_per_rep]
-        #d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -935,7 +935,7 @@ class AbsQickProgram:
 
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
-                soc.start_readout(total_reps, counter_addr=self.counter_addr,
+                soc.start_readout(total_count, counter_addr=self.counter_addr,
                                        ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())

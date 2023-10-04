@@ -72,7 +72,7 @@ class AveragerProgram(QickProgram):
         p.end()
 
 
-    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=1, save_experiments=None, load_pulses=True, start_src="internal", progress=False):
+    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=None, save_experiments=None, load_pulses=True, start_src="internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -103,9 +103,6 @@ class AveragerProgram(QickProgram):
         self.shot_angle = angle
         self.shot_threshold = threshold
 
-        if save_experiments is None:
-            save_experiments = range(readouts_per_experiment)
-
         d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
 
         # reformat the data into separate I and Q arrays
@@ -117,13 +114,16 @@ class AveragerProgram(QickProgram):
             self.shots = shots
 
         n_ro = len(self.ro_chs)
-        avg_di = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
-        avg_dq = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
-
-        for nn, ii in enumerate(save_experiments):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_di[i_ch][nn] = avg_d[i_ch][ii, 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch][ii, 1]
+        if save_experiments is None:
+            avg_di = [d[:, 0] for d in avg_d]
+            avg_dq = [d[:, 1] for d in avg_d]
+        else:
+            avg_di = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
+            avg_dq = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
+            for i_ch in range(n_ro):
+                for nn, ii in enumerate(save_experiments):
+                    avg_di[i_ch][nn] = avg_d[i_ch][ii, 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch][ii, 1]
 
         return avg_di, avg_dq
 
@@ -250,7 +250,7 @@ class RAveragerProgram(QickProgram):
         """
         return self.cfg["start"]+np.arange(self.expts)*self.cfg["step"]
 
-    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=1, save_experiments=None, start_src="internal", progress=False):
+    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=None, save_experiments=None, start_src="internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -280,9 +280,6 @@ class RAveragerProgram(QickProgram):
         self.shot_angle = angle
         self.shot_threshold = threshold
 
-        if save_experiments is None:
-            save_experiments = range(readouts_per_experiment)
-
         d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
 
         # reformat the data into separate I and Q arrays
@@ -296,13 +293,16 @@ class RAveragerProgram(QickProgram):
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
-        avg_di = [np.zeros((len(save_experiments), self.expts)) for ro in self.ro_chs]
-        avg_dq = [np.zeros((len(save_experiments), self.expts)) for ro in self.ro_chs]
-
-        for nn, ii in enumerate(save_experiments):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_di[i_ch][nn] = avg_d[i_ch][ii, :, 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch][ii, :, 1]
+        if save_experiments is None:
+            avg_di = [d[..., 0] for d in avg_d]
+            avg_dq = [d[..., 1] for d in avg_d]
+        else:
+            avg_di = [np.zeros((len(save_experiments), *d.shape[1:])) for d in avg_d]
+            avg_dq = [np.zeros((len(save_experiments), *d.shape[1:])) for d in avg_d]
+            for i_ch in range(n_ro):
+                for nn, ii in enumerate(save_experiments):
+                    avg_di[i_ch][nn] = avg_d[i_ch][ii, ..., 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch][ii, ..., 1]
 
         return expt_pts, avg_di, avg_dq
 
@@ -532,7 +532,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
             sweep_pts.append(swp.get_sweep_pts())
         return sweep_pts
 
-    def acquire(self, soc, threshold: int = None, angle: List = None, load_pulses=True, readouts_per_experiment=1,
+    def acquire(self, soc, threshold: int = None, angle: List = None, load_pulses=True, readouts_per_experiment=None,
                 save_experiments: List = None, start_src: str = "internal", progress=False):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code
@@ -561,9 +561,6 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         self.shot_angle = angle
         self.shot_threshold = threshold
 
-        if save_experiments is None:
-            save_experiments = range(readouts_per_experiment)
-
         # avg_d calculated in QickProgram.acquire() assumes a different data shape, here we will recalculate based on
         # the d_buf returned.
         d_buf, avg_d, shots = super().acquire(soc, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses,
@@ -580,13 +577,16 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
-        avg_di = np.zeros((n_ro, len(save_experiments), *self.sweep_axes[::-1]))
-        avg_dq = np.zeros((n_ro, len(save_experiments), *self.sweep_axes[::-1]))
-
-        for nn, ii in enumerate(save_experiments):
+        if save_experiments is None:
+            avg_di = [d[..., 0] for d in avg_d]
+            avg_dq = [d[..., 1] for d in avg_d]
+        else:
+            avg_di = [np.zeros((len(save_experiments), *d.shape[1:])) for d in avg_d]
+            avg_dq = [np.zeros((len(save_experiments), *d.shape[1:])) for d in avg_d]
             for i_ch in range(n_ro):
-                avg_di[i_ch][nn] = avg_d[i_ch][ii, ..., 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch][ii, ..., 1]
+                for nn, ii in enumerate(save_experiments):
+                    avg_di[i_ch][nn] = avg_d[i_ch][ii, ..., 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch][ii, ..., 1]
 
         return expt_pts, avg_di, avg_dq
 

@@ -1081,6 +1081,8 @@ class QickProgram(AbsQickProgram):
         for ro in adcs:
             rocfg = self.soccfg['readouts'][ro]
             outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
+            # update trigger count for this readout
+            self.ro_chs[ro]['trigs'] += 1
         for pin in pins:
             pincfg = self.soccfg['tprocs'][0]['output_pins'][pin]
             outdict[pincfg[1]] |= (1 << pincfg[2])
