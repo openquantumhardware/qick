@@ -7,6 +7,8 @@ import logging
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict, defaultdict
+import operator
+import functools
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
@@ -540,10 +542,10 @@ class AbsQickProgram:
         # TODO use these in NDAverager, and probably replace self.expts/self.reps
         # rounds, aka soft averages
         self.rounds = None
-        # loop dimensions
+        # list of loop dimensions, outermost loop first
         self.loop_dims = None
         # which loop level to average over (0 is outermost)
-        self.average_depth = None
+        self.avg_level = None
 
         # Timestamps, for keeping track of pulse and readout end times.
         self._gen_ts = [0]*len(soccfg['gens'])
@@ -909,10 +911,7 @@ class AbsQickProgram:
             ro_ch['trigs'] = reads_per_rep
         reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
-        expts = self.expts
-        if expts is None:
-            expts = 1
-        total_reps = expts*self.reps
+        total_reps = functools.reduce(operator.mul, self.loop_dims)
         total_count = total_reps
         d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in reads_per_rep]
         #d_buf = np.zeros((n_ro, total_count, 2), dtype=np.int32)
@@ -941,8 +940,8 @@ class AbsQickProgram:
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
-                        for ii, ro in enumerate(self.ro_chs.values()):
-                            d_buf[ii][count:count+new_points] = d[ii]
+                        for ii, nreads in enumerate(reads_per_rep):
+                            d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
@@ -977,18 +976,13 @@ class AbsQickProgram:
         :param reads_per_rep: readouts per experiment
         :return: averaged iq data after each round.
         """
-        expts = self.expts
-        if expts is None:
-            expts = 1
-
-        #avg_d = np.zeros((len(self.ro_chs), reads_per_rep, expts, 2))
-        avg_d = [np.zeros((nreads, expts, 2)) for nreads in reads_per_rep]
-        for ii, nreads in enumerate(reads_per_rep):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::nreads, :].reshape((expts, self.reps, 2)), axis=1) / (self.reps * ro['length'])
-
-        if self.expts is None:  # get rid of the expts axis
-            avg_d = [d[:, 0, :] for d in avg_d]
+        averaged_dims = self.loop_dims.copy()
+        del averaged_dims[self.avg_level]
+        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_rep]
+        for i_ch, ro in enumerate(self.ro_chs.values()):
+            nreads = reads_per_rep[i_ch]
+            for ii in range(nreads):
+                avg_d[i_ch][ii] = d_reps[i_ch][ii::nreads, :].reshape((*self.loop_dims, 2)).sum(axis=self.avg_level) / (self.loop_dims[self.avg_level] * ro['length'])
 
         return avg_d
 

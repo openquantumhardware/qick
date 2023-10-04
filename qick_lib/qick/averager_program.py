@@ -31,6 +31,10 @@ class AveragerProgram(QickProgram):
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
         self.reps = cfg['reps']
+        # this is a 1-D loop
+        self.loop_dims = [cfg['reps']]
+        # average over the reps axis
+        self.avg_level = 0
 
     def initialize(self):
         """
@@ -180,6 +184,10 @@ class RAveragerProgram(QickProgram):
         self.expts = cfg['expts']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
+        # expts loop is the outer loop, reps loop is the inner loop
+        self.loop_dims = [cfg['expts'], cfg['reps']]
+        # average over the reps axis
+        self.avg_level = 1
 
     def initialize(self):
         """
@@ -443,6 +451,10 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
             self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
             self.rounds = cfg['rounds']
+        # reps loop is the outer loop, first-added sweep is innermost loop
+        self.loop_dims = [cfg['reps'], *self.sweep_axes[::-1]]
+        # average over the reps axis
+        self.avg_level = 0
 
     def initialize(self):
         """
@@ -559,8 +571,8 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = d_buf[:, :, 0]
-        self.dq_buf = d_buf[:, :, 1]
+        self.di_buf = [d[:,0] for d in d_buf]
+        self.dq_buf = [d[:,1] for d in d_buf]
 
         if threshold is not None:
             self.shots = shots
@@ -572,23 +584,9 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         avg_dq = np.zeros((n_ro, len(save_experiments), *self.sweep_axes[::-1]))
 
         for nn, ii in enumerate(save_experiments):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_di[i_ch][nn] = avg_d[i_ch, ii, ..., 0]
-                avg_dq[i_ch][nn] = avg_d[i_ch, ii, ..., 1]
+            for i_ch in range(n_ro):
+                avg_di[i_ch][nn] = avg_d[i_ch][ii, ..., 0]
+                avg_dq[i_ch][nn] = avg_d[i_ch][ii, ..., 1]
 
         return expt_pts, avg_di, avg_dq
 
-    def _average_buf(self, d_reps, reads_per_rep: int):
-        """
-        overwrites the default _average_buf method in QickProgram. Here "reps" is the outermost axis, and we reshape
-        avg_d to the shape of the sweep axes.
-        :param d_reps:
-        :param reads_per_rep:
-        :return:
-        """
-        avg_d = np.zeros((len(self.ro_chs), reads_per_rep, *self.sweep_axes[::-1], 2))
-        for ii in range(reads_per_rep):
-            for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
-                avg_d[i_ch][ii] = np.sum(d_reps[i_ch][ii::reads_per_rep, :].reshape((self.reps, *self.sweep_axes[::-1], 2)),
-                                         axis=0) / (self.reps * ro['length'])
-        return avg_d
