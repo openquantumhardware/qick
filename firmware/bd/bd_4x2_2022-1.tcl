@@ -517,6 +517,7 @@ proc create_root_design { parentCell } {
    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
    CONFIG.RESET_PORT {resetn} \
    CONFIG.RESET_TYPE {ACTIVE_LOW} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
  ] $clk_adc0_x2
 
   # Create instance: clk_tproc, and set properties
@@ -533,6 +534,7 @@ proc create_root_design { parentCell } {
    CONFIG.MMCM_DIVCLK_DIVIDE {3} \
    CONFIG.RESET_PORT {resetn} \
    CONFIG.RESET_TYPE {ACTIVE_LOW} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
  ] $clk_tproc
 
   # Create instance: ddr4_0, and set properties

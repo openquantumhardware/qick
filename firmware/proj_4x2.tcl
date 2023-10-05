@@ -75,3 +75,4 @@ set files [list \
 ]
 add_files -fileset $obj $files
 
+set_property strategy "Performance_Explore" [get_runs impl_1]

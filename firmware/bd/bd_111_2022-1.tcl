@@ -527,6 +527,7 @@ proc create_root_design { parentCell } {
    CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.375} \
    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
  ] $clk_adc0_x2
 
   # Create instance: ddr4_0, and set properties
