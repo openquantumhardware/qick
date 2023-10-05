@@ -603,18 +603,19 @@ class AxisAvgBuffer(SocIp):
         :rtype: list
         """
 
-        if length % 2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
         if length >= self['avg_maxlen']:
             raise RuntimeError("length=%d longer than %d" %
                                (length, self['avg_maxlen']))
+
+        # pad the transfer size to an even number (odd lengths seem to break the DMA)
+        transferlen = length + (length % 2)
 
         # Route switch to channel.
         self.switch_avg.sel(slv=self.switch_ch)
 
         # Set averager data reader address and length.
         self.avg_dr_addr_reg = address
-        self.avg_dr_len_reg = length
+        self.avg_dr_len_reg = transferlen
 
         # Start send data mode.
         self.avg_dr_start_reg = 1
@@ -622,15 +623,15 @@ class AxisAvgBuffer(SocIp):
         # DMA data.
         buff = self.avg_buff
         # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
-        self.dma_avg.recvchannel.transfer(buff, nbytes=int(length*8))
+        self.dma_avg.recvchannel.transfer(buff, nbytes=int(transferlen*8))
         self.dma_avg.recvchannel.wait()
 
         # Stop send data mode.
         self.avg_dr_start_reg = 0
 
-        if self.dma_avg.recvchannel.transferred != length*8:
+        if self.dma_avg.recvchannel.transferred != transferlen*8:
             raise RuntimeError("Requested %d samples but only got %d from DMA" % (
-                length, self.dma_avg.recvchannel.transferred//8))
+                transferlen, self.dma_avg.recvchannel.transferred//8))
 
         # Format:
         # -> lower 32 bits: I value.
@@ -681,11 +682,12 @@ class AxisAvgBuffer(SocIp):
         :rtype: list
         """
 
-        if length % 2 != 0:
-            raise RuntimeError("Buffer transfer length must be even number.")
         if length >= self['buf_maxlen']:
             raise RuntimeError("length=%d longer or equal to %d" %
                                (length, self['buf_maxlen']))
+
+        # pad the transfer size to an even number (odd lengths seem to break the DMA)
+        transferlen = length + (length % 2)
 
         # Route switch to channel.
         self.switch_buf.sel(slv=self.switch_ch)
@@ -694,7 +696,7 @@ class AxisAvgBuffer(SocIp):
 
         # Set buffer data reader address and length.
         self.buf_dr_addr_reg = address
-        self.buf_dr_len_reg = length
+        self.buf_dr_len_reg = transferlen
 
         # Start send data mode.
         self.buf_dr_start_reg = 1
@@ -702,12 +704,12 @@ class AxisAvgBuffer(SocIp):
         # DMA data.
         buff = self.buf_buff
         # nbytes has to be a Python int (it gets passed to mmio.write, which requires int or bytes)
-        self.dma_buf.recvchannel.transfer(buff, nbytes=int(length*4))
+        self.dma_buf.recvchannel.transfer(buff, nbytes=int(transferlen*4))
         self.dma_buf.recvchannel.wait()
 
-        if self.dma_buf.recvchannel.transferred != length*4:
+        if self.dma_buf.recvchannel.transferred != transferlen*4:
             raise RuntimeError("Requested %d samples but only got %d from DMA" % (
-                length, self.dma_buf.recvchannel.transferred//4))
+                transferlen, self.dma_buf.recvchannel.transferred//4))
 
         # Stop send data mode.
         self.buf_dr_start_reg = 0
