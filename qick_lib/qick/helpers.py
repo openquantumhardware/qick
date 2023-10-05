@@ -7,12 +7,10 @@ import json
 import base64
 from collections import OrderedDict
 
-def cosine(ramp=10, length=100, maxv=30000):
+def cosine(length=100, maxv=30000):
     """
-    Create a numpy array containing a cosine flattop function
-
-    :param ramp: Length of cosine ramp up and down
-    :type param: int
+    Create a numpy array containing a cosine shaped envelope function
+    
     :param length: Length of array
     :type length: int
     :param maxv: Maximum amplitude of cosine flattop function
@@ -22,10 +20,7 @@ def cosine(ramp=10, length=100, maxv=30000):
     """
     x=np.arange(0,length)
     y=np.zeros_like(x)
-    ramp_array=np.arange(0,ramp)
-    y[0:ramp]=maxv/2 *(-1*np.cos(2*np.pi*1/(2*ramp)*ramp_array)+1)
-    y[ramp:-ramp]=maxv
-    y[-ramp:]=maxv/2 *(np.cos(2*np.pi*1/(2*ramp)*ramp_array)+1)
+    y=maxv*(1-np.cos(x*2*np.pi/length))/2
     return y
 
 
