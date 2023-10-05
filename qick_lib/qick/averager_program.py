@@ -26,6 +26,7 @@ class AveragerProgram(QickProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.make_program()
+        self.soft_avgs = 1
         if "soft_avgs" in cfg:
             self.soft_avgs = cfg['soft_avgs']
         if "rounds" in cfg:
@@ -179,6 +180,7 @@ class RAveragerProgram(QickProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.make_program()
+        self.soft_avgs = 1
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # expts loop is the outer loop, reps loop is the inner loop
@@ -442,6 +444,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         self.qick_sweeps: List[AbsQickSweep] = []
         self.sweep_axes = []
         self.make_program()
+        self.soft_avgs = 1
         if "soft_avgs" in cfg:
             self.soft_avgs = cfg['soft_avgs']
         if "rounds" in cfg:
