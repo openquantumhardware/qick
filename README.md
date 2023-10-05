@@ -8,7 +8,7 @@
 The QICK is a kit of firmware and software to use the Xilinx RFSoC to control quantum systems.
 
 It consists of:
-* Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards
+* Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards. We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
