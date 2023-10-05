@@ -1230,7 +1230,7 @@ class AbsQickProgram:
         """
         self._gen_mgrs[ch].add_pulse(name, idata, qdata)
 
-    def add_cosine(self, ch, name, ramp, length, maxv=None):
+    def add_cosine(self, ch, name, length, maxv=None):
         """Adds a Cosine pulse to the waveform library.
         The pulse will peak at after ramp until length and then ramp down again with ramp.
         The total length is 2*ramp+length.
@@ -1241,8 +1241,6 @@ class AbsQickProgram:
             generator channel (index in 'gens' list)
         name : str
             Name of the pulse
-        ramp : int
-            fabric clock cycles of ramp up/down for cosine pulse
         length : int
             Total pulse length (in units of fabric clocks)
         maxv : float
@@ -1256,7 +1254,7 @@ class AbsQickProgram:
         length = np.round(length) * samps_per_clk
         ramp *= samps_per_clk
 
-        self.add_pulse(ch, name, idata=cosine(ramp=ramp, length=length, maxv=maxv))
+        self.add_pulse(ch, name, idata=cosine(length=length, maxv=maxv))
 
     def add_gauss(self, ch, name, sigma, length, maxv=None):
         """Adds a Gaussian pulse to the waveform library.
