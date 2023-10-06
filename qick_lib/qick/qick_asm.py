@@ -754,7 +754,6 @@ class AbsQickProgram:
         samps_per_clk = gencfg['samps_per_clk']
 
         length = np.round(length) * samps_per_clk
-        ramp *= samps_per_clk
 
         self.add_pulse(ch, name, idata=cosine(length=length, maxv=maxv))
 
