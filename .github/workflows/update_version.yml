@@ -15,6 +15,12 @@
 #
 # If you don't want this action to run (e.g. if you want a different version number for a certain PR), include [skip actions] in the commit message.
 # https://docs.github.com/en/actions/managing-workflow-runs/skipping-workflow-runs
+#
+# If we make a new commit in this action, the action doesn't get run on the new commit (not sure why, actually).
+# This is a problem if we want to use this as a status check.
+# The workaround is to manually apply the status at the end: ugly!
+# Using: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
+
 name: Update version
 
 on:
@@ -52,3 +58,10 @@ jobs:
         git add "$VERSION_PATH"
         git commit -am "update version"
         git push
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          /repos/$(git remote get-url origin|cut -d'/' -f4,5)/statuses/$(git rev-parse HEAD) \
+          -f state='success' \
+          -f context='update_version'

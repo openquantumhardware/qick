@@ -12,7 +12,8 @@ from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
 from .streamer import DataStreamer
-from .qick_asm import QickConfig, QickProgram
+from .qick_asm import QickConfig
+from .asm_v1 import QickProgram
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
@@ -275,12 +276,16 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
-        if not no_tproc:
+        if no_tproc:
+            self.TPROC_VERSION = 0
+        else:
             # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
             if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self.TPROC_VERSION = 1
                 self._tproc = self.axis_tproc64x32_x8_0
                 self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
             elif 'qick_processor_0' in self.ip_dict:
+                self.TPROC_VERSION = 2
                 self._tproc = self.qick_processor_0
                 self._tproc.configure(self.axi_dma_tproc)
             else:
@@ -778,7 +783,11 @@ class QickSoc(Overlay, QickConfig):
         :param reset: Reset the tProc before writing the program.
         :type reset: bool
         """
-        self.tproc.load_bin_program(obtain(binprog), reset)
+        if self.TPROC_VERSION == 1:
+            self.tproc.load_bin_program(obtain(binprog), reset)
+        elif self.TPROC_VERSION == 2:
+            self.tproc.Load_PMEM(binprog['pmem'])
+            self.tproc.load_mem(3, binprog['wmem'])
 
     def start_src(self, src):
         """
@@ -787,7 +796,57 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: string
         """
-        self.tproc.start_src(src)
+        if self.TPROC_VERSION == 1:
+            self.tproc.start_src(src)
+
+    def start_tproc(self):
+        """
+        Start the tProc.
+        """
+        if self.TPROC_VERSION == 1:
+            self.tproc.start()
+        elif self.TPROC_VERSION == 2:
+            self.tproc.proc_stop()
+            self.tproc.proc_start()
+
+    def set_tproc_counter(self, addr, val):
+        """
+        Initialize the tProc rep counter.
+        Parameters
+        ----------
+        addr : int
+            Counter address
+
+        Returns
+        -------
+        int
+            Counter value
+        """
+        if self.TPROC_VERSION == 1:
+            self.tproc.single_write(addr=addr, data=val)
+
+    def get_tproc_counter(self, addr):
+        """
+        Read the tProc rep counter.
+        For tProc V1, this accesses the data memory at the given address.
+        For tProc V2, this accesses one of the two special AXI-readable registers.
+
+        Parameters
+        ----------
+        addr : int
+            Counter address
+
+        Returns
+        -------
+        int
+            Counter value
+        """
+        if self.TPROC_VERSION == 1:
+            return self.tproc.single_read(addr=addr)
+        elif self.TPROC_VERSION == 2:
+            self.tproc.read_sel=1
+            reg = {1:'tproc_r_dt1', 2:'tproc_r_dt2'}[addr]
+            return getattr(self.tproc, reg)
 
     def reset_gens(self):
         """
@@ -801,9 +860,9 @@ class QickSoc(Overlay, QickConfig):
                 prog.pulse(ch=gen.ch,t=0)
         prog.end()
         # this should always run with internal trigger
+        prog.config_all(self, reset=True)
         self.start_src("internal")
-        prog.load_program(self, reset=True)
-        self.tproc.start()
+        self.start_tproc()
 
     def start_readout(self, total_reps, counter_addr=1, ch_list=None, reads_per_rep=1, stride=None):
         """
@@ -814,14 +873,17 @@ class QickSoc(Overlay, QickConfig):
         :param counter_addr: Data memory address for the loop counter
         :type counter_addr: int
         :param ch_list: List of readout channels
-        :type ch_list: list
-        :param reads_per_count: Number of data points to expect per counter increment
-        :type reads_per_count: int
+        :type ch_list: list of int
+        :param reads_per_rep: Number of data points to expect per counter increment
+        :type reads_per_rep: list of int
         :param stride: Default number of measurements to transfer at a time.
         :type stride: int
         """
         ch_list = obtain(ch_list)
+        reads_per_rep = obtain(reads_per_rep)
         if ch_list is None: ch_list = [0, 1]
+        if isinstance(reads_per_rep, int):
+            reads_per_rep = [reads_per_rep]*len(ch_list)
         streamer = self.streamer
 
         if not streamer.readout_worker.is_alive():
@@ -834,14 +896,14 @@ class QickSoc(Overlay, QickConfig):
             print("cleaning up previous readout: stopping tProc and streamer loop")
             # stop the tProc
             self.tproc.reset()
+            # reload the program (since the reset will have wiped it out)
+            self.tproc.reload_program()
             # tell the readout to stop (this will break the readout loop)
             streamer.stop_readout()
             streamer.done_flag.wait()
             # push a dummy packet into the data queue to halt any running poll_data(), and wait long enough for the packet to be read out
             streamer.data_queue.put((0, None))
             time.sleep(0.1)
-            # reload the program (since the reset will have wiped it out)
-            self.reload_program()
             print("streamer stopped")
         streamer.stop_flag.clear()
 
@@ -852,7 +914,7 @@ class QickSoc(Overlay, QickConfig):
             self.poll_data(totaltime=-1, timeout=0.1)
             print("buffer cleared")
 
-        streamer.total_count = total_reps*reads_per_rep
+        streamer.total_count = total_reps
         streamer.count = 0
 
         streamer.done_flag.clear()
@@ -889,7 +951,7 @@ class QickSoc(Overlay, QickConfig):
                 if streamer.stop_flag.is_set() or data is None:
                     break
                 streamer.count += length
-                new_data.append(data)
+                new_data.append((length, data))
             except queue.Empty:
                 break
         return new_data

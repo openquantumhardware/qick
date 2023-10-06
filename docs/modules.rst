@@ -11,6 +11,7 @@ QICK software library
    qick.drivers.generator
    qick.drivers.readout
    qick.qick_asm
+   qick.asm_v1
    qick.averager_program
    qick.helpers
    qick.parser
