@@ -18,9 +18,8 @@ def cosine(length=100, maxv=30000):
     :return: Numpy array containing a cosine flattop function
     :rtype: array
     """
-    x=np.arange(0,length)
-    y=np.zeros_like(x)
-    y=maxv*(1-np.cos(x*2*np.pi/length))/2
+    x = np.linspace(0,2*np.pi,length)
+    y = maxv*(1-np.cos(x))/2
     return y
 
 
