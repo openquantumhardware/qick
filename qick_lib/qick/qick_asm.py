@@ -12,7 +12,7 @@ import functools
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import gauss, triang, DRAG
+from .helpers import cosine, gauss, triang, DRAG
 
 logger = logging.getLogger(__name__)
 
@@ -731,6 +731,31 @@ class AbsQickProgram:
 
         """
         self._gen_mgrs[ch].add_envelope(name, idata, qdata)
+
+    def add_cosine(self, ch, name, length, maxv=None):
+        """Adds a Cosine pulse to the waveform library.
+        The pulse will peak at after ramp until length and then ramp down again with ramp.
+        The total length is 2*ramp+length.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        length : int
+            Total pulse length (in units of fabric clocks)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+
+        """
+        gencfg = self.soccfg['gens'][ch]
+        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        samps_per_clk = gencfg['samps_per_clk']
+
+        length = np.round(length) * samps_per_clk
+
+        self.add_pulse(ch, name, idata=cosine(length=length, maxv=maxv))
 
     def add_gauss(self, ch, name, sigma, length, maxv=None):
         """Adds a Gaussian pulse to the waveform library.

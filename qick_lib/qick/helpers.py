@@ -7,6 +7,21 @@ import json
 import base64
 from collections import OrderedDict
 
+def cosine(length=100, maxv=30000):
+    """
+    Create a numpy array containing a cosine shaped envelope function
+    
+    :param length: Length of array
+    :type length: int
+    :param maxv: Maximum amplitude of cosine flattop function
+    :type maxv: float
+    :return: Numpy array containing a cosine flattop function
+    :rtype: array
+    """
+    x = np.linspace(0,2*np.pi,length)
+    y = maxv*(1-np.cos(x))/2
+    return y
+
 
 def gauss(mu=0, si=25, length=100, maxv=30000):
     """
