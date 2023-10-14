@@ -11,8 +11,6 @@ class AbsSignalGen(SocIp):
     """
     # The DAC channel has a mixer.
     HAS_MIXER = False
-    # Interpolation factor relating the generator and DAC sampling freqs.
-    FS_INTERPOLATION = 1
     # Waveform samples per fabric clock.
     SAMPS_PER_CLK = 1
     # Maximum waveform amplitude.
@@ -21,17 +19,20 @@ class AbsSignalGen(SocIp):
     MAXV_SCALE = 1.0
 
     # Configure this driver with links to the other drivers, and the signal gen channel number.
-    def configure(self, ch, rf, fs):
+    def configure(self, ch, rf):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
 
         # RF data converter
         self.rf = rf
 
-        # DAC sampling frequency.
-        self.cfg['fs'] = fs
-
         self.cfg['dac'] = self.dac
+
+        for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
+            self.cfg[p] = self.rf.daccfg[self['dac']][p]
+        # interpolation reduces the DDS range
+        self.cfg['f_dds'] = self['fs']/self['interpolation']
+        self.cfg['fdds_div'] = self['fs_div']*self['interpolation']
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -85,7 +86,8 @@ class AbsSignalGen(SocIp):
             rounded_f = f
         else:
             mixercfg = {}
-            mixercfg['f_dds'] = self['fs']
+            mixercfg['fs_mult'] = self['fs_mult']
+            mixercfg['fdds_div'] = self['fs_div']
             mixercfg['b_dds'] = 48
             fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
             rounded_f = round(f/fstep)*fstep
@@ -103,11 +105,11 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
-    def configure(self, ch, rf, fs):
+    def configure(self, ch, rf):
         # Define buffer.
         self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
 
-        super().configure(ch, rf, fs)
+        super().configure(ch, rf)
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -187,19 +189,15 @@ class AbsPulsedSignalGen(AbsSignalGen):
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
 
-    def configure(self, ch, rf, fs):
+    def configure(self, ch, rf):
+        super().configure(ch, rf)
         # DDS sampling frequency.
-        self.cfg['f_dds'] = fs/self.FS_INTERPOLATION
-
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
         self.cfg['switch_ch'] = self.switch_ch
-        self.cfg['f_fabric'] = self.soc.dacs[self.dac]['f_fabric']
         self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
         self.cfg['maxv'] = self.MAXV
         self.cfg['maxv_scale'] = self.MAXV_SCALE
-
-        super().configure(ch, rf, fs)
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -334,7 +332,6 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
             'we_reg': 4}
 
     HAS_MIXER = True
-    FS_INTERPOLATION = 4
     TPROC_PORT = 's_axis'
     B_DDS = 16
 
@@ -423,7 +420,6 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
                  'we_reg':8}
 
     HAS_MIXER = True
-    FS_INTERPOLATION = 4
     B_DDS = 32
     TPROC_PORT = 's_axis'
 

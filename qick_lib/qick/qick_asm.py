@@ -97,7 +97,7 @@ class QickConfig():
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, fs=%.3f MHz" %
+            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
                          (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
             lines.append("\t\tmaxlen %d (avg) %d (decimated)" % (
                 readout['avg_maxlen'], readout['buf_maxlen']))
@@ -199,21 +199,28 @@ class QickConfig():
         -------
         float
             frequency step common to the two channels
-
         """
         refclk = self['refclk_freq']
         # Calculate least common multiple of sampling frequencies.
 
-        # clock multipliers from refclk to DAC/ADC - always integer
-        fsmult1 = round(dict1['f_dds']/refclk)
-        fsmult2 = round(dict2['f_dds']/refclk)
+        # The DDS ranges are related to the refclk by fs_mult and fdds_div, both integers.
+        # So we can find a common div:
+        max_div = np.lcm(dict1['fdds_div'], dict2['fdds_div'])
+        # and the max of the bit resolutions:
+        b_max = max(dict1['b_dds'], dict2['b_dds'])
 
+        # so the frequency steps are both divisible by a common divisor of refclk/max_div/2**b_max
+
+        # multipliers from common divisor to the channel steps - always integer
+        fsmult1 = dict1['fs_mult'] * (max_div//dict1['fdds_div']) * 2**(b_max - dict1['b_dds'])
+        fsmult2 = dict2['fs_mult'] * (max_div//dict2['fdds_div']) * 2**(b_max - dict2['b_dds'])
+
+        # the LCM of those multipliers will give us a common multiple of the channel steps
+        mult_lcm = np.lcm(fsmult1, fsmult2)
         # Calculate a common fstep_lcm, which is divisible by both step sizes of both channels.
         # We should only use frequencies that are evenly divisible by fstep_lcm.
-        b_max = max(dict1['b_dds'], dict2['b_dds'])
-        mult_lcm = np.lcm(fsmult1 * 2**(b_max - dict1['b_dds']),
-                          fsmult2 * 2**(b_max - dict2['b_dds']))
-        return refclk * mult_lcm / 2**b_max
+        # now multiply the common divisor by the LCM to get the common step
+        return (refclk/max_div) * mult_lcm / 2**b_max
 
     def roundfreq(self, f, dict1, dict2):
         """Round a frequency to the LCM of the frequency steps of two channels (typically a generator and readout).
