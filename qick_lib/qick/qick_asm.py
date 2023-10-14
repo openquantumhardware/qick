@@ -199,7 +199,6 @@ class QickConfig():
         -------
         float
             frequency step common to the two channels
-
         """
         refclk = self['refclk_freq']
         # Calculate least common multiple of sampling frequencies.
