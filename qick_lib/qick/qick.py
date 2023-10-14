@@ -359,13 +359,13 @@ class QickSoc(Overlay, QickConfig):
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
-            gen.configure(i, self.rf, self.dacs[gen.dac]['fs'])
+            gen.configure(i, self.rf)
 
         for i, iq in enumerate(self.iqs):
-            iq.configure(i, self.rf, self.dacs[iq.dac]['fs'])
+            iq.configure(i, self.rf)
 
         for readout in self.readouts:
-            readout.configure(self.rf, self.adcs[readout.adc]['fs'])
+            readout.configure(self.rf)
 
         # Find the MR buffer, if present.
         try:
@@ -457,12 +457,19 @@ class QickSoc(Overlay, QickConfig):
             f_refclk = float(rf_config['C_DAC%d_Refclk_Freq' % (iTile)])
             dac_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
+            fbdiv = int(rf_config['C_DAC%d_FBDIV' % (iTile)])
+            refdiv = int(rf_config['C_DAC%d_Refclk_Div' % (iTile)])
+            outdiv = int(rf_config['C_DAC%d_OutDiv' % (iTile)])
+            fs_div = refdiv*outdiv
+            fs_mult = fbdiv
             fs = float(rf_config['C_DAC%d_Sampling_Rate' % (iTile)])*1000
             for iBlock in range(4):
                 if rf_config['C_DAC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
                     continue
                 interpolation = int(rf_config['C_DAC_Interpolation_Mode%d%d' % (iTile, iBlock)])
                 self.dacs["%d%d" % (iTile, iBlock)] = {'fs': fs,
+                                                       'fs_div': fs_div,
+                                                       'fs_mult': fs_mult,
                                                        'f_fabric': f_fabric,
                                                        'interpolation': interpolation}
 
@@ -474,6 +481,11 @@ class QickSoc(Overlay, QickConfig):
             f_refclk = float(rf_config['C_ADC%d_Refclk_Freq' % (iTile)])
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
+            fbdiv = int(rf_config['C_ADC%d_FBDIV' % (iTile)])
+            refdiv = int(rf_config['C_ADC%d_Refclk_Div' % (iTile)])
+            outdiv = int(rf_config['C_ADC%d_OutDiv' % (iTile)])
+            fs_div = refdiv*outdiv
+            fs_mult = fbdiv
             fs = float(rf_config['C_ADC%d_Sampling_Rate' % (iTile)])*1000
             for iBlock in range(4):
                 if self.hs_adc:
@@ -484,6 +496,8 @@ class QickSoc(Overlay, QickConfig):
                         continue
                 decimation = int(rf_config['C_ADC_Decimation_Mode%d%d' % (iTile, iBlock)])
                 self.adcs["%d%d" % (iTile, iBlock)] = {'fs': fs,
+                                                       'fs_div': fs_div,
+                                                       'fs_mult': fs_mult,
                                                        'f_fabric': f_fabric,
                                                        'decimation': decimation}
 

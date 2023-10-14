@@ -7,16 +7,17 @@ from qick import DummyIp, SocIp
 
 class AbsReadout(DummyIp):
     # Configure this driver with the sampling frequency.
-    def configure(self, rf, fs):
+    def configure(self, rf):
         self.rf = rf
         # Sampling frequency.
-        self.fs = fs
-        self.cfg['fs'] = self.fs
+        #self.fs = fs
         self.cfg['adc'] = self.adc
         self.cfg['b_dds'] = self.B_DDS
-        self.cfg['fs'] = self.rf.adccfg[self['adc']]['fs']
-        self.cfg['f_dds'] = self.rf.adccfg[self['adc']]['fs']
-        self.cfg['f_fabric'] = self.rf.adccfg[self['adc']]['f_fabric']
+        for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
+            self.cfg[p] = self.rf.adccfg[self['adc']][p]
+        # decimation reduces the DDS range
+        self.cfg['f_dds'] = self.cfg['fs']/self['decimation']
+        self.cfg['fdds_div'] = self['fs_div']*self['decimation']
 
     def initialize(self):
         """
@@ -132,18 +133,15 @@ class AxisReadoutV2(SocIp, AbsReadout):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        thiscfg = {}
-        thiscfg['f_dds'] = self.fs
-        thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
+            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.cfg)
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
-        ro_freq = ro_freq % self.fs
+        ro_freq = ro_freq % self['f_dds']
         # we can calculate the register value without further referencing the gen_ch
-        f_int = self.soc.freq2int(ro_freq, thiscfg)
+        f_int = self.soc.freq2int(ro_freq, self.cfg)
         self.set_freq_int(f_int)
 
     def set_freq_int(self, f_int):
@@ -198,8 +196,7 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
             }
 
     # Bits of DDS. 
-    # The channelizer DDS range is 1/8 of the sampling frequency, which effectively adds 3 bits of resolution.
-    B_DDS = 35
+    B_DDS = 32
 
     # index of the PFB channel that is centered around DC.
     CH_OFFSET = 4
@@ -213,6 +210,12 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         """
         super().__init__(description)
         self.initialize()
+
+    def configure(self, rf):
+        super().configure(rf)
+        # The DDS range is reduced by both the RF-ADC decimation and the PFB.
+        self.cfg['f_dds'] /= 4
+        self.cfg['fdds_div'] *= 4
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -271,43 +274,37 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        thiscfg = {}
-        thiscfg['f_dds'] = self.fs
-        thiscfg['b_dds'] = self.B_DDS
         # calculate the exact frequency we expect to see
         ro_freq = f
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], thiscfg)
+            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.cfg)
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
 
-        nqz = int(ro_freq // (self.fs/2)) + 1
+        nqz = int(ro_freq // (self['fs']/2)) + 1
         if nqz % 2 == 0: # even Nyquist zone
             ro_freq *= -1
         # the PFB channels are separated by half the DDS range
         # round() gives you the single best channel
         # floor() and ceil() would give you the 2 best channels
         # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
-        f_steps = int(np.round(ro_freq/(self.fs/16)))
-        f_dds = ro_freq - f_steps*(self.fs/16)
+        f_steps = int(np.round(ro_freq/(self['f_dds']/2)))
+        f_dds = ro_freq - f_steps*(self['f_dds']/2)
         in_ch = (self.CH_OFFSET + f_steps) % 8
 
         # we can calculate the register value without further referencing the gen_ch
-        freq_int = self.soc.freq2int(f_dds, thiscfg)
+        freq_int = self.soc.freq2int(f_dds, self.cfg)
         self.set_freq_int(freq_int, in_ch, out_ch)
 
     def set_freq_int(self, f_int, in_ch, out_ch):
         if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
             # we are already using this PFB channel, and it's set to a different frequency
             # now do a bunch of math to print an informative message
-            centerfreq = ((in_ch - self.CH_OFFSET) % 8) * (self.fs/16)
-            lofreq = centerfreq - self.fs/32
-            hifreq = centerfreq + self.fs/32
-            thiscfg = {}
-            thiscfg['f_dds'] = self.fs
-            thiscfg['b_dds'] = self.B_DDS
-            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], thiscfg)
-            newfreq = centerfreq + self.soc.int2freq(f_int, thiscfg)
+            centerfreq = ((in_ch - self.CH_OFFSET) % 8) * (self['f_dds']/2)
+            lofreq = centerfreq - self['f_dds']/4
+            hifreq = centerfreq + self['f_dds']/4
+            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], self.cfg)
+            newfreq = centerfreq + self.soc.int2freq(f_int, self.cfg)
             raise RuntimeError("frequency collision: tried to set PFB output %d to %f MHz and output %d to %f MHz, but both map to the PFB channel that is optimal for [%f, %f] (all freqs expressed in first Nyquist zone)"%(out_ch, newfreq, self.out_chs[in_ch], oldfreq, lofreq, hifreq))
         self.ch_freqs[in_ch] = f_int
         self.out_chs[in_ch] = out_ch
@@ -327,8 +324,8 @@ class AxisReadoutV3(AbsReadout):
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
 
-    def configure(self, rf, fs):
-        super().configure(rf, fs)
+    def configure(self, rf):
+        super().configure(rf)
         self.cfg['tproc_ctrl'] = self.tproc_ch
         # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
         self.cfg['f_fabric'] *= 2
