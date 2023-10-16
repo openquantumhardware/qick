@@ -30,6 +30,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  checks: write
   
 jobs:
   update_version:
@@ -58,10 +59,12 @@ jobs:
         git add "$VERSION_PATH"
         git commit -am "update version"
         git push
+        newref="/repos/$(git remote get-url origin|cut -d'/' -f4,5)/statuses/$(git rev-parse HEAD)"
+        echo "updating status for $newref"
         gh api \
           --method POST \
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
-          /repos/$(git remote get-url origin|cut -d'/' -f4,5)/statuses/$(git rev-parse HEAD) \
+          $newref \
           -f state='success' \
           -f context='update_version'
