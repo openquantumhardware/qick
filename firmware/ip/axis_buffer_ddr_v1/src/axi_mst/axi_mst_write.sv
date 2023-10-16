@@ -222,7 +222,7 @@ always @(posedge clk) begin
 
 		// Fifo signals.
 		fifo_dout_r		<= 0;
-		fifo_empty_r	<= 0;
+		fifo_empty_r	<= 1;
 
 		// Burst counter.
 		cnt_burst		<= 0;
