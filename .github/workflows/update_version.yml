@@ -30,7 +30,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  checks: write
+  statuses: write
   
 jobs:
   update_version:
