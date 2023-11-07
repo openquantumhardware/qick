@@ -94,12 +94,16 @@ aluList_s = {
 aluList_op = ['ABS', 'MSH', 'LSH', 'SWP', 'PAR', 'NOT'] ## List with Commands with one parameter
 
 arithList = { 
-'T'   : '00000', # A*B
-'TP'  : '00001', # A*B+C
-'TM'  : '00010', # A*B-C
-'PT'  : '00011', # (A+D)*B
-'PTP' : '00100', #(A+D)*B+C
-'PTM' : '00101', #(A+D)*B-C
+'T'   : '00000', #  A*B
+'TP'  : '00001', #  A*B+C
+'TM'  : '00010', #  A*B-C
+'PT'  : '00011', # (D+A)*B
+'PTP' : '00100', # (D+A)*B+C
+'PTM' : '00101', # (D+A)*B-C
+'MT'  : '00110', # (D-A)*B
+'MTP' : '00111', # (D-A)*B+C
+'MTM' : '01000', # (D-A)*B-C
+
 }
 
 # CONDITIONALS
@@ -279,15 +283,8 @@ class Assembler():
                     assembler += 'p'+command['DST'] + ' '
             elif ('DST' in command):
                 assembler += command['DST'] + ' '
-            
             assembler += f"{command['SRC']} "     if ('SRC'      in command) else ''
             assembler += f"{command['DATA']} "    if ('DATA'      in command) else ''
-            assembler += f"{command['C_OP']} "    if ('C_OP'       in command) else ''
-            assembler += f"{command['R1']} "      if ('R1'       in command) else ''
-            assembler += f"{command['R2']} "      if ('R2'       in command) else ''
-            assembler += f"{command['R3']} "      if ('R3'       in command) else ''
-            assembler += f"{command['R4']} "      if ('R4'       in command) else ''
-
             if ('ADDR' in command):
                 if (not 'LABEL' in command):
                     if ( f"&{p_addr-1}" == command['ADDR'] and command['CMD'] == 'JUMP'):
@@ -305,13 +302,23 @@ class Assembler():
             assembler += f"-wr({command['WR']}) "    if ('WR'       in command) else ''
             assembler += f"#{command['LIT']} "       if ('LIT'      in command) else ''
             assembler += f"-op({command['OP']}) "    if ('OP'       in command) else ''
-            #assembler += f"-reg({command['REG']}) "  if ('REG'       in command) else ''
+            assembler += "-uf "      if ('UF' in command and command['UF']=='1') else ''
+            assembler += "-ww "                       if ('WW'       in command) else ''
+            assembler += f"-wp({command['WP']}) "    if ('WP'       in command) else ''
+            assembler += f"p{command['PORT']} "      if ('PORT'     in command) else ''
             assembler += f"@{command['TIME']} "      if ('TIME'       in command) else ''
+
+
             assembler += f"{command['NUM']} "        if ('NUM'       in command) else ''
             if ('DEN' in command):
                 assembler += '#' if (command['DEN'][0] != 'r') else ''
                 assembler += f"{command['DEN']} "
-            assembler += "-uf" if ('UF' in command and command['UF']=='1') else ''
+            assembler += f"{command['C_OP']} "    if ('C_OP'       in command) else ''
+            assembler += f"{command['R1']} "      if ('R1'       in command) else ''
+            assembler += f"{command['R2']} "      if ('R2'       in command) else ''
+            assembler += f"{command['R3']} "      if ('R3'       in command) else ''
+            assembler += f"{command['R4']} "      if ('R4'       in command) else ''
+
             assembler += '\n'
             return assembler
     
@@ -325,7 +332,7 @@ class Assembler():
             PADDR = '&' + str(address)
             if (PADDR in val_list):
                 label = key_list[val_list.index(PADDR)]
-                if (label[0:2]=='F_' or label[0:2]=='L_'):
+                if (label[0:2]=='F_' or label[0:2]=='S_' or label[0:2]=='T_'):
                     label = '\n' + label
                 assembler_code += label + ':\n'
             # CHECK FOR LABEL SOURCE
@@ -560,7 +567,6 @@ class Assembler():
                                     command_info[key] = PARAM[0].strip()
                                     aux  = Param_List[key]['RL'] + PARAM[0] + Param_List[key]['RR']
                                     command = command.replace(aux, '')
-
                         # COMMANDS PARAMETERS CHECK
                         ###############################################################
                         if (error == 0):
@@ -581,6 +587,9 @@ class Assembler():
                                         command_info['LIT'] = str(int(command_info['LIT'][1:],2))
                                     except ValueError:
                                         error = Logger.error("COMMAND_RECOGNITION", "Binary value incorrect in Line " + str(line_number))
+                            ###########################################################
+                            if ('WW' in command_info) :
+                                command_info['WW'] = '1'
                             ###########################################################
                             if ('UF' in command_info) :
                                 command_info['UF'] = '1'
@@ -703,7 +712,7 @@ class Assembler():
                                    else:
                                        command_info['DST'] = CMD_DEST_SOURCE[1]
                                        command_info['SRC'] = CMD_DEST_SOURCE[2]        
-                                elif (CMD_DEST_SOURCE[0] =='DPORT_WR') :
+                                elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
                                     if ( int(command_info['PORT'])  > 7):
                                         error = Logger.error("COMMAND_RECOGNITION", "Data Port max value is 7 in line " + str(line_number))
                                     else:
@@ -730,9 +739,25 @@ class Assembler():
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]     
                                     command_info['DST'] = '[' + command_info['ADDR'] + ']'     
                                     command_info.pop('ADDR')     
-                                elif (CMD_DEST_SOURCE[0] =='WPORT_WR') :
+                                elif (CMD_DEST_SOURCE[0] =='TRIG'):
+                                    command_info['CMD'] = CMD_DEST_SOURCE[0]
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    command_info['DST'] = command_info['PORT'] 
+                                    if ( int(command_info['PORT'])  > 7):
+                                        error = Logger.error("COMMAND_RECOGNITION", "Trigger Port max value is 7 in line " + str(line_number))
+                                    else:
+                                        command_info['DST'] = command_info['PORT']
+                                        command_info.pop('PORT') 
+                                elif (CMD_DEST_SOURCE[0] =='WPORT_WR'):
+                                    command_info['CMD'] = CMD_DEST_SOURCE[0]
+                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
+                                    if ( int(command_info['PORT'])  > 15):
+                                        error = Logger.error("COMMAND_RECOGNITION", "Wave Port Port max value is 15 in line " + str(line_number))
+                                    else:
+                                        command_info['DST'] = command_info['PORT']
+                                        command_info.pop('PORT') 
+#                                elif (CMD_DEST_SOURCE[0] =='WPORT_WR') :
+#                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
+#                                    command_info['DST'] = command_info['PORT'] 
                                 elif (CMD_DEST_SOURCE[0] =='FLAG') :
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]     
                                 elif (CMD_DEST_SOURCE[0] =='NET') :
@@ -746,14 +771,6 @@ class Assembler():
                                         command_info['NUM'] = CMD_DEST_SOURCE[1]     
                                     else:
                                         error = Logger.error("COMMAND_RECOGNITION", "Dividend Parameter Error in line " + str(line_number))
-                                elif (CMD_DEST_SOURCE[0] =='TRIG'):
-                                    command_info['CMD'] = CMD_DEST_SOURCE[0]
-                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    if ( int(command_info['PORT'])  > 7):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Trigger Port max value is 7 in line " + str(line_number))
-                                    else:
-                                        command_info['DST'] = command_info['PORT']
-                                        command_info.pop('PORT') 
                                 elif (CMD_DEST_SOURCE[0]=='JUMP' or CMD_DEST_SOURCE[0]=='CALL'):
                                     command_info['CMD'] = CMD_DEST_SOURCE[0]
                                     if CMD_DEST_SOURCE[1]  in label_dict:
@@ -944,7 +961,7 @@ class Assembler():
         
             length = CODE.count('0') + CODE.count('1')
             if (length != 72):
-                if (command['CMD'] != 'WAIT'):
+                if (command['CMD'] == 'WAIT'):
                     Logger.info('COMMAND_TRANSLATION', 'Command Wait add one more instruction ' + str(command['LINE']) )
                 else:
                     error = 72
@@ -1642,7 +1659,7 @@ class Instruction():
                         if (param_op):
                            RsF     = '00000_1' + integer2bin(param_op[0][0], 5)     
                         else:
-                            error = Logger.error('Instruction.PORT_WR', 'Register Selection Error, should be r in line ' + str(current['LINE']) )
+                            error = Logger.error('Instruction.PORT_WR', 'Register Selection Error, should be dreg in line ' + str(current['LINE']) )
                     else:
                         error = Logger.error('Instruction.PORT_WR', 'No Port Register found in line ' + str(current['LINE']) )
                 else:
@@ -1743,8 +1760,8 @@ class Instruction():
             elif ('SRC' in current):
                 error, RD1 = get_reg_addr (current['SRC'], 'Source')
             else: 
-                if   (current['DST']!='rst'):
-                    error = Logger.error('Instruction.CTRL', 'No Data' )
+                if   (current['DST'] !='rst'):
+                    error = Logger.error('Instruction.CTRL', 'No Time Data' )
         ######### FLAG
         elif (current ['CMD'] == 'FLAG'):
             CTRL      = '00010'
