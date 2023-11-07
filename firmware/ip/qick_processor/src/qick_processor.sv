@@ -1238,7 +1238,7 @@ generate
       assign xreg_TPROC_STATUS[23 : 20]   = { fifo_ok       , wfifo_full     , dfifo_full    , tfifo_full };
       assign xreg_TPROC_STATUS[19 : 16]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
       assign xreg_TPROC_STATUS[15 : 12]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
-      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, 1'b0, ext_flag_r, int_flag_r};
+      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, axi_flag_r, ext_flag_r, int_flag_r};
       assign xreg_TPROC_STATUS[7  :  4]   = { time_en , time_st[2:0] };
       assign xreg_TPROC_STATUS[3  :  0]   = { core_en , core_st[2:0]};
       assign xreg_TPROC_DEBUG[31: 16]     = mem_ctrl_debug_ds;
@@ -1261,7 +1261,7 @@ generate
       assign xreg_TPROC_STATUS[23 : 20]   = { fifo_ok       , wfifo_full     , dfifo_full    , tfifo_full };
       assign xreg_TPROC_STATUS[19 : 16]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
       assign xreg_TPROC_STATUS[15 : 12]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
-      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, 1'b0, ext_flag_r, int_flag_r};
+      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, axi_flag_r, ext_flag_r, int_flag_r};
       assign xreg_TPROC_STATUS[7  :  4]   = { time_en , time_st[2:0] };
       assign xreg_TPROC_STATUS[3  :  0]   = { core_en , core_st[2:0]};
       assign xreg_TPROC_DEBUG[31: 16]     = mem_ctrl_debug_ds;
