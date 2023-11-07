@@ -466,10 +466,10 @@ class Axis_QICK_Proc(SocIp):
     def time_update(self):
         self.logger.info('TIME_UPDATE')
         self.tproc_ctrl      = 2
-    def proc_start(self):
+    def start(self):
         self.logger.info('PROCESSOR_START')
         self.tproc_ctrl      = 4
-    def proc_stop(self):
+    def stop(self):
         self.logger.info('PROCESSOR_STOP')
         self.tproc_ctrl      = 8
     def core_start(self):
@@ -478,10 +478,10 @@ class Axis_QICK_Proc(SocIp):
     def core_stop(self):
         self.logger.info('CORE_STOP')
         self.tproc_ctrl      = 32
-    def proc_reset(self):
+    def reset(self):
         self.logger.info('PROCESSOR_RESET')
         self.tproc_ctrl      = 64
-    def proc_run(self):
+    def run(self):
         self.logger.info('PROCESSOR_RUN')
         self.tproc_ctrl      = 128
     def proc_pause(self):
@@ -653,89 +653,57 @@ class Axis_QICK_Proc(SocIp):
             else:
                 self.logger.error('Error Loading Program')
 
-        
     def get_axi(self):
         print('---------------------------------------------')
         print('--- AXI Registers')
         for xreg in self.REGISTERS.keys():
             print(f'{xreg:>15}', getattr(self, xreg))
 
-    def get_proc_status(self):
-        proc_st = ['T_RST','P_RST','RST_WAIT','T_INIT','STOP','PLAY','PAUSE','UPDATE','FREEZE','END_STEP']
+    def get_status(self):
+        core_st = ['C_RST_STOP', 'C_RST_STOP_WAIT', 'C_RST_RUN', 'C_RST_RUN_WAIT', 'C_STOP', 'C_RUN', 'C_STEP', 'C_END_STEP']
+        time_st = ['T_RST', 'T_UPDT',  'T_INIT', 'T_RUN', 'T_STOP', 'T_STEP']
         status_num = self.tproc_status
         status_bin = '{:032b}'.format(status_num)
         print('---------------------------------------------')
         print('--- AXI TPROC Register STATUS')
-        print(status_bin)
-        p_st = int(status_bin[29:32], 2)
+        c_st = int(status_bin[29:32], 2)
+        t_st = int(status_bin[25:28], 2)
         print('--- PROCESSOR -- ')
-        print( 'PROC_ST         : ' + status_bin[29:32] +' - '+ proc_st[p_st])
-        print( 'CORE_EN         : ' + status_bin[27] )
-        print( 'TIME_EN         : ' + status_bin[26] )
-        print( 'PROC_RST        : ' + status_bin[25] )
-        print( 'EXT_COND        : ' + status_bin[23] )
-        print( 'PORT_DT_NEW     : ' + status_bin[22] )
-        print( 'FLAG_C0         : ' + status_bin[21] )
-        print( 'ALL_DFIFO_EMPTY : ' + status_bin[19] )
-        print( 'ALL_WFIFO_EMPTY : ' + status_bin[18] )
-        print( 'ALL_DFIFO_FULL  : ' + status_bin[17] )
-        print( 'ALL_WFIFO_FULL  : ' + status_bin[16] )
-        print( 'DFIFO_FULL      : ' + status_bin[15] )
-        print( 'WFIFO_FULL      : ' + status_bin[14] )
-        print( 'FIFO_OK         : ' + status_bin[13] )
+        print( 'CORE_ST         : ' + status_bin[29:32] +' - '+ core_st[c_st])
+        print( 'CORE_EN         : ' + status_bin[28] )
+        print( 'TIME_ST         : ' + status_bin[25:28] +' - '+ time_st[t_st])
+        print( 'TIME_EN         : ' + status_bin[24] )
+        print( 'Flag Internal   : ' + status_bin[23] )
+        print( 'Flag External   : ' + status_bin[22] )
+        print( 'Flag C0         : ' + status_bin[20] )
+        print('--- FIFOs  -- ')
+        print( 'all_TFIFO_EMPTY : ' + status_bin[19] )
+        print( 'all_DFIFO_EMPTY : ' + status_bin[18] )
+        print( 'all_WFIFO_EMPTY : ' + status_bin[17] )
+        print( 'ALL_FIFO_EMPTY  : ' + status_bin[16] )
+        print( 'all_TFIFO_FULL  : ' + status_bin[15] )
+        print( 'all_DFIFO_FULL  : ' + status_bin[14] )
+        print( 'all_WFIFO_FULL  : ' + status_bin[13] )
+        print( 'ALL_FIFO_FULL   : ' + status_bin[12] )
+        print( 'some_TFIFO_FULL : ' + status_bin[11] )
+        print( 'some_DFIFO_FULL : ' + status_bin[10] )
+        print( 'some_WFIFO_FULL : ' + status_bin[9] )
+        print( 'FIFO_OK         : ' + status_bin[8] )
         print('--- MEMORY -- ')
-        print( 'AW_EXEC         : ' + status_bin[4] )
-        print( 'AR_EXEC         : ' + status_bin[3] )
-        print( 'MEM_WE_SINGLE   : ' + status_bin[2] )
-        print( 'MEM_OP          : ' + status_bin[0] )
-    def get_proc_debug(self):
+        print( 'AW_EXEC         : ' + status_bin[1] )
+        print( 'AR_EXEC         : ' + status_bin[0] )
+    def get_debug(self):
         debug_num = self.tproc_debug
         debug_bin = '{:032b}'.format(debug_num)
         print('---------------------------------------------')
         print('--- AXI TPROC Register DEBUG')
-        print(debug_bin)
-        print( 'USER_TIME           : ' + debug_bin[24:32] + ' - ' +str(int(debug_bin[24:32], 2)))
+        print( 'DFIFO_0_TIME        : ' + debug_bin[28:32] + ' - ' +str(int(debug_bin[24:32], 2)))
+        print( 'DFIFO_0_DATA        : ' + debug_bin[24:28] + ' - ' +str(int(debug_bin[16:24], 2)))
         print( 'REF_TIME            : ' + debug_bin[16:24] + ' - ' +str(int(debug_bin[16:24], 2)))
         print( 'EXT_MEM_W_DT_O[7:0] : ' + debug_bin[8 :16] + ' - ' +str(int(debug_bin[8:16], 2)))
         print( 'EXT_MEM_ADDR[7:0]   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-    def get_core_status(self):
-        status_num = self.core0_status
-        status_bin = '{:032b}'.format(status_num)
-        print('---------------------------------------------')
-        print('--- AXI CORE Register STATUS')
-        print(status_bin)
-        p_st = int(status_bin[29:32], 2)
-        print('--- PROCESSOR -- ')
-        print( 'ARITH_DT_NEW    : ' + status_bin[31] )
-        print( 'DIV_DT_NEW      : ' + status_bin[30] )
-        print( 'TNET_DT_NEW     : ' + status_bin[29] )
-        print( 'PERIPH_DT_NEW   : ' + status_bin[28] )
-        print( 'ARITH_RDY       : ' + status_bin[27] )
-        print( 'DIV_RDY         : ' + status_bin[26] )
-        print( 'TNET_RDY        : ' + status_bin[25] )
-        print( 'PERIPH_RDY      : ' + status_bin[24] )
-        print( 'DFIFO_FULL      : ' + status_bin[23] )
-        print( 'DFIFO_EMPTY     : ' + status_bin[22] )
-        print( 'WFIFO_FULL      : ' + status_bin[21] )
-        print( 'WFIFO_EMPTY     : ' + status_bin[20] )
-    def get_core_debug(self):
-        debug_num = self.core0_debug
-        debug_bin = '{:032b}'.format(debug_num)
-        print('---------------------------------------------')
-        print('--- AXI TPROC Register DEBUG')
-        print(debug_bin)
-        print( 'PORT_O.P_TIME[7:0]           : ' + debug_bin[24:32] + ' - ' +str(int(debug_bin[24:32], 2)))
-        print( 'R_X1_ALU_DT[7:0]            : ' + debug_bin[16:24] + ' - ' +str(int(debug_bin[16:24], 2)))
-        print( 'ID_DMEM_WE : ' + debug_bin[8 :16] + ' - ' +str(int(debug_bin[8:16], 2)))
-        print( 'ID_DREG_WE   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_REG_WR   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_MEM_WR   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_REG_WR   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_BRANCH   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_DREG_WE   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_CFG       : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        print( 'ID_DREG_WE   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
-        
+
+
 class Axis_QICK_Net(SocIp):
     """
     Axis_QICK_Proc class
@@ -762,7 +730,7 @@ class Axis_QICK_Net(SocIp):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
-    bindto = ['Fermi:user:qick_net:1.0']
+    bindto = ['Fermi:user:qick_network:1.0']
 
     REGISTERS = {
         'tnet_ctrl'     :0 ,
@@ -772,16 +740,25 @@ class Axis_QICK_Net(SocIp):
         'raxi_dt1'      :4 ,
         'raxi_dt2'      :5 ,
         'raxi_dt3'      :6 ,
-        'nn'            :7 ,
-        'id'            :8,
-        'cd'            :9,
-        'rtd'           :10,
-        'version'       :11,
-        'tnet_w_dt1'    :12,
-        'tnet_w_dt2'    :13,
-        'tnet_status'   :14,
-        'tnet_debug'    :15
+        'nn_id'         :7 ,
+        'rtd'           :8,
+        'tnet_w_dt1'    :9,
+        'tnet_w_dt2'    :10,
+        'rx_status'     :11,
+        'tx_status'     :12,
+        'status'        :13,
+        'debug'         :14,
+        'hist'          :15
     }
+
+    main_list = ['M_NOT_READY','M_IDLE','M_LOC_CMD','M_NET_CMD','M_WRESP','M_WACK','M_NET_RESP','M_NET_ANSW','M_CMD_EXEC','M_ERROR']
+    task_list = ['T_NOT_READY','T_IDLE','T_LOC_CMD','T_LOC_WSYNC','T_LOC_SEND','T_LOC_WnREQ','T_NET_CMD', 'T_NET_SEND']
+    cmd_list = [ 'NOT_READY','IDLE','L_GNET','L_SNET','L_SYNC1','L_UPDT_OFF','L_SET_DT','L_GET_DT','L_RST_TIME','L_START',\
+    'L_STOP','N_GNET_P','N_SNET_P','N_SYNC1_P','N_UPDT_OFF_P','N_SET_DT_P','N_GET_DT_P','N_RST_TIME_P','N_START_P','N_STOP_P',\
+    'N_GNET_R','N_SNET_R','N_SYNC1_R','N_UPDT_OFF_R','N_DT_R','N_TPROC_R','N_GET_DT_A','WAIT_TX_ACK','WAIT_TX_nACK','WAIT_CMD_nACK',\
+             'STATE','ST_ERROR']
+    link_list = ['NOT_READY','IDLE','RX','PROCESS','PROPAGATE','TX_H','TX_D','WAIT_nREQ']
+    ctrl_list = ['X','IDLE','CHECK_TIME1','CHECK_TIME2','WAIT_TIME','WAIT_SYNC','EXECUTE','ERROR']
 
     def __init__(self, description):
         """
@@ -818,65 +795,183 @@ class Axis_QICK_Net(SocIp):
         for xreg in self.REGISTERS.keys():
             print(f'{xreg:>15}', getattr(self, xreg))
     def get_status(self):
-        status_num = self.tnet_status
+        rx_status_num = self.rx_status
+        rx_status_bin = '{:032b}'.format(rx_status_num)
+        tx_status_num = self.tx_status
+        tx_status_bin = '{:032b}'.format(tx_status_num)
+        status_num = self.status
         status_bin = '{:032b}'.format(status_num)
         print('---------------------------------------------')
-        print('--- AXI TNET Register STATUS')
-        print(status_bin)
+        print('--- AXI TNET Register RX_STATUS')
+        print( ' RX_CNT    : ' + rx_status_bin[26:32] )
+        print( ' RX_CMD    : ' + rx_status_bin[18:23] )
+        print( ' RX_FLAGS  : ' + rx_status_bin[23:26] )
+        print( ' RX_DST    : ' + rx_status_bin[14:18] )
+        print( ' RX_SRC    : ' + rx_status_bin[10:14] )
+        print( ' RX_STEP   : ' + rx_status_bin[4:10]  )
+        print( ' RX_H_DT   : ' + rx_status_bin[0:4]   )
+
+        print('--- AXI TNET Register TX_STATUS')
+        print( ' TX_CNT    : ' + tx_status_bin[26:32] )
+        print( ' TX_CMD    : ' + tx_status_bin[18:23] )
+        print( ' TX_FLAGS  : ' + tx_status_bin[23:26] )
+        print( ' TX_DST    : ' + tx_status_bin[14:18] )
+        print( ' TX_SRC    : ' + tx_status_bin[10:14] )
+        print( ' TX_STEP   : ' + tx_status_bin[4:10]  )
+        print( ' TX_H_DT   : ' + tx_status_bin[0:4]   )
+
+        print('--- AXI TNET Register TNET_STATUS')
         print( ' MMC_LOCKED   : ' + status_bin[31] )
         print( ' GT_PLL_LOCK  : ' + status_bin[30] )
-        print( ' LANE_A_UP    : ' + status_bin[29] )
-        print( ' CHANNEL_A_UP : ' + status_bin[28] )
-        print( ' CHANNEL_B_UP : ' + status_bin[27] )
-        print( ' AURORA_RDY   : ' + status_bin[26] )
-        print( ' AURORA_ST    : ' + str(int(status_bin[23:26],2)) )
+        print( ' CH_A_RX_UP   : ' + status_bin[29] )
+        print( ' CH_A_TX_UP   : ' + status_bin[28] )
+        print( ' CH_B_RX_UP   : ' + status_bin[27] )
+        print( ' CH_B_TX_UP   : ' + status_bin[26] )
+        print( ' AURORA_RDY   : ' + status_bin[25] )
+        print( ' TX_REQ       : ' + status_bin[24] )
+        print( ' TX_ACK       : ' + status_bin[23] )
+        print( ' ERROR_ID     : ' + status_bin[19:23] )
         print( '--------------------------------')
-        print( ' CMD_ID      : ' + status_bin[19:23] )
-        print( ' CMD_DST      : ' + status_bin[16:19] )
-        print( ' CMD_SRC      : ' + status_bin[13:16] )
+        print( ' READY        : ' + status_bin[15] )
         print( '--------------------------------')
-        print( ' GET_NET      : ' + status_bin[10] )
-        print( ' SET_NET      : ' + status_bin[9] )
-        print( ' SYNC_NET     : ' + status_bin[8] )
+        print( ' GET_NET      : ' + status_bin[14] )
+        print( ' SET_NET      : ' + status_bin[13] )
+        print( ' SYNC1_NET    : ' + status_bin[12] )
+        print( ' SYNC2_NET    : ' + status_bin[11] )
+        print( ' GET_OFF      : ' + status_bin[8] )
         print( ' UPDT_OFF     : ' + status_bin[7] )
-        print( ' RST_TPROC    : ' + status_bin[6] )
-        print( ' START_TPROC  : ' + status_bin[5] )
-        print( ' STOP_TPROC   : ' + status_bin[4] )
-        print( ' SET_DT       : ' + status_bin[3] )
-        print( ' GET_DT       : ' + status_bin[2] )
-        print( ' SET_COND     : ' + status_bin[1] )
-        print( ' CLEAR_COND   : ' + status_bin[0] )
+        print( ' SET_DT       : ' + status_bin[6] )
+        print( ' GET_DT       : ' + status_bin[5] )
+        print( ' RST_TIME     : ' + status_bin[4] )
+        print( ' START_CORE   : ' + status_bin[3] )
+        print( ' STOP_CORE    : ' + status_bin[2] )
+        print( ' GET_COND     : ' + status_bin[1] )
+        print( ' SET_COND     : ' + status_bin[0] )
 
     def get_debug(self):
-        cmd_list = ['RST_0','>NET_GNET_P', '>NET_SYNC_P', '>NET_GNET_R', 'LOC_GNET', 'LOC_SNET', 'LOC_SYNC', 'LOC_UPDT_OFF',\
-             'LOC_SET_DT', 'LOC_GET_DT', 'NET_GNET_P', 'NET_SNET_P', 'NET_SYNC_P', 'NET_UPDT_OFF_P', 'NET_SET_DT_P', 'NET_GET_DT_P',\
-             'NET_GNET_R', 'NET_SNET_R', 'NET_SYNC_R', 'NET_UPDT_OFF_R', 'NET_SET_DT_R', 'NET_GET_DT_R', 'RST_1', 'RST_2',\
-             'NET_GET_DT_A', 'NOT_READY', 'TIMEOUR', 'TX_ACK', 'CMD_nACK']
-        task_list = ['NOT_READY','IDLE','LOC_CMD','LOC_WSYNC','LOC_SEND','LOC_WnREQ','NET_CMD','NET_WSYNC','NET_SEND','NET_WnREQ']
-        debug_num = self.tnet_debug
-        debug_bin = '{:032b}'.format(debug_num)
-        task_st = int(debug_bin[19:23], 2) 
-        cmd0_st = int(debug_bin[10:15], 2) 
-        cmd1_st = int(debug_bin[5:10], 2) 
-        cmd2_st = int(debug_bin[0:5], 2) 
+
         print('---------------------------------------------')
-        print('--- AXI TNET Register DEBUG')
-        print(debug_bin)
-        print( ' AURORA_CNT  : ' + debug_bin[27:32] )
-        print( ' AURORA_OP   : ' + debug_bin[23:27] )
-        print( ' TASK_ST     : ' + str(task_st) + ' - ' + task_list[task_st])
-        print( ' MAIN_ST     : ' + debug_bin[15:19] )
-        #print( ' TASK_ST     : ' + debug_bin[19:23] )
-        print( ' T0   : ' + str(cmd0_st) + ' - ' + cmd_list[cmd0_st])
-        print( ' T1   : ' + str(cmd1_st) + ' - ' + cmd_list[cmd1_st])
-        print( ' T2   : ' + str(cmd2_st) + ' - ' + cmd_list[cmd2_st])
+
+        print('--- AXI TNET Register DEBUG_0')
+        self.tnet_cfg = 0
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        main_st  = int(debug_bin[28:32], 2) 
+        task_st  = int(debug_bin[24:28], 2) 
+        cmd_st   = int(debug_bin[19:24], 2) 
+        ctrl_st  = int(debug_bin[16:19], 2) 
+        link_st  = int(debug_bin[13:16], 2) 
+        print( ' MAIN_ST    : ' + str(main_st) + ' - ' + self.main_list[main_st])
+        print( ' TASK_ST    : ' + str(task_st) + ' - ' + self.task_list[task_st])
+        print( ' CMD_ST     : ' + str(cmd_st)  + ' - ' + self.cmd_list[cmd_st] )
+        print( ' CTRL_ST    : ' + str(ctrl_st)  + ' - ' + self.ctrl_list[ctrl_st] )
+        print( ' LINK_ST    : ' + str(link_st)  + ' - ' + self.link_list[link_st] )
+
+        print('---------------------------------------------')
+        print('--- AXI TNET Register DEBUG_1')
+        self.tnet_cfg = 1
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print( ' PY_CMD_CNT    : ' + debug_bin[29:32] )
+        print( ' tProc_CMD_CNT : ' + debug_bin[26:29] )
+        print( ' NET_CMD_CNT   : ' + debug_bin[23:26] )
+        print( ' ERROR_CNT     : ' + debug_bin[15:23] )
+        print( ' READY_CNT     : ' + debug_bin[7:15] )
+
+        
+        print('--- AXI TNET Register DEBUG_2')
+        self.tnet_cfg = 2
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print( ' PR_CNT    : ' + debug_bin[28:32] )
+        print( ' PR_CMD    : ' + debug_bin[23:28] )
+        print( ' PR_SRC    : ' + debug_bin[13:23] )
+        print( ' PR_DST    : ' + debug_bin[3:13] )
+        print( ' net_dst_ones: ' + debug_bin[2]  )
+        print( ' net_dst_own : ' + debug_bin[1]  )
+        print( ' net_src_own : ' + debug_bin[0]  )
+
+        print('--- AXI TNET Register DEBUG_3')
+        self.tnet_cfg = 3
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print( ' EX_CNT    : ' + debug_bin[28:32] )
+        print( ' EX_CMD    : ' + debug_bin[23:28] )
+        print( ' EX_SRC    : ' + debug_bin[13:23] )
+        print( ' EX_DST    : ' + debug_bin[3:13] )
+        print( ' net_dst_ones: ' + debug_bin[2]  )
+        print( ' net_dst_own : ' + debug_bin[1]  )
+        print( ' net_src_own : ' + debug_bin[0]  )
+
+        print('--- AXI TNET Register DEBUG_4')
+        self.tnet_cfg = 4
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print( ' ERR_1    : ' + debug_bin[28:32] )
+        print( ' ERR_2    : ' + debug_bin[24:28] )
+        print( ' ERR_3    : ' + debug_bin[20:24] )
+        print( ' ERR_4    : ' + debug_bin[16:20] )
+        print( ' ERR_5    : ' + debug_bin[12:16] )
+        print( ' ERR_6    : ' + debug_bin[8:12] )
+        print( ' ERR_7    : ' + debug_bin[4:8] )
+        print( ' ERR_8    : ' + debug_bin[0:4] )
+
+        print('--- AXI TNET Register HIST')
+        hist_num = self.hist
+        hist_bin = '{:032b}'.format(hist_num)
+        cmd1_st = int(hist_bin[27:32], 2) 
+        cmd2_st = int(hist_bin[22:27], 2) 
+        cmd3_st = int(hist_bin[17:22], 2) 
+        cmd4_st = int(hist_bin[12:17], 2) 
+        cmd5_st = int(hist_bin[7:12], 2) 
+
+        self.tnet_cfg = 5
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        cmd6_st = int(debug_bin[27:32], 2) 
+        cmd7_st = int(debug_bin[22:27], 2) 
+        cmd8_st = int(debug_bin[17:22], 2) 
+        cmd9_st = int(debug_bin[12:17], 2) 
+        cmd10_st = int(debug_bin[7:12], 2) 
+        self.tnet_cfg = 6
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        cmd11_st = int(debug_bin[27:32], 2) 
+        cmd12_st = int(debug_bin[22:27], 2) 
+        cmd13_st = int(debug_bin[17:22], 2) 
+        cmd14_st = int(debug_bin[12:17], 2) 
+        cmd15_st = int(debug_bin[7:12], 2) 
+        self.tnet_cfg = 7
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        cmd16_st = int(debug_bin[27:32], 2) 
+        cmd17_st = int(debug_bin[22:27], 2) 
+        cmd18_st = int(debug_bin[17:22], 2) 
+        cmd19_st = int(debug_bin[12:17], 2) 
+        cmd20_st = int(debug_bin[7:12], 2) 
+       
+        print( ' T1   : ' + str(cmd1_st) + ' - ' + self.cmd_list[cmd1_st])
+        print( ' T2   : ' + str(cmd2_st) + ' - ' + self.cmd_list[cmd2_st])
+        print( ' T3   : ' + str(cmd3_st) + ' - ' + self.cmd_list[cmd3_st])
+        print( ' T4   : ' + str(cmd4_st) + ' - ' + self.cmd_list[cmd4_st])
+        print( ' T5   : ' + str(cmd5_st) + ' - ' + self.cmd_list[cmd5_st])
+        print( ' T6   : ' + str(cmd6_st) + ' - ' + self.cmd_list[cmd6_st])
+        print( ' T7   : ' + str(cmd7_st) + ' - ' + self.cmd_list[cmd7_st])
+        print( ' T8   : ' + str(cmd8_st) + ' - ' + self.cmd_list[cmd8_st])
+        print( ' T9   : ' + str(cmd9_st) + ' - ' + self.cmd_list[cmd9_st])
+        print( ' T10  : ' + str(cmd10_st) + ' - ' + self.cmd_list[cmd10_st])
+        print( ' T11  : ' + str(cmd11_st) + ' - ' + self.cmd_list[cmd11_st])
+        print( ' T12  : ' + str(cmd12_st) + ' - ' + self.cmd_list[cmd12_st])
+        print( ' T13  : ' + str(cmd13_st) + ' - ' + self.cmd_list[cmd13_st])
+        print( ' T14  : ' + str(cmd14_st) + ' - ' + self.cmd_list[cmd14_st])
+        print( ' T15  : ' + str(cmd15_st) + ' - ' + self.cmd_list[cmd15_st])
+        print( ' T16  : ' + str(cmd16_st) + ' - ' + self.cmd_list[cmd16_st])
+        print( ' T17  : ' + str(cmd17_st) + ' - ' + self.cmd_list[cmd17_st])
+        print( ' T18  : ' + str(cmd18_st) + ' - ' + self.cmd_list[cmd18_st])
+        print( ' T19  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd19_st])
+        print( ' T20  : ' + str(cmd19_st) + ' - ' + self.cmd_list[cmd20_st])
         
     def get_sth(self):
-        cmd_list = ['RST_0','>NET_GNET_P', '>NET_SYNC_P', '>NET_GNET_R', 'LOC_GNET', 'LOC_SNET', 'LOC_SYNC', 'LOC_UPDT_OFF',\
-             'LOC_SET_DT', 'LOC_GET_DT', 'NET_GNET_P', 'NET_SNET_P', 'NET_SYNC_P', 'NET_UPDT_OFF_P', 'NET_SET_DT_P', 'NET_GET_DT_P',\
-             'NET_GNET_R', 'NET_SNET_R', 'NET_SYNC_R', 'NET_UPDT_OFF_R', 'NET_SET_DT_R', 'NET_GET_DT_R', 'RST_1', 'RST_2',\
-             'NET_GET_DT_A', 'NOT_READY', 'TIMEOUT', 'TX_ACK', 'CMD_nACK >> IDLE', 'ERROR', 'TX_nACK']
-        task_list = ['NOT_READY','IDLE','LOC_CMD','LOC_WSYNC','LOC_SEND','LOC_WnREQ','NET_CMD','NET_WSYNC','NET_SEND','NET_WnREQ']
         debug_num = self.tnet_debug
         debug_bin = '{:032b}'.format(debug_num)
         task_st = int(debug_bin[19:23], 2) 
