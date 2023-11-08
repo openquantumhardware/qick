@@ -26,7 +26,7 @@ import axi_mst_0_pkg::*;
 
 `define DUAL_CORE        0
 `define IO_CTRL          0
-`define DEBUG            1
+`define DEBUG            0
 `define TNET             0
 `define CUSTOM_PERIPH    1
 `define LFSR             1

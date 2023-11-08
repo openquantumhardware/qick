@@ -176,8 +176,7 @@ wire [ 4:0]    core_usr_addr, core_usr_operation;
 wire           div_rdy, arith_rdy;
 
 // DEBUG SIGNALS
-wire [ 7:0]       mem_ctrl_status_ds;
-wire [16:0]       mem_ctrl_debug_ds;
+wire [31:0]       debug_mem;
 reg core_rst_net_req; // Makes the TPROC to reset.
 
 ///// DUAL CORE
@@ -190,6 +189,15 @@ wire             ext_mem_we;
 wire [15:0]      ext_mem_addr;
 wire [167:0]     ext_mem_w_dt;
 wire [167:0]     ext_mem_r_dt, ext_mem_r_0_dt, ext_mem_r_1_dt;
+
+
+
+reg t_core_rst_prev_net;
+wire [15:0] port_dt_new ;
+wire [63:0] arith_result;
+wire [31:0] div_remainder, div_quotient;
+wire [31:0] core0_lfsr;
+wire [31:0] core1_lfsr;
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -264,6 +272,7 @@ always_ff @(posedge c_clk_i)
      
 reg c_core_en, core_rst;
 wire core_en;
+wire fifo_ok;
 assign core_en = c_core_en  & fifo_ok; 
 
 always_comb begin
@@ -317,7 +326,6 @@ sync_reg # (.DW ( 7 ) ) sync_ctrl_ps_t (
    .dt_o      ( {core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step }  ) );
 
 
-reg t_core_rst_prev_net;
 always_ff @(posedge t_clk_i)
    if (!t_rst_ni) begin
       t_core_rst_prev_net  <= 1'b0; // Request to RESET the Processor
@@ -406,7 +414,7 @@ end
 // STATUS 
 ///////////////////////////////////////////////////////////////////////////////
 wire [ 2:0] core0_src_dt, core1_src_dt;
-wire        status_clr, arith_clr, div_clr, qnet_clr, periph_clr ;
+wire        arith_clr, div_clr, qnet_clr, periph_clr ;
 reg         arith_rdy_r, div_rdy_r, qnet_rdy_r, periph_rdy_r;
 reg         arith_dt_new, div_dt_new, qnet_dt_new, periph_dt_new ;
 reg  [31:0] qnet_dt_r [2] ;
@@ -518,7 +526,7 @@ end
 
 ///////////////////////////////////////////////////////////////////////////////
 // FLAG source selection
-wire [2:0]core0_src_flg;
+wire [2:0] core0_src_flg;
 assign core0_src_flg = core0_cfg[5:3];
 reg flag_c0;
 always_comb begin
@@ -598,7 +606,6 @@ end
 
 ///////////////////////////////////////////////////////////////////////////////
 // IN PORT DATA REGISTER
-wire [15:0] port_dt_new ;
 localparam ZFP = 16 - IN_PORT_QTY; // Zero Fill for Input Port
 assign port_dt_new = { {ZFP{1'b0}} , port_new };
 
@@ -627,7 +634,6 @@ qproc_time_ctrl QTIME_CTRL (
 
 ///////////////////////////////////////////////////////////////////////////////
 // DIVIDER
-wire [31:0] div_remainder, div_quotient;
 
 generate
    if (DIVIDER == 1) begin : DIVIDER_YES
@@ -666,7 +672,6 @@ endgenerate
 
 ///////////////////////////////////////////////////////////////////////////////
 // ARITH
-wire [63:0] arith_result;
 
 generate
    if (ARITH == 1) begin : ARITH_YES
@@ -704,7 +709,6 @@ endgenerate
 
 ///////////////////////////////////////////////////////////////////////////////
 // T PROCESSOR CORE
-wire [31:0] core0_lfsr;
 wire [1:0] core0_lfsr_cfg;
 assign core0_lfsr_cfg = xreg_CORE_CFG[1:0];
 
@@ -754,7 +758,6 @@ qproc_core # (
 
 ///////////////////////////////////////////////////////////////////////////////
 ///// DUAL CORE
-wire [31:0] core1_lfsr;
 wire [1 :0] core1_lfsr_cfg;
 assign core1_lfsr_cfg = xreg_CORE_CFG[3:2];
 
@@ -874,8 +877,7 @@ qproc_mem_ctrl # (
    .MEM_LEN          ( xreg_MEM_LEN          ) ,
    .MEM_DT_I         ( xreg_MEM_DT_I         ) ,
    .MEM_DT_O         ( xreg_MEM_DT_O         ) ,
-   .STATUS_O         ( mem_ctrl_status_ds    ) ,
-   .DEBUG_O          ( mem_ctrl_debug_ds)    );
+   .DEBUG_O          ( debug_mem)    );
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -895,7 +897,7 @@ assign tfifo_full = |c_fifo_trig_full ;
 assign dfifo_full = |c_fifo_data_full ; 
 assign wfifo_full = |c_fifo_wave_full ; 
 
-wire fifo_ok;
+
 assign fifo_ok    = ~(tfifo_full | dfifo_full | wfifo_full)  | xreg_TPROC_CFG[11];  // With 1 CONTINUE
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1217,6 +1219,26 @@ assign time_abs_o = time_abs_r ;
 ///////////////////////////////////////////////////////////////////////////////
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
+wire [31:0] debug_status, debug_fifo;
+
+assign debug_status[31:29]   = 3'd0;
+assign debug_status[28:25]   = { periph_rdy_r, qnet_rdy_r, div_rdy_r, arith_rdy_r };
+assign debug_status[24:21]   = { periph_dt_new, qnet_dt_new, div_dt_new, arith_dt_new };
+assign debug_status[20:17]   = { flag_c0, periph_flag_r, qnet_flag_r, port_dt_new};
+assign debug_status[16:14]   = { ext_flag_r, axi_flag_r, int_flag_r };
+assign debug_status[13: 8]   = { core0_src_flg, core0_src_dt};
+assign debug_status[ 7: 4]   = { time_en , time_st[2:0] };
+assign debug_status[ 3: 0]   = { core_en , core_st[2:0]};
+
+assign debug_fifo[31:28]   = t_fifo_data_dt[0][3:0] ;
+assign debug_fifo[27:16]   = t_fifo_data_time[0][11:0] ;
+assign debug_fifo[15:12]   = port_dt_new[3:0] ;
+assign debug_fifo[11: 8]   = { fifo_ok       , wfifo_full     , dfifo_full    , tfifo_full };
+assign debug_fifo[ 7: 4]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
+assign debug_fifo[ 3: 0]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
+
+
+
 generate
    if (DEBUG == 0) begin : DEBUG_NO
       // DEBUG AXI_REG
@@ -1233,18 +1255,20 @@ generate
       assign c_core_do          = 0 ;
    end else if   (DEBUG == 1) begin : DEBUG_REG
       // DEBUG AXI_REG
-      assign xreg_TPROC_STATUS[31 : 30]   = mem_ctrl_status_ds[1:0] ;
-      assign xreg_TPROC_STATUS[29 : 24]   = {6'd0} ;
-      assign xreg_TPROC_STATUS[23 : 20]   = { fifo_ok       , wfifo_full     , dfifo_full    , tfifo_full };
-      assign xreg_TPROC_STATUS[19 : 16]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
-      assign xreg_TPROC_STATUS[15 : 12]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
-      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, axi_flag_r, ext_flag_r, int_flag_r};
-      assign xreg_TPROC_STATUS[7  :  4]   = { time_en , time_st[2:0] };
-      assign xreg_TPROC_STATUS[3  :  0]   = { core_en , core_st[2:0]};
-      assign xreg_TPROC_DEBUG[31: 16]     = mem_ctrl_debug_ds;
-      assign xreg_TPROC_DEBUG[15: 8]      = { c_time_ref_dt[7:0]};
-      assign xreg_TPROC_DEBUG[ 7: 4]      = { t_fifo_data_dt[0][3:0]};
-      assign xreg_TPROC_DEBUG[ 3: 0]      = { t_fifo_data_time[0][3:0]};
+      always_ff @ (posedge ps_clk_i, negedge ps_rst_ni) begin
+         if (!ps_rst_ni) begin
+            xreg_TPROC_STATUS       <= '{default:'0} ;
+            xreg_TPROC_DEBUG       <= '{default:'0} ;
+         end else begin
+            xreg_TPROC_STATUS = debug_status;
+            case (tproc_src_dt[1:0])
+               4'd0 : xreg_TPROC_DEBUG = debug_fifo ; 
+               4'd1 : xreg_TPROC_DEBUG = debug_mem ;
+               4'd2 : xreg_TPROC_DEBUG = c_time_ref_dt ; 
+               4'd3 : xreg_TPROC_DEBUG = in_port_dt_r[0];
+            endcase
+        end
+      end
       // DEBUG OUT
       assign ps_debug_do       = 0 ;
       assign t_time_usr_do     = 0 ;
@@ -1256,19 +1280,20 @@ generate
       assign c_core_do         = 0 ;
    end else begin : DEBUG_OUT
       // DEBUG AXI_REG
-      assign xreg_TPROC_STATUS[31 : 30]   = mem_ctrl_status_ds[1:0] ;
-      assign xreg_TPROC_STATUS[29 : 24]   = {6'd0} ;
-      assign xreg_TPROC_STATUS[23 : 20]   = { fifo_ok       , wfifo_full     , dfifo_full    , tfifo_full };
-      assign xreg_TPROC_STATUS[19 : 16]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
-      assign xreg_TPROC_STATUS[15 : 12]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
-      assign xreg_TPROC_STATUS[11 :  8]   = { flag_c0, axi_flag_r, ext_flag_r, int_flag_r};
-      assign xreg_TPROC_STATUS[7  :  4]   = { time_en , time_st[2:0] };
-      assign xreg_TPROC_STATUS[3  :  0]   = { core_en , core_st[2:0]};
-      assign xreg_TPROC_DEBUG[31: 16]     = mem_ctrl_debug_ds;
-      assign xreg_TPROC_DEBUG[15: 8]      = { c_time_ref_dt[7:0]};
-      assign xreg_TPROC_DEBUG[ 7: 4]      = { t_fifo_data_dt[0][3:0]};
-      assign xreg_TPROC_DEBUG[ 3: 0]      = { t_fifo_data_time[0][3:0]};
-
+      always_ff @ (posedge ps_clk_i, negedge ps_rst_ni) begin
+         if (!ps_rst_ni) begin
+            xreg_TPROC_STATUS       <= '{default:'0} ;
+            xreg_TPROC_DEBUG       <= '{default:'0} ;
+         end else begin
+            xreg_TPROC_STATUS = debug_status;
+            case (tproc_src_dt[1:0])
+               4'd0 : xreg_TPROC_DEBUG = debug_fifo ; 
+               4'd1 : xreg_TPROC_DEBUG = debug_mem ;
+               4'd2 : xreg_TPROC_DEBUG = c_time_ref_dt ; 
+               4'd3 : xreg_TPROC_DEBUG = in_port_dt_r[0];
+            endcase
+        end
+      end
       ///// PS_CLOCK Debug Signals   
       assign ps_debug_do[31:28]     = {IF_s_axireg.axi_arready, IF_s_axireg.axi_rready, IF_s_axireg.axi_awready, IF_s_axireg.axi_wready};
       assign ps_debug_do[27:24]     = {IF_s_axireg.axi_arvalid, IF_s_axireg.axi_rvalid, IF_s_axireg.axi_awvalid, IF_s_axireg.axi_wvalid};
@@ -1295,10 +1320,10 @@ generate
       assign c_debug_do[22:21] = { c_fifo_trig_full[1], c_fifo_trig_full[0] };
       assign c_debug_do[20:17] = { all_fifo_full, all_wfifo_full, all_dfifo_full, all_tfifo_full };
       assign c_debug_do[16:14] = { wfifo_full, dfifo_full, tfifo_full } ;
-      assign t_debug_do[13:11] = { 3'd0 } ;
-      assign c_debug_do[10: 9] = { time_rst, time_en } ;
-      assign c_debug_do[ 8: 3] = { ctrl_t_step, ctrl_t_stop, ctrl_t_run, ctrl_t_updt, ctrl_t_init, ctrl_t_rst_run }  ;
-      assign c_debug_do[ 2: 0] = { time_st[2:0] };
+      assign c_debug_do[13:12] = { 2'd0 } ;
+      assign c_debug_do[11: 9] = { time_rst, core_en, c_core_en } ;
+      assign c_debug_do[ 8: 3] = { ctrl_c_step, ctrl_c_run, ctrl_c_stop, ctrl_c_rst_prev, ctrl_c_rst_stop, ctrl_c_rst_run }  ;
+      assign c_debug_do[ 2: 0] = { core_st[2:0] };
 
       assign c_proc_do[31:29] = {  flag_c0, |port_dt_new, 1'b0 } ;
       assign c_proc_do[28:17] = sreg_status[11:0];
@@ -1306,6 +1331,11 @@ generate
       assign c_proc_do[ 7: 2] = { int_flag_r, axi_flag_r, int_flag_clr, int_flag_set, axi_flag_clr, axi_flag_set } ;
       assign c_proc_do[ 1: 0] = { time_ref_inc, time_ref_set } ;
 
+      assign c_port_do[31:28] = 4'd0;
+      assign c_port_do[27:24] = out_port_data.p_addr[3:0] ;
+      assign c_port_do[23:12] = out_port_data.p_data[11:0];
+      assign c_port_do[11: 0] = out_port_data.p_time[11:0];
+      
       assign c_core_do = core0_ds;
       
    end

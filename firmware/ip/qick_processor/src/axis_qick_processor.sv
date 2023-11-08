@@ -17,7 +17,7 @@ module axis_qick_processor # (
    parameter DUAL_CORE      =  0 , // 0-Single Core  1-Dual core
    parameter IO_CTRL        =  0 , // 0-No IO control 1-Add proc_strat and Proc Stop IN
    parameter DEBUG          =  0 , // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
-   parameter QNET           =  0 , // QNET Interfrace 0-No 1-Yes
+   parameter TNET           =  0 , // QNET Interfrace 0-No 1-Yes
    parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-Yes
    parameter LFSR           =  1 , // LFSR 0-No 1-Yes 
    parameter DIVIDER        =  1 , // DIVIDER 0-No 1-Yes 
