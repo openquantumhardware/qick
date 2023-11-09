@@ -64,8 +64,9 @@ The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed 
 
 If you want to make changes to the firmware, or you just want to look at the design and dig around:
 
-* Install Vivado 2020.2, with a license that is valid for the FPGA you are using (you will have received such a license with your board). Start Vivado.
-* In the Tcl console at the bottom of the screen navigate to this directory, then run `source ./proj_111.tcl` (or whichever of the proj_ scripts matches the board you are using). This will create the firmware project and will end by showing you a block diagram of the firmware.
+* Pick the firmware project you want to build. The projects for the standard images for ZCU111, ZCU216, and RFSoC4x2 (`qick_111.bit`, `qick_216.bit`, `qick_4x2.bit`) are `proj_111.tcl`, `proj_216.tcl`, `proj_4x2.tcl`.
+* Install the correct version of Vivado (the standard projects use 2022.1), with a license that is valid for the FPGA you are using (you will have received such a license with your board). Start Vivado.
+* In the Tcl console at the bottom of the screen navigate to this directory, then run the project .tcl file (e.g. `source ./proj_111.tcl`). This will create the firmware project and will end by showing you a block diagram of the firmware.
 * Now click "Generate Bitstream" in the navigation menu at the left: this will compile the firmware.
 * You need the .bit and .hwh files. These are not easy to find but the `qick/firmware/out` directory has symlinks to their locations.
 
