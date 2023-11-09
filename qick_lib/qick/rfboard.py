@@ -153,6 +153,105 @@ class AxisSignalGenV3Ctrl(SocIp):
     def set_fs(self, fs):
         self.fs = fs
 
+class AxisSignalGenV6Ctrl(SocIp):
+    # Signal Generator V6 Control registers.
+    # FREQ_REG      : 32-bit.
+
+    # PHASE_REG     : 32-bit.
+
+    # ADDR_REG      : 16-bit.
+
+    # GAIN_REG      : 16-bit.
+
+    # NSAMP_REG     : 16-bit.
+
+    # OUTSEL_REG    : 2-bit.
+    # * 0 : product.
+    # * 1 : dds.
+    # * 2 : envelope.
+
+    # MODE_REG      : 1-bit.
+    # * 0 : nsamp.
+    # * 1 : periodic.
+
+    # STDYSEL_REG   : 1-bit.
+    # * 0 : last.
+    # * 1 : zero.
+
+    # PHRST_REG     : 1-bit.
+    # * 0 : don't reset.
+    # * 1 : reset.
+
+    # WE_REG        : 1-bit.
+    # * 0 : disable.
+    # * 1 : enable.
+    bindto = ['user.org:user:axis_signal_gen_v6_ctrl:1.0']
+    REGISTERS = {
+        'freq_reg'      : 0,
+        'phase_reg'     : 1,
+        'addr_reg'      : 2,
+        'gain_reg'      : 3,
+        'nsamp_reg'     : 4,
+        'outsel_reg'    : 5,
+        'mode_reg'      : 6,
+        'stdysel_reg'   : 7,
+        'phrst_reg'     : 8,
+        'we_reg'        : 9}
+
+    def __init__(self, description, **kwargs):
+        super().__init__(description)
+
+        # Default registers.
+        self.we_reg = 0
+
+    def configure(self, fs, gen):
+        # Sampling frequency.
+        self.fs = fs
+
+        # Frequency resolution.
+        self.df = fs/2**gen.B_DDS
+
+        # Generator controlled by this block.
+        self.gen = gen
+
+    def add(self,
+            freq    = 0         ,
+            phase   = 0         ,
+            addr    = 0         ,
+            gain    = 0.99      ,
+            nsamp   = 16*100    ,
+            outsel  = "dds"     ,
+            mode    = "periodic",
+            stdysel = "zero"    ,
+            phrst   = "no"      ,
+            debug   = False     ):
+
+        # Set registers.
+        self.freq_reg       = int(np.round(freq/self.df))
+        self.phase_reg      = phase
+        self.addr_reg       = addr
+        self.gain_reg       = int(gain*self.gen.MAXV)
+        self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
+        self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
+        self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
+        self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
+        self.phase_reg      = {"no": 0, "yes":1}[phrst]
+
+        if debug:
+            print("{}".format(self.__class__.__name__))
+            print(" * freq_reg      : {}".format(self.freq_reg))
+            print(" * phase_reg     : {}".format(self.phase_reg))
+            print(" * addr_reg      : {}".format(self.addr_reg))
+            print(" * gain_reg      : {}".format(self.gain_reg))
+            print(" * nsamp_reg     : {}".format(self.nsamp_reg))
+            print(" * outsel_reg    : {}".format(self.outsel_reg))
+            print(" * mode_reg      : {}".format(self.mode_reg))
+            print(" * stdysel_reg   : {}".format(self.stdysel_reg))
+            print(" * phase_reg     : {}".format(self.phase_reg))
+
+        # Write fifo..
+        self.we_reg = 1
+        self.we_reg = 0
 
 class AxisDdsMrSwitch(SocIp):
     # AXIS DDS MR SWITCH registers.
@@ -376,6 +475,54 @@ class spi(DefaultIP):
         data_r = self.receive()
 
         return data_r
+
+#class gpio(DefaultIP):
+#
+#    bindto = ['xilinx.com:ip:axi_gpio:2.0', 'xilinx.com:ip:axi_gpio']
+#    GPIO_REGLIST = ['GPIO_DATA', 'GPIO_TRI', 'GPIO2_DATA', 'GPIO2_TRI', 'GIER', 'IP_ISR', 'IP_IER']
+#
+#    def __init__(self, description, **kwargs):
+#        super().__init__(description)
+#
+#    def __setattr__(self, a, v):
+#        if a in self.GPIO_REGLIST:
+#            setattr(self.register_map, a, v)
+#        else:
+#            super().__setattr__(a, v)
+#
+#    def __getattr__(self, a):
+#        if a in self.GPIO_REGLIST:
+#            return getattr(self.register_map, a)
+#        else:
+#            return super().__getattribute__(a)
+#
+#    def set(self, bits=[0]):
+#        if (len(bits)>0):
+#            # Read current value.
+#            val_ = self.GPIO_DATA.Channel_1_GPIO_DATA
+#
+#            # Cycle through bits.
+#            for bit in bits:
+#                val_ = val_ | (1 << bit)
+#
+#            # Update hardware.
+#            self.GPIO_DATA.Channel_1_GPIO_DATA = val_
+#
+#    def set_value(self, value=0):
+#        # Update hardware.
+#        self.GPIO_DATA.Channel_1_GPIO_DATA = value
+#
+#    def reset(self, bits=[0]):
+#        if (len(bits)>0):
+#            # Read current value.
+#            val_ = self.GPIO_DATA.Channel_1_GPIO_DATA
+#
+#            # Cycle through bits.
+#            for bit in bits:
+#                val_ = val_ & ~(1 << bit)
+#
+#            # Update hardware.
+#            self.GPIO_DATA.Channel_1_GPIO_DATA = val_
 
 # Step Attenuator PE43705.
 # Range 0-31.75 dB.
@@ -1227,23 +1374,53 @@ class adc_dc_ch():
 # Class to describe the DAC channel chain.
 class dac_ch():
     # Constructor.
-    def __init__(self, ch, switches, attn_spi, version=2):
+    def __init__(self, ch=0, switches=None, attn_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
         self.ch = ch
 
         # RF board version.
         self.version = version
 
-        # RF input and power switches.
-        self.switches = switches
+        # FPGA Board.
+        self.fpga_board = fpga_board
 
-        # Attenuators.
-        self.attn = []
-        self.attn.append(attenuator(attn_spi, ch, le=[1]))
-        self.attn.append(attenuator(attn_spi, ch, le=[2]))
+        # ZCU111 board.
+        if self.fpga_board == 'ZCU111':
+            # RF input and power switches.
+            self.switches = switches
 
-        # Initialize in off state.
-        self.disable()
+            # Attenuators.
+            self.attn = []
+            self.attn.append(attenuator(attn_spi, ch, le=[1]))
+            self.attn.append(attenuator(attn_spi, ch, le=[2]))
+
+            # Initialize in off state.
+            self.disable()
+        
+        # ZCU216 board.
+        elif self.fpga_board == 'ZCU216':
+            if version == 1:
+                # Board selection.
+                self.rfboard_ch = rfboard_ch
+                self.brd_sel = rfboard_sel
+
+                # Channels are numbered from 0-15. Daughter cards have 4 channels each, with nubers going from 0-3.
+                self.local_ch = ch % 4
+
+                if debug:
+                    print("{}: DAC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+
+                # Attenuators. There are 2 per DAC Channel.
+                self.attn = []
+                for i in range(2):
+                    addr = 2*self.local_ch+i
+                    self.attn.append(attenuator(attn_spi, ch=addr, nch=1, le=[0]))
+                    if debug:
+                        print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
+            else:
+                raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
+        else:
+            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
 
     # Switch selection.
     def rfsw_sel(self, sel="RF"):
@@ -1277,12 +1454,23 @@ class dac_ch():
                   (self.__class__.__name__, sel))
 
     # Set attenuator.
-    def set_attn_db(self, attn=0, db=0):
+    def set_attn_db(self, attn=0, db=0, debug=False):
+        # Enable daughter card.
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # Board selection logic.    
+            self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set attenuator.        
         if attn < len(self.attn):
             self.attn[attn].set_att(db)
         else:
             print("%s: attenuator %d not in chain." %
                   (self.__class__.__name__, attn))
+
+        # Disable daughter card.
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # Board selection logic.    
+            self.brd_sel.disable()
 
     def set_rf(self, att1, att2):
         self.rfsw_sel("RF")
@@ -1297,20 +1485,48 @@ class dac_ch():
         self.set_attn_db(attn=0, db=31.75)
         self.set_attn_db(attn=1, db=31.75)
 
+class BoardSelection:
+    """
+    This class is used to enable one daughter card on the RF Board for the ZCU216, V1.
+    """
 
+    def __init__(self, gpio_ip):
+        self.gpio = gpio_ip.channel1
+
+    def enable(self, board_id = 0, debug=False):
+        # There are 8 boards: 3 bits for selection, 1 bit for active/inactive.
+        # Bits:
+        # |-----|-------|-------|-------|
+        # | B3  | B2    | B1    | B0    |
+        # |-----|-------|-------|-------|
+        # | E/D | SEL 2 | SEL 1 | SEL 0 |
+        # |-----|-------|-------|-------|
+        #
+        # E/D:
+        # * 0 : disable.
+        # * 1 : enable (selected board).
+        val_ = (1 << 3) + board_id
+        self.gpio.write(val_, 0xf)
+
+        if debug:
+            print("{}: setting vaue = 0x{:01X}".format(self.__class__.__name__,val_))
+
+    def disable(self):
+        # E/D bit to 0.
+        self.gpio.write(0, 0xf)
 
 class RFQickSoc(QickSoc):
     """
     Overrides the __init__ method of QickSoc in order to add the drivers for the preproduction (V1) version of the RF board.
     Otherwise supports all the QickSoc functionality.
     """
-    def __init__(self, bitfile, no_tproc=False, **kwargs):
+    def __init__(self, bitfile, clk_output=True, no_tproc=False, **kwargs):
         """
         A bitfile must always be provided, since the default bitstream will not work with the RF board.
         By default, re-initialize the clocks every time.
         This ensures that the LO output to the RF board is enabled.
         """
-        super().__init__(bitfile=bitfile, clk_output=True, no_tproc=no_tproc, **kwargs)
+        super().__init__(bitfile=bitfile, clk_output=clk_output, no_tproc=no_tproc, **kwargs)
 
         self.rfb_config(no_tproc)
 
@@ -1621,4 +1837,38 @@ class RFQickSocV2(RFQickSoc):
         if ro_ch is not None:
             return self.readouts[ro_ch].rfb.lo.freq
         raise RuntimeError("must specify gen_ch or ro_ch")
+
+class RFQickSoc216V1(RFQickSoc):
+
+    def rfb_config(self, no_tproc):
+        """
+        Configure the GPIO/SPI interfaces to the RF board.
+        """
+
+        # GPIO for Board Selection.
+        if 'brd_sel_gpio' in self.ip_dict.keys():
+            self.board_sel = BoardSelection(self.brd_sel_gpio)
+        else:
+            raise RuntimeError("%s: brd_sel_gpio for board selection logic not found." % self.__class__.__name__) 
+
+        # SPI used for Attenuators.
+        if 'attn_spi' in self.ip_dict.keys():
+            self.attn_spi.config(lsb="lsb")
+        else:
+            raise RuntimeError("%s: attn_spi for attenuator control not found." % self.__class__.__name__) 
+
+        # SPI used for DAC BIAS.
+        #self.dac_bias_spi.config(lsb="msb", cpha="invert")
+
+        # DAC BIAS.
+        #self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+
+        # ADC channels.
+        #self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+
+        # DAC channels.
+        self.dacs_ = []
+        for rf_board in range(4):
+            for ch in range(4):
+                self.dacs_.append(dac_ch(ch=4*rf_board+ch, attn_spi=self.attn_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel, debug=True))
 
