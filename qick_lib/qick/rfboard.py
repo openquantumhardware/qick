@@ -630,8 +630,6 @@ class MCP23S08:
         return byte
 
 # LO Chip ADF4372.
-
-
 class ADF4372:
     # Reference input.
     f_REF_in = 122.88
@@ -796,8 +794,6 @@ class ADF4372:
         return regs
 
 # BIAS DAC chip AD5781.
-
-
 class AD5781:
     # Commands.
     cmd_wr = 0x0
@@ -880,6 +876,68 @@ class AD5781:
 
             return int(Df)
 
+# ADMV8818 Filter Chip.
+class ADMV8818:
+    # Commands.
+    cmd_wr = 0x00
+    cmd_rd = 0x01
+
+    # Registers.
+    REGS = {'ADI_SPI_CONFIG_A'  : 0x000,
+            'ADI_SPI_CONFIG_B'  : 0x001,
+            'CHIPTYPE'          : 0x003,
+            'PRODUCT_ID_L'      : 0x004,
+            'PRODUCT_ID_H'      : 0x005,
+            'SOFT_REG': 0x04}
+
+    def cmd_wr(self, reg="CHIPTYPE", value=0, debug=False):
+        if reg in self.REGS.keys():
+            byte = []        
+
+            # Register addresss.
+            addr = self.REGS[reg]
+
+            # Upper 7 bits.
+            byte.append((addr >> 8) & 0x7f)
+
+            # Lower 8 bits.
+            byte.append(addr & 0xff)
+
+            # Data.
+            byte.append(value & 0xff)
+
+            if debug:
+                for b in byte:
+                    print("{}: 0x{:02X}".format(self.__class__.__name__, b))
+        else:
+            raise RuntimeError("%s: register %s not found." %(self.__class__.__name__, reg))
+
+        return byte
+
+    def cmd_rd(self, reg="CHIPTYPE", debug=False):
+        if reg in self.REGS.keys():
+            byte = []        
+
+            # Register addresss.
+            addr = self.REGS[reg]
+
+            # MSB=1 for read, Upper 7 bits of address.
+            byte.append(0x80 | ((addr >> 8) & 0x7f))
+
+            # Lower 8 bits.
+            byte.append(addr & 0xff)
+
+            # Dummy.
+            byte.append(0)
+
+            if debug:
+                for b in byte:
+                    print("{}: 0x{:02X}".format(self.__class__.__name__, b))
+        else:
+            raise RuntimeError("%s: register %s not found." %(self.__class__.__name__, reg))
+
+        return byte
+
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
 class attenuator:
 
@@ -906,8 +964,48 @@ class attenuator:
         # Write value using spi.
         self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
 
-# Power, Switch and Fan.
+# Filter class: This class instantiates spi and ADMV8818 to simplify access to the filter chip.
+class prog_filter:
 
+    # Constructor.
+    def __init__(self, spi_ip, ch=0, cs_t=""):
+        # ADMV8818.
+        self.ic = ADMV8818()
+
+        # SPI.
+        self.spi = spi_ip
+
+        # Lath-enable.
+        self.ch_en = ch
+        self.cs_t = cs_t
+
+        # All CS to high value.
+        self.spi.SPI_SSR = 0xff
+
+    def reg_wr(self, reg="CHIPTYPE", value=0, debug=False):
+        if debug:
+            print("{}: writing register {}".format(self.__class__.__name__, reg))
+
+        # Byte array.
+        byte = self.ic.cmd_wr(reg=reg, value=value, debug=debug)
+
+        # Execute write.
+        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+
+    def reg_rd(self, reg="CHIPTYPE", debug=False):
+        if debug:
+            print("{}: reading register {}".format(self.__class__.__name__, reg))
+
+        # Byte array.
+        byte = self.ic.cmd_rd(reg=reg, debug=debug)
+
+        # Send/receive.
+        ret = int.from_bytes(self.spi.send_receive_m(byte, self.ch_en, self.cs_t), byteorder="big")
+
+        # Execute write.
+        return ret & 0xff
+
+# Power, Switch and Fan.
 class SwitchControl:
     # Constructor.
     def __init__(self, spi_ip):
@@ -1304,23 +1402,109 @@ class gain:
 # Class to describe the ADC-RF channel chain.
 class adc_rf_ch():
     # Constructor.
-    def __init__(self, ch, switches, attn_spi):
+    def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
         self.ch = ch
 
-        # Power switches.
-        self.switches = switches
+        # RF board version.
+        self.version = version
 
-        # Attenuator.
-        self.attn = attenuator(attn_spi, ch, le=[0])
+        # FPGA Board.
+        self.fpga_board = fpga_board
 
-        # Default to 30 dB attenuation.
-        self.set_attn_db(30)
+        # ZCU111 board.
+        if self.fpga_board == 'ZCU111':
+
+            # Power switches.
+            self.switches = switches
+
+            # Attenuator.
+            self.attn = attenuator(attn_spi, ch, le=[0])
+
+            # Default to 30 dB attenuation.
+            self.set_attn_db(30)
+
+        # ZCU216 board.
+        elif self.fpga_board == 'ZCU216':
+            if version == 1:
+                # Board selection.
+                self.rfboard_ch = rfboard_ch
+                self.brd_sel = rfboard_sel
+
+                # Channels are numbered from 0-7. Daughter cards have 2 channels each, with nubers going from 0-1.
+                self.local_ch = ch % 2
+
+                if debug:
+                    print("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+
+                # Attenuators. There is 1 per ADC Channel.
+                self.attn = []
+                self.attn.append(attenuator(attn_spi, ch=self.local_ch, nch=1, le=[0]))
+                if debug:
+                    print("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
+
+                # Filters. There is 1 per ADC Channel.
+                self.filter = prog_filter(filter_spi, ch=self.local_ch)
+                if debug:
+                    print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+
+                # Initialize filter.
+                self.init_filter()
+
+            else:
+                raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
+        else:
+            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
 
     # Set attenuator.
-    def set_attn_db(self, db=0):
-        self.attn.set_att(db)
-        self.enable()
+    def set_attn_db(self, db=0, debug=False):
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # Enable this daughter card.
+            self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+            # Set attenuator.
+            self.attn[0].set_att(db)
+
+            # Disable all daughter cards.
+            self.brd_sel.disable()
+        else:
+            self.attn.set_att(db)
+            self.enable()
+
+    def init_filter(self,debug=False):
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Program ADI_SPI_CONFIG_A register to 0x3C.
+        self.filter.reg_wr(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+
+    def set_filter(self, debug=False):
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set filter.
+        self.filter.reg_wr(debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+
+    def read_filter(self, reg="", debug=False):
+        if debug:
+            print("{}: reading register {}".format(self.__class__.__name__, reg))
+
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set filter.
+        ret = self.filter.reg_rd(reg=reg, debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+        
+        return ret 
 
     def enable(self):
         # Turn on 5V power.
@@ -1374,7 +1558,7 @@ class adc_dc_ch():
 # Class to describe the DAC channel chain.
 class dac_ch():
     # Constructor.
-    def __init__(self, ch=0, switches=None, attn_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
+    def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
         self.ch = ch
 
@@ -1417,6 +1601,15 @@ class dac_ch():
                     self.attn.append(attenuator(attn_spi, ch=addr, nch=1, le=[0]))
                     if debug:
                         print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
+
+                # Filters. There is 1 per ADC Channel.
+                self.filter = prog_filter(filter_spi, ch=self.local_ch)
+                if debug:
+                    print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+
+                # Initialize filter.
+                self.init_filter()
+
             else:
                 raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
         else:
@@ -1471,6 +1664,41 @@ class dac_ch():
         if self.fpga_board == 'ZCU216' and self.version == 1:
             # Board selection logic.    
             self.brd_sel.disable()
+
+    def init_filter(self,debug=False):
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Program ADI_SPI_CONFIG_A register to 0x3C.
+        self.filter.reg_wr(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+
+    def set_filter(self, debug=False):
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set filter.
+        self.filter.reg_wr(debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+
+    def read_filter(self, reg="", debug=False):
+        if debug:
+            print("{}: reading register {}".format(self.__class__.__name__, reg))
+
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set filter.
+        ret = self.filter.reg_rd(reg=reg, debug=debug)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
+        
+        return ret 
 
     def set_rf(self, att1, att2):
         self.rfsw_sel("RF")
@@ -1857,18 +2085,31 @@ class RFQickSoc216V1(RFQickSoc):
         else:
             raise RuntimeError("%s: attn_spi for attenuator control not found." % self.__class__.__name__) 
 
+        # SPI used for Filter.
+        if 'filter_spi' in self.ip_dict.keys():
+            self.filter_spi.config(lsb="msb")
+        else:
+            raise RuntimeError("%s: filter_spi for filter control not found." % self.__class__.__name__) 
+
         # SPI used for DAC BIAS.
         #self.dac_bias_spi.config(lsb="msb", cpha="invert")
 
         # DAC BIAS.
         #self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
-        # ADC channels.
-        #self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+        # ADC channels. ADC's daughter cards are the upper 4.
+        self.adcs_ = []
+        NRF = 4 # Number of ADC daughter cards.
+        NCH = 2 # ADC channels per daughter card.
+        for rf_board in range(NRF):
+            for ch in range(NCH):
+                self.adcs_.append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
-        # DAC channels.
+        # DAC channels. DAC's daughter cards are the lower 4.
         self.dacs_ = []
-        for rf_board in range(4):
-            for ch in range(4):
-                self.dacs_.append(dac_ch(ch=4*rf_board+ch, attn_spi=self.attn_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel, debug=True))
+        NRF = 4 # Number of DAC daughter cards.
+        NCH = 4 # DAC channels per daughter card.
+        for rf_board in range(NRF):
+            for ch in range(NCH):
+                self.dacs_.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel, debug=True))
 
