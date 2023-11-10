@@ -8,8 +8,8 @@ module qproc_axi_reg(
    input wire            c_clk_i      ,    
    input wire            c_rst_ni     ,
    TYPE_IF_AXI_REG.slave       IF_s_axireg  ,
-   output wire  [31:0]   TPROC_CTRL   ,    
-   output reg   [31:0]   TPROC_CFG    ,
+   output wire  [15:0]   TPROC_CTRL   ,    
+   output reg   [15:0]   TPROC_CFG    ,
    output reg   [15:0]   MEM_ADDR     ,    
    output reg   [15:0]   MEM_LEN      ,    
    output reg   [31:0]   MEM_DT_I     ,    
@@ -26,7 +26,7 @@ module qproc_axi_reg(
    );
 
 
-wire [31:0] PS_TPROC_CTRL, PS_TPROC_CFG;
+wire [15:0] PS_TPROC_CTRL, PS_TPROC_CFG;
 
 // AXI Slave.
 axi_slv_qproc QPROC_xREG (
@@ -68,8 +68,8 @@ axi_slv_qproc QPROC_xREG (
    .TPROC_DEBUG   ( TPROC_DEBUG            ) );
 
  
-reg [31:0] tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
-reg [31:0] tproc_cfg_rcd;
+reg [15:0] tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
+reg [15:0] tproc_cfg_rcd;
 
 // From PS_CLK to C_CLK
 always_ff @(posedge c_clk_i) 

@@ -150,6 +150,7 @@ data_mem_ctrl #(
    ) data_mem_ctrl_i (
       .aclk_i        ( ps_clk_i      ) ,
       .aresetn_i     ( ps_rst_ni   ) ,
+      .sel_o         (  ) ,
       .ar_exec_o     ( ar_exec            ) ,  
       .ar_exec_ack_i ( ar_end             ) ,
       .aw_exec_o     ( aw_exec            ) ,  
@@ -181,16 +182,17 @@ axis_read #(
 ) axis_read_i (
    .aclk_i           ( ps_clk_i      ) ,
    .aresetn_i        ( ps_rst_ni   ) ,
-   .m_axis_tdata_o   ( m_axis_tdata_o     ) ,
-   .m_axis_tlast_o   ( m_axis_tlast_o     ) ,
-   .m_axis_tvalid_o  ( m_axis_tvalid_o    ) ,
-   .m_axis_tready_i  ( m_axis_tready_i    ) ,
-   .mem_do_i         ( mem_r_dt           ) ,
-   .mem_addr_o       ( mem_r_addr_axis    ) ,
+   .addr_i           ( MEM_ADDR           ) ,
+   .len_i            ( MEM_LEN            ) ,
    .exec_i           ( ar_exec            ) ,
    .exec_ack_o       ( ar_end             ) ,
-   .addr_i           ( MEM_ADDR           ) ,
-   .len_i            ( MEM_LEN            ) );
+   .mem_we_o         (  ) ,
+   .mem_addr_o       ( mem_r_addr_axis    ) ,
+   .mem_do_i         ( mem_r_dt           ) ,
+   .m_axis_tready_i  ( m_axis_tready_i    ) ,
+   .m_axis_tdata_o   ( m_axis_tdata_o     ) ,
+   .m_axis_tlast_o   ( m_axis_tlast_o     ) ,
+   .m_axis_tvalid_o  ( m_axis_tvalid_o    ) );
 
 axis_write #(
    .N( 16 ),

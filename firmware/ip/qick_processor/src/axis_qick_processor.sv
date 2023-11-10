@@ -499,7 +499,7 @@ generate
       assign c_port_do     = c_port_ds     ;
       assign c_core_do     = c_core_ds     ;
    end else begin
-      assign t_time_usr_o  = 0;
+      assign t_time_usr_do  = 0;
       assign t_debug_do    = 0;
       assign t_fifo_do     = 0;
       assign c_debug_do    = 0;

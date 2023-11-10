@@ -25,6 +25,10 @@ module qproc_time_ctrl (
 ///////////////////////////////////////////////////////////////////////////////
 reg [47:0] time_abs;
 
+wire[47:0] time_update_dt;
+assign time_update_dt = { { 16{updt_dt_i[31]} } ,updt_dt_i}; //Sign Extend updt_dt_i
+
+
 enum {ST_IDLE, ST_RESET, ST_INIT, ST_LOAD_OFFSET, ST_INCREMENT, ST_UPDATE } ctrl_time_st, ctrl_time_st_nxt;
 
 ////////// Sequential Logic
@@ -88,8 +92,6 @@ always_comb begin : CTRL_ST_AND_OUTPUT_DECODE
    endcase 
 end
 
-wire[47:0] time_update_dt;
-assign time_update_dt = { { 16{updt_dt_i[31]} } ,updt_dt_i}; //Sign Extend updt_dt_i
 
 // Time Operation
    ADDSUB_MACRO #(

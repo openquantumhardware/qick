@@ -460,7 +460,7 @@ begin
 	-- 4 : TAVG_LOW_REG	(r).
 	-- 5 : TAVG_HIGH_REG(r).
 
-	process (slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7, slv_reg8, slv_reg9, slv_reg10, slv_reg11, slv_reg12, slv_reg13, slv_reg14, slv_reg15, axi_araddr, aresetn, slv_reg_rden)
+	process (slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7, slv_reg8, MEM_DT_O, TPROC_R_DT1, TPROC_R_DT2, TIME_USR, TPROC_STATUS, TPROC_DEBUG, axi_araddr, aresetn, slv_reg_rden)
 	variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
 	begin
 	    -- Address decoding for reading registers
@@ -534,8 +534,3 @@ READ_SEL          <= slv_reg8(7 downto 0);
 
 
 end rtl;
-
-
-
-
-
