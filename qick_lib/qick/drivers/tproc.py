@@ -347,7 +347,6 @@ class Axis_QICK_Proc(SocIp):
         'tproc_w_dt2'   :6,
         'core_cfg'      :7,
         'read_sel'      :8,
-
         'mem_dt_o'      :10,
         'tproc_r_dt1'   :11 ,
         'tproc_r_dt2'   :12 ,
@@ -661,7 +660,7 @@ class Axis_QICK_Proc(SocIp):
 
     def get_status(self):
         core_st = ['C_RST_STOP', 'C_RST_STOP_WAIT', 'C_RST_RUN', 'C_RST_RUN_WAIT', 'C_STOP', 'C_RUN', 'C_STEP', 'C_END_STEP']
-        time_st = ['T_RST', 'T_UPDT',  'T_INIT', 'T_RUN', 'T_STOP', 'T_STEP']
+        time_st = ['T_RST_STOP','T_RST_RUN', 'T_UPDT',  'T_INIT', 'T_RUN', 'T_STOP', 'T_STEP']
         status_num = self.tproc_status
         status_bin = '{:032b}'.format(status_num)
         print('---------------------------------------------')
@@ -669,41 +668,105 @@ class Axis_QICK_Proc(SocIp):
         c_st = int(status_bin[29:32], 2)
         t_st = int(status_bin[25:28], 2)
         print('--- PROCESSOR -- ')
-        print( 'CORE_ST         : ' + status_bin[29:32] +' - '+ core_st[c_st])
-        print( 'CORE_EN         : ' + status_bin[28] )
-        print( 'TIME_ST         : ' + status_bin[25:28] +' - '+ time_st[t_st])
-        print( 'TIME_EN         : ' + status_bin[24] )
-        print( 'Flag Internal   : ' + status_bin[23] )
-        print( 'Flag External   : ' + status_bin[22] )
-        print( 'Flag C0         : ' + status_bin[20] )
-        print('--- FIFOs  -- ')
-        print( 'all_TFIFO_EMPTY : ' + status_bin[19] )
-        print( 'all_DFIFO_EMPTY : ' + status_bin[18] )
-        print( 'all_WFIFO_EMPTY : ' + status_bin[17] )
-        print( 'ALL_FIFO_EMPTY  : ' + status_bin[16] )
-        print( 'all_TFIFO_FULL  : ' + status_bin[15] )
-        print( 'all_DFIFO_FULL  : ' + status_bin[14] )
-        print( 'all_WFIFO_FULL  : ' + status_bin[13] )
-        print( 'ALL_FIFO_FULL   : ' + status_bin[12] )
-        print( 'some_TFIFO_FULL : ' + status_bin[11] )
-        print( 'some_DFIFO_FULL : ' + status_bin[10] )
-        print( 'some_WFIFO_FULL : ' + status_bin[9] )
-        print( 'FIFO_OK         : ' + status_bin[8] )
-        print('--- MEMORY -- ')
-        print( 'AW_EXEC         : ' + status_bin[1] )
-        print( 'AR_EXEC         : ' + status_bin[0] )
+        print( 'Core_ST         : ' + status_bin[29:32] +' - '+ core_st[c_st])
+        print( 'Core_EN         : ' + status_bin[28] )
+        print( 'Time_ST         : ' + status_bin[25:28] +' - '+ time_st[t_st])
+        print( 'Time_EN         : ' + status_bin[24] )
+        print( '----------------')
+        print( 'Core_Src_dt     : ' + status_bin[21:24] )
+        print( '----------------')
+        print( 'Core Src  Flag  : ' + status_bin[18:21] )
+        print( '--    C0  Flag  : ' + status_bin[11] )
+        print( '.Internal Flag  : ' + status_bin[17] )
+        print( '.Axi      Flag  : ' + status_bin[16] )
+        print( '.External Flag  : ' + status_bin[15] )
+        print( '.Port New Flag  : ' + status_bin[14] )
+        print( '.Qnet     Flag  : ' + status_bin[13] )
+        print( '.Periph   Flag  : ' + status_bin[12] )
+        print( '----------------')
+        print( 'arith_dt_new    : ' + status_bin[10] )
+        print( 'div_dt_new      : ' + status_bin[9] )
+        print( 'qnet_dt_new     : ' + status_bin[9] )
+        print( 'periph_dt_new   : ' + status_bin[7] )
+        print( 'arith_rdy       : ' + status_bin[6] )
+        print( 'div_rdy         : ' + status_bin[5] )
+        print( 'qnet_rdy        : ' + status_bin[4] )
+        print( 'periph_rdy      : ' + status_bin[3] )
+
+            
     def get_debug(self):
+        self.read_sel  = 3
+        div_q = self.tproc_r_dt1
+        div_r = self.tproc_r_dt2
+        self.read_sel  = 4
+        arith_l = self.tproc_r_dt1
+        arith_h = self.tproc_r_dt2
+        self.read_sel  = 5
+        qnet_1 = self.tproc_r_dt1
+        qnet_2 = self.tproc_r_dt2
+        self.read_sel  = 6
+        periph_1 = self.tproc_r_dt1
+        periph_2 = self.tproc_r_dt2
+        self.read_sel  = 7
+        port_1 = self.tproc_r_dt1
+        port_2 = self.tproc_r_dt2
+
         debug_num = self.tproc_debug
         debug_bin = '{:032b}'.format(debug_num)
         print('---------------------------------------------')
         print('--- AXI TPROC Register DEBUG')
-        print( 'DFIFO_0_TIME        : ' + debug_bin[28:32] + ' - ' +str(int(debug_bin[24:32], 2)))
-        print( 'DFIFO_0_DATA        : ' + debug_bin[24:28] + ' - ' +str(int(debug_bin[16:24], 2)))
-        print( 'REF_TIME            : ' + debug_bin[16:24] + ' - ' +str(int(debug_bin[16:24], 2)))
-        print( 'EXT_MEM_W_DT_O[7:0] : ' + debug_bin[8 :16] + ' - ' +str(int(debug_bin[8:16], 2)))
-        print( 'EXT_MEM_ADDR[7:0]   : ' + debug_bin[0 :8 ] + ' - ' +str(int(debug_bin[0:8], 2)))
+        self.read_sel  = 0
+        debug_num = self.tproc_debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print('--- FIFOs  -- ')
+        print( 'all_TFIFO_EMPTY : ' + debug_bin[31] )
+        print( 'all_DFIFO_EMPTY : ' + debug_bin[30] )
+        print( 'all_WFIFO_EMPTY : ' + debug_bin[29] )
+        print( 'ALL_FIFO_EMPTY  : ' + debug_bin[28] )
+        print( 'all_TFIFO_FULL  : ' + debug_bin[27] )
+        print( 'all_DFIFO_FULL  : ' + debug_bin[26] )
+        print( 'all_WFIFO_FULL  : ' + debug_bin[25] )
+        print( 'ALL_FIFO_FULL   : ' + debug_bin[24] )
+        print( 'some_TFIFO_FULL : ' + debug_bin[23] )
+        print( 'some_DFIFO_FULL : ' + debug_bin[22] )
+        print( 'some_WFIFO_FULL : ' + debug_bin[21] )
+        print( 'FIFO_OK         : ' + debug_bin[20] )
+        print( 'DFIFO[0].time   : ' + debug_bin[4:20] + ' - ' +str(int(debug_bin[4:20], 2)))
+        print( 'DFIFO[0].dt     : ' + debug_bin[0:4]  + ' - ' +str(int(debug_bin[0:4], 2)))
+        self.read_sel  = 1
+        debug_num = self.tproc_debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print('--- MEMORY -- ')
+        print( 'EXT_MEM_W_DT_O[7:0] : ' + debug_bin[24:31] + ' - ' +str(int(debug_bin[24:31], 2)))
+        print( 'EXT_MEM_ADDR[7:0]   : ' + debug_bin[16:24] + ' - ' +str(int(debug_bin[16:24], 2)))
+        print( 'AW_EXEC         : ' + debug_bin[15] )
+        print( 'AR_EXEC         : ' + debug_bin[14] )
+        print( 'mem_sel         : ' + debug_bin[12:14] )
+        print( 'mem_source      : ' + debug_bin[11] )
+        print( 'core_sel        : ' + debug_bin[9:11] )
+        print( 'mem_op          : ' + debug_bin[8] )
+        self.read_sel  = 2
+        debug_num = self.tproc_debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print('--- TIME -- ')
+        print( 'time_reft[31:0] : ' +str(int(debug_bin, 2)) )
+        print( 'time_usr        : ' +str(self.time_usr) )
+        self.read_sel  = 3
+        debug_num = self.tproc_debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print('--- PORT -- ')
+        print( 'in_port_dt_r[0] : ' +str(int(debug_bin[8:32], 2)))
+        print( 'port_dt_new[2:0]: ' + debug_bin[5:8] )
+        print( 'TPORT[0]        : ' + debug_bin[4] )
+        print( 'DPORT[0][3:0]   : ' + debug_bin[0:4] )
+        print( 'PORT     : 1=' + str(port_1) +' 2='+  str(port_2))
+        print('--- PERIPH -- ')
+        print( 'DIV        : Q=' + str(div_q)    +' R='+  str(div_r))
+        print( 'ARITH      : H=' + str(arith_h)  +' L='+  str(arith_l))
+        print( 'QNET       : 1=' + str(qnet_1)   +' 2='+  str(qnet_2))
+        print( 'PERIPH     : 1=' + str(periph_1) +' 2='+  str(periph_2))
 
-
+        
 class Axis_QICK_Net(SocIp):
     """
     Axis_QICK_Proc class
