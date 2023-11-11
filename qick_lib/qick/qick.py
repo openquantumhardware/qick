@@ -820,8 +820,8 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 1:
             self.tproc.start()
         elif self.TPROC_VERSION == 2:
-            self.tproc.proc_stop()
-            self.tproc.proc_start()
+            self.tproc.stop()
+            self.tproc.start()
 
     def set_tproc_counter(self, addr, val):
         """
