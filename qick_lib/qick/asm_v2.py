@@ -99,7 +99,7 @@ class Label(Macro):
 class End(Macro):
     def expand(self, prog):
         return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
-        #prog.add_instruction({'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}', 'UF':'0'})
+        #prog.add_instruction({'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'})
         #prog.add_instruction({'CMD':'JUMP', 'ADDR':None})
 
 class Wait(Macro):
@@ -465,7 +465,7 @@ class QickProgramV2(AbsQickProgram):
     def config_all(self, soc, load_pulses=True):
         # compile() first, because envelopes might be declared in a make_program() inside expand_macros()
         binprog = self.compile()
-        soc.tproc.proc_stop()
+        soc.tproc.stop()
         super().config_all(soc, load_pulses=load_pulses)
         soc.load_bin_program(binprog)
 
@@ -525,7 +525,7 @@ class QickProgramV2(AbsQickProgram):
 
     def end(self):
         self.macro_list.append(End())
-        #self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}', 'UF':'0'})
+        #self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}'})
 
     def wait(self, time):
         self.macro_list.append(Wait(time=time))
@@ -539,13 +539,13 @@ class QickProgramV2(AbsQickProgram):
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val), 'UF':'0'})
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val)})
         #self.macro_list.append(SetReg(reg=reg, val=val))
 
     def inc_ext_counter(self, addr=1, val=1):
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val), 'UF':'0'})
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val)})
         #self.macro_list.append(IncReg(reg=reg, val=val))
     
     # registers and control
@@ -588,7 +588,7 @@ class QickProgramV2(AbsQickProgram):
         self.loop_list.append(loop)
         self.loop_stack.append(loop)
         # initialize the loop counter to zero and set the loop label
-        self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n), 'UF':'0'})
+        self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n)})
         self.add_label(name.upper())
     
     def close_loop(self):
@@ -606,7 +606,7 @@ class QickProgramV2(AbsQickProgram):
 
         # increment and test the loop counter
         self.add_instruction({'CMD':'REG_WR', 'DST':f'r{reg.addr}', 'SRC':'op', 'OP':f'r{reg.addr}-#1', 'UF':'1'})
-        self.add_instruction({'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ', 'UF':'0'})
+        self.add_instruction({'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'})
 #         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
 
         # check for sweeps - if we swept a parameter, we should restore it to its original value
@@ -645,10 +645,10 @@ class QickProgramV2(AbsQickProgram):
                 self.set_timestamp(int(t + pulse_length), gen_ch=ch)
         
         tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t), 'UF':'0'})
+        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t)})
         for wavename in pulse['wavenames']:
             idx = self.wave2idx[wavename]
-            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx), 'UF':'0'})
+            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
 
     def load_wave(self, name):
         addr = self.wave2idx[name]
@@ -694,12 +694,12 @@ class QickProgramV2(AbsQickProgram):
                 trigset.add(portnum)
 
         if outdict:
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg), 'UF':'0'})
+            self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg)})
             for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out), 'UF':'0'})
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width), 'UF':'0'})
+                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)})
+            self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width)})
             for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0', 'UF':'0'})
+                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'})
         if trigset:
             for outport in trigset:
                 self.add_instruction({'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(treg)})
