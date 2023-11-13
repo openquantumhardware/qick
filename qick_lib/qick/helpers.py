@@ -7,6 +7,32 @@ import json
 import base64
 from collections import OrderedDict
 
+def to_int(val, scale, quantize=1, parname=None):
+    """Convert a parameter value from user units to ASM units.
+    Nromally this means converting from float to int.
+    For the v2 tProcessor this can also convert QickSweep to QickSweepRaw.
+
+    Parameters
+    ----------
+    val : float or QickSweep
+        parameter value or sweep range
+    scale : float
+        conversion factor
+    quantize : int
+        rounding step for ASM value
+    parname : str
+        parameter type - only for sweeps
+
+    Returns
+    -------
+    int or QickSweepRaw
+        ASM value
+    """
+    if hasattr(val, 'to_int'):
+        return val.to_int(scale, parname=parname, quantize=quantize)
+    else:
+        return int(quantize * np.round(val*scale/quantize))
+
 def cosine(length=100, maxv=30000):
     """
     Create a numpy array containing a cosine shaped envelope function

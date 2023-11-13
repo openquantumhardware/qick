@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 #from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram
+from .helpers import to_int
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,10 @@ class QickSweep(NamedTuple):
     start: float
     end: float
     loop: str
+    def to_int(self, scale, parname, quantize=1):
+        swpstart = to_int(self.start, scale, quantize=quantize)
+        swprange = to_int(self.end-self.start, scale, quantize=quantize)
+        return QickSweepRaw(par=parname, start=swpstart, range=swprange, loop=self.loop, quantize=quantize)
 
 class QickSweepRaw(NamedTuple):
     par: str
@@ -299,6 +304,9 @@ class FullSpeedGenManager(AbsGenManager):
         if isinstance(gainreg, QickSweepRaw):
             sweeps.append(gainreg)
             gainreg = gainreg.start
+        if isinstance(phasereg, QickSweepRaw):
+            sweeps.append(phasereg)
+            phasereg = phasereg.start
         if lenreg >= 2**16 or lenreg < 3:
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
@@ -332,22 +340,11 @@ class FullSpeedGenManager(AbsGenManager):
         w = {k:par.get(k) for k in ['phrst', 'stdysel']}
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
-        if isinstance(par['gain'], QickSweep):
-            if par['style']=='flat_top':
-                # since the flat segment is played at half gain, the ramps should have even gain
-                gainstart = int(2*np.round(par['gain'].start*self.gencfg['maxv']*self.gencfg['maxv_scale']/2))
-                gainrange = int(2*np.round((par['gain'].end-par['gain'].start)*self.gencfg['maxv']*self.gencfg['maxv_scale']/2))
-                w['gainreg'] = QickSweepRaw('gain', gainstart, gainrange, par['gain'].loop, 2)
-            else:
-                gainstart = int(np.round(par['gain'].start*self.gencfg['maxv']*self.gencfg['maxv_scale']))
-                gainrange = int(np.round((par['gain'].end-par['gain'].start)*self.gencfg['maxv']*self.gencfg['maxv_scale']))
-                w['gainreg'] = QickSweepRaw('gain', gainstart, gainrange, par['gain'].loop)
+        if par['style']=='flat_top':
+            # since the flat segment is played at half gain, the ramps should have even gain
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2)
         else:
-            if par['style']=='flat_top':
-                # since the flat segment is played at half gain, the ramps should have even gain
-                w['gainreg'] = int(2*np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']/2))
-            else:
-                w['gainreg'] = int(np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']))
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain')
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -661,7 +658,8 @@ class QickProgramV2(AbsQickProgram):
     def increment_wave(self, par: str, step: int):
         op = '-' if step<0 else '+'
         iPar = Wave._fields.index(par)
-        self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
+        # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
+        #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
         self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{abs(step)}'})
 
     # timeline management and triggering
