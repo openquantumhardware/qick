@@ -894,15 +894,17 @@ class ADMV8818:
     # Filter Bands.
     BANDS = {}
     BANDS['LPF'] = {}
-    BANDS['LPF']['LPF1'] = {'min': 2.05 , 'max': 3.85 , 'switch': 1}
-    BANDS['LPF']['LPF2'] = {'min': 3.35 , 'max': 7.25 , 'switch': 2}
-    BANDS['LPF']['LPF3'] = {'min': 7.00 , 'max': 13.00, 'switch': 3}
-    BANDS['LPF']['LPF4'] = {'min': 12.55, 'max': 18.85, 'switch': 4}
+    BANDS['LPF']['bypass']  = {'min': 2.00 , 'max': 18.00, 'switch': 0}
+    BANDS['LPF']['LPF1']    = {'min': 2.05 , 'max': 3.85 , 'switch': 1}
+    BANDS['LPF']['LPF2']    = {'min': 3.35 , 'max': 7.25 , 'switch': 2}
+    BANDS['LPF']['LPF3']    = {'min': 7.00 , 'max': 13.00, 'switch': 3}
+    BANDS['LPF']['LPF4']    = {'min': 12.55, 'max': 18.85, 'switch': 4}
     BANDS['HPF'] = {}
-    BANDS['HPF']['HPF1'] = {'min': 1.75 , 'max': 3.55 , 'switch': 1}
-    BANDS['HPF']['HPF2'] = {'min': 3.40 , 'max': 7.25 , 'switch': 2}
-    BANDS['HPF']['HPF3'] = {'min': 6.60 , 'max': 12.00, 'switch': 3}
-    BANDS['HPF']['HPF4'] = {'min': 12.50, 'max': 19.90, 'switch': 4}
+    BANDS['HPF']['bypass']  = {'min': 2.00 , 'max': 18.00, 'switch': 0}
+    BANDS['HPF']['HPF1']    = {'min': 1.75 , 'max': 3.55 , 'switch': 1}
+    BANDS['HPF']['HPF2']    = {'min': 3.40 , 'max': 7.25 , 'switch': 2}
+    BANDS['HPF']['HPF3']    = {'min': 6.60 , 'max': 12.00, 'switch': 3}
+    BANDS['HPF']['HPF4']    = {'min': 12.50, 'max': 19.90, 'switch': 4}
 
     # Number of bits for band setting.
     B = 4
@@ -973,24 +975,26 @@ class ADMV8818:
 
         if section == "LPF":
             for b in self.BANDS[section].keys():
-                fmin = self.BANDS[section][b]['min'] 
-                fmax = self.BANDS[section][b]['max'] 
-                if ((f > fmin) and (f < fmax)):
-                    ret = b
-                    break
+                if b != 'bypass':
+                    fmin = self.BANDS[section][b]['min'] 
+                    fmax = self.BANDS[section][b]['max'] 
+                    if ((f > fmin) and (f < fmax)):
+                        ret = b
+                        break
         elif section == "HPF":
             for b in self.BANDS[section].keys():
-                fmin = self.BANDS[section][b]['min'] 
-                fmax = self.BANDS[section][b]['max'] 
-                if ((f > fmin) and (f < fmax)):
-                    ret = b
-                    break
+                if b != 'bypass':
+                    fmin = self.BANDS[section][b]['min'] 
+                    fmax = self.BANDS[section][b]['max'] 
+                    if ((f > fmin) and (f < fmax)):
+                        ret = b
+                        break
 
         if debug:
             if ret is not None:
-                print("{}: frequency {} for section {} found in band {}".format(self.__class__.__name__, f, section, b))
+                print("{}: frequency {:.2f} GHz for section {} found in band {}".format(self.__class__.__name__, f, section, b))
             else:
-                print("{}: frequency {} for section {} not found.".format(self.__class__.__name__, f, section))
+                print("{}: frequency {:.2f} GHz for section {} not found.".format(self.__class__.__name__, f, section))
 
         return ret
 
@@ -1015,11 +1019,23 @@ class ADMV8818:
                     ret = int((f - fmin)/df)
         
         if ret is not None:
-            print("{}: fmin = {}, fmax = {}, span = {}, df = {}, f = {}, bits = {}".format(self.__class__.__name__, fmin, fmax, span, df, f, ret))
+            if debug:
+                print("{}: fmin = {:.2f} GHz, fmax = {:.2f} GHz, span = {:.2f} GHz, df = {:.3f} GHz, f = {:.2f} GHz, bits = {}".format(self.__class__.__name__, fmin, fmax, span, df, f, ret))
         else:
-            print("{}: frequency {} not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
+            print("{}: frequency {:.2f} GHz not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
 
         return ret
+
+    def band2switch(self, section="LPF", band="LPF1", debug=False):
+        if section in self.BANDS.keys():
+            if band in self.BANDS[section].keys():
+                return self.BANDS[section][band]['switch'] 
+            else: 
+                print("{}: band {} not found in section {}. Using bypass by default.".format(self.__class__.__name__, band, section))
+                return 0
+        else: 
+            print("{}: section {} not found. Using bypass by default.".format(self.__class__.__name__, section))
+            return 0
 
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
 class attenuator:
@@ -1087,6 +1103,58 @@ class prog_filter:
 
         # Execute write.
         return ret & 0xff
+
+    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
+        # Low-pass.
+        if ftype == 'lowpass':
+            if debug:
+                print("{}: setting {} filter type, flow = {:.2f} GHz.".format(self.__class__.__name__, ftype, flow))
+
+            band_lpf = self.ic.freq2band(f=flow, section="LPF", debug=debug)
+            bits_lpf = self.ic.freq2bits(f=flow, section="LPF", band=band_lpf, debug=debug)
+            band_hpf = 'bypass'
+            bits_hpf = 0
+
+        elif ftype == 'highpass':
+            if debug:
+                print("{}: setting {} filter type, fhigh = {:.2f} GHz.".format(self.__class__.__name__, ftype, fhigh))
+
+            band_lpf = 'bypass'
+            bits_lpf = 0
+            band_hpf = self.ic.freq2band(f=fhigh, section="HPF", debug=debug)
+            bits_hpf = self.ic.freq2bits(f=fhigh, section="HPF", band=band_hpf, debug=debug)
+
+        elif ftype == 'bandpass':
+            if debug:
+                print("{}: setting {} filter type, flow = {:.2f} GHz, fhigh = {:.2f} GHz.".format(self.__class__.__name__, ftype, flow, fhigh))
+
+            if (flow > fhigh):
+                raise RuntimeError("%s: flow must be lower than fhigh for bandpass type." % self.__class__.__name__)
+
+            band_lpf = self.ic.freq2band(f=flow, section="LPF", debug=debug)
+            bits_lpf = self.ic.freq2bits(f=flow, section="LPF", band=band_lpf, debug=debug)
+            band_hpf = self.ic.freq2band(f=fhigh, section="HPF", debug=debug)
+            bits_hpf = self.ic.freq2bits(f=fhigh, section="HPF", band=band_hpf, debug=debug)
+
+        elif ftype == 'bypass':
+            if debug:
+                print("{}: setting filter to bypass mode.".format(self.__class__.__name__))
+
+            band_lpf = 'bypass'
+            bits_lpf = 0
+            band_hpf = 'bypass'
+            bits_hpf = 0
+    
+        else:
+            raise Warning("%s: filter type %s not supported." % (self.__class__.__name__, ftype))
+
+        # WR0_SW register.
+        value = 0xc0 + (self.ic.band2switch(section="HPF", band=band_hpf) << 3) + self.ic.band2switch(section="LPF", band=band_lpf)
+        self.reg_wr(reg="WR0_SW", value=value, debug=debug)
+
+        # WR0_FILTER register.
+        value = (bits_hpf << 4) + bits_lpf
+        self.reg_wr(reg="WR0_FILTER", value=value, debug=debug)
 
 # Power, Switch and Fan.
 class SwitchControl:
@@ -1564,15 +1632,12 @@ class adc_rf_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, reg="", value=0, debug=False):
-        if debug:
-            print("{}: writing register {}, value = {}".format(self.__class__.__name__, reg, value))
-
+    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.reg_wr(reg=reg, value=value, debug=debug)
+        self.filter.set_filter(flow=flow, fhigh=fhigh, ftype=ftype, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
@@ -1761,15 +1826,12 @@ class dac_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, reg="", value=0, debug=False):
-        if debug:
-            print("{}: writing register {}, value = {}".format(self.__class__.__name__, reg, value))
-
+    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.reg_wr(reg=reg, value=value, debug=debug)
+        self.filter.set_filter(flow=flow, fhigh=fhigh, ftype=ftype, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
