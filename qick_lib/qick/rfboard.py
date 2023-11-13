@@ -888,7 +888,37 @@ class ADMV8818:
             'CHIPTYPE'          : 0x003,
             'PRODUCT_ID_L'      : 0x004,
             'PRODUCT_ID_H'      : 0x005,
-            'SOFT_REG': 0x04}
+            'WR0_SW'            : 0x020,
+            'WR0_FILTER'        : 0x021}
+
+    # Filter Bands.
+    BANDS = {}
+    BANDS['LPF'] = {}
+    BANDS['LPF']['LPF1'] = {'min': 2.05 , 'max': 3.85 , 'switch': 1}
+    BANDS['LPF']['LPF2'] = {'min': 3.35 , 'max': 7.25 , 'switch': 2}
+    BANDS['LPF']['LPF3'] = {'min': 7.00 , 'max': 13.00, 'switch': 3}
+    BANDS['LPF']['LPF4'] = {'min': 12.55, 'max': 18.85, 'switch': 4}
+    BANDS['HPF'] = {}
+    BANDS['HPF']['HPF1'] = {'min': 1.75 , 'max': 3.55 , 'switch': 1}
+    BANDS['HPF']['HPF2'] = {'min': 3.40 , 'max': 7.25 , 'switch': 2}
+    BANDS['HPF']['HPF3'] = {'min': 6.60 , 'max': 12.00, 'switch': 3}
+    BANDS['HPF']['HPF4'] = {'min': 12.50, 'max': 19.90, 'switch': 4}
+
+    # Number of bits for band setting.
+    B = 4
+
+    def __init__(self):
+        # Initialize df for each band.
+        for b in self.BANDS['LPF'].keys():
+            span = self.BANDS['LPF'][b]['max'] - self.BANDS['LPF'][b]['min']  
+            df   = span/2**self.B
+            self.BANDS['LPF'][b]['span'] = span
+            self.BANDS['LPF'][b]['df']   = df
+        for b in self.BANDS['HPF'].keys():
+            span = self.BANDS['HPF'][b]['max'] - self.BANDS['HPF'][b]['min']  
+            df   = span/2**self.B
+            self.BANDS['HPF'][b]['span'] = span
+            self.BANDS['HPF'][b]['df']   = df
 
     def cmd_wr(self, reg="CHIPTYPE", value=0, debug=False):
         if reg in self.REGS.keys():
@@ -937,6 +967,59 @@ class ADMV8818:
             raise RuntimeError("%s: register %s not found." %(self.__class__.__name__, reg))
 
         return byte
+
+    def freq2band(self, f=0, section="LPF", debug=False):
+        ret = None
+
+        if section == "LPF":
+            for b in self.BANDS[section].keys():
+                fmin = self.BANDS[section][b]['min'] 
+                fmax = self.BANDS[section][b]['max'] 
+                if ((f > fmin) and (f < fmax)):
+                    ret = b
+                    break
+        elif section == "HPF":
+            for b in self.BANDS[section].keys():
+                fmin = self.BANDS[section][b]['min'] 
+                fmax = self.BANDS[section][b]['max'] 
+                if ((f > fmin) and (f < fmax)):
+                    ret = b
+                    break
+
+        if debug:
+            if ret is not None:
+                print("{}: frequency {} for section {} found in band {}".format(self.__class__.__name__, f, section, b))
+            else:
+                print("{}: frequency {} for section {} not found.".format(self.__class__.__name__, f, section))
+
+        return ret
+
+    def freq2bits(self, f=0, section="LPF", band="LPF1", debug=False):
+        ret = None
+
+        if section == "LPF":
+            if band in self.BANDS[section].keys():
+                fmin = self.BANDS[section][band]['min'] 
+                fmax = self.BANDS[section][band]['max'] 
+                span = self.BANDS[section][band]['span'] 
+                df   = self.BANDS[section][band]['df'] 
+                if ((f > fmin) and (f < fmax)):
+                    ret = int((f - fmin)/df)
+        elif section == "HPF":
+            if band in self.BANDS[section].keys():
+                fmin = self.BANDS[section][band]['min'] 
+                fmax = self.BANDS[section][band]['max'] 
+                span = self.BANDS[section][band]['span'] 
+                df   = self.BANDS[section][band]['df'] 
+                if ((f > fmin) and (f < fmax)):
+                    ret = int((f - fmin)/df)
+        
+        if ret is not None:
+            print("{}: fmin = {}, fmax = {}, span = {}, df = {}, f = {}, bits = {}".format(self.__class__.__name__, fmin, fmax, span, df, f, ret))
+        else:
+            print("{}: frequency {} not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
+
+        return ret
 
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
 class attenuator:
@@ -1481,12 +1564,15 @@ class adc_rf_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, debug=False):
+    def set_filter(self, reg="", value=0, debug=False):
+        if debug:
+            print("{}: writing register {}, value = {}".format(self.__class__.__name__, reg, value))
+
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.reg_wr(debug=debug)
+        self.filter.reg_wr(reg=reg, value=value, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
@@ -1675,12 +1761,15 @@ class dac_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, debug=False):
+    def set_filter(self, reg="", value=0, debug=False):
+        if debug:
+            print("{}: writing register {}, value = {}".format(self.__class__.__name__, reg, value))
+
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.reg_wr(debug=debug)
+        self.filter.reg_wr(reg=reg, value=value, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
@@ -2111,5 +2200,5 @@ class RFQickSoc216V1(RFQickSoc):
         NCH = 4 # DAC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.dacs_.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel, debug=True))
+                self.dacs_.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
 
