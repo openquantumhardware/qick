@@ -903,7 +903,7 @@ class ADMV8818:
     BANDS['HPF']['bypass']  = {'min': 2.00 , 'max': 18.00, 'switch': 0}
     BANDS['HPF']['HPF1']    = {'min': 1.75 , 'max': 3.55 , 'switch': 1}
     BANDS['HPF']['HPF2']    = {'min': 3.40 , 'max': 7.25 , 'switch': 2}
-    BANDS['HPF']['HPF3']    = {'min': 6.60 , 'max': 12.00, 'switch': 3}
+    BANDS['HPF']['HPF3']    = {'min': 6.60 , 'max': 12.60, 'switch': 3} # Actual max is 12.00. Modified to overlap bands.
     BANDS['HPF']['HPF4']    = {'min': 12.50, 'max': 19.90, 'switch': 4}
 
     # Number of bits for band setting.
@@ -1104,37 +1104,39 @@ class prog_filter:
         # Execute write.
         return ret & 0xff
 
-    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
+    def set_filter(self, fc=0, bw=None, ftype="lowpass", debug=False):
         # Low-pass.
         if ftype == 'lowpass':
             if debug:
-                print("{}: setting {} filter type, flow = {:.2f} GHz.".format(self.__class__.__name__, ftype, flow))
+                print("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
 
-            band_lpf = self.ic.freq2band(f=flow, section="LPF", debug=debug)
-            bits_lpf = self.ic.freq2bits(f=flow, section="LPF", band=band_lpf, debug=debug)
+            band_lpf = self.ic.freq2band(f=fc, section="LPF", debug=debug)
+            bits_lpf = self.ic.freq2bits(f=fc, section="LPF", band=band_lpf, debug=debug)
             band_hpf = 'bypass'
             bits_hpf = 0
 
         elif ftype == 'highpass':
             if debug:
-                print("{}: setting {} filter type, fhigh = {:.2f} GHz.".format(self.__class__.__name__, ftype, fhigh))
+                print("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
 
             band_lpf = 'bypass'
             bits_lpf = 0
-            band_hpf = self.ic.freq2band(f=fhigh, section="HPF", debug=debug)
-            bits_hpf = self.ic.freq2bits(f=fhigh, section="HPF", band=band_hpf, debug=debug)
+            band_hpf = self.ic.freq2band(f=fc, section="HPF", debug=debug)
+            bits_hpf = self.ic.freq2bits(f=fc, section="HPF", band=band_hpf, debug=debug)
 
         elif ftype == 'bandpass':
+            # Default bw is 2 GHz.
+            if bw is None:
+                bw = 2
+            f1 = fc-bw/2
+            f2 = fc+bw/2
             if debug:
-                print("{}: setting {} filter type, flow = {:.2f} GHz, fhigh = {:.2f} GHz.".format(self.__class__.__name__, ftype, flow, fhigh))
+                print("{}: setting {} filter type, fc = {:.2f} GHz, bw = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc, bw))
 
-            if (flow > fhigh):
-                raise RuntimeError("%s: flow must be lower than fhigh for bandpass type." % self.__class__.__name__)
-
-            band_lpf = self.ic.freq2band(f=flow, section="LPF", debug=debug)
-            bits_lpf = self.ic.freq2bits(f=flow, section="LPF", band=band_lpf, debug=debug)
-            band_hpf = self.ic.freq2band(f=fhigh, section="HPF", debug=debug)
-            bits_hpf = self.ic.freq2bits(f=fhigh, section="HPF", band=band_hpf, debug=debug)
+            band_lpf = self.ic.freq2band(f=f2, section="LPF", debug=debug)
+            bits_lpf = self.ic.freq2bits(f=f2, section="LPF", band=band_lpf, debug=debug)
+            band_hpf = self.ic.freq2band(f=f1, section="HPF", debug=debug)
+            bits_hpf = self.ic.freq2bits(f=f1, section="HPF", band=band_hpf, debug=debug)
 
         elif ftype == 'bypass':
             if debug:
@@ -1632,12 +1634,12 @@ class adc_rf_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
+    def set_filter(self, fc=0, bw=None, ftype="lowpass", debug=False):
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.set_filter(flow=flow, fhigh=fhigh, ftype=ftype, debug=debug)
+        self.filter.set_filter(fc=fc, bw=bw, ftype=ftype, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
@@ -1826,12 +1828,12 @@ class dac_ch():
         # Disable all daughter cards.
         self.brd_sel.disable()
 
-    def set_filter(self, flow=0, fhigh=0, ftype="lowpass", debug=False):
+    def set_filter(self, fc=0, bw=None, ftype="lowpass", debug=False):
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Set filter.
-        self.filter.set_filter(flow=flow, fhigh=fhigh, ftype=ftype, debug=debug)
+        self.filter.set_filter(fc=fc, bw=bw, ftype=ftype, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
