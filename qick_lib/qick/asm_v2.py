@@ -1,15 +1,35 @@
 import logging
 import numpy as np
 from collections import namedtuple, OrderedDict, defaultdict
+from types import SimpleNamespace
+from typing import NamedTuple
 from abc import ABC, abstractmethod
 
 #from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram
+from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
 
-class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"])):
+#class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"])):
+#    widths = [4, 4, 3, 4, 4, 2]
+#    def compile(self):
+#        # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
+#        rawbytes = b''.join([int(i).to_bytes(length=w, byteorder='little', signed=True) for i, w in zip(self, self.widths)])
+#        # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
+#        paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
+#        # pack into a numpy array
+#        return np.frombuffer(paddedbytes, dtype=np.int32)
+
+class Wave(NamedTuple):
+    freq: int
+    phase: int
+    env: int
+    gain: int
+    length: int
+    conf: int
+
     widths = [4, 4, 3, 4, 4, 2]
     def compile(self):
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
@@ -23,6 +43,93 @@ class QickRegister:
     def __init__(self, addr: int, name: str = None):
         self.addr = addr
         self.name = name
+
+class QickLoop(NamedTuple):
+    name: str
+    n: int
+
+class QickSweep(NamedTuple):
+    start: float
+    end: float
+    loop: str
+    def to_int(self, scale, parname, quantize=1):
+        swpstart = to_int(self.start, scale, quantize=quantize)
+        swprange = to_int(self.end-self.start, scale, quantize=quantize)
+        return QickSweepRaw(par=parname, start=swpstart, range=swprange, loop=self.loop, quantize=quantize)
+
+class QickSweepRaw(NamedTuple):
+    par: str
+    start: int
+    range: int
+    loop: str
+    quantize: int = 1
+    def step(self, nSteps):
+        return int(np.round(self.range/(nSteps-1)))
+    def __floordiv__(self, a):
+        return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
+    def __mod__(self, a):
+        # TODO: implement
+        return self
+
+class Macro(SimpleNamespace):
+    def set_label(self, label):
+        # set label for this instruction; this will be applied to the first ASM instruction
+        self.label = label
+
+    def translate(self, prog):
+        # translate to ASM and push to prog_list
+        insts = self.expand(prog)
+        if hasattr(self, 'label'):
+            insts[0].set_label(self.label)
+        for inst in insts:
+            inst.translate(prog)
+
+    def expand(self, prog):
+        # expand to other instructions
+        # TODO: raise exception?
+        pass
+
+class AsmInst(Macro):
+    def translate(self, prog):
+        inst = self.inst.copy()
+        inst['P_ADDR'] = prog.p_addr
+        inst['LINE'] = prog.line
+        prog.p_addr += self.addr_inc
+        prog.line += 1
+        prog.prog_list.append(inst)
+        if hasattr(self, 'label'):
+            prog.labels[self.label] = '&%d' % (len(prog.prog_list))
+
+class Label(Macro):
+    def translate(self, prog):
+        pass
+
+class End(Macro):
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
+        #prog.add_instruction({'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'})
+        #prog.add_instruction({'CMD':'JUMP', 'ADDR':None})
+
+class Wait(Macro):
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)]
+        # the assembler translates "WAIT" into two instructions
+        #prog.add_instruction({'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)
+        #prog.add_instruction({'CMD':'WAIT', 'ADDR':None, 'TIME': f'{self.time}'}, addr_inc=2)
+
+"""
+class Sync(Macro):
+    def expand(self, prog):
+        prog.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{self.time}'})
+
+class SetReg(Macro):
+    def expand(self, prog):
+        self.add_instruction({'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)})
+
+class IncReg(Macro):
+    def expand(self, prog):
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val)})
+"""
 
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
@@ -196,10 +303,17 @@ class FullSpeedGenManager(AbsGenManager):
             'flat_top': ['ro_ch', 'phrst', 'stdysel']}
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
+        sweeps = []
+        if isinstance(gainreg, QickSweepRaw):
+            sweeps.append(gainreg)
+            gainreg = gainreg.start
+        if isinstance(phasereg, QickSweepRaw):
+            sweeps.append(phasereg)
+            phasereg = phasereg.start
         if lenreg >= 2**16 or lenreg < 3:
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
-        return Wave(freqreg, phasereg, env, gainreg, lenreg, confreg)
+        return (Wave(freqreg, phasereg, env, gainreg, lenreg, confreg), sweeps)
 
     def params2pulse(self, par):
         """Write whichever pulse registers are fully determined by the defined parameters.
@@ -231,9 +345,9 @@ class FullSpeedGenManager(AbsGenManager):
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
         if par['style']=='flat_top':
             # since the flat segment is played at half gain, the ramps should have even gain
-            w['gainreg'] = int(2*np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']/2))
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2)
         else:
-            w['gainreg'] = int(np.round(par['gain']*self.gencfg['maxv']*self.gencfg['maxv_scale']))
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain')
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -284,15 +398,16 @@ class QickProgramV2(AbsQickProgram):
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
-        self.prog_list = []
-        self.labels = {'s15': 's15'} # register 15 predefinition
 
-        # address in program memory
-        self.p_addr = 1
-        # line number
-        self.line = 1
-        # first instruction is always NOP, so both counters start at 1
+        # high-level instruction list
+        self.init_macros()
 
+        # low-level instruction list
+        self.init_asm()
+
+
+    def init_macros(self):
+        self.macro_list = []
         self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
         self._user_regs = []  # addr of all user defined registers
 
@@ -306,28 +421,134 @@ class QickProgramV2(AbsQickProgram):
         # pulses are software constructs, each is a set of 1 or more waveforms
         self.pulses = {}
 
-        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
+
+    def init_asm(self):
+        self.prog_list = []
+        self.labels = {'s15': 's15'} # register 15 predefinition
+
+        # address in program memory
+        self.p_addr = 1
+        # line number
+        self.line = 1
+        # first instruction is always NOP, so both counters start at 1
+
+    def compile_prog(self):
+        _, p_mem = Assembler.list2bin(self.prog_list, self.labels)
+        return p_mem
+
+    def compile_waves(self):
+        if self.waves:
+            return np.stack([w.compile() for w,s in self.waves.values()])
+        else:
+            return np.zeros((0,8), dtype=np.int32)
+
+    def compile(self):
+        self.expand_macros()
+        binprog = {}
+        binprog['pmem'] = self.compile_prog()
+        binprog['wmem'] = self.compile_waves()
+        return binprog
+
+    def expand_macros(self):
+        self.init_asm()
+        for i, macro in enumerate(self.macro_list):
+            if isinstance(macro, Label):
+                self.macro_list[i+1].set_label(macro.label)
+            macro.translate(self)
+
+    def asm(self):
+        self.expand_macros()
+        asm = Assembler.list2asm(self.prog_list, self.labels)
+        return asm
+
+    def config_all(self, soc, load_pulses=True):
+        # compile() first, because envelopes might be declared in a make_program() inside expand_macros()
+        binprog = self.compile()
+        soc.tproc.stop()
+        super().config_all(soc, load_pulses=load_pulses)
+        soc.load_bin_program(binprog)
+
+    # natural-units wrappers for methods of AbsQickProgram
+
+    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
+        """Adds a Gaussian pulse to the waveform library.
+        The pulse will peak at length/2.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            Name of the pulse
+        sigma : float
+            Standard deviation of the Gaussian (in units of us)
+        length : float
+            Total pulse length (in units of us)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
+        even_length : bool
+            Round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
+        """
+        if even_length:
+            lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+        else:
+            lenreg = self.us2cycles(gen_ch=ch, us=length)
+        sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        super().add_gauss(ch, name, sigreg, lenreg, maxv)
+
+    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
+        lenreg = self.us2cycles(ro_ch=ch, us=length)
+        super().declare_readout(ch, lenreg, freq, sel, gen_ch)
+
+    # start of ASM code
 
     def add_instruction(self, inst, addr_inc=1):
-        # copy the instruction dict in case it's getting reused and modified
-        inst = inst.copy()
-        inst['P_ADDR'] = self.p_addr
-        inst['LINE'] = self.line
-        self.p_addr += addr_inc
-        self.line += 1
-        self.prog_list.append(inst)
+        self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
 
-    def end(self):
-        self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}', 'UF':'0'})
-
-    def wait(self, time):
-        # the assembler translates "WAIT" into two instructions
-        self.add_instruction({'CMD':'WAIT', 'ADDR':f'&{self.p_addr + 1}', 'TIME': f'{time}'}, addr_inc=2)
+    def translate_instruction(self, macro):
+        if isinstance(macro, AsmInst):
+            macro.expand(self)
+        else:
+            insts = macro.expand(self)
+            for inst in insts:
+                inst.translate_instruction(self)
 
     def add_label(self, label):
         """apply the specified label to the next instruction
         """
-        self.labels[label] = '&' + str(len(self.prog_list)+1)
+        self.macro_list.append(Label(label=label))
+        #self.labels[label] = '&' + str(len(self.prog_list)+1)
+
+    # low-level macros
+
+    def end(self):
+        self.macro_list.append(End())
+        #self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}'})
+
+    def wait(self, time):
+        self.macro_list.append(Wait(time=time))
+        # the assembler translates "WAIT" into two instructions
+        #self.add_instruction({'CMD':'WAIT', 'ADDR':f'&{self.p_addr + 1}', 'TIME': f'{time}'}, addr_inc=2)
+
+    def sync(self, time):
+        #self.macro_list.append(Sync(time=time))
+        self.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{time}'})
+
+    def set_ext_counter(self, addr=1, val=0):
+        # initialize the data counter to zero
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val)})
+        #self.macro_list.append(SetReg(reg=reg, val=val))
+
+    def inc_ext_counter(self, addr=1, val=1):
+        # increment the data counter
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val)})
+        #self.macro_list.append(IncReg(reg=reg, val=val))
+    
+    # registers and control
 
     def new_reg(self, addr: int = None, name: str = None):
         """ Declare a new data register.
@@ -360,33 +581,46 @@ class QickProgramV2(AbsQickProgram):
 
         return reg
     
+    def open_loop(self, n, name=None, addr=None):
+        if name is None: name = f"loop_{len(self.loop_list)}"
+        loop = QickLoop(name, n)
+        reg = self.new_reg(name=name, addr=addr)
+        self.loop_list.append(loop)
+        self.loop_stack.append(loop)
+        # initialize the loop counter to zero and set the loop label
+        self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n)})
+        self.add_label(name.upper())
+    
+    def close_loop(self):
+        lname, lcount = self.loop_stack.pop()
+        reg = self.user_reg_dict[lname]
+        
+        # check for sweeps
+        for wname, (wave, sweeps) in self.waves.items():
+            lsweeps = [s for s in sweeps if s.loop==lname]
+            if lsweeps:
+                self.load_wave(wname)
+                for s in lsweeps:
+                    self.increment_wave(s.par, s.step(lcount))
+                self.write_wave(wname)
 
-    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
-        """Adds a Gaussian pulse to the waveform library.
-        The pulse will peak at length/2.
+        # increment and test the loop counter
+        self.add_instruction({'CMD':'REG_WR', 'DST':f'r{reg.addr}', 'SRC':'op', 'OP':f'r{reg.addr}-#1', 'UF':'1'})
+        self.add_instruction({'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'})
+#         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
 
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the pulse
-        sigma : float
-            Standard deviation of the Gaussian (in units of us)
-        length : float
-            Total pulse length (in units of us)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
-        even_length : bool
-            Round the envelope length to an even number of fabric clock cycles.
-            This is useful for flat_top pulses, where the envelope gets split into two halves.
-        """
-        if even_length:
-            lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
-        else:
-            lenreg = self.us2cycles(gen_ch=ch, us=length)
-        sigreg = self.us2cycles(gen_ch=ch, us=sigma)
-        super().add_gauss(ch, name, sigreg, lenreg, maxv)
+        # check for sweeps - if we swept a parameter, we should restore it to its original value
+        for wname, (wave, sweeps) in self.waves.items():
+            lsweeps = [s for s in sweeps if s.loop==lname]
+            if lsweeps:
+                self.load_wave(wname)
+                for s in lsweeps:
+                    self.increment_wave(s.par, -1*lcount*s.step(lcount))
+                self.write_wave(wname)
+
+
+
+    # waves+pulses
 
     def add_wave(self, name, wave):
         self.waves[name] = wave
@@ -411,39 +645,36 @@ class QickProgramV2(AbsQickProgram):
                 self.set_timestamp(int(t + pulse_length), gen_ch=ch)
         
         tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t), 'UF':'0'})
+        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t)})
         for wavename in pulse['wavenames']:
             idx = self.wave2idx[wavename]
-            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx), 'UF':'0'})
+            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
 
-    def open_loop(self, n, name=None, addr=None):
-        if name is None: name = f"loop_{len(self.loop_list)}"
-        reg = self.new_reg(name=name, addr=addr)
-        self.loop_list.append(name)
-        self.loop_stack.append(name)
-        # initialize the loop counter to zero and set the loop label
-        self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n), 'UF':'0'})
-        self.add_label(name.upper())
-    
-    def close_loop(self):
-        name = self.loop_stack.pop()
-        reg = self.user_reg_dict[name]
-        # increment and test the loop counter
-        self.add_instruction({'CMD':'REG_WR', 'DST':f'r{reg.addr}', 'SRC':'op', 'OP':f'r{reg.addr}-#1', 'UF':'1'})
-        self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'UF':'0'})
-        
-#         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
+    def load_wave(self, name):
+        addr = self.wave2idx[name]
+        self.add_instruction({'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'})
 
-    def set_ext_counter(self, addr=1, val=0):
-        # initialize the data counter to zero
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val), 'UF':'0'})
+    def write_wave(self, name):
+        addr = self.wave2idx[name]
+        self.add_instruction({'CMD':'WMEM_WR', 'DST':f'&{addr}'})
 
-    def inc_ext_counter(self, addr=1, val=1):
-        # increment the data counter
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val), 'UF':'0'})
-    
+    def increment_wave(self, par: str, step: int):
+        op = '-' if step<0 else '+'
+        step = abs(step)
+        iPar = Wave._fields.index(par)
+        # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
+        #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
+
+        # immediate arguments to operations must be 24-bit
+        if check_bytes(step, 3):
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{step}'})
+        else:
+            tmpreg = "r15" # TODO: allocate
+            self.add_instruction({'CMD':'REG_WR', 'DST':tmpreg,'SRC':'imm','LIT':f'{step}'})
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'})
+
+    # timeline management and triggering
+
     def trigger(self, ros=None, pins=None, t=0, width=10):
         treg = self.us2cycles(t)
         #TODO: add DDR4+MR buffers, ADC offset
@@ -472,53 +703,25 @@ class QickProgramV2(AbsQickProgram):
                 trigset.add(portnum)
 
         if outdict:
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg), 'UF':'0'})
+            self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg)})
             for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out), 'UF':'0'})
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width), 'UF':'0'})
+                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)})
+            self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width)})
             for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0', 'UF':'0'})
+                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'})
         if trigset:
             for outport in trigset:
                 self.add_instruction({'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(treg)})
                 self.add_instruction({'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(treg+width)})
 
-    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
-        lenreg = self.us2cycles(ro_ch=ch, us=length)
-        super().declare_readout(ch, lenreg, freq, sel, gen_ch)
-
     def sync_all(self, t=0):
         treg = self.us2cycles(t)
         max_t = self.get_max_timestamp()
         if max_t+treg > 0:
-            self.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{int(max_t+treg)}'})
+            self.sync(int(max_t+treg))
             self.reset_timestamps()
 
     def wait_all(self, t=0):
         treg = self.us2cycles(t)
         self.wait(int(self.get_max_timestamp(gens=False, ros=True) + treg))
 
-    def compile_prog(self):
-        _, p_mem = Assembler.list2bin(self.prog_list, self.labels)
-        return p_mem
-
-    def compile_waves(self):
-        if self.waves:
-            return np.stack([w.compile() for w in self.waves.values()])
-        else:
-            return np.zeros((0,8), dtype=np.int32)
-
-    def compile(self):
-        binprog = {}
-        binprog['pmem'] = self.compile_prog()
-        binprog['wmem'] = self.compile_waves()
-        return binprog
-
-    def asm(self):
-        asm = Assembler.list2asm(self.prog_list, self.labels)
-        return asm
-
-    def config_all(self, soc, load_pulses=True):
-        soc.tproc.proc_stop()
-        super().config_all(soc, load_pulses=load_pulses)
-        soc.load_bin_program(self.compile())

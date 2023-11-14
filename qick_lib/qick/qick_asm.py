@@ -12,7 +12,7 @@ import functools
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import cosine, gauss, triang, DRAG
+from .helpers import to_int, cosine, gauss, triang, DRAG
 
 logger = logging.getLogger(__name__)
 
@@ -420,7 +420,7 @@ class QickConfig():
             b_phase = 16
         else:
             b_phase = 32
-        return int(deg*2**b_phase//360) % 2**b_phase
+        return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
     def reg2deg(self, reg, gen_ch=0):
         """Converts phase register values into degrees.

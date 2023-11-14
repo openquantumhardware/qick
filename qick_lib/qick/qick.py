@@ -820,8 +820,21 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 1:
             self.tproc.start()
         elif self.TPROC_VERSION == 2:
-            self.tproc.proc_stop()
-            self.tproc.proc_start()
+            self.tproc.stop()
+            self.tproc.start()
+
+    def stop_tproc(self):
+        """
+        Stop the tProc.
+        This is somewhat slow (tens of ms) for tProc v1.
+        """
+        if self.TPROC_VERSION == 1:
+            # there's no easy way to stop v1 - we need to reset and reload
+            self.tproc.reset()
+            # reload the program (since the reset will have wiped it out)
+            self.tproc.reload_program()
+        elif self.TPROC_VERSION == 2:
+            self.tproc.stop()
 
     def set_tproc_counter(self, addr, val):
         """
@@ -909,9 +922,7 @@ class QickSoc(Overlay, QickConfig):
         if streamer.readout_running():
             print("cleaning up previous readout: stopping tProc and streamer loop")
             # stop the tProc
-            self.tproc.reset()
-            # reload the program (since the reset will have wiped it out)
-            self.tproc.reload_program()
+            self.stop_tproc()
             # tell the readout to stop (this will break the readout loop)
             streamer.stop_readout()
             streamer.done_flag.wait()
