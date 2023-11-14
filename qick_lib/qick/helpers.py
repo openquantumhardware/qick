@@ -33,6 +33,27 @@ def to_int(val, scale, quantize=1, parname=None):
     else:
         return int(quantize * np.round(val*scale/quantize))
 
+def check_bytes(val, length):
+    """Test if a signed int will fit in the specified number of bytes.
+
+    Parameters
+    ----------
+    val : int
+        value to test
+    length : int
+        number of bytes
+
+    Returns
+    -------
+    bool
+        True if value will fit, False otherwise
+    """
+    try:
+        int(val).to_bytes(length=length, byteorder='little', signed=True)
+        return True
+    except OverflowError:
+        return False
+
 def cosine(length=100, maxv=30000):
     """
     Create a numpy array containing a cosine shaped envelope function

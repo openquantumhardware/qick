@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 #from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram
-from .helpers import to_int
+from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,9 @@ class QickSweepRaw(NamedTuple):
         return int(np.round(self.range/(nSteps-1)))
     def __floordiv__(self, a):
         return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
+    def __mod__(self, a):
+        # TODO: implement
+        return self
 
 class Macro(SimpleNamespace):
     def set_label(self, label):
@@ -657,10 +660,18 @@ class QickProgramV2(AbsQickProgram):
 
     def increment_wave(self, par: str, step: int):
         op = '-' if step<0 else '+'
+        step = abs(step)
         iPar = Wave._fields.index(par)
         # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
         #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
-        self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{abs(step)}'})
+
+        # immediate arguments to operations must be 24-bit
+        if check_bytes(step, 3):
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{step}'})
+        else:
+            tmpreg = "r15" # TODO: allocate
+            self.add_instruction({'CMD':'REG_WR', 'DST':tmpreg,'SRC':'imm','LIT':f'{step}'})
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'})
 
     # timeline management and triggering
 
