@@ -420,8 +420,6 @@ class QickConfig():
             b_phase = 16
         else:
             b_phase = 32
-        #return int(deg*2**b_phase//360) % 2**b_phase
-        #TODO: make truncation work with sweeps?
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
     def reg2deg(self, reg, gen_ch=0):
