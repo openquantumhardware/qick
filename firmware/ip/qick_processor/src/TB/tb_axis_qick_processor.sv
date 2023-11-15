@@ -422,8 +422,8 @@ initial begin
    //AXIS_QPROC.QPROC.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    
    
-   $readmemb("/home/mdifeder/IPS/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemb("/home/mdifeder/IPS/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    
   	// Create agents.
 	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_axis_qick_processor.axi_mst_0_i.inst.IF);

@@ -524,10 +524,19 @@ LIFO  # (
 
 
 
+assign halt    = ~en_i ;
+assign flush   = id_pc_change | r_id_pc_change ;
+assign stall   = bubble_id | bubble_rd;
+assign fetch_en = ~stall & ~halt;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIPELINE  
 ///////////////////////////////////////////////////////////////////////////////
+
+assign id_stage_keep = !fetch_en ;
+assign rd_stage_keep = bubble_rd ;
+assign rd_stage_zero = bubble_id & !bubble_rd ;
+assign x1_stage_zero = bubble_rd ;
 
 
 // DATA & ADDRESS PIPELINE 
@@ -584,43 +593,56 @@ always_ff @ (posedge clk_i) begin
       if (~halt) begin
 
 /////////////////////////////////////////////////////////
-// READING
-         if (bubble_id ) begin    // Insert Bubble
-            if (bubble_rd) begin    // Insert Bubble
-               rd_ctrl                 <= rd_ctrl;
-               rd_reg                  <= rd_reg;
-            end else begin 
-               rd_ctrl                 <= '{default:'0}     ;
-               rd_reg                  <= '{default:'0}     ;
-            end
-         end else begin
-            //Control Signals
-            rd_ctrl                 <= id_ctrl            ;
-            rd_reg                  <= id_reg            ;
-            r_id_pc_change          <= id_pc_change ;
-            //Data Signals
-            r_id_rs_A_addr          <= id_rs_A_addr;
-            r_id_rs_D_addr          <= id_rs_D_addr ;
-            r_id_imm_addr           <= id_imm_addr    ;
-            r_id_imm_dt             <= id_imm_dt      ;
-         end
+// STAGE > READ  
+if ( rd_stage_zero ) begin
+   rd_ctrl                 <= '{default:'0};
+   rd_reg                  <= '{default:'0};
+   r_id_pc_change          <= 1'b0;
+   r_id_imm_dt             <= '{default:'0};
+   r_id_imm_addr           <= '{default:'0};
+   r_id_rs_D_addr          <= '{default:'0};
+   r_id_rs_A_addr          <= '{default:'0};
+end else if ( rd_stage_keep ) begin
+   rd_ctrl                 <= rd_ctrl;
+   rd_reg                  <= rd_reg;
+   r_id_pc_change          <= r_id_pc_change;
+   r_id_imm_dt             <= r_id_imm_dt;
+   r_id_imm_addr           <= r_id_imm_addr;
+   r_id_rs_D_addr          <= r_id_rs_D_addr;
+   r_id_rs_A_addr          <= r_id_rs_A_addr;
+end else begin
+   //Control Signals
+   rd_ctrl                 <= id_ctrl            ;
+   rd_reg                  <= id_reg            ;
+   r_id_pc_change          <= id_pc_change ;
+   //Data Signals
+   r_id_imm_dt             <= id_imm_dt      ;
+   r_id_imm_addr           <= id_imm_addr    ;
+   r_id_rs_D_addr          <= id_rs_D_addr ;
+   r_id_rs_A_addr          <= id_rs_A_addr;
+end
+
 /////////////////////////////////////////////////////////
-// EXECUTE 1 
-         if (bubble_rd) begin    // Insert Bubble
-            x1_ctrl                 <= '{default:'0}     ;
-            x1_reg                  <= '{default:'0}     ;
-         end else begin
-            x1_ctrl              <= rd_ctrl           ;
-            x1_reg               <= rd_reg            ;
-         end
-         //Address Signals
-//         r_rd_rsA0_addr          <= r_id_rs_A_addr[0]   ;
-         r_rd_rsA1_addr          <= r_id_rs_A_addr[1]   ;
-         r_rd_imm_addr           <= r_id_imm_addr     ;
-         //Data Signals
-         r_rd_imm_dt             <= r_id_imm_dt       ;
+// STAGE > EXECUTE 1 
+if ( x1_stage_zero ) begin
+   x1_ctrl                 <= '{default:'0};
+   x1_reg                  <= '{default:'0};
+   r_rd_imm_dt             <= '{default:'0};
+   r_rd_imm_addr           <= '{default:'0};
+   r_rd_rsA1_addr          <= '{default:'0};
+end else begin
+   x1_ctrl                 <= rd_ctrl ;
+   x1_reg                  <= rd_reg ;
+   r_rd_imm_dt             <= r_id_imm_dt       ;
+   r_rd_imm_addr           <= r_id_imm_addr     ;
+   r_rd_rsA1_addr          <= r_id_rs_A_addr[1]   ;
+end
+
 /////////////////////////////////////////////////////////
 // EXECUTE 2
+         //Control Signals
+         x2_ctrl                 <= x1_ctrl ;
+         x2_reg                  <= x1_reg         ;
          //Data Signals
          r_x1_imm_dt                <= r_rd_imm_dt       ;
          r_x1_alu_dt                <= x1_alu_dt         ;
@@ -630,9 +652,6 @@ always_ff @ (posedge clk_i) begin
             alu_fZ_r                <= x1_alu_fZ         ;
             alu_fS_r                <= x1_alu_fS         ;
          end
-         //Control Signals
-         x2_reg                  <= x1_reg         ;
-         x2_ctrl                 <= x1_ctrl ;
 /////////////////////////////////////////////////////////
 // WRITE 
          //Control Signals

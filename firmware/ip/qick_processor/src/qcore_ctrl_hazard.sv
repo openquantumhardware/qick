@@ -76,6 +76,7 @@ reg         stall_id_f   ; // Give time to update FLAG
 reg         stall_id_j   ; // Give time to update REG_ADDR when JUMP
 wire        stall_id_D_rd; // Give time to update PORT_L & PORT_H when DPORT_RD
 reg [ 1:0]  w_stall_D_rd ; // Give time to update R_WAVE when REG_WR r_wave
+reg [ 1:0]  w_stall_D_id ; // Give time to update R_WAVE when REG_WR r_wave
 reg [ 1:0]  d_stall_D_rd ; // Give time to READ MEMORY 
 reg [ 1:0]  stall_A_rd   ; // Give time to READ MEMORY 
 
@@ -87,7 +88,13 @@ reg [31:0]  reg_D_nxt [2] ;
 // ADDRESS FORWARDING
 reg [31:0]  reg_A_nxt [2] ;
 
+assign r_wave_wr = (id_reg_i.r_wave_we  | rd_reg_i.r_wave_we  | x1_reg_i.r_wave_we | x2_reg_i.r_wave_we ) ;
+reg r_wave_wr_r ;
 
+
+
+assign r_wave_ws = r_wave_wr;
+   
 ///////////////////////////////////////////////////////////////////////////////
 // REG_WR    after    REG_WR  
 genvar ind_D;
@@ -96,7 +103,10 @@ generate
 
       // REG_WR from WaveRegister   after   REG_WR r_wave 
       always_comb begin
-         src_wreg_D[ind_D] = rs_D_addr_i[ind_D][6:5] == 2'b10 & (x1_reg_i.r_wave_we | x2_reg_i.r_wave_we) ; //WREG Read and modified  
+         // src_wreg_D[ind_D] = rs_D_addr_i[ind_D][6:5] == 2'b10 & (x1_reg_i.r_wave_we | x2_reg_i.r_wave_we) ; //WREG Read and modified  
+         //src_wreg_D[ind_D] = rs_D_addr_i[ind_D][6:5] == 2'b10 & (id_reg_i.r_wave_we  | rd_reg_i.r_wave_we  | x1_reg_i.r_wave_we | x2_reg_i.r_wave_we | wr_reg_i.r_wave_we) ; //WREG Read and modified  
+         src_wreg_D[ind_D]   = rs_D_addr_i[ind_D][6:5] == 2'b10 & (r_wave_ws) ; //WREG Read and modified  
+         w_stall_D_id[ind_D] = 1'b0 ;
          if ( src_wreg_D[ind_D] )     
             w_stall_D_rd[ind_D] = 1'b1 ;
          else
@@ -107,10 +117,15 @@ generate
       always_comb begin
          reg_D_nxt[ind_D] = rs_D_dt_i[ind_D];
          d_stall_D_rd[ind_D] = 1'b0;
-         fwd_D_X1[ind_D] = ( (rs_D_addr_i[ind_D] ==  x1_reg_i.addr ) & x1_reg_i.we ); //Data is in X1 STage
-         fwd_D_X2[ind_D] = ( (rs_D_addr_i[ind_D] ==  x2_reg_i.addr ) & x2_reg_i.we ); //Data is in X2 STage
-         fwd_D_WR[ind_D] = ( (rs_D_addr_i[ind_D] ==  wr_reg_i.addr ) & wr_reg_i.we ); //Data is in WR STage
-
+         if (src_wreg_D[ind_D]) begin
+            fwd_D_X1[ind_D] = 1'b0;
+            fwd_D_X2[ind_D] = 1'b0;
+            fwd_D_WR[ind_D] = 1'b0;
+         end else begin
+            fwd_D_X1[ind_D] = ( (rs_D_addr_i[ind_D] ==  x1_reg_i.addr ) & x1_reg_i.we ); //Data is in X1 STage
+            fwd_D_X2[ind_D] = ( (rs_D_addr_i[ind_D] ==  x2_reg_i.addr ) & x2_reg_i.we ); //Data is in X2 STage
+            fwd_D_WR[ind_D] = ( (rs_D_addr_i[ind_D] ==  wr_reg_i.addr ) & wr_reg_i.we ); //Data is in WR STage
+         end
             if ( fwd_D_X1[ind_D] )     //Data is in X1 STage
                unique case (x1_reg_i.src)
                   2'b00 : reg_D_nxt[ind_D]  = x1_alu_dt_i  ; // Data Comes from ALU 
@@ -174,6 +189,8 @@ end
 ///////////////////////////////////////////////////////////////////////////////
 // -if()   after   -uf    >>>  STALL 
 // -if()   after   s_cfg    >>>  STALL 
+// -if()   after   FLAG set or clr
+
 assign rd_s_cfg_addr = (rd_reg_i.addr == 7'b1000010) ;
 assign x1_s_cfg_addr = (x1_reg_i.addr == 7'b1000010) ;
 assign x2_s_cfg_addr = (x2_reg_i.addr == 7'b1000010) ;
@@ -234,7 +251,7 @@ always_ff @ (posedge clk_i, negedge rst_ni)
    
 assign reg_A_dt_o    = reg_A;
 assign reg_D_dt_o    = reg_D;
-assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w | stall_id_D_rd  ;
+assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w | stall_id_D_rd | |w_stall_D_id ;
 assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  ;
 
 endmodule

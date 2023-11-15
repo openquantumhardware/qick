@@ -19,21 +19,21 @@ module axis_qick_processor # (
    parameter DEBUG          =  0 , // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
    parameter TNET           =  0 , // QNET Interfrace 0-No 1-Yes
    parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-Yes
-   parameter LFSR           =  1 , // LFSR 0-No 1-Yes 
-   parameter DIVIDER        =  1 , // DIVIDER 0-No 1-Yes 
+   parameter LFSR           =  0 , // LFSR 0-No 1-Yes 
+   parameter DIVIDER        =  0 , // DIVIDER 0-No 1-Yes 
    parameter ARITH          =  1 , // Arith 0-No 1-Yes 
-   parameter EXT_FLAG       =  1 , // External Flag Input 0-No 1-Yes
+   parameter EXT_FLAG       =  0 , // External Flag Input 0-No 1-Yes
    parameter TIME_READ      =  1 , // Time in sreg and AXI-Reg 0-No 1-Yes
-   parameter FIFO_DEPTH     =  9 , // Bits in Dispatcher FIFOs address
+   parameter FIFO_DEPTH     =  9, // 9 Bits in Dispatcher FIFOs address
    parameter PMEM_AW        =  10, // Bits in Program Memory address
    parameter DMEM_AW        =  10, // Bits in Data Memory address
    parameter WMEM_AW        =  10, // Bits in WaveParam Memory address
-   parameter REG_AW         =  5 , // Bits to address DREG
-   parameter IN_PORT_QTY    =  4 , // Number of Input Ports
-   parameter OUT_TRIG_QTY   =  4 , // Number of Output Trigger  Ports
+   parameter REG_AW         =  4 , // Bits to address DREG
+   parameter IN_PORT_QTY    =  2 , // Number of Input Ports
+   parameter OUT_TRIG_QTY   =  2 , // Number of Output Trigger  Ports
    parameter OUT_DPORT_QTY  =  1 , // Number of Output Data Ports
    parameter OUT_DPORT_DW   =  4 , // BitSize of Output Data Ports
-   parameter OUT_WPORT_QTY  =  8   // Number of Output Wave Ports
+   parameter OUT_WPORT_QTY  =  2   // Number of Output Wave Ports
 )(
 // Core, Time and AXI CLK & RST.
    input  wire                t_clk_i        ,
