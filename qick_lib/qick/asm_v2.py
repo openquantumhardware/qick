@@ -5,22 +5,11 @@ from types import SimpleNamespace
 from typing import NamedTuple
 from abc import ABC, abstractmethod
 
-#from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram
 from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
-
-#class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"])):
-#    widths = [4, 4, 3, 4, 4, 2]
-#    def compile(self):
-#        # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-#        rawbytes = b''.join([int(i).to_bytes(length=w, byteorder='little', signed=True) for i, w in zip(self, self.widths)])
-#        # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
-#        paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
-#        # pack into a numpy array
-#        return np.frombuffer(paddedbytes, dtype=np.int32)
 
 class Wave(NamedTuple):
     freq: int
@@ -33,7 +22,8 @@ class Wave(NamedTuple):
     widths = [4, 4, 3, 4, 4, 2]
     def compile(self):
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-        rawbytes = b''.join([int(i).to_bytes(length=w, byteorder='little', signed=True) for i, w in zip(self, self.widths)])
+        # same parameters (freq, phase) are expected to wrap, we do that here
+        rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(self, self.widths)])
         # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
         # pack into a numpy array
@@ -71,7 +61,7 @@ class QickSweepRaw(NamedTuple):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
         return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
     def __mod__(self, a):
-        # TODO: implement
+        # do nothing - mod will be applied when compiling the Wave
         return self
 
 class Macro(SimpleNamespace):
