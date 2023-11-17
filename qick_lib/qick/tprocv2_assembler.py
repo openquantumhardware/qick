@@ -258,6 +258,29 @@ def find_pattern(regex : str, text : str):
     match = match.group() if (match) else None
     return match
 
+
+class LFSR:
+    def __init__(self):
+        self.val_bin = '00000000000000000000000000000000'
+        self.val_int = 0
+    def seed(self, seed):
+        fmt = "{0:032b}"
+        self.val_int = seed
+        self.val_bin = fmt.format(seed)
+    def nxt(self)-> int:
+        inv_bin = self.val_bin[::-1]
+        feedback = inv_bin[31] + inv_bin[21] + inv_bin[1] + inv_bin[0]
+        ones = feedback.count('1')
+        if (ones % 2 == 0):
+            new_value = '1'
+        else:
+            new_value = '0'
+        self.val_bin = self.val_bin[1:]+new_value
+        self.val_int = int(self.val_bin, 2)
+        return self.val_int
+    def print(self):
+        print(self.val_bin, self.val_int)
+        
 class Assembler():
     @staticmethod
     def list2asm(program_list : list, label_dict : dict) -> str:
@@ -1169,7 +1192,7 @@ class Instruction():
         FULL = (command['CMD']=='REG_WR') and (command['SRC']=='op')
         if ('OP' in command):
             error = 0
-            comp_OP_PARAM = "s(\d+)|r(\d+)|w(\d+)|#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]{4})|\s*([A-Z]{3}|[A-Z><]{2}|\+|\-)"
+            comp_OP_PARAM = "s(\d+)|r(\d+)|w(\d+)|#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|\s*([A-Z]{3}|[A-Z><]{2}|\+|\-)"
             param_op  = re.findall(comp_OP_PARAM, command['OP'])
             DataImm = rsD1 = '' 
             if (len(param_op)==1 ) : # COPY REG
