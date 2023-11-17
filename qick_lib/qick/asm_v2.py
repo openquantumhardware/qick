@@ -64,8 +64,11 @@ class QickSweepRaw(NamedTuple):
     loop: str
     quantize: int = 1
     def step(self, nSteps):
-        return int(np.round(self.range/(nSteps-1)))
+        # use trunc() instead of round() to avoid overshoot and possible overflow
+        return int(np.trunc(self.range/(nSteps-1)))
     def __floordiv__(self, a):
+        if not all([x%a==0 for x in [self.start, self.range, self.quantize]]):
+            raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
         return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
     def __mod__(self, a):
         # TODO: implement
@@ -659,8 +662,9 @@ class QickProgramV2(AbsQickProgram):
         self.add_instruction({'CMD':'WMEM_WR', 'DST':f'&{addr}'})
 
     def increment_wave(self, par: str, step: int):
-        op = '-' if step<0 else '+'
-        step = abs(step)
+        op = '+'
+        #op = '-' if step<0 else '+'
+        #step = abs(step)
         iPar = Wave._fields.index(par)
         # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
         #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
@@ -669,6 +673,8 @@ class QickProgramV2(AbsQickProgram):
         if check_bytes(step, 3):
             self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{step}'})
         else:
+            # constrain the value to signed 32-bit
+            step = np.int64(step).astype(np.int32)
             tmpreg = "r15" # TODO: allocate
             self.add_instruction({'CMD':'REG_WR', 'DST':tmpreg,'SRC':'imm','LIT':f'{step}'})
             self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'})
