@@ -297,12 +297,16 @@ class FullSpeedGenManager(AbsGenManager):
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         sweeps = []
+        # TODO: do something more systematic
         if isinstance(gainreg, QickSweepRaw):
             sweeps.append(gainreg)
             gainreg = gainreg.start
         if isinstance(phasereg, QickSweepRaw):
             sweeps.append(phasereg)
             phasereg = phasereg.start
+        if isinstance(freqreg, QickSweepRaw):
+            sweeps.append(freqreg)
+            freqreg = freqreg.start
         if lenreg >= 2**16 or lenreg < 3:
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
