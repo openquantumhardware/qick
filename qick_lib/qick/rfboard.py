@@ -304,6 +304,8 @@ class spi(DefaultIP):
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
+        # Data width.
+        self.rx_width = description['parameters']['C_NUM_TRANSFER_BITS']
 
         # Soft reset SPI.
         self.rst()
@@ -462,8 +464,11 @@ class spi(DefaultIP):
         else:
             # Get number of samples on fifo.
             nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
-            data_r = bytes([self.SPI_DRR.RX_Data for i in range(nr)])
-            return data_r
+            data_r = [self.SPI_DRR.RX_Data for i in range(nr)]
+            if self.rx_width == 8:
+                return bytes(data_r)
+            else:
+                return data_r
 
     # Send/Receive.
     def send_receive_m(self, data, ch_en, cs_t="pulse"):
@@ -475,54 +480,6 @@ class spi(DefaultIP):
         data_r = self.receive()
 
         return data_r
-
-#class gpio(DefaultIP):
-#
-#    bindto = ['xilinx.com:ip:axi_gpio:2.0', 'xilinx.com:ip:axi_gpio']
-#    GPIO_REGLIST = ['GPIO_DATA', 'GPIO_TRI', 'GPIO2_DATA', 'GPIO2_TRI', 'GIER', 'IP_ISR', 'IP_IER']
-#
-#    def __init__(self, description, **kwargs):
-#        super().__init__(description)
-#
-#    def __setattr__(self, a, v):
-#        if a in self.GPIO_REGLIST:
-#            setattr(self.register_map, a, v)
-#        else:
-#            super().__setattr__(a, v)
-#
-#    def __getattr__(self, a):
-#        if a in self.GPIO_REGLIST:
-#            return getattr(self.register_map, a)
-#        else:
-#            return super().__getattribute__(a)
-#
-#    def set(self, bits=[0]):
-#        if (len(bits)>0):
-#            # Read current value.
-#            val_ = self.GPIO_DATA.Channel_1_GPIO_DATA
-#
-#            # Cycle through bits.
-#            for bit in bits:
-#                val_ = val_ | (1 << bit)
-#
-#            # Update hardware.
-#            self.GPIO_DATA.Channel_1_GPIO_DATA = val_
-#
-#    def set_value(self, value=0):
-#        # Update hardware.
-#        self.GPIO_DATA.Channel_1_GPIO_DATA = value
-#
-#    def reset(self, bits=[0]):
-#        if (len(bits)>0):
-#            # Read current value.
-#            val_ = self.GPIO_DATA.Channel_1_GPIO_DATA
-#
-#            # Cycle through bits.
-#            for bit in bits:
-#                val_ = val_ & ~(1 << bit)
-#
-#            # Update hardware.
-#            self.GPIO_DATA.Channel_1_GPIO_DATA = val_
 
 # Step Attenuator PE43705.
 # Range 0-31.75 dB.
@@ -873,6 +830,79 @@ class AD5781:
 
             # Shift by two as 2 lower bits are not used.
             Df = int(Df) << 2
+
+            return int(Df)
+
+# BIAS DAC chip DAC11001.
+class DAC11001:
+    # Commands.
+    cmd_wr = 0x0
+    cmd_rd = 0x1
+
+    # Negative/Positive voltage references.
+    VREFN = -10
+    VREFP = 10
+
+    # Bits.
+    B = 20
+
+    # Registers.
+    REGS = {'DAC_DATA_REG'      : 0x01  ,
+            'CONFIG1_REG'       : 0x02  ,
+            'DAC_CLEAR_DATA_REG': 0x03  ,
+            'TRIGGER_REG'       : 0x04  ,
+            'STATUS_REG'        : 0x05  ,
+            'CONFIG2_REG'       : 0x06  }
+
+    # Register/address mapping.
+    def reg2addr(self, reg="DAC_DATA_REG"):
+        if reg in self.REGS:
+            return self.REGS[reg]
+        else:
+            print("%s: register %s not recognized." %
+                  (self.__class__.__name__, reg))
+            return -1
+
+    def reg_rd(self, reg="DAC_DATA_REG"):
+        data = 0
+
+        # Address.
+        addr = self.reg2addr(reg)
+
+        # R/W bit (MSB) +  address (lower 7 bits).
+        cmd = (self.cmd_rd << 7) | addr
+        data |= (cmd << 24)
+
+        return data
+
+    def reg_wr(self, reg="DAC_DATA_REG", val=0):
+        data = 0
+
+        # Address.
+        addr = self.reg2addr(reg)
+
+        # R/W bit (MSB) +  address (lower 7 bits).
+        cmd = (self.cmd_wr << 7) | addr
+        data |= (cmd << 24)
+
+        # Value is 24 bits (lower 4 not used).
+        data |= val
+
+        return data
+
+    # Compute register value for voltage setting.
+    def volt2reg(self, volt=0):
+        if volt < self.VREFN:
+            print("%s: %d V out of range." % (self.__class__.__name__, volt))
+            return -1
+        elif volt > self.VREFP:
+            print("%s: %d V out of range." % (self.__class__.__name__, volt))
+            return -1
+        else:
+            Df = 2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN)
+
+            # Shift by two as 4 lower bits are not used.
+            Df = int(Df) << 4
 
             return int(Df)
 
@@ -1414,46 +1444,100 @@ class lo_synth:
 class dac_bias:
 
     # Constructor.
-    def __init__(self, spi_ip, ch_en, cs_t=""):
-        # AD5791.
-        self.ad = AD5781()
-
+    def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
         # SPI.
-        self.spi = spi_ip
-
-        # CS.
         self.ch_en = ch_en
         self.cs_t = cs_t
-
-        # All CS to high value.
+        self.spi = spi_ip
         self.spi.SPI_SSR = 0xff
 
-        # Initialize control register.
-        self.write(reg="CTRL_REG", val=0x312)
+        # Version.
+        self.version = version
 
-        # Initialize to 0 volts.
-        self.set_volt(0)
+        # Board.
+        self.fpga_board = fpga_board
+
+        if debug:
+            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
+
+        if fpga_board == 'ZCU111':
+            # AD5791.
+            self.ad = AD5781()
+
+            # Initialize control register.
+            self.write(reg="CTRL_REG", val=0x312)
+
+            # Initialize to 0 volts.
+            self.set_volt(0)
+
+        elif self.fpga_board == 'ZCU216':
+            if version == 1:
+                # GPIO.
+                self.gpio = gpio_ip.channel1
+
+                # DAC11001.
+                self.ad = DAC11001()
+
+                # Initialize control register.
+                self.write(reg="CONFIG1_REG", val=0x4e00)
+
+                # Initialize to 0 volts.
+                self.set_volt(0)
+
+                # Enable output switch.
+                self.gpio.write(1,0x1)
+            else:
+                raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
+        else:
+            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
+
 
     def read(self, reg="DAC_REG"):
-        # Read command.
-        byte = self.ad.reg_rd(reg)
-        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # Read command.
+            data = [self.ad.reg_rd(reg)]
+            reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
-        # Another read with dummy data to allow clocking register out.
-        byte = [0, 0, 0]
-        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+            # Another read with dummy data to allow clocking register out.
+            data = [0]
+            reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+        else:
+            # Read command.
+            byte = self.ad.reg_rd(reg)
+            reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+
+            # Another read with dummy data to allow clocking register out.
+            byte = [0, 0, 0]
+            reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         return reg
 
-    def write(self, reg="DAC_REG", val=0):
-        # Write command.
-        byte = self.ad.reg_wr(reg, val)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+    def write(self, reg="DAC_REG", val=0, debug=False):
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # Write command.
+            data = [self.ad.reg_wr(reg, val)]
 
-    def set_volt(self, volt=0):
+            if debug:
+                print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
+
+            self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+        else:
+            # Write command.
+            data = self.ad.reg_wr(reg, val)
+
+            if debug:
+                print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
+
+            self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def set_volt(self, volt=0, debug=False):
         # Convert volts to register value.
         val = self.ad.volt2reg(volt)
-        self.write(reg="DAC_REG", val=val)
+
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            self.write(reg="DAC_DATA_REG", val=val, debug=debug)
+        else:
+            self.write(reg="DAC_REG", val=val, debug=debug)
 
 # Variable Gain Amp chip LMH6401.
 class LMH6401:
@@ -2244,8 +2328,19 @@ class RFQickSoc216V1(RFQickSoc):
         else:
             raise RuntimeError("%s: filter_spi for filter control not found." % self.__class__.__name__) 
 
-        # SPI used for DAC BIAS.
-        #self.dac_bias_spi.config(lsb="msb", cpha="invert")
+        # SPI used for BIAS.
+        if 'bias_spi' in self.ip_dict.keys():
+            self.bias_spi.config(lsb="msb", cpha="invert")
+        else:
+            raise RuntimeError("%s: bias_spi for bias DACs control not found." % self.__class__.__name__) 
+
+        if 'bias_gpio' in self.ip_dict.keys():
+            pass
+        else:
+            raise RuntimeError("%s: bias_spi for bias DACs control not found." % self.__class__.__name__) 
+        
+        # DAC BIAS.
+        self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board'], debug=True) for ii in range(8)]
 
         # DAC BIAS.
         #self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
