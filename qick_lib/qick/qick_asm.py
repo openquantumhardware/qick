@@ -537,7 +537,8 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_fabric']
         else:
             fclk = self['tprocs'][0]['f_time']
-        return np.int64(np.round(obtain(us)*fclk))
+        #return np.int64(np.round(obtain(us)*fclk))
+        return to_int(obtain(us), fclk, parname='length')
 
 
 class DummyIp:

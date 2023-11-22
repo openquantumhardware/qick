@@ -55,7 +55,10 @@ class QickSweepRaw(NamedTuple):
     quantize: int = 1
     def step(self, nSteps):
         # use trunc() instead of round() to avoid overshoot and possible overflow
-        return int(np.trunc(self.range/(nSteps-1)))
+        stepsize = int(np.trunc(self.range/(nSteps-1)))
+        if stepsize==0:
+            raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(self.range, nSteps-1))
+        return stepsize
     def __floordiv__(self, a):
         if not all([x%a==0 for x in [self.start, self.range, self.quantize]]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
@@ -63,6 +66,11 @@ class QickSweepRaw(NamedTuple):
     def __mod__(self, a):
         # do nothing - mod will be applied when compiling the Wave
         return self
+    def __add__(self, a):
+        # TODO: this should return a sweep
+        return self.start+a
+    def __radd__(self, a):
+        return self+a
 
 class Macro(SimpleNamespace):
     def set_label(self, label):
@@ -307,7 +315,11 @@ class FullSpeedGenManager(AbsGenManager):
         if isinstance(freqreg, QickSweepRaw):
             sweeps.append(freqreg)
             freqreg = freqreg.start
+        if isinstance(lenreg, QickSweepRaw):
+            sweeps.append(lenreg)
+            lenreg = lenreg.start
         if lenreg >= 2**16 or lenreg < 3:
+            #TODO: make this check work correctly with sweeps
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
         return (Wave(freqreg, phasereg, env, gainreg, lenreg, confreg), sweeps)
