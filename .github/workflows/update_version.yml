@@ -59,7 +59,9 @@ jobs:
         git add "$VERSION_PATH"
         git commit -am "update version"
         git push
-        newref="/repos/$(git remote get-url origin|cut -d'/' -f4,5)/statuses/$(git rev-parse HEAD)"
+        repopath=$(gh pr view --json headRepositoryOwner,headRepository -t '{{.headRepositoryOwner.login}}/{{.headRepository.name}}')
+        # repopath=$(git remote get-url origin|cut -d'/' -f4,5)
+        newref="/repos/${repopath}/statuses/$(git rev-parse HEAD)"
         echo "updating status for $newref"
         gh api \
           --method POST \
