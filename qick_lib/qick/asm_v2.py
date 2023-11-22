@@ -5,22 +5,11 @@ from types import SimpleNamespace
 from typing import NamedTuple
 from abc import ABC, abstractmethod
 
-#from .tprocv2_compiler import tprocv2_compile
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram
 from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
-
-#class Wave(namedtuple('Wave', ["freq", "phase", "env", "gain", "length", "conf"])):
-#    widths = [4, 4, 3, 4, 4, 2]
-#    def compile(self):
-#        # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-#        rawbytes = b''.join([int(i).to_bytes(length=w, byteorder='little', signed=True) for i, w in zip(self, self.widths)])
-#        # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
-#        paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
-#        # pack into a numpy array
-#        return np.frombuffer(paddedbytes, dtype=np.int32)
 
 class Wave(NamedTuple):
     freq: int
@@ -33,7 +22,8 @@ class Wave(NamedTuple):
     widths = [4, 4, 3, 4, 4, 2]
     def compile(self):
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-        rawbytes = b''.join([int(i).to_bytes(length=w, byteorder='little', signed=True) for i, w in zip(self, self.widths)])
+        # same parameters (freq, phase) are expected to wrap, we do that here
+        rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(self, self.widths)])
         # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
         # pack into a numpy array
@@ -64,12 +54,23 @@ class QickSweepRaw(NamedTuple):
     loop: str
     quantize: int = 1
     def step(self, nSteps):
-        return int(np.round(self.range/(nSteps-1)))
+        # use trunc() instead of round() to avoid overshoot and possible overflow
+        stepsize = int(np.trunc(self.range/(nSteps-1)))
+        if stepsize==0:
+            raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(self.range, nSteps-1))
+        return stepsize
     def __floordiv__(self, a):
+        if not all([x%a==0 for x in [self.start, self.range, self.quantize]]):
+            raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
         return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
     def __mod__(self, a):
-        # TODO: implement
+        # do nothing - mod will be applied when compiling the Wave
         return self
+    def __add__(self, a):
+        # TODO: this should return a sweep
+        return self.start+a
+    def __radd__(self, a):
+        return self+a
 
 class Macro(SimpleNamespace):
     def set_label(self, label):
@@ -304,13 +305,21 @@ class FullSpeedGenManager(AbsGenManager):
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         sweeps = []
+        # TODO: do something more systematic
         if isinstance(gainreg, QickSweepRaw):
             sweeps.append(gainreg)
             gainreg = gainreg.start
         if isinstance(phasereg, QickSweepRaw):
             sweeps.append(phasereg)
             phasereg = phasereg.start
+        if isinstance(freqreg, QickSweepRaw):
+            sweeps.append(freqreg)
+            freqreg = freqreg.start
+        if isinstance(lenreg, QickSweepRaw):
+            sweeps.append(lenreg)
+            lenreg = lenreg.start
         if lenreg >= 2**16 or lenreg < 3:
+            #TODO: make this check work correctly with sweeps
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
         return (Wave(freqreg, phasereg, env, gainreg, lenreg, confreg), sweeps)
@@ -659,8 +668,9 @@ class QickProgramV2(AbsQickProgram):
         self.add_instruction({'CMD':'WMEM_WR', 'DST':f'&{addr}'})
 
     def increment_wave(self, par: str, step: int):
-        op = '-' if step<0 else '+'
-        step = abs(step)
+        op = '+'
+        #op = '-' if step<0 else '+'
+        #step = abs(step)
         iPar = Wave._fields.index(par)
         # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
         #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
@@ -669,6 +679,8 @@ class QickProgramV2(AbsQickProgram):
         if check_bytes(step, 3):
             self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{step}'})
         else:
+            # constrain the value to signed 32-bit
+            step = np.int64(step).astype(np.int32)
             tmpreg = "r15" # TODO: allocate
             self.add_instruction({'CMD':'REG_WR', 'DST':tmpreg,'SRC':'imm','LIT':f'{step}'})
             self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'})
