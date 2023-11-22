@@ -1460,7 +1460,7 @@ class dac_bias:
         if debug:
             print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
 
-        if fpga_board == 'ZCU111':
+        if self.fpga_board == 'ZCU111':
             # AD5791.
             self.ad = AD5781()
 
@@ -2241,13 +2241,13 @@ class RFQickSocV2(RFQickSoc):
         self.lo = [lo_synth_v2(self.lo_spi, i) for i in range(3)]
 
         # DAC BIAS.
-        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii, fpga_board=self['board']) for ii in range(8)]
 
         # ADC channels.
-        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
 
         # DAC channels.
-        self.dacs = [dac_ch(ii, self.switches, self.attn_spi) for ii in range(8)]
+        self.dacs = [dac_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(8)]
 
         # Link RF channels to LOs.
         for adc in self.adcs[:4]: adc.lo = self.lo[0]
