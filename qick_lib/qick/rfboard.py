@@ -305,7 +305,7 @@ class spi(DefaultIP):
     def __init__(self, description, **kwargs):
         super().__init__(description)
         # Data width.
-        self.rx_width = description['parameters']['C_NUM_TRANSFER_BITS']
+        self.data_width = int(description['parameters']['C_NUM_TRANSFER_BITS'])
 
         # Soft reset SPI.
         self.rst()
@@ -432,6 +432,15 @@ class spi(DefaultIP):
 
     # Send function.
     def send_m(self, data, ch_en, cs_t="pulse"):
+        """
+        The data must be formatted in bytes, regardless of the data width of the SPI IP.
+        For data width 16 or 32, the bytes will be packed in little-endian order.
+        """
+        if self.data_width == 16:
+            data = np.frombuffer(data, dtype=np.dtype('H')) # uint16
+        elif self.data_width == 32:
+            data = np.frombuffer(data, dtype=np.dtype('I')) # uint32
+
         # Manually assert channels.
         ch_en_temp = self.SPI_SSR.Selected_Slave
 
@@ -440,9 +449,9 @@ class spi(DefaultIP):
             self.SPI_SSR = ch_en
 
         # Send data.
-        for byte in data:
+        for word in data:
             # Send data.
-            self.SPI_DTR = byte
+            self.SPI_DTR = word
 
             # LE pulse at the end.
             if cs_t == "pulse":
@@ -458,17 +467,23 @@ class spi(DefaultIP):
 
     # Receive function.
     def receive(self):
+        """
+        The returned data will be formatted in bytes, regardless of the data width of the SPI IP.
+        For data width 16 or 32, the bytes will be unpacked in little-endian order.
+        """
         # Fifo is empty
         if self.SPISR.RX_Empty==1:
-            return []
+            return bytes()
         else:
             # Get number of samples on fifo.
             nr = self.SPI_RXFIFO_OR.Occupancy_Value + 1
             data_r = [self.SPI_DRR.RX_Data for i in range(nr)]
-            if self.rx_width == 8:
+            if self.data_width == 8:
                 return bytes(data_r)
-            else:
-                return data_r
+            elif self.data_width == 16:
+                return np.array(data_r).astype(np.dtype('H')).tobytes() # uint16
+            elif self.data_width == 32:
+                return np.array(data_r).astype(np.dtype('I')).tobytes() # uint32
 
     # Send/Receive.
     def send_receive_m(self, data, ch_en, cs_t="pulse"):
@@ -500,26 +515,17 @@ class PE43705:
 
         # Sanity check.
         if db < self.dbMinAtt:
-            print("%s: attenuation value %f out of range" %
-                  (self.__class__.__name__, db))
+            raise RuntimeError("attenuation value %f out of range" % (db))
         elif db > self.dbMaxAtt:
-            print("%s: attenuation value %f out of range" %
-                  (self.__class__.__name__, db))
+            raise RuntimeError("attenuation value %f out of range" % (db))
         else:
             ret = int(np.round(db/self.dbStep))
 
         return ret
 
     def db2reg(self, db):
-        reg = 0
-
-        # Steps.
-        reg |= self.db2step(db)
-
-        # Address.
-        reg |= (self.address << 8)
-
-        return reg
+        # will get packed as (address << 8) | step
+        return bytes([self.db2step(db), self.address])
 
 # GPIO chip MCP23S08.
 class MCP23S08:
@@ -1088,7 +1094,7 @@ class attenuator:
     # Set attenuation function.
     def set_att(self, db):
         # Register value.
-        reg = [self.pe.db2reg(db)]
+        reg = self.pe.db2reg(db)
 
         # Write value using spi.
         self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
