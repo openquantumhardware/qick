@@ -565,34 +565,23 @@ class MCP23S08:
     # byte[1] = register address.
     # byte[2] = register value (dummy for read).
     def reg_rd(self, reg="GPIO_REG"):
-        byte = []
-
         # Read command.
-        byte.append(self.cmd_rd + 2*self.dev_addr)
+        cmd = self.cmd_rd + 2*self.dev_addr
 
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, addr, 0])
 
     def reg_wr(self, reg="GPIO_REG", val=0):
-        byte = []
-
         # Write command.
-        byte.append(self.cmd_wr + 2*self.dev_addr)
+        cmd = self.cmd_wr + 2*self.dev_addr
 
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
-        # Dummy byte for clocking data out.
-        byte.append(val)
-
-        return byte
+        return bytes([cmd, addr, val])
 
 # LO Chip ADF4372.
 class ADF4372:
@@ -681,34 +670,17 @@ class ADF4372:
     # byte[1] = addr low.
     # byte[2] = register value (dummy for read).
     def reg_rd(self, reg="CONFIG0_REG"):
-        byte = []
-
-        # Read command.
-        byte.append(self.cmd_rd)
-
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([self.cmd_rd, addr, 0])
 
     def reg_wr(self, reg="CONFIG0_REG", val=0):
-        byte = []
-
-        # Write command.
-        byte.append(self.cmd_wr)
-
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
-        # Dummy byte for clocking data out.
-        byte.append(val)
-
-        return byte
+        return bytes([self.cmd_wr, addr, val])
 
     # Simple frequency setting function.
     # FRAC2 = 0 not used.
@@ -787,22 +759,16 @@ class AD5781:
             return -1
 
     def reg_rd(self, reg="DAC_REG"):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_rd << 3) | addr
         cmd = (cmd << 4)
-        byte.append(cmd)
 
         # Dummy bytes for completing the command.
         # NOTE: another full, 24-bit transaction is needed to clock the register out (may be all 0s).
-        byte.append(0)
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, 0, 0])
 
     def reg_wr(self, reg="DAC_REG", val=0):
         byte = []
@@ -812,18 +778,8 @@ class AD5781:
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_wr << 3) | addr
-        cmd = (cmd << 4)
-
-        val_high = val >> 16
-        val_mid = (val >> 8) & 0xff
-        val_low = val & 0xff
-
-        # Append bytes.
-        byte.append(cmd | val_high)
-        byte.append(val_mid)
-        byte.append(val_low)
-
-        return byte
+        cmd = (cmd << 20) | val
+        return cmd.to_bytes(length=3, byteorder='big')
 
     # Compute register value for voltage setting.
     def volt2reg(self, volt=0):
@@ -961,19 +917,10 @@ class ADMV8818:
 
     def cmd_wr(self, reg="CHIPTYPE", value=0, debug=False):
         if reg in self.REGS.keys():
-            byte = []        
-
             # Register addresss.
             addr = self.REGS[reg]
 
-            # Upper 7 bits.
-            byte.append((addr >> 8) & 0x7f)
-
-            # Lower 8 bits.
-            byte.append(addr & 0xff)
-
             # Data.
-            byte.append(value & 0xff)
             byte = (addr & 0x7fff).to_bytes(length=2, byteorder='big') + value.to_bytes(length=1, byteorder='big')
 
             if debug:
@@ -986,19 +933,10 @@ class ADMV8818:
 
     def cmd_rd(self, reg="CHIPTYPE", debug=False):
         if reg in self.REGS.keys():
-            byte = []        
-
             # Register addresss.
             addr = self.REGS[reg]
 
-            # MSB=1 for read, Upper 7 bits of address.
-            byte.append(0x80 | ((addr >> 8) & 0x7f))
-
-            # Lower 8 bits.
-            byte.append(addr & 0xff)
-
             # Dummy.
-            byte.append(0)
             byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(0)
 
             if debug:
@@ -1575,34 +1513,23 @@ class LMH6401:
     # byte[0] = rw/address.
     # byte[1] = data.
     def reg_rd(self, reg="GAIN_REG"):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # Read command.
         cmd = self.cmd_rd | addr
-        byte.append(cmd)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, 0])
 
     def reg_wr(self, reg="GAIN_REG", val=0):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # Read command.
         cmd = self.cmd_wr | addr
-        byte.append(cmd)
 
-        # Data.
-        byte.append(val)
-
-        return byte
+        return bytes([cmd, val])
 
 # Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
 class gain:
@@ -2159,7 +2086,7 @@ class lo_synth_v2:
         rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
     def reg_rd(self, addr):
-        data = [addr + (1<<7), 0, 0]
+        data = bytes([addr + (1<<7), 0, 0])
         return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
     def read_and_parse(self, addr):
