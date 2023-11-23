@@ -436,6 +436,8 @@ class spi(DefaultIP):
         The data must be formatted in bytes, regardless of the data width of the SPI IP.
         For data width 16 or 32, the bytes will be packed in little-endian order.
         """
+        if not isinstance(data, bytes):
+            raise RuntimeError("data is not a bytes object: ", data)
         if self.data_width == 16:
             data = np.frombuffer(data, dtype=np.dtype('H')) # uint16
         elif self.data_width == 32:
@@ -877,7 +879,8 @@ class DAC11001:
 
         # R/W bit (MSB) +  address (lower 7 bits).
         cmd = (self.cmd_rd << 7) | addr
-        data |= (cmd << 24)
+        #data |= (cmd << 24)
+        data = bytes(3) + bytes([cmd])
 
         return data
 
@@ -889,28 +892,26 @@ class DAC11001:
 
         # R/W bit (MSB) +  address (lower 7 bits).
         cmd = (self.cmd_wr << 7) | addr
-        data |= (cmd << 24)
+        #data |= (cmd << 24)
 
         # Value is 24 bits (lower 4 not used).
-        data |= val
+        #data |= val
+        data = val.to_bytes(length=3, byteorder='little') + bytes([cmd])
 
         return data
 
     # Compute register value for voltage setting.
     def volt2reg(self, volt=0):
-        if volt < self.VREFN:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        elif volt > self.VREFP:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        else:
-            Df = 2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN)
+        Df = np.round(2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN))
+        if (Df<0 or Df>2**self.B):
+            raise RuntimeError("%f V out of range." % (volt))
+        elif Df==2**self.B:
+            # special case: V=VREFP is actually not reachable, but that's annoying and nobody will mind if we round down by an LSB
+            Df -= 1
 
-            # Shift by two as 4 lower bits are not used.
-            Df = int(Df) << 4
+        # Shift by two as 4 lower bits are not used.
+        return int(Df) << 4
 
-            return int(Df)
 
 # ADMV8818 Filter Chip.
 class ADMV8818:
@@ -973,6 +974,7 @@ class ADMV8818:
 
             # Data.
             byte.append(value & 0xff)
+            byte = (addr & 0x7fff).to_bytes(length=2, byteorder='big') + value.to_bytes(length=1, byteorder='big')
 
             if debug:
                 for b in byte:
@@ -997,6 +999,7 @@ class ADMV8818:
 
             # Dummy.
             byte.append(0)
+            byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(0)
 
             if debug:
                 for b in byte:
@@ -1501,19 +1504,20 @@ class dac_bias:
     def read(self, reg="DAC_REG"):
         if self.fpga_board == 'ZCU216' and self.version == 1:
             # Read command.
-            data = [self.ad.reg_rd(reg)]
+            data = self.ad.reg_rd(reg)
             reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
             # Another read with dummy data to allow clocking register out.
-            data = [0]
+            data = bytes(4)
             reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+            return int.from_bytes(reg[:3], byteorder='little')
         else:
             # Read command.
             byte = self.ad.reg_rd(reg)
             reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # Another read with dummy data to allow clocking register out.
-            byte = [0, 0, 0]
+            byte = bytes(3)
             reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         return reg
@@ -1521,7 +1525,7 @@ class dac_bias:
     def write(self, reg="DAC_REG", val=0, debug=False):
         if self.fpga_board == 'ZCU216' and self.version == 1:
             # Write command.
-            data = [self.ad.reg_wr(reg, val)]
+            data = self.ad.reg_wr(reg, val)
 
             if debug:
                 print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
