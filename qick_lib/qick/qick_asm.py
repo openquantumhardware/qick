@@ -57,6 +57,27 @@ class QickConfig():
     def __setitem__(self, key, val):
         self._cfg[key] = val
 
+    def _describe_dac(self, dacname):
+        tile, block = [int(c) for c in dacname]
+        if self['board']=='ZCU111':
+            label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
+        elif self['board']=='ZCU216':
+            label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
+        elif self['board']=='RFSoC4x2':
+            label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
+        return "DAC tile %d, blk %d is %s" % (tile, block, label)
+
+    def _describe_adc(self, adcname):
+        tile, block = [int(c) for c in adcname]
+        if self['board']=='ZCU111':
+            rfbtype = "DC" if tile > 1 else "AC"
+            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
+        elif self['board']=='ZCU216':
+            label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
+        elif self['board']=='RFSoC4x2':
+            label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adcname]
+        return "ADC tile %d, blk %d is %s" % (tile, block, label)
+
     def description(self):
         """Generate a printable description of the QICK configuration.
 
@@ -80,58 +101,44 @@ class QickConfig():
 
         lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
         for iGen, gen in enumerate(self['gens']):
-            lines.append("\t%d:\t%s - tProc output %d, envelope memory %d samples" %
-                         (iGen, gen['type'], gen['tproc_ch'], gen['maxlen']))
-            lines.append("\t\tDAC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
-                         (*gen['dac'], gen['b_dds'], gen['f_fabric'], gen['f_dds']))
+            dacname = gen['dac']
+            dac = self['dacs'][dacname]
+            buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
+            lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
+                         (iGen, gen['type'], gen['maxlen'], buflen))
+            lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                         (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
+            lines.append("\t\t" + self._describe_dac(dacname))
 
         if self['iqs']:
             lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
             for iIQ, iq in enumerate(self['iqs']):
-                lines.append("\t%d:\tDAC tile %s, blk %s, fs=%.3f MHz" %
-                             (iIQ, *iq['dac'], iq['fs']))
+                dacname = iq['dac']
+                dac = self['dacs'][dacname]
+                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, *dacname, iq['fs']))
+                lines.append("\t\t" + self._describe_dac(dacname))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
         for iReadout, readout in enumerate(self['readouts']):
+            adcname = readout['adc']
+            adc = self['adcs'][adcname]
+            buflen = readout['buf_maxlen']/readout['f_fabric']
             if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            lines.append("\t\tADC tile %s, blk %s, %d-bit DDS, fabric=%.3f MHz, f_dds=%.3f MHz" %
-                         (*readout['adc'], readout['b_dds'], readout['f_fabric'], readout['f_dds']))
-            lines.append("\t\tmaxlen %d (avg) %d (decimated)" % (
-                readout['avg_maxlen'], readout['buf_maxlen']))
+            lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                         (adc['fs'], readout['f_fabric'], readout['b_dds'], readout['f_dds']))
+            lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
+                readout['avg_maxlen'], readout['buf_maxlen'], buflen))
             lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
                 readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
-
-        lines.append("\n\t%d DACs:" % (len(self['dacs'])))
-        for dac in self['dacs']:
-            tile, block = [int(c) for c in dac]
-            if self['board']=='ZCU111':
-                label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
-            elif self['board']=='ZCU216':
-                label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
-            elif self['board']=='RFSoC4x2':
-                label = {'00': 'DAC_B', '20': 'DAC_A'}[dac]
-            lines.append("\t\tDAC tile %d, blk %d is %s" %
-                         (tile, block, label))
-
-        lines.append("\n\t%d ADCs:" % (len(self['adcs'])))
-        for adc in self['adcs']:
-            tile, block = [int(c) for c in adc]
-            if self['board']=='ZCU111':
-                rfbtype = "DC" if tile > 1 else "AC"
-                label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
-            elif self['board']=='ZCU216':
-                label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
-            elif self['board']=='RFSoC4x2':
-                label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adc]
-            lines.append("\t\tADC tile %d, blk %d is %s" %
-                         (tile, block, label))
+            lines.append("\t\t" + self._describe_adc(adcname))
 
         lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
         for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
-            lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
+            lines.append("\t%d:\t%s" % (iPin, name))
+            #lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
         lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
                 (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
@@ -141,17 +148,20 @@ class QickConfig():
         if "ddr4_buf" in self._cfg:
             buf = self['ddr4_buf']
             buflist = [bufnames.index(x) for x in buf['readouts']]
-            lines.append("\n\tDDR4 memory buffer: %d samples, %d samples/transfer" % (buf['maxlen'], buf['burst_len']))
-            lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
-                buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
+            buflen = buf['maxlen']/self['readouts'][buflist[0]]['f_fabric']
+            lines.append("\n\tDDR4 memory buffer: %d samples (%.3f sec), %d samples/transfer" % (buf['maxlen'], buflen/1e6, buf['burst_len']))
+            lines.append("\t\twired to readouts %s" % (buflist))
+            #lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
+            #    buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
         if "mr_buf" in self._cfg:
             buf = self['mr_buf']
             buflist = [bufnames.index(x) for x in buf['readouts']]
-            lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
-                buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
-            #lines.append("\t\twired to readouts %s, triggered by %s %d, pin %d" % (
-            #    buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
+            buflen = buf['maxlen']/self['adcs'][self['readouts'][buflist[0]]['adc']]['fs']
+            lines.append("\n\tMR buffer: %d samples (%.3f us), wired to readouts %s" % (
+                buf['maxlen'], buflen, buflist))
+            #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
+            #    buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
         return "\nQICK configuration:\n"+"\n".join(lines)
 
