@@ -67,10 +67,17 @@ class QickSweepRaw(NamedTuple):
         # do nothing - mod will be applied when compiling the Wave
         return self
     def __add__(self, a):
+        # this is used to sum waveform durations
         # TODO: this should return a sweep
         return self.start+a
     def __radd__(self, a):
         return self+a
+    def __mul__(self, a):
+        # this is used to convert duration units
+        # TODO: this should return a sweep
+        return self.start*a
+    def __rmul__(self, a):
+        return self*a
 
 class Macro(SimpleNamespace):
     def set_label(self, label):
@@ -118,11 +125,11 @@ class Wait(Macro):
         #prog.add_instruction({'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)
         #prog.add_instruction({'CMD':'WAIT', 'ADDR':None, 'TIME': f'{self.time}'}, addr_inc=2)
 
-"""
 class Sync(Macro):
     def expand(self, prog):
-        prog.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{self.time}'})
+        return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{self.time}'}, addr_inc=1)]
 
+"""
 class SetReg(Macro):
     def expand(self, prog):
         self.add_instruction({'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)})
@@ -534,16 +541,12 @@ class QickProgramV2(AbsQickProgram):
 
     def end(self):
         self.macro_list.append(End())
-        #self.add_instruction({'CMD':'JUMP', 'ADDR':f'&{self.p_addr}'})
 
     def wait(self, time):
         self.macro_list.append(Wait(time=time))
-        # the assembler translates "WAIT" into two instructions
-        #self.add_instruction({'CMD':'WAIT', 'ADDR':f'&{self.p_addr + 1}', 'TIME': f'{time}'}, addr_inc=2)
 
     def sync(self, time):
-        #self.macro_list.append(Sync(time=time))
-        self.add_instruction({'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{time}'})
+        self.macro_list.append(Sync(time=time))
 
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
@@ -590,6 +593,13 @@ class QickProgramV2(AbsQickProgram):
 
         return reg
     
+    def get_reg(self, name, lazy_init=False):
+        """Get a previously defined register.
+        """
+        if lazy_init and name not in self.user_reg_dict:
+            self.new_reg(name=name)
+        return self.user_reg_dict[name]
+
     def open_loop(self, n, name=None, addr=None):
         if name is None: name = f"loop_{len(self.loop_list)}"
         loop = QickLoop(name, n)
@@ -681,9 +691,9 @@ class QickProgramV2(AbsQickProgram):
         else:
             # constrain the value to signed 32-bit
             step = np.int64(step).astype(np.int32)
-            tmpreg = "r15" # TODO: allocate
-            self.add_instruction({'CMD':'REG_WR', 'DST':tmpreg,'SRC':'imm','LIT':f'{step}'})
-            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'})
+            tmpreg = self.get_reg("scratch", lazy_init=True)
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'r{tmpreg.addr}','SRC':'imm','LIT':f'{step}'})
+            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} r{tmpreg.addr}'})
 
     # timeline management and triggering
 
