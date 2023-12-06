@@ -120,7 +120,8 @@ class End(Macro):
 
 class Wait(Macro):
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)]
+        t_reg = prog.us2cycles(self.time)
+        return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
         # the assembler translates "WAIT" into two instructions
         #prog.add_instruction({'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)
         #prog.add_instruction({'CMD':'WAIT', 'ADDR':None, 'TIME': f'{self.time}'}, addr_inc=2)
@@ -129,6 +130,11 @@ class Sync(Macro):
     def expand(self, prog):
         t_reg = prog.us2cycles(self.time)
         return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
+
+class SetTimeReg(Macro):
+    def expand(self, prog):
+        t_reg = prog.us2cycles(self.time)
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{t_reg}'}, addr_inc=1)]
 
 """
 class SetReg(Macro):
@@ -550,6 +556,9 @@ class QickProgramV2(AbsQickProgram):
         self.decrement_timestamps(time)
         self.macro_list.append(Sync(time=time))
 
+    def set_timereg(self, time):
+        self.macro_list.append(SetTimeReg(time=time))
+
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
         reg = {1:'s12', 2:'s13'}[addr]
@@ -656,7 +665,7 @@ class QickProgramV2(AbsQickProgram):
         pulse_length /= self.soccfg['gens'][ch]['f_fabric'] # convert to us
         ts = self.get_timestamp(gen_ch=ch)
         if t == 'auto':
-            t = int(ts) #TODO: 0?
+            t = ts #TODO: 0?
             self.set_timestamp(t + pulse_length, gen_ch=ch)
         else:
             if t<ts:
@@ -666,7 +675,8 @@ class QickProgramV2(AbsQickProgram):
                 self.set_timestamp(t + pulse_length, gen_ch=ch)
         
         tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(self.us2cycles(t))})
+        #self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(self.us2cycles(t))})
+        self.set_timereg(t)
         for wavename in pulse['wavenames']:
             idx = self.wave2idx[wavename]
             self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
@@ -700,6 +710,7 @@ class QickProgramV2(AbsQickProgram):
     # timeline management and triggering
 
     def trigger(self, ros=None, pins=None, t=0, width=10):
+        width_us = self.cycles2us(width)
         treg = self.us2cycles(t)
         #TODO: add DDR4+MR buffers, ADC offset
         if ros is None: ros = []
@@ -727,14 +738,17 @@ class QickProgramV2(AbsQickProgram):
                 trigset.add(portnum)
 
         if outdict:
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg)})
+            #self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg)})
+            self.set_timereg(t)
             for outport, out in outdict.items():
                 self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)})
-            self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width)})
+            #self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width)})
+            self.set_timereg(t+width_us)
             for outport, out in outdict.items():
                 self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'})
         if trigset:
             for outport in trigset:
+                #TODO: support sweeps here?
                 self.add_instruction({'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(treg)})
                 self.add_instruction({'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(treg+width)})
 
@@ -745,5 +759,5 @@ class QickProgramV2(AbsQickProgram):
             self.reset_timestamps()
 
     def wait_all(self, t=0):
-        self.wait(self.us2cycles(t + self.get_max_timestamp(gens=False, ros=True)))
+        self.wait(t + self.get_max_timestamp(gens=False, ros=True))
 
