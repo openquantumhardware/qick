@@ -906,8 +906,14 @@ class AbsQickProgram:
                         addr=pulse['addr'])
 
     def reset_timestamps(self, gen_t0=None):
+        # used by init and sync_all()
         self._gen_ts = [0]*len(self._gen_ts) if gen_t0 is None else gen_t0.copy()
         self._ro_ts = [0]*len(self._ro_ts)
+
+    def decrement_timestamps(self, t):
+        # used by sync() in v2
+        self._gen_ts = [max(0, x-t) for x in self._gen_ts]
+        self._ro_ts = [max(0, x-t) for x in self._ro_ts]
 
     def get_timestamp(self, gen_ch=None, ro_ch=None):
         if gen_ch is not None and ro_ch is not None:

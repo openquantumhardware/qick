@@ -127,7 +127,8 @@ class Wait(Macro):
 
 class Sync(Macro):
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{self.time}'}, addr_inc=1)]
+        t_reg = prog.us2cycles(self.time)
+        return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
 
 """
 class SetReg(Macro):
@@ -289,7 +290,7 @@ class AbsGenManager(AbsRegisterManager):
         Returns
         -------
         int
-        Compiled mode code in binary
+            Compiled mode code in binary
         """
         if outsel is None: outsel = "product"
         if mode is None: mode = "oneshot"
@@ -546,6 +547,7 @@ class QickProgramV2(AbsQickProgram):
         self.macro_list.append(Wait(time=time))
 
     def sync(self, time):
+        self.decrement_timestamps(time)
         self.macro_list.append(Sync(time=time))
 
     def set_ext_counter(self, addr=1, val=0):
@@ -650,21 +652,21 @@ class QickProgramV2(AbsQickProgram):
 
     def pulse(self, ch, name, t=0):
         pulse = self.pulses[name]
-        pulse_length = pulse['length']
-        pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
+        pulse_length = pulse['length'] # in generator ticks
+        pulse_length /= self.soccfg['gens'][ch]['f_fabric'] # convert to us
         ts = self.get_timestamp(gen_ch=ch)
         if t == 'auto':
             t = int(ts) #TODO: 0?
-            self.set_timestamp(int(ts + pulse_length), gen_ch=ch)
+            self.set_timestamp(t + pulse_length, gen_ch=ch)
         else:
             if t<ts:
                 print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
-                self.set_timestamp(int(ts + pulse_length), gen_ch=ch)
+                self.set_timestamp(ts + pulse_length, gen_ch=ch)
             else:
-                self.set_timestamp(int(t + pulse_length), gen_ch=ch)
+                self.set_timestamp(t + pulse_length, gen_ch=ch)
         
         tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(t)})
+        self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(self.us2cycles(t))})
         for wavename in pulse['wavenames']:
             idx = self.wave2idx[wavename]
             self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
@@ -711,10 +713,10 @@ class QickProgramV2(AbsQickProgram):
             else:
                 trigset.add(rocfg['trigger_port'])
             ts = self.get_timestamp(ro_ch=ro)
-            if treg < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(tireg, ts))
+            if t < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
             ro_length = self.ro_chs[ro]['length']
-            ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
-            self.set_timestamp(int(treg + ro_length), ro_ch=ro)
+            ro_length /= self.soccfg['readouts'][ro]['f_fabric']
+            self.set_timestamp(t + ro_length, ro_ch=ro)
             # update trigger count for this readout
             self.ro_chs[ro]['trigs'] += 1
         for pin in pins:
@@ -737,13 +739,11 @@ class QickProgramV2(AbsQickProgram):
                 self.add_instruction({'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(treg+width)})
 
     def sync_all(self, t=0):
-        treg = self.us2cycles(t)
         max_t = self.get_max_timestamp()
-        if max_t+treg > 0:
-            self.sync(int(max_t+treg))
+        if max_t+t > 0:
+            self.sync(max_t+t)
             self.reset_timestamps()
 
     def wait_all(self, t=0):
-        treg = self.us2cycles(t)
-        self.wait(int(self.get_max_timestamp(gens=False, ros=True) + treg))
+        self.wait(self.us2cycles(t + self.get_max_timestamp(gens=False, ros=True)))
 
