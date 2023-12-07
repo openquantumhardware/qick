@@ -29,15 +29,6 @@ class Wave(NamedTuple):
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
 
-class QickRegister:
-    def __init__(self, addr: int, name: str = None):
-        self.addr = addr
-        self.name = name
-
-class QickLoop(NamedTuple):
-    name: str
-    n: int
-
 class QickSweep(NamedTuple):
     start: float
     end: float
@@ -46,6 +37,15 @@ class QickSweep(NamedTuple):
         swpstart = to_int(self.start, scale, quantize=quantize)
         swprange = to_int(self.end-self.start, scale, quantize=quantize)
         return QickSweepRaw(par=parname, start=swpstart, range=swprange, loop=self.loop, quantize=quantize)
+    def __gt__(self, a):
+        return min(self.start, self.end) > a
+    def __lt__(self, a):
+        # used when comparing timestamps
+        return max(self.start, self.end) < a
+    def __add__(self, a):
+        # this is used to sum times
+        # TODO: this should return a sweep
+        return self.start+a
 
 class QickSweepRaw(NamedTuple):
     par: str
@@ -79,6 +79,15 @@ class QickSweepRaw(NamedTuple):
     def __rmul__(self, a):
         return self*a
 
+class QickRegister(NamedTuple):
+    addr: int
+    name: str = None
+    val: QickSweepRaw = None
+
+class QickLoop(NamedTuple):
+    name: str
+    n: int
+
 class Macro(SimpleNamespace):
     def set_label(self, label):
         # set label for this instruction; this will be applied to the first ASM instruction
@@ -94,19 +103,19 @@ class Macro(SimpleNamespace):
 
     def expand(self, prog):
         # expand to other instructions
-        # TODO: raise exception?
+        # TODO: raise exception if this is undefined and translate is not overriden?
+        pass
+
+    def preprocess(self, prog):
+        # allocate registers and stuff?
         pass
 
 class AsmInst(Macro):
     def translate(self, prog):
-        inst = self.inst.copy()
-        inst['P_ADDR'] = prog.p_addr
-        inst['LINE'] = prog.line
-        prog.p_addr += self.addr_inc
-        prog.line += 1
-        prog.prog_list.append(inst)
         if hasattr(self, 'label'):
-            prog.labels[self.label] = '&%d' % (len(prog.prog_list))
+            prog.add_asm(self.inst.copy(), self.addr_inc, self.label)
+        else:
+            prog.add_asm(self.inst.copy(), self.addr_inc)
 
 class Label(Macro):
     def translate(self, prog):
@@ -131,10 +140,85 @@ class Sync(Macro):
         t_reg = prog.us2cycles(self.time)
         return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
 
-class SetTimeReg(Macro):
+class LoadWave(Macro):
     def expand(self, prog):
-        t_reg = prog.us2cycles(self.time)
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{t_reg}'}, addr_inc=1)]
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'}, addr_inc=1)]
+
+class WriteWave(Macro):
+    def expand(self, prog):
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
+
+class IncrementWave(Macro):
+    def expand(self, prog):
+        insts = []
+
+        op = '+'
+        #op = '-' if step<0 else '+'
+        #step = abs(step)
+        iPar = Wave._fields.index(self.par)
+        # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
+        #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
+
+        # immediate arguments to operations must be 24-bit
+        if check_bytes(self.step, 3):
+            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{self.step}'}, addr_inc=1))
+        else:
+            # constrain the value to signed 32-bit
+            steptrunc = np.int64(self.step).astype(np.int32)
+            tmpreg = prog.get_reg("scratch", lazy_init=True)
+            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{tmpreg.addr}','SRC':'imm','LIT':f'{steptrunc}'}, addr_inc=1))
+            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} r{tmpreg.addr}'}, addr_inc=1))
+
+        return insts
+
+class SetTimeReg(Macro):
+    def preprocess(self, prog):
+        self.regval = prog.us2cycles(self.time)
+        if isinstance(self.regval, QickSweepRaw):
+            self.t_reg = prog.new_reg(val=self.regval)
+    def expand(self, prog):
+        if isinstance(self.regval, QickSweepRaw):
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{self.t_reg.addr}'}, addr_inc=1)]
+        else:
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{self.regval}'}, addr_inc=1)]
+
+class EndLoop(Macro):
+    def expand(self, prog):
+        insts = []
+
+        lname, lcount = prog.loop_stack.pop()
+        lreg = prog.user_reg_dict[lname]
+
+        # check for wave sweeps
+        for wname, (wave, sweeps) in prog.waves.items():
+            lsweeps = [s for s in sweeps if s.loop==lname]
+            if lsweeps:
+                insts.append(LoadWave(name=wname))
+                for s in lsweeps:
+                    insts.append(IncrementWave(par=s.par, step=s.step(lcount)))
+                insts.append(WriteWave(name=wname))
+
+        # check for register sweeps
+        for reg in prog.user_reg_dict.values():
+            if reg.val is not None:
+                insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'op','OP':f'r{reg.addr} + #{reg.val.step(lcount)}'}, addr_inc=1))
+
+        # increment and test the loop counter
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
+
+        # check for wave sweeps - if we swept a parameter, we should restore it to its original value
+        for wname, (wave, sweeps) in prog.waves.items():
+            lsweeps = [s for s in sweeps if s.loop==lname]
+            if lsweeps:
+                insts.append(LoadWave(name=wname))
+                for s in lsweeps:
+                    insts.append(IncrementWave(par=s.par, step=-1*lcount*s.step(lcount)))
+                insts.append(WriteWave(name=wname))
+        return insts
+
 
 """
 class SetReg(Macro):
@@ -474,11 +558,27 @@ class QickProgramV2(AbsQickProgram):
         return binprog
 
     def expand_macros(self):
+        for i, macro in enumerate(self.macro_list):
+            macro.preprocess(self)
         self.init_asm()
+        # initialize sweep registers
+        for reg in self.user_reg_dict.values():
+            if reg.val is not None:
+                self.add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.val.start}'})
         for i, macro in enumerate(self.macro_list):
             if isinstance(macro, Label):
                 self.macro_list[i+1].set_label(macro.label)
             macro.translate(self)
+
+    def add_asm(self, inst, addr_inc=1, label=None):
+        inst = inst.copy()
+        inst['P_ADDR'] = self.p_addr
+        inst['LINE'] = self.line
+        self.p_addr += addr_inc
+        self.line += 1
+        self.prog_list.append(inst)
+        if label is not None:
+            self.labels[label] = '&%d' % (len(self.prog_list))
 
     def asm(self):
         self.expand_macros()
@@ -573,7 +673,7 @@ class QickProgramV2(AbsQickProgram):
     
     # registers and control
 
-    def new_reg(self, addr: int = None, name: str = None):
+    def new_reg(self, addr: int = None, name: str = None, val: QickSweepRaw = None):
         """ Declare a new data register.
 
         :param addr: address of the new register. If None, the function will automatically try to find the next
@@ -595,11 +695,11 @@ class QickProgramV2(AbsQickProgram):
         self._user_regs.append(addr)
 
         if name is None:
-            name = f"reg_page{addr}"
+            name = f"reg_{addr}"
         if name in self.user_reg_dict.keys():
             raise NameError(f"register name '{name}' already exists")
 
-        reg = QickRegister(addr=addr, name=name)
+        reg = QickRegister(addr=addr, name=name, val=val)
         self.user_reg_dict[name] = reg
 
         return reg
@@ -622,32 +722,7 @@ class QickProgramV2(AbsQickProgram):
         self.add_label(name.upper())
     
     def close_loop(self):
-        lname, lcount = self.loop_stack.pop()
-        reg = self.user_reg_dict[lname]
-        
-        # check for sweeps
-        for wname, (wave, sweeps) in self.waves.items():
-            lsweeps = [s for s in sweeps if s.loop==lname]
-            if lsweeps:
-                self.load_wave(wname)
-                for s in lsweeps:
-                    self.increment_wave(s.par, s.step(lcount))
-                self.write_wave(wname)
-
-        # increment and test the loop counter
-        self.add_instruction({'CMD':'REG_WR', 'DST':f'r{reg.addr}', 'SRC':'op', 'OP':f'r{reg.addr}-#1', 'UF':'1'})
-        self.add_instruction({'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'})
-#         self.add_instruction({'CMD':'JUMP', 'LABEL':name.upper(), 'IF':'NZ', 'WR':f'r{reg.addr} op', 'OP':f'r{reg.addr}-#1', 'UF':'1' })
-
-        # check for sweeps - if we swept a parameter, we should restore it to its original value
-        for wname, (wave, sweeps) in self.waves.items():
-            lsweeps = [s for s in sweeps if s.loop==lname]
-            if lsweeps:
-                self.load_wave(wname)
-                for s in lsweeps:
-                    self.increment_wave(s.par, -1*lcount*s.step(lcount))
-                self.write_wave(wname)
-
+        self.macro_list.append(EndLoop())
 
 
     # waves+pulses
@@ -681,32 +756,6 @@ class QickProgramV2(AbsQickProgram):
             idx = self.wave2idx[wavename]
             self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
 
-    def load_wave(self, name):
-        addr = self.wave2idx[name]
-        self.add_instruction({'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'})
-
-    def write_wave(self, name):
-        addr = self.wave2idx[name]
-        self.add_instruction({'CMD':'WMEM_WR', 'DST':f'&{addr}'})
-
-    def increment_wave(self, par: str, step: int):
-        op = '+'
-        #op = '-' if step<0 else '+'
-        #step = abs(step)
-        iPar = Wave._fields.index(par)
-        # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
-        #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
-
-        # immediate arguments to operations must be 24-bit
-        if check_bytes(step, 3):
-            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{step}'})
-        else:
-            # constrain the value to signed 32-bit
-            step = np.int64(step).astype(np.int32)
-            tmpreg = self.get_reg("scratch", lazy_init=True)
-            self.add_instruction({'CMD':'REG_WR', 'DST':f'r{tmpreg.addr}','SRC':'imm','LIT':f'{step}'})
-            self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} r{tmpreg.addr}'})
-
     # timeline management and triggering
 
     def trigger(self, ros=None, pins=None, t=0, width=10):
@@ -738,11 +787,9 @@ class QickProgramV2(AbsQickProgram):
                 trigset.add(portnum)
 
         if outdict:
-            #self.add_instruction({'CMD':"REG_WR", 'DST':'s14', 'SRC':'imm', 'LIT': str(treg)})
             self.set_timereg(t)
             for outport, out in outdict.items():
                 self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)})
-            #self.add_instruction({'CMD':"REG_WR", 'DST':'s14','SRC':'imm', 'LIT':str(treg+width)})
             self.set_timereg(t+width_us)
             for outport, out in outdict.items():
                 self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'})
