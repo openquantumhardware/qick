@@ -44,8 +44,23 @@ class QickSweep(NamedTuple):
         return max(self.start, self.end) < a
     def __add__(self, a):
         # this is used to sum times
-        # TODO: this should return a sweep
-        return self.start+a
+        if isinstance(a, QickSweep):
+            assert self.loop==a.loop
+            return QickSweep(self.start+a.start, self.end+a.end, self.loop)
+        else:
+            return QickSweep(self.start+a, self.end+a, self.loop)
+    def __sub__(self, a):
+        # this is used to sum times
+        if isinstance(a, QickSweep):
+            assert self.loop==a.loop
+            return QickSweep(self.start-a.start, self.end-a.end, self.loop)
+        else:
+            return QickSweep(self.start-a, self.end-a, self.loop)
+    def __radd__(self, a):
+        return self+a
+    def __rsub__(self, a):
+        # we can assume a is not a sweep
+        return QickSweep(a-self.start, a-self.end, self.loop)
 
 class QickSweepRaw(NamedTuple):
     par: str
@@ -110,6 +125,24 @@ class Macro(SimpleNamespace):
         # allocate registers and stuff?
         pass
 
+    def convert_time(self, prog, t, name):
+        # helper method, to be used in preprocess()
+        # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
+        t_reg = prog.us2cycles(t)
+        if isinstance(t_reg, QickSweepRaw):
+            t_reg = prog.new_reg(val=t_reg)
+        if not hasattr(self, "t_reg"):
+            self.t_reg = {}
+        self.t_reg[name] = t_reg
+
+    def set_timereg(self, prog, name):
+        # helper method, to be used in expand()
+        t_reg = self.t_reg[name]
+        if isinstance(t_reg, QickRegister):
+            return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
+        else:
+            return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{t_reg}'}, addr_inc=1)
+
 class AsmInst(Macro):
     def translate(self, prog):
         if hasattr(self, 'label'):
@@ -126,19 +159,6 @@ class End(Macro):
         return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
         #prog.add_instruction({'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'})
         #prog.add_instruction({'CMD':'JUMP', 'ADDR':None})
-
-class Wait(Macro):
-    def expand(self, prog):
-        t_reg = prog.us2cycles(self.time)
-        return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
-        # the assembler translates "WAIT" into two instructions
-        #prog.add_instruction({'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{self.time}'}, addr_inc=2)
-        #prog.add_instruction({'CMD':'WAIT', 'ADDR':None, 'TIME': f'{self.time}'}, addr_inc=2)
-
-class Sync(Macro):
-    def expand(self, prog):
-        t_reg = prog.us2cycles(self.time)
-        return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
 
 class LoadWave(Macro):
     def expand(self, prog):
@@ -173,16 +193,132 @@ class IncrementWave(Macro):
 
         return insts
 
-class SetTimeReg(Macro):
+class Wait(Macro):
     def preprocess(self, prog):
-        self.regval = prog.us2cycles(self.time)
-        if isinstance(self.regval, QickSweepRaw):
-            self.t_reg = prog.new_reg(val=self.regval)
+        if self.auto:
+            max_t = prog.get_max_timestamp(gens=False, ros=True)
+            self.convert_time(prog, max_t + self.t, "t")
+        else:
+            self.convert_time(prog, self.t, "t")
     def expand(self, prog):
-        if isinstance(self.regval, QickSweepRaw):
+        t_reg = self.t_reg["t"]
+        if isinstance(t_reg, QickRegister):
+            raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
+        else:
+            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
+
+class Sync(Macro):
+    def preprocess(self, prog):
+        if self.auto:
+            max_t = prog.get_max_timestamp()
+            self.convert_time(prog, max_t+self.t, "t")
+            prog.reset_timestamps()
+        else:
+            self.convert_time(prog, self.t, "t")
+            prog.decrement_timestamps(self.t)
+    def expand(self, prog):
+        t_reg = self.t_reg["t"]
+        if isinstance(t_reg, QickRegister):
+            return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'SRC':f'r{t_reg.addr}'}, addr_inc=1)]
+        else:
+            return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
+
+"""
+class SetTimeReg(Macro):
+    # time
+    def preprocess(self, prog):
+        # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
+        self.t_reg = prog.us2cycles(self.t)
+        if isinstance(self.t_reg, QickSweepRaw):
+            self.t_reg = prog.new_reg(val=self.t_reg)
+    def expand(self, prog):
+        if isinstance(self.t_reg, QickRegister):
             return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{self.t_reg.addr}'}, addr_inc=1)]
         else:
-            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{self.regval}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{self.t_reg}'}, addr_inc=1)]
+"""
+
+class Pulse(Macro):
+    # ch, name, t
+    def preprocess(self, prog):
+        pulse = prog.pulses[self.name]
+        pulse_length = pulse['length'] # in generator ticks
+        pulse_length /= prog.soccfg['gens'][self.ch]['f_fabric'] # convert to us
+        ts = prog.get_timestamp(gen_ch=self.ch)
+        t = self.t
+        if t == 'auto':
+            t = ts #TODO: 0?
+            prog.set_timestamp(t + pulse_length, gen_ch=self.ch)
+        else:
+            if t<ts:
+                print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
+                prog.set_timestamp(ts + pulse_length, gen_ch=self.ch)
+            else:
+                prog.set_timestamp(t + pulse_length, gen_ch=self.ch)
+        self.convert_time(prog, t, "t")
+
+    def expand(self, prog):
+        insts = []
+        pulse = prog.pulses[self.name]
+        tproc_ch = prog.soccfg['gens'][self.ch]['tproc_ch']
+        insts.append(self.set_timereg(prog, "t"))
+        for wavename in pulse['wavenames']:
+            idx = prog.wave2idx[wavename]
+            insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
+        return insts
+
+class Trigger(Macro):
+    # ros, pins, t, width
+    #TODO: add DDR4+MR buffers, ADC offset
+    def preprocess(self, prog):
+        if self.width is None: self.width = prog.cycles2us(10)
+        if self.ros is None: self.ros = []
+        if self.pins is None: self.pins = []
+        self.outdict = defaultdict(int)
+        self.trigset = set()
+
+        #treg = self.us2cycles(t)
+        self.convert_time(prog, self.t, "t_start")
+        self.convert_time(prog, self.t+self.width, "t_end")
+
+        for ro in self.ros:
+            rocfg = prog.soccfg['readouts'][ro]
+            if rocfg['trigger_type'] == 'dport':
+                self.outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
+            else:
+                self.trigset.add(rocfg['trigger_port'])
+            ts = prog.get_timestamp(ro_ch=ro)
+            if self.t < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
+            ro_length = prog.ro_chs[ro]['length']
+            ro_length /= prog.soccfg['readouts'][ro]['f_fabric']
+            prog.set_timestamp(self.t + ro_length, ro_ch=ro)
+            # update trigger count for this readout
+            prog.ro_chs[ro]['trigs'] += 1
+        for pin in self.pins:
+            porttype, portnum, pinnum, _ = prog.soccfg['tprocs'][0]['output_pins'][pin]
+            if porttype == 'dport':
+                self.outdict[portnum] |= (1 << pinnum)
+            else:
+                self.trigset.add(portnum)
+
+    def expand(self, prog):
+        insts = []
+        if self.outdict:
+            insts.append(self.set_timereg(prog, "t_start"))
+            for outport, out in self.outdict.items():
+                insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)}, addr_inc=1))
+            insts.append(self.set_timereg(prog, "t_end"))
+            for outport, out in self.outdict.items():
+                insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'}, addr_inc=1))
+        if self.trigset:
+            t_start = self.t_reg["t_start"]
+            t_end = self.t_reg["t_end"]
+            if isinstance(t_start, QickSweepRaw) or isinstance(t_end, QickSweepRaw):
+                raise RuntimeError("trig ports do not support sweeps for start time or duration")
+            for outport in self.trigset:
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(t_start)}, addr_inc=1))
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(t_end)}, addr_inc=1))
+        return insts
 
 class EndLoop(Macro):
     def expand(self, prog):
@@ -506,6 +642,12 @@ class QickProgramV2(AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
+        # user commands can add macros and/or waveforms+pulses to the program
+        # macros are user commands
+        # preprocessing: allocate registers, convert sweeps from physical units to ASM values, define the timeline
+        # preprocessing allows us to initialize registers at the start of the program
+        # expanding/translating: convert macros to lower-level macros and then to ASM
+
         # high-level instruction list
         self.init_macros()
 
@@ -649,15 +791,16 @@ class QickProgramV2(AbsQickProgram):
     def end(self):
         self.macro_list.append(End())
 
-    def wait(self, time):
-        self.macro_list.append(Wait(time=time))
+    def wait(self, t):
+        self.macro_list.append(Wait(t=t, auto=False))
 
-    def sync(self, time):
-        self.decrement_timestamps(time)
-        self.macro_list.append(Sync(time=time))
+    def sync(self, t):
+        self.macro_list.append(Sync(t=t, auto=False))
 
-    def set_timereg(self, time):
-        self.macro_list.append(SetTimeReg(time=time))
+    """
+    def set_timereg(self, t):
+        self.macro_list.append(SetTimeReg(t=t))
+    """
 
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
@@ -735,76 +878,16 @@ class QickProgramV2(AbsQickProgram):
         self._gen_mgrs[ch].add_pulse(name, kwargs)
 
     def pulse(self, ch, name, t=0):
-        pulse = self.pulses[name]
-        pulse_length = pulse['length'] # in generator ticks
-        pulse_length /= self.soccfg['gens'][ch]['f_fabric'] # convert to us
-        ts = self.get_timestamp(gen_ch=ch)
-        if t == 'auto':
-            t = ts #TODO: 0?
-            self.set_timestamp(t + pulse_length, gen_ch=ch)
-        else:
-            if t<ts:
-                print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
-                self.set_timestamp(ts + pulse_length, gen_ch=ch)
-            else:
-                self.set_timestamp(t + pulse_length, gen_ch=ch)
-        
-        tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-        #self.add_instruction({'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':str(self.us2cycles(t))})
-        self.set_timereg(t)
-        for wavename in pulse['wavenames']:
-            idx = self.wave2idx[wavename]
-            self.add_instruction({'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)})
+        self.macro_list.append(Pulse(ch=ch, name=name, t=t))
 
     # timeline management and triggering
 
-    def trigger(self, ros=None, pins=None, t=0, width=10):
-        width_us = self.cycles2us(width)
-        treg = self.us2cycles(t)
-        #TODO: add DDR4+MR buffers, ADC offset
-        if ros is None: ros = []
-        if pins is None: pins = []
-        outdict = defaultdict(int)
-        trigset = set()
-        for ro in ros:
-            rocfg = self.soccfg['readouts'][ro]
-            if rocfg['trigger_type'] == 'dport':
-                outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
-            else:
-                trigset.add(rocfg['trigger_port'])
-            ts = self.get_timestamp(ro_ch=ro)
-            if t < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
-            ro_length = self.ro_chs[ro]['length']
-            ro_length /= self.soccfg['readouts'][ro]['f_fabric']
-            self.set_timestamp(t + ro_length, ro_ch=ro)
-            # update trigger count for this readout
-            self.ro_chs[ro]['trigs'] += 1
-        for pin in pins:
-            porttype, portnum, pinnum, _ = self.soccfg['tprocs'][0]['output_pins'][pin]
-            if porttype == 'dport':
-                outdict[portnum] |= (1 << pinnum)
-            else:
-                trigset.add(portnum)
-
-        if outdict:
-            self.set_timereg(t)
-            for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)})
-            self.set_timereg(t+width_us)
-            for outport, out in outdict.items():
-                self.add_instruction({'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'})
-        if trigset:
-            for outport in trigset:
-                #TODO: support sweeps here?
-                self.add_instruction({'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(treg)})
-                self.add_instruction({'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(treg+width)})
+    def trigger(self, ros=None, pins=None, t=0, width=None):
+        self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
 
     def sync_all(self, t=0):
-        max_t = self.get_max_timestamp()
-        if max_t+t > 0:
-            self.sync(max_t+t)
-            self.reset_timestamps()
+        self.macro_list.append(Sync(t=t, auto=True))
 
     def wait_all(self, t=0):
-        self.wait(t + self.get_max_timestamp(gens=False, ros=True))
+        self.macro_list.append(Wait(t=t, auto=True))
 
