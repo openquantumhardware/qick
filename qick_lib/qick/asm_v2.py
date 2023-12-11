@@ -104,15 +104,9 @@ class QickLoop(NamedTuple):
     n: int
 
 class Macro(SimpleNamespace):
-    def set_label(self, label):
-        # set label for this instruction; this will be applied to the first ASM instruction
-        self.label = label
-
     def translate(self, prog):
         # translate to ASM and push to prog_list
         insts = self.expand(prog)
-        if hasattr(self, 'label'):
-            insts[0].set_label(self.label)
         for inst in insts:
             inst.translate(prog)
 
@@ -145,14 +139,11 @@ class Macro(SimpleNamespace):
 
 class AsmInst(Macro):
     def translate(self, prog):
-        if hasattr(self, 'label'):
-            prog.add_asm(self.inst.copy(), self.addr_inc, self.label)
-        else:
-            prog.add_asm(self.inst.copy(), self.addr_inc)
+        prog.add_asm(self.inst.copy(), self.addr_inc)
 
 class Label(Macro):
     def translate(self, prog):
-        pass
+        prog.add_label(self.label)
 
 class End(Macro):
     def expand(self, prog):
@@ -222,21 +213,6 @@ class Sync(Macro):
             return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'SRC':f'r{t_reg.addr}'}, addr_inc=1)]
         else:
             return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
-
-"""
-class SetTimeReg(Macro):
-    # time
-    def preprocess(self, prog):
-        # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
-        self.t_reg = prog.us2cycles(self.t)
-        if isinstance(self.t_reg, QickSweepRaw):
-            self.t_reg = prog.new_reg(val=self.t_reg)
-    def expand(self, prog):
-        if isinstance(self.t_reg, QickRegister):
-            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{self.t_reg.addr}'}, addr_inc=1)]
-        else:
-            return [AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{self.t_reg}'}, addr_inc=1)]
-"""
 
 class Pulse(Macro):
     # ch, name, t
@@ -318,6 +294,23 @@ class Trigger(Macro):
             for outport in self.trigset:
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(t_start)}, addr_inc=1))
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(t_end)}, addr_inc=1))
+        return insts
+
+class StartLoop(Macro):
+    def preprocess(self, prog):
+        pass
+
+    def expand(self, prog):
+        insts = []
+        name = self.name
+        if name is None: name = f"loop_{len(self.loop_list)}"
+        loop = QickLoop(name, self.n)
+        reg = prog.new_reg(name=name, addr=self.addr)
+        prog.loop_list.append(loop)
+        prog.loop_stack.append(loop)
+        # initialize the loop counter to zero and set the loop label
+        insts.append(AsmInst(inst={'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(self.n)}, addr_inc=1))
+        insts.append(Label(label=name.upper()))
         return insts
 
 class EndLoop(Macro):
@@ -648,6 +641,10 @@ class QickProgramV2(AbsQickProgram):
         # preprocessing allows us to initialize registers at the start of the program
         # expanding/translating: convert macros to lower-level macros and then to ASM
 
+        # to convert sweeps from user values to ASM, we need:
+        # loop lengths
+        # the timeline
+
         # high-level instruction list
         self.init_macros()
 
@@ -708,19 +705,18 @@ class QickProgramV2(AbsQickProgram):
             if reg.val is not None:
                 self.add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.val.start}'})
         for i, macro in enumerate(self.macro_list):
-            if isinstance(macro, Label):
-                self.macro_list[i+1].set_label(macro.label)
             macro.translate(self)
 
-    def add_asm(self, inst, addr_inc=1, label=None):
+    def add_asm(self, inst, addr_inc=1):
         inst = inst.copy()
         inst['P_ADDR'] = self.p_addr
         inst['LINE'] = self.line
         self.p_addr += addr_inc
         self.line += 1
         self.prog_list.append(inst)
-        if label is not None:
-            self.labels[label] = '&%d' % (len(self.prog_list))
+
+    def add_label(self, label):
+        self.labels[label] = '&%d' % (len(self.prog_list)+1)
 
     def asm(self):
         self.expand_macros()
@@ -780,11 +776,10 @@ class QickProgramV2(AbsQickProgram):
             for inst in insts:
                 inst.translate_instruction(self)
 
-    def add_label(self, label):
+    def label(self, label):
         """apply the specified label to the next instruction
         """
         self.macro_list.append(Label(label=label))
-        #self.labels[label] = '&' + str(len(self.prog_list)+1)
 
     # low-level macros
 
@@ -855,14 +850,7 @@ class QickProgramV2(AbsQickProgram):
         return self.user_reg_dict[name]
 
     def open_loop(self, n, name=None, addr=None):
-        if name is None: name = f"loop_{len(self.loop_list)}"
-        loop = QickLoop(name, n)
-        reg = self.new_reg(name=name, addr=addr)
-        self.loop_list.append(loop)
-        self.loop_stack.append(loop)
-        # initialize the loop counter to zero and set the loop label
-        self.add_instruction({'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(n)})
-        self.add_label(name.upper())
+        self.macro_list.append(StartLoop(n=n, name=name, addr=addr))
     
     def close_loop(self):
         self.macro_list.append(EndLoop())
