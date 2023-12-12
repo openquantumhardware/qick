@@ -135,7 +135,7 @@ class Macro(SimpleNamespace):
         if isinstance(t_reg, QickRegister):
             return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
         else:
-            return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'imm' ,'LIT':f'{t_reg}'}, addr_inc=1)
+            return SetReg(reg='s14', val=t_reg)
 
 class AsmInst(Macro):
     def translate(self, prog):
@@ -148,8 +148,6 @@ class Label(Macro):
 class End(Macro):
     def expand(self, prog):
         return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
-        #prog.add_instruction({'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'})
-        #prog.add_instruction({'CMD':'JUMP', 'ADDR':None})
 
 class LoadWave(Macro):
     def expand(self, prog):
@@ -169,17 +167,15 @@ class IncrementWave(Macro):
         #op = '-' if step<0 else '+'
         #step = abs(step)
         iPar = Wave._fields.index(self.par)
-        # workaround for old firmware bug where writes to wave register needed to be preceded by a dummy write
-        #self.add_instruction({'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar}'})
 
         # immediate arguments to operations must be 24-bit
         if check_bytes(self.step, 3):
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} #{self.step}'}, addr_inc=1))
+            insts.append(IncReg(reg=f'w{iPar}', val=self.step))
         else:
             # constrain the value to signed 32-bit
             steptrunc = np.int64(self.step).astype(np.int32)
             tmpreg = prog.get_reg("scratch", lazy_init=True)
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{tmpreg.addr}','SRC':'imm','LIT':f'{steptrunc}'}, addr_inc=1))
+            insts.append(SetReg(reg=f'r{tmpreg.addr}', val=steptrunc))
             insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} r{tmpreg.addr}'}, addr_inc=1))
 
         return insts
@@ -309,7 +305,7 @@ class StartLoop(Macro):
         prog.loop_list.append(loop)
         prog.loop_stack.append(loop)
         # initialize the loop counter to zero and set the loop label
-        insts.append(AsmInst(inst={'CMD':"REG_WR" , 'DST':'r'+str(reg.addr) ,'SRC':'imm' ,'LIT': str(self.n)}, addr_inc=1))
+        insts.append(SetReg(reg='r%d'%(reg.addr), val=self.n))
         insts.append(Label(label=name.upper()))
         return insts
 
@@ -332,7 +328,7 @@ class EndLoop(Macro):
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
             if reg.val is not None:
-                insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'op','OP':f'r{reg.addr} + #{reg.val.step(lcount)}'}, addr_inc=1))
+                insts.append(IncReg(reg=f'r{reg.addr}', val=reg.val.step(lcount)))
 
         # increment and test the loop counter
         insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
@@ -348,16 +344,18 @@ class EndLoop(Macro):
                 insts.append(WriteWave(name=wname))
         return insts
 
+    #TODO: restore after register sweeps?
 
-"""
+
 class SetReg(Macro):
+    # reg, val
     def expand(self, prog):
-        self.add_instruction({'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)})
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)}, addr_inc=1)]
 
 class IncReg(Macro):
+    # reg, val
     def expand(self, prog):
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val)})
-"""
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + #%d'%(self.reg, self.val)}, addr_inc=1)]
 
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
@@ -765,8 +763,8 @@ class QickProgramV2(AbsQickProgram):
 
     # start of ASM code
 
-    def add_instruction(self, inst, addr_inc=1):
-        self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
+    #def add_instruction(self, inst, addr_inc=1):
+    #    self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
 
     def translate_instruction(self, macro):
         if isinstance(macro, AsmInst):
@@ -792,22 +790,15 @@ class QickProgramV2(AbsQickProgram):
     def sync(self, t):
         self.macro_list.append(Sync(t=t, auto=False))
 
-    """
-    def set_timereg(self, t):
-        self.macro_list.append(SetTimeReg(t=t))
-    """
-
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'imm','LIT': "%d"%(val)})
-        #self.macro_list.append(SetReg(reg=reg, val=val))
+        self.macro_list.append(SetReg(reg=reg, val=val))
 
     def inc_ext_counter(self, addr=1, val=1):
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_instruction({'CMD':"REG_WR", 'DST':reg,'SRC':'op','OP': '%s + #%d'%(reg, val)})
-        #self.macro_list.append(IncReg(reg=reg, val=val))
+        self.macro_list.append(IncReg(reg=reg, val=val))
     
     # registers and control
 
