@@ -202,6 +202,7 @@ class AbsGenManager(AbsRegisterManager):
         tproc_ch = self.gencfg['tproc_ch']
         super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
         self.samps_per_clk = self.gencfg['samps_per_clk']
+        self.tmux_ch = self.gencfg.get('tmux_ch') # default to None if undefined
 
         # dictionary of defined pulse envelopes
         self.envelopes = prog.envelopes[gen_ch]
@@ -400,6 +401,9 @@ class FullSpeedGenManager(AbsGenManager):
                 self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode3']])
                 self.next_pulse['length'] = (wfm_length//2)*2 + params['length']
 
+    def get_mode_code(self, **kwargs):
+        return super().get_mode_code(**kwargs) + (self.tmux_ch << 24)
+
 
 class InterpolatedGenManager(AbsGenManager):
     """Manager for the interpolated signal generators.
@@ -458,15 +462,23 @@ class InterpolatedGenManager(AbsGenManager):
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
+
+            # if we use the tproc mux, the mux address needs to be written to its own register
+            if self.tmux_ch is None:
+                tmux_reg = '0'
+            else:
+                self.set_reg('mode3', self.tmux_ch << 24)
+                tmux_reg = 'mode3'
+
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', tmux_reg]])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', tmux_reg]])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 maxv_scale = self.gencfg['maxv_scale']
@@ -485,11 +497,11 @@ class InterpolatedGenManager(AbsGenManager):
                 # gain+addr for ramp-down
                 self.set_reg('addr2', (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode2', '0', tmux_reg]])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'gain', 'mode', '0', tmux_reg]])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr2', 'mode2', '0', tmux_reg]])
                 # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['0', '0', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['0', '0', 'mode', '0', tmux_reg]])
                 # set the pulse duration (including the extra duration for the FIR workaround)
                 self.next_pulse['length'] = (wfm_length//2)*2 + 2*params['length']
 
