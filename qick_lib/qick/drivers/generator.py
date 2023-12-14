@@ -209,6 +209,8 @@ class AbsPulsedSignalGen(AbsSignalGen):
             blocktype = soc.metadata.mod2type(block)
             if blocktype in ["axis_tproc64x32_x8", "qick_processor"]: # we're done
                 break
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = soc.metadata.trace_bus(block, "S_AXIS")
             elif blocktype == "axis_clock_converter":
                 ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
             elif blocktype == "axis_cdcsync_v1":
@@ -216,10 +218,23 @@ class AbsPulsedSignalGen(AbsSignalGen):
                 ((block, port),) = soc.metadata.trace_bus(block, "s"+port[1:])
             elif blocktype == "sg_translator":
                 ((block, port),) = soc.metadata.trace_bus(block, "s_tproc_axis")
+            elif blocktype == "axis_tmux_v1":
+                self.cfg['tmux_ch'] = self.port2ch(port)
+                ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
             else:
                 raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
         # ask the tproc to translate this port name to a channel number
         self.cfg['tproc_ch'],_ = getattr(soc, block).port2ch(port)
+
+    def port2ch(self, portname):
+        """
+        Translate a port name to a channel number.
+        Used in connection mapping.
+        """
+        # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
+        # subtract 1 to get the output channel number (s0/m0 goes to the DMA)
+        chtype = {'m':'output', 's':'input'}[portname[0]]
+        return int(portname.split('_')[0][1:])
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
