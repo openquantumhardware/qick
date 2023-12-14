@@ -937,7 +937,7 @@ class ADMV8818:
             addr = self.REGS[reg]
 
             # Dummy.
-            byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(0)
+            byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(1)
 
             if debug:
                 for b in byte:
