@@ -8,6 +8,7 @@ import xrfdc
 import numpy as np
 import time
 import queue
+from collections import OrderedDict
 from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
@@ -107,8 +108,8 @@ class RFDC(xrfdc.RFdc):
         self.mixer_dict = {}
 
     def configure(self, soc):
-        self.daccfg = soc.dacs
-        self.adccfg = soc.adcs
+        self.daccfg = soc['dacs']
+        self.adccfg = soc['adcs']
 
     def set_mixer_freq(self, dacname, f, force=False, reset=False):
         """
@@ -382,8 +383,6 @@ class QickSoc(Overlay, QickConfig):
             pass
 
         # Fill the config dictionary with driver parameters.
-        self['dacs'] = list(self.dacs.keys())
-        self['adcs'] = list(self.adcs.keys())
         self['gens'] = [gen.cfg for gen in self.gens]
         self['iqs'] = [iq.cfg for iq in self.iqs]
 
@@ -446,8 +445,8 @@ class QickSoc(Overlay, QickConfig):
         dac_fabric_freqs = []
         adc_fabric_freqs = []
         refclk_freqs = []
-        self.dacs = {}
-        self.adcs = {}
+        self['dacs'] = OrderedDict()
+        self['adcs'] = OrderedDict()
 
         for iTile in range(4):
             if rf_config['C_DAC%d_Enable' % (iTile)] != '1':
@@ -466,12 +465,14 @@ class QickSoc(Overlay, QickConfig):
             for iBlock in range(4):
                 if rf_config['C_DAC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
                     continue
+                # define a 2-digit "name" that we'll use to refer to this channel
+                chname = "%d%d" % (iTile, iBlock)
                 interpolation = int(rf_config['C_DAC_Interpolation_Mode%d%d' % (iTile, iBlock)])
-                self.dacs["%d%d" % (iTile, iBlock)] = {'fs': fs,
-                                                       'fs_div': fs_div,
-                                                       'fs_mult': fs_mult,
-                                                       'f_fabric': f_fabric,
-                                                       'interpolation': interpolation}
+                self['dacs'][chname] = {'fs': fs,
+                                       'fs_div': fs_div,
+                                       'fs_mult': fs_mult,
+                                       'f_fabric': f_fabric,
+                                       'interpolation': interpolation}
 
         for iTile in range(4):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
@@ -494,12 +495,14 @@ class QickSoc(Overlay, QickConfig):
                 else:
                     if rf_config['C_ADC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
                         continue
+                # define a 2-digit "name" that we'll use to refer to this channel
+                chname = "%d%d" % (iTile, iBlock)
                 decimation = int(rf_config['C_ADC_Decimation_Mode%d%d' % (iTile, iBlock)])
-                self.adcs["%d%d" % (iTile, iBlock)] = {'fs': fs,
-                                                       'fs_div': fs_div,
-                                                       'fs_mult': fs_mult,
-                                                       'f_fabric': f_fabric,
-                                                       'decimation': decimation}
+                self['adcs'][chname] = {'fs': fs,
+                                       'fs_div': fs_div,
+                                       'fs_mult': fs_mult,
+                                       'f_fabric': f_fabric,
+                                       'decimation': decimation}
 
         def get_common_freq(freqs):
             """
