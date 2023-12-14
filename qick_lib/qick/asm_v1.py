@@ -600,7 +600,6 @@ class QickProgram(AbsQickProgram):
     # 13, 14 and 15 for loop counters, 31 for the trigger time.
     # Pairs of channels share a register page.
     # The flat_top pulse uses some extra registers.
-    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
 
     # Attributes to dump when saving the program to JSON.
     dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
@@ -635,6 +634,7 @@ class QickProgram(AbsQickProgram):
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
 
+        # Mapping from gen/RO channels and parameters to register pages and numbers
         self._gen_pagemap = {}
         self._gen_regmap = {}
         self._ro_pagemap = {}
