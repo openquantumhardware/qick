@@ -20,14 +20,18 @@ logger = logging.getLogger(__name__)
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
+    PULSE_REGISTERS = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
+
     def __init__(self, prog, tproc_ch, ch_name):
         self.prog = prog
         # the tProc output channel controlled by this manager
         self.tproc_ch = tproc_ch
         # the name of this block (for messages)
         self.ch_name = ch_name
-        # the register page used by this manager
-        self.rp = prog._ch_page_tproc(tproc_ch)
+        # the register page and register map for this manager
+        # these are initialized by QickProgram._allocate_registers
+        self.rp = None
+        self.regmap = None
         # default parameters
         self.defaults = {}
         # registers that are fully defined by the default parameters
@@ -58,9 +62,9 @@ class AbsRegisterManager(ABC):
         elif name in self.default_regs:
             # this reg was already written, so we skip it this time
             return
-        r = self.prog._sreg_tproc(self.tproc_ch, name)
+        rp, r = self.regmap[(self.ch, name)]
         if comment is None: comment = f'{name} = {val}'
-        self.prog.safe_regwi(self.rp, r, val, comment)
+        self.prog.safe_regwi(rp, r, val, comment)
 
     def set_defaults(self, kwargs):
         """Set default values for parameters.
@@ -111,9 +115,10 @@ class ReadoutManager(AbsRegisterManager):
     PARAMS_OPTIONAL = ['phrst', 'mode', 'outsel']
 
     def __init__(self, prog, ro_ch):
-        self.rocfg = prog.soccfg['readouts'][ro_ch]
+        self.ch = ro_ch
+        self.rocfg = prog.soccfg['readouts'][self.ch]
         tproc_ch = self.rocfg['tproc_ctrl']
-        super().__init__(prog, tproc_ch, "readout %d"%(ro_ch))
+        super().__init__(prog, tproc_ch, "readout %d"%(self.ch))
 
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
@@ -145,7 +150,7 @@ class ReadoutManager(AbsRegisterManager):
             phrst, mode, outsel = [params.get(x) for x in ['phrst', 'mode', 'outsel']]
             mc = self.get_mode_code(phrst=phrst, mode=mode, outsel=outsel, length=params['length'])
             self.set_reg('mode', mc, f'mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', '0', 'mode', '0', '0']])
+            self.next_pulse['regs'].append([self.regmap[(self.ch, x)][1] for x in ['freq', '0', 'mode', '0', '0']])
 
     def get_mode_code(self, length, outsel=None, mode=None, phrst=None):
         """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
@@ -198,10 +203,12 @@ class AbsGenManager(AbsRegisterManager):
     PARAMS_OPTIONAL = {}
 
     def __init__(self, prog, gen_ch):
-        self.gencfg = prog.soccfg['gens'][gen_ch]
+        self.ch = gen_ch
+        self.gencfg = prog.soccfg['gens'][self.ch]
         tproc_ch = self.gencfg['tproc_ch']
-        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
+        super().__init__(prog, tproc_ch, "generator %d"%(self.ch))
         self.samps_per_clk = self.gencfg['samps_per_clk']
+        self.tmux_ch = self.gencfg.get('tmux_ch') # default to None if undefined
 
         # dictionary of defined pulse envelopes
         self.envelopes = prog.envelopes[gen_ch]
@@ -373,12 +380,12 @@ class FullSpeedGenManager(AbsGenManager):
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', '0', 'gain', 'mode']])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', 'addr', 'gain', 'mode']])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 # address for ramp-down
@@ -395,10 +402,16 @@ class FullSpeedGenManager(AbsGenManager):
                 mc = self.get_mode_code(phrst=False, stdysel=stdysel, mode='oneshot', outsel='product', length=wfm_length//2)
                 self.set_reg('mode3', mc, f'phrst| stdysel | mode | | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
 
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', 'gain2', 'mode']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', 'addr2', 'gain', 'mode3']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', 'addr', 'gain', 'mode2']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', '0', 'gain2', 'mode']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', 'addr2', 'gain', 'mode3']])
                 self.next_pulse['length'] = (wfm_length//2)*2 + params['length']
+
+    def get_mode_code(self, **kwargs):
+        mc = super().get_mode_code(**kwargs)
+        if self.tmux_ch is not None:
+            mc += (self.tmux_ch << 24)
+        return mc
 
 
 class InterpolatedGenManager(AbsGenManager):
@@ -458,15 +471,23 @@ class InterpolatedGenManager(AbsGenManager):
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
+
+            # if we use the tproc mux, the mux address needs to be written to its own register
+            if self.tmux_ch is None:
+                tmux_reg = '0'
+            else:
+                self.set_reg('mode3', self.tmux_ch << 24)
+                tmux_reg = 'mode3'
+
             if style=='const':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel="dds", length=params['length'])
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'addr', 'mode', '0', tmux_reg]])
                 self.next_pulse['length'] = params['length']
             elif style=='arb':
                 mc = self.get_mode_code(phrst=phrst, stdysel=stdysel, mode=mode, outsel=outsel, length=wfm_length)
                 self.set_reg('mode', mc, f'stdysel | mode | outsel = 0b{mc//2**16:>05b} | length = {mc % 2**16} ')
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'addr', 'mode', '0', tmux_reg]])
                 self.next_pulse['length'] = wfm_length
             elif style=='flat_top':
                 maxv_scale = self.gencfg['maxv_scale']
@@ -485,11 +506,11 @@ class InterpolatedGenManager(AbsGenManager):
                 # gain+addr for ramp-down
                 self.set_reg('addr2', (gain << 16) | addr+(wfm_length+1)//2, f'gain = {gain} | addr = {addr}')
 
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr', 'mode2', '0', '0']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'gain', 'mode', '0', '0']])
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'addr2', 'mode2', '0', '0']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'addr', 'mode2', '0', tmux_reg]])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'gain', 'mode', '0', tmux_reg]])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'addr2', 'mode2', '0', tmux_reg]])
                 # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
-                self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['0', '0', 'mode', '0', '0']])
+                self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['0', '0', 'mode', '0', tmux_reg]])
                 # set the pulse duration (including the extra duration for the FIR workaround)
                 self.next_pulse['length'] = (wfm_length//2)*2 + 2*params['length']
 
@@ -531,7 +552,7 @@ class MultiplexedGenManager(AbsGenManager):
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
             self.next_pulse['regs'] = []
-            self.next_pulse['regs'].append([self.prog._sreg_tproc(self.tproc_ch,x) for x in ['freq', 'phase', '0', '0', '0']])
+            self.next_pulse['regs'].append([self.regmap[(self.ch,x)][1] for x in ['freq', 'phase', '0', '0', '0']])
             self.next_pulse['length'] = params['length']
 
 class QickProgram(AbsQickProgram):
@@ -579,7 +600,6 @@ class QickProgram(AbsQickProgram):
     # 13, 14 and 15 for loop counters, 31 for the trigger time.
     # Pairs of channels share a register page.
     # The flat_top pulse uses some extra registers.
-    pulse_registers = ["freq", "phase", "addr", "gain", "mode", "t", "addr2", "gain2", "mode2", "mode3"]
 
     # Attributes to dump when saving the program to JSON.
     dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
@@ -614,12 +634,50 @@ class QickProgram(AbsQickProgram):
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
 
+        # Mapping from gen/RO channels and parameters to register pages and numbers
+        self._gen_pagemap = {}
+        self._gen_regmap = {}
+        self._ro_pagemap = {}
+        self._ro_regmap = {}
+        self._allocate_registers()
+
         # Number of times the whole program is to be run.
         self.rounds = 1
         # Rotation angle and thresholds for single-shot readout.
         self.shot_angle = None
         self.shot_threshold = None
 
+    def _allocate_registers(self):
+        # assign tProc-controlled generator/readout channels to pages
+        # we pack the first channel in page 0
+        # subsequent channels are packed in pairs (which allows for 15 channels)
+        # if pairs won't fit, we pack in triplets
+        mgrs = [x for x in self._gen_mgrs + self._ro_mgrs if x is not None]
+        if (len(mgrs)>15):
+            mgrs_per_page = 3
+        else:
+            mgrs_per_page = 2
+        groups = [[]]
+        for iMgr, mgr in enumerate(mgrs):
+            if iMgr % mgrs_per_page == 1: groups.append([])
+            groups[-1].append(mgr)
+
+        for page, mgrs in enumerate(groups):
+            nRegs = sum([len(mgr.PULSE_REGISTERS) for mgr in mgrs])
+            regnum = 32 - nRegs
+            for iMgr, mgr in enumerate(mgrs):
+                mgr.rp = page
+                if isinstance(mgr, ReadoutManager):
+                    self._ro_pagemap[mgr.ch] = page
+                    mgr.regmap = self._ro_regmap
+                else:
+                    self._gen_pagemap[mgr.ch] = page
+                    mgr.regmap = self._gen_regmap
+                # for convenience, map the zero register
+                mgr.regmap[(mgr.ch, '0')] = (page, 0)
+                for iReg, regname in enumerate(mgr.PULSE_REGISTERS):
+                    mgr.regmap[(mgr.ch, regname)] = (page, regnum)
+                    regnum += 1
 
     def dump_prog(self):
         """
@@ -646,51 +704,6 @@ class QickProgram(AbsQickProgram):
         # load this program into the soc's tproc
         soc.load_bin_program(self.compile(debug=debug), reset=reset)
 
-    def _ch_page_tproc(self, ch):
-        """Gets tProc register page associated with channel.
-        Page 0 gets one tProc output because it also has some other registers.
-        Other pages get two outputs each.
-
-        This method is for internal use only.
-        User code should use ch_page() (for generators) or ch_page_ro() (for readouts).
-
-        Parameters
-        ----------
-        ch : int
-            tProc output channel
-
-        Returns
-        -------
-        int
-            tProc page number
-
-        """
-        return (ch+1)//2
-
-    def _sreg_tproc(self, ch, name):
-        """Gets tProc register number associated with a channel and register name.
-
-        This method is for internal use only.
-        User code should use sreg() (for generators) or sreg_ro() (for readouts).
-
-        Parameters
-        ----------
-        ch : int
-            tProc output channel
-        name : str
-            Name of special register ("gain", "freq")
-
-        Returns
-        -------
-        int
-            tProc special register number
-
-        """
-        # special case for when we want to use the zero register
-        if name=='0': return 0
-        n_regs = len(self.pulse_registers)
-        return 31 - (n_regs * 2) + n_regs*((ch+1)%2) + self.pulse_registers.index(name)
-
     def ch_page(self, gen_ch):
         """Gets tProc register page associated with generator channel.
 
@@ -705,8 +718,7 @@ class QickProgram(AbsQickProgram):
             tProc page number
 
         """
-        tproc_ch = self.soccfg['gens'][gen_ch]['tproc_ch']
-        return self._ch_page_tproc(tproc_ch)
+        return self._gen_pagemap[gen_ch]
 
     def sreg(self, gen_ch, name):
         """Gets tProc special register number associated with a generator channel and register name.
@@ -724,8 +736,7 @@ class QickProgram(AbsQickProgram):
             tProc special register number
 
         """
-        tproc_ch = self.soccfg['gens'][gen_ch]['tproc_ch']
-        return self._sreg_tproc(tproc_ch, name)
+        return self._gen_regmap[(gen_ch, name)][1]
 
     def ch_page_ro(self, ro_ch):
         """Gets tProc register page associated with tProc-controlled readout channel.
@@ -741,8 +752,7 @@ class QickProgram(AbsQickProgram):
             tProc page number
 
         """
-        tproc_ch = self.soccfg['readouts'][ro_ch]['tproc_ctrl']
-        return self._ch_page_tproc(tproc_ch)
+        return self._ro_pagemap[ro_ch]
 
     def sreg_ro(self, ro_ch, name):
         """Gets tProc special register number associated with a readout channel and register name.
@@ -760,8 +770,7 @@ class QickProgram(AbsQickProgram):
             tProc special register number
 
         """
-        tproc_ch = self.soccfg['readouts'][ro_ch]['tproc_ctrl']
-        return self._sreg_tproc(tproc_ch, name)
+        return self._ro_regmap[(ro_ch, name)][1]
 
     def add_pulse(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the waveform library within the program.
@@ -886,12 +895,11 @@ class QickProgram(AbsQickProgram):
         ch_list = ch2list(ch)
         for ch in ch_list:
             tproc_ch = self.soccfg['readouts'][ch]['tproc_ctrl']
-            rp = self._ch_page_tproc(tproc_ch)
+            rp, r_t = self._ro_regmap[(ch, 't')]
             next_pulse = self._ro_mgrs[ch].next_pulse
             if next_pulse is None:
                 raise RuntimeError("no pulse has been set up for channel %d"%(ch))
 
-            r_t = self._sreg_tproc(tproc_ch, 't')
             self.safe_regwi(rp, r_t, t, f't = {t}')
 
             for regs in next_pulse['regs']:
@@ -957,12 +965,10 @@ class QickProgram(AbsQickProgram):
         ch_list = ch2list(ch)
         for ch in ch_list:
             tproc_ch = self.soccfg['gens'][ch]['tproc_ch']
-            rp = self._ch_page_tproc(tproc_ch)
+            rp, r_t = self._gen_regmap[(ch, 't')]
             next_pulse = self._gen_mgrs[ch].next_pulse
             if next_pulse is None:
                 raise RuntimeError("no pulse has been set up for channel %d"%(ch))
-
-            r_t = self._sreg_tproc(tproc_ch, 't')
 
             if t is not None:
                 ts = self.get_timestamp(gen_ch=ch)
@@ -1197,8 +1203,10 @@ class QickProgram(AbsQickProgram):
                 ch_mgr.set_registers(phrst_params)
 
                 # write phase reset time register
-                rp = self._ch_page_tproc(tproc_ch)
-                r_t = self._sreg_tproc(tproc_ch, 't')
+                if ch_type=="generator":
+                    rp, r_t = self._gen_regmap[(ch, 't')]
+                else:
+                    rp, r_t = self._ro_regmap[(ch, 't')]
                 self.safe_regwi(rp, r_t, t, f't = {t}')
                 # schedule phrst at $r_t
                 for regs in ch_mgr.next_pulse["regs"]:
