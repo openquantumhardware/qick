@@ -11,7 +11,7 @@ from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
 
-class Wave(NamedTuple):
+class WaveReg(NamedTuple):
     freq: int
     phase: int
     env: int
@@ -29,70 +29,103 @@ class Wave(NamedTuple):
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
 
-class QickSweep(NamedTuple):
-    start: float
-    end: float
+# user units, single dimension
+class QickRange(NamedTuple):
     loop: str
+    range: float
     def to_int(self, scale, parname, quantize=1):
-        swpstart = to_int(self.start, scale, quantize=quantize)
-        swprange = to_int(self.end-self.start, scale, quantize=quantize)
-        return QickSweepRaw(par=parname, start=swpstart, range=swprange, loop=self.loop, quantize=quantize)
-    def __gt__(self, a):
-        return min(self.start, self.end) > a
-    def __lt__(self, a):
-        # used when comparing timestamps
-        return max(self.start, self.end) < a
+        # this will get called if you use a single QickRange as a parameter
+        return to_int(QickSweep(0, [self]), scale, parname, quantize)
     def __add__(self, a):
-        # this is used to sum times
-        if isinstance(a, QickSweep):
-            assert self.loop==a.loop
-            return QickSweep(self.start+a.start, self.end+a.end, self.loop)
-        else:
-            return QickSweep(self.start+a, self.end+a, self.loop)
-    def __sub__(self, a):
-        # this is used to sum times
-        if isinstance(a, QickSweep):
-            assert self.loop==a.loop
-            return QickSweep(self.start-a.start, self.end-a.end, self.loop)
-        else:
-            return QickSweep(self.start-a, self.end-a, self.loop)
+        return QickSweep(start=0, sweeps=[self])+a
     def __radd__(self, a):
         return self+a
-    def __rsub__(self, a):
-        # we can assume a is not a sweep
-        return QickSweep(a-self.start, a-self.end, self.loop)
+    def __neg__(self):
+        return QickRange(loop=self.loop, range=-self.range)
 
+# user units, multi-dimension
+class QickSweep(NamedTuple):
+    start: float
+    sweeps: list
+    def to_int(self, scale, parname, quantize=1):
+        start = to_int(self.start, scale, quantize=quantize)
+        sweeps = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize)) for s in self.sweeps]
+        return QickSweepRaw(par=parname, start=start, sweeps=sweeps, quantize=quantize)
+    def __add__(self, a):
+        if isinstance(a, QickSweep):
+            #TODO: merge sweeps
+            return QickSweep(self.start+a.start, self.sweeps+a.sweeps)
+        elif isinstance(a, QickRange):
+            #TODO: merge sweeps
+            return QickSweep(self.start, self.sweeps+[a])
+        else:
+            return QickSweep(self.start+a, self.sweeps)
+        return self
+    def __radd__(self, a):
+        return self+a
+    def __neg__(self):
+        return QickSweep(-self.start, [-x for x in self.sweeps])
+    def __sub__(self, a):
+        return self + (-a)
+    def __rsub__(self, a):
+        return (-self) + a
+    def __gt__(self, a):
+        # used when comparing timestamps
+        # TODO: compute max and min
+        return self.start > a
+    def __lt__(self, a):
+        return self.start < a
+
+# ASM units, single dimension
+class QickRangeRaw(NamedTuple):
+    loop: str
+    range: int
+
+# ASM units, multi-dimension
 class QickSweepRaw(NamedTuple):
     par: str
     start: int
-    range: int
-    loop: str
-    quantize: int = 1
-    def step(self, nSteps):
-        # use trunc() instead of round() to avoid overshoot and possible overflow
-        stepsize = int(np.trunc(self.range/(nSteps-1)))
-        if stepsize==0:
-            raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(self.range, nSteps-1))
-        return stepsize
+    sweeps: list
+    quantize: int
+    def step(self, loop, nSteps):
+        # return False if no matching sweep; otherwise return the step size
+        for sweep in self.sweeps:
+            if sweep.loop==loop:
+                # use trunc() instead of round() to avoid overshoot and possible overflow
+                stepsize = int(self.quantize * np.trunc(sweep.range/(nSteps-1)/self.quantize))
+                if stepsize==0:
+                    raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(sweep.range, nSteps-1))
+                return stepsize
+        return False # no matching sweep
     def __floordiv__(self, a):
-        if not all([x%a==0 for x in [self.start, self.range, self.quantize]]):
+        # used when scaling parameters (e.g. flat_top segment gain)
+        if not all([x%a==0 for x in [self.start, self.quantize] + [s.range for s in self.sweeps]]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        return self.__class__(self.par, self.start//a, self.range//a, self.loop, self.quantize//a)
+        sweeps = [QickRangeRaw(loop=s.loop, range=s.range//a) for s in self.sweeps]
+        return QickSweepRaw(self.par, self.start//a, sweeps, self.quantize//a)
     def __mod__(self, a):
-        # do nothing - mod will be applied when compiling the Wave
+        # do nothing - mod will be applied when compiling the WaveReg
         return self
     def __add__(self, a):
         # this is used to sum waveform durations
         # TODO: this should return a sweep
         return self.start+a
-    def __radd__(self, a):
-        return self+a
     def __mul__(self, a):
         # this is used to convert duration units
         # TODO: this should return a sweep
         return self.start*a
+    def __radd__(self, a):
+        return self+a
     def __rmul__(self, a):
         return self*a
+
+"""
+class QickSweepSteps(NamedTuple):
+    par: str
+    regstep: int
+    loop: int
+    pass
+"""
 
 class QickRegister(NamedTuple):
     addr: int
@@ -166,7 +199,7 @@ class IncrementWave(Macro):
         op = '+'
         #op = '-' if step<0 else '+'
         #step = abs(step)
-        iPar = Wave._fields.index(self.par)
+        iPar = WaveReg._fields.index(self.par)
 
         # immediate arguments to operations must be 24-bit
         if check_bytes(self.step, 3):
@@ -317,34 +350,49 @@ class EndLoop(Macro):
         lreg = prog.user_reg_dict[lname]
 
         # check for wave sweeps
-        for wname, (wave, sweeps) in prog.waves.items():
-            lsweeps = [s for s in sweeps if s.loop==lname]
-            if lsweeps:
+        for wname, wave in prog.waves.items():
+            sweeps_to_apply = []
+            for psweep in wave['sweeps']:
+                step = psweep.step(lname, lcount)
+                # if step=False (no matching sweep) or step=0, ignore this sweep
+                if step: sweeps_to_apply.append((psweep.par, step))
+            if sweeps_to_apply:
                 insts.append(LoadWave(name=wname))
-                for s in lsweeps:
-                    insts.append(IncrementWave(par=s.par, step=s.step(lcount)))
+                for par, step in sweeps_to_apply:
+                    insts.append(IncrementWave(par=par, step=step))
                 insts.append(WriteWave(name=wname))
 
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
             if reg.val is not None:
-                insts.append(IncReg(reg=f'r{reg.addr}', val=reg.val.step(lcount)))
+                step = reg.val.step(lname, lcount)
+                if step:
+                    insts.append(IncReg(reg=f'r{reg.addr}', val=step))
 
         # increment and test the loop counter
         insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
-        for wname, (wave, sweeps) in prog.waves.items():
-            lsweeps = [s for s in sweeps if s.loop==lname]
-            if lsweeps:
+        for wname, wave in prog.waves.items():
+            sweeps_to_apply = []
+            for psweep in wave['sweeps']:
+                step = psweep.step(lname, lcount)
+                # if step=False (no matching sweep) or step=0, ignore this sweep
+                if step: sweeps_to_apply.append((psweep.par, step))
+            if sweeps_to_apply:
                 insts.append(LoadWave(name=wname))
-                for s in lsweeps:
-                    insts.append(IncrementWave(par=s.par, step=-1*lcount*s.step(lcount)))
+                for par, step in sweeps_to_apply:
+                    insts.append(IncrementWave(par=par, step=-1*lcount*step))
                 insts.append(WriteWave(name=wname))
         return insts
 
-    #TODO: restore after register sweeps?
+        # check for register sweeps
+        for reg in prog.user_reg_dict.values():
+            if reg.val is not None:
+                step = reg.val.step(lname, lcount)
+                if step:
+                    insts.append(IncReg(reg=f'r{reg.addr}', val=-1*lcount*step))
 
 
 class SetReg(Macro):
@@ -379,12 +427,12 @@ class AbsRegisterManager(ABC):
         """
         # check the final param set for validity
         self.check_params(kwargs)
-        pulse = self.params2pulse(kwargs)
+        waves, length = self.params2pulse(kwargs)
+        pulse = {'length': length, 'wavenames': []}
 
         # register the pulse and waves with the program
         self.prog.pulses[name] = pulse
-        pulse['wavenames'] = []
-        for iWave, wave in enumerate(pulse['waves']):
+        for iWave, wave in enumerate(waves):
             wavename = "%s_wave%d" % (name, iWave)
             self.prog.add_wave(wavename, wave)
             pulse['wavenames'].append(wavename)
@@ -547,7 +595,9 @@ class FullSpeedGenManager(AbsGenManager):
             #TODO: make this check work correctly with sweeps
             raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
-        return (Wave(freqreg, phasereg, env, gainreg, lenreg, confreg), sweeps)
+        wavereg = WaveReg(freqreg, phasereg, env, gainreg, lenreg, confreg)
+        wave = {'wavereg': wavereg, 'sweeps': sweeps}
+        return wave
 
     def params2pulse(self, par):
         """Write whichever pulse registers are fully determined by the defined parameters.
@@ -588,20 +638,19 @@ class FullSpeedGenManager(AbsGenManager):
             env_length = env['data'].shape[0] // self.samps_per_clk
             env_addr = env['addr'] // self.samps_per_clk
 
-        pulse = {}
-        pulse['waves'] = []
+        waves = []
         if par['style']=='const':
             w.update({k:par.get(k) for k in ['mode']})
             w['outsel'] = 'dds'
             w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
-            pulse['waves'].append(self.params2wave(**w))
-            pulse['length'] = w['lenreg']
+            waves.append(self.params2wave(**w))
+            length = w['lenreg']
         elif par['style']=='arb':
             w.update({k:par.get(k) for k in ['mode', 'outsel']})
             w['env'] = env_addr
             w['lenreg'] = env_length
-            pulse['waves'].append(self.params2wave(**w))
-            pulse['length'] = env_length
+            waves.append(self.params2wave(**w))
+            length = env_length
         elif par['style']=='flat_top':
             w['mode'] = 'oneshot'
             if env_length % 2 != 0:
@@ -618,12 +667,12 @@ class FullSpeedGenManager(AbsGenManager):
             w2['gainreg'] = w2['gainreg']//2
             w3 = w1.copy()
             w3['env'] = env_addr + (env_length+1)//2
-            pulse['waves'].append(self.params2wave(**w1))
-            pulse['waves'].append(self.params2wave(**w2))
-            pulse['waves'].append(self.params2wave(**w3))
-            pulse['length'] = (env_length//2)*2 + w2['lenreg']
+            waves.append(self.params2wave(**w1))
+            waves.append(self.params2wave(**w2))
+            waves.append(self.params2wave(**w3))
+            length = (env_length//2)*2 + w2['lenreg']
 
-        return pulse
+        return waves, length
 
 class QickProgramV2(AbsQickProgram):
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
@@ -658,7 +707,7 @@ class QickProgramV2(AbsQickProgram):
         self.loop_list = []
         self.loop_stack = []
 
-        # waveforms, to be written to the wave memory
+        # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
         self.waves = OrderedDict()
         self.wave2idx = {}
 
@@ -683,7 +732,7 @@ class QickProgramV2(AbsQickProgram):
 
     def compile_waves(self):
         if self.waves:
-            return np.stack([w.compile() for w,s in self.waves.values()])
+            return np.stack([w['wavereg'].compile() for w in self.waves.values()])
         else:
             return np.zeros((0,8), dtype=np.int32)
 
@@ -762,17 +811,6 @@ class QickProgramV2(AbsQickProgram):
         super().declare_readout(ch, lenreg, freq, sel, gen_ch)
 
     # start of ASM code
-
-    #def add_instruction(self, inst, addr_inc=1):
-    #    self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
-
-    def translate_instruction(self, macro):
-        if isinstance(macro, AsmInst):
-            macro.expand(self)
-        else:
-            insts = macro.expand(self)
-            for inst in insts:
-                inst.translate_instruction(self)
 
     def label(self, label):
         """apply the specified label to the next instruction
