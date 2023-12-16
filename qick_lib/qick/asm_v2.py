@@ -37,7 +37,7 @@ class QickRange(NamedTuple):
         # this will get called if you use a single QickRange as a parameter
         return to_int(QickSweep(0, [self]), scale, parname, quantize)
     def __add__(self, a):
-        return QickSweep(start=0, sweeps=[self])+a
+        return QickSweep(start=0, ranges=[self])+a
     def __radd__(self, a):
         return self+a
     def __neg__(self):
@@ -46,25 +46,24 @@ class QickRange(NamedTuple):
 # user units, multi-dimension
 class QickSweep(NamedTuple):
     start: float
-    sweeps: list
+    ranges: list
     def to_int(self, scale, parname, quantize=1):
         start = to_int(self.start, scale, quantize=quantize)
-        sweeps = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize)) for s in self.sweeps]
-        return QickSweepRaw(par=parname, start=start, sweeps=sweeps, quantize=quantize)
+        ranges = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize)) for s in self.ranges]
+        return QickSweepRaw(par=parname, start=start, ranges=ranges, quantize=quantize)
     def __add__(self, a):
         if isinstance(a, QickSweep):
-            #TODO: merge sweeps
-            return QickSweep(self.start+a.start, self.sweeps+a.sweeps)
+            #TODO: merge ranges
+            return QickSweep(self.start+a.start, self.ranges+a.ranges)
         elif isinstance(a, QickRange):
-            #TODO: merge sweeps
-            return QickSweep(self.start, self.sweeps+[a])
+            #TODO: merge ranges
+            return QickSweep(self.start, self.ranges+[a])
         else:
-            return QickSweep(self.start+a, self.sweeps)
-        return self
+            return QickSweep(self.start+a, self.ranges)
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickSweep(-self.start, [-x for x in self.sweeps])
+        return QickSweep(-self.start, [-x for x in self.ranges])
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
@@ -76,6 +75,9 @@ class QickSweep(NamedTuple):
     def __lt__(self, a):
         return self.start < a
 
+def QickSweep1D(loop, start, end):
+    return QickSweep(start, [QickRange(loop, end-start)])
+
 # ASM units, single dimension
 class QickRangeRaw(NamedTuple):
     loop: str
@@ -85,35 +87,39 @@ class QickRangeRaw(NamedTuple):
 class QickSweepRaw(NamedTuple):
     par: str
     start: int
-    sweeps: list
+    ranges: list
     quantize: int
     def step(self, loop, nSteps):
-        # return False if no matching sweep; otherwise return the step size
-        for sweep in self.sweeps:
-            if sweep.loop==loop:
+        # return False if no matching range; otherwise return the step size
+        for r in self.ranges:
+            if r.loop==loop:
                 # use trunc() instead of round() to avoid overshoot and possible overflow
-                stepsize = int(self.quantize * np.trunc(sweep.range/(nSteps-1)/self.quantize))
+                stepsize = int(self.quantize * np.trunc(r.range/(nSteps-1)/self.quantize))
                 if stepsize==0:
-                    raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(sweep.range, nSteps-1))
+                    raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(range.range, nSteps-1))
                 return stepsize
-        return False # no matching sweep
+        return False # no matching range
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
-        if not all([x%a==0 for x in [self.start, self.quantize] + [s.range for s in self.sweeps]]):
+        if not all([x%a==0 for x in [self.start, self.quantize] + [s.range for s in self.ranges]]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        sweeps = [QickRangeRaw(loop=s.loop, range=s.range//a) for s in self.sweeps]
-        return QickSweepRaw(self.par, self.start//a, sweeps, self.quantize//a)
+        ranges = [QickRangeRaw(loop=s.loop, range=s.range//a) for s in self.ranges]
+        return QickSweepRaw(self.par, self.start//a, ranges, self.quantize//a)
     def __mod__(self, a):
         # do nothing - mod will be applied when compiling the WaveReg
         return self
     def __add__(self, a):
-        # this is used to sum waveform durations
-        # TODO: this should return a sweep
-        return self.start+a
+        # this is used to sum waveform durations (two sweeps, or sweep and int)
+        # par and quantize will always match
+        if isinstance(a, QickSweepRaw):
+            #TODO: merge ranges
+            return QickSweepRaw(self.par, self.start+a.start, self.ranges+a.ranges, self.quantize)
+        else:
+            return QickSweepRaw(self.par, self.start+a, self.ranges, self.quantize)
     def __mul__(self, a):
         # this is used to convert duration units
-        # TODO: this should return a sweep
-        return self.start*a
+        ranges = [QickRange(r.loop, r.range*a) for r in self.ranges]
+        return QickSweep(self.start*a, ranges)
     def __radd__(self, a):
         return self+a
     def __rmul__(self, a):
@@ -351,14 +357,14 @@ class EndLoop(Macro):
 
         # check for wave sweeps
         for wname, wave in prog.waves.items():
-            sweeps_to_apply = []
-            for psweep in wave['sweeps']:
-                step = psweep.step(lname, lcount)
-                # if step=False (no matching sweep) or step=0, ignore this sweep
-                if step: sweeps_to_apply.append((psweep.par, step))
-            if sweeps_to_apply:
+            ranges_to_apply = []
+            for sweep in wave['sweeps']:
+                step = sweep.step(lname, lcount)
+                # if step=False (no matching range) or step=0, ignore this sweep
+                if step: ranges_to_apply.append((sweep.par, step))
+            if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
-                for par, step in sweeps_to_apply:
+                for par, step in ranges_to_apply:
                     insts.append(IncrementWave(par=par, step=step))
                 insts.append(WriteWave(name=wname))
 
@@ -375,14 +381,14 @@ class EndLoop(Macro):
 
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
         for wname, wave in prog.waves.items():
-            sweeps_to_apply = []
-            for psweep in wave['sweeps']:
-                step = psweep.step(lname, lcount)
-                # if step=False (no matching sweep) or step=0, ignore this sweep
-                if step: sweeps_to_apply.append((psweep.par, step))
-            if sweeps_to_apply:
+            ranges_to_apply = []
+            for sweep in wave['sweeps']:
+                step = sweep.step(lname, lcount)
+                # if step=False (no matching range) or step=0, ignore this sweep
+                if step: ranges_to_apply.append((sweep.par, step))
+            if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
-                for par, step in sweeps_to_apply:
+                for par, step in ranges_to_apply:
                     insts.append(IncrementWave(par=par, step=-1*lcount*step))
                 insts.append(WriteWave(name=wname))
         return insts
