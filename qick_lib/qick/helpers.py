@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 def to_int(val, scale, quantize=1, parname=None):
     """Convert a parameter value from user units to ASM units.
-    Nromally this means converting from float to int.
+    Normally this means converting from float to int.
     For the v2 tProcessor this can also convert QickSweep to QickSweepRaw.
 
     Parameters
@@ -28,8 +28,9 @@ def to_int(val, scale, quantize=1, parname=None):
     int or QickSweepRaw
         ASM value
     """
+    print(val, scale, quantize)
     if hasattr(val, 'to_int'):
-        return val.to_int(scale, parname=parname, quantize=quantize)
+        return val.to_int(scale, quantize=quantize, parname=parname)
     else:
         return int(quantize * np.round(val*scale/quantize))
 

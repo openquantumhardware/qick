@@ -33,9 +33,9 @@ class WaveReg(NamedTuple):
 class QickRange(NamedTuple):
     loop: str
     range: float
-    def to_int(self, scale, parname, quantize=1):
+    def to_int(self, scale, quantize, parname):
         # this will get called if you use a single QickRange as a parameter
-        return to_int(QickSweep(0, [self]), scale, parname, quantize)
+        return to_int(QickSweep(0, [self]), scale, quantize=quantize, parname=parname)
     def __add__(self, a):
         return QickSweep(start=0, ranges=[self])+a
     def __radd__(self, a):
@@ -47,9 +47,9 @@ class QickRange(NamedTuple):
 class QickSweep(NamedTuple):
     start: float
     ranges: list
-    def to_int(self, scale, parname, quantize=1):
-        start = to_int(self.start, scale, quantize=quantize)
-        ranges = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize)) for s in self.ranges]
+    def to_int(self, scale, quantize, parname):
+        start = to_int(self.start, scale, quantize=quantize, parname=parname)
+        ranges = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize, parname=parname)) for s in self.ranges]
         return QickSweepRaw(par=parname, start=start, ranges=ranges, quantize=quantize)
     def __add__(self, a):
         if isinstance(a, QickSweep):
@@ -75,8 +75,9 @@ class QickSweep(NamedTuple):
     def __lt__(self, a):
         return self.start < a
 
+# user units, single dimension
 def QickSweep1D(loop, start, end):
-    return QickSweep(start, [QickRange(loop, end-start)])
+    return start + QickRange(loop, end-start)
 
 # ASM units, single dimension
 class QickRangeRaw(NamedTuple):
