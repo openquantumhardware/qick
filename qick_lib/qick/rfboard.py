@@ -1875,9 +1875,14 @@ class dac_ch():
         return ret 
 
     def set_rf(self, att1, att2):
-        self.rfsw_sel("RF")
-        self.set_attn_db(attn=0, db=att1)
-        self.set_attn_db(attn=1, db=att2)
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # TODO: Check that this is a RF daughter card.
+            self.set_attn_db(attn=0, db=att1)
+            self.set_attn_db(attn=1, db=att2)
+        else:
+            self.rfsw_sel("RF")
+            self.set_attn_db(attn=0, db=att1)
+            self.set_attn_db(attn=1, db=att2)
 
     def set_dc(self):
         self.rfsw_sel("DC")
@@ -1929,6 +1934,9 @@ class RFQickSoc(QickSoc):
         This ensures that the LO output to the RF board is enabled.
         """
         super().__init__(bitfile=bitfile, clk_output=clk_output, no_tproc=no_tproc, **kwargs)
+
+        # Add configuration dictionary.
+        self['rfboard'] = {}
 
         self.rfb_config(no_tproc)
 
@@ -2032,7 +2040,7 @@ class RFQickSoc(QickSoc):
         att : float
             Attenuation (0 to 31.75 dB)
         """
-        self.readouts[ro_ch].rfb.set_attn_db(att)
+        self.avg_bufs[ro_ch].rfb.set_attn_db(att)
 
     def rfb_set_ro_dc(self, ro_ch, gain):
         """Enable and configure an RF-board DC input channel.
@@ -2274,27 +2282,34 @@ class RFQickSoc216V1(RFQickSoc):
         if 'bias_gpio' in self.ip_dict.keys():
             pass
         else:
-            raise RuntimeError("%s: bias_spi for bias DACs control not found." % self.__class__.__name__) 
+            raise RuntimeError("%s: bias_gpio for bias DACs control not found." % self.__class__.__name__) 
         
         # DAC BIAS.
-        self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board'], debug=True) for ii in range(8)]
-
-        # DAC BIAS.
-        #self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+        self['rfboard']['dac_bias'] = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
 
         # ADC channels. ADC's daughter cards are the upper 4.
-        self.adcs_ = []
+        self['rfboard']['adcs'] = []
         NRF = 4 # Number of ADC daughter cards.
         NCH = 2 # ADC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.adcs_.append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
+                self['rfboard']['adcs'].append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
         # DAC channels. DAC's daughter cards are the lower 4.
-        self.dacs_ = []
+        self['rfboard']['dacs'] = []
         NRF = 4 # Number of DAC daughter cards.
         NCH = 4 # DAC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.dacs_.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+                self['rfboard']['dacs'].append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+
+        # Link gens/readouts to the corresponding RF board channels.
+        if not no_tproc:
+            for gen in self.gens:
+                tile, block = [int(a) for a in gen.dac]
+                gen.rfb = self['rfboard']['dacs'][4*tile + block]
+            for avg_buf in self.avg_bufs:
+                ro = avg_buf.readout 
+                tile, block = [int(a) for a in ro.adc]
+                avg_buf.rfb = self['rfboard']['adcs'][4*(tile-1) + block]
 
