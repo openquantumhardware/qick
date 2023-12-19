@@ -2036,7 +2036,7 @@ class RFQickSoc(QickSoc):
         Parameters
         ----------
         ro_ch : int
-            ADC channel (index in 'readouts' list)
+            ADC channel (index in 'avg_bufs' list)
         att : float
             Attenuation (0 to 31.75 dB)
         """
@@ -2066,6 +2066,39 @@ class RFQickSoc(QickSoc):
             Voltage (-10 to 10 V)
         """
         self.dac_bias[bias_ch].set_volt(v)
+
+    def rfb_set_gen_filter(self, gen_ch, fc, bw=1, ftype='bandpass'):
+        """Set the programmable Analog Filter of the chain.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : string.
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        self.gens[gen_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_ro_filter(self, ro_ch, fc, bw=1, ftype='bandpass'):
+        """Enable and configure an RF-board RF input channel.
+        Will fail if this is not an RF input.
+
+        Parameters
+        ----------
+        ro_ch : int
+            ADC channel (index in 'avg_bufs' list)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : string.
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        self.avg_bufs[ro_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
 
 class lo_synth_v2:
     def __init__(self, spi_ip, ch):
