@@ -33,11 +33,13 @@ class WaveReg(NamedTuple):
 class QickRange(NamedTuple):
     loop: str
     range: float
+    def _to_sweep(self):
+        return QickSweep(0, {self.loop:self.range})
     def to_int(self, scale, quantize, parname):
         # this will get called if you use a single QickRange as a parameter
-        return to_int(QickSweep(0, [self]), scale, quantize=quantize, parname=parname)
+        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname)
     def __add__(self, a):
-        return QickSweep(start=0, ranges=[self])+a
+        return self._to_sweep() + a
     def __radd__(self, a):
         return self+a
     def __neg__(self):
@@ -46,65 +48,68 @@ class QickRange(NamedTuple):
 # user units, multi-dimension
 class QickSweep(NamedTuple):
     start: float
-    ranges: list
+    ranges: dict
     def to_int(self, scale, quantize, parname):
         start = to_int(self.start, scale, quantize=quantize, parname=parname)
-        ranges = [QickRangeRaw(s.loop, to_int(s.range, scale, quantize=quantize, parname=parname)) for s in self.ranges]
+        ranges = {k: to_int(v, scale, quantize=quantize, parname=parname) for k,v in self.ranges.items()}
         return QickSweepRaw(par=parname, start=start, ranges=ranges, quantize=quantize)
     def __add__(self, a):
         if isinstance(a, QickSweep):
             #TODO: merge ranges
-            return QickSweep(self.start+a.start, self.ranges+a.ranges)
+            newstart = self.start + a.start
+            newranges = {**self.ranges, **a.ranges}
         elif isinstance(a, QickRange):
             #TODO: merge ranges
-            return QickSweep(self.start, self.ranges+[a])
+            newstart = self.start
+            newranges = {**self.ranges, a.loop:a.range}
         else:
-            return QickSweep(self.start+a, self.ranges)
+            newstart = self.start + a
+            newranges = self.ranges.copy()
+        return QickSweep(newstart, newranges)
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickSweep(-self.start, [-x for x in self.ranges])
+        return QickSweep(-self.start, {k:-v for k,v in self.ranges.items()})
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
         return (-self) + a
     def __gt__(self, a):
         # used when comparing timestamps
-        # TODO: compute max and min
-        return self.start > a
+        # compares a to the min possible value of the sweep
+        rangemin = min([min(r, 0) for r in self.ranges.values()])
+        return self.start + rangemin > a
     def __lt__(self, a):
-        return self.start < a
+        # compares a to the max possible value of the sweep
+        rangemax = max([max(r, 0) for r in self.ranges.values()])
+        return self.start + rangemax < a
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
     return start + QickRange(loop, end-start)
 
-# ASM units, single dimension
-class QickRangeRaw(NamedTuple):
-    loop: str
-    range: int
-
 # ASM units, multi-dimension
 class QickSweepRaw(NamedTuple):
     par: str
     start: int
-    ranges: list
+    ranges: dict
     quantize: int
     def step(self, loop, nSteps):
         # return False if no matching range; otherwise return the step size
-        for r in self.ranges:
-            if r.loop==loop:
-                # use trunc() instead of round() to avoid overshoot and possible overflow
-                stepsize = int(self.quantize * np.trunc(r.range/(nSteps-1)/self.quantize))
-                if stepsize==0:
-                    raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(range.range, nSteps-1))
-                return stepsize
-        return False # no matching range
+        if loop in self.ranges:
+            r = self.ranges[loop]
+            # use trunc() instead of round() to avoid overshoot and possible overflow
+            stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
+            if stepsize==0:
+                raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(r, nSteps-1))
+            return stepsize
+        else:
+            return False
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
-        if not all([x%a==0 for x in [self.start, self.quantize] + [s.range for s in self.ranges]]):
+        if not all([x%a==0 for x in [self.start, self.quantize] + list(self.ranges.values())]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        ranges = [QickRangeRaw(loop=s.loop, range=s.range//a) for s in self.ranges]
+        ranges = {k:v//a for k,v in self.ranges.items()}
         return QickSweepRaw(self.par, self.start//a, ranges, self.quantize//a)
     def __mod__(self, a):
         # do nothing - mod will be applied when compiling the WaveReg
@@ -114,25 +119,18 @@ class QickSweepRaw(NamedTuple):
         # par and quantize will always match
         if isinstance(a, QickSweepRaw):
             #TODO: merge ranges
-            return QickSweepRaw(self.par, self.start+a.start, self.ranges+a.ranges, self.quantize)
+            newranges = {**self.ranges, a.loop:a.range}
+            return QickSweepRaw(self.par, self.start+a.start, newranges, self.quantize)
         else:
             return QickSweepRaw(self.par, self.start+a, self.ranges, self.quantize)
     def __mul__(self, a):
         # this is used to convert duration units
-        ranges = [QickRange(r.loop, r.range*a) for r in self.ranges]
+        ranges = {k:v*a for k,v in self.ranges.items()}
         return QickSweep(self.start*a, ranges)
     def __radd__(self, a):
         return self+a
     def __rmul__(self, a):
         return self*a
-
-"""
-class QickSweepSteps(NamedTuple):
-    par: str
-    regstep: int
-    loop: int
-    pass
-"""
 
 class QickRegister(NamedTuple):
     addr: int
