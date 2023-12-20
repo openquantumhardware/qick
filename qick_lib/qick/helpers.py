@@ -28,7 +28,6 @@ def to_int(val, scale, quantize=1, parname=None):
     int or QickSweepRaw
         ASM value
     """
-    print(val, scale, quantize)
     if hasattr(val, 'to_int'):
         return val.to_int(scale, quantize=quantize, parname=parname)
     else:
