@@ -131,6 +131,8 @@ class QickSweepRaw(NamedTuple):
         # this is used to convert duration units
         ranges = {k:v*a for k,v in self.ranges.items()}
         return QickSweep(self.start*a, ranges)
+    def __truediv__(self, a):
+        return self*(1/a)
     def __radd__(self, a):
         return self+a
     def __rmul__(self, a):
