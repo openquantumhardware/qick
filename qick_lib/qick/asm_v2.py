@@ -34,6 +34,8 @@ class QickRange(NamedTuple):
     loop: str
     range: float
     def _to_sweep(self):
+        # convert to sweep
+        # helper for math ops and to_int()
         return QickSweep(0, {self.loop:self.range})
     def to_int(self, scale, quantize, parname):
         # this will get called if you use a single QickRange as a parameter
@@ -54,17 +56,16 @@ class QickSweep(NamedTuple):
         ranges = {k: to_int(v, scale, quantize=quantize, parname=parname) for k,v in self.ranges.items()}
         return QickSweepRaw(par=parname, start=start, ranges=ranges, quantize=quantize)
     def __add__(self, a):
+        newstart = self.start
+        newranges = self.ranges.copy()
         if isinstance(a, QickSweep):
-            #TODO: merge ranges
-            newstart = self.start + a.start
-            newranges = {**self.ranges, **a.ranges}
+            newstart += a.start
+            for loop, r in a.ranges.items():
+                newranges[loop] = newranges.get(loop, 0) + r
         elif isinstance(a, QickRange):
-            #TODO: merge ranges
-            newstart = self.start
-            newranges = {**self.ranges, a.loop:a.range}
+            newranges[a.loop] = newranges.get(a.loop, 0) + a.range
         else:
-            newstart = self.start + a
-            newranges = self.ranges.copy()
+            newstart += a
         return QickSweep(newstart, newranges)
     def __radd__(self, a):
         return self+a
@@ -117,12 +118,15 @@ class QickSweepRaw(NamedTuple):
     def __add__(self, a):
         # this is used to sum waveform durations (two sweeps, or sweep and int)
         # par and quantize will always match
+        newstart = self.start
+        newranges = self.ranges.copy()
         if isinstance(a, QickSweepRaw):
-            #TODO: merge ranges
-            newranges = {**self.ranges, a.loop:a.range}
-            return QickSweepRaw(self.par, self.start+a.start, newranges, self.quantize)
+            newstart += a.start
+            for loop, r in a.ranges.items():
+                newranges[loop] = newranges.get(loop, 0) + r
         else:
-            return QickSweepRaw(self.par, self.start+a, self.ranges, self.quantize)
+            newstart += a
+        return QickSweepRaw(self.par, newstart, newranges, self.quantize)
     def __mul__(self, a):
         # this is used to convert duration units
         ranges = {k:v*a for k,v in self.ranges.items()}
@@ -219,9 +223,10 @@ class IncrementWave(Macro):
         return insts
 
 class Wait(Macro):
+    # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         if self.auto:
-            max_t = prog.get_max_timestamp(gens=False, ros=True)
+            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
             self.convert_time(prog, max_t + self.t, "t")
         else:
             self.convert_time(prog, self.t, "t")
@@ -233,9 +238,10 @@ class Wait(Macro):
             return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
 
 class Sync(Macro):
+    # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         if self.auto:
-            max_t = prog.get_max_timestamp()
+            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
             self.convert_time(prog, max_t+self.t, "t")
             prog.reset_timestamps()
         else:
@@ -907,9 +913,9 @@ class QickProgramV2(AbsQickProgram):
     def trigger(self, ros=None, pins=None, t=0, width=None):
         self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
 
-    def sync_all(self, t=0):
-        self.macro_list.append(Sync(t=t, auto=True))
+    def sync_all(self, t=0, gens=True, ros=True):
+        self.macro_list.append(Sync(t=t, auto=True, gens=gens, ros=ros))
 
-    def wait_all(self, t=0):
-        self.macro_list.append(Wait(t=t, auto=True))
+    def wait_all(self, t=0, gens=False, ros=True):
+        self.macro_list.append(Wait(t=t, auto=True, gens=gens, ros=ros))
 
