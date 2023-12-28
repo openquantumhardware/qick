@@ -95,17 +95,16 @@ class QickSweepRaw(NamedTuple):
     start: int
     ranges: dict
     quantize: int
-    def step(self, loop, nSteps):
-        # return False if no matching range; otherwise return the step size
-        if loop in self.ranges:
-            r = self.ranges[loop]
-            # use trunc() instead of round() to avoid overshoot and possible overflow
+    def to_steps(self, loops):
+        ranges = {}
+        for loop, r in self.ranges.items():
+            nSteps = loops[loop]
             stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
             if stepsize==0:
                 raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(r, nSteps-1))
-            return stepsize
-        else:
-            return False
+            ranges[loop] = {"step":stepsize, "range":stepsize*(nSteps-1)}
+        return QickSweepSteps(self.par, self.start, ranges)
+
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
         if not all([x%a==0 for x in [self.start, self.quantize] + list(self.ranges.values())]):
@@ -138,14 +137,19 @@ class QickSweepRaw(NamedTuple):
     def __rmul__(self, a):
         return self*a
 
-class QickRegister(NamedTuple):
-    addr: int
-    name: str = None
-    val: QickSweepRaw = None
+# ASM units, multi-dimension
+class QickSweepSteps(NamedTuple):
+    par: str
+    start: int
+    ranges: dict
 
-class QickLoop(NamedTuple):
-    name: str
-    n: int
+#class QickRegister(NamedTuple):
+class QickRegister(SimpleNamespace):
+    # addr, name, sweep
+    pass
+    #addr: int
+    #name: str = None
+    #sweep: QickSweepRaw = None
 
 class Macro(SimpleNamespace):
     def translate(self, prog):
@@ -168,7 +172,8 @@ class Macro(SimpleNamespace):
         # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
         t_reg = prog.us2cycles(t)
         if isinstance(t_reg, QickSweepRaw):
-            t_reg = prog.new_reg(val=t_reg)
+            t_reg = prog.new_reg(sweep=t_reg)
+            t_reg.steps = t_reg.sweep.to_steps(prog.loop_dict)
         if not hasattr(self, "t_reg"):
             self.t_reg = {}
         self.t_reg[name] = t_reg
@@ -339,36 +344,27 @@ class Trigger(Macro):
         return insts
 
 class StartLoop(Macro):
-    def preprocess(self, prog):
-        pass
-
     def expand(self, prog):
         insts = []
-        name = self.name
-        if name is None: name = f"loop_{len(self.loop_list)}"
-        loop = QickLoop(name, self.n)
-        reg = prog.new_reg(name=name, addr=self.addr)
-        prog.loop_list.append(loop)
-        prog.loop_stack.append(loop)
+        prog.loop_stack.append(self.name)
         # initialize the loop counter to zero and set the loop label
-        insts.append(SetReg(reg='r%d'%(reg.addr), val=self.n))
-        insts.append(Label(label=name.upper()))
+        insts.append(SetReg(reg='r%d'%(self.reg.addr), val=self.n))
+        insts.append(Label(label=self.name.upper()))
         return insts
 
 class EndLoop(Macro):
     def expand(self, prog):
         insts = []
 
-        lname, lcount = prog.loop_stack.pop()
+        lname = prog.loop_stack.pop()
         lreg = prog.user_reg_dict[lname]
 
         # check for wave sweeps
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for sweep in wave['sweeps']:
-                step = sweep.step(lname, lcount)
-                # if step=False (no matching range) or step=0, ignore this sweep
-                if step: ranges_to_apply.append((sweep.par, step))
+            for steps in wave['steps']:
+                if lname in steps.ranges:
+                    ranges_to_apply.append((steps.par, steps.ranges[lname]['step']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
@@ -377,10 +373,9 @@ class EndLoop(Macro):
 
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
-            if reg.val is not None:
-                step = reg.val.step(lname, lcount)
-                if step:
-                    insts.append(IncReg(reg=f'r{reg.addr}', val=step))
+            if reg.sweep is not None and lname in reg.sweep.ranges:
+                step = reg.steps.ranges[lname]['step']
+                insts.append(IncReg(reg=f'r{reg.addr}', val=step))
 
         # increment and test the loop counter
         insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
@@ -389,23 +384,21 @@ class EndLoop(Macro):
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for sweep in wave['sweeps']:
-                step = sweep.step(lname, lcount)
-                # if step=False (no matching range) or step=0, ignore this sweep
-                if step: ranges_to_apply.append((sweep.par, step))
+            for steps in wave['steps']:
+                if lname in steps.ranges:
+                    ranges_to_apply.append((steps.par, -steps.ranges[lname]['step']-steps.ranges[lname]['range']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
-                    insts.append(IncrementWave(par=par, step=-1*lcount*step))
+                    insts.append(IncrementWave(par=par, step=step))
                 insts.append(WriteWave(name=wname))
         return insts
 
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
-            if reg.val is not None:
-                step = reg.val.step(lname, lcount)
-                if step:
-                    insts.append(IncReg(reg=f'r{reg.addr}', val=-1*lcount*step))
+            if reg.sweep is not None and lname in reg.sweep.ranges:
+                step = -reg.steps.ranges[lname]['step']-reg.steps.ranges[lname]['range']
+                insts.append(IncReg(reg=f'r{reg.addr}', val=step))
 
 
 class SetReg(Macro):
@@ -717,7 +710,7 @@ class QickProgramV2(AbsQickProgram):
         self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
         self._user_regs = []  # addr of all user defined registers
 
-        self.loop_list = []
+        self.loop_dict = {}
         self.loop_stack = []
 
         # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
@@ -757,13 +750,23 @@ class QickProgramV2(AbsQickProgram):
         return binprog
 
     def expand_macros(self):
+        # we need the loop names and counts first, to convert sweeps to steps
+        # allocate the loop register, set a name if not defined, add the loop to the program's loop dict
+        for macro in self.macro_list:
+            if isinstance(macro, StartLoop):
+                if macro.name is None: macro.name = f"loop_{len(self.loop_dict)}"
+                self.loop_dict[macro.name] = macro.n
+                macro.reg = self.new_reg(name=macro.name)
+        # compute step sizes for sweeps
+        for w in self.waves.values():
+            w['steps'] = [s.to_steps(self.loop_dict) for s in w['sweeps']]
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
         self.init_asm()
         # initialize sweep registers
         for reg in self.user_reg_dict.values():
-            if reg.val is not None:
-                self.add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.val.start}'})
+            if reg.sweep is not None:
+                self.add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
@@ -853,7 +856,7 @@ class QickProgramV2(AbsQickProgram):
     
     # registers and control
 
-    def new_reg(self, addr: int = None, name: str = None, val: QickSweepRaw = None):
+    def new_reg(self, addr: int = None, name: str = None, sweep: QickSweepRaw = None):
         """ Declare a new data register.
 
         :param addr: address of the new register. If None, the function will automatically try to find the next
@@ -879,7 +882,7 @@ class QickProgramV2(AbsQickProgram):
         if name in self.user_reg_dict.keys():
             raise NameError(f"register name '{name}' already exists")
 
-        reg = QickRegister(addr=addr, name=name, val=val)
+        reg = QickRegister(addr=addr, name=name, sweep=sweep)
         self.user_reg_dict[name] = reg
 
         return reg
@@ -891,8 +894,8 @@ class QickProgramV2(AbsQickProgram):
             self.new_reg(name=name)
         return self.user_reg_dict[name]
 
-    def open_loop(self, n, name=None, addr=None):
-        self.macro_list.append(StartLoop(n=n, name=name, addr=addr))
+    def open_loop(self, n, name=None):
+        self.macro_list.append(StartLoop(n=n, name=name))
     
     def close_loop(self):
         self.macro_list.append(EndLoop())
