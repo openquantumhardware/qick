@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from collections import namedtuple, OrderedDict, defaultdict
 from types import SimpleNamespace
-from typing import NamedTuple
+from typing import NamedTuple, Union, List, Dict
 from abc import ABC, abstractmethod
 
 from .tprocv2_assembler import Assembler
@@ -11,25 +11,6 @@ from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
 
-class WaveReg(NamedTuple):
-    freq: int
-    phase: int
-    env: int
-    gain: int
-    length: int
-    conf: int
-
-    widths = [4, 4, 3, 4, 4, 2]
-    def compile(self):
-        # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-        # same parameters (freq, phase) are expected to wrap, we do that here
-        rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(self, self.widths)])
-        # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
-        paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
-        # pack into a numpy array
-        return np.frombuffer(paddedbytes, dtype=np.int32)
-
-# user units, single dimension
 class QickRange(NamedTuple):
     loop: str
     range: float
@@ -75,15 +56,19 @@ class QickSweep(NamedTuple):
         return self + (-a)
     def __rsub__(self, a):
         return (-self) + a
+    def minval(self):
+        rangemin = min([min(r, 0) for r in self.ranges.values()])
+        return self.start + rangemin
+    def maxval(self):
+        rangemax = max([max(r, 0) for r in self.ranges.values()])
+        return self.start + rangemax
     def __gt__(self, a):
         # used when comparing timestamps
         # compares a to the min possible value of the sweep
-        rangemin = min([min(r, 0) for r in self.ranges.values()])
-        return self.start + rangemin > a
+        return self.minval() > a
     def __lt__(self, a):
         # compares a to the max possible value of the sweep
-        rangemax = max([max(r, 0) for r in self.ranges.values()])
-        return self.start + rangemax < a
+        return self.maxval() < a
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
@@ -93,7 +78,7 @@ def QickSweep1D(loop, start, end):
 class QickSweepRaw(NamedTuple):
     par: str
     start: int
-    ranges: dict
+    ranges: Dict[str, int]
     quantize: int
     def to_steps(self, loops):
         ranges = {}
@@ -136,12 +121,58 @@ class QickSweepRaw(NamedTuple):
         return self+a
     def __rmul__(self, a):
         return self*a
+    def minval(self):
+        rangemin = min([min(r, 0) for r in self.ranges.values()])
+        return self.start + rangemin
+    def maxval(self):
+        rangemax = max([max(r, 0) for r in self.ranges.values()])
+        return self.start + rangemax
 
 # ASM units, multi-dimension
 class QickSweepSteps(NamedTuple):
     par: str
     start: int
     ranges: dict
+
+class WaveReg:
+    widths = [4, 4, 3, 4, 4, 2]
+    _fields = ['freq', 'phase', 'env', 'gain', 'length', 'conf']
+    def __init__(self, freq: Union[int, QickSweepRaw], phase: Union[int, QickSweepRaw], env: int, gain: Union[int, QickSweepRaw], length: Union[int, QickSweepRaw], conf: int):
+        self.freq = freq
+        self.phase = phase
+        self.env = env
+        self.gain = gain
+        self.length = length
+        self.conf = conf
+        self.steps = {}
+
+    def __repr__(self):
+        return "WaveReg(" + ", ".join([str(x) for x in self._params()]) + ")"
+    def _params(self):
+        return [getattr(self, f) for f in self._fields]
+    def compile(self):
+        # if a parameter is swept, the start value is what we write to the wave memory
+        startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in self._params()]
+        # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
+        # same parameters (freq, phase) are expected to wrap, we do that here
+        rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(startvals, self.widths)])
+        # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
+        paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
+        # pack into a numpy array
+        return np.frombuffer(paddedbytes, dtype=np.int32)
+    def sweeps(self):
+        return [r for r in [self.freq, self.phase, self.gain, self.length] if isinstance(r, QickSweepRaw)]
+    def fill_steps(self, loops):
+        for par in ['freq', 'phase', 'gain', 'length']:
+            val = getattr(self, par)
+            if isinstance(val, QickSweepRaw):
+                self.steps[par] = val.to_steps(loops)
+        print(self.steps)
+    def get_length(self):
+        if isinstance(self.length, QickSweepRaw):
+            return self.steps['length']
+        else:
+            return self.length
 
 #class QickRegister(NamedTuple):
 class QickRegister(SimpleNamespace):
@@ -362,9 +393,10 @@ class EndLoop(Macro):
         # check for wave sweeps
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave['steps']:
+            for steps in wave['wavereg'].steps.values():
                 if lname in steps.ranges:
                     ranges_to_apply.append((steps.par, steps.ranges[lname]['step']))
+                    print((wname, lname, steps.par, steps.ranges[lname]['step']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
@@ -384,7 +416,7 @@ class EndLoop(Macro):
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave['steps']:
+            for steps in wave['wavereg'].steps.values():
                 if lname in steps.ranges:
                     ranges_to_apply.append((steps.par, -steps.ranges[lname]['step']-steps.ranges[lname]['range']))
             if ranges_to_apply:
@@ -583,25 +615,17 @@ class FullSpeedGenManager(AbsGenManager):
             'flat_top': ['ro_ch', 'phrst', 'stdysel']}
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
-        sweeps = []
-        # TODO: do something more systematic
-        if isinstance(gainreg, QickSweepRaw):
-            sweeps.append(gainreg)
-            gainreg = gainreg.start
-        if isinstance(phasereg, QickSweepRaw):
-            sweeps.append(phasereg)
-            phasereg = phasereg.start
-        if isinstance(freqreg, QickSweepRaw):
-            sweeps.append(freqreg)
-            freqreg = freqreg.start
-        if isinstance(lenreg, QickSweepRaw):
-            sweeps.append(lenreg)
-            lenreg = lenreg.start
-        if lenreg >= 2**16 or lenreg < 3:
-            #TODO: make this check work correctly with sweeps
-            raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
+        #sweeps = [r for r in [freqreg, phasereg, gainreg, lenreg] if isinstance(r, QickSweepRaw)]
+
+        if isinstance(lenreg, QickSweepRaw):
+            if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
+        else:
+            if lenreg >= 2**16 or lenreg < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         wavereg = WaveReg(freqreg, phasereg, env, gainreg, lenreg, confreg)
+        sweeps = wavereg.sweeps()
         wave = {'wavereg': wavereg, 'sweeps': sweeps}
         return wave
 
@@ -760,6 +784,9 @@ class QickProgramV2(AbsQickProgram):
         # compute step sizes for sweeps
         for w in self.waves.values():
             w['steps'] = [s.to_steps(self.loop_dict) for s in w['sweeps']]
+            w['wavereg'].fill_steps(self.loop_dict)
+        for w in self.waves.values():
+            print(w['wavereg'].steps)
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
         self.init_asm()
