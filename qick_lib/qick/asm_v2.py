@@ -147,7 +147,7 @@ class WaveReg:
         self.steps = {}
 
     def __repr__(self):
-        return "WaveReg(" + ", ".join([str(x) for x in self._params()]) + ")"
+        return "WaveReg(" + ", ".join([x+"="+str(getattr(self, x)) for x in self._fields]) + ")"
     def _params(self):
         return [getattr(self, f) for f in self._fields]
     def compile(self):
@@ -160,14 +160,11 @@ class WaveReg:
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
-    def sweeps(self):
-        return [r for r in [self.freq, self.phase, self.gain, self.length] if isinstance(r, QickSweepRaw)]
     def fill_steps(self, loops):
         for par in ['freq', 'phase', 'gain', 'length']:
             val = getattr(self, par)
             if isinstance(val, QickSweepRaw):
                 self.steps[par] = val.to_steps(loops)
-        print(self.steps)
     def get_length(self):
         if isinstance(self.length, QickSweepRaw):
             return self.steps['length']
@@ -393,10 +390,9 @@ class EndLoop(Macro):
         # check for wave sweeps
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave['wavereg'].steps.values():
+            for steps in wave.steps.values():
                 if lname in steps.ranges:
                     ranges_to_apply.append((steps.par, steps.ranges[lname]['step']))
-                    print((wname, lname, steps.par, steps.ranges[lname]['step']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
@@ -416,7 +412,7 @@ class EndLoop(Macro):
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave['wavereg'].steps.values():
+            for steps in wave.steps.values():
                 if lname in steps.ranges:
                     ranges_to_apply.append((steps.par, -steps.ranges[lname]['step']-steps.ranges[lname]['range']))
             if ranges_to_apply:
@@ -625,9 +621,7 @@ class FullSpeedGenManager(AbsGenManager):
             if lenreg >= 2**16 or lenreg < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
         wavereg = WaveReg(freqreg, phasereg, env, gainreg, lenreg, confreg)
-        sweeps = wavereg.sweeps()
-        wave = {'wavereg': wavereg, 'sweeps': sweeps}
-        return wave
+        return wavereg
 
     def params2pulse(self, par):
         """Write whichever pulse registers are fully determined by the defined parameters.
@@ -762,7 +756,7 @@ class QickProgramV2(AbsQickProgram):
 
     def compile_waves(self):
         if self.waves:
-            return np.stack([w['wavereg'].compile() for w in self.waves.values()])
+            return np.stack([w.compile() for w in self.waves.values()])
         else:
             return np.zeros((0,8), dtype=np.int32)
 
@@ -783,10 +777,7 @@ class QickProgramV2(AbsQickProgram):
                 macro.reg = self.new_reg(name=macro.name)
         # compute step sizes for sweeps
         for w in self.waves.values():
-            w['steps'] = [s.to_steps(self.loop_dict) for s in w['sweeps']]
-            w['wavereg'].fill_steps(self.loop_dict)
-        for w in self.waves.values():
-            print(w['wavereg'].steps)
+            w.fill_steps(self.loop_dict)
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
         self.init_asm()
