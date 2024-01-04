@@ -74,21 +74,30 @@ class QickSweep(NamedTuple):
 def QickSweep1D(loop, start, end):
     return start + QickRange(loop, end-start)
 
+class SimpleClass:
+    def __repr__(self):
+        # based on https://docs.python.org/3/library/types.html#types.SimpleNamespace
+        items = (f"{k}={getattr(self,k)!r}" for k in self._fields)
+        return "{}({})".format(type(self).__name__, ", ".join(items))
+
 # ASM units, multi-dimension
-class QickSweepRaw(NamedTuple):
-    par: str
-    start: int
-    ranges: Dict[str, int]
-    quantize: int
+class QickSweepRaw(SimpleClass):
+    _fields = ['par', 'start', 'ranges', 'quantize', 'steps']
+    def __init__(self, par: str, start: int, ranges: Dict[str, int], quantize: int=1):
+        self.par = par
+        self.start = start
+        self.ranges = ranges
+        self.quantize = quantize
+        self.steps = None
+
     def to_steps(self, loops):
-        ranges = {}
+        self.steps = {}
         for loop, r in self.ranges.items():
             nSteps = loops[loop]
             stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
             if stepsize==0:
                 raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(r, nSteps-1))
-            ranges[loop] = {"step":stepsize, "range":stepsize*(nSteps-1)}
-        return QickSweepSteps(self.par, self.start, ranges)
+            self.steps[loop] = {"step":stepsize, "range":stepsize*(nSteps-1)}
 
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
@@ -128,13 +137,7 @@ class QickSweepRaw(NamedTuple):
         rangemax = max([max(r, 0) for r in self.ranges.values()])
         return self.start + rangemax
 
-# ASM units, multi-dimension
-class QickSweepSteps(NamedTuple):
-    par: str
-    start: int
-    ranges: dict
-
-class WaveReg:
+class WaveReg(SimpleClass):
     widths = [4, 4, 3, 4, 4, 2]
     _fields = ['freq', 'phase', 'env', 'gain', 'length', 'conf']
     def __init__(self, freq: Union[int, QickSweepRaw], phase: Union[int, QickSweepRaw], env: int, gain: Union[int, QickSweepRaw], length: Union[int, QickSweepRaw], conf: int):
@@ -144,15 +147,10 @@ class WaveReg:
         self.gain = gain
         self.length = length
         self.conf = conf
-        self.steps = {}
-
-    def __repr__(self):
-        return "WaveReg(" + ", ".join([x+"="+str(getattr(self, x)) for x in self._fields]) + ")"
-    def _params(self):
-        return [getattr(self, f) for f in self._fields]
     def compile(self):
+        params = [getattr(self, f) for f in self._fields]
         # if a parameter is swept, the start value is what we write to the wave memory
-        startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in self._params()]
+        startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in params]
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
         # same parameters (freq, phase) are expected to wrap, we do that here
         rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(startvals, self.widths)])
@@ -160,24 +158,18 @@ class WaveReg:
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
+    def sweeps(self):
+        return [r for r in [self.freq, self.phase, self.gain, self.length] if isinstance(r, QickSweepRaw)]
     def fill_steps(self, loops):
-        for par in ['freq', 'phase', 'gain', 'length']:
-            val = getattr(self, par)
-            if isinstance(val, QickSweepRaw):
-                self.steps[par] = val.to_steps(loops)
-    def get_length(self):
-        if isinstance(self.length, QickSweepRaw):
-            return self.steps['length']
-        else:
-            return self.length
+        for sweep in self.sweeps():
+            sweep.to_steps(loops)
 
-#class QickRegister(NamedTuple):
-class QickRegister(SimpleNamespace):
-    # addr, name, sweep
-    pass
-    #addr: int
-    #name: str = None
-    #sweep: QickSweepRaw = None
+class QickRegister(SimpleClass):
+    _fields = ['name', 'addr', 'sweep']
+    def __init__(self, name: str=None, addr: int=None, sweep: QickSweep=None):
+        self.name = name
+        self.addr = addr
+        self.sweep = sweep
 
 class Macro(SimpleNamespace):
     def translate(self, prog):
@@ -201,7 +193,7 @@ class Macro(SimpleNamespace):
         t_reg = prog.us2cycles(t)
         if isinstance(t_reg, QickSweepRaw):
             t_reg = prog.new_reg(sweep=t_reg)
-            t_reg.steps = t_reg.sweep.to_steps(prog.loop_dict)
+            t_reg.sweep.to_steps(prog.loop_dict)
         if not hasattr(self, "t_reg"):
             self.t_reg = {}
         self.t_reg[name] = t_reg
@@ -390,9 +382,9 @@ class EndLoop(Macro):
         # check for wave sweeps
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave.steps.values():
-                if lname in steps.ranges:
-                    ranges_to_apply.append((steps.par, steps.ranges[lname]['step']))
+            for sweep in wave.sweeps():
+                if lname in sweep.steps:
+                    ranges_to_apply.append((sweep.par, sweep.steps[lname]['step']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
@@ -402,7 +394,7 @@ class EndLoop(Macro):
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
             if reg.sweep is not None and lname in reg.sweep.ranges:
-                step = reg.steps.ranges[lname]['step']
+                step = reg.sweep.steps[lname]['step']
                 insts.append(IncReg(reg=f'r{reg.addr}', val=step))
 
         # increment and test the loop counter
@@ -412,9 +404,9 @@ class EndLoop(Macro):
         # check for wave sweeps - if we swept a parameter, we should restore it to its original value
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
-            for steps in wave.steps.values():
-                if lname in steps.ranges:
-                    ranges_to_apply.append((steps.par, -steps.ranges[lname]['step']-steps.ranges[lname]['range']))
+            for sweep in wave.sweeps():
+                if lname in sweep.steps:
+                    ranges_to_apply.append((sweep.par, -sweep.steps[lname]['step']-sweep.steps[lname]['range']))
             if ranges_to_apply:
                 insts.append(LoadWave(name=wname))
                 for par, step in ranges_to_apply:
@@ -425,7 +417,7 @@ class EndLoop(Macro):
         # check for register sweeps
         for reg in prog.user_reg_dict.values():
             if reg.sweep is not None and lname in reg.sweep.ranges:
-                step = -reg.steps.ranges[lname]['step']-reg.steps.ranges[lname]['range']
+                step = -reg.sweep.steps[lname]['step']-reg.sweep.steps[lname]['range']
                 insts.append(IncReg(reg=f'r{reg.addr}', val=step))
 
 
