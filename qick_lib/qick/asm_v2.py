@@ -83,12 +83,12 @@ class SimpleClass:
 # ASM units, multi-dimension
 class QickSweepRaw(SimpleClass):
     _fields = ['par', 'start', 'ranges', 'quantize', 'steps']
-    def __init__(self, par: str, start: int, ranges: Dict[str, int], quantize: int=1):
+    def __init__(self, par: str, start: int, ranges: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
         self.par = par
         self.start = start
         self.ranges = ranges
         self.quantize = quantize
-        self.steps = None
+        self.steps = steps
 
     def to_steps(self, loops):
         self.steps = {}
@@ -101,36 +101,22 @@ class QickSweepRaw(SimpleClass):
 
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
+        # this will only happen before steps have been defined
         if not all([x%a==0 for x in [self.start, self.quantize] + list(self.ranges.values())]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
         ranges = {k:v//a for k,v in self.ranges.items()}
         return QickSweepRaw(self.par, self.start//a, ranges, self.quantize//a)
     def __mod__(self, a):
+        # used in freq2reg etc.
         # do nothing - mod will be applied when compiling the WaveReg
         return self
-    def __add__(self, a):
-        # this is used to sum waveform durations (two sweeps, or sweep and int)
-        # par and quantize will always match
-        newstart = self.start
-        newranges = self.ranges.copy()
-        if isinstance(a, QickSweepRaw):
-            newstart += a.start
-            for loop, r in a.ranges.items():
-                newranges[loop] = newranges.get(loop, 0) + r
-        else:
-            newstart += a
-        return QickSweepRaw(self.par, newstart, newranges, self.quantize)
-    def __mul__(self, a):
-        # this is used to convert duration units
-        ranges = {k:v*a for k,v in self.ranges.items()}
-        return QickSweep(self.start*a, ranges)
     def __truediv__(self, a):
-        return self*(1/a)
-    def __radd__(self, a):
-        return self+a
-    def __rmul__(self, a):
-        return self*a
+        # this is used to convert duration to us
+        # this will only happen after steps have been defined
+        ranges = {k:v['range']/a for k,v in self.steps.items()}
+        return QickSweep(self.start/a, ranges)
     def minval(self):
+        # used to check for out-of-range values
         rangemin = min([min(r, 0) for r in self.ranges.values()])
         return self.start + rangemin
     def maxval(self):
@@ -285,8 +271,7 @@ class Pulse(Macro):
     # ch, name, t
     def preprocess(self, prog):
         pulse = prog.pulses[self.name]
-        pulse_length = pulse['length'] # in generator ticks
-        pulse_length /= prog.soccfg['gens'][self.ch]['f_fabric'] # convert to us
+        pulse_length = sum([prog.waves[w].length/prog.soccfg['gens'][self.ch]['f_fabric'] for w in pulse]) # in us
         ts = prog.get_timestamp(gen_ch=self.ch)
         t = self.t
         if t == 'auto':
@@ -305,7 +290,7 @@ class Pulse(Macro):
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['gens'][self.ch]['tproc_ch']
         insts.append(self.set_timereg(prog, "t"))
-        for wavename in pulse['wavenames']:
+        for wavename in pulse:
             idx = prog.wave2idx[wavename]
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
@@ -453,15 +438,15 @@ class AbsRegisterManager(ABC):
         """
         # check the final param set for validity
         self.check_params(kwargs)
-        waves, length = self.params2pulse(kwargs)
-        pulse = {'length': length, 'wavenames': []}
+        waves = self.params2pulse(kwargs)
+        pulse = []
 
         # register the pulse and waves with the program
         self.prog.pulses[name] = pulse
         for iWave, wave in enumerate(waves):
             wavename = "%s_wave%d" % (name, iWave)
             self.prog.add_wave(wavename, wave)
-            pulse['wavenames'].append(wavename)
+            pulse.append(wavename)
 
     @abstractmethod
     def check_params(self, params):
@@ -604,8 +589,6 @@ class FullSpeedGenManager(AbsGenManager):
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
-        #sweeps = [r for r in [freqreg, phasereg, gainreg, lenreg] if isinstance(r, QickSweepRaw)]
-
         if isinstance(lenreg, QickSweepRaw):
             if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
@@ -660,13 +643,11 @@ class FullSpeedGenManager(AbsGenManager):
             w['outsel'] = 'dds'
             w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
             waves.append(self.params2wave(**w))
-            length = w['lenreg']
         elif par['style']=='arb':
             w.update({k:par.get(k) for k in ['mode', 'outsel']})
             w['env'] = env_addr
             w['lenreg'] = env_length
             waves.append(self.params2wave(**w))
-            length = env_length
         elif par['style']=='flat_top':
             w['mode'] = 'oneshot'
             if env_length % 2 != 0:
@@ -686,9 +667,8 @@ class FullSpeedGenManager(AbsGenManager):
             waves.append(self.params2wave(**w1))
             waves.append(self.params2wave(**w2))
             waves.append(self.params2wave(**w3))
-            length = (env_length//2)*2 + w2['lenreg']
 
-        return waves, length
+        return waves
 
 class QickProgramV2(AbsQickProgram):
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
