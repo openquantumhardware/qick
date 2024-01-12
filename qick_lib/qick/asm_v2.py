@@ -362,48 +362,47 @@ class EndLoop(Macro):
         insts = []
 
         lname = prog.loop_stack.pop()
-        lreg = prog.user_reg_dict[lname]
 
         # check for wave sweeps
+        wave_sweeps = []
         for wname, wave in prog.waves.items():
             ranges_to_apply = []
             for sweep in wave.sweeps():
                 if lname in sweep.steps:
-                    ranges_to_apply.append((sweep.par, sweep.steps[lname]['step']))
+                    ranges_to_apply.append((sweep.par, sweep.steps[lname]))
             if ranges_to_apply:
-                insts.append(LoadWave(name=wname))
-                for par, step in ranges_to_apply:
-                    insts.append(IncrementWave(par=par, step=step))
-                insts.append(WriteWave(name=wname))
+                wave_sweeps.append((wname, ranges_to_apply))
 
         # check for register sweeps
+        reg_sweeps = []
         for reg in prog.user_reg_dict.values():
             if reg.sweep is not None and lname in reg.sweep.ranges:
-                step = reg.sweep.steps[lname]['step']
-                insts.append(IncReg(reg=f'r{reg.addr}', val=step))
+                reg_sweeps.append((reg, reg.sweep.steps[lname]))
+
+        # increment waves and registers
+        for wname, ranges_to_apply in wave_sweeps:
+            insts.append(LoadWave(name=wname))
+            for par, steps in ranges_to_apply:
+                insts.append(IncrementWave(par=par, step=steps['step']))
+            insts.append(WriteWave(name=wname))
+        for reg, steps in reg_sweeps:
+            insts.append(IncReg(reg=f'r{reg.addr}', val=steps['step']))
 
         # increment and test the loop counter
+        lreg = prog.user_reg_dict[lname]
         insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
-        # check for wave sweeps - if we swept a parameter, we should restore it to its original value
-        for wname, wave in prog.waves.items():
-            ranges_to_apply = []
-            for sweep in wave.sweeps():
-                if lname in sweep.steps:
-                    ranges_to_apply.append((sweep.par, -sweep.steps[lname]['step']-sweep.steps[lname]['range']))
-            if ranges_to_apply:
-                insts.append(LoadWave(name=wname))
-                for par, step in ranges_to_apply:
-                    insts.append(IncrementWave(par=par, step=step))
-                insts.append(WriteWave(name=wname))
-        return insts
+        # if we swept a parameter, we should restore it to its original value
+        for wname, ranges_to_apply in wave_sweeps:
+            insts.append(LoadWave(name=wname))
+            for par, steps in ranges_to_apply:
+                insts.append(IncrementWave(par=par, step=-steps['step']-steps['range']))
+            insts.append(WriteWave(name=wname))
+        for reg, steps in reg_sweeps:
+            insts.append(IncReg(reg=f'r{reg.addr}', val=-steps['step']-steps['range']))
 
-        # check for register sweeps
-        for reg in prog.user_reg_dict.values():
-            if reg.sweep is not None and lname in reg.sweep.ranges:
-                step = -reg.sweep.steps[lname]['step']-reg.sweep.steps[lname]['range']
-                insts.append(IncReg(reg=f'r{reg.addr}', val=step))
+        return insts
 
 
 class SetReg(Macro):
