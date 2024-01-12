@@ -11,57 +11,57 @@ from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
 
-class QickRange(NamedTuple):
+class QickSpan(NamedTuple):
     loop: str
-    range: float
+    span: float
     def _to_sweep(self):
         # convert to sweep
         # helper for math ops and to_int()
-        return QickSweep(0, {self.loop:self.range})
+        return QickSweep(0, {self.loop:self.span})
     def to_int(self, scale, quantize, parname):
-        # this will get called if you use a single QickRange as a parameter
+        # this will get called if you use a single QickSpan as a parameter
         return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname)
     def __add__(self, a):
         return self._to_sweep() + a
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickRange(loop=self.loop, range=-self.range)
+        return QickSpan(loop=self.loop, span=-self.span)
 
 # user units, multi-dimension
 class QickSweep(NamedTuple):
     start: float
-    ranges: dict
+    spans: dict
     def to_int(self, scale, quantize, parname):
         start = to_int(self.start, scale, quantize=quantize, parname=parname)
-        ranges = {k: to_int(v, scale, quantize=quantize, parname=parname) for k,v in self.ranges.items()}
-        return QickSweepRaw(par=parname, start=start, ranges=ranges, quantize=quantize)
+        spans = {k: to_int(v, scale, quantize=quantize, parname=parname) for k,v in self.spans.items()}
+        return QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
     def __add__(self, a):
         newstart = self.start
-        newranges = self.ranges.copy()
+        newspans = self.spans.copy()
         if isinstance(a, QickSweep):
             newstart += a.start
-            for loop, r in a.ranges.items():
-                newranges[loop] = newranges.get(loop, 0) + r
-        elif isinstance(a, QickRange):
-            newranges[a.loop] = newranges.get(a.loop, 0) + a.range
+            for loop, r in a.spans.items():
+                newspans[loop] = newspans.get(loop, 0) + r
+        elif isinstance(a, QickSpan):
+            newspans[a.loop] = newspans.get(a.loop, 0) + a.span
         else:
             newstart += a
-        return QickSweep(newstart, newranges)
+        return QickSweep(newstart, newspans)
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickSweep(-self.start, {k:-v for k,v in self.ranges.items()})
+        return QickSweep(-self.start, {k:-v for k,v in self.spans.items()})
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
         return (-self) + a
     def minval(self):
-        rangemin = min([min(r, 0) for r in self.ranges.values()])
-        return self.start + rangemin
+        spanmin = min([min(r, 0) for r in self.spans.values()])
+        return self.start + spanmin
     def maxval(self):
-        rangemax = max([max(r, 0) for r in self.ranges.values()])
-        return self.start + rangemax
+        spanmax = max([max(r, 0) for r in self.spans.values()])
+        return self.start + spanmax
     def __gt__(self, a):
         # used when comparing timestamps
         # compares a to the min possible value of the sweep
@@ -72,7 +72,7 @@ class QickSweep(NamedTuple):
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
-    return start + QickRange(loop, end-start)
+    return start + QickSpan(loop, end-start)
 
 class SimpleClass:
     def __repr__(self):
@@ -82,30 +82,30 @@ class SimpleClass:
 
 # ASM units, multi-dimension
 class QickSweepRaw(SimpleClass):
-    _fields = ['par', 'start', 'ranges', 'quantize', 'steps']
-    def __init__(self, par: str, start: int, ranges: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
+    _fields = ['par', 'start', 'spans', 'quantize', 'steps']
+    def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
         self.par = par
         self.start = start
-        self.ranges = ranges
+        self.spans = spans
         self.quantize = quantize
         self.steps = steps
 
     def to_steps(self, loops):
         self.steps = {}
-        for loop, r in self.ranges.items():
+        for loop, r in self.spans.items():
             nSteps = loops[loop]
             stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
             if stepsize==0:
-                raise RuntimeError("requested sweep step is smaller than the available resolution: range=%d, steps=%d"%(r, nSteps-1))
-            self.steps[loop] = {"step":stepsize, "range":stepsize*(nSteps-1)}
+                raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
+            self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __floordiv__(self, a):
         # used when scaling parameters (e.g. flat_top segment gain)
         # this will only happen before steps have been defined
-        if not all([x%a==0 for x in [self.start, self.quantize] + list(self.ranges.values())]):
+        if not all([x%a==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
             raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        ranges = {k:v//a for k,v in self.ranges.items()}
-        return QickSweepRaw(self.par, self.start//a, ranges, self.quantize//a)
+        spans = {k:v//a for k,v in self.spans.items()}
+        return QickSweepRaw(self.par, self.start//a, spans, self.quantize//a)
     def __mod__(self, a):
         # used in freq2reg etc.
         # do nothing - mod will be applied when compiling the WaveReg
@@ -113,15 +113,15 @@ class QickSweepRaw(SimpleClass):
     def __truediv__(self, a):
         # this is used to convert duration to us
         # this will only happen after steps have been defined
-        ranges = {k:v['range']/a for k,v in self.steps.items()}
-        return QickSweep(self.start/a, ranges)
+        spans = {k:v['span']/a for k,v in self.steps.items()}
+        return QickSweep(self.start/a, spans)
     def minval(self):
         # used to check for out-of-range values
-        rangemin = min([min(r, 0) for r in self.ranges.values()])
-        return self.start + rangemin
+        spanmin = min([min(r, 0) for r in self.spans.values()])
+        return self.start + spanmin
     def maxval(self):
-        rangemax = max([max(r, 0) for r in self.ranges.values()])
-        return self.start + rangemax
+        spanmax = max([max(r, 0) for r in self.spans.values()])
+        return self.start + spanmax
 
 class WaveReg(SimpleClass):
     widths = [4, 4, 3, 4, 4, 2]
@@ -366,23 +366,23 @@ class EndLoop(Macro):
         # check for wave sweeps
         wave_sweeps = []
         for wname, wave in prog.waves.items():
-            ranges_to_apply = []
+            spans_to_apply = []
             for sweep in wave.sweeps():
                 if lname in sweep.steps:
-                    ranges_to_apply.append((sweep.par, sweep.steps[lname]))
-            if ranges_to_apply:
-                wave_sweeps.append((wname, ranges_to_apply))
+                    spans_to_apply.append((sweep.par, sweep.steps[lname]))
+            if spans_to_apply:
+                wave_sweeps.append((wname, spans_to_apply))
 
         # check for register sweeps
         reg_sweeps = []
         for reg in prog.user_reg_dict.values():
-            if reg.sweep is not None and lname in reg.sweep.ranges:
+            if reg.sweep is not None and lname in reg.sweep.spans:
                 reg_sweeps.append((reg, reg.sweep.steps[lname]))
 
         # increment waves and registers
-        for wname, ranges_to_apply in wave_sweeps:
+        for wname, spans_to_apply in wave_sweeps:
             insts.append(LoadWave(name=wname))
-            for par, steps in ranges_to_apply:
+            for par, steps in spans_to_apply:
                 insts.append(IncrementWave(par=par, step=steps['step']))
             insts.append(WriteWave(name=wname))
         for reg, steps in reg_sweeps:
@@ -394,13 +394,13 @@ class EndLoop(Macro):
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
-        for wname, ranges_to_apply in wave_sweeps:
+        for wname, spans_to_apply in wave_sweeps:
             insts.append(LoadWave(name=wname))
-            for par, steps in ranges_to_apply:
-                insts.append(IncrementWave(par=par, step=-steps['step']-steps['range']))
+            for par, steps in spans_to_apply:
+                insts.append(IncrementWave(par=par, step=-steps['step']-steps['span']))
             insts.append(WriteWave(name=wname))
         for reg, steps in reg_sweeps:
-            insts.append(IncReg(reg=f'r{reg.addr}', val=-steps['step']-steps['range']))
+            insts.append(IncReg(reg=f'r{reg.addr}', val=-steps['step']-steps['span']))
 
         return insts
 
