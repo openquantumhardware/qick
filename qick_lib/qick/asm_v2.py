@@ -194,11 +194,11 @@ class Macro(SimpleNamespace):
 
 class AsmInst(Macro):
     def translate(self, prog):
-        prog.add_asm(self.inst.copy(), self.addr_inc)
+        prog._add_asm(self.inst.copy(), self.addr_inc)
 
 class Label(Macro):
     def translate(self, prog):
-        prog.add_label(self.label)
+        prog._add_label(self.label)
 
 class End(Macro):
     def expand(self, prog):
@@ -403,7 +403,6 @@ class EndLoop(Macro):
             insts.append(IncReg(reg=f'r{reg.addr}', val=-steps['step']-steps['span']))
 
         return insts
-
 
 class SetReg(Macro):
     # reg, val
@@ -688,13 +687,13 @@ class QickProgramV2(AbsQickProgram):
         # the timeline
 
         # high-level instruction list
-        self.init_macros()
+        self._init_macros()
 
         # low-level instruction list
-        self.init_asm()
+        self._init_asm()
 
 
-    def init_macros(self):
+    def _init_macros(self):
         self.macro_list = []
         self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
         self._user_regs = []  # addr of all user defined registers
@@ -711,7 +710,7 @@ class QickProgramV2(AbsQickProgram):
 
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
 
-    def init_asm(self):
+    def _init_asm(self):
         self.prog_list = []
         self.labels = {'s15': 's15'} # register 15 predefinition
 
@@ -721,24 +720,24 @@ class QickProgramV2(AbsQickProgram):
         self.line = 1
         # first instruction is always NOP, so both counters start at 1
 
-    def compile_prog(self):
+    def _compile_prog(self):
         _, p_mem = Assembler.list2bin(self.prog_list, self.labels)
         return p_mem
 
-    def compile_waves(self):
+    def _compile_waves(self):
         if self.waves:
             return np.stack([w.compile() for w in self.waves.values()])
         else:
             return np.zeros((0,8), dtype=np.int32)
 
     def compile(self):
-        self.expand_macros()
+        self._expand_macros()
         binprog = {}
-        binprog['pmem'] = self.compile_prog()
-        binprog['wmem'] = self.compile_waves()
+        binprog['pmem'] = self._compile_prog()
+        binprog['wmem'] = self._compile_waves()
         return binprog
 
-    def expand_macros(self):
+    def _expand_macros(self):
         # we need the loop names and counts first, to convert sweeps to steps
         # allocate the loop register, set a name if not defined, add the loop to the program's loop dict
         for macro in self.macro_list:
@@ -751,15 +750,15 @@ class QickProgramV2(AbsQickProgram):
             w.fill_steps(self.loop_dict)
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
-        self.init_asm()
+        self._init_asm()
         # initialize sweep registers
         for reg in self.user_reg_dict.values():
             if reg.sweep is not None:
-                self.add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
+                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
-    def add_asm(self, inst, addr_inc=1):
+    def _add_asm(self, inst, addr_inc=1):
         inst = inst.copy()
         inst['P_ADDR'] = self.p_addr
         inst['LINE'] = self.line
@@ -767,16 +766,16 @@ class QickProgramV2(AbsQickProgram):
         self.line += 1
         self.prog_list.append(inst)
 
-    def add_label(self, label):
+    def _add_label(self, label):
         self.labels[label] = '&%d' % (len(self.prog_list)+1)
 
     def asm(self):
-        self.expand_macros()
+        self._expand_macros()
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
 
     def config_all(self, soc, load_pulses=True):
-        # compile() first, because envelopes might be declared in a make_program() inside expand_macros()
+        # compile() first, because envelopes might be declared in a make_program() inside _expand_macros()
         binprog = self.compile()
         soc.tproc.stop()
         super().config_all(soc, load_pulses=load_pulses)
@@ -815,35 +814,16 @@ class QickProgramV2(AbsQickProgram):
         lenreg = self.us2cycles(ro_ch=ch, us=length)
         super().declare_readout(ch, lenreg, freq, sel, gen_ch)
 
-    # start of ASM code
+    # waves+pulses
 
-    def label(self, label):
-        """apply the specified label to the next instruction
-        """
-        self.macro_list.append(Label(label=label))
+    def add_wave(self, name, wave):
+        self.waves[name] = wave
+        self.wave2idx[name] = len(self.waves)-1
 
-    # low-level macros
+    def add_pulse(self, ch, name, **kwargs):
+        self._gen_mgrs[ch].add_pulse(name, kwargs)
 
-    def end(self):
-        self.macro_list.append(End())
-
-    def wait(self, t):
-        self.macro_list.append(Wait(t=t, auto=False))
-
-    def sync(self, t):
-        self.macro_list.append(Sync(t=t, auto=False))
-
-    def set_ext_counter(self, addr=1, val=0):
-        # initialize the data counter to zero
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.macro_list.append(SetReg(reg=reg, val=val))
-
-    def inc_ext_counter(self, addr=1, val=1):
-        # increment the data counter
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.macro_list.append(IncReg(reg=reg, val=val))
-    
-    # registers and control
+    # register management
 
     def new_reg(self, addr: int = None, name: str = None, sweep: QickSweepRaw = None):
         """ Declare a new data register.
@@ -883,33 +863,55 @@ class QickProgramV2(AbsQickProgram):
             self.new_reg(name=name)
         return self.user_reg_dict[name]
 
+    # start of ASM code
+
+    # low-level macros
+
+    def label(self, label):
+        """apply the specified label to the next instruction
+        """
+        self.macro_list.append(Label(label=label))
+
+    def end(self):
+        self.macro_list.append(End())
+
+    def set_ext_counter(self, addr=1, val=0):
+        # initialize the data counter to zero
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.macro_list.append(SetReg(reg=reg, val=val))
+
+    def inc_ext_counter(self, addr=1, val=1):
+        # increment the data counter
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.macro_list.append(IncReg(reg=reg, val=val))
+    
+    # control statements
+
     def open_loop(self, n, name=None):
         self.macro_list.append(StartLoop(n=n, name=name))
     
     def close_loop(self):
         self.macro_list.append(EndLoop())
 
+    # timeline management
 
-    # waves+pulses
+    def wait(self, t):
+        self.macro_list.append(Wait(t=t, auto=False))
 
-    def add_wave(self, name, wave):
-        self.waves[name] = wave
-        self.wave2idx[name] = len(self.waves)-1
-        
-    def add_pulse(self, ch, name, **kwargs):
-        self._gen_mgrs[ch].add_pulse(name, kwargs)
-
-    def pulse(self, ch, name, t=0):
-        self.macro_list.append(Pulse(ch=ch, name=name, t=t))
-
-    # timeline management and triggering
-
-    def trigger(self, ros=None, pins=None, t=0, width=None):
-        self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
+    def sync(self, t):
+        self.macro_list.append(Sync(t=t, auto=False))
 
     def sync_all(self, t=0, gens=True, ros=True):
         self.macro_list.append(Sync(t=t, auto=True, gens=gens, ros=ros))
 
     def wait_all(self, t=0, gens=False, ros=True):
         self.macro_list.append(Wait(t=t, auto=True, gens=gens, ros=ros))
+
+    # pulses and triggers
+
+    def pulse(self, ch, name, t=0):
+        self.macro_list.append(Pulse(ch=ch, name=name, t=t))
+
+    def trigger(self, ros=None, pins=None, t=0, width=None):
+        self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
 
