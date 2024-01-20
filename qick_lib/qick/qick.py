@@ -288,8 +288,6 @@ class QickSoc(Overlay, QickConfig):
         QickConfig.__init__(self)
 
         self['board'] = os.environ["BOARD"]
-        if self['board'] == 'ZCU208':
-            self['board'] = 'ZCU216'
         self['sw_version'] = get_version()
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
