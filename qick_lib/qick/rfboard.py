@@ -436,6 +436,8 @@ class spi(DefaultIP):
         The data must be formatted in bytes, regardless of the data width of the SPI IP.
         For data width 16 or 32, the bytes will be packed in little-endian order.
         """
+        if not isinstance(data, bytes):
+            raise RuntimeError("data is not a bytes object: ", data)
         if self.data_width == 16:
             data = np.frombuffer(data, dtype=np.dtype('H')) # uint16
         elif self.data_width == 32:
@@ -563,34 +565,23 @@ class MCP23S08:
     # byte[1] = register address.
     # byte[2] = register value (dummy for read).
     def reg_rd(self, reg="GPIO_REG"):
-        byte = []
-
         # Read command.
-        byte.append(self.cmd_rd + 2*self.dev_addr)
+        cmd = self.cmd_rd + 2*self.dev_addr
 
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, addr, 0])
 
     def reg_wr(self, reg="GPIO_REG", val=0):
-        byte = []
-
         # Write command.
-        byte.append(self.cmd_wr + 2*self.dev_addr)
+        cmd = self.cmd_wr + 2*self.dev_addr
 
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
-        # Dummy byte for clocking data out.
-        byte.append(val)
-
-        return byte
+        return bytes([cmd, addr, val])
 
 # LO Chip ADF4372.
 class ADF4372:
@@ -679,34 +670,17 @@ class ADF4372:
     # byte[1] = addr low.
     # byte[2] = register value (dummy for read).
     def reg_rd(self, reg="CONFIG0_REG"):
-        byte = []
-
-        # Read command.
-        byte.append(self.cmd_rd)
-
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([self.cmd_rd, addr, 0])
 
     def reg_wr(self, reg="CONFIG0_REG", val=0):
-        byte = []
-
-        # Write command.
-        byte.append(self.cmd_wr)
-
         # Address.
         addr = self.reg2addr(reg)
-        byte.append(addr)
 
-        # Dummy byte for clocking data out.
-        byte.append(val)
-
-        return byte
+        return bytes([self.cmd_wr, addr, val])
 
     # Simple frequency setting function.
     # FRAC2 = 0 not used.
@@ -785,22 +759,16 @@ class AD5781:
             return -1
 
     def reg_rd(self, reg="DAC_REG"):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_rd << 3) | addr
         cmd = (cmd << 4)
-        byte.append(cmd)
 
         # Dummy bytes for completing the command.
         # NOTE: another full, 24-bit transaction is needed to clock the register out (may be all 0s).
-        byte.append(0)
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, 0, 0])
 
     def reg_wr(self, reg="DAC_REG", val=0):
         byte = []
@@ -810,18 +778,8 @@ class AD5781:
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_wr << 3) | addr
-        cmd = (cmd << 4)
-
-        val_high = val >> 16
-        val_mid = (val >> 8) & 0xff
-        val_low = val & 0xff
-
-        # Append bytes.
-        byte.append(cmd | val_high)
-        byte.append(val_mid)
-        byte.append(val_low)
-
-        return byte
+        cmd = (cmd << 20) | val
+        return cmd.to_bytes(length=3, byteorder='big')
 
     # Compute register value for voltage setting.
     def volt2reg(self, volt=0):
@@ -877,7 +835,8 @@ class DAC11001:
 
         # R/W bit (MSB) +  address (lower 7 bits).
         cmd = (self.cmd_rd << 7) | addr
-        data |= (cmd << 24)
+        #data |= (cmd << 24)
+        data = bytes(3) + bytes([cmd])
 
         return data
 
@@ -889,28 +848,26 @@ class DAC11001:
 
         # R/W bit (MSB) +  address (lower 7 bits).
         cmd = (self.cmd_wr << 7) | addr
-        data |= (cmd << 24)
+        #data |= (cmd << 24)
 
         # Value is 24 bits (lower 4 not used).
-        data |= val
+        #data |= val
+        data = val.to_bytes(length=3, byteorder='little') + bytes([cmd])
 
         return data
 
     # Compute register value for voltage setting.
     def volt2reg(self, volt=0):
-        if volt < self.VREFN:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        elif volt > self.VREFP:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        else:
-            Df = 2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN)
+        Df = np.round(2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN))
+        if (Df<0 or Df>2**self.B):
+            raise RuntimeError("%f V out of range." % (volt))
+        elif Df==2**self.B:
+            # special case: V=VREFP is actually not reachable, but that's annoying and nobody will mind if we round down by an LSB
+            Df -= 1
 
-            # Shift by two as 4 lower bits are not used.
-            Df = int(Df) << 4
+        # Shift by two as 4 lower bits are not used.
+        return int(Df) << 4
 
-            return int(Df)
 
 # ADMV8818 Filter Chip.
 class ADMV8818:
@@ -960,19 +917,11 @@ class ADMV8818:
 
     def cmd_wr(self, reg="CHIPTYPE", value=0, debug=False):
         if reg in self.REGS.keys():
-            byte = []        
-
             # Register addresss.
             addr = self.REGS[reg]
 
-            # Upper 7 bits.
-            byte.append((addr >> 8) & 0x7f)
-
-            # Lower 8 bits.
-            byte.append(addr & 0xff)
-
             # Data.
-            byte.append(value & 0xff)
+            byte = (addr & 0x7fff).to_bytes(length=2, byteorder='big') + value.to_bytes(length=1, byteorder='big')
 
             if debug:
                 for b in byte:
@@ -984,19 +933,11 @@ class ADMV8818:
 
     def cmd_rd(self, reg="CHIPTYPE", debug=False):
         if reg in self.REGS.keys():
-            byte = []        
-
             # Register addresss.
             addr = self.REGS[reg]
 
-            # MSB=1 for read, Upper 7 bits of address.
-            byte.append(0x80 | ((addr >> 8) & 0x7f))
-
-            # Lower 8 bits.
-            byte.append(addr & 0xff)
-
             # Dummy.
-            byte.append(0)
+            byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(1)
 
             if debug:
                 for b in byte:
@@ -1501,19 +1442,20 @@ class dac_bias:
     def read(self, reg="DAC_REG"):
         if self.fpga_board == 'ZCU216' and self.version == 1:
             # Read command.
-            data = [self.ad.reg_rd(reg)]
+            data = self.ad.reg_rd(reg)
             reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
             # Another read with dummy data to allow clocking register out.
-            data = [0]
+            data = bytes(4)
             reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+            return int.from_bytes(reg[:3], byteorder='little')
         else:
             # Read command.
             byte = self.ad.reg_rd(reg)
             reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
             # Another read with dummy data to allow clocking register out.
-            byte = [0, 0, 0]
+            byte = bytes(3)
             reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
         return reg
@@ -1521,7 +1463,7 @@ class dac_bias:
     def write(self, reg="DAC_REG", val=0, debug=False):
         if self.fpga_board == 'ZCU216' and self.version == 1:
             # Write command.
-            data = [self.ad.reg_wr(reg, val)]
+            data = self.ad.reg_wr(reg, val)
 
             if debug:
                 print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
@@ -1571,34 +1513,23 @@ class LMH6401:
     # byte[0] = rw/address.
     # byte[1] = data.
     def reg_rd(self, reg="GAIN_REG"):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # Read command.
         cmd = self.cmd_rd | addr
-        byte.append(cmd)
 
         # Dummy byte for clocking data out.
-        byte.append(0)
-
-        return byte
+        return bytes([cmd, 0])
 
     def reg_wr(self, reg="GAIN_REG", val=0):
-        byte = []
-
         # Address.
         addr = self.reg2addr(reg)
 
         # Read command.
         cmd = self.cmd_wr | addr
-        byte.append(cmd)
 
-        # Data.
-        byte.append(val)
-
-        return byte
+        return bytes([cmd, val])
 
 # Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
 class gain:
@@ -1944,9 +1875,14 @@ class dac_ch():
         return ret 
 
     def set_rf(self, att1, att2):
-        self.rfsw_sel("RF")
-        self.set_attn_db(attn=0, db=att1)
-        self.set_attn_db(attn=1, db=att2)
+        if self.fpga_board == 'ZCU216' and self.version == 1:
+            # TODO: Check that this is a RF daughter card.
+            self.set_attn_db(attn=0, db=att1)
+            self.set_attn_db(attn=1, db=att2)
+        else:
+            self.rfsw_sel("RF")
+            self.set_attn_db(attn=0, db=att1)
+            self.set_attn_db(attn=1, db=att2)
 
     def set_dc(self):
         self.rfsw_sel("DC")
@@ -1998,6 +1934,9 @@ class RFQickSoc(QickSoc):
         This ensures that the LO output to the RF board is enabled.
         """
         super().__init__(bitfile=bitfile, clk_output=clk_output, no_tproc=no_tproc, **kwargs)
+
+        # Add configuration dictionary.
+        self['rfboard'] = {}
 
         self.rfb_config(no_tproc)
 
@@ -2097,11 +2036,11 @@ class RFQickSoc(QickSoc):
         Parameters
         ----------
         ro_ch : int
-            ADC channel (index in 'readouts' list)
+            ADC channel (index in 'avg_bufs' list)
         att : float
             Attenuation (0 to 31.75 dB)
         """
-        self.readouts[ro_ch].rfb.set_attn_db(att)
+        self.avg_bufs[ro_ch].rfb.set_attn_db(att)
 
     def rfb_set_ro_dc(self, ro_ch, gain):
         """Enable and configure an RF-board DC input channel.
@@ -2127,6 +2066,39 @@ class RFQickSoc(QickSoc):
             Voltage (-10 to 10 V)
         """
         self.dac_bias[bias_ch].set_volt(v)
+
+    def rfb_set_gen_filter(self, gen_ch, fc, bw=1, ftype='bandpass'):
+        """Set the programmable Analog Filter of the chain.
+
+        Parameters
+        ----------
+        gen_ch : int
+            DAC channel (index in 'gens' list)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : string.
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        self.gens[gen_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_ro_filter(self, ro_ch, fc, bw=1, ftype='bandpass'):
+        """Enable and configure an RF-board RF input channel.
+        Will fail if this is not an RF input.
+
+        Parameters
+        ----------
+        ro_ch : int
+            ADC channel (index in 'avg_bufs' list)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : string.
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        self.avg_bufs[ro_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
 
 class lo_synth_v2:
     def __init__(self, spi_ip, ch):
@@ -2155,7 +2127,7 @@ class lo_synth_v2:
         rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
     def reg_rd(self, addr):
-        data = [addr + (1<<7), 0, 0]
+        data = bytes([addr + (1<<7), 0, 0])
         return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
     def read_and_parse(self, addr):
@@ -2343,27 +2315,34 @@ class RFQickSoc216V1(RFQickSoc):
         if 'bias_gpio' in self.ip_dict.keys():
             pass
         else:
-            raise RuntimeError("%s: bias_spi for bias DACs control not found." % self.__class__.__name__) 
+            raise RuntimeError("%s: bias_gpio for bias DACs control not found." % self.__class__.__name__) 
         
         # DAC BIAS.
-        self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board'], debug=True) for ii in range(8)]
-
-        # DAC BIAS.
-        #self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+        self['rfboard']['dac_bias'] = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
 
         # ADC channels. ADC's daughter cards are the upper 4.
-        self.adcs_ = []
+        self['rfboard']['adcs'] = []
         NRF = 4 # Number of ADC daughter cards.
         NCH = 2 # ADC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.adcs_.append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
+                self['rfboard']['adcs'].append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
         # DAC channels. DAC's daughter cards are the lower 4.
-        self.dacs_ = []
+        self['rfboard']['dacs'] = []
         NRF = 4 # Number of DAC daughter cards.
         NCH = 4 # DAC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.dacs_.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+                self['rfboard']['dacs'].append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+
+        # Link gens/readouts to the corresponding RF board channels.
+        if not no_tproc:
+            for gen in self.gens:
+                tile, block = [int(a) for a in gen.dac]
+                gen.rfb = self['rfboard']['dacs'][4*tile + block]
+            for avg_buf in self.avg_bufs:
+                ro = avg_buf.readout 
+                tile, block = [int(a) for a in ro.adc]
+                avg_buf.rfb = self['rfboard']['adcs'][4*(tile-1) + block]
 

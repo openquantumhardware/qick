@@ -103,7 +103,7 @@ class RFDC(xrfdc.RFdc):
         """
         super().__init__(description)
         # Nyquist zone for each channel
-        self.nqz_dict = {}
+        self.nqz_dict = {'dac': {}, 'adc': {}}
         # Rounded NCO frequency for each channel
         self.mixer_dict = {}
 
@@ -173,36 +173,63 @@ class RFDC(xrfdc.RFdc):
             self.mixer_dict[dacname] = self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
             return self.mixer_dict[dacname]
 
-    def set_nyquist(self, dacname, nqz, force=False):
+    def set_nyquist(self, blockname, nqz, blocktype='dac', force=False):
         """
-        Sets DAC channel to operate in Nyquist zone nqz.
-        This setting doesn't change the output frequencies:
+        Sets channel to operate in Nyquist zone nqz.
+        This setting doesn't change the DAC output frequencies:
         you will always have some power at both the demanded frequency and its image(s).
         Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
         See "RF-DAC Nyquist Zone Operation" in PG269.
 
-        :param dacname: DAC channel (2-digit string)
-        :type dacname: int
+        :param blockname: channel ID (2-digit string)
+        :type blockname: int
         :param nqz: Nyquist zone (1 or 2)
         :type nqz: int
+        :param blocktype: 'dac' or 'adc'
+        :type blocktype: str
         :param force: force update, even if the setting is the same
         :type force: bool
         """
         if nqz not in [1,2]:
             raise RuntimeError("Nyquist zone must be 1 or 2")
-        tile, channel = [int(a) for a in dacname]
-        if not force and self.get_nyquist(dacname) == nqz:
+        if blocktype not in ['dac','adc']:
+            raise RuntimeError("Block type must be adc or dac")
+        tile, channel = [int(a) for a in blockname]
+        if not force and self.get_nyquist(blockname, blocktype) == nqz:
             return
-        self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
-        self.nqz_dict[dacname] = nqz
+        if blocktype=='dac':
+            self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
+        else:
+            self.adc_tiles[tile].blocks[channel].NyquistZone = nqz
+        self.nqz_dict[blocktype][blockname] = nqz
 
-    def get_nyquist(self, dacname):
+    def get_nyquist(self, blockname, blocktype='dac'):
+        """
+        Get the current Nyquist zone setting for a channel.
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        blocktype : str
+            'dac' or 'adc'
+
+        Returns
+        -------
+        int
+            NQZ setting (1 or 2)
+        """
+        if blocktype not in ['dac','adc']:
+            raise RuntimeError("Block type must be adc or dac")
         try:
-            return self.nqz_dict[dacname]
+            return self.nqz_dict[blocktype][blockname]
         except KeyError:
-            tile, channel = [int(a) for a in dacname]
-            self.nqz_dict[dacname] = self.dac_tiles[tile].blocks[channel].NyquistZone
-            return self.nqz_dict[dacname]
+            tile, channel = [int(a) for a in blockname]
+            if blocktype=='dac':
+                self.nqz_dict[blocktype][blockname] = self.dac_tiles[tile].blocks[channel].NyquistZone
+            else:
+                self.nqz_dict[blocktype][blockname] = self.adc_tiles[tile].blocks[channel].NyquistZone
+            return self.nqz_dict[blocktype][blockname]
 
 
 class QickSoc(Overlay, QickConfig):
@@ -261,8 +288,6 @@ class QickSoc(Overlay, QickConfig):
         QickConfig.__init__(self)
 
         self['board'] = os.environ["BOARD"]
-        if self['board'] == 'ZCU208':
-            self['board'] = 'ZCU216'
         self['sw_version'] = get_version()
 
         # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.

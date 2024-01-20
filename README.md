@@ -12,12 +12,9 @@ It consists of:
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
+* [More examples and tutorial](https://github.com/openquantumhardware/QCE2023_public/tree/main) from IEEE Quantum Week 2023. 
 
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
-
-<p align="center">
- <img src="graphics/QCE2023_banner.svg" alt="QCE2023 banner" width=100% height=auto>
-</p>
 
 Download and Installation
 -------------------------
