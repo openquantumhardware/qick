@@ -623,13 +623,6 @@ class QickProgram(AbsQickProgram):
         # Label to apply to the next instruction.
         self._label_next = None
 
-        # Address of the rep counter in the data memory.
-        self.counter_addr = 1
-        # Number of iterations in the innermost loop.
-        self.reps = None
-        # Number of times the program repeats the innermost loop. None means there is no outer loop.
-        self.expts = None
-
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
@@ -640,12 +633,6 @@ class QickProgram(AbsQickProgram):
         self._ro_pagemap = {}
         self._ro_regmap = {}
         self._allocate_registers()
-
-        # Number of times the whole program is to be run.
-        self.rounds = 1
-        # Rotation angle and thresholds for single-shot readout.
-        self.shot_angle = None
-        self.shot_threshold = None
 
     def _allocate_registers(self):
         # assign tProc-controlled generator/readout channels to pages

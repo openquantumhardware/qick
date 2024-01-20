@@ -843,7 +843,7 @@ class QickSoc(Overlay, QickConfig):
 
     def set_tproc_counter(self, addr, val):
         """
-        Initialize the tProc rep counter.
+        Initialize the tProc shot counter.
         Parameters
         ----------
         addr : int
@@ -859,7 +859,7 @@ class QickSoc(Overlay, QickConfig):
 
     def get_tproc_counter(self, addr):
         """
-        Read the tProc rep counter.
+        Read the tProc shot counter.
         For tProc V1, this accesses the data memory at the given address.
         For tProc V2, this accesses one of the two special AXI-readable registers.
 
@@ -896,26 +896,26 @@ class QickSoc(Overlay, QickConfig):
         self.start_src("internal")
         self.start_tproc()
 
-    def start_readout(self, total_reps, counter_addr=1, ch_list=None, reads_per_rep=1, stride=None):
+    def start_readout(self, total_shots, counter_addr=1, ch_list=None, reads_per_shot=1, stride=None):
         """
         Start a streaming readout of the accumulated buffers.
 
-        :param total_count: Number of data points expected
-        :type total_count: int
-        :param counter_addr: Data memory address for the loop counter
+        :param total_shots: Final value expected for the shot counter
+        :type total_shots: int
+        :param counter_addr: Data memory address for the shot counter
         :type counter_addr: int
         :param ch_list: List of readout channels
         :type ch_list: list of int
-        :param reads_per_rep: Number of data points to expect per counter increment
-        :type reads_per_rep: list of int
+        :param reads_per_shot: Number of data points to expect per counter increment
+        :type reads_per_shot: list of int
         :param stride: Default number of measurements to transfer at a time.
         :type stride: int
         """
         ch_list = obtain(ch_list)
-        reads_per_rep = obtain(reads_per_rep)
+        reads_per_shot = obtain(reads_per_shot)
         if ch_list is None: ch_list = [0, 1]
-        if isinstance(reads_per_rep, int):
-            reads_per_rep = [reads_per_rep]*len(ch_list)
+        if isinstance(reads_per_shot, int):
+            reads_per_shot = [reads_per_shot]*len(ch_list)
         streamer = self.streamer
 
         if not streamer.readout_worker.is_alive():
@@ -944,11 +944,11 @@ class QickSoc(Overlay, QickConfig):
             self.poll_data(totaltime=-1, timeout=0.1)
             print("buffer cleared")
 
-        streamer.total_count = total_reps
+        streamer.total_count = total_shots
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((total_reps, counter_addr, ch_list, reads_per_rep, stride))
+        streamer.job_queue.put((total_shots, counter_addr, ch_list, reads_per_shot, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """

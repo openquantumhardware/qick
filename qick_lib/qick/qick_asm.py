@@ -594,19 +594,6 @@ class AbsQickProgram:
         self._gen_ts = [0]*len(soccfg['gens'])
         self._ro_ts = [0]*len(soccfg['readouts'])
 
-        # tProc address of the rep counter, must be defined
-        self.counter_addr = None
-
-        # data dimensions, must be defined:
-        # list of loop dimensions, outermost loop first
-        self.loop_dims = None
-        # which loop level to average over (0 is outermost)
-        self.avg_level = None
-
-        # threshold and angle for single-shot discrimination, if desired
-        self.shot_threshold = None
-        self.shot_angle = None
-
     def __getattr__(self, a):
         """
         Include QickConfig methods as methods of the QickProgram.
@@ -957,7 +944,106 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-    def acquire(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=False):
+class AcquireMixin:
+    """Adds acquire() and acquire_decimated() methods.
+    """
+    def __init__(self, *args, **kwargs):
+        # pass through any init arguments
+        super().__init__(*args, **kwargs)
+        # tProc address of the rep counter, must be defined
+        self.counter_addr = None
+
+        # data dimensions, must be defined:
+        # number of times each readout is triggered in a single shot
+        self.reads_per_shot = None
+        # list of loop dimensions, outermost loop first
+        self.loop_dims = None
+        # which loop level to average over (0 is outermost)
+        self.avg_level = None
+
+        # threshold and angle for single-shot discrimination, if desired
+        self.shot_threshold = None
+        self.shot_angle = None
+
+        # measurements from the most recent acquisition
+        # raw I/Q data without normalizing to window length or averaging over reps
+        self.d_buf = None
+        # shot-by-shot threshold classification
+        self.shots = None
+
+    def setup_acquire(self, counter_addr, loop_dims, avg_level, reads_per_shot=None):
+        """Set the parameters needed to define the data acquisition.
+        Since the number of readouts per shot is set based on calls to trigger(), this should be called after the program has been fully defined.
+
+        Parameters
+        ----------
+        counter_addr : int
+            The special tProc address holding the number of shots read out thus far.
+        loop_dims : list of int
+            List of loop dimensions, outermost loop first.
+        avg_level : int
+            Which loop level to average over (0 is outermost).
+        """
+        self.counter_addr = counter_addr
+        self.loop_dims = loop_dims
+        self.avg_level = avg_level
+        self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
+
+    def set_reads_per_shot(self, reads_per_shot):
+        """Override the default count of readout triggers per shot.
+        This should be called after setup_acquire().
+        You probably shouldn't be using this method; the default value is usually correct.
+
+        Parameters
+        ----------
+        reads_per_shot : int or list of int
+            Number of readout triggers per shot.
+            If int, all declared readout channels use this value.
+        """
+        try:
+            self.reads_per_shot = [int(reads_per_shot)]*len(self.ro_chs)
+        except TypeError:
+            self.reads_per_shot = reads_per_shot
+
+    def setup_threshold(self, threshold, angle=0):
+        """Set the parameters needed for thresholding.
+        Thresholds are applied on the raw (not normalized to window length) values.
+
+        Parameters
+        ----------
+        threshold : float or list of float
+            The threshold(s) to apply to the I values after rotation.
+            If scalar, the same threshold will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        angle : float or list of float
+            The angle to rotate the I/Q values by before applying the threshold.
+            If scalar, the same angle will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        """
+        self.shot_threshold = threshold
+        self.shot_angle = angle
+
+    def get_raw(self):
+        """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
+
+        Returns
+        -------
+        list of ndarray
+            Array of I/Q values for each readout channel.
+        """
+        return self.d_buf
+
+    def get_shots(self):
+        """Get the shot-by-shot threshold decisions.
+
+        Returns
+        -------
+        list of ndarray
+            Array of shots for each readout channel.
+        """
+        return self.shots
+
+    def acquire(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=False):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -966,9 +1052,6 @@ class AbsQickProgram:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        reads_per_rep : int
-            number of readout triggers in the loop body
-            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
@@ -990,20 +1073,18 @@ class AbsQickProgram:
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
-
         self.config_all(soc, load_pulses=load_pulses)
+
+        if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
 
         # configure tproc for internal/external start
         soc.start_src(start_src)
 
         n_ro = len(self.ro_chs)
-        if reads_per_rep is not None:
-            for ro_ch in self.ro_chs.values():
-                ro_ch['trigs'] = reads_per_rep
-        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in reads_per_rep]
+        self.d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -1025,27 +1106,27 @@ class AbsQickProgram:
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
                 soc.start_readout(total_count, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
+                                       ch_list=list(self.ro_chs), reads_per_rep=self.reads_per_shot)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
-                        for ii, nreads in enumerate(reads_per_rep):
-                            d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
+                        for ii, nreads in enumerate(self.reads_per_shot):
+                            self.d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
 
             # if we're thresholding, apply the threshold before averaging
             if self.shot_threshold is None:
-                d_reps = d_buf
+                d_reps = self.d_buf
             else:
-                d_reps = [np.zeros_like(d) for d in d_buf]
-                shots = self.get_single_shots(d_buf)
-                for i, ch_shot in enumerate(shots):
+                d_reps = [np.zeros_like(d) for d in self.d_buf]
+                self.shots = self.get_single_shots(self.d_buf)
+                for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
 
             # sum over rounds axis
-            round_d = self._average_buf(d_reps, reads_per_rep)
+            round_d = self._average_buf(d_reps, self.reads_per_shot)
             if avg_d is None:
                 avg_d = round_d
             else:
@@ -1054,22 +1135,22 @@ class AbsQickProgram:
         # divide total by rounds
         for d in avg_d: d /= soft_avgs
 
-        return d_buf, avg_d, shots
+        return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: list) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
 
         :param d_reps: buffer data acquired in a round
-        :param reads_per_rep: readouts per experiment
+        :param reads_per_shot: readouts per experiment
         :return: averaged iq data after each round.
         """
         averaged_dims = self.loop_dims.copy()
         del averaged_dims[self.avg_level]
-        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_rep]
+        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_shot]
         for i_ch, ro in enumerate(self.ro_chs.values()):
-            nreads = reads_per_rep[i_ch]
+            nreads = reads_per_shot[i_ch]
             for ii in range(nreads):
                 avg_d[i_ch][ii] = d_reps[i_ch][ii::nreads, :].reshape((*self.loop_dims, 2)).sum(axis=self.avg_level) / (self.loop_dims[self.avg_level] * ro['length'])
 
@@ -1095,14 +1176,10 @@ class AbsQickProgram:
             thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
         except TypeError:
             thresholds = self.shot_threshold
-        # angle is 0 if not specified
-        if self.shot_angle is None:
-            angles = [0.0]*len(self.ro_chs)
-        else:
-            try:
-                angles = [float(self.shot_angle)]*len(self.ro_chs)
-            except TypeError:
-                angles = self.shot_angle
+        try:
+            angles = [float(self.shot_angle)]*len(self.ro_chs)
+        except TypeError:
+            angles = self.shot_angle
 
         shots = []
         for i, ch in enumerate(self.ro_chs):
@@ -1111,7 +1188,7 @@ class AbsQickProgram:
         return shots
 
 
-    def acquire_decimated(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1120,9 +1197,6 @@ class AbsQickProgram:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        reads_per_rep : int
-            number of readout triggers in the loop body
-            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
@@ -1140,13 +1214,11 @@ class AbsQickProgram:
         """
         self.config_all(soc, load_pulses=load_pulses)
 
+        if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
+
         # configure tproc for internal/external start
         soc.start_src(start_src)
-
-        if reads_per_rep is not None:
-            for ro_ch in self.ro_chs.values():
-                ro_ch['trigs'] = reads_per_rep
-        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
