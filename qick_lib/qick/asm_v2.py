@@ -676,6 +676,23 @@ class QickProgramV2(AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
+        # all current v1 programs are processed in one pass:
+        # * init the program
+        # * fill the ASM list (using make_program or by calling ASM wrappers directly)
+        # * compile the ASM list to binary as needed
+        #
+        # v2 programs require multiple passes:
+        # * init the program
+        # * fill the macro_list (using make_program or by calling macro wrappers directly)
+        # * preprocess the macro_list, put register initialization in ASM
+        # * expand the macro_list to fill the ASM list
+        # * compile the ASM list to binary
+        #
+        # things that get added to a program:
+        # * declare_gen, declare_readout
+        # * add_pulse
+        # * macros
+        # 
         # user commands can add macros and/or waveforms+pulses to the program
         # macros are user commands
         # preprocessing: allocate registers, convert sweeps from physical units to ASM values, define the timeline
@@ -686,15 +703,14 @@ class QickProgramV2(AbsQickProgram):
         # loop lengths
         # the timeline
 
-        # high-level instruction list
-        self._init_macros()
+    def _init_prog(self):
+        super()._init_prog()
 
-        # low-level instruction list
-        self._init_asm()
-
-
-    def _init_macros(self):
+        # high-level macros
         self.macro_list = []
+
+        # high-level program structure
+
         self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
         self._user_regs = []  # addr of all user defined registers
 
@@ -710,7 +726,8 @@ class QickProgramV2(AbsQickProgram):
 
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
 
-    def _init_asm(self):
+        # low-level ASM management
+
         self.prog_list = []
         self.labels = {'s15': 's15'} # register 15 predefinition
 
@@ -750,7 +767,6 @@ class QickProgramV2(AbsQickProgram):
             w.fill_steps(self.loop_dict)
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
-        self._init_asm()
         # initialize sweep registers
         for reg in self.user_reg_dict.values():
             if reg.sweep is not None:

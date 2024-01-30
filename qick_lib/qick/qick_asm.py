@@ -582,17 +582,24 @@ class AbsQickProgram:
         """
         self.soccfg = soccfg
         self.tproccfg = self.soccfg['tprocs'][0]
+        self._init_prog()
 
+    def _init_prog(self):
+        """Initialize data structures for keeping track of channels, envelopes, pulses, etc.
+        Concrete subclasses will extend this method to initialize the ASM list and any intermediate data structures.
+        This should be called at class initialization.
+        If a program is filled using a make_program() that is called during compilation, this should also be called before make_program().
+        """
         # Pulse envelopes.
-        self.envelopes = [{} for ch in soccfg['gens']]
+        self.envelopes = [{} for ch in self.soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
         # Timestamps, for keeping track of pulse and readout end times.
-        self._gen_ts = [0]*len(soccfg['gens'])
-        self._ro_ts = [0]*len(soccfg['readouts'])
+        self._gen_ts = [0]*len(self.soccfg['gens'])
+        self._ro_ts = [0]*len(self.soccfg['readouts'])
 
     def __getattr__(self, a):
         """
@@ -628,6 +635,28 @@ class AbsQickProgram:
         # Configure the readout down converters
         self.config_readouts(soc)
 
+    def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
+        """Load the program into the tProcessor and start it.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The QickSoc that will execute this program.
+        load_prog : bool
+            Load the program before starting the tProc.
+        load_pulses : bool
+            Load the generator envelopes before starting the tProc.
+            If load_prog is False, load_pulses is ignored.
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger).
+        """
+        if load_prog:
+            self.config_all(soc, load_pulses=load_pulses)
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+        # run the assembly program
+        # if start_src="external", it won't actually start until it sees a pulse
+        soc.start_tproc()
 
     def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
@@ -950,6 +979,10 @@ class AcquireMixin:
     def __init__(self, *args, **kwargs):
         # pass through any init arguments
         super().__init__(*args, **kwargs)
+
+    def _init_prog(self):
+        super()._init_prog()
+
         # tProc address of the rep counter, must be defined
         self.counter_addr = None
 
@@ -1098,7 +1131,6 @@ class AcquireMixin:
 
         # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
         avg_d = None
-        shots = None
         for ir in tqdm(range(soft_avgs), disable=hiderounds):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
@@ -1106,7 +1138,7 @@ class AcquireMixin:
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
                 soc.start_readout(total_count, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_rep=self.reads_per_shot)
+                                       ch_list=list(self.ro_chs), reads_per_shot=self.reads_per_shot)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
