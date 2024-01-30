@@ -518,6 +518,8 @@ class AxisSgMux4V2(AbsPulsedSignalGen):
         self.update()
 
 class AxisSgMux4V3(AxisSgMux4V2):
+    """AxisSgMux4V3: no digital mixer, but otherwise behaves identically to AxisSgMux4V2.
+    """
     bindto = ['user.org:user:axis_sg_mux4_v3:1.0']
     HAS_MIXER = False
 
