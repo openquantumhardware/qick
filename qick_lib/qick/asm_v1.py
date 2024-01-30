@@ -609,7 +609,8 @@ class QickProgram(AbsQickProgram):
                 'axis_signal_gen_v6': FullSpeedGenManager,
                 'axis_sg_int4_v1': InterpolatedGenManager,
                 'axis_sg_mux4_v1': MultiplexedGenManager,
-                'axis_sg_mux4_v2': MultiplexedGenManager}
+                'axis_sg_mux4_v2': MultiplexedGenManager,
+                'axis_sg_mux4_v3': MultiplexedGenManager}
 
     def __init__(self, soccfg):
         """

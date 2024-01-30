@@ -752,7 +752,7 @@ class AbsQickProgram:
             soc.set_nyquist(ch, cfg['nqz'])
             soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
             if cfg['mux_freqs'] is not None:
-                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'])
+                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the waveform library within the program.

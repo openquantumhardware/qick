@@ -1978,19 +1978,19 @@ class RFQickSoc(QickSoc):
         self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
-        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi, version=1) for ii in range(4,8)]
+        self.adc_chains = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi, version=1) for ii in range(4,8)]
         
         # DAC channels.
-        self.dacs = [dac_ch(ii, self.switches, self.attn_spi, version=1) for ii in range(8)]
+        self.dac_chains = [dac_ch(ii, self.switches, self.attn_spi, version=1) for ii in range(8)]
 
         if not no_tproc:
             # Link gens/readouts to the corresponding RF board channels.
             for gen in self.gens:
                 tile, block = [int(a) for a in gen.dac]
                 gen.rfb = self.dacs[4*tile + block]
-            for ro in self.readouts:
-                tile, block = [int(a) for a in ro.adc]
-                ro.rfb = self.adcs[2*tile + block]
+            for avg_buf in self.avg_bufs:
+                tile, block = [int(a) for a in avg_buf.readout.adc]
+                avg_buf.rfb = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f):
         """Set both of the RF-board local oscillators to the same frequency.
@@ -2053,7 +2053,7 @@ class RFQickSoc(QickSoc):
         gain : float
             Gain (-6 to 26 dB)
         """
-        self.readouts[ro_ch].rfb.set_gain_db(gain)
+        self.avg_bufs[ro_ch].rfb.set_gain_db(gain)
 
     def rfb_set_bias(self, bias_ch, v):
         """Set a voltage on an RF-board bias DAC.
@@ -2222,24 +2222,24 @@ class RFQickSocV2(RFQickSoc):
         self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii, fpga_board=self['board']) for ii in range(8)]
 
         # ADC channels.
-        self.adcs = [adc_rf_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+        self.adc_chains = [adc_rf_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
 
         # DAC channels.
-        self.dacs = [dac_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(8)]
+        self.dac_chains = [dac_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(8)]
 
         # Link RF channels to LOs.
-        for adc in self.adcs[:4]: adc.lo = self.lo[0]
-        for dac in self.dacs[:4]: dac.lo = self.lo[1]
-        for dac in self.dacs[4:]: dac.lo = self.lo[2]
+        for adc in self.adc_chains[:4]: adc.lo = self.lo[0]
+        for dac in self.dac_chains[:4]: dac.lo = self.lo[1]
+        for dac in self.dac_chains[4:]: dac.lo = self.lo[2]
 
         if not no_tproc:
             # Link gens/readouts to the corresponding RF board channels.
             for gen in self.gens:
                 tile, block = [int(a) for a in gen.dac]
-                gen.rfb = self.dacs[4*tile + block]
-            for ro in self.readouts:
-                tile, block = [int(a) for a in ro.adc]
-                ro.rfb = self.adcs[2*tile + block]
+                gen.rfb = self.dac_chains[4*tile + block]
+            for avg_buf in self.avg_bufs:
+                tile, block = [int(a) for a in avg_buf.readout.adc]
+                avg_buf.rfb = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f, ch=None, verbose=False):
         """Set RF-board local oscillators.
@@ -2278,7 +2278,7 @@ class RFQickSocV2(RFQickSoc):
         if gen_ch is not None:
             return self.gens[gen_ch].rfb.lo.freq
         if ro_ch is not None:
-            return self.readouts[ro_ch].rfb.lo.freq
+            return self.avg_bufs[ro_ch].rfb.lo.freq
         raise RuntimeError("must specify gen_ch or ro_ch")
 
 class RFQickSoc216V1(RFQickSoc):
@@ -2318,31 +2318,31 @@ class RFQickSoc216V1(RFQickSoc):
             raise RuntimeError("%s: bias_gpio for bias DACs control not found." % self.__class__.__name__) 
         
         # DAC BIAS.
-        self['rfboard']['dac_bias'] = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
+        self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
 
         # ADC channels. ADC's daughter cards are the upper 4.
-        self['rfboard']['adcs'] = []
+        self.adc_chains = []
         NRF = 4 # Number of ADC daughter cards.
         NCH = 2 # ADC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self['rfboard']['adcs'].append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
+                self.adc_chains.append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
         # DAC channels. DAC's daughter cards are the lower 4.
-        self['rfboard']['dacs'] = []
+        self.dac_chains = []
         NRF = 4 # Number of DAC daughter cards.
         NCH = 4 # DAC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self['rfboard']['dacs'].append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+                self.dac_chains.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
 
         # Link gens/readouts to the corresponding RF board channels.
         if not no_tproc:
             for gen in self.gens:
                 tile, block = [int(a) for a in gen.dac]
-                gen.rfb = self['rfboard']['dacs'][4*tile + block]
+                gen.rfb = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
-                ro = avg_buf.readout 
-                tile, block = [int(a) for a in ro.adc]
-                avg_buf.rfb = self['rfboard']['adcs'][4*(tile-1) + block]
+                tile, block = [int(a) for a in avg_buf.readout.adc]
+                #TODO: is tile-1 correct? not tile-2?
+                avg_buf.rfb = self.adc_chains[4*(tile-1) + block]
 
