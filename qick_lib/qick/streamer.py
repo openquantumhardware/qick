@@ -101,7 +101,6 @@ class DataStreamer():
 
                 shots = 0
                 last_shots = 0
-                last_count = 0
 
                 # how many shots worth of data to transfer at a time
                 if stride is None:
@@ -127,27 +126,26 @@ class DataStreamer():
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
                     if shots >= min(last_shots+stride, total_shots):
                         newshots = shots-last_shots
-                        length = newshots
-                        if length >= self.soc.get_avg_max_length(0):
-                            raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                                               % (length, self.soc.get_avg_max_length(0)) +
-                                               "\nYou need to slow down the tProc by increasing relax_delay." +
-                                               "\nIf the TQDM progress bar is enabled, disabling it may help.")
-
                         # buffer for each channel
-                        d_buf = [np.zeros((length*nreads, 2), dtype=np.int32) for nreads in reads_per_count]
+                        d_buf = [None for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
-                            addr = last_count * reads_per_count[iCh] % self.soc.get_avg_max_length(0)
-                            data = self.soc.get_accumulated(ch=ch, address=addr, length=length*reads_per_count[iCh])
+                            newpoints = newshots*reads_per_count[iCh]
+                            if newpoints >= self.soc.get_avg_max_length(ch):
+                                raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
+                                                   % (newpoints, self.soc.get_avg_max_length(ch)) +
+                                                   "\nYou need to slow down the tProc by increasing relax_delay." +
+                                                   "\nIf the TQDM progress bar is enabled, disabling it may help.")
+
+                            addr = last_shots * reads_per_count[iCh] % self.soc.get_avg_max_length(ch)
+                            data = self.soc.get_accumulated(ch=ch, address=addr, length=newpoints)
                             d_buf[iCh] = data
 
                         last_shots += newshots
-                        last_count += length
 
-                        stats = (time.time()-t_start, shots, addr, length)
-                        self.data_queue.put((length, (d_buf, stats)))
+                        stats = (time.time()-t_start, shots, addr, newshots)
+                        self.data_queue.put((newshots, (d_buf, stats)))
                 #if last_count==total_count: print("streamer loop: normal completion")
 
             except Exception as e:
