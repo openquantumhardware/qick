@@ -669,6 +669,13 @@ class FullSpeedGenManager(AbsGenManager):
         return waves
 
 class QickProgramV2(AbsQickProgram):
+    """Base class for all tProc v2 programs.
+
+    Parameters
+    ----------
+    soccfg : QickConfig
+        The QICK firmware configuration dictionary.
+    """
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
                 'axis_signal_gen_v6': FullSpeedGenManager}
@@ -881,6 +888,9 @@ class QickProgramV2(AbsQickProgram):
 
     # start of ASM code
 
+    def asm_inst(self, inst, addr_inc=1):
+        self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
+
     # low-level macros
 
     def label(self, label):
@@ -900,7 +910,7 @@ class QickProgramV2(AbsQickProgram):
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
         self.macro_list.append(IncReg(reg=reg, val=val))
-    
+
     # control statements
 
     def open_loop(self, n, name=None):
@@ -931,9 +941,49 @@ class QickProgramV2(AbsQickProgram):
     def trigger(self, ros=None, pins=None, t=0, width=None):
         self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
 
-class AveragerProgramV2(AcquireMixin, QickProgramV2):
+class AcquireProgramV2(AcquireMixin, QickProgramV2):
+    """Base class for tProc v2 programs with shot counting and readout acquisition.
+    You will need to define the acquisition structure with setup_acquire().
+    """
+    pass
+
+class AveragerProgramV2(AcquireProgramV2):
+    """Use this as a base class to build looping programs.
+    You are responsible for writing initialize() and body().
+    The content of your body() - a "shot" - will be run inside nested loops, where the outermost loop is run "reps" times, and you can add loop levels with add_loop().
+    The returned data will be averaged over the "reps" axis.
+
+    This is similar to the NDAveragerProgram from tProc v1.
+    (Note that the order of user loops is reversed: first added is outermost, not innermost)
+
+    Parameters
+    ----------
+    soccfg : QickConfig
+        The QICK firmware configuration dictionary.
+    cfg : dict
+        Your program configuration dictionary.
+        There are no required entries, this is for your use and can be accessed as self.cfg in your initialize() and body().
+    reps : int
+        Number of iterations in the "reps" loop.
+    final_sync : float
+        Amount of time (in us) to add at the end of the shot timeline, after the end of the last pulse or readout.
+        If your experiment requires a gap between shots (e.g. qubit relaxation time), use this parameter.
+        The total length of your shot timeline should allow enough time for the tProcessor to execute your commands, and for the CPU to read the accumulated buffers; the default of 1 us usually guarantees this, and 0 will be fine for simple programs with sparse timelines.
+        A value of None will disable this behavior (and you should insert appropriate sync/sync_all statements in your body).
+        This parameter is often called "relax_delay."
+    final_wait : float
+        Amount of time (in us) to pause tProc execution at the end of each shot, after the end of the last readout.
+        The default of 0 is usually appropriate.
+        A value of None will disable this behavior (and you should insert appropriate wait/wait_all statements in your body).
+    initial_sync : float
+        Amount of time (in us) to add to the timeline before starting to run the loops.
+        This should allow enough time for the tProcessor to execute your initialization commands.
+        The default of 1 us is usually sufficient.
+        A value of None will disable this behavior (and you should insert appropriate sync/sync_all statements in your initialization).
+    """
+
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, cfg, reps, final_sync, final_wait=0, initial_sync=0.5):
+    def __init__(self, soccfg, cfg, reps, final_sync, final_wait=0, initial_sync=1.0):
         super().__init__(soccfg)
         self.cfg = cfg
         self.reps = reps
@@ -949,25 +999,51 @@ class AveragerProgramV2(AcquireMixin, QickProgramV2):
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
 
     def add_loop(self, name, count):
+        """Add a loop level to the program.
+        The first level added will be the outermost loop (after the reps loop).
+
+        Parameters
+        ----------
+        name : str
+            Name of this loop level.
+            This should match the name used in your sweeps.
+        count : int
+            Number of iterations for this loop.
+        """
         self.loops.append((name, count))
 
     def initialize(self):
+        """Do inital setup of your program and the QICK.
+        This is where you should put any ASM commands (register operations, setup pulses) that need to be played before the shot loops begin.
+        It's also conventional to put program declarations here (though because these are executed by Python and not the tProc it doesn't really matter, they just need to be executed).
+        """
         pass
 
     def body(self):
+        """Play a shot.
+        This is where you should put pulses and readout triggers.
+        """
         pass
 
     def make_program(self):
+        # play the initialization
         self.set_ext_counter(addr=self.COUNTER_ADDR)
         self.initialize()
-        self.sync_all(self.initial_sync)
+        if self.initial_sync is not None:
+            self.sync_all(self.initial_sync)
+
         for name, count in self.loops:
             self.open_loop(count, name=name)
-        self.body()
 
-        self.wait_all(self.final_wait)
-        self.sync_all(self.final_sync)
+        # play the shot
+        self.body()
+        if self.final_wait is not None:
+            self.wait_all(self.final_wait)
+        if self.final_sync is not None:
+            self.sync_all(self.final_sync)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
+
         for name, count in self.loops:
             self.close_loop()
+
         self.end()

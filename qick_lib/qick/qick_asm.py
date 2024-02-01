@@ -637,6 +637,8 @@ class AbsQickProgram:
 
     def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
+        Because there is in general no way to tell when a program is done running, there is no guarantee that the program will be done before this method returns.
+        If you want that guarantee, use run_rounds().
 
         Parameters
         ----------
@@ -974,7 +976,7 @@ class AbsQickProgram:
         return max(timestamps)
 
 class AcquireMixin:
-    """Adds acquire() and acquire_decimated() methods.
+    """Adds acquire() and acquire_decimated() methods for acquiring readout data, and run_rounds() for running repeatedly without acquisition.
     Program classes that use this mixin must call setup_acquire() after _init_prog() and before acquire()/acquire_decimated().
     """
     def __init__(self, *args, **kwargs):
@@ -1232,10 +1234,49 @@ class AcquireMixin:
         Returns
         -------
         ndarray of float
-            Microseconds
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
         """
         ch, ro = list(self.ro_chs.items())[ro_index]
         return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
+
+    def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
+        """Acquire data using the decimating readout.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        rounds : int
+            number of times to rerun the program
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        """
+        self.config_all(soc, load_pulses=load_pulses)
+
+        if any([x is None for x in [self.counter_addr, self.loop_dims]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+        total_count = functools.reduce(operator.mul, self.loop_dims)
+
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(rounds), disable=not progress):
+            # make sure count variable is reset to 0
+            soc.set_tproc_counter(addr=self.counter_addr, val=0)
+
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every round
+            soc.start_tproc()
+
+            count = 0
+            while count < total_count:
+                count = soc.get_tproc_counter(addr=self.counter_addr)
 
     def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
