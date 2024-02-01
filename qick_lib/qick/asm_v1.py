@@ -597,7 +597,7 @@ class QickProgram(AbsQickProgram):
     # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
     # In each page, register 0 is hard-wired with the value 0.
     # In page 0 we reserve the following additional registers:
-    # 13, 14 and 15 for loop counters, 31 for the trigger time.
+    # 13, 14 and 15 for loop counters, 16 for the trigger bits.
     # Pairs of channels share a register page.
     # The flat_top pulse uses some extra registers.
 
@@ -1051,7 +1051,7 @@ class QickProgram(AbsQickProgram):
         self.waiti(0, int(self.get_max_timestamp(gens=False, ros=True) + t))
 
     # should change behavior to only change bits that are specified
-    def trigger(self, adcs=None, pins=None, ddr4=False, mr=False, adc_trig_offset=270, t=0, width=10, rp=0, r_out=31):
+    def trigger(self, adcs=None, pins=None, ddr4=False, mr=False, adc_trig_offset=270, t=0, width=10, rp=0, r_out=16):
         """Pulse the readout(s) and marker pin(s) with a specified pulse width at a specified time t+adc_trig_offset.
         If no readouts are specified, the adc_trig_offset is not applied.
 
