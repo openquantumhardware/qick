@@ -975,6 +975,7 @@ class AbsQickProgram:
 
 class AcquireMixin:
     """Adds acquire() and acquire_decimated() methods.
+    Program classes that use this mixin must call setup_acquire() after _init_prog() and before acquire()/acquire_decimated().
     """
     def __init__(self, *args, **kwargs):
         # pass through any init arguments
@@ -1219,6 +1220,22 @@ class AcquireMixin:
             shots.append(np.heaviside(rotated - thresholds[i], 0))
         return shots
 
+    def get_time_axis(self, ro_index):
+        """Get an array usable as the time axis for plotting decimated data.
+
+        Parameters
+        ----------
+        ro_index : int
+            Index of the readout channel in this program.
+            The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
+
+        Returns
+        -------
+        ndarray of float
+            Microseconds
+        """
+        ch, ro = list(self.ro_chs.items())[ro_index]
+        return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
 
     def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.

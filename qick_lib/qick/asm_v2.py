@@ -6,7 +6,7 @@ from typing import NamedTuple, Union, List, Dict
 from abc import ABC, abstractmethod
 
 from .tprocv2_assembler import Assembler
-from .qick_asm import AbsQickProgram
+from .qick_asm import AbsQickProgram, AcquireMixin
 from .helpers import to_int, check_bytes
 
 logger = logging.getLogger(__name__)
@@ -748,13 +748,13 @@ class QickProgramV2(AbsQickProgram):
             return np.zeros((0,8), dtype=np.int32)
 
     def compile(self):
-        self._expand_macros()
+        self._make_asm()
         binprog = {}
         binprog['pmem'] = self._compile_prog()
         binprog['wmem'] = self._compile_waves()
         return binprog
 
-    def _expand_macros(self):
+    def _make_asm(self):
         # we need the loop names and counts first, to convert sweeps to steps
         # allocate the loop register, set a name if not defined, add the loop to the program's loop dict
         for macro in self.macro_list:
@@ -786,12 +786,12 @@ class QickProgramV2(AbsQickProgram):
         self.labels[label] = '&%d' % (len(self.prog_list)+1)
 
     def asm(self):
-        self._expand_macros()
+        self._make_asm()
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
 
     def config_all(self, soc, load_pulses=True):
-        # compile() first, because envelopes might be declared in a make_program() inside _expand_macros()
+        # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
         binprog = self.compile()
         soc.tproc.stop()
         super().config_all(soc, load_pulses=load_pulses)
@@ -931,3 +931,43 @@ class QickProgramV2(AbsQickProgram):
     def trigger(self, ros=None, pins=None, t=0, width=None):
         self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
 
+class AveragerProgramV2(AcquireMixin, QickProgramV2):
+    COUNTER_ADDR = 1
+    def __init__(self, soccfg, cfg, reps, final_sync, final_wait=0, initial_sync=0.5):
+        super().__init__(soccfg)
+        self.cfg = cfg
+        self.reps = reps
+        self.final_sync = final_sync
+        self.final_wait = final_wait
+        self.initial_sync = initial_sync
+
+    def _make_asm(self):
+        self._init_prog()
+        self.loops = [("reps", self.reps)]
+        self.make_program()
+        super()._make_asm()
+        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
+
+    def add_loop(self, name, count):
+        self.loops.append((name, count))
+
+    def initialize(self):
+        pass
+
+    def body(self):
+        pass
+
+    def make_program(self):
+        self.set_ext_counter(addr=self.COUNTER_ADDR)
+        self.initialize()
+        self.sync_all(self.initial_sync)
+        for name, count in self.loops:
+            self.open_loop(count, name=name)
+        self.body()
+
+        self.wait_all(self.final_wait)
+        self.sync_all(self.final_sync)
+        self.inc_ext_counter(addr=self.COUNTER_ADDR)
+        for name, count in self.loops:
+            self.close_loop()
+        self.end()
