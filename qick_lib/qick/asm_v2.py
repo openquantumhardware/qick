@@ -12,6 +12,17 @@ from .helpers import to_int, check_bytes
 logger = logging.getLogger(__name__)
 
 class QickSpan(NamedTuple):
+    """Defines a sweep axis.
+    A QickSpan equals 0 at the start of the specified loop, and the specified "span" value at the end of the loop.
+    You may sum QickSpan objects and floats to build a multi-dimensional QickSweep.
+
+    Parameters
+    ----------
+    loop : str
+        The name of the loop to use for the sweep.
+    span : float
+        The desired value at the end of the loop. Can be positive or negative.
+    """
     loop: str
     span: float
     def _to_sweep(self):
@@ -72,6 +83,17 @@ class QickSweep(NamedTuple):
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
+    """Convenience shortcut for a one-dimensional QickSweep.
+
+    Parameters
+    ----------
+    loop : str
+        The name of the loop to use for the sweep.
+    start : float
+        The desired value at the start of the loop.
+    end : float
+        The desired value at the end of the loop.
+    """
     return start + QickSpan(loop, end-start)
 
 class SimpleClass:
@@ -250,7 +272,7 @@ class Wait(Macro):
         else:
             return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
 
-class Sync(Macro):
+class Delay(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         if self.auto:
@@ -797,6 +819,10 @@ class QickProgramV2(AbsQickProgram):
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
 
+    def __str__(self):
+        lines = []
+        return self.asm()
+
     def config_all(self, soc, load_pulses=True):
         # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
         binprog = self.compile()
@@ -880,7 +906,7 @@ class QickProgramV2(AbsQickProgram):
         return reg
     
     def get_reg(self, name, lazy_init=False):
-        """Get a previously defined register.
+        """Get a previously defined register object.
         """
         if lazy_init and name not in self.user_reg_dict:
             self.new_reg(name=name)
@@ -924,11 +950,11 @@ class QickProgramV2(AbsQickProgram):
     def wait(self, t):
         self.macro_list.append(Wait(t=t, auto=False))
 
-    def sync(self, t):
-        self.macro_list.append(Sync(t=t, auto=False))
+    def delay(self, t):
+        self.macro_list.append(Delay(t=t, auto=False))
 
-    def sync_all(self, t=0, gens=True, ros=True):
-        self.macro_list.append(Sync(t=t, auto=True, gens=gens, ros=ros))
+    def delay_all(self, t=0, gens=True, ros=True):
+        self.macro_list.append(Delay(t=t, auto=True, gens=gens, ros=ros))
 
     def wait_all(self, t=0, gens=False, ros=True):
         self.macro_list.append(Wait(t=t, auto=True, gens=gens, ros=ros))
@@ -965,31 +991,31 @@ class AveragerProgramV2(AcquireProgramV2):
         There are no required entries, this is for your use and can be accessed as self.cfg in your initialize() and body().
     reps : int
         Number of iterations in the "reps" loop.
-    final_sync : float
+    final_delay : float
         Amount of time (in us) to add at the end of the shot timeline, after the end of the last pulse or readout.
         If your experiment requires a gap between shots (e.g. qubit relaxation time), use this parameter.
         The total length of your shot timeline should allow enough time for the tProcessor to execute your commands, and for the CPU to read the accumulated buffers; the default of 1 us usually guarantees this, and 0 will be fine for simple programs with sparse timelines.
-        A value of None will disable this behavior (and you should insert appropriate sync/sync_all statements in your body).
+        A value of None will disable this behavior (and you should insert appropriate delay/delay_all statements in your body).
         This parameter is often called "relax_delay."
     final_wait : float
         Amount of time (in us) to pause tProc execution at the end of each shot, after the end of the last readout.
         The default of 0 is usually appropriate.
         A value of None will disable this behavior (and you should insert appropriate wait/wait_all statements in your body).
-    initial_sync : float
+    initial_delay : float
         Amount of time (in us) to add to the timeline before starting to run the loops.
         This should allow enough time for the tProcessor to execute your initialization commands.
         The default of 1 us is usually sufficient.
-        A value of None will disable this behavior (and you should insert appropriate sync/sync_all statements in your initialization).
+        A value of None will disable this behavior (and you should insert appropriate delay/delay_all statements in your initialization).
     """
 
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, cfg, reps, final_sync, final_wait=0, initial_sync=1.0):
+    def __init__(self, soccfg, cfg, reps, final_delay, final_wait=0, initial_delay=1.0):
         super().__init__(soccfg)
         self.cfg = cfg
         self.reps = reps
-        self.final_sync = final_sync
+        self.final_delay = final_delay
         self.final_wait = final_wait
-        self.initial_sync = initial_sync
+        self.initial_delay = initial_delay
 
     def _make_asm(self):
         self._init_prog()
@@ -1029,8 +1055,8 @@ class AveragerProgramV2(AcquireProgramV2):
         # play the initialization
         self.set_ext_counter(addr=self.COUNTER_ADDR)
         self.initialize()
-        if self.initial_sync is not None:
-            self.sync_all(self.initial_sync)
+        if self.initial_delay is not None:
+            self.delay_all(self.initial_delay)
 
         for name, count in self.loops:
             self.open_loop(count, name=name)
@@ -1039,8 +1065,8 @@ class AveragerProgramV2(AcquireProgramV2):
         self.body()
         if self.final_wait is not None:
             self.wait_all(self.final_wait)
-        if self.final_sync is not None:
-            self.sync_all(self.final_sync)
+        if self.final_delay is not None:
+            self.delay_all(self.final_delay)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
 
         for name, count in self.loops:
