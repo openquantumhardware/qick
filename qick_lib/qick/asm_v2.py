@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import textwrap
 from collections import namedtuple, OrderedDict, defaultdict
 from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict
@@ -821,7 +822,18 @@ class QickProgramV2(AbsQickProgram):
 
     def __str__(self):
         lines = []
-        return self.asm()
+        lines.append("macros:")
+        lines.extend(["\t%s" % (p) for p in self.macro_list])
+        lines.append("pulses:")
+        lines.extend(["\t%s: %s" % (k,v) for k,v in self.pulses.items()])
+        lines.append("waveforms:")
+        lines.extend(["\t%s: %s" % (k,v) for k,v in self.waves.items()])
+        lines.append("registers:")
+        lines.extend(["\t%s: %s" % (k,v) for k,v in self.user_reg_dict.items()])
+
+        lines.append("expanded ASM:")
+        lines.extend(textwrap.indent(self.asm(), "\t").splitlines())
+        return "\n".join(lines)
 
     def config_all(self, soc, load_pulses=True):
         # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
