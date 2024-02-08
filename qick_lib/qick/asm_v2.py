@@ -1021,9 +1021,9 @@ class AveragerProgramV2(AcquireProgramV2):
     """
 
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, cfg, reps, final_delay, final_wait=0, initial_delay=1.0):
+    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, cfg=None):
         super().__init__(soccfg)
-        self.cfg = cfg
+        self.cfg = {} if cfg is None else cfg
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
@@ -1050,14 +1050,14 @@ class AveragerProgramV2(AcquireProgramV2):
         """
         self.loops.append((name, count))
 
-    def initialize(self):
+    def initialize(self, cfg):
         """Do inital setup of your program and the QICK.
         This is where you should put any ASM commands (register operations, setup pulses) that need to be played before the shot loops begin.
         It's also conventional to put program declarations here (though because these are executed by Python and not the tProc it doesn't really matter, they just need to be executed).
         """
         pass
 
-    def body(self):
+    def body(self, cfg):
         """Play a shot.
         This is where you should put pulses and readout triggers.
         """
@@ -1066,7 +1066,7 @@ class AveragerProgramV2(AcquireProgramV2):
     def make_program(self):
         # play the initialization
         self.set_ext_counter(addr=self.COUNTER_ADDR)
-        self.initialize()
+        self.initialize(self.cfg)
         if self.initial_delay is not None:
             self.delay_all(self.initial_delay)
 
@@ -1074,7 +1074,7 @@ class AveragerProgramV2(AcquireProgramV2):
             self.open_loop(count, name=name)
 
         # play the shot
-        self.body()
+        self.body(self.cfg)
         if self.final_wait is not None:
             self.wait_all(self.final_wait)
         if self.final_delay is not None:
