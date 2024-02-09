@@ -521,17 +521,20 @@ class AxisAvgBuffer(SocIp):
         self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
 
         # which tProc input port does this buffer drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm2_axis')
-        # jump through an axis_clk_cnvrt
-        while soc.metadata.mod2type(block) == "axis_clock_converter":
-            ((block, port),) = soc.metadata.trace_bus(block, 'M_AXIS')
-        # port names are of the form 's1_axis'
-        # subtract 1 to get the channel number (s0 comes from the DMA)
-        if soc.metadata.mod2type(block) in ["axis_tproc64x32_x8", "qick_processor"]:
-            # ask the tproc to translate this port name to a channel number
-            self.cfg['tproc_ch'], _ = getattr(soc, block).port2ch(port)
-        else:
-            # this buffer doesn't feed back into the tProc
+        try:
+            ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm2_axis')
+            # jump through an axis_clk_cnvrt
+            while soc.metadata.mod2type(block) == "axis_clock_converter":
+                ((block, port),) = soc.metadata.trace_bus(block, 'M_AXIS')
+            # port names are of the form 's1_axis'
+            # subtract 1 to get the channel number (s0 comes from the DMA)
+            if soc.metadata.mod2type(block) in ["axis_tproc64x32_x8", "qick_processor"]:
+                # ask the tproc to translate this port name to a channel number
+                self.cfg['tproc_ch'], _ = getattr(soc, block).port2ch(port)
+            else:
+                # this buffer doesn't feed back into the tProc
+                self.cfg['tproc_ch'] = -1
+        except:
             self.cfg['tproc_ch'] = -1
 
         # print("%s: readout %s, switch %d, trigger %d, tProc port %d"%
