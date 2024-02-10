@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import textwrap
 from collections import namedtuple, OrderedDict, defaultdict
+from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict
 from abc import ABC, abstractmethod
@@ -131,7 +132,7 @@ class QickSweepRaw(SimpleClass):
         return QickSweepRaw(self.par, self.start//a, spans, self.quantize//a)
     def __mod__(self, a):
         # used in freq2reg etc.
-        # do nothing - mod will be applied when compiling the WaveReg
+        # do nothing - mod will be applied when compiling the Waveform
         return self
     def __truediv__(self, a):
         # this is used to convert duration to us
@@ -146,7 +147,7 @@ class QickSweepRaw(SimpleClass):
         spanmax = max([max(r, 0) for r in self.spans.values()])
         return self.start + spanmax
 
-class WaveReg(SimpleClass):
+class Waveform(Mapping, SimpleClass):
     widths = [4, 4, 3, 4, 4, 2]
     _fields = ['freq', 'phase', 'env', 'gain', 'length', 'conf']
     def __init__(self, freq: Union[int, QickSweepRaw], phase: Union[int, QickSweepRaw], env: int, gain: Union[int, QickSweepRaw], length: Union[int, QickSweepRaw], conf: int):
@@ -172,6 +173,25 @@ class WaveReg(SimpleClass):
     def fill_steps(self, loops):
         for sweep in self.sweeps():
             sweep.to_steps(loops)
+    # implement Mapping interface to simplify converting this to a dict and back to a Waveform
+    def __len__(self):
+        return len(self._fields)
+    def __getitem__(self, k):
+        v = getattr(self, k)
+        if isinstance(v, QickSweepRaw):
+            return v.start
+        else:
+            return v
+    def __iter__(self):
+        return iter(self._fields)
+    def to_dict(self):
+        # for JSON serialization with helpers.NpEncoder
+        d = OrderedDict()
+        for k in self._fields:
+            d[k] = getattr(self, k)
+            if isinstance(d[k], QickSweepRaw):
+                d[k] = d[k].start
+        return d
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
@@ -244,7 +264,7 @@ class IncrementWave(Macro):
         op = '+'
         #op = '-' if step<0 else '+'
         #step = abs(step)
-        iPar = WaveReg._fields.index(self.par)
+        iPar = Waveform._fields.index(self.par)
 
         # immediate arguments to operations must be 24-bit
         if check_bytes(self.step, 3):
@@ -616,7 +636,7 @@ class FullSpeedGenManager(AbsGenManager):
         else:
             if lenreg >= 2**16 or lenreg < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
-        wavereg = WaveReg(freqreg, phasereg, env, gainreg, lenreg, confreg)
+        wavereg = Waveform(freqreg, phasereg, env, gainreg, lenreg, confreg)
         return wavereg
 
     def params2pulse(self, par):
@@ -733,6 +753,11 @@ class QickProgramV2(AbsQickProgram):
         # loop lengths
         # the timeline
 
+        # Attributes to dump when saving the program to JSON.
+        # The dump just keeps enough information to execute the program - ASM and initial waveform values.
+        # Most of the high-level information (macros, sweeps) is lost.
+        self.dump_keys += ['waves', 'prog_list', 'labels']
+
     def _init_prog(self):
         super()._init_prog()
 
@@ -766,6 +791,10 @@ class QickProgramV2(AbsQickProgram):
         # line number
         self.line = 1
         # first instruction is always NOP, so both counters start at 1
+
+    def load_prog(self, progdict):
+        super().load_prog(progdict)
+        self.waves = OrderedDict([(k, Waveform(**v)) for k,v in self.waves.items()])
 
     def _compile_prog(self):
         _, p_mem = Assembler.list2bin(self.prog_list, self.labels)

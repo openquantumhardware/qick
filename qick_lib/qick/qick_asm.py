@@ -624,6 +624,7 @@ class AbsQickProgram:
         """
         Dump the program to a dictionary.
         This output contains all the information necessary to run the program.
+        In other words, it will have the low-level ASM and pulse+envelope data, but not higher-level structures.
         Caution: don't modify the sub-dictionaries of this dict!
         You will be modifying the original program (this is not a deep copy).
         """
@@ -1083,7 +1084,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
+    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
         """Acquire data using the accumulated readout.
 
         Parameters
