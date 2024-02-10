@@ -286,9 +286,9 @@ class Delay(Macro):
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
-            return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'SRC':f'r{t_reg.addr}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'SRC':f'r{t_reg.addr}'}, addr_inc=1)]
         else:
-            return [AsmInst(inst={'CMD':'TIME', 'DST':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
 
 class Pulse(Macro):
     # ch, name, t
@@ -965,10 +965,10 @@ class QickProgramV2(AbsQickProgram):
     def delay(self, t):
         self.macro_list.append(Delay(t=t, auto=False))
 
-    def delay_all(self, t=0, gens=True, ros=True):
+    def delay_auto(self, t=0, gens=True, ros=True):
         self.macro_list.append(Delay(t=t, auto=True, gens=gens, ros=ros))
 
-    def wait_all(self, t=0, gens=False, ros=True):
+    def wait_auto(self, t=0, gens=False, ros=True):
         self.macro_list.append(Wait(t=t, auto=True, gens=gens, ros=ros))
 
     # pulses and triggers
@@ -1007,17 +1007,17 @@ class AveragerProgramV2(AcquireProgramV2):
         Amount of time (in us) to add at the end of the shot timeline, after the end of the last pulse or readout.
         If your experiment requires a gap between shots (e.g. qubit relaxation time), use this parameter.
         The total length of your shot timeline should allow enough time for the tProcessor to execute your commands, and for the CPU to read the accumulated buffers; the default of 1 us usually guarantees this, and 0 will be fine for simple programs with sparse timelines.
-        A value of None will disable this behavior (and you should insert appropriate delay/delay_all statements in your body).
+        A value of None will disable this behavior (and you should insert appropriate delay/delay_auto statements in your body).
         This parameter is often called "relax_delay."
     final_wait : float
         Amount of time (in us) to pause tProc execution at the end of each shot, after the end of the last readout.
         The default of 0 is usually appropriate.
-        A value of None will disable this behavior (and you should insert appropriate wait/wait_all statements in your body).
+        A value of None will disable this behavior (and you should insert appropriate wait/wait_auto statements in your body).
     initial_delay : float
         Amount of time (in us) to add to the timeline before starting to run the loops.
         This should allow enough time for the tProcessor to execute your initialization commands.
         The default of 1 us is usually sufficient.
-        A value of None will disable this behavior (and you should insert appropriate delay/delay_all statements in your initialization).
+        A value of None will disable this behavior (and you should insert appropriate delay/delay_auto statements in your initialization).
     """
 
     COUNTER_ADDR = 1
@@ -1068,7 +1068,7 @@ class AveragerProgramV2(AcquireProgramV2):
         self.set_ext_counter(addr=self.COUNTER_ADDR)
         self.initialize(self.cfg)
         if self.initial_delay is not None:
-            self.delay_all(self.initial_delay)
+            self.delay_auto(self.initial_delay)
 
         for name, count in self.loops:
             self.open_loop(count, name=name)
@@ -1076,11 +1076,12 @@ class AveragerProgramV2(AcquireProgramV2):
         # play the shot
         self.body(self.cfg)
         if self.final_wait is not None:
-            self.wait_all(self.final_wait)
+            self.wait_auto(self.final_wait)
         if self.final_delay is not None:
-            self.delay_all(self.final_delay)
+            self.delay_auto(self.final_delay)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
 
+        # close the loops - order doesn't matter
         for name, count in self.loops:
             self.close_loop()
 
