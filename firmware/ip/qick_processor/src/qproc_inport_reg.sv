@@ -25,9 +25,12 @@ module qproc_inport_reg # (
    input   wire                 port_tvalid_i  [ PORT_QTY ]  ,
    input   wire [63:0]          port_tdata_i   [ PORT_QTY ] ,
 // DATA OUTPUT INTERFACE
-   output  wire [PORT_QTY-1:0 ] port_tnew_o      ,
+   output  wire [15:0 ] port_tnew_o      ,
    output  wire [63:0]          port_tdata_o   [ PORT_QTY ]  
     );
+
+localparam ZFP = 16 - PORT_QTY; // Zero Fill for Input Port
+
     
 // REGISTR INPUTS
 reg  [63:0]         port_dt_r   [PORT_QTY] ;
@@ -50,7 +53,8 @@ generate
    end
 endgenerate
 
-assign port_tnew_o   = port_dt_new ;
+assign port_tnew_o = { {ZFP{1'b0}} , port_dt_new };
+
 assign port_tdata_o  = port_dt_r ;
 
 endmodule

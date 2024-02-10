@@ -46,11 +46,12 @@ module qproc_core # (
    input  wire [31:0]      sreg_time_dt_i       , 
    output wire [31:0]      sreg_core_w_dt_o[2]  ,
 // Peripherals
+   output wire             usr_en_o        ,
+   output wire [7:0]       usr_ctrl_o      ,
    output wire [31:0]      usr_dt_a_o      ,
    output wire [31:0]      usr_dt_b_o      ,
    output wire [31:0]      usr_dt_c_o      ,
    output wire [31:0]      usr_dt_d_o      ,
-   output wire [9:0]       usr_ctrl_o      ,
    
 // Memory   
    input  wire [ 1:0]      ps_mem_sel_i    ,
@@ -89,42 +90,43 @@ qcore_cpu # (
    .WMEM_AW             ( WMEM_AW ) ,
    .REG_AW              ( REG_AW  ) 
 ) CORE_CPU (
-   .clk_i               ( c_clk_i                ) ,
-   .rst_ni              ( c_rst_ni               ) ,
-   .restart_i           ( restart_i              ) ,
-   .en_i                ( en_i                   ) ,
-   .lfsr_cfg_i          ( lfsr_cfg_i             ) , 
-   .lfsr_o              ( lfsr_o             ) , 
-   .flag_i              ( flag_i                 ) , // External Condition
-   .sreg_cfg_o          ( sreg_cfg_o             ) ,
-   .sreg_ctrl_o         ( sreg_ctrl_o             ) ,
-   .sreg_arith_i        ( sreg_arith_i           ) , // Arith Input
-   .sreg_div_i          ( sreg_div_i             ) , // Div Input
-   .sreg_status_i       ( sreg_status_i               ) ,
-   .sreg_core_r_dt_i    ( sreg_core_r_dt_i       ) ,
+   .clk_i               ( c_clk_i                  ) ,
+   .rst_ni              ( c_rst_ni                 ) ,
+   .restart_i           ( restart_i                ) ,
+   .en_i                ( en_i                     ) ,
+   .lfsr_cfg_i          ( lfsr_cfg_i               ) , 
+   .lfsr_o              ( lfsr_o                   ) , 
+   .flag_i              ( flag_i                   ) , // External Condition
+   .sreg_cfg_o          ( sreg_cfg_o               ) ,
+   .sreg_ctrl_o         ( sreg_ctrl_o              ) ,
+   .sreg_arith_i        ( sreg_arith_i             ) , // Arith Input
+   .sreg_div_i          ( sreg_div_i               ) , // Div Input
+   .sreg_status_i       ( sreg_status_i            ) ,
+   .sreg_core_r_dt_i    ( sreg_core_r_dt_i         ) ,
    .sreg_port_dt_i      ( {in_port_dt_r[31:0], in_port_dt_r[63:32] } ) ,
-   .sreg_time_dt_i      ( sreg_time_dt_i         ) ,
+   .sreg_time_dt_i      ( sreg_time_dt_i           ) ,
    .sreg_core_w_dt_o    ( sreg_core_w_dt_o         ) ,
-   .usr_dt_a_o          ( usr_dt_a_o             ) ,
-   .usr_dt_b_o          ( usr_dt_b_o             ) ,
-   .usr_dt_c_o          ( usr_dt_c_o             ) ,
-   .usr_dt_d_o          ( usr_dt_d_o             ) ,
-   .usr_ctrl_o          ( usr_ctrl_o             ) ,
-   .pmem_addr_o         ( pmem_addr            ) ,
-   .pmem_en_o           ( pmem_en              ) ,
-   .pmem_dt_i           ( pmem_dt              ) ,
-   .dmem_we_o           ( dmem_we              ) ,
-   .dmem_addr_o         ( dmem_addr            ) ,
-   .dmem_w_dt_o         ( dmem_w_dt            ) ,
-   .dmem_r_dt_i         ( dmem_r_dt            ) ,
-   .wmem_we_o           ( wmem_we              ) ,
-   .wmem_addr_o         ( wmem_addr            ) ,
-   .wmem_w_dt_o         ( wmem_w_dt            ) ,
-   .wmem_r_dt_i         ( wmem_r_dt            ) ,
-   .port_we_o           ( port_we_o              ) ,
-   .port_re_o           ( port_re                ) ,
-   .port_o              ( port_o          ) ,
-   .core_do             ( core_do                ) );
+   .usr_ctrl_o          ( usr_ctrl_o               ) ,
+   .usr_en_o            ( usr_en_o                 ) ,
+   .usr_dt_a_o          ( usr_dt_a_o               ) ,
+   .usr_dt_b_o          ( usr_dt_b_o               ) ,
+   .usr_dt_c_o          ( usr_dt_c_o               ) ,
+   .usr_dt_d_o          ( usr_dt_d_o               ) ,
+   .pmem_addr_o         ( pmem_addr                ) ,
+   .pmem_en_o           ( pmem_en                  ) ,
+   .pmem_dt_i           ( pmem_dt                  ) ,
+   .dmem_we_o           ( dmem_we                  ) ,
+   .dmem_addr_o         ( dmem_addr                ) ,
+   .dmem_w_dt_o         ( dmem_w_dt                ) ,
+   .dmem_r_dt_i         ( dmem_r_dt                ) ,
+   .wmem_we_o           ( wmem_we                  ) ,
+   .wmem_addr_o         ( wmem_addr                ) ,
+   .wmem_w_dt_o         ( wmem_w_dt                ) ,
+   .wmem_r_dt_i         ( wmem_r_dt                ) ,
+   .port_we_o           ( port_we_o                ) ,
+   .port_re_o           ( port_re                  ) ,  
+   .port_o              ( port_o                   ) ,
+   .core_do             ( core_do                  ) );
 
 
 reg [63:0 ] in_port_dt_r;

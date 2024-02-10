@@ -14,10 +14,11 @@
 
    parameter CFG         = 3'b000;
    parameter BRANCH      = 3'b001;
+   parameter INT_CTRL    = 3'b010;
+   parameter EXT_CTRL    = 3'b011;
    parameter REG_WR      = 3'b100;
    parameter MEM_WR      = 3'b101;
    parameter PORT_WR     = 3'b110;
-   parameter CTRL        = 3'b111;
 
    typedef struct packed {
       bit         we    ;
@@ -26,7 +27,6 @@
       bit [1:0]   src  ;
       bit         port_re ;
       } CTRL_REG;
-     
 
    typedef struct packed {
       reg       cfg_addr_imm  ;
@@ -37,14 +37,13 @@
       reg [3:0] cfg_cond      ;
       reg       cfg_alu_src   ;
       reg [3:0] cfg_alu_op    ;
-      reg [9:0] usr_ctrl ;
+      reg [8:0] usr_ctrl ;
       reg       flag_we ;
       reg       dmem_we ;
       reg       wmem_we ;
       reg       port_we ;
    } CTRL_FLOW;
-   
-   
+
    typedef struct packed {
       logic [31:0]   p_time ;
       logic          p_type ; // 00-WAVE 01-DATA 10-
@@ -60,7 +59,6 @@
       logic  [7 :0]   qtp_dst     ;
       logic  [15:0]   qtp_len     ;
     } QTP_CTRL;
-
 
 // AXI-Lite DATA Slave I/F.   
 interface TYPE_IF_AXI_REG #( );
@@ -91,20 +89,18 @@ interface TYPE_IF_AXI_REG #( );
 
 endinterface
 
-
-      
-   interface TYPE_IF_MEM #( 
-       parameter DW = 32,
-       parameter AW = 8
-   );
-     logic               dmem_en ;
-     logic               dmem_we ;
-     logic [ AW-1 : 0 ]  dmem_addr;
-     logic [ DW-1 : 0 ]  dmem_w_dt;
-     logic [ DW-1 : 0 ]  dmem_r_dt;
-   //   modport slave  ( input dmem_en, dmem_we, dmem_addr, dmem_w_dt, output dmem_r_dt);
-   //   modport master ( input dmem_en, dmem_we, dmem_addr, dmem_w_dt, output dmem_r_dt);
-   endinterface
+interface TYPE_IF_MEM #( 
+    parameter DW = 32,
+    parameter AW = 8
+);
+  logic               dmem_en ;
+  logic               dmem_we ;
+  logic [ AW-1 : 0 ]  dmem_addr;
+  logic [ DW-1 : 0 ]  dmem_w_dt;
+  logic [ DW-1 : 0 ]  dmem_r_dt;
+//   modport slave  ( input dmem_en, dmem_we, dmem_addr, dmem_w_dt, output dmem_r_dt);
+//   modport master ( input dmem_en, dmem_we, dmem_addr, dmem_w_dt, output dmem_r_dt);
+endinterface
    
 `endif
 

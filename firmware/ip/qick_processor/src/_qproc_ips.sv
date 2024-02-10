@@ -546,19 +546,23 @@ reg signed [26:0] A_dt ;
 reg signed [17:0] B_dt ; 
 reg signed [31:0] C_dt ; 
 reg signed [26:0] D_dt ; 
-reg working, working_r ;
+reg working, working_r, working_r2, working_r3 ;
 
 always_ff @ (posedge clk_i, negedge rst_ni) begin
    if (!rst_ni) begin
-         A_dt <= 0;
-         B_dt <= 0;
-         C_dt <= 0;
-         D_dt <= 0; 
-         ALU_OP   <= 0;
-         working  <= 1'b0 ;
-         working_r  <= 1'b0 ;
+         A_dt        <= 0;
+         B_dt        <= 0;
+         C_dt        <= 0;
+         D_dt        <= 0; 
+         ALU_OP      <= 0;
+         working     <= 1'b0 ;
+         working_r   <= 1'b0 ;
+         working_r2  <= 1'b0 ;
+         working_r3  <= 1'b0 ;
    end else begin
       working_r  <= working ;
+      working_r2  <= working_r ;
+      working_r3  <= working_r2 ;
       if (start_i) begin
          A_dt     <= A_i[26:0] ;
          B_dt     <= B_i[17:0] ;
@@ -566,9 +570,12 @@ always_ff @ (posedge clk_i, negedge rst_ni) begin
          D_dt     <= D_i[26:0] ; 
          ALU_OP   <= { alu_op_i[3:0]}  ;
          working  <= 1'b1 ;
-      end else if (working_r) begin
-         working           <= 1'b0;
-         working_r         <= 1'b0;
+      end else if (working_r3) begin
+         working            <= 1'b0;
+         working_r          <= 1'b0;
+         working_r2         <= 1'b0;
+         working_r3         <= 1'b0;
+         
       end
    end
 end
@@ -586,7 +593,8 @@ dsp_macro_0 ARITH_DSP (
 
 //signed extension of 
 assign arith_result_o  = { {18{arith_result[45]}}, arith_result };
-assign ready_o          = ~ ( working | working_r );
+// assign ready_o          = ~ ( working | working_r  );
+assign ready_o          = ~ ( working  );
 endmodule
 
 module LFSR (

@@ -13,7 +13,7 @@
 
 `include "_qproc_defines.svh"
 
-module qick_processor # (
+module qick_processor_tmp # (
    parameter DEBUG          =  0 ,
    parameter DUAL_CORE      =  0 ,
    parameter LFSR           =  0 ,

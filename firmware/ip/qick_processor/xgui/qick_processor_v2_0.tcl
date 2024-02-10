@@ -3,12 +3,11 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
+  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor Compilation 2024_1}
   ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]
   set_property tooltip {Process} ${Process}
-  set DUAL_CORE [ipgui::add_param $IPINST -name "DUAL_CORE" -parent ${Process} -layout horizontal]
-  set_property tooltip {Cores} ${DUAL_CORE}
   ipgui::add_param $IPINST -name "REG_AW" -parent ${Process}
   ipgui::add_static_text $IPINST -name "dreg" -parent ${Process} -text {User can define the amount of 32-bits General Purpouse Data registers. This value impacts on the max freq of the processor.}
   #Adding Group
@@ -26,9 +25,10 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${OUT_Port_Configuration}
   ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${OUT_Port_Configuration}
   #Adding Group
-  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${OUT_Port_Configuration} -layout horizontal]
+  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${OUT_Port_Configuration}]
+  ipgui::add_param $IPINST -name "QCOM" -parent ${External_Peripherals} -widget checkBox
   ipgui::add_param $IPINST -name "TNET" -parent ${External_Peripherals} -widget checkBox
-  ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget checkBox
+  ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget comboBox
 
 
   #Adding Group
@@ -200,6 +200,15 @@ proc validate_PARAM_VALUE.PMEM_AW { PARAM_VALUE.PMEM_AW } {
 	return true
 }
 
+proc update_PARAM_VALUE.QCOM { PARAM_VALUE.QCOM } {
+	# Procedure called to update QCOM when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.QCOM { PARAM_VALUE.QCOM } {
+	# Procedure called to validate QCOM
+	return true
+}
+
 proc update_PARAM_VALUE.REG_AW { PARAM_VALUE.REG_AW } {
 	# Procedure called to update REG_AW when any of the dependent parameters in the arguments change
 }
@@ -335,5 +344,10 @@ proc update_MODELPARAM_VALUE.FIFO_DEPTH { MODELPARAM_VALUE.FIFO_DEPTH PARAM_VALU
 proc update_MODELPARAM_VALUE.EXT_FLAG { MODELPARAM_VALUE.EXT_FLAG PARAM_VALUE.EXT_FLAG } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.EXT_FLAG}] ${MODELPARAM_VALUE.EXT_FLAG}
+}
+
+proc update_MODELPARAM_VALUE.QCOM { MODELPARAM_VALUE.QCOM PARAM_VALUE.QCOM } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.QCOM}] ${MODELPARAM_VALUE.QCOM}
 }
 

@@ -40,11 +40,12 @@ module qcore_cpu # (
    input  wire [31:0]      sreg_port_dt_i  [2]  ,
    input  wire [31:0]      sreg_time_dt_i       , 
    output wire [31:0]      sreg_core_w_dt_o[2]  ,
+   output  wire                  usr_en_o       , // CONTROL Enable
+   output  wire [7:0]            usr_ctrl_o     , // CONTROL from Current Instruction 
    output  wire [31:0]           usr_dt_a_o     , // Data A from Current Instruction (rsD0)
    output  wire [31:0]           usr_dt_b_o     , // Data B from Current Instruction (rsD1)
    output  wire [31:0]           usr_dt_c_o     , // Data C from Current Instruction (rsA0)
    output  wire [31:0]           usr_dt_d_o     , // Data D from Current Instruction (rsA1m)
-   output  wire [9:0]            usr_ctrl_o     , // CONTROL from Current Instruction 
 // PROGRAM MEMORY    
    output  wire [PMEM_AW-1:0]    pmem_addr_o    ,
    output  wire                  pmem_en_o      ,
@@ -162,7 +163,7 @@ assign id_SO       = r_if_op_code [ 6 ]       ;
 assign id_TO       = r_if_op_code [ 5 ]       ;
 
 
-reg id_type_cfg, id_type_br, id_type_ctrl;
+reg id_type_cfg, id_type_br, id_type_int_ctrl, id_type_ext_ctrl;
 reg id_type_wr, id_type_wrd, id_type_wrw, id_type_wra ;
 reg id_type_wp, id_type_wpd, id_type_wpw ;
 reg id_type_wm, id_type_wmd, id_type_wmw;
@@ -179,7 +180,7 @@ reg id_dport_re, id_dport_we, id_wport_we ;
 
 reg id_call, id_ret                                                        ;
 
-reg [9:0] id_usr_ctrl;
+reg [8:0] id_usr_ctrl; // MSB indicate Internal or External
 reg id_cond_ok, id_exec_ok, id_branch_cond_ok;
 reg alu_fZ_r, alu_fS_r;
 
@@ -189,7 +190,8 @@ always_comb begin : DECODER
    id_type_wr        = ( id_HEADER == REG_WR  ) ;
    id_type_wm        = ( id_HEADER == MEM_WR  ) ;
    id_type_wp        = ( id_HEADER == PORT_WR ) ;
-   id_type_ctrl      = ( id_HEADER == CTRL    ) ;
+   id_type_int_ctrl  = ( id_HEADER == INT_CTRL    ) ;
+   id_type_ext_ctrl  = ( id_HEADER == EXT_CTRL    ) ;
    id_type_wra       = id_type_wr & (~id_SO & ~id_TO)  ; // Write Data Register from ALU
    id_type_wrd       = id_type_wr & ~(id_SO & ~id_TO)  ; // Write Data Register (ALU, MEM, or IMM)
    id_type_wrw       = id_type_wr &  (id_SO & ~id_TO)  ; // Write Wave Data Register 
@@ -211,8 +213,8 @@ always_comb begin : DECODER
    cfg_dual_regs_we  = cfg_dual_regs_en   & r_if_op_code[3]                                  ; // Dual REGISTER WRITE ENABLE
    cfg_dual_port_we  = cfg_dual_port_en   & r_if_op_code[7]                                  ; // Dual PORT     WRITE ENABLE
    cfg_dual_wmem_we  = cfg_dual_wmem_en   & r_if_op_code[9]                                  ; // Dual WMEM     WRITE ENABLE
-   id_flag_we        = id_exec_ok & cfg_flag_en   & r_if_op_code[4]                                  ; // Flag      WRITE ENABLE
-   id_dreg_we        = id_exec_ok         & ( id_type_wrd   | cfg_dual_regs_we )              ; // DREG      WRITE ENABLE
+   id_flag_we        = id_exec_ok & cfg_flag_en   & r_if_op_code[4]                          ; // Flag      WRITE ENABLE
+   id_dreg_we        = id_exec_ok         & ( id_type_wrd   | cfg_dual_regs_we )             ; // DREG      WRITE ENABLE
    id_r_wave_we      = id_type_wrw                                                           ; // WREG      WRITE ENABLE (The 167 Bits)
    id_dmem_we        = id_exec_ok         & ( id_type_wmd )                                  ; // DMEM      WRITE ENABLE
    id_wmem_we        = id_type_wmw  | cfg_dual_wmem_we   & r_if_op_code[9]                   ; // WMEM      WRITE ENABLE
@@ -221,8 +223,10 @@ always_comb begin : DECODER
    id_wport_we       = id_type_wpw | cfg_dual_port_we                                        ; // WPORT     WRITE ENABLE
    id_call           = id_branch_cond_ok  & id_SO & ~id_TO                                   ; // Execute CALL Instruction (Push)
    id_ret            = id_type_br         & id_SO &  id_TO                                   ; // Execute RET  Instruction (Pull)
-   id_usr_ctrl       = id_type_ctrl ? {r_if_op_code [9:0]} : 10'b0000000000  ;
+   id_usr_ctrl       = id_type_int_ctrl ? {id_exec_ok, 1'b0, r_if_op_code[6:0]} : id_type_ext_ctrl ? {id_exec_ok,1'b1,r_if_op_code[6:0]} : 9'b000000000  ;
 end
+ 
+ 
  
 reg [ 31 : 0 ]  id_imm_dt   ;
 reg [15:0] id_imm_addr     ;
@@ -287,7 +291,7 @@ always_comb begin
       3'b110: id_cond_ok = ~flag_i  ; // NOT External Flag
       3'b111: id_cond_ok =  0       ; // RFU
    endcase
-   id_cond_used      = id_type_wrd | id_type_wmd | id_type_br  |id_type_cfg           ; // Conditional Instruction
+   id_cond_used      = id_type_cfg | id_type_wra | id_type_wrd | id_type_wmd | id_type_br | id_type_int_ctrl | id_type_ext_ctrl ; // Conditional Instruction
    id_flag_used      = id_cond_used & |id_COND                                        ; // Condition should be checked
    id_exec_ok        = id_cond_ok | ~id_cond_used                                     ; // Execute Instruction
    id_branch_cond_ok = id_type_br & id_exec_ok                                        ; // Execute BRANCH
@@ -435,6 +439,11 @@ qcore_ctrl_hazard ctrl_hzrd (
    .x2_reg_i         ( x2_reg          ) ,
    .wr_reg_i         ( wr_reg          ) ,
    .wr_reg_dt_i      ( wr_reg_dt       ) ,
+   // Peripheral
+   .rd_periph_use    ( rd_ctrl.usr_ctrl[8]     ) ,
+   .x1_periph_use    ( x1_ctrl.usr_ctrl[8]     ) ,
+   .x2_periph_use    ( x2_ctrl.usr_ctrl[8]     ) ,
+
    // Wave Register 
    .id_wmem_we   ( id_wmem_we       ) , //r_wave will be READ
    // FLAG 
@@ -680,7 +689,8 @@ assign wmem_w_dt_o      = reg_wave_dt      ;
 
 // PERIPH OUT
 // assign <output> = <1-bit_select> ? <input1> : <input0>;
-assign usr_ctrl_o      = halt ? 0 : x1_ctrl.usr_ctrl ;
+assign usr_en_o        = halt ? 0 : x1_ctrl.usr_ctrl[8] ;
+assign usr_ctrl_o      = halt ? 0 : x1_ctrl.usr_ctrl[7:0] ;
 assign usr_dt_a_o      = x1_rsD0_dt ; 
 assign usr_dt_b_o      = x1_ctrl.cfg_dt_imm ? r_rd_imm_dt : x1_rsD1_dt ;
 assign usr_dt_c_o      = x1_rsA0_dt ; 
@@ -697,7 +707,7 @@ assign port_o.p_data    = x2_port_w_dt       ;
 
 // DEBUG
 assign core_do [31:24] = {restart_i, stall, flush, id_flag_we, alu_fZ_r, alu_fS_r, x2_ctrl.port_we, x2_reg.port_re};
-assign core_do [23:16] = {id_type_ctrl, id_type_cfg, id_type_br, id_type_wr, id_type_wm, id_type_wp, 1'b0, pc_stack_full } ;
+assign core_do [23:16] = {id_type_ext_ctrl, id_type_int_ctrl, id_type_cfg, id_type_br, id_type_wr, id_type_wm, id_type_wp, pc_stack_full } ;
 assign core_do [15:8]  = r_x1_alu_dt[7:0]  ;
 assign core_do [7:0]   = port_o.p_time[7:0] ;
 

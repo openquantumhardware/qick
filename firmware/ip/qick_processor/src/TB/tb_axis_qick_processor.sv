@@ -28,6 +28,7 @@ import axi_mst_0_pkg::*;
 `define IO_CTRL          0
 `define DEBUG            0
 `define TNET             0
+`define QCOM             0
 `define CUSTOM_PERIPH    1
 `define LFSR             1
 `define DIVIDER          1
@@ -170,6 +171,9 @@ wire  [31:0]        qnet_c_dt_o ;
 wire  [31:0]        qnet_d_dt_o ;
 reg                 qnet_rdy_i      ;
 reg  [31 :0]        qnet_dt_i [2]   ;
+reg  [31 :0]        qcom_dt_i [2]   ;
+reg  [31 :0]        qp1_dt_i [2]   ;
+reg  [31 :0]        qp2_dt_i [2]   ;
 
 wire                periph_en_o   ;
 wire  [4 :0]        periph_op_o   ;
@@ -249,12 +253,28 @@ wire [47:0] t_time_abs_o ;
 reg time_updt_i;
 
 wire [31:0] ps_debug_do;
+
+reg qp1_en_r;
+reg [31:0] qp1_a_dt_r, qp1_b_dt_r;
+wire [31:0] qp1_a_dt_o, qp1_b_dt_o, qp1_c_dt_o, qp1_d_dt_o;
+always_ff @ (posedge c_clk) begin 
+   qp1_en_r     <= qp1_en_o;
+   qp1_a_dt_r   <=  qp1_a_dt_o;
+   qp1_b_dt_r   <=  qp1_b_dt_o;
+end
+  
+assign qp1_rdy_i     = ~qp1_en_r;
+assign qp1_dt_i[0]   = qp1_a_dt_r;
+assign qp1_dt_i[1]   = qp1_b_dt_r;
+assign qp1_vld_i     = qp1_en_r  ;
+
    
 axis_qick_processor # (
    .DUAL_CORE      (  `DUAL_CORE   ) ,
    .IO_CTRL        (  `IO_CTRL   ) ,
    .DEBUG          (  `DEBUG     ) ,
    .TNET           (  `TNET      ) ,
+   .QCOM           (  `QCOM      ) ,
    .CUSTOM_PERIPH  (  `CUSTOM_PERIPH ) ,
    .LFSR           (  `LFSR ) ,
    .DIVIDER        (  `DIVIDER ) ,
@@ -285,32 +305,53 @@ axis_qick_processor # (
    .time_rst_i          ( time_rst_i               ) ,
    .time_init_i         ( time_init_i               ) ,
    .time_updt_i         ( time_updt_i                ) ,
-   .time_dt_i         ( offset_dt_i                ) ,
+   .time_dt_i           ( offset_dt_i                ) ,
    .t_time_abs_o        ( t_time_abs_o                ) ,
-   .ps_debug_do          ( ps_debug_do            ) , 
+   .ps_debug_do         ( ps_debug_do            ) , 
 
-   .qnet_en_o     ( qnet_en_o   ) ,
-   .qnet_op_o     ( qnet_op_o   ) ,
-   .qnet_a_dt_o   ( qnet_a_dt_o ) ,
-   .qnet_b_dt_o   ( qnet_b_dt_o ) ,
-   .qnet_c_dt_o   ( qnet_c_dt_o ) ,
-   .qnet_d_dt_o   ( qnet_d_dt_o ) ,
-   .qnet_rdy_i    ( qnet_rdy_i  ) ,
-   .qnet_dt1_i    ( qnet_dt_i[0]   ) ,
-   .qnet_dt2_i    ( qnet_dt_i[1]   ) ,
-   .qnet_vld_i          ( qnet_vld_i            ) ,
-   .qnet_flag_i         ( qnet_flag_i           ) ,
-   .periph_en_o   ( periph_en_o   ) ,
-   .periph_op_o   ( periph_op_o   ) ,
-   .periph_a_dt_o ( periph_a_dt_o ) ,
-   .periph_b_dt_o ( periph_b_dt_o ) ,
-   .periph_c_dt_o ( periph_c_dt_o ) ,
-   .periph_d_dt_o ( periph_d_dt_o ) ,   
-   .periph_rdy_i  ( periph_rdy_i ) ,   
-   .periph_dt1_i   ( t_time_abs_o[35:4] ) ,   
-   .periph_dt2_i   ( t_time_abs_o[63:32]  ) ,   
-   .periph_vld_i        ( t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1]          ) ,
-   .periph_flag_i       ( periph_flag_i         ) ,
+   .qnet_en_o           ( qnet_en_o          ) ,
+   .qnet_op_o           ( qnet_op_o          ) ,
+   .qnet_a_dt_o         ( qnet_a_dt_o        ) ,
+   .qnet_b_dt_o         ( qnet_b_dt_o        ) ,
+   .qnet_c_dt_o         ( qnet_c_dt_o        ) ,
+   .qnet_rdy_i          ( qnet_rdy_i         ) ,
+   .qnet_dt1_i          ( qnet_dt_i[0]       ) ,
+   .qnet_dt2_i          ( qnet_dt_i[1]       ) ,
+   .qnet_vld_i          ( qnet_vld_i         ) ,
+   .qnet_flag_i         ( qnet_flag_i        ) ,
+
+   .qcom_en_o           ( qcom_en_o          ) ,
+   .qcom_op_o           ( qcom_op_o          ) ,
+   .qcom_dt_o           ( qcom_dt_o          ) ,
+   .qcom_rdy_i          ( qcom_rdy_i         ) ,
+   .qcom_dt1_i          ( qcom_dt_i[0]       ) ,
+   .qcom_dt2_i          ( qcom_dt_i[1]       ) ,
+   .qcom_vld_i          ( qcom_vld_i         ) ,
+   .qcom_flag_i         ( qcom_flag_i        ) ,
+
+   .qp1_en_o           ( qp1_en_o          ) ,
+   .qp1_op_o           ( qp1_op_o          ) ,
+   .qp1_a_dt_o         ( qp1_a_dt_o        ) ,
+   .qp1_b_dt_o         ( qp1_b_dt_o        ) ,
+   .qp1_c_dt_o         ( qp1_c_dt_o        ) ,
+   .qp1_d_dt_o         ( qp1_d_dt_o        ) ,
+   .qp1_rdy_i          ( qp1_rdy_i         ) ,
+   .qp1_dt1_i          ( qp1_dt_i[0]       ) ,
+   .qp1_dt2_i          ( qp1_dt_i[1]       ) ,
+   .qp1_vld_i          ( qp1_vld_i         ) ,
+   .qp1_flag_i         ( qp1_flag_i        ) ,
+
+   .qp2_en_o           ( qp2_en_o          ) ,
+   .qp2_op_o           ( qp2_op_o          ) ,
+   .qp2_a_dt_o         ( qp2_a_dt_o        ) ,
+   .qp2_b_dt_o         ( qp2_b_dt_o        ) ,
+   .qp2_c_dt_o         ( qp2_c_dt_o        ) ,
+   .qp2_d_dt_o         ( qp2_d_dt_o        ) ,
+   .qp2_rdy_i          ( qpb_rdy_i         ) ,
+   .qp2_dt1_i          ( qp2_dt_i[0]       ) ,
+   .qp2_dt2_i          ( qp2_dt_i[1]       ) ,
+   .qp2_vld_i          ( qp2_vld_i         ) ,
+
    .s_dma_axis_tdata_i   ( s_dma_axis_tdata_i  ) ,
    .s_dma_axis_tlast_i   ( s_dma_axis_tlast_i  ) ,
    .s_dma_axis_tvalid_i  ( s_dma_axis_tvalid_i ) ,
@@ -392,6 +433,7 @@ assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
 
 reg  periph_vld_i  ;
+reg qcom_rdy_i, qpb_rdy_i;
 
 initial begin
 
@@ -412,9 +454,14 @@ initial begin
   
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+
+   //AXIS_QPROC.QPROC.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   //AXIS_QPROC.QPROC.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   //AXIS_QPROC.QPROC.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+
    //AXIS_QPROC.QPROC.WAVE_FIFO[1].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    //AXIS_QPROC.QPROC.WAVE_FIFO[2].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    //AXIS_QPROC.QPROC.WAVE_FIFO[3].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
@@ -441,7 +488,8 @@ initial begin
    axis_dma_start  = 1'b0;
    s1_axis_tvalid  = 1'b0 ;
    port_1_dt_i     = 0;
-   periph_rdy_i    = 0 ;
+   qcom_rdy_i    = 0 ;
+   qpb_rdy_i    = 0 ;
    periph_dt_i     = {0,0} ;
    qnet_rdy_i      = 0 ;
    qnet_dt_i [2]   = {0,0} ;

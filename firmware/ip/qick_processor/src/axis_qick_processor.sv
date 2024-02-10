@@ -18,7 +18,8 @@ module axis_qick_processor # (
    parameter IO_CTRL        =  0 , // 0-No IO control 1-Add proc_strat and Proc Stop IN
    parameter DEBUG          =  0 , // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
    parameter TNET           =  0 , // QNET Interfrace 0-No 1-Yes
-   parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-Yes
+   parameter QCOM           =  0 , // QCOM Interfrace 0-No 1-Yes
+   parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-ONE 2-Two
    parameter LFSR           =  0 , // LFSR 0-No 1-Yes 
    parameter DIVIDER        =  0 , // DIVIDER 0-No 1-Yes 
    parameter ARITH          =  1 , // Arith 0-No 1-Yes 
@@ -53,32 +54,49 @@ module axis_qick_processor # (
    input  wire                time_updt_i    ,
    input  wire  [31:0]        time_dt_i      ,
    output wire  [47:0]        t_time_abs_o   ,
-//QNET_DT
+//QNET
    output wire                qnet_en_o      ,
    output wire  [4 :0]        qnet_op_o      ,
    output wire  [31:0]        qnet_a_dt_o    ,
    output wire  [31:0]        qnet_b_dt_o    ,
    output wire  [31:0]        qnet_c_dt_o    ,
-   output wire  [31:0]        qnet_d_dt_o    ,
    input  wire                qnet_rdy_i     , 
    input  wire  [31 :0]       qnet_dt1_i     , 
    input  wire  [31 :0]       qnet_dt2_i     , 
    input  wire                qnet_vld_i     ,
    input  wire                qnet_flag_i    , 
-// CUSTOM PERIPHERALS                        
-   output wire                periph_en_o    ,
-   output wire  [4 :0]        periph_op_o    ,
-   output wire  [31:0]        periph_a_dt_o  ,
-   output wire  [31:0]        periph_b_dt_o  ,
-   output wire  [31:0]        periph_c_dt_o  ,
-   output wire  [31:0]        periph_d_dt_o  ,
-   input  wire                periph_rdy_i   , 
-   input  wire  [31 :0]       periph_dt1_i   , 
-   input  wire  [31 :0]       periph_dt2_i   , 
-   input  wire                periph_vld_i   ,
-   input  wire                periph_flag_i  , 
-
-
+//QCOM
+   output wire                qcom_en_o      ,
+   output wire  [4 :0]        qcom_op_o      ,
+   output wire  [31:0]        qcom_dt_o      ,
+   input  wire                qcom_rdy_i     , 
+   input  wire  [31 :0]       qcom_dt1_i     , 
+   input  wire  [31 :0]       qcom_dt2_i     , 
+   input  wire                qcom_vld_i     ,
+   input  wire                qcom_flag_i    , 
+// QP1
+   output wire                qp1_en_o    ,
+   output wire  [4 :0]        qp1_op_o    ,
+   output wire  [31:0]        qp1_a_dt_o  ,
+   output wire  [31:0]        qp1_b_dt_o  ,
+   output wire  [31:0]        qp1_c_dt_o  ,
+   output wire  [31:0]        qp1_d_dt_o  ,
+   input  wire                qp1_rdy_i   , 
+   input  wire  [31 :0]       qp1_dt1_i   , 
+   input  wire  [31 :0]       qp1_dt2_i   , 
+   input  wire                qp1_vld_i   ,
+   input  wire                qp1_flag_i  , 
+// QP2
+   output wire                qp2_en_o    ,
+   output wire  [4 :0]        qp2_op_o    ,
+   output wire  [31:0]        qp2_a_dt_o  ,
+   output wire  [31:0]        qp2_b_dt_o  ,
+   output wire  [31:0]        qp2_c_dt_o  ,
+   output wire  [31:0]        qp2_d_dt_o  ,
+   input  wire                qp2_rdy_i   , 
+   input  wire  [31 :0]       qp2_dt1_i   , 
+   input  wire  [31 :0]       qp2_dt2_i   , 
+   input  wire                qp2_vld_i   ,
 // DMA AXIS FOR READ AND WRITE MEMORY             
    input  wire  [255 :0]      s_dma_axis_tdata_i   ,
    input  wire                s_dma_axis_tlast_i   ,
@@ -300,7 +318,7 @@ always_comb begin
    port_tvalid_si[15]  <= s15_axis_tvalid ;
 end
 
-qick_processor # (
+qick_processor# (
    .DEBUG          ( DEBUG          ),
    .DUAL_CORE      ( DUAL_CORE      ),
    .LFSR           ( LFSR           ),
@@ -324,6 +342,7 @@ qick_processor # (
    .c_rst_ni            ( c_resetn              ) ,
    .ps_clk_i            ( ps_clk_i              ) ,
    .ps_rst_ni           ( ps_resetn             ) ,
+// CTRL 
    .ext_flag_i          ( ext_flag_i            ) ,
    .proc_start_i        ( proc_start_i          ) ,
    .proc_stop_i         ( proc_stop_i           ) ,
@@ -334,20 +353,33 @@ qick_processor # (
    .time_updt_i         ( time_updt_i           ) ,
    .time_updt_dt_i      ( time_dt_i             ) ,
    .time_abs_o          ( t_time_abs_o          ) ,
+// PERIPHERALS
    .periph_a_dt_o       ( periph_a_dt           ) ,
    .periph_b_dt_o       ( periph_b_dt           ) ,
    .periph_c_dt_o       ( periph_c_dt           ) ,
    .periph_d_dt_o       ( periph_d_dt           ) ,
-   .periph_addr_o       ( periph_addr           ) ,
    .periph_op_o         ( periph_op             ) ,
-   .periph_rdy_i        ( periph_rdy_i          ) ,
-   .periph_dt_i         ( {periph_dt2_i, periph_dt1_i} ) ,
-   .periph_vld_i        ( periph_vld_i          ) ,
-   .periph_flag_i       ( periph_flag_i         ) ,
+   .qnet_en_o           ( qnet_en_o             ) ,
    .qnet_rdy_i          ( qnet_rdy_i            ) ,
-   .qnet_dt_i           ( {qnet_dt2_i, qnet_dt1_i} ) ,
+   .qnet_dt_i           ( {qnet_dt1_i, qnet_dt2_i} ) ,
    .qnet_vld_i          ( qnet_vld_i            ) ,
    .qnet_flag_i         ( qnet_flag_i           ) ,
+   .qcom_en_o           ( qcom_en_o             ) ,
+   .qcom_rdy_i          ( qcom_rdy_i            ) ,
+   .qcom_dt_i           ( {qcom_dt1_i, qcom_dt2_i} ) ,
+   .qcom_vld_i          ( qcom_vld_i            ) ,
+   .qcom_flag_i         ( qcom_flag_i           ) ,
+   .qp1_en_o            ( qp1_en_o               ) ,
+   .qp1_rdy_i           ( qp1_rdy_i ) ,
+   .qp1_dt_i            ( {qp1_dt1_i, qp1_dt2_i}) ,
+   .qp1_vld_i           ( qp1_vld_i           ) ,
+   .qp1_flag_i          ( qp1_flag_i          ) ,
+   .qp2_en_o            ( qp2_en_o               ) ,
+   .qp2_rdy_i           ( qp2_rdy_i ) ,
+   .qp2_dt_i            ( {qp2_dt1_i, qp2_dt2_i}) ,
+   .qp2_vld_i           ( qp2_vld_i           ) ,
+// PS
+   .IF_s_axireg         ( IF_s_axireg           ) ,
    .s_dma_axis_tdata_i  ( s_dma_axis_tdata_i    ) ,
    .s_dma_axis_tlast_i  ( s_dma_axis_tlast_i    ) ,
    .s_dma_axis_tvalid_i ( s_dma_axis_tvalid_i   ) ,
@@ -356,15 +388,16 @@ qick_processor # (
    .m_dma_axis_tlast_o  ( m_dma_axis_tlast_o    ) ,
    .m_dma_axis_tvalid_o ( m_dma_axis_tvalid_o   ) ,
    .m_dma_axis_tready_i ( m_dma_axis_tready_i   ) ,
-   .IF_s_axireg         ( IF_s_axireg           ) ,
-   .port_trig_o         ( port_trig_so    [0:OUT_TRIG_QTY-1]   ) ,
+// PORTS
    .port_tvalid_i       ( port_tvalid_si  [0:IN_PORT_QTY-1]    ) ,
    .port_tdata_i        ( port_tdata_si   [0:IN_PORT_QTY-1]    ) ,
+   .port_trig_o         ( port_trig_so    [0:OUT_TRIG_QTY-1]   ) ,
    .port_tvalid_o       ( port_tvalid_so  [0:OUT_DPORT_QTY-1]  ) ,
    .port_tdata_o        ( port_tdata_so   [0:OUT_DPORT_QTY-1]  ) ,
    .m_axis_tdata        ( m_axis_tdata_s  [0:OUT_WPORT_QTY-1]  ) ,
    .m_axis_tvalid       ( m_axis_tvalid_s [0:OUT_WPORT_QTY-1]  ) ,
    .m_axis_tready       ( m_axis_tready_s [0:OUT_WPORT_QTY-1]  ) ,
+//DEBUG
    .ps_debug_do         ( ps_debug_do           ) ,
    .t_time_usr_do       ( t_time_usr_ds         ) ,
    .t_debug_do          ( t_debug_ds            ) ,
@@ -378,22 +411,34 @@ qick_processor # (
 // OUTPUT ASSIGNMENT
 ///////////////////////////////////////////////////////////////////////////////
 
+   
+   
 ///// QNET_DT
-assign qnet_en_o    = (periph_addr == 5'b10001);
 assign qnet_op_o    = periph_op ; 
 assign qnet_a_dt_o  = periph_a_dt ;  
 assign qnet_b_dt_o  = periph_b_dt ;  
 assign qnet_c_dt_o  = periph_c_dt ;  
-assign qnet_d_dt_o  = periph_d_dt ;  
 
-///// PERIPHERALS
-assign periph_en_o   = (periph_addr == 5'b10010);
-assign periph_op_o   = periph_op ; 
-assign periph_a_dt_o = periph_a_dt ;  
-assign periph_b_dt_o = periph_b_dt ;  
-assign periph_c_dt_o = periph_c_dt ;  
-assign periph_d_dt_o = periph_d_dt ;  
-   
+///// QCOM_DT
+assign qcom_op_o    = periph_op ; 
+assign qcom_dt_o  = periph_b_dt ;  
+
+///// P1
+assign qp1_op_o   = periph_op ; 
+assign qp1_a_dt_o = periph_a_dt ;  
+assign qp1_b_dt_o = periph_b_dt ;  
+assign qp1_c_dt_o = periph_c_dt ;  
+assign qp1_d_dt_o = periph_d_dt ;  
+
+///// P2
+assign qp2_op_o   = periph_op ; 
+assign qp2_a_dt_o = periph_a_dt ;  
+assign qp2_b_dt_o = periph_b_dt ;  
+assign qp2_c_dt_o = periph_c_dt ;  
+assign qp2_d_dt_o = periph_d_dt ;  
+ 
+
+
 ///// TRIGGER PORTS
 genvar ind_t;
 generate
