@@ -7,10 +7,11 @@ import json
 import base64
 from collections import OrderedDict
 
-def to_int(val, scale, quantize=1, parname=None):
+def to_int(val, scale, quantize=1, parname=None, trunc=False):
     """Convert a parameter value from user units to ASM units.
     Normally this means converting from float to int.
     For the v2 tProcessor this can also convert QickSweep to QickSweepRaw.
+    To avoid overflow, values are rounded towards zero using np.trunc().
 
     Parameters
     ----------
@@ -22,6 +23,8 @@ def to_int(val, scale, quantize=1, parname=None):
         rounding step for ASM value
     parname : str
         parameter type - only for sweeps
+    trunc : bool
+        round towards zero using np.trunc(), instead of to closest integer using np.round()
 
     Returns
     -------
@@ -29,9 +32,12 @@ def to_int(val, scale, quantize=1, parname=None):
         ASM value
     """
     if hasattr(val, 'to_int'):
-        return val.to_int(scale, quantize=quantize, parname=parname)
+        return val.to_int(scale, quantize=quantize, parname=parname, trunc=trunc)
     else:
-        return int(quantize * np.round(val*scale/quantize))
+        if trunc:
+            return int(quantize * np.trunc(val*scale/quantize))
+        else:
+            return int(quantize * np.round(val*scale/quantize))
 
 def check_bytes(val, length):
     """Test if a signed int will fit in the specified number of bytes.

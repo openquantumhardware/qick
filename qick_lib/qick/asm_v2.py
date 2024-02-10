@@ -31,9 +31,9 @@ class QickSpan(NamedTuple):
         # convert to sweep
         # helper for math ops and to_int()
         return QickSweep(0, {self.loop:self.span})
-    def to_int(self, scale, quantize, parname):
+    def to_int(self, scale, quantize, parname, trunc=False):
         # this will get called if you use a single QickSpan as a parameter
-        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname)
+        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname, trunc=trune)
     def __add__(self, a):
         return self._to_sweep() + a
     def __radd__(self, a):
@@ -45,9 +45,9 @@ class QickSpan(NamedTuple):
 class QickSweep(NamedTuple):
     start: float
     spans: dict
-    def to_int(self, scale, quantize, parname):
-        start = to_int(self.start, scale, quantize=quantize, parname=parname)
-        spans = {k: to_int(v, scale, quantize=quantize, parname=parname) for k,v in self.spans.items()}
+    def to_int(self, scale, quantize, parname, trunc=False):
+        start = to_int(self.start, scale, quantize=quantize, parname=parname, trunc=trunc)
+        spans = {k: to_int(v, scale, quantize=quantize, parname=parname, trunc=trunc) for k,v in self.spans.items()}
         return QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
     def __add__(self, a):
         newstart = self.start
@@ -118,6 +118,7 @@ class QickSweepRaw(SimpleClass):
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
+            # to avoid overflow, values are rounded towards zero using np.trunc()
             stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
             if stepsize==0:
                 raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
@@ -306,7 +307,7 @@ class Delay(Macro):
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'SRC':f'r{t_reg.addr}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
         else:
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
 
@@ -667,11 +668,12 @@ class FullSpeedGenManager(AbsGenManager):
         w = {k:par.get(k) for k in ['phrst', 'stdysel']}
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
+        # gains should be rounded towards zero to avoid overflow
         if par['style']=='flat_top':
             # since the flat segment is played at half gain, the ramps should have even gain
-            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2)
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2, trunc=True)
         else:
-            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain')
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', trunc=True)
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
