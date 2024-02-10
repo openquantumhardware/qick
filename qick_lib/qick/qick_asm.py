@@ -576,6 +576,7 @@ class AbsQickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+
     def __init__(self, soccfg):
         """
         Constructor method
@@ -583,6 +584,9 @@ class AbsQickProgram:
         self.soccfg = soccfg
         self.tproccfg = self.soccfg['tprocs'][0]
         self._init_prog()
+
+        # Attributes to dump when saving the program to JSON.
+        self.dump_keys = ['envelopes', 'ro_chs', 'gen_chs']
 
     def _init_prog(self):
         """Initialize data structures for keeping track of channels, envelopes, pulses, etc.
@@ -615,6 +619,25 @@ class AbsQickProgram:
             return getattr(self.soccfg, a)
         else:
             return object.__getattribute__(self, a)
+
+    def dump_prog(self):
+        """
+        Dump the program to a dictionary.
+        This output contains all the information necessary to run the program.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
+        """
+        progdict = {}
+        for key in self.dump_keys:
+            progdict[key] = getattr(self, key)
+        return progdict
+
+    def load_prog(self, progdict):
+        """
+        Load the program from a dictionary.
+        """
+        for key in self.dump_keys:
+            setattr(self, key, progdict[key])
 
     def config_all(self, soc, load_pulses=True):
         """
@@ -983,6 +1006,9 @@ class AcquireMixin:
         # pass through any init arguments
         super().__init__(*args, **kwargs)
 
+        # Attributes to dump when saving the program to JSON.
+        self.dump_keys += ['counter_addr', 'reads_per_shot', 'loop_dims', 'avg_level']
+
     def _init_prog(self):
         super()._init_prog()
 
@@ -996,10 +1022,6 @@ class AcquireMixin:
         self.loop_dims = None
         # which loop level to average over (0 is outermost)
         self.avg_level = None
-
-        # threshold and angle for single-shot discrimination, if desired
-        self.shot_threshold = None
-        self.shot_angle = None
 
         # measurements from the most recent acquisition
         # raw I/Q data without normalizing to window length or averaging over reps
@@ -1041,24 +1063,6 @@ class AcquireMixin:
         except TypeError:
             self.reads_per_shot = reads_per_shot
 
-    def setup_threshold(self, threshold, angle=0):
-        """Set the parameters needed for thresholding.
-        Thresholds are applied on the raw (not normalized to window length) values.
-
-        Parameters
-        ----------
-        threshold : float or list of float
-            The threshold(s) to apply to the I values after rotation.
-            If scalar, the same threshold will be applied to all readout channels.
-            A list must have length equal to the number of declared readout channels.
-        angle : float or list of float
-            The angle to rotate the I/Q values by before applying the threshold.
-            If scalar, the same angle will be applied to all readout channels.
-            A list must have length equal to the number of declared readout channels.
-        """
-        self.shot_threshold = threshold
-        self.shot_angle = angle
-
     def get_raw(self):
         """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
 
@@ -1079,7 +1083,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=False):
+    def acquire(self, soc, soft_avgs, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1092,20 +1096,23 @@ class AcquireMixin:
             if True, load pulse envelopes
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        threshold : float or list of float
+            The threshold(s) to apply to the I values after rotation.
+            If scalar, the same threshold will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        angle : float or list of float
+            The angle to rotate the I/Q values by before applying the threshold.
+            If scalar, the same angle will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
         progress: bool
             if true, displays progress bar
 
         Returns
         -------
         ndarray
-            raw accumulated IQ values (int32)
-            if rounds>1, only the last round is kept
-            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
-
-        ndarray
             averaged IQ values (float)
             divided by the length of the RO window, and averaged over reps and rounds
-            if shot_threshold is defined, the I values will be the fraction of points over threshold
+            if threshold is defined, the I values will be the fraction of points over threshold
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
@@ -1152,11 +1159,11 @@ class AcquireMixin:
                         pbar.update(new_points)
 
             # if we're thresholding, apply the threshold before averaging
-            if self.shot_threshold is None:
+            if threshold is None:
                 d_reps = self.d_buf
             else:
                 d_reps = [np.zeros_like(d) for d in self.d_buf]
-                self.shots = self.get_single_shots(self.d_buf)
+                self.shots = self._apply_threshold(self.d_buf, threshold, angle)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
 
@@ -1191,7 +1198,7 @@ class AcquireMixin:
 
         return avg_d
 
-    def get_single_shots(self, d_buf):
+    def _apply_threshold(self, d_buf, threshold, angle):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -1208,13 +1215,13 @@ class AcquireMixin:
         """
         # try to convert threshold to list of floats; if that fails, assume it's already a list
         try:
-            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
+            thresholds = [float(threshold)]*len(self.ro_chs)
         except TypeError:
-            thresholds = self.shot_threshold
+            thresholds = threshold
         try:
-            angles = [float(self.shot_angle)]*len(self.ro_chs)
+            angles = [float(angle)]*len(self.ro_chs)
         except TypeError:
-            angles = self.shot_angle
+            angles = angle
 
         shots = []
         for i, ch in enumerate(self.ro_chs):
@@ -1240,7 +1247,8 @@ class AcquireMixin:
         return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
 
     def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
-        """Acquire data using the decimating readout.
+        """Run the program and wait until it completes, once or multiple times.
+        No data will be saved.
 
         Parameters
         ----------

@@ -4,10 +4,9 @@ Several helper classes for writing qubit experiments.
 from typing import List, Union
 import numpy as np
 from qick import obtain
-from .qick_asm import AcquireMixin
-from .asm_v1 import QickProgram, QickRegister, QickRegisterManagerMixin
+from .asm_v1 import QickProgram, AcquireProgram, QickRegister, QickRegisterManagerMixin
 
-class AveragerProgram(AcquireMixin, QickProgram):
+class AveragerProgram(AcquireProgram):
     """
     AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
     It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
@@ -101,11 +100,10 @@ class AveragerProgram(AcquireMixin, QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
-        self.setup_threshold(threshold=threshold, angle=angle)
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -164,7 +162,7 @@ class AveragerProgram(AcquireMixin, QickProgram):
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
-class RAveragerProgram(AcquireMixin, QickProgram):
+class RAveragerProgram(AcquireProgram):
     """
     RAveragerProgram class, for qubit experiments that sweep over a variable (whose value is stored in expt_pts).
     It is an abstract base class similar to the AveragerProgram, except has an outer loop which allows one to sweep a parameter in the real-time program rather than looping over it in software.  This can be more efficient for short duty cycles.
@@ -278,11 +276,10 @@ class RAveragerProgram(AcquireMixin, QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
-        self.setup_threshold(threshold=threshold, angle=angle)
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -426,7 +423,7 @@ def merge_sweeps(sweeps: List[QickSweep]) -> AbsQickSweep:
     return merged
 
 
-class NDAveragerProgram(QickRegisterManagerMixin, AcquireMixin, QickProgram):
+class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
     """
     NDAveragerProgram class, for experiments that sweep over multiple variables in qick. The order of experiment runs
     follow outer->inner: reps, sweep_n,... sweep_0.
@@ -556,12 +553,13 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireMixin, QickProgram):
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
 
-        self.setup_threshold(threshold=threshold, angle=angle)
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
         avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses,
-                                              start_src=start_src, progress=progress)
+                                              start_src=start_src, 
+                                              threshold=threshold, angle=angle,
+                                              progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
