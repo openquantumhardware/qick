@@ -576,36 +576,46 @@ class AbsQickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+
     def __init__(self, soccfg):
         """
         Constructor method
         """
         self.soccfg = soccfg
         self.tproccfg = self.soccfg['tprocs'][0]
+        self._init_declarations()
+        self._init_instructions()
 
+        # Attributes to dump when saving the program to JSON.
+        self.dump_keys = ['envelopes', 'ro_chs', 'gen_chs']
+
+    def _init_declarations(self):
+        """Initialize data structures for keeping track of program declarations.
+        Structures that are filled directly by user code or a make_program() should be initialized here.
+        This will typically mean macros, channels and envelopes.
+        Concrete subclasses will extend this method to add more data structures.
+        This should be called at class initialization.
+        If a program is filled using a make_program() that is called during compilation, this should also be called before make_program().
+        """
+        logger.debug("init_declarations")
         # Pulse envelopes.
-        self.envelopes = [{} for ch in soccfg['gens']]
+        self.envelopes = [{} for ch in self.soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
+    def _init_instructions(self):
+        """Initialize data structures for keeping track of program instructions.
+        Structures that are filled automatically at compilation should be initialized here.
+        This will typically mean the ASM list.
+        Concrete subclasses will extend this method to add more data structures.
+        This should be called at class initialization and before compilation.
+        """
+        logger.debug("init_instructions")
         # Timestamps, for keeping track of pulse and readout end times.
-        self._gen_ts = [0]*len(soccfg['gens'])
-        self._ro_ts = [0]*len(soccfg['readouts'])
-
-        # tProc address of the rep counter, must be defined
-        self.counter_addr = None
-
-        # data dimensions, must be defined:
-        # list of loop dimensions, outermost loop first
-        self.loop_dims = None
-        # which loop level to average over (0 is outermost)
-        self.avg_level = None
-
-        # threshold and angle for single-shot discrimination, if desired
-        self.shot_threshold = None
-        self.shot_angle = None
+        self._gen_ts = [0]*len(self.soccfg['gens'])
+        self._ro_ts = [0]*len(self.soccfg['readouts'])
 
     def __getattr__(self, a):
         """
@@ -621,6 +631,26 @@ class AbsQickProgram:
             return getattr(self.soccfg, a)
         else:
             return object.__getattribute__(self, a)
+
+    def dump_prog(self):
+        """
+        Dump the program to a dictionary.
+        This output contains all the information necessary to run the program.
+        In other words, it will have the low-level ASM and pulse+envelope data, but not higher-level structures.
+        Caution: don't modify the sub-dictionaries of this dict!
+        You will be modifying the original program (this is not a deep copy).
+        """
+        progdict = {}
+        for key in self.dump_keys:
+            progdict[key] = getattr(self, key)
+        return progdict
+
+    def load_prog(self, progdict):
+        """
+        Load the program from a dictionary.
+        """
+        for key in self.dump_keys:
+            setattr(self, key, progdict[key])
 
     def config_all(self, soc, load_pulses=True):
         """
@@ -641,6 +671,30 @@ class AbsQickProgram:
         # Configure the readout down converters
         self.config_readouts(soc)
 
+    def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
+        """Load the program into the tProcessor and start it.
+        Because there is in general no way to tell when a program is done running, there is no guarantee that the program will be done before this method returns.
+        If you want that guarantee, use run_rounds().
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The QickSoc that will execute this program.
+        load_prog : bool
+            Load the program before starting the tProc.
+        load_pulses : bool
+            Load the generator envelopes before starting the tProc.
+            If load_prog is False, load_pulses is ignored.
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger).
+        """
+        if load_prog:
+            self.config_all(soc, load_pulses=load_pulses)
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+        # run the assembly program
+        # if start_src="external", it won't actually start until it sees a pulse
+        soc.start_tproc()
 
     def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
@@ -916,8 +970,14 @@ class AbsQickProgram:
                         addr=pulse['addr'])
 
     def reset_timestamps(self, gen_t0=None):
+        # used by init and sync_all()
         self._gen_ts = [0]*len(self._gen_ts) if gen_t0 is None else gen_t0.copy()
         self._ro_ts = [0]*len(self._ro_ts)
+
+    def decrement_timestamps(self, t):
+        # used by sync() in v2
+        self._gen_ts = [max(0, x-t) for x in self._gen_ts]
+        self._ro_ts = [max(0, x-t) for x in self._ro_ts]
 
     def get_timestamp(self, gen_ch=None, ro_ch=None):
         if gen_ch is not None and ro_ch is not None:
@@ -951,7 +1011,92 @@ class AbsQickProgram:
         if ros: timestamps += list(self._ro_ts)
         return max(timestamps)
 
-    def acquire(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=False):
+class AcquireMixin:
+    """Adds acquire() and acquire_decimated() methods for acquiring readout data, and run_rounds() for running repeatedly without acquisition.
+    Program classes that use this mixin must call setup_acquire() after _init_prog() and before acquire()/acquire_decimated().
+    """
+    def __init__(self, *args, **kwargs):
+        # pass through any init arguments
+        super().__init__(*args, **kwargs)
+
+        # Attributes to dump when saving the program to JSON.
+        self.dump_keys += ['counter_addr', 'reads_per_shot', 'loop_dims', 'avg_level']
+
+    def _init_declarations(self):
+        super()._init_declarations()
+
+        # tProc address of the rep counter, must be defined
+        self.counter_addr = None
+
+        # data dimensions, must be defined:
+        # number of times each readout is triggered in a single shot
+        self.reads_per_shot = None
+        # list of loop dimensions, outermost loop first
+        self.loop_dims = None
+        # which loop level to average over (0 is outermost)
+        self.avg_level = None
+
+        # measurements from the most recent acquisition
+        # raw I/Q data without normalizing to window length or averaging over reps
+        self.d_buf = None
+        # shot-by-shot threshold classification
+        self.shots = None
+
+    def setup_acquire(self, counter_addr, loop_dims, avg_level, reads_per_shot=None):
+        """Set the parameters needed to define the data acquisition.
+        Since the number of readouts per shot is set based on calls to trigger(), this should be called after the program has been fully defined.
+
+        Parameters
+        ----------
+        counter_addr : int
+            The special tProc address holding the number of shots read out thus far.
+        loop_dims : list of int
+            List of loop dimensions, outermost loop first.
+        avg_level : int
+            Which loop level to average over (0 is outermost).
+        """
+        self.counter_addr = counter_addr
+        self.loop_dims = loop_dims
+        self.avg_level = avg_level
+        self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
+
+    def set_reads_per_shot(self, reads_per_shot):
+        """Override the default count of readout triggers per shot.
+        This should be called after setup_acquire().
+        You probably shouldn't be using this method; the default value is usually correct.
+
+        Parameters
+        ----------
+        reads_per_shot : int or list of int
+            Number of readout triggers per shot.
+            If int, all declared readout channels use this value.
+        """
+        try:
+            self.reads_per_shot = [int(reads_per_shot)]*len(self.ro_chs)
+        except TypeError:
+            self.reads_per_shot = reads_per_shot
+
+    def get_raw(self):
+        """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
+
+        Returns
+        -------
+        list of ndarray
+            Array of I/Q values for each readout channel.
+        """
+        return self.d_buf
+
+    def get_shots(self):
+        """Get the shot-by-shot threshold decisions.
+
+        Returns
+        -------
+        list of ndarray
+            Array of shots for each readout channel.
+        """
+        return self.shots
+
+    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -960,44 +1105,42 @@ class AbsQickProgram:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        reads_per_rep : int
-            number of readout triggers in the loop body
-            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        threshold : float or list of float
+            The threshold(s) to apply to the I values after rotation.
+            If scalar, the same threshold will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        angle : float or list of float
+            The angle to rotate the I/Q values by before applying the threshold.
+            If scalar, the same angle will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
         progress: bool
             if true, displays progress bar
 
         Returns
         -------
         ndarray
-            raw accumulated IQ values (int32)
-            if rounds>1, only the last round is kept
-            dimensions : (n_ch, n_expts*n_reps*n_reads, 2)
-
-        ndarray
             averaged IQ values (float)
             divided by the length of the RO window, and averaged over reps and rounds
-            if shot_threshold is defined, the I values will be the fraction of points over threshold
+            if threshold is defined, the I values will be the fraction of points over threshold
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
-
         self.config_all(soc, load_pulses=load_pulses)
+
+        if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
 
         # configure tproc for internal/external start
         soc.start_src(start_src)
 
         n_ro = len(self.ro_chs)
-        if reads_per_rep is not None:
-            for ro_ch in self.ro_chs.values():
-                ro_ch['trigs'] = reads_per_rep
-        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in reads_per_rep]
+        self.d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -1011,7 +1154,6 @@ class AbsQickProgram:
 
         # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
         avg_d = None
-        shots = None
         for ir in tqdm(range(soft_avgs), disable=hiderounds):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
@@ -1019,27 +1161,27 @@ class AbsQickProgram:
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
                 soc.start_readout(total_count, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_rep=reads_per_rep)
+                                       ch_list=list(self.ro_chs), reads_per_shot=self.reads_per_shot)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
-                        for ii, nreads in enumerate(reads_per_rep):
-                            d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
+                        for ii, nreads in enumerate(self.reads_per_shot):
+                            self.d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
 
             # if we're thresholding, apply the threshold before averaging
-            if self.shot_threshold is None:
-                d_reps = d_buf
+            if threshold is None:
+                d_reps = self.d_buf
             else:
-                d_reps = [np.zeros_like(d) for d in d_buf]
-                shots = self.get_single_shots(d_buf)
-                for i, ch_shot in enumerate(shots):
+                d_reps = [np.zeros_like(d) for d in self.d_buf]
+                self.shots = self._apply_threshold(self.d_buf, threshold, angle)
+                for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
 
             # sum over rounds axis
-            round_d = self._average_buf(d_reps, reads_per_rep)
+            round_d = self._average_buf(d_reps, self.reads_per_shot)
             if avg_d is None:
                 avg_d = round_d
             else:
@@ -1048,28 +1190,28 @@ class AbsQickProgram:
         # divide total by rounds
         for d in avg_d: d /= soft_avgs
 
-        return d_buf, avg_d, shots
+        return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_rep: list) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
 
         :param d_reps: buffer data acquired in a round
-        :param reads_per_rep: readouts per experiment
+        :param reads_per_shot: readouts per experiment
         :return: averaged iq data after each round.
         """
         averaged_dims = self.loop_dims.copy()
         del averaged_dims[self.avg_level]
-        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_rep]
+        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_shot]
         for i_ch, ro in enumerate(self.ro_chs.values()):
-            nreads = reads_per_rep[i_ch]
+            nreads = reads_per_shot[i_ch]
             for ii in range(nreads):
                 avg_d[i_ch][ii] = d_reps[i_ch][ii::nreads, :].reshape((*self.loop_dims, 2)).sum(axis=self.avg_level) / (self.loop_dims[self.avg_level] * ro['length'])
 
         return avg_d
 
-    def get_single_shots(self, d_buf):
+    def _apply_threshold(self, d_buf, threshold, angle):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -1086,17 +1228,13 @@ class AbsQickProgram:
         """
         # try to convert threshold to list of floats; if that fails, assume it's already a list
         try:
-            thresholds = [float(self.shot_threshold)]*len(self.ro_chs)
+            thresholds = [float(threshold)]*len(self.ro_chs)
         except TypeError:
-            thresholds = self.shot_threshold
-        # angle is 0 if not specified
-        if self.shot_angle is None:
-            angles = [0.0]*len(self.ro_chs)
-        else:
-            try:
-                angles = [float(self.shot_angle)]*len(self.ro_chs)
-            except TypeError:
-                angles = self.shot_angle
+            thresholds = threshold
+        try:
+            angles = [float(angle)]*len(self.ro_chs)
+        except TypeError:
+            angles = angle
 
         shots = []
         for i, ch in enumerate(self.ro_chs):
@@ -1104,8 +1242,64 @@ class AbsQickProgram:
             shots.append(np.heaviside(rotated - thresholds[i], 0))
         return shots
 
+    def get_time_axis(self, ro_index):
+        """Get an array usable as the time axis for plotting decimated data.
 
-    def acquire_decimated(self, soc, soft_avgs, reads_per_rep=None, load_pulses=True, start_src="internal", progress=True):
+        Parameters
+        ----------
+        ro_index : int
+            Index of the readout channel in this program.
+            The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
+
+        Returns
+        -------
+        ndarray of float
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
+        """
+        ch, ro = list(self.ro_chs.items())[ro_index]
+        return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
+
+    def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
+        """Run the program and wait until it completes, once or multiple times.
+        No data will be saved.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        rounds : int
+            number of times to rerun the program
+        load_pulses : bool
+            if True, load pulse envelopes
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        """
+        self.config_all(soc, load_pulses=load_pulses)
+
+        if any([x is None for x in [self.counter_addr, self.loop_dims]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+        total_count = functools.reduce(operator.mul, self.loop_dims)
+
+        # for each soft average, run and acquire decimated data
+        for ii in tqdm(range(rounds), disable=not progress):
+            # make sure count variable is reset to 0
+            soc.set_tproc_counter(addr=self.counter_addr, val=0)
+
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every round
+            soc.start_tproc()
+
+            count = 0
+            while count < total_count:
+                count = soc.get_tproc_counter(addr=self.counter_addr)
+
+    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1114,9 +1308,6 @@ class AbsQickProgram:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        reads_per_rep : int
-            number of readout triggers in the loop body
-            by default, this is automatically detected based on calls to trigger()
         load_pulses : bool
             if True, load pulse envelopes
         start_src: str
@@ -1134,13 +1325,11 @@ class AbsQickProgram:
         """
         self.config_all(soc, load_pulses=load_pulses)
 
+        if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
+            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
+
         # configure tproc for internal/external start
         soc.start_src(start_src)
-
-        if reads_per_rep is not None:
-            for ro_ch in self.ro_chs.values():
-                ro_ch['trigs'] = reads_per_rep
-        reads_per_rep = [ro['trigs'] for ro in self.ro_chs.values()]
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 

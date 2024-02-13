@@ -96,14 +96,13 @@ class DataStreamer():
         while True:
             try:
                 # wait for a job
-                total_reps, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
+                total_shots, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
                 #print("streamer loop: start", total_count)
 
-                reps = 0
-                last_reps = 0
-                last_count = 0
+                shots = 0
+                last_shots = 0
 
-                # how many reps worth of data to transfer at a time
+                # how many shots worth of data to transfer at a time
                 if stride is None:
                     stride = int(0.1 * self.soc.get_avg_max_length(0)/max(reads_per_count))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
@@ -119,35 +118,34 @@ class DataStreamer():
                 self.soc.start_tproc()
 
                 # Keep streaming data until you get all of it
-                while last_reps < total_reps:
+                while last_shots < total_shots:
                     if self.stop_flag.is_set():
                         print("streamer loop: got stop flag")
                         break
-                    reps = self.soc.get_tproc_counter(addr=counter_addr)
+                    shots = self.soc.get_tproc_counter(addr=counter_addr)
                     # wait until either you've gotten a full stride of measurements or you've finished (so you don't go crazy trying to download every measurement)
-                    if reps >= min(last_reps+stride, total_reps):
-                        newreps = reps-last_reps
-                        length = newreps
-                        if length >= self.soc.get_avg_max_length(0):
-                            raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                                               % (length, self.soc.get_avg_max_length(0)) +
-                                               "\nYou need to slow down the tProc by increasing relax_delay." +
-                                               "\nIf the TQDM progress bar is enabled, disabling it may help.")
-
+                    if shots >= min(last_shots+stride, total_shots):
+                        newshots = shots-last_shots
                         # buffer for each channel
-                        d_buf = [np.zeros((length*nreads, 2), dtype=np.int32) for nreads in reads_per_count]
+                        d_buf = [None for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
-                            addr = last_count * reads_per_count[iCh] % self.soc.get_avg_max_length(0)
-                            data = self.soc.get_accumulated(ch=ch, address=addr, length=length*reads_per_count[iCh])
+                            newpoints = newshots*reads_per_count[iCh]
+                            if newpoints >= self.soc.get_avg_max_length(ch):
+                                raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
+                                                   % (newpoints, self.soc.get_avg_max_length(ch)) +
+                                                   "\nYou need to slow down the tProc by increasing relax_delay." +
+                                                   "\nIf the TQDM progress bar is enabled, disabling it may help.")
+
+                            addr = last_shots * reads_per_count[iCh] % self.soc.get_avg_max_length(ch)
+                            data = self.soc.get_accumulated(ch=ch, address=addr, length=newpoints)
                             d_buf[iCh] = data
 
-                        last_reps += newreps
-                        last_count += length
+                        last_shots += newshots
 
-                        stats = (time.time()-t_start, reps, addr, length)
-                        self.data_queue.put((length, (d_buf, stats)))
+                        stats = (time.time()-t_start, shots, addr, newshots)
+                        self.data_queue.put((newshots, (d_buf, stats)))
                 #if last_count==total_count: print("streamer loop: normal completion")
 
             except Exception as e:

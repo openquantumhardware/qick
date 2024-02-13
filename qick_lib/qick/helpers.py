@@ -7,10 +7,11 @@ import json
 import base64
 from collections import OrderedDict
 
-def to_int(val, scale, quantize=1, parname=None):
+def to_int(val, scale, quantize=1, parname=None, trunc=False):
     """Convert a parameter value from user units to ASM units.
-    Nromally this means converting from float to int.
+    Normally this means converting from float to int.
     For the v2 tProcessor this can also convert QickSweep to QickSweepRaw.
+    To avoid overflow, values are rounded towards zero using np.trunc().
 
     Parameters
     ----------
@@ -22,6 +23,8 @@ def to_int(val, scale, quantize=1, parname=None):
         rounding step for ASM value
     parname : str
         parameter type - only for sweeps
+    trunc : bool
+        round towards zero using np.trunc(), instead of to closest integer using np.round()
 
     Returns
     -------
@@ -29,9 +32,12 @@ def to_int(val, scale, quantize=1, parname=None):
         ASM value
     """
     if hasattr(val, 'to_int'):
-        return val.to_int(scale, parname=parname, quantize=quantize)
+        return val.to_int(scale, quantize=quantize, parname=parname, trunc=trunc)
     else:
-        return int(quantize * np.round(val*scale/quantize))
+        if trunc:
+            return int(quantize * np.trunc(val*scale/quantize))
+        else:
+            return int(quantize * np.round(val*scale/quantize))
 
 def check_bytes(val, length):
     """Test if a signed int will fit in the specified number of bytes.
@@ -143,7 +149,7 @@ def triang(length=100, maxv=30000):
 
 class NpEncoder(json.JSONEncoder):
     """
-    JSON encoder with support for numpy objects.
+    JSON encoder with support for numpy objects and custom classes with to_dict methods.
     Taken from https://stackoverflow.com/questions/50916422/python-typeerror-object-of-type-int64-is-not-json-serializable
     """
     def default(self, obj):
@@ -155,6 +161,8 @@ class NpEncoder(json.JSONEncoder):
             # base64 is considerably more compact and faster to pack/unpack
             # return obj.tolist()
             return (base64.b64encode(obj.tobytes()).decode(), obj.shape, obj.dtype.str)
+        if hasattr(obj, "to_dict"):
+            return obj.to_dict()
         return super().default(obj)
 
 def progs2json(proglist):
@@ -200,11 +208,12 @@ def json2progs(s):
         progdict['gen_chs'] = OrderedDict([(int(k),v) for k,v in progdict['gen_chs'].items()])
         progdict['ro_chs'] = OrderedDict([(int(k),v) for k,v in progdict['ro_chs'].items()])
         # the envelope arrays need to be restored as numpy arrays with the proper type
-        for iCh, pulsedict in enumerate(progdict['pulses']):
-            for name, pulse in pulsedict.items():
-                #pulse['data'] = np.array(pulse['data'], dtype=self._gen_mgrs[iCh].env_dtype)
-                data, shape, dtype = pulse['data']
-                pulse['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
+        # TODO: move this code to AcquireMixin.load_prog()?
+        for iCh, envdict in enumerate(progdict['envelopes']):
+            for name, env in envdict.items():
+                #env['data'] = np.array(env['data'], dtype=self._gen_mgrs[iCh].env_dtype)
+                data, shape, dtype = env['data']
+                env['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
     return proglist
 
 def ch2list(ch: Union[List[int], int]) -> List[int]:

@@ -4,9 +4,9 @@ Several helper classes for writing qubit experiments.
 from typing import List, Union
 import numpy as np
 from qick import obtain
-from .asm_v1 import QickProgram, QickRegister, QickRegisterManagerMixin
+from .asm_v1 import QickProgram, AcquireProgram, QickRegister, QickRegisterManagerMixin
 
-class AveragerProgram(QickProgram):
+class AveragerProgram(AcquireProgram):
     """
     AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
     It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
@@ -16,6 +16,7 @@ class AveragerProgram(QickProgram):
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
+    COUNTER_ADDR = 1
 
     def __init__(self, soccfg, cfg):
         """
@@ -32,9 +33,9 @@ class AveragerProgram(QickProgram):
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # this is a 1-D loop
-        self.loop_dims = [cfg['reps']]
+        loop_dims = [self.cfg['reps']]
         # average over the reps axis
-        self.avg_level = 0
+        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=loop_dims, avg_level=0)
 
     def initialize(self):
         """
@@ -65,7 +66,7 @@ class AveragerProgram(QickProgram):
 
         p.mathi(0, rcount, rcount, "+", 1)
 
-        p.memwi(0, rcount, self.counter_addr)
+        p.memwi(0, rcount, self.COUNTER_ADDR)
 
         p.loopnz(0, rjj, 'LOOP_J')
 
@@ -99,19 +100,15 @@ class AveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
+        if readouts_per_experiment is not None:
+            self.set_reads_per_shot(readouts_per_experiment)
 
-        self.shot_angle = angle
-        self.shot_threshold = threshold
-
-        d_buf, avg_d, shots = super().acquire(soc, soft_avgs=self.soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in d_buf]
-        self.dq_buf = [d[:,1] for d in d_buf]
-
-        if threshold is not None:
-            self.shots = shots
+        self.di_buf = [d[:,0] for d in self.get_raw()]
+        self.dq_buf = [d[:,1] for d in self.get_raw()]
 
         n_ro = len(self.ro_chs)
         if save_experiments is None:
@@ -159,11 +156,13 @@ class AveragerProgram(QickProgram):
             - iq_list (:py:class:`list`) - list of lists of averaged decimated I and Q data
         """
 
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
+        if readouts_per_experiment is not None:
+            self.set_reads_per_shot(readouts_per_experiment)
+        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
-class RAveragerProgram(QickProgram):
+class RAveragerProgram(AcquireProgram):
     """
     RAveragerProgram class, for qubit experiments that sweep over a variable (whose value is stored in expt_pts).
     It is an abstract base class similar to the AveragerProgram, except has an outer loop which allows one to sweep a parameter in the real-time program rather than looping over it in software.  This can be more efficient for short duty cycles.
@@ -172,6 +171,7 @@ class RAveragerProgram(QickProgram):
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
+    COUNTER_ADDR = 1
 
     def __init__(self, soccfg, cfg):
         """
@@ -184,9 +184,9 @@ class RAveragerProgram(QickProgram):
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # expts loop is the outer loop, reps loop is the inner loop
-        self.loop_dims = [cfg['expts'], cfg['reps']]
+        loop_dims = [self.cfg['expts'], self.cfg['reps']]
         # average over the reps axis
-        self.avg_level = 1
+        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=loop_dims, avg_level=1)
 
     def initialize(self):
         """
@@ -230,7 +230,7 @@ class RAveragerProgram(QickProgram):
 
         p.mathi(0, rcount, rcount, "+", 1)
 
-        p.memwi(0, rcount, self.counter_addr)
+        p.memwi(0, rcount, self.COUNTER_ADDR)
 
         p.loopnz(0, rjj, 'LOOP_J')
 
@@ -276,18 +276,15 @@ class RAveragerProgram(QickProgram):
             - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
-        self.shot_angle = angle
-        self.shot_threshold = threshold
+        if readouts_per_experiment is not None:
+            self.set_reads_per_shot(readouts_per_experiment)
 
-        d_buf, avg_d, shots = super().acquire(soc, soft_avgs=self.soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses, start_src=start_src, progress=progress)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in d_buf]
-        self.dq_buf = [d[:,1] for d in d_buf]
-
-        if threshold is not None:
-            self.shots = shots
+        self.di_buf = [d[:,0] for d in self.get_raw()]
+        self.dq_buf = [d[:,1] for d in self.get_raw()]
 
         expt_pts = self.get_expt_pts()
 
@@ -426,7 +423,7 @@ def merge_sweeps(sweeps: List[QickSweep]) -> AbsQickSweep:
     return merged
 
 
-class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
+class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
     """
     NDAveragerProgram class, for experiments that sweep over multiple variables in qick. The order of experiment runs
     follow outer->inner: reps, sweep_n,... sweep_0.
@@ -434,6 +431,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
     :param cfg: Configuration dictionary
     :type cfg: dict
     """
+    COUNTER_ADDR = 1
 
     def __init__(self, soccfg, cfg):
         """
@@ -450,9 +448,9 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # reps loop is the outer loop, first-added sweep is innermost loop
-        self.loop_dims = [cfg['reps'], *self.sweep_axes[::-1]]
+        loop_dims = [cfg['reps'], *self.sweep_axes[::-1]]
         # average over the reps axis
-        self.avg_level = 0
+        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=loop_dims, avg_level=0)
 
     def initialize(self):
         """
@@ -508,7 +506,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
         # run body and total_run_counter++
         p.body()
         p.mathi(0, rcount, rcount, "+", 1)
-        p.memwi(0, rcount, 1)
+        p.memwi(0, rcount, self.COUNTER_ADDR)
 
         # add update and stop condition for each sweep
         for creg, swp in zip(counter_regs, self.qick_sweeps):
@@ -555,21 +553,18 @@ class NDAveragerProgram(QickRegisterManagerMixin, QickProgram):
             - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
         """
 
-        self.shot_angle = angle
-        self.shot_threshold = threshold
+        if readouts_per_experiment is not None:
+            self.set_reads_per_shot(readouts_per_experiment)
 
-        # avg_d calculated in QickProgram.acquire() assumes a different data shape, here we will recalculate based on
-        # the d_buf returned.
-        d_buf, avg_d, shots = super().acquire(soc, soft_avgs=self.soft_avgs, reads_per_rep=readouts_per_experiment, load_pulses=load_pulses,
-                                              start_src=start_src, progress=progress)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses,
+                                              start_src=start_src, 
+                                              threshold=threshold, angle=angle,
+                                              progress=progress)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in d_buf]
-        self.dq_buf = [d[:,1] for d in d_buf]
-
-        if threshold is not None:
-            self.shots = shots
+        self.di_buf = [d[:,0] for d in self.get_raw()]
+        self.dq_buf = [d[:,1] for d in self.get_raw()]
 
         expt_pts = self.get_expt_pts()
 

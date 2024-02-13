@@ -8,7 +8,7 @@ from collections import namedtuple, OrderedDict, defaultdict
 from typing import Union, List
 from abc import ABC, abstractmethod
 
-from .qick_asm import AbsQickProgram
+from .qick_asm import AbsQickProgram, AcquireMixin
 from .helpers import ch2list
 from .parser import parse_prog
 
@@ -601,8 +601,6 @@ class QickProgram(AbsQickProgram):
     # Pairs of channels share a register page.
     # The flat_top pulse uses some extra registers.
 
-    # Attributes to dump when saving the program to JSON.
-    dump_keys = ['prog_list', 'envelopes', 'ro_chs', 'gen_chs', 'counter_addr', 'reps', 'expts', 'rounds', 'shot_angle', 'shot_threshold']
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
@@ -624,13 +622,6 @@ class QickProgram(AbsQickProgram):
         # Label to apply to the next instruction.
         self._label_next = None
 
-        # Address of the rep counter in the data memory.
-        self.counter_addr = 1
-        # Number of iterations in the innermost loop.
-        self.reps = None
-        # Number of times the program repeats the innermost loop. None means there is no outer loop.
-        self.expts = None
-
         # Generator managers, for keeping track of register values.
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(soccfg['gens'])]
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(soccfg['readouts'])]
@@ -642,11 +633,8 @@ class QickProgram(AbsQickProgram):
         self._ro_regmap = {}
         self._allocate_registers()
 
-        # Number of times the whole program is to be run.
-        self.rounds = 1
-        # Rotation angle and thresholds for single-shot readout.
-        self.shot_angle = None
-        self.shot_threshold = None
+        # Attributes to dump when saving the program to JSON.
+        self.dump_keys += ['prog_list']
 
     def _allocate_registers(self):
         # assign tProc-controlled generator/readout channels to pages
@@ -679,25 +667,6 @@ class QickProgram(AbsQickProgram):
                 for iReg, regname in enumerate(mgr.PULSE_REGISTERS):
                     mgr.regmap[(mgr.ch, regname)] = (page, regnum)
                     regnum += 1
-
-    def dump_prog(self):
-        """
-        Dump the program to a dictionary.
-        This output contains all the information necessary to run the program.
-        Caution: don't modify the sub-dictionaries of this dict!
-        You will be modifying the original program (this is not a deep copy).
-        """
-        progdict = {}
-        for key in self.dump_keys:
-            progdict[key] = getattr(self, key)
-        return progdict
-
-    def load_prog(self, progdict):
-        """
-        Load the program from a dictionary.
-        """
-        for key in self.dump_keys:
-            setattr(self, key, progdict[key])
 
     def config_all(self, soc, load_pulses=True, reset=False, debug=False):
         super().config_all(soc, load_pulses)
@@ -1491,6 +1460,11 @@ class QickProgram(AbsQickProgram):
         """
         pass
 
+class AcquireProgram(AcquireMixin, QickProgram):
+    """Base class for tProc v1 programs with shot counting and readout acquisition.
+    You will need to define the acquisition structure with setup_acquire().
+    """
+    pass
 
 class QickRegister:
     """A qick register object that keeps the page, address, generator/readout channel and register type information,
