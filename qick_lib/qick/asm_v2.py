@@ -323,7 +323,7 @@ class Pulse(Macro):
             prog.set_timestamp(t + pulse_length, gen_ch=self.ch)
         else:
             if t<ts:
-                print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
+                logger.warn("warning: pulse time %s appears to conflict with previous pulse ending at %s?"%(t, ts))
                 prog.set_timestamp(ts + pulse_length, gen_ch=self.ch)
             else:
                 prog.set_timestamp(t + pulse_length, gen_ch=self.ch)
@@ -360,7 +360,7 @@ class Trigger(Macro):
             else:
                 self.trigset.add(rocfg['trigger_port'])
             ts = prog.get_timestamp(ro_ch=ro)
-            if self.t < ts: print("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
+            if self.t < ts: logger.warning("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
             ro_length = prog.ro_chs[ro]['length']
             ro_length /= prog.soccfg['readouts'][ro]['f_fabric']
             prog.set_timestamp(self.t + ro_length, ro_ch=ro)
@@ -419,7 +419,7 @@ class EndLoop(Macro):
 
         # check for register sweeps
         reg_sweeps = []
-        for reg in prog.user_reg_dict.values():
+        for reg in prog.reg_dict.values():
             if reg.sweep is not None and lname in reg.sweep.spans:
                 reg_sweeps.append((reg, reg.sweep.steps[lname]))
 
@@ -433,7 +433,7 @@ class EndLoop(Macro):
             insts.append(IncReg(reg=f'r{reg.addr}', val=steps['step']))
 
         # increment and test the loop counter
-        lreg = prog.user_reg_dict[lname]
+        lreg = prog.reg_dict[lname]
         insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
@@ -760,19 +760,16 @@ class QickProgramV2(AbsQickProgram):
         # Most of the high-level information (macros, sweeps) is lost.
         self.dump_keys += ['waves', 'prog_list', 'labels']
 
-    def _init_prog(self):
-        super()._init_prog()
+    def _init_declarations(self):
+        # initialize the high-level objects that get filled in manually, or by a make_program()
+
+        super()._init_declarations()
 
         # high-level macros
         self.macro_list = []
 
-        # high-level program structure
-
-        self.user_reg_dict = {}  # look up dict for registers defined in each generator channel
-        self._user_regs = []  # addr of all user defined registers
-
-        self.loop_dict = {}
-        self.loop_stack = []
+        # generator managers handle a gen's envelopes and add_pulse logic
+        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
 
         # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
         self.waves = OrderedDict()
@@ -781,7 +778,17 @@ class QickProgramV2(AbsQickProgram):
         # pulses are software constructs, each is a set of 1 or more waveforms
         self.pulses = {}
 
-        self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
+    def _init_instructions(self):
+        # initialize the low-level objects that get filled by macro expansion
+
+        super()._init_instructions()
+
+        # high-level program structure
+
+        self.reg_dict = {}  # look up dict for registers defined
+
+        self.loop_dict = {}
+        self.loop_stack = []
 
         # low-level ASM management
 
@@ -816,6 +823,9 @@ class QickProgramV2(AbsQickProgram):
         return binprog
 
     def _make_asm(self):
+        # reset the low-level program objects
+        self._init_instructions()
+
         # we need the loop names and counts first, to convert sweeps to steps
         # allocate the loop register, set a name if not defined, add the loop to the program's loop dict
         for macro in self.macro_list:
@@ -829,7 +839,7 @@ class QickProgramV2(AbsQickProgram):
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
         # initialize sweep registers
-        for reg in self.user_reg_dict.values():
+        for reg in self.reg_dict.values():
             if reg.sweep is not None:
                 self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
         for i, macro in enumerate(self.macro_list):
@@ -860,7 +870,7 @@ class QickProgramV2(AbsQickProgram):
         lines.append("waveforms:")
         lines.extend(["\t%s: %s" % (k,v) for k,v in self.waves.items()])
         lines.append("registers:")
-        lines.extend(["\t%s: %s" % (k,v) for k,v in self.user_reg_dict.items()])
+        lines.extend(["\t%s: %s" % (k,v) for k,v in self.reg_dict.items()])
 
         lines.append("expanded ASM:")
         lines.extend(textwrap.indent(self.asm(), "\t").splitlines())
@@ -925,90 +935,93 @@ class QickProgramV2(AbsQickProgram):
         :param name: name of the new register. Optional.
         :return: QickRegister
         """
+        assigned_addrs = set([v.addr for v in self.reg_dict.values()])
         if addr is None:
             addr = 0
-            while addr in self._user_regs:
+            while addr in assigned_addrs:
                 addr += 1
             if addr >= self.soccfg['tprocs'][0]['dreg_qty']:
                 raise RuntimeError(f"data registers are full.")
         else:
             if addr < 0 or addr >= self.soccfg['tprocs'][0]['dreg_qty']:
                 raise ValueError(f"register address must be smaller than {self.soccfg['tprocs'][0]['dreg_qty']}")
-            if addr in self._user_regs:
+            if addr in assigned_addrs:
                 raise ValueError(f"register at address {addr} is already occupied.")
-        self._user_regs.append(addr)
 
         if name is None:
             name = f"reg_{addr}"
-        if name in self.user_reg_dict.keys():
+        if name in self.reg_dict.keys():
             raise NameError(f"register name '{name}' already exists")
 
         reg = QickRegister(addr=addr, name=name, sweep=sweep)
-        self.user_reg_dict[name] = reg
+        self.reg_dict[name] = reg
 
         return reg
     
     def get_reg(self, name, lazy_init=False):
         """Get a previously defined register object.
         """
-        if lazy_init and name not in self.user_reg_dict:
+        if lazy_init and name not in self.reg_dict:
             self.new_reg(name=name)
-        return self.user_reg_dict[name]
+        return self.reg_dict[name]
 
     # start of ASM code
+    def add_macro(self, macro):
+        self.macro_list.append(macro)
 
     def asm_inst(self, inst, addr_inc=1):
-        self.macro_list.append(AsmInst(inst=inst, addr_inc=addr_inc))
+        self.add_macro(AsmInst(inst=inst, addr_inc=addr_inc))
+
 
     # low-level macros
 
     def label(self, label):
         """apply the specified label to the next instruction
         """
-        self.macro_list.append(Label(label=label))
+        self.add_macro(Label(label=label))
 
     def end(self):
-        self.macro_list.append(End())
+        self.add_macro(End())
 
     def set_ext_counter(self, addr=1, val=0):
         # initialize the data counter to zero
         reg = {1:'s12', 2:'s13'}[addr]
-        self.macro_list.append(SetReg(reg=reg, val=val))
+        self.add_macro(SetReg(reg=reg, val=val))
 
     def inc_ext_counter(self, addr=1, val=1):
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
-        self.macro_list.append(IncReg(reg=reg, val=val))
+        self.add_macro(IncReg(reg=reg, val=val))
 
     # control statements
 
     def open_loop(self, n, name=None):
-        self.macro_list.append(StartLoop(n=n, name=name))
+        self.add_macro(StartLoop(n=n, name=name))
     
     def close_loop(self):
-        self.macro_list.append(EndLoop())
+        self.add_macro(EndLoop())
 
     # timeline management
 
     def wait(self, t):
-        self.macro_list.append(Wait(t=t, auto=False))
+        self.add_macro(Wait(t=t, auto=False))
 
     def delay(self, t):
-        self.macro_list.append(Delay(t=t, auto=False))
+        self.add_macro(Delay(t=t, auto=False))
 
     def delay_auto(self, t=0, gens=True, ros=True):
-        self.macro_list.append(Delay(t=t, auto=True, gens=gens, ros=ros))
+        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros))
 
     def wait_auto(self, t=0, gens=False, ros=True):
-        self.macro_list.append(Wait(t=t, auto=True, gens=gens, ros=ros))
+        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros))
 
     # pulses and triggers
 
     def pulse(self, ch, name, t=0):
-        self.macro_list.append(Pulse(ch=ch, name=name, t=t))
+        self.add_macro(Pulse(ch=ch, name=name, t=t))
 
     def trigger(self, ros=None, pins=None, t=0, width=None):
-        self.macro_list.append(Trigger(ros=ros, pins=pins, t=t, width=width))
+        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width))
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
@@ -1053,18 +1066,25 @@ class AveragerProgramV2(AcquireProgramV2):
 
     COUNTER_ADDR = 1
     def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, cfg=None):
-        super().__init__(soccfg)
         self.cfg = {} if cfg is None else cfg
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
         self.initial_delay = initial_delay
+        super().__init__(soccfg)
+
+    def _init_declarations(self):
+        super()._init_declarations()
+        self.loops = [("reps", self.reps)]
 
     def _make_asm(self):
-        self._init_prog()
-        self.loops = [("reps", self.reps)]
+        # wipe out macros
+        self._init_declarations()
+        # make_program() should add all the declarations and macros
         self.make_program()
+        # process macros, generate ASM and waveform list
         super()._make_asm()
+        # use the loop list to set up the data shape
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
 
     def add_loop(self, name, count):

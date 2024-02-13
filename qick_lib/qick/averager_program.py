@@ -33,7 +33,7 @@ class AveragerProgram(AcquireProgram):
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # this is a 1-D loop
-        loop_dims = [cfg['reps']]
+        loop_dims = [self.cfg['reps']]
         # average over the reps axis
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=loop_dims, avg_level=0)
 
@@ -184,7 +184,7 @@ class RAveragerProgram(AcquireProgram):
         if "rounds" in cfg:
             self.soft_avgs = cfg['rounds']
         # expts loop is the outer loop, reps loop is the inner loop
-        loop_dims = [cfg['expts'], cfg['reps']]
+        loop_dims = [self.cfg['expts'], self.cfg['reps']]
         # average over the reps axis
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=loop_dims, avg_level=1)
 

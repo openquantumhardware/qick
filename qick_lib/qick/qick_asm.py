@@ -583,17 +583,21 @@ class AbsQickProgram:
         """
         self.soccfg = soccfg
         self.tproccfg = self.soccfg['tprocs'][0]
-        self._init_prog()
+        self._init_declarations()
+        self._init_instructions()
 
         # Attributes to dump when saving the program to JSON.
         self.dump_keys = ['envelopes', 'ro_chs', 'gen_chs']
 
-    def _init_prog(self):
-        """Initialize data structures for keeping track of channels, envelopes, pulses, etc.
-        Concrete subclasses will extend this method to initialize the ASM list and any intermediate data structures.
+    def _init_declarations(self):
+        """Initialize data structures for keeping track of program declarations.
+        Structures that are filled directly by user code or a make_program() should be initialized here.
+        This will typically mean macros, channels and envelopes.
+        Concrete subclasses will extend this method to add more data structures.
         This should be called at class initialization.
         If a program is filled using a make_program() that is called during compilation, this should also be called before make_program().
         """
+        logger.debug("init_declarations")
         # Pulse envelopes.
         self.envelopes = [{} for ch in self.soccfg['gens']]
         # readout channels to configure before running the program
@@ -601,6 +605,14 @@ class AbsQickProgram:
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
 
+    def _init_instructions(self):
+        """Initialize data structures for keeping track of program instructions.
+        Structures that are filled automatically at compilation should be initialized here.
+        This will typically mean the ASM list.
+        Concrete subclasses will extend this method to add more data structures.
+        This should be called at class initialization and before compilation.
+        """
+        logger.debug("init_instructions")
         # Timestamps, for keeping track of pulse and readout end times.
         self._gen_ts = [0]*len(self.soccfg['gens'])
         self._ro_ts = [0]*len(self.soccfg['readouts'])
@@ -1010,8 +1022,8 @@ class AcquireMixin:
         # Attributes to dump when saving the program to JSON.
         self.dump_keys += ['counter_addr', 'reads_per_shot', 'loop_dims', 'avg_level']
 
-    def _init_prog(self):
-        super()._init_prog()
+    def _init_declarations(self):
+        super()._init_declarations()
 
         # tProc address of the rep counter, must be defined
         self.counter_addr = None
