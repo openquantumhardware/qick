@@ -666,6 +666,10 @@ class AxisAvgBuffer(SocIp):
         # Disable buffering.
         self.disable_buf()
 
+        if length >= self['buf_maxlen']:
+            raise RuntimeError("requested length=%d longer or equal to decimated buffer size=%d" %
+                               (length, self['buf_maxlen']))
+
         # Set registers.
         self.buf_addr_reg = address
         self.buf_len_reg = length
@@ -683,7 +687,7 @@ class AxisAvgBuffer(SocIp):
         """
 
         if length >= self['buf_maxlen']:
-            raise RuntimeError("length=%d longer or equal to %d" %
+            raise RuntimeError("requested length=%d longer or equal to decimated buffer size=%d" %
                                (length, self['buf_maxlen']))
 
         # pad the transfer size to an even number (odd lengths seem to break the DMA)
