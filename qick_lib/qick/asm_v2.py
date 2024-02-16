@@ -458,6 +458,28 @@ class IncReg(Macro):
     def expand(self, prog):
         return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + #%d'%(self.reg, self.val)}, addr_inc=1)]
 
+class Read(Macro):
+    # ro_ch
+    def expand(self, prog):
+        tproc_input = prog.soccfg['readouts'][self.ro_ch]['tproc_ch']
+        return [AsmInst(inst={'CMD':"DPORT_RD", 'DST':str(tproc_input)}, addr_inc=1)]
+
+class CondJump(Macro):
+    # reg1, val2, reg2, op, test, label
+    def expand(self, prog):
+        insts = []
+        op = {'+': '+',
+              '-': '-',
+              '>>': 'ASR',
+              '&': 'AND'}[self.op]
+        if sum([x is None for x in [self.val2, self.reg2]]) != 1:
+            raise RuntimeError("second operand must be reg or literal value, but you have provided val2=%s, reg2=%s"
+                               %(self.val2, self.reg2))
+        v2 = self.reg2 if self.val2 is None else '#%d'%(self.val2)
+        insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
+        return insts
+
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
@@ -980,6 +1002,9 @@ class QickProgramV2(AbsQickProgram):
         """
         self.add_macro(Label(label=label))
 
+    def nop(self):
+        self.asm_inst({'CMD': 'NOP'})
+
     def end(self):
         self.add_macro(End())
 
@@ -992,6 +1017,19 @@ class QickProgramV2(AbsQickProgram):
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
         self.add_macro(IncReg(reg=reg, val=val))
+
+    # feedback and branching
+    def read(self, ro_ch):
+        self.add_macro(Read(ro_ch=ro_ch))
+
+    def cond_jump(self, label, reg1, op, test, val2=None, reg2=None):
+        self.add_macro(CondJump(label=label, reg1=reg1, op=op, test=test, val2=val2, reg2=reg2))
+
+    def read_and_jump(self, ro_ch, component, threshold, test, label):
+        test = {'>=':'NS', '<':'S'}[test]
+        reg = {'I':'s8', 'Q':'s9'}[component]
+        self.read(ro_ch)
+        self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
 
     # control statements
 
