@@ -1042,7 +1042,22 @@ class AcquireMixin:
         # which loop level to average over (0 is outermost)
         self.avg_level = None
 
-    def setup_acquire(self, counter_addr, loop_dims, avg_level, reads_per_shot=None):
+    def setup_counter(self, counter_addr, loop_dims):
+        """Set the parameters needed to track the progress of the program.
+        This is a subset of setup_acquire(), appropriate for programs where you have no readouts.
+        You should use this if you're updating a tProc counter and want to use it to track program progress.
+
+        Parameters
+        ----------
+        counter_addr : int
+            The special tProc address holding the number of shots read out thus far.
+        loop_dims : list of int
+            List of loop dimensions, outermost loop first.
+        """
+        self.counter_addr = counter_addr
+        self.loop_dims = loop_dims
+
+    def setup_acquire(self, counter_addr, loop_dims, avg_level):
         """Set the parameters needed to define the data acquisition.
         Since the number of readouts per shot is set based on calls to trigger(), this should be called after the program has been fully defined.
 
@@ -1055,8 +1070,7 @@ class AcquireMixin:
         avg_level : int
             Which loop level to average over (0 is outermost).
         """
-        self.counter_addr = counter_addr
-        self.loop_dims = loop_dims
+        self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
@@ -1111,10 +1125,12 @@ class AcquireMixin:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         threshold : float or list of float
             The threshold(s) to apply to the I values after rotation.
+            Length-normalized units (same units as the output of acquire()).
             If scalar, the same threshold will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
         angle : float or list of float
             The angle to rotate the I/Q values by before applying the threshold.
+            Units of radians.
             If scalar, the same angle will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
         progress: bool
@@ -1175,14 +1191,15 @@ class AcquireMixin:
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
                 d_reps = self.d_buf
+                round_d = self._average_buf(d_reps, self.reads_per_shot)
             else:
                 d_reps = [np.zeros_like(d) for d in self.d_buf]
                 self.shots = self._apply_threshold(self.d_buf, threshold, angle)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
 
             # sum over rounds axis
-            round_d = self._average_buf(d_reps, self.reads_per_shot)
             if avg_d is None:
                 avg_d = round_d
             else:
@@ -1193,19 +1210,22 @@ class AcquireMixin:
 
         return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
 
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
+        :param length_norm: normalize by readout window length (disable for thresholded values)
         :return: averaged iq data after each round.
         """
         avg_d = []
         for i_ch, ro in enumerate(self.ro_chs.values()):
             # average over the avg_level
-            avg = d_reps[i_ch].sum(axis=self.avg_level) / (self.loop_dims[self.avg_level] * ro['length'])
+            avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
+            if length_norm:
+                avg /= ro['length']
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
@@ -1219,6 +1239,16 @@ class AcquireMixin:
         ----------
         d_buf : list of ndarray
             Raw IQ data
+        threshold : float or list of float
+            The threshold(s) to apply to the I values after rotation.
+            Length-normalized units (same units as the output of acquire()).
+            If scalar, the same threshold will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        angle : float or list of float
+            The angle to rotate the I/Q values by before applying the threshold.
+            Units of radians.
+            If scalar, the same angle will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
 
         Returns
         -------
@@ -1231,6 +1261,8 @@ class AcquireMixin:
             thresholds = [float(threshold)]*len(self.ro_chs)
         except TypeError:
             thresholds = threshold
+        # angle is 0 if not specified
+        if angle is None: angle = 0.0
         try:
             angles = [float(angle)]*len(self.ro_chs)
         except TypeError:
@@ -1286,8 +1318,17 @@ class AcquireMixin:
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
-        # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(rounds), disable=not progress):
+        # select which tqdm progress bar to show
+        hiderounds = True
+        hidereps = True
+        if progress:
+            if rounds>1:
+                hiderounds = False
+            else:
+                hidereps = False
+
+        # run each round
+        for ii in tqdm(range(rounds), disable=hiderounds):
             # make sure count variable is reset to 0
             soc.set_tproc_counter(addr=self.counter_addr, val=0)
 
@@ -1296,8 +1337,11 @@ class AcquireMixin:
             soc.start_tproc()
 
             count = 0
-            while count < total_count:
-                count = soc.get_tproc_counter(addr=self.counter_addr)
+            with tqdm(total=total_count, disable=hidereps) as pbar:
+                while count < total_count:
+                    newcount = soc.get_tproc_counter(addr=self.counter_addr)
+                    pbar.update(newcount-count)
+                    count = newcount
 
     def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
