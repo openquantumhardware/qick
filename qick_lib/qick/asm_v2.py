@@ -854,7 +854,7 @@ class QickProgramV2(AbsQickProgram):
         self.prog_list.append(inst)
 
     def _add_label(self, label):
-        self.labels[label] = '&%d' % (len(self.prog_list)+1)
+        self.labels[label] = '&%d' % (self.p_addr)
 
     def asm(self):
         self._make_asm()
@@ -1072,6 +1072,9 @@ class AveragerProgramV2(AcquireProgramV2):
         self.final_wait = final_wait
         self.initial_delay = initial_delay
         super().__init__(soccfg)
+
+        # fill the program
+        self._make_asm()
 
     def _init_declarations(self):
         super()._init_declarations()
