@@ -1291,6 +1291,40 @@ class AcquireMixin:
         ch, ro = list(self.ro_chs.items())[ro_index]
         return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
 
+    def get_time_axis_ddr4(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting DDR4 data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : ndarray
+            DDR4 data array, the returned array will have the same length.
+
+        Returns
+        -------
+        ndarray of float
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
+        """
+        return self.soccfg.cycles2us(ro_ch=ro_ch, cycles=np.arange(data.shape[0]))
+
+    def get_time_axis_mr(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting MR data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : ndarray
+            MR data array, the returned array will have the same length.
+
+        Returns
+        -------
+        ndarray of float
+            An array starting at 0 and spaced by the time (in us) per MR sample.
+        """
+        return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
+
     def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
         """Run the program and wait until it completes, once or multiple times.
         No data will be saved.
