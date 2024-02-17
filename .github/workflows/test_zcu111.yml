@@ -3,7 +3,8 @@ name: Test ZCU111
 
 on:
   workflow_dispatch:
-
+  pull_request:
+  
 permissions:
   contents: write
 
