@@ -1022,6 +1022,12 @@ class AcquireMixin:
         # Attributes to dump when saving the program to JSON.
         self.dump_keys += ['counter_addr', 'reads_per_shot', 'loop_dims', 'avg_level']
 
+        # measurements from the most recent acquisition
+        # raw I/Q data without normalizing to window length or averaging over reps
+        self.d_buf = None
+        # shot-by-shot threshold classification
+        self.shots = None
+
     def _init_declarations(self):
         super()._init_declarations()
 
@@ -1036,13 +1042,22 @@ class AcquireMixin:
         # which loop level to average over (0 is outermost)
         self.avg_level = None
 
-        # measurements from the most recent acquisition
-        # raw I/Q data without normalizing to window length or averaging over reps
-        self.d_buf = None
-        # shot-by-shot threshold classification
-        self.shots = None
+    def setup_counter(self, counter_addr, loop_dims):
+        """Set the parameters needed to track the progress of the program.
+        This is a subset of setup_acquire(), appropriate for programs where you have no readouts.
+        You should use this if you're updating a tProc counter and want to use it to track program progress.
 
-    def setup_acquire(self, counter_addr, loop_dims, avg_level, reads_per_shot=None):
+        Parameters
+        ----------
+        counter_addr : int
+            The special tProc address holding the number of shots read out thus far.
+        loop_dims : list of int
+            List of loop dimensions, outermost loop first.
+        """
+        self.counter_addr = counter_addr
+        self.loop_dims = loop_dims
+
+    def setup_acquire(self, counter_addr, loop_dims, avg_level):
         """Set the parameters needed to define the data acquisition.
         Since the number of readouts per shot is set based on calls to trigger(), this should be called after the program has been fully defined.
 
@@ -1055,8 +1070,7 @@ class AcquireMixin:
         avg_level : int
             Which loop level to average over (0 is outermost).
         """
-        self.counter_addr = counter_addr
-        self.loop_dims = loop_dims
+        self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
@@ -1111,10 +1125,12 @@ class AcquireMixin:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         threshold : float or list of float
             The threshold(s) to apply to the I values after rotation.
+            Length-normalized units (same units as the output of acquire()).
             If scalar, the same threshold will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
         angle : float or list of float
             The angle to rotate the I/Q values by before applying the threshold.
+            Units of radians.
             If scalar, the same angle will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
         progress: bool
@@ -1140,7 +1156,7 @@ class AcquireMixin:
         n_ro = len(self.ro_chs)
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        self.d_buf = [np.zeros((total_count*nreads, 2), dtype=np.int32) for nreads in self.reads_per_shot]
+        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int32) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -1166,7 +1182,8 @@ class AcquireMixin:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
                         for ii, nreads in enumerate(self.reads_per_shot):
-                            self.d_buf[ii][count*nreads:(count+new_points)*nreads] = d[ii]
+                            # use reshape to view the d_buf array in a shape that matches the raw data
+                            self.d_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
@@ -1174,14 +1191,15 @@ class AcquireMixin:
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
                 d_reps = self.d_buf
+                round_d = self._average_buf(d_reps, self.reads_per_shot)
             else:
                 d_reps = [np.zeros_like(d) for d in self.d_buf]
                 self.shots = self._apply_threshold(self.d_buf, threshold, angle)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
 
             # sum over rounds axis
-            round_d = self._average_buf(d_reps, self.reads_per_shot)
             if avg_d is None:
                 avg_d = round_d
             else:
@@ -1192,22 +1210,24 @@ class AcquireMixin:
 
         return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
 
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
+        :param length_norm: normalize by readout window length (disable for thresholded values)
         :return: averaged iq data after each round.
         """
-        averaged_dims = self.loop_dims.copy()
-        del averaged_dims[self.avg_level]
-        avg_d = [np.zeros((nreads, *averaged_dims, 2)) for nreads in reads_per_shot]
+        avg_d = []
         for i_ch, ro in enumerate(self.ro_chs.values()):
-            nreads = reads_per_shot[i_ch]
-            for ii in range(nreads):
-                avg_d[i_ch][ii] = d_reps[i_ch][ii::nreads, :].reshape((*self.loop_dims, 2)).sum(axis=self.avg_level) / (self.loop_dims[self.avg_level] * ro['length'])
+            # average over the avg_level
+            avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
+            if length_norm:
+                avg /= ro['length']
+            # the reads_per_shot axis should be the first one
+            avg_d.append(np.moveaxis(avg, -2, 0))
 
         return avg_d
 
@@ -1219,6 +1239,16 @@ class AcquireMixin:
         ----------
         d_buf : list of ndarray
             Raw IQ data
+        threshold : float or list of float
+            The threshold(s) to apply to the I values after rotation.
+            Length-normalized units (same units as the output of acquire()).
+            If scalar, the same threshold will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
+        angle : float or list of float
+            The angle to rotate the I/Q values by before applying the threshold.
+            Units of radians.
+            If scalar, the same angle will be applied to all readout channels.
+            A list must have length equal to the number of declared readout channels.
 
         Returns
         -------
@@ -1231,6 +1261,8 @@ class AcquireMixin:
             thresholds = [float(threshold)]*len(self.ro_chs)
         except TypeError:
             thresholds = threshold
+        # angle is 0 if not specified
+        if angle is None: angle = 0.0
         try:
             angles = [float(angle)]*len(self.ro_chs)
         except TypeError:
@@ -1259,6 +1291,40 @@ class AcquireMixin:
         ch, ro = list(self.ro_chs.items())[ro_index]
         return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
 
+    def get_time_axis_ddr4(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting DDR4 data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : ndarray
+            DDR4 data array, the returned array will have the same length.
+
+        Returns
+        -------
+        ndarray of float
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
+        """
+        return self.soccfg.cycles2us(ro_ch=ro_ch, cycles=np.arange(data.shape[0]))
+
+    def get_time_axis_mr(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting MR data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : ndarray
+            MR data array, the returned array will have the same length.
+
+        Returns
+        -------
+        ndarray of float
+            An array starting at 0 and spaced by the time (in us) per MR sample.
+        """
+        return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
+
     def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
         """Run the program and wait until it completes, once or multiple times.
         No data will be saved.
@@ -1286,8 +1352,17 @@ class AcquireMixin:
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
-        # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(rounds), disable=not progress):
+        # select which tqdm progress bar to show
+        hiderounds = True
+        hidereps = True
+        if progress:
+            if rounds>1:
+                hiderounds = False
+            else:
+                hidereps = False
+
+        # run each round
+        for ii in tqdm(range(rounds), disable=hiderounds):
             # make sure count variable is reset to 0
             soc.set_tproc_counter(addr=self.counter_addr, val=0)
 
@@ -1296,8 +1371,11 @@ class AcquireMixin:
             soc.start_tproc()
 
             count = 0
-            while count < total_count:
-                count = soc.get_tproc_counter(addr=self.counter_addr)
+            with tqdm(total=total_count, disable=hidereps) as pbar:
+                while count < total_count:
+                    newcount = soc.get_tproc_counter(addr=self.counter_addr)
+                    pbar.update(newcount-count)
+                    count = newcount
 
     def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
         """Acquire data using the decimating readout.
@@ -1334,15 +1412,19 @@ class AcquireMixin:
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # Initialize data buffers
-        d_buf = []
+        # buffer for decimated data
+        dec_buf = []
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
             if ro['length']*ro['trigs']*total_count > maxlen:
                 raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
-            d_buf.append(np.zeros((ro['length']*total_count*ro['trigs'], 2), dtype=float))
+            dec_buf.append(np.zeros((ro['length']*total_count*ro['trigs'], 2), dtype=float))
 
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
+            # buffer for accumulated data (for convenience/debug)
+            self.d_buf = []
+
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
 
@@ -1358,23 +1440,24 @@ class AcquireMixin:
                 count = soc.get_tproc_counter(addr=self.counter_addr)
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                d_buf[ii] += obtain(soc.get_decimated(ch=ch,
+                dec_buf[ii] += obtain(soc.get_decimated(ch=ch,
                                     address=0, length=ro['length']*ro['trigs']*total_count))
+                self.d_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
 
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
         # average the decimated data
         if total_count == 1 and onetrig:
             # simple case: data is 1D (one rep and one shot), just average over rounds
-            return [d/soft_avgs for d in d_buf]
+            return [d/soft_avgs for d in dec_buf]
         else:
             # split the data into the individual reps
             result = []
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 if onetrig or total_count==1:
-                    d_reshaped = d_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = dec_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/soft_avgs
                 else:
-                    d_reshaped = d_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = dec_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/soft_avgs
                 result.append(d_reshaped)
             return result
 

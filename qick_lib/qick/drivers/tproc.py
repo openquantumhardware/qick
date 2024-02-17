@@ -636,8 +636,8 @@ class Axis_QICK_Proc(SocIp):
         # End Operation
         self.tproc_cfg         &= ~63
 
-        # truncate and copy
-        return self.buff_rd[:length].copy()
+        # truncate, copy, convert PynqBuffer to ndarray
+        return np.array(self.buff_rd[:length], copy=True)
 
     def Load_PMEM(self, p_mem, check=True):
         length = len(p_mem)

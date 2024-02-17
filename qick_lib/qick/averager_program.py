@@ -107,8 +107,9 @@ class AveragerProgram(AcquireProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in self.get_raw()]
-        self.dq_buf = [d[:,1] for d in self.get_raw()]
+        raw = [d.reshape((-1,2)) for d in self.get_raw()]
+        self.di_buf = [d[:,0] for d in raw]
+        self.dq_buf = [d[:,1] for d in raw]
 
         n_ro = len(self.ro_chs)
         if save_experiments is None:
@@ -283,8 +284,9 @@ class RAveragerProgram(AcquireProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in self.get_raw()]
-        self.dq_buf = [d[:,1] for d in self.get_raw()]
+        raw = [d.reshape((-1,2)) for d in self.get_raw()]
+        self.di_buf = [d[:,0] for d in raw]
+        self.dq_buf = [d[:,1] for d in raw]
 
         expt_pts = self.get_expt_pts()
 
@@ -563,8 +565,9 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        self.di_buf = [d[:,0] for d in self.get_raw()]
-        self.dq_buf = [d[:,1] for d in self.get_raw()]
+        raw = [d.reshape((-1,2)) for d in self.get_raw()]
+        self.di_buf = [d[:,0] for d in raw]
+        self.dq_buf = [d[:,1] for d in raw]
 
         expt_pts = self.get_expt_pts()
 

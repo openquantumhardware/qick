@@ -340,8 +340,7 @@ class Pulse(Macro):
         return insts
 
 class Trigger(Macro):
-    # ros, pins, t, width
-    #TODO: add DDR4+MR buffers, ADC offset
+    # ros, pins, t, width, ddr4, mr
     def preprocess(self, prog):
         if self.width is None: self.width = prog.cycles2us(10)
         if self.ros is None: self.ros = []
@@ -352,6 +351,15 @@ class Trigger(Macro):
         #treg = self.us2cycles(t)
         self.convert_time(prog, self.t, "t_start")
         self.convert_time(prog, self.t+self.width, "t_end")
+
+        special_ros = []
+        if self.ddr4: special_ros.append(prog.soccfg['ddr4_buf'])
+        if self.mr: special_ros.append(prog.soccfg['mr_buf'])
+        for rocfg in special_ros:
+            if rocfg['trigger_type'] == 'dport':
+                self.outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
+            else:
+                self.trigset.add(rocfg['trigger_port'])
 
         for ro in self.ros:
             rocfg = prog.soccfg['readouts'][ro]
@@ -458,6 +466,33 @@ class IncReg(Macro):
     def expand(self, prog):
         return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + #%d'%(self.reg, self.val)}, addr_inc=1)]
 
+class Read(Macro):
+    # ro_ch
+    def expand(self, prog):
+        tproc_input = prog.soccfg['readouts'][self.ro_ch]['tproc_ch']
+        return [AsmInst(inst={'CMD':"DPORT_RD", 'DST':str(tproc_input)}, addr_inc=1)]
+
+class CondJump(Macro):
+    # reg1, val2, reg2, op, test, label
+    def expand(self, prog):
+        insts = []
+        nvals = sum([x is None for x in [self.val2, self.reg2]])
+        if nvals > 1:
+            raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
+                               %(self.val2, self.reg2))
+        elif nvals==1:
+            op = {'+': '+',
+                  '-': '-',
+                  '>>': 'ASR',
+                  '&': 'AND'}[self.op]
+            v2 = self.reg2 if self.val2 is None else '#%d'%(self.val2)
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+        else:
+            v2 = None
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
+        return insts
+
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
@@ -511,7 +546,7 @@ class AbsGenManager(AbsRegisterManager):
         super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
         self.samps_per_clk = self.gencfg['samps_per_clk']
 
-        # dictionary of defined pulse envelopes
+        # dictionary of defined envelopes
         self.envelopes = prog.envelopes[gen_ch]
         # type and max absolute value for envelopes
         self.env_dtype = np.int16
@@ -538,29 +573,27 @@ class AbsGenManager(AbsRegisterManager):
             raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
     def add_envelope(self, name, idata, qdata):
-        """Add a waveform to the list of envelope waveforms available for this channel.
+        """Add an envelope to the list of envelopes available for this channel.
         The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
-
         Parameters
         ----------
         name : str
-            Name for this waveform
+            Name for this envelope
         idata : array
-            I values for this waveform
+            I values for this envelope
         qdata : array
-            Q values for this waveform
-
+            Q values for this envelope
         """
         length = [len(d) for d in [idata, qdata] if d is not None]
         if len(length)==0:
             raise RuntimeError("Error: no data argument was supplied")
         # if both arrays were defined, they must be the same length
         if len(length)>1 and length[0]!=length[1]:
-            raise RuntimeError("Error: I and Q pulse lengths must be equal")
+            raise RuntimeError("Error: I and Q envelope lengths must be equal")
         length = length[0]
 
         if (length % self.samps_per_clk) != 0:
-            raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(self.samps_per_clk))
+            raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(self.samps_per_clk))
         data = np.zeros((length, 2), dtype=self.env_dtype)
 
         for i, d in enumerate([idata, qdata]):
@@ -595,15 +628,15 @@ class AbsGenManager(AbsRegisterManager):
         Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
 
         stdysel : str
-        Selects what value is output continuously by the signal generator after the generation of a pulse.
+        Selects what value is output continuously by the signal generator after the generation of a waveform.
         The default is "zero".
+
+        * If "last", it is the last calculated sample of the waveform.
+
+        * If "zero", it is a zero value.
 
         phrst : int
         If 1, it resets the phase coherent accumulator. The default is 0.
-
-        * If "last", it is the last calculated sample of the pulse.
-
-        * If "zero", it is a zero value.
 
         Returns
         -------
@@ -633,10 +666,10 @@ class FullSpeedGenManager(AbsGenManager):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
         if isinstance(lenreg, QickSweepRaw):
             if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
-                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         else:
             if lenreg >= 2**16 or lenreg < 3:
-                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the waveform" % (lenreg))
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         wavereg = Waveform(freqreg, phasereg, env, gainreg, lenreg, confreg)
         return wavereg
 
@@ -652,10 +685,10 @@ class FullSpeedGenManager(AbsGenManager):
 
         * flat_top: A flattop pulse with arbitrary ramps.
           The waveform is played in three segments: ramp up, flat, and ramp down.
-          To use these pulses one should use add_pulse to add the ramp waveform which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
+          To use these pulses one should use add_pulse to add the ramp envelope which should go from 0 to maxamp and back down to zero with the up and down having the same length, the first half will be used as the ramp up and the second half will be used as the ramp down.
 
-          If the waveform is not of even length, the middle sample will be skipped.
-          It's recommended to use an even-length waveform with flat_top.
+          If the envelope is not of even length, the middle sample will be skipped.
+          It's recommended to use an even-length envelope with flat_top.
 
           There is no outsel setting for flat_top; the ramps always use "product" and the flat segment always uses "dds".
           There is no mode setting; it is always "oneshot".
@@ -854,9 +887,16 @@ class QickProgramV2(AbsQickProgram):
         self.prog_list.append(inst)
 
     def _add_label(self, label):
-        self.labels[label] = '&%d' % (len(self.prog_list)+1)
+        self.labels[label] = '&%d' % (self.p_addr)
 
     def asm(self):
+        """Convert the program instructions to printable ASM.
+
+        Returns
+        -------
+        str
+            text ASM
+        """
         self._make_asm()
         asm = Assembler.list2asm(self.prog_list, self.labels)
         return asm
@@ -886,15 +926,15 @@ class QickProgramV2(AbsQickProgram):
     # natural-units wrappers for methods of AbsQickProgram
 
     def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
-        """Adds a Gaussian pulse to the waveform library.
-        The pulse will peak at length/2.
+        """Adds a Gaussian envelope to the envelope library.
+        The Gaussian will peak at length/2.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
+            Name of the envelope
         sigma : float
             Standard deviation of the Gaussian (in units of us)
         length : float
@@ -923,12 +963,45 @@ class QickProgramV2(AbsQickProgram):
         self.wave2idx[name] = len(self.waves)-1
 
     def add_pulse(self, ch, name, **kwargs):
+        """Add a pulse to the program's pulse library.
+        See the relevant generator manager for the list of supported pulse styles and parameters.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            name of the pulse
+        style : str
+            Pulse style ("const", "arb", "flat_top")
+        freq : int
+            Frequency (MHz)
+        phase : int
+            Phase (degrees)
+        gain : int
+            Gain (-1.0 to 1.0, relative to the max amplitude for this generator and pulse style)
+        phrst : int
+            If 1, it resets the phase coherent accumulator
+        stdysel : str
+            Selects what value is output continuously by the signal generator after the generation of a pulse. If "last", it is the last calculated sample of the pulse. If "zero", it is a zero value.
+        mode : str
+            Selects whether the output is "oneshot" or "periodic"
+        outsel : str
+            Selects the output source. The output is complex. Tables define envelopes for I and Q. If "product", the output is the product of table and DDS. If "dds", the output is the DDS only. If "input", the output is from the table for the real part, and zeros for the imaginary part. If "zero", the output is always zero.
+        length : float
+            The duration (us) of the flat portion of the pulse, used for "const" and "flat_top" styles
+        envelope : str
+            Name of the envelope waveform loaded with add_envelope(), used for "arb" and "flat_top" styles
+        mask : list of int
+            for a muxed signal generator, the list of tones to enable for this pulse
+        """
         self._gen_mgrs[ch].add_pulse(name, kwargs)
 
     # register management
 
     def new_reg(self, addr: int = None, name: str = None, sweep: QickSweepRaw = None):
-        """ Declare a new data register.
+        """Declare a new data register.
+        For internal use; not recommended for user code at this time.
 
         :param addr: address of the new register. If None, the function will automatically try to find the next
             available address.
@@ -960,6 +1033,7 @@ class QickProgramV2(AbsQickProgram):
     
     def get_reg(self, name, lazy_init=False):
         """Get a previously defined register object.
+        For internal use; not recommended for user code at this time.
         """
         if lazy_init and name not in self.reg_dict:
             self.new_reg(name=name)
@@ -967,65 +1041,256 @@ class QickProgramV2(AbsQickProgram):
 
     # start of ASM code
     def add_macro(self, macro):
+        """Add a macro to the program's macro list.
+
+        Parameters
+        ----------
+        macro : Macro
+            macro to be added
+        """
         self.macro_list.append(macro)
 
     def asm_inst(self, inst, addr_inc=1):
+        """Add a macro-wrapped ASM instruction to the program's macro list.
+        If you are mixing ASM and macros (you probably are), this is what you want to use.
+
+        Parameters
+        ----------
+        inst : dict
+            ASM instruction in dictionary format
+        addr_inc : int
+            number of machine-code words this instruction will occupy. Only used for WAIT.
+        """
         self.add_macro(AsmInst(inst=inst, addr_inc=addr_inc))
 
 
     # low-level macros
 
     def label(self, label):
-        """apply the specified label to the next instruction
+        """Apply the specified label to the next instruction.
+        If the next instruction is a macro that expands to multiple ASM instructions, the label goes on the first ASM instruction.
+        That's what you want.
+
+        Parameters
+        ----------
+        label : str
+            label to be applied
         """
         self.add_macro(Label(label=label))
 
+    def nop(self):
+        """Do a NOP instruction.
+        This is a no-op - it doesn't do anything except waste a tProcessor cycle.
+        """
+        self.asm_inst({'CMD': 'NOP'})
+
     def end(self):
+        """Do an END instruction, which will end execution.
+        This is implemented as an infinite loop (the v2 doesn't really have an "end" state).
+        """
         self.add_macro(End())
 
     def set_ext_counter(self, addr=1, val=0):
-        # initialize the data counter to zero
+        """Set one of the externally readable registers.
+        This is usually used to initialize the shot counter.
+
+        Parameters
+        ----------
+        addr : int
+            register number, 1 or 2
+        val : int
+            value to write (signed 32-bit)
+        """
+        # initialize the data counter
         reg = {1:'s12', 2:'s13'}[addr]
         self.add_macro(SetReg(reg=reg, val=val))
 
     def inc_ext_counter(self, addr=1, val=1):
+        """Increment one of the externally readable registers.
+        This is usually used to increment the shot counter.
+
+        Parameters
+        ----------
+        addr : int
+            register number, 1 or 2
+        val : int
+            value to add (signed 32-bit)
+        """
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
         self.add_macro(IncReg(reg=reg, val=val))
 
-    # control statements
+    # feedback and branching
+    def read(self, ro_ch):
+        """Read an accumulated I/Q value from one of the tProc inputs.
+        The readout must have already pushed the value into the input, otherwise you will get a stale value.
+        The value you read gets stored in two special registers (s8/s9, aka port_l/port_h or I/Q) until you are ready to use it.
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        """
+        self.add_macro(Read(ro_ch=ro_ch))
 
+    def cond_jump(self, label, reg1, test, op=None, val2=None, reg2=None):
+        """Do a conditional jump (do a test, then jump if the test passes).
+        A test is done by executing an operation on two operands and testing the resulting value.
+        If val2 and reg2 are both None, the test will just use reg1, no operation.
+        
+        Parameters
+        ----------
+        label : str
+            the label to jump to
+        reg1 : str
+            the name of the register for operand 1
+        test: str
+            the name of the test: 1/0 (always/never), Z/NZ (==0/!=0), S/NS (<0/>=0), F/NF (external flag)
+        op : str
+            the name of the operation: +, -, AND (bitwise AND, &), or ASR (shift-right, >>)
+        val2 : int
+            24-bit signed value for operand 2
+        reg2 : int
+            the name of the register for operand 2
+        """
+        self.add_macro(CondJump(label=label, reg1=reg1, op=op, test=test, val2=val2, reg2=reg2))
+
+    def read_and_jump(self, ro_ch, component, threshold, test, label):
+        """Read an input I/Q value and jump based on a threshold.
+        This just combines read() and cond_jump().
+        As noted in read(), you must be sure your readout has already completed.
+        
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        component : str
+            I or Q
+        threshold : int
+            24-bit signed value
+        test: str
+            ">=" or "<"
+        label : str
+            the label to jump to
+        """
+        test = {'>=':'NS', '<':'S'}[test]
+        reg = {'I':'s8', 'Q':'s9'}[component]
+        self.read(ro_ch)
+        self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
+
+    # control statements
     def open_loop(self, n, name=None):
+        """Start a loop.
+        This will use a register.
+        If you're using AveragerProgramV2, you should use add_loop() instead.
+
+        Parameters
+        ----------
+        n : int
+            number of iterations
+        name : str
+            number of iterations
+        """
         self.add_macro(StartLoop(n=n, name=name))
     
     def close_loop(self):
+        """End whatever loop you're in.
+        This will increment whatever sweeps are tied to this loop.
+        """
         self.add_macro(EndLoop())
 
     # timeline management
 
     def wait(self, t):
+        """Pause tProc execution until the time reaches the specified value, relative to the reference time.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        """
         self.add_macro(Wait(t=t, auto=False))
 
     def delay(self, t):
+        """Increment the reference time.
+        This will have the effect of delaying all timed instructions executed after this one.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        """
         self.add_macro(Delay(t=t, auto=False))
 
     def delay_auto(self, t=0, gens=True, ros=True):
+        """Set the reference time to the end of the last pulse/readout, plus the specified value.
+        You can select whether this accounts for pulses, readout windows, or both.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        gens : bool
+            check the ends of generator pulses
+        ros : bool
+            check the ends of readout windows
+        """
         self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros))
 
     def wait_auto(self, t=0, gens=False, ros=True):
+        """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
+        You can select whether this accounts for pulses, readout windows, or both.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        gens : bool
+            check the ends of generator pulses
+        ros : bool
+            check the ends of readout windows
+        """
         self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros))
 
     # pulses and triggers
 
     def pulse(self, ch, name, t=0):
+        """Play a pulse.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            pulse name (as used in add_pulse())
+        t : float or "auto"
+            time (us), or the end of the last pulse on this generator
+        """
         self.add_macro(Pulse(ch=ch, name=name, t=t))
 
-    def trigger(self, ros=None, pins=None, t=0, width=None):
-        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width))
+    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
+        """Pulse readout triggers and output pins.
+
+        Parameters
+        ----------
+        ros : list of int
+            readout channels to trigger (index in 'readouts' list)
+        pins : list of int
+            output pins to trigger (index in output pins list in QickCOnfig printout)
+        t : float
+            time (us)
+        width : float
+            pulse width (us), default of 10 cycles of the tProc timing clock
+        ddr4 : bool
+            trigger the DDR4 buffer
+        mr : bool
+            trigger the MR buffer
+        """
+        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr))
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
     You will need to define the acquisition structure with setup_acquire().
+    If you just want shot counting and run_rounds(), you can use setup_counter().
     """
     pass
 
@@ -1072,6 +1337,9 @@ class AveragerProgramV2(AcquireProgramV2):
         self.final_wait = final_wait
         self.initial_delay = initial_delay
         super().__init__(soccfg)
+
+        # fill the program
+        self._make_asm()
 
     def _init_declarations(self):
         super()._init_declarations()
