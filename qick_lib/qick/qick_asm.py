@@ -1072,6 +1072,7 @@ class AcquireMixin:
         """
         self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
+        # TODO: this doesn't work unless trigger macros have been processed
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
     def set_reads_per_shot(self, reads_per_shot):

@@ -17,3 +17,4 @@ QICK software library
    qick.parser
    qick.streamer
    qick.rfboard
+   qick.asm_v2
