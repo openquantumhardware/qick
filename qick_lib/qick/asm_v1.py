@@ -1166,9 +1166,11 @@ class QickProgram(AbsQickProgram):
 
                 # keeps a record of the last set registers and the default registers
                 last_set_regs_ = ch_mgr.last_set_regs
-                defaults_regs_ = ch_mgr.defaults
+                defaults_ = ch_mgr.defaults
+                default_regs_ = ch_mgr.default_regs
                 # temporarily ignore the default registers
                 ch_mgr.defaults = {}
+                ch_mgr.default_regs = set()
                 # set registers for phase reset
                 ch_mgr.set_registers(phrst_params)
 
@@ -1183,7 +1185,8 @@ class QickProgram(AbsQickProgram):
                     self.set(tproc_ch, rp, *regs, r_t, f" {ch_type} ch{ch} phase reset @t = ${r_t}")
 
                 # set the default and last set registers back
-                ch_mgr.set_defaults(defaults_regs_)
+                ch_mgr.set_defaults(defaults_)
+                ch_mgr.default_regs = default_regs_
                 ch_mgr.set_registers(last_set_regs_)
 
         self.sync_all(3)
