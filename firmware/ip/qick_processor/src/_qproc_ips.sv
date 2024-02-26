@@ -625,3 +625,77 @@ always_ff @(posedge clk_i, negedge rst_ni)
 assign lfsr_dt_o = reg_lfsr ;
 
 endmodule
+
+// EN SYNC
+///////////////////////////////////////////////////////////////////////////////
+/*
+sync_ab_en sync_pulse_inst (
+   .clk_a_i    (  ) ,
+   .rst_a_ni   (  ) ,
+   .clk_b_i    (  ) ,
+   .rst_b_ni   (  ) ,
+   .a_en_o     (  ) ,
+   .b_en_o     (  ) );
+  */ 
+module sync_ab_en (
+   input  wire    clk_a_i    ,
+   input  wire    rst_a_ni   ,
+   input  wire    clk_b_i    ,
+   input  wire    rst_b_ni   ,
+   output wire    a_en_o     ,
+   output wire    b_en_o     
+);
+/// REQ Time from C to T
+///////////////////////////////////////////////////////////////////////////////
+reg a_pulse_req;
+always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
+   if ( !rst_a_ni  ) begin
+      a_pulse_req   <= 1'b0;
+   end else
+      if      (  a_pulse_ack ) a_pulse_req <= 1'b0; 
+      else if ( !a_pulse_ack ) a_pulse_req <= 1'b1; 
+end
+
+/// Generate B PULSE
+///////////////////////////////////////////////////////////////////////////////
+(* ASYNC_REG = "TRUE" *) reg pulse_req_cdc, b_pulse_req ;
+reg pulse_b_req_r;
+always_ff @(posedge clk_b_i)
+   if(!rst_b_ni) begin
+      pulse_req_cdc  <= 0;
+      b_pulse_req    <= 0;
+   end else begin 
+      pulse_req_cdc  <= a_pulse_req;
+      b_pulse_req    <= pulse_req_cdc;
+      pulse_b_req_r  <= b_pulse_req;
+   end
+
+assign pulse_b = b_pulse_req ^ pulse_b_req_r;
+
+/// ACK
+///////////////////////////////////////////////////////////////////////////////
+reg b_pulse_ack;
+always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
+   if ( !rst_a_ni  ) begin
+      b_pulse_ack   <= 1'b0;
+   end else
+      if      (  b_pulse_req ) b_pulse_ack <= 1'b1; 
+      else if ( !b_pulse_req ) b_pulse_ack <= 1'b0; 
+end
+
+(* ASYNC_REG = "TRUE" *) reg pulse_ack_cdc, a_pulse_ack ;
+always_ff @(posedge clk_a_i)
+   if(!rst_a_ni) begin
+      pulse_ack_cdc  <= 0;
+      a_pulse_ack    <= 0;
+   end else begin 
+      pulse_ack_cdc  <= b_pulse_ack;
+      a_pulse_ack    <= pulse_ack_cdc;
+   end
+
+assign pulse_a = a_pulse_req ~^ a_pulse_ack ;
+
+assign a_en_o  = pulse_a;
+assign b_en_o  = pulse_b;
+
+endmodule

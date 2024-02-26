@@ -65,6 +65,15 @@ proc validate_PARAM_VALUE.ARITH { PARAM_VALUE.ARITH } {
 	return true
 }
 
+proc update_PARAM_VALUE.CALL_DEPTH { PARAM_VALUE.CALL_DEPTH } {
+	# Procedure called to update CALL_DEPTH when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.CALL_DEPTH { PARAM_VALUE.CALL_DEPTH } {
+	# Procedure called to validate CALL_DEPTH
+	return true
+}
+
 proc update_PARAM_VALUE.CUSTOM_PERIPH { PARAM_VALUE.CUSTOM_PERIPH } {
 	# Procedure called to update CUSTOM_PERIPH when any of the dependent parameters in the arguments change
 }
@@ -349,5 +358,10 @@ proc update_MODELPARAM_VALUE.EXT_FLAG { MODELPARAM_VALUE.EXT_FLAG PARAM_VALUE.EX
 proc update_MODELPARAM_VALUE.QCOM { MODELPARAM_VALUE.QCOM PARAM_VALUE.QCOM } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.QCOM}] ${MODELPARAM_VALUE.QCOM}
+}
+
+proc update_MODELPARAM_VALUE.CALL_DEPTH { MODELPARAM_VALUE.CALL_DEPTH PARAM_VALUE.CALL_DEPTH } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.CALL_DEPTH}] ${MODELPARAM_VALUE.CALL_DEPTH}
 }
 

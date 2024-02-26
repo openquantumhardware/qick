@@ -19,14 +19,14 @@ import axi_mst_0_pkg::*;
 
 
 //`define T_TCLK         1.953125  // Half Clock Period for Simulation
-`define T_TCLK         1.162574  // Half Clock Period for Simulation
-`define T_CCLK         1.66 // Half Clock Period for Simulation
-`define T_SCLK         3  // Half Clock Period for Simulation
+`define T_TCLK         1.302  // Half Clock Period for Simulation
+`define T_CCLK         2.5 // Half Clock Period for Simulation
+`define T_SCLK         5  // Half Clock Period for Simulation
 
 
 `define DUAL_CORE        0
 `define IO_CTRL          0
-`define DEBUG            0
+`define DEBUG            3
 `define TNET             0
 `define QCOM             0
 `define CUSTOM_PERIPH    1
@@ -39,7 +39,7 @@ import axi_mst_0_pkg::*;
 `define DMEM_AW          4 
 `define WMEM_AW          4 
 `define REG_AW           4 
-`define IN_PORT_QTY      1
+`define IN_PORT_QTY      2
 `define OUT_TRIG_QTY     4
 `define OUT_DPORT_QTY    2
 `define OUT_DPORT_DW     10
@@ -88,21 +88,18 @@ wire                   s_axi_rready     ;
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
-reg   t_clk, s_ps_dma_aclk, rst_ni;
-wire   c_clk ;
+reg   c_clk, t_clk, s_ps_dma_aclk, rst_ni;
 
 initial begin
   t_clk = 1'b0;
   forever # (`T_TCLK) t_clk = ~t_clk;
 end
 
-/*
 initial begin
   c_clk = 1'b0;
   forever # (`T_CCLK) c_clk = ~c_clk;
 end
-*/
-assign c_clk = t_clk;
+
 initial begin
   s_ps_dma_aclk = 1'b0;
   #0.5
@@ -110,6 +107,9 @@ initial begin
 end
 
   assign s_ps_dma_aresetn  = rst_ni;
+
+
+
 
 
 reg [255:0] max_value ;
@@ -122,7 +122,7 @@ reg [255 :0]       s_dma_axis_tdata_i   ;
 reg                s_dma_axis_tlast_i   ;
 reg                s_dma_axis_tvalid_i  ;
 reg                m_dma_axis_tready_i  ;
-wire [63 :0]        port_0_dt_i          ;
+wire [63 :0]       port_0_dt_i          ;
 reg [63 :0]        port_1_dt_i          ;
 reg                s_axi_aclk           ;
 reg                s_axi_aresetn        ;
@@ -425,9 +425,9 @@ axis_qick_processor # (
    .port_3_dt_o          ( port_3_dt_o         ) );
 
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
-assign   port_0_dt_i     = port_0_dt_o;
-assign   port_0_vld      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
-assign   qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
+assign port_0_dt_i     = port_1_dt_o;
+assign port_0_vld      = port_0_dt_o[0];
+assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
 assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -469,8 +469,10 @@ initial begin
    //AXIS_QPROC.QPROC.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    
    
-   $readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    
   	// Create agents.
 	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_axis_qick_processor.axi_mst_0_i.inst.IF);
@@ -513,7 +515,7 @@ initial begin
 
    //TEST_AXI ();
    //TEST_SINGLE_READ_AXI();
-   //TEST_DMA_AXI ();
+   // TEST_DMA_AXI ();
    //TEST_SINGLE_READ_AXI();
 
    // WRITE_AXI( REG_TPROC_CFG , 512); //DISABLE NET CTRL NOTHING HAPPENS
@@ -761,6 +763,7 @@ task TEST_DMA_AXI (); begin
    axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
    @ (posedge s_ps_dma_aclk); #0.1;
    
+   /*
    //WAVE MEMORY WRITE
    /////////////////////////////////////////////
    // DATA LEN
@@ -781,7 +784,7 @@ task TEST_DMA_AXI (); begin
    data_wr = 32'b00000000_0000000_00000000_00000000;
    axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
    @ (posedge s_ps_dma_aclk); #0.1;
-
+   */
 
    //WAVE MEMORY READ
    /////////////////////////////////////////////
@@ -944,6 +947,8 @@ task TEST_AXI (); begin
 
 end
 endtask
+
+   
 
 endmodule
 

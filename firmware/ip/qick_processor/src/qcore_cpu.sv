@@ -449,6 +449,7 @@ qcore_ctrl_hazard ctrl_hzrd (
    // FLAG 
    .id_flag_used     ( id_flag_used        ) , // SELECCIONAR CORRECTAMENTE WR/MEM_WR and JUMPD
    .flag_we          ( rd_ctrl.flag_we | x1_ctrl.flag_we       ) ,
+   .qp_we            ( rd_ctrl.usr_ctrl[8] | x1_ctrl.usr_ctrl[8] | x1_ctrl.usr_ctrl[8]   ) ,
    // PC JUMP 
    .id_jmp_i         ( id_jmp_reg_used       ) ,
    // ALU (00) Data in each Pipeline Stage

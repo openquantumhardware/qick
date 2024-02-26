@@ -9,36 +9,37 @@ module qproc_dispatcher # (
    parameter OUT_DPORT_DW   =  4 ,
    parameter OUT_WPORT_QTY  =  1 
 )(
-   input wire              c_clk_i         ,
-   input wire              c_rst_ni        ,
-   input wire              t_clk_i         ,
-   input wire              t_rst_ni        ,
+   input  wire          c_clk_i        ,
+   input  wire          c_rst_ni       ,
+   input  wire          t_clk_i        ,
+   input  wire          t_rst_ni       ,
 //Port
-   input wire             core_en      ,
-   input wire             core_rst      ,
-   input wire             time_en      ,
-   input wire             time_rst      ,
-   input wire    [47:0]   c_time_ref_dt      ,
-   input wire [47:0]    time_abs_r , // Absolute Time Counter Value "out_abs_time"
-   input wire             port_we      ,
-   input PORT_DT          out_port_data       ,
-   output wire             all_fifo_full      ,
-   output wire             some_fifo_full      ,
-
-   // TRIGGERS 
-   output  wire            port_trig_o  [OUT_TRIG_QTY] ,
+   input  wire          core_en        ,
+   input  wire          core_rst       ,
+   input  wire          time_en        ,
+   input  wire          time_rst       ,
+   input  wire  [47:0]  c_time_ref_dt  ,
+   input  wire  [47:0]  time_abs_i     ,
+   input  wire          port_we        ,
+   input  PORT_DT       out_port_data  ,
+   output wire          all_fifo_full  ,
+   output wire          some_fifo_full ,
+// TRIGGERS 
+   output wire          port_trig_o  [OUT_TRIG_QTY] ,
 // DATA OUTPUT INTERFACE
-   output  wire                    port_tvalid_o[OUT_DPORT_QTY] ,
-   output  wire [OUT_DPORT_DW-1:0] port_tdata_o [OUT_DPORT_QTY] ,
+   output wire                    port_tvalid_o[OUT_DPORT_QTY] ,
+   output wire [OUT_DPORT_DW-1:0] port_tdata_o [OUT_DPORT_QTY] ,
 // WAVE OUTPUT INTERFACE
-   output  wire [167:0]    m_axis_tdata  [OUT_WPORT_QTY] ,
-   output  wire            m_axis_tvalid [OUT_WPORT_QTY] ,
-   input   wire            m_axis_tready [OUT_WPORT_QTY] , 
-   output wire [31:0] debug_fifo , 
-   output wire [31:0] debug_port 
+   output wire [167:0]   m_axis_tdata  [OUT_WPORT_QTY] ,
+   output wire           m_axis_tvalid [OUT_WPORT_QTY] ,
+   input  wire           m_axis_tready [OUT_WPORT_QTY] , 
+   output wire [31:0]    fifo_dt_do    , 
+   output wire [31:0]    axi_fifo_do   , 
+   output wire [15:0]    c_fifo_do     , 
+   output wire [15:0]    t_fifo_do 
 );
 
-   
+
 // FIFOS & DISPATCHER
  
 // .p_type > Select between WAVE or DATA (TRIG is DATA with high address)
@@ -51,7 +52,7 @@ reg  [167:0]               c_fifo_data_in_r ; // DATA from the CORE > To the FIF
 
 wire [47:0]                t_fifo_wave_time  [OUT_WPORT_QTY-1:0]; // TIME from the FIFO > To the Comparator
 wire [167:0]               t_fifo_wave_dt    [OUT_WPORT_QTY-1:0]; // DATA from the FIFO > TO the WPORT
-wire [47:0]                W_RESULT          [OUT_WPORT_QTY-1:0]; // Comparison between t_fifo_wave_time and time_abs_r
+wire [47:0]                W_RESULT          [OUT_WPORT_QTY-1:0]; // Comparison between t_fifo_wave_time and time_abs_i
 reg  [OUT_WPORT_QTY-1:0]   wave_t_gr;                             // Sign bit of W_RESULT
 reg  [OUT_WPORT_QTY-1:0]   c_fifo_wave_push, c_fifo_wave_push_r, c_fifo_wave_push_s; 
 reg  [OUT_WPORT_QTY-1:0]   wave_pop, wave_pop_prev;
@@ -59,7 +60,7 @@ reg  [OUT_WPORT_QTY-1:0]   wave_pop_r, wave_pop_r2, wave_pop_r3, wave_pop_r4;
 
 wire [47:0]                t_fifo_data_time  [OUT_DPORT_QTY-1:0]; // TIME from the FIFO > To the Comparator
 wire [OUT_DPORT_DW-1 :0]   t_fifo_data_dt    [OUT_DPORT_QTY-1:0]; // DATA from the FIFO > TO the DPORT
-wire [47:0]                D_RESULT          [OUT_DPORT_QTY-1:0]; // Comparison between t_fifo_data_time and time_abs_r
+wire [47:0]                D_RESULT          [OUT_DPORT_QTY-1:0]; // Comparison between t_fifo_data_time and time_abs_i
 reg  [OUT_DPORT_QTY-1:0]   data_t_gr;                             // Sign bit of D_RESULT
 reg  [OUT_DPORT_QTY-1:0]   c_fifo_data_push, c_fifo_data_push_r, c_fifo_data_push_s ; 
 reg                        data_pop[OUT_DPORT_QTY], data_pop_prev[OUT_DPORT_QTY];
@@ -67,7 +68,7 @@ reg                        data_pop_r[OUT_DPORT_QTY], data_pop_r2[OUT_DPORT_QTY]
 
 wire [47:0]                t_fifo_trig_time  [OUT_TRIG_QTY]; // TIME from the FIFO > To the Comparator
 wire                       t_fifo_trig_dt    [OUT_TRIG_QTY]; // DATA from the FIFO > TO the WPORT
-wire [47:0]                T_RESULT          [OUT_TRIG_QTY]; // Comparison between t_fifo_trig_time and time_abs_r
+wire [47:0]                T_RESULT          [OUT_TRIG_QTY]; // Comparison between t_fifo_trig_time and time_abs_i
 reg  [OUT_TRIG_QTY-1:0]    trig_t_gr; // Sign bit of T_RESULT
 reg  [OUT_TRIG_QTY-1:0]    c_fifo_trig_push, c_fifo_trig_push_r, c_fifo_trig_push_s ; 
 reg                        trig_pop[OUT_TRIG_QTY], trig_pop_prev[OUT_TRIG_QTY];
@@ -219,7 +220,7 @@ generate
          ) ADDSUB_MACRO_inst (
             .CARRYOUT   (                             ), // 1-bit carry-out output signal
             .RESULT     ( T_RESULT[ind_tfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_r[47:0]            ), // Input A bus, width defined by WIDTH parameter
+            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
             .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
             .A          ( t_fifo_trig_time[ind_tfifo] ), // Input B bus, width defined by WIDTH parameter
             .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
@@ -272,7 +273,7 @@ generate
          ) ADDSUB_MACRO_inst (
             .CARRYOUT   (                             ), // 1-bit carry-out output signal
             .RESULT     ( W_RESULT[ind_wfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_r[47:0]            ), // Input A bus, width defined by WIDTH parameter
+            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
             .A          ( t_fifo_wave_time[ind_wfifo] ), // Input B bus, width defined by WIDTH parameter
             .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
             .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
@@ -324,7 +325,7 @@ generate
          ) ADDSUB_MACRO_inst (
             .CARRYOUT   (                             ), // 1-bit carry-out output signal
             .RESULT     ( D_RESULT[ind_dfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_r[47:0]            ), // Input A bus, width defined by WIDTH parameter
+            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
             .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
             .A          ( t_fifo_data_time[ind_dfifo] ), // Input B bus, width defined by WIDTH parameter
             .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
@@ -408,17 +409,25 @@ end
 assign m_axis_tvalid   = m_axis_tvalid_r ;
 assign m_axis_tdata    = m_axis_tdata_r  ;
 
+///// DEBUG
+   assign fifo_dt_do           = {t_fifo_data_time[0][27:0], t_fifo_data_dt[0][3:0]} ;
 
-assign debug_fifo[31:28]   = t_fifo_data_dt[0][3:0] ;
-assign debug_fifo[27:12]   = t_fifo_data_time[0][15:0] ;
-assign debug_fifo[11: 8]   = { some_fifo_full, wfifo_full     , dfifo_full    , tfifo_full };
-assign debug_fifo[ 7: 4]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
-assign debug_fifo[ 3: 0]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
+   assign axi_fifo_do[31:28]   = t_fifo_data_dt[0][3:0] ;
+   assign axi_fifo_do[27:12]   = t_fifo_data_time[0][15:0] ;
+   assign axi_fifo_do[11: 8]   = { some_fifo_full , wfifo_full     , dfifo_full    , tfifo_full };
+   assign axi_fifo_do[ 7: 4]   = { all_fifo_full , all_wfifo_full , all_dfifo_full, all_tfifo_full };
+   assign axi_fifo_do[ 3: 0]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty };
 
-assign debug_port[31:28]   = port_dt_r[0][3:0] ;
-assign debug_port[27]      = port_trig_r[0] ;
-assign debug_port[26:0]   = 0;
+   assign c_fifo_do[15:11]   = { c_fifo_wave_push_s[0],c_fifo_data_push_s[1],c_fifo_data_push_s[0],c_fifo_trig_push_s[1],c_fifo_trig_push_s[0]};
+   assign c_fifo_do[10: 9]   = { c_fifo_wave_full[1], c_fifo_wave_full[0] };
+   assign c_fifo_do[ 8: 7]   = { c_fifo_data_full[1], c_fifo_data_full[0] };
+   assign c_fifo_do[ 6: 5]   = { c_fifo_trig_full[1], c_fifo_trig_full[0] };
+   assign c_fifo_do[ 4: 0]   = { all_fifo_full, all_wfifo_full, all_dfifo_full, all_tfifo_full, 1'b0 };
 
-   
+   assign t_fifo_do[15:11]   = { wave_pop_r2[0], data_pop_r2[1], data_pop_r2[0], trig_pop_r2[1], trig_pop_r2[0]  } ;
+   assign t_fifo_do[10: 9]   = { c_fifo_wave_empty[1], c_fifo_wave_empty[0] };
+   assign t_fifo_do[ 8: 7]   = { c_fifo_data_empty[1], c_fifo_data_empty[0] };
+   assign t_fifo_do[ 6: 5]   = { c_fifo_trig_empty[1], c_fifo_trig_empty[0] };
+   assign t_fifo_do[ 4: 0]   = { all_fifo_empty, all_wfifo_empty, all_dfifo_empty, all_tfifo_empty, 1'b0 };
 endmodule
    

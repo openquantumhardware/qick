@@ -59,9 +59,9 @@ assign ext_P_mem_we = ext_P_mem_en & ps_we_i ;
 assign ext_D_mem_we = ext_D_mem_en & ps_we_i ;
 assign ext_W_mem_we = ext_W_mem_en & ps_we_i ;
 
-assign ps_r_dt_o  =  (ps_sel_i == 2'b01)? ps_P_r_dt : 
-                     (ps_sel_i == 2'b10)? ps_D_r_dt :
-                     (ps_sel_i == 2'b11)? { 80'd0, ps_W_r_dt[167:88],8'd0, ps_W_r_dt[87:0]}	 :
+assign ps_r_dt_o  =  (ps_sel_i == 2'b01)? {  96'd0, ps_P_r_dt } :
+                     (ps_sel_i == 2'b10)? { 136'd0, ps_D_r_dt }:
+                     (ps_sel_i == 2'b11)?           ps_W_r_dt :
                      0;
 
 // PROGRAM MEMORY

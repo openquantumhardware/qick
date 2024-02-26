@@ -53,6 +53,7 @@ module qcore_ctrl_hazard (
    // Flag 
    input wire                 id_flag_used      ,
    input wire                 flag_we           ,
+   input wire                 qp_we           ,
    // JUMP 
    input wire                 id_jmp_i          ,
    // ALU (00) Data in each Pipeline Stage
@@ -77,6 +78,7 @@ module qcore_ctrl_hazard (
 // STALLING 
 reg         stall_rd_c; //Give time to Update core_r_dt 
 reg         stall_rd_p; // Give time to update PORT_L & PORT_H when DPORT_RD 
+reg         stall_wr_qp; // Give time to Write to peripheral, in case value is used. 
 reg         stall_id_w   ; // Give time to update R_WAVE 
 reg         stall_id_f   ; // Give time to update FLAG
 reg         stall_id_j   ; // Give time to update REG_ADDR when JUMP
@@ -244,6 +246,18 @@ always_comb begin
    end
 end
 
+///////////////////////////////////////////////////////////////////////////////
+// 8) DPORT_RD >>> STALL (Too much logic to check if reg will be used just after)
+assign    port_re    = rd_reg_i.port_re | x1_reg_i.port_re | x2_reg_i.port_re ;   
+always_comb begin
+   stall_wr_qp    = 1'b0    ;
+   if (qp_we ) begin
+      stall_wr_qp    = 1'b1    ;
+   end
+end
+
+
+
 // OUTPUTS
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -265,7 +279,7 @@ always_ff @ (posedge clk_i, negedge rst_ni)
    
 assign reg_A_dt_o    = reg_A;
 assign reg_D_dt_o    = reg_D;
-assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w  ;
-assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  | stall_rd_c | stall_rd_p;
+assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w  | stall_wr_qp;
+assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  | stall_rd_c | stall_rd_p ;
 
 endmodule

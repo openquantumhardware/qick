@@ -107,10 +107,22 @@ assign start_single = mem_start & mem_source ;
 assign axis_addr    = mem_op     ? mem_w_addr_axis : mem_r_addr_axis  ;
 assign ext_mem_addr = mem_source ? mem_addr_single : axis_addr       ;
 
+// Registe-READ ONLY with DMEM
+assign dmem_we_single = mem_we_single & mem_sel == 2'b10;
 
 
-wire [255:0]   mem_r_dt;
-assign mem_r_dt  =  ext_mem_r_dt_i;
+// Data AXI-Read Format (From ext_mem_r_dt_i to mem_r_dt_axis )
+wire [255:0]   mem_r_dt_axis;
+
+assign mem_r_dt_axis = (mem_sel == 2'b01)? {184'd0, ext_mem_r_dt_i } : //PMEM
+                       (mem_sel == 2'b10)? {224'd0, ext_mem_r_dt_i }: //DMEM
+                       (mem_sel == 2'b11)? { 80'd0, ext_mem_r_dt_i[167:88],8'd0, ext_mem_r_dt_i[87:0]}: // WMEM
+                        0;
+
+// Data AXI-Write Format ( From mem_w_dt_axis TO ext_mem_w_dt_o )
+wire [71 :0]   ext_pmem_w_dt;
+wire [31 :0]   ext_dmem_w_dt;
+wire [167:0]   ext_wmem_w_dt;
 
 wire [31 :0] freq, phase, env, gain, lenght, conf;
 assign freq   = mem_w_dt_axis[ 31 :  0] ; // 32-bit FREQ
@@ -120,19 +132,16 @@ assign gain   = mem_w_dt_axis[127 : 96] ; // 32-bit GAIN
 assign lenght = mem_w_dt_axis[159 :128] ; // 32-bit LENGHT
 assign conf   = mem_w_dt_axis[191 :160] ; // 32-bit CONF
 
- 
-wire [71 :0] ext_pmem_w_dt;
-wire [31 :0] ext_dmem_w_dt;
-wire [167:0] ext_wmem_w_dt;
 
-assign ext_pmem_w_dt  = mem_w_dt_axis[ 71 :  0];
-assign ext_dmem_w_dt  = mem_source ? mem_w_dt_single   : mem_w_dt_axis[31:0]   ;
+assign ext_pmem_w_dt  = mem_w_dt_axis[71:0];
+assign ext_dmem_w_dt  = mem_source ? mem_w_dt_single : mem_w_dt_axis[31:0] ;
 assign ext_wmem_w_dt  = {conf[15:0], lenght, gain, env[23:0], phase, freq} ;
 
+assign ext_mem_w_dt_o  = (mem_sel == 2'b01)? ext_pmem_w_dt  : 
+                         (mem_sel == 2'b10)? ext_dmem_w_dt	:
+                         (mem_sel == 2'b11)? ext_wmem_w_dt	:
+                         0;
 
-// Registe-READ ONLY with DMEM
-                   
-assign dmem_we_single = mem_we_single & mem_sel == 2'b10;
 
 // OUTPUTS
 assign ext_core_sel_o      = core_sel;
@@ -140,10 +149,6 @@ assign ext_mem_sel_o       = mem_sel;
 assign ext_mem_we_o        = dmem_we_single | mem_we_axis ;
 assign ext_mem_addr_o      = ext_mem_addr;
 
-assign ext_mem_w_dt_o  = (mem_sel == 2'b01)? ext_pmem_w_dt  : 
-                         (mem_sel == 2'b10)? ext_dmem_w_dt	:
-                         (mem_sel == 2'b11)? ext_wmem_w_dt	:
-                         0;
 
 data_mem_ctrl #(
       .N(16)
@@ -173,7 +178,7 @@ mem_rw  #(
    .do_o             ( MEM_DT_O           ) ,
    .mem_we_o         ( mem_we_single      ) ,
    .mem_di_o         ( mem_w_dt_single    ) ,
-   .mem_do_i         ( mem_r_dt[31:0]     ) ,
+   .mem_do_i         ( ext_mem_r_dt_i[31:0] ) ,
    .mem_addr_o       ( mem_addr_single    )	);
 
 axis_read #(
@@ -188,7 +193,7 @@ axis_read #(
    .exec_ack_o       ( ar_end             ) ,
    .mem_we_o         (  ) ,
    .mem_addr_o       ( mem_r_addr_axis    ) ,
-   .mem_do_i         ( mem_r_dt           ) ,
+   .mem_do_i         ( mem_r_dt_axis      ) ,
    .m_axis_tready_i  ( m_axis_tready_i    ) ,
    .m_axis_tdata_o   ( m_axis_tdata_o     ) ,
    .m_axis_tlast_o   ( m_axis_tlast_o     ) ,

@@ -32,7 +32,6 @@ module qproc_core # (
    output wire [31:0]      core_status_o    ,
    output wire [31:0]      core_debug_o     ,
    output wire [31:0]      lfsr_o           ,
-
 // AXI Registers
    input  wire [63:0]      port_dt_i   [ IN_PORT_QTY ] ,
    input wire              flag_i       ,
