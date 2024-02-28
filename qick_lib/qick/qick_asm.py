@@ -195,15 +195,15 @@ class QickConfig():
         """
         return json.dumps(self._cfg, indent=4)
 
-    def calc_fstep_int(self, dict1, dict2):
+    def calc_fstep_int(self, dict1, other_dicts):
         """Finds the multiplier that needs to be applied to a channel's frequency step size to allow this channel to be frequency-matched with another channel.
 
         Parameters
         ----------
         dict1 : dict
             config dict for this channel
-        dict2 : dict
-            config dict for the other channel
+        other_dicts : list of dict
+            config dict for the other channel(s)
 
         Returns
         -------
@@ -213,22 +213,22 @@ class QickConfig():
         refclk = self['refclk_freq']
         # Calculate least common multiple of sampling frequencies.
 
+        alldicts = [dict1] + other_dicts
         # The DDS ranges are related to the refclk by fs_mult and fdds_div, both integers: f_dds = refclk*fs_mult/fdds_div
         # So we can find a common div:
-        max_div = np.lcm(dict1['fdds_div'], dict2['fdds_div'])
+        max_div = np.lcm.reduce([d['fdds_div'] for d in alldicts])
         # and the max of the bit resolutions:
-        b_max = max(dict1['b_dds'], dict2['b_dds'])
+        b_max = max([d['b_dds'] for d in alldicts])
 
         # so the frequency steps are both divisible by a "common divisor" of refclk/max_div/2**b_max
         # and these multipliers from the common divisor to the channel steps are always integer
-        fsmult1 = dict1['fs_mult'] * (max_div//dict1['fdds_div']) * 2**(b_max - dict1['b_dds'])
-        fsmult2 = dict2['fs_mult'] * (max_div//dict2['fdds_div']) * 2**(b_max - dict2['b_dds'])
+        fsmults = [d['fs_mult'] * (max_div//d['fdds_div']) * 2**(b_max - d['b_dds']) for d in alldicts]
 
         # the LCM of those multipliers will give us a common multiple of the channel steps
-        mult_lcm = np.lcm(fsmult1, fsmult2)
-        # so mult_lcm times the common divisor gives us a common step size that is divisible by both channel steps
+        mult_lcm = np.lcm.reduce(fsmults)
+        # so mult_lcm times the common divisor gives us a common step size that is divisible by all channel steps
         # we want the common step divided by the channel 1 step:
-        return mult_lcm//fsmult1
+        return mult_lcm//fsmults[0]
 
     def ch_fstep(self, dict1):
         """Finds the frequency step size of a single channel (generator or readout).
@@ -245,39 +245,35 @@ class QickConfig():
         """
         return dict1['fs_mult'] * (self['refclk_freq']/dict1['fdds_div']) / 2**dict1['b_dds']
 
-    def calc_fstep(self, dict1, dict2):
-        """Finds the least common multiple of the frequency steps of two channels (typically a generator and readout)
+    def calc_fstep(self, dicts):
+        """Finds the least common multiple of the frequency steps of two or more channels (typically a generator and readout)
         For proper frequency matching, you should only use frequencies that are evenly divisible by this value.
         The order of the parameters does not matter.
 
         Parameters
         ----------
-        dict1 : dict
-            config dict for this channel
-        dict2 : dict
-            config dict for the other channel
+        dicts : list of dict
+            config dict for the channels
 
         Returns
         -------
         float
-            frequency step common to the two channels
+            frequency step common to all channels
         """
         # find the multiplier from channel 1's minimum step size to the common step size
-        step_int1 = self.calc_fstep_int(dict1, dict2)
+        step_int1 = self.calc_fstep_int(dicts[0], dicts[1:])
         # multiply channel 1's step size by the multiplier
-        return step_int1 * self.ch_fstep(dict1)
+        return step_int1 * self.ch_fstep(dicts[0])
 
-    def roundfreq(self, f, dict1, dict2):
-        """Round a frequency to the LCM of the frequency steps of two channels (typically a generator and readout).
+    def roundfreq(self, f, dicts):
+        """Round a frequency to the LCM of the frequency steps of two or more channels (typically a generator and readout).
 
         Parameters
         ----------
         f : float or array
             frequency (MHz)
-        dict1 : dict
-            config dict for one channel
-        dict2 : dict
-            config dict for the other channel
+        dicts : list of dict
+            config dict for the channels
 
         Returns
         -------
@@ -285,7 +281,7 @@ class QickConfig():
             rounded frequency (MHz)
 
         """
-        fstep = self.calc_fstep(dict1, dict2)
+        fstep = self.calc_fstep(dicts)
         return np.round(f/fstep) * fstep
 
     def freq2int(self, f, thisch, otherch=None):
@@ -311,7 +307,7 @@ class QickConfig():
         if otherch is None:
             step_int = 1
         else:
-            step_int = self.calc_fstep_int(thisch, otherch)
+            step_int = self.calc_fstep_int(thisch, [otherch])
         return to_int(f, 1/self.ch_fstep(thisch), parname='freq', quantize=step_int)
 
     def int2freq(self, r, thisch):
@@ -441,7 +437,7 @@ class QickConfig():
             Re-formatted frequency
 
         """
-        return self.roundfreq(f, self['gens'][gen_ch], self['readouts'][ro_ch])
+        return self.roundfreq(f, [self['gens'][gen_ch], self['readouts'][ro_ch]])
 
     def deg2reg(self, deg, gen_ch=0):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.

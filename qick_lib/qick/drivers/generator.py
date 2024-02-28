@@ -89,7 +89,7 @@ class AbsSignalGen(SocIp):
             mixercfg['fs_mult'] = self['fs_mult']
             mixercfg['fdds_div'] = self['fs_div']
             mixercfg['b_dds'] = 48
-            fstep = self.soc.calc_fstep(mixercfg, self.soc['readouts'][ro_ch])
+            fstep = self.soc.calc_fstep([mixercfg, self.soc['readouts'][ro_ch]])
             rounded_f = round(f/fstep)*fstep
         self.rf.set_mixer_freq(self.dac, rounded_f)
 
