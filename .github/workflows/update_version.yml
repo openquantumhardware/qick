@@ -20,6 +20,9 @@
 # This is a problem if we want to use this as a status check.
 # The workaround is to manually apply the status at the end: ugly!
 # Using: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#create-a-commit-status
+#
+# Because this action uses the pull_request_target trigger, it's exempt from the workflow approval rules and will run automatically regardless of the submitter:
+# https://docs.github.com/en/actions/managing-workflow-runs/approving-workflow-runs-from-public-forks#about-workflow-runs-from-public-forks
 
 name: Update version
 
@@ -31,6 +34,7 @@ permissions:
   contents: write
   pull-requests: write
   statuses: write
+  checks: write
   
 jobs:
   update_version:
@@ -40,7 +44,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       VERSION_PATH: qick_lib/qick/VERSION
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Checkout pull request
       run: gh pr checkout $PR_NUMBER
     - name: Compare version numbers
@@ -48,6 +52,8 @@ jobs:
         file_version=$(cut -d '.' -f 3 "$VERSION_PATH")
         echo "PR number: $PR_NUMBER, VERSION number: $file_version"
         echo "file_version=$file_version" >> $GITHUB_ENV
+    - name: Debug
+      run: gh auth status
     - name: Update VERSION if necessary
       if: env.file_version != github.event.pull_request.number
       run: |
