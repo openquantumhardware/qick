@@ -31,6 +31,7 @@ permissions:
   contents: write
   pull-requests: write
   statuses: write
+  checks: write
   
 jobs:
   update_version:
@@ -40,7 +41,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       VERSION_PATH: qick_lib/qick/VERSION
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Checkout pull request
       run: gh pr checkout $PR_NUMBER
     - name: Compare version numbers
@@ -48,6 +49,8 @@ jobs:
         file_version=$(cut -d '.' -f 3 "$VERSION_PATH")
         echo "PR number: $PR_NUMBER, VERSION number: $file_version"
         echo "file_version=$file_version" >> $GITHUB_ENV
+    - name: Debug
+      run: gh auth status
     - name: Update VERSION if necessary
       if: env.file_version != github.event.pull_request.number
       run: |
