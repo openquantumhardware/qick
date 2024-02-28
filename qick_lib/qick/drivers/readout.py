@@ -136,7 +136,7 @@ class AxisReadoutV2(SocIp, AbsReadout):
         # calculate the exact frequency we expect to see
         ro_freq = f
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.cfg)
+            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
         ro_freq = ro_freq % self['f_dds']
@@ -277,7 +277,7 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         # calculate the exact frequency we expect to see
         ro_freq = f
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, self.soc['gens'][gen_ch], self.cfg)
+            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
 
