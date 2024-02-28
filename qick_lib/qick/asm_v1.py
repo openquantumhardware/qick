@@ -594,13 +594,13 @@ class QickProgram(AbsQickProgram):
                 "upper": 0b1010, "lower": 0b0101
                 }
 
-    # To make it easier to configure pulses these special registers are reserved for each channel's pulse configuration.
+    # To make it easier to configure pulses, special registers are reserved for each channel's pulse configuration.
     # In each page, register 0 is hard-wired with the value 0.
-    # In page 0 we reserve the following additional registers:
-    # 13, 14 and 15 for loop counters, 16 for the trigger bits.
-    # Pairs of channels share a register page.
-    # The flat_top pulse uses some extra registers.
-
+    # Each channel reserves 10 registers (the flat_top pulse uses some extra registers).
+    # All registers for a channel go on the same page, with registers assigned at the end of the page:
+    #   so a page with 2 channels will assign registers 12 through 21 and 22 through 31.
+    # In page 0 we only put one channel, to make space for the following additional registers:
+    # 13, 14 and 15 for loop and shot counters, 16 for the trigger bits, 17 through 21 for NDAveragerProgram loop counters.
 
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
@@ -1166,9 +1166,11 @@ class QickProgram(AbsQickProgram):
 
                 # keeps a record of the last set registers and the default registers
                 last_set_regs_ = ch_mgr.last_set_regs
-                defaults_regs_ = ch_mgr.defaults
+                defaults_ = ch_mgr.defaults
+                default_regs_ = ch_mgr.default_regs
                 # temporarily ignore the default registers
                 ch_mgr.defaults = {}
+                ch_mgr.default_regs = set()
                 # set registers for phase reset
                 ch_mgr.set_registers(phrst_params)
 
@@ -1183,7 +1185,8 @@ class QickProgram(AbsQickProgram):
                     self.set(tproc_ch, rp, *regs, r_t, f" {ch_type} ch{ch} phase reset @t = ${r_t}")
 
                 # set the default and last set registers back
-                ch_mgr.set_defaults(defaults_regs_)
+                ch_mgr.set_defaults(defaults_)
+                ch_mgr.default_regs = default_regs_
                 ch_mgr.set_registers(last_set_regs_)
 
         self.sync_all(3)
