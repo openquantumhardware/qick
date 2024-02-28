@@ -489,9 +489,9 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
         rep_count = 14  # repetition counter
 
         n_sweeps = len(self.qick_sweeps)
-        if n_sweeps > 7:  # to be safe, only register 15-21 in page 0 can be used as sweep counters
+        if n_sweeps > 5:  # to be safe, only register 17-21 in page 0 can be used as sweep counters
             raise OverflowError(f"too many qick inner loops ({n_sweeps}), run out of counter registers")
-        counter_regs = (np.arange(n_sweeps) + 15).tolist()  # not sure why this has to be a list (np.array doesn't work)
+        counter_regs = (np.arange(n_sweeps) + 17).tolist()  # not sure why this has to be a list (np.array doesn't work)
 
         p.regwi(0, rcount, 0)  # reset total run count
 
