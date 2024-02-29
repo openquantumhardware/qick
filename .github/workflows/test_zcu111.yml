@@ -13,8 +13,13 @@ jobs:
 
     runs-on: [zcu111]
 
+
     steps:
-    - uses: actions/checkout@v3
+    - name: Clean repo
+      run: |
+        sudo git clean -ffdx
+        sudo git reset --hard HEAD
+    - uses: actions/checkout@v4
     - name: Install package
       run: |
         sudo -A -E -H python -m pip install --upgrade pip
