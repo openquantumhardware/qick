@@ -14,7 +14,8 @@ jobs:
     steps:
     - name: Clean repo
       run: |
-        ls -ltr
+        ls -ltra
+        pwd
         sudo git clean -ffdx
         sudo git reset --hard HEAD
     - uses: actions/checkout@v4
