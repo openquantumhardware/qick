@@ -10,10 +10,7 @@ permissions:
 
 jobs:
   build:
-
-    runs-on: [zcu111]
-
-
+    runs-on: [zcu111_test]
     steps:
     - name: Clean repo
       run: |
