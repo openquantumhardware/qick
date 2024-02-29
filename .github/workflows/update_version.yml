@@ -29,6 +29,8 @@ name: Update version
 on:
   pull_request_target:
     types: [opened, reopened, synchronize]
+    branches:
+      - main
 
 permissions:
   contents: write
