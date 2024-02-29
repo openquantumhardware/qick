@@ -13,9 +13,8 @@ jobs:
     runs-on: [zcu111_test]
     steps:
     - name: Clean repo
+      continue-on-error: true
       run: |
-        ls -ltra
-        pwd
         sudo git clean -ffdx
         sudo git reset --hard HEAD
     - uses: actions/checkout@v4
