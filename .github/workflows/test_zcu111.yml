@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   run_test:
-    runs-on: [zcu111_test]
+    runs-on: [zcu111]
     steps:
     - name: Clean repo
       continue-on-error: true
