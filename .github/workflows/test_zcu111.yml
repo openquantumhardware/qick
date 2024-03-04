@@ -28,11 +28,11 @@ jobs:
     - name: Test notebooks
       run: |
         sudo -E python -m pytest --nbmake --overwrite ./qick_demos/00_Send_receive_pulse.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/01_Phase_coherent_readout.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/02_Sweeping_variables.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/03_Conditional_logic.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/04_Reading_Math_Writing.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/05_PhaseCoherence_QickProgram.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/01_Phase_coherent_readout.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/02_Sweeping_variables.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/03_Conditional_logic.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/04_Reading_Math_Writing.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/05_PhaseCoherence_QickProgram.ipynb
         # sudo -E python -m pytest --nbmake ./qick_demos/06_qubit_demos.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/07_Sweep_ND_variables.ipynb
-        # sudo -E python -m pytest --nbmake ./qick_demos/08_Special_buffers.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/07_Sweep_ND_variables.ipynb
+        sudo -E python -m pytest --nbmake ./qick_demos/08_Special_buffers.ipynb
