@@ -56,6 +56,12 @@ jobs:
         echo "file_version=$file_version" >> $GITHUB_ENV
     - name: Debug
       run: gh auth status
+    - name: Debug
+      run: |
+        gh api \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        /app
     - name: Update VERSION if necessary
       if: env.file_version != github.event.pull_request.number
       run: |
