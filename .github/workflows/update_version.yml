@@ -89,7 +89,6 @@ jobs:
       continue-on-error: true
       if: env.file_version != github.event.pull_request.number
       run: |
-        repopath=$(git remote get-url origin|cut -d'/' -f4,5)
         echo "https://api.github.com/${new_ref}"
         curl -L -X POST \
           -H "Accept: application/vnd.github+json" \
