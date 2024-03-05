@@ -93,5 +93,4 @@ jobs:
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -H "Authorization: Bearer $CHECK_TOKEN" \
           $new_ref \
-          -f state='success' \
-          -f context='update_version'
+          -d '{"state":"success","context":"update_version"}'
