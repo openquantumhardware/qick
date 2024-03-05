@@ -92,5 +92,5 @@ jobs:
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -H "Authorization: Bearer $CHECK_TOKEN" \
-          $new_ref \
+          "https://api.github.com/$new_ref" \
           -d '{"state":"success","context":"update_version"}'
