@@ -105,7 +105,7 @@ jobs:
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -H "Authorization: Bearer $CHECK_TOKEN" \
-          "https://api.github.com/${headref}" \
+          "https://api.github.com${headref}" \
           -d '{"state":"success","context":"update_version"}'
     - name: Set status for update commit using curl and PAT, repo path
       continue-on-error: true
@@ -116,5 +116,5 @@ jobs:
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           -H "Authorization: Bearer $CHECK_TOKEN" \
-          "https://api.github.com/${reporef}" \
+          "https://api.github.com${reporef}" \
           -d '{"state":"success","context":"update_version"}'
