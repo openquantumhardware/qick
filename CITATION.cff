@@ -1,5 +1,43 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-title: "The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors"
-doi: https://doi.org/10.1063/5.0076249
-date-released: 2021-10-01
+# CITATION.cff created with https://github.com/monperrus/bibtexbrowser/
+preferred-citation:
+  title: "The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors"
+  doi: "10.1063/5.0076249"
+  year: "2022"
+  type: article
+  journal: "Review of Scientific Instruments"
+  authors:
+    - family-names: Stefanazzi
+      given-names: Leandro
+    - family-names: Treptow
+      given-names: Kenneth
+    - family-names: Wilcer
+      given-names: Neal
+    - family-names: Stoughton
+      given-names: Chris
+    - family-names: Bradford
+      given-names: Collin
+    - family-names: Uemura
+      given-names: Sho
+    - family-names: Zorzetti
+      given-names: Silvia
+    - family-names: Montella
+      given-names: Salvatore
+    - family-names: Cancelo
+      given-names: Gustavo
+    - family-names: Sussman
+      given-names: Sara
+    - family-names: Houck
+      given-names: Andrew
+    - family-names: Saxena
+      given-names: Shefali
+    - family-names: Arnaldi
+      given-names: Horacio
+    - family-names: Agrawal
+      given-names: Ankur
+    - family-names: Zhang
+      given-names: Helin
+    - family-names: Ding
+      given-names: Chunyang
+    - family-names: Schuster
+      given-names: David I.
