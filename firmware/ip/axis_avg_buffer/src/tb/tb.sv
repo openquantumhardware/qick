@@ -242,7 +242,7 @@ initial begin
 	// Start sending input data.
 	tb_input	<= 1;
 
-	trigger_gen(5,1280);
+	trigger_gen(5,4*1280);
 
 	wait (tb_input_done);
 
@@ -316,7 +316,7 @@ initial begin
 	int fd;
 	int vali, valq;
 
-	s_axis_tvalid	<= 1;
+	s_axis_tvalid	<= 0;
 	s_axis_tdata	<= 0;
 	tb_input_done	<= 0;
 	
@@ -327,8 +327,13 @@ initial begin
 	while ($fscanf(fd,"%d,%d", vali, valq) == 2) begin
 		$display("Time %t: I = %d, Q = %d", $time, vali, valq);		
 		@(posedge s_axis_aclk);
+		s_axis_tvalid	<= 1;
 		s_axis_tdata[0 +: 16] <= vali;
 		s_axis_tdata[16 +: 16] <= valq;
+		@(posedge s_axis_aclk);
+		s_axis_tvalid	<= 0;
+		@(posedge s_axis_aclk);
+		@(posedge s_axis_aclk);
 	end
 
 	@(posedge s_axis_aclk);

@@ -482,7 +482,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>7ebfc17e</spirit:value>
+            <spirit:value>f1978aab</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -498,7 +498,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>7ebfc17e</spirit:value>
+            <spirit:value>f1978aab</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1384,8 +1384,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Average + Buffer</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>6</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2021-06-15T19:18:03Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>7</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2024-03-05T19:54:43Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@6e6d4e17_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@255f9cf0_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
@@ -1461,10 +1461,10 @@
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2019.1</xilinx:xilinxVersion>
+      <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="df0fc110"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="1c3eb3fe"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="06860b54"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="ebdcf4d4"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="7d5b03ef"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="7f0cdd7e"/>
