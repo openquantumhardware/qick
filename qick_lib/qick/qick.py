@@ -358,7 +358,7 @@ class QickSoc(Overlay, QickConfig):
 
         # Readout blocks.
         self.readouts = []
-        ro_drivers = set([AxisReadoutV2, AxisPFBReadoutV2])
+        ro_drivers = set([AxisReadoutV2, AxisPFBReadoutV2, AxisPFBReadoutV3])
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
