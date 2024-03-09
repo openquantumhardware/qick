@@ -96,6 +96,7 @@ class AxisReadoutV2(SocIp, AbsReadout):
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
 
+        """
         # what buffer does this readout drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
         blocktype = soc.metadata.mod2type(block)
@@ -104,6 +105,7 @@ class AxisReadoutV2(SocIp, AbsReadout):
         self.buffer = getattr(soc, block)
 
         #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
+        """
 
     def update(self):
         """
@@ -234,6 +236,7 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
 
+        """
         # what buffers does this readout drive?
         self.buffers=[]
         for iBuf in range(4):
@@ -241,6 +244,7 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
             self.buffers.append(getattr(soc, block))
 
         #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
+        """
 
     def initialize(self):
         """
@@ -404,13 +408,18 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
 
+        """
         # what buffers does this readout drive?
         self.buffers=[]
         for iBuf in range(4):
             ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis'%(iBuf))
+            blocktype = soc.metadata.mod2type(block)
+            if blocktype == "axis_broadcaster":
+                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
             self.buffers.append(getattr(soc, block))
 
         #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
+        """
 
     def initialize(self):
         """
