@@ -659,7 +659,11 @@ class FullSpeedGenManager(AbsGenManager):
         par : dict
             Pulse parameters
         """
+        #TODO: phrst should really only be set for the first segment
         w = {k:par.get(k) for k in ['phrst', 'stdysel']}
+        if w['phrst'] is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
+            raise RuntimeError("phrst not supported for %s, only for axis_signal_gen_v6" % (self.gencfg['type']))
+
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
         # gains should be rounded towards zero to avoid overflow

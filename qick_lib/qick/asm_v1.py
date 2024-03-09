@@ -332,6 +332,8 @@ class FullSpeedGenManager(AbsGenManager):
             style = params['style']
             # these mode bits could be defined, or left as None
             phrst, stdysel, mode, outsel = [params.get(x) for x in ['phrst', 'stdysel', 'mode', 'outsel']]
+            if phrst is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
+                raise RuntimeError("phrst not supported for %s, only for axis_signal_gen_v6" % (self.gencfg['type']))
 
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp
