@@ -547,11 +547,7 @@ class AbsGenManager(AbsRegisterManager):
         self.samps_per_clk = self.gencfg['samps_per_clk']
 
         # dictionary of defined envelopes
-        self.envelopes = prog.envelopes[gen_ch]
-        # type and max absolute value for envelopes
-        self.env_dtype = np.int16
-
-        self.addr = 0
+        self.envelopes = prog.envelopes[gen_ch]['envs']
 
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
@@ -584,28 +580,6 @@ class AbsGenManager(AbsRegisterManager):
         qdata : array
             Q values for this envelope
         """
-        length = [len(d) for d in [idata, qdata] if d is not None]
-        if len(length)==0:
-            raise RuntimeError("Error: no data argument was supplied")
-        # if both arrays were defined, they must be the same length
-        if len(length)>1 and length[0]!=length[1]:
-            raise RuntimeError("Error: I and Q envelope lengths must be equal")
-        length = length[0]
-
-        if (length % self.samps_per_clk) != 0:
-            raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(self.samps_per_clk))
-        data = np.zeros((length, 2), dtype=self.env_dtype)
-
-        for i, d in enumerate([idata, qdata]):
-            if d is not None:
-                # range check
-                if np.max(np.abs(d)) > self.gencfg['maxv']:
-                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.gencfg['maxv']))
-                # copy data
-                data[:,i] = np.round(d)
-
-        self.envelopes[name] = {"data": data, "addr": self.addr}
-        self.addr += length
 
     def cfg2reg(self, outsel, mode, stdysel, phrst):
         """Creates generator config register value, by setting flags.
@@ -756,7 +730,10 @@ class QickProgramV2(AbsQickProgram):
     """
     gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
                 'axis_signal_gen_v5': FullSpeedGenManager,
-                'axis_signal_gen_v6': FullSpeedGenManager}
+                'axis_signal_gen_v6': FullSpeedGenManager,
+                'axis_sg_int4_v1': FullSpeedGenManager,
+                'axis_sg_mux4_v3': FullSpeedGenManager,
+                }
 
     def __init__(self, soccfg):
         super().__init__(soccfg)

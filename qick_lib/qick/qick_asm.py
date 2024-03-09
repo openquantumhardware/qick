@@ -12,7 +12,7 @@ import functools
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import to_int, cosine, gauss, triang, DRAG
+from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array
 
 logger = logging.getLogger(__name__)
 
@@ -595,7 +595,7 @@ class AbsQickProgram:
         """
         logger.debug("init_declarations")
         # Pulse envelopes.
-        self.envelopes = [{} for ch in self.soccfg['gens']]
+        self.envelopes = [{"next_addr": 0, "envs": {}} for ch in self.soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
@@ -647,6 +647,15 @@ class AbsQickProgram:
         """
         for key in self.dump_keys:
             setattr(self, key, progdict[key])
+
+        # tweak data structures that got screwed up by JSON:
+        # in JSON, dict keys are always strings, so we must cast back to int
+        self.gen_chs = OrderedDict([(int(k),v) for k,v in self.gen_chs.items()])
+        self.ro_chs = OrderedDict([(int(k),v) for k,v in self.ro_chs.items()])
+        # the envelope arrays need to be restored as numpy arrays with the proper type
+        for iCh, envdict in enumerate(self.envelopes):
+            for name, env in envdict['envs'].items():
+                env['data'] = decode_array(env['data'])
 
     def config_all(self, soc, load_pulses=True):
         """
@@ -818,7 +827,8 @@ class AbsQickProgram:
                 soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
-        """Adds a waveform to the waveform library within the program.
+        """Adds a waveform to the list of envelope waveforms available for this channel.
+        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
 
         Parameters
         ----------
@@ -832,7 +842,31 @@ class AbsQickProgram:
             Q data Numpy array
 
         """
-        self._gen_mgrs[ch].add_envelope(name, idata, qdata)
+        gencfg = self.soccfg['gens'][ch]
+
+        length = [len(d) for d in [idata, qdata] if d is not None]
+        if len(length)==0:
+            raise RuntimeError("Error: no data argument was supplied")
+        # if both arrays were defined, they must be the same length
+        if len(length)>1 and length[0]!=length[1]:
+            raise RuntimeError("Error: I and Q envelope lengths must be equal")
+        length = length[0]
+
+        if (length % gencfg['samps_per_clk']) != 0:
+            raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(gencfg['samps_per_clk']))
+        # currently, all gens with envelopes use int16 for I and Q
+        data = np.zeros((length, 2), dtype=np.int16)
+
+        for i, d in enumerate([idata, qdata]):
+            if d is not None:
+                # range check
+                if np.max(np.abs(d)) > gencfg['maxv']:
+                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), gencfg['maxv']))
+                # copy data
+                data[:,i] = np.round(d)
+
+        self.envelopes[ch]['envs'][name] = {"data": data, "addr": self.envelopes[ch]['next_addr']}
+        self.envelopes[ch]['next_addr'] += length
 
     def add_cosine(self, ch, name, length, maxv=None):
         """Adds a Cosine pulse to the waveform library.
@@ -960,7 +994,7 @@ class AbsQickProgram:
 
         """
         for iCh, pulses in enumerate(self.envelopes):
-            for name, pulse in pulses.items():
+            for name, pulse in pulses['envs'].items():
                 soc.load_pulse_data(iCh,
                         data=pulse['data'],
                         addr=pulse['addr'])
