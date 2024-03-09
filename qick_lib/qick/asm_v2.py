@@ -568,19 +568,6 @@ class AbsGenManager(AbsRegisterManager):
         if defined - allowed:
             raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
 
-    def add_envelope(self, name, idata, qdata):
-        """Add an envelope to the list of envelopes available for this channel.
-        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
-        Parameters
-        ----------
-        name : str
-            Name for this envelope
-        idata : array
-            I values for this envelope
-        qdata : array
-            Q values for this envelope
-        """
-
     def cfg2reg(self, outsel, mode, stdysel, phrst):
         """Creates generator config register value, by setting flags.
 
