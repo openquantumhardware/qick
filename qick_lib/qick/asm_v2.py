@@ -659,9 +659,8 @@ class FullSpeedGenManager(AbsGenManager):
         par : dict
             Pulse parameters
         """
-        #TODO: phrst should really only be set for the first segment
-        w = {k:par.get(k) for k in ['phrst', 'stdysel']}
-        if w['phrst'] is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
+        w = {}
+        if par.get('phrst') is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
             raise RuntimeError("phrst not supported for %s, only for axis_signal_gen_v6" % (self.gencfg['type']))
 
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
@@ -680,16 +679,17 @@ class FullSpeedGenManager(AbsGenManager):
 
         waves = []
         if par['style']=='const':
-            w.update({k:par.get(k) for k in ['mode']})
+            w.update({k:par.get(k) for k in ['mode', 'stdysel', 'phrst']})
             w['outsel'] = 'dds'
             w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
             waves.append(self.params2wave(**w))
         elif par['style']=='arb':
-            w.update({k:par.get(k) for k in ['mode', 'outsel']})
+            w.update({k:par.get(k) for k in ['mode', 'outsel', 'stdysel', 'phrst']})
             w['env'] = env_addr
             w['lenreg'] = env_length
             waves.append(self.params2wave(**w))
         elif par['style']=='flat_top':
+            w.update({k:par.get(k) for k in ['stdysel']})
             w['mode'] = 'oneshot'
             if env_length % 2 != 0:
                 logger.warning("Envelope length %d is an odd number of fabric cycles.\n"
@@ -699,6 +699,7 @@ class FullSpeedGenManager(AbsGenManager):
             w1['env'] = env_addr
             w1['outsel'] = 'product'
             w1['lenreg'] = env_length//2
+            w1['phrst'] = par.get('phrst')
             w2 = w.copy()
             w2['outsel'] = 'dds'
             w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
