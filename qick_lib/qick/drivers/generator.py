@@ -38,18 +38,7 @@ class AbsSignalGen(SocIp):
         self.soc = soc
 
         # what RFDC port does this generator drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm_axis')
-        # might need to jump through an axis_register_slice
-        while True:
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype == "usp_rf_data_converter": # we're done
-                break
-            elif blocktype == "axis_register_slice":
-                ((block, port),) = soc.metadata.trace_bus(block, "M_AXIS")
-            elif blocktype == "axis_register_slice_nb":
-                ((block, port),) = soc.metadata.trace_bus(block, "m_axis")
-            else:
-                raise RuntimeError("failed to trace RFDC port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        block, port, _ = soc.metadata.trace_forward(self['fullpath'], 'm_axis', ["usp_rf_data_converter"])
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -203,38 +192,16 @@ class AbsPulsedSignalGen(AbsSignalGen):
         super().configure_connections(soc)
 
         # what tProc output port drives this generator?
-        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.TPROC_PORT)
-        while True:
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype in ["axis_tproc64x32_x8", "qick_processor"]: # we're done
-                break
-            elif blocktype == "axis_register_slice":
-                ((block, port),) = soc.metadata.trace_bus(block, "S_AXIS")
-            elif blocktype == "axis_clock_converter":
-                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
-            elif blocktype == "axis_cdcsync_v1":
-                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
-                ((block, port),) = soc.metadata.trace_bus(block, "s"+port[1:])
-            elif blocktype == "sg_translator":
-                ((block, port),) = soc.metadata.trace_bus(block, "s_tproc_axis")
-            elif blocktype == "axis_tmux_v1":
-                self.cfg['tmux_ch'] = self.port2ch(port)
-                ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
-            else:
-                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], self.TPROC_PORT, ["axis_tproc64x32_x8", "qick_processor", "axis_tmux_v1"])
+
+        if blocktype == "axis_tmux_v1":
+            # which tmux port drives this generator?
+            # port names are of the form 'm2_axis'
+            self.cfg['tmux_ch'] = int(port.split('_')[0][1:])
+            ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
+
         # ask the tproc to translate this port name to a channel number
         self.cfg['tproc_ch'],_ = getattr(soc, block).port2ch(port)
-
-    def port2ch(self, portname):
-        """
-        Translate a port name to a channel number.
-        Used in connection mapping.
-        """
-        # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
-        # subtract 1 to get the output channel number (s0/m0 goes to the DMA)
-        chtype = {'m':'output', 's':'input'}[portname[0]]
-        return int(portname.split('_')[0][1:])
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
