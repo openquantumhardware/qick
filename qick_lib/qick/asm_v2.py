@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict
 from abc import ABC, abstractmethod
+from fractions import Fraction
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
@@ -124,13 +125,15 @@ class QickSweepRaw(SimpleClass):
                 raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
-    def __floordiv__(self, a):
+    def __mul__(self, a):
+        if not isinstance(a, Fraction):
+            raise RuntimeError("QickSweepRaw can only be multipled by Fraction")
         # used when scaling parameters (e.g. flat_top segment gain)
         # this will only happen before steps have been defined
-        if not all([x%a==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
-            raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        spans = {k:v//a for k,v in self.spans.items()}
-        return QickSweepRaw(self.par, self.start//a, spans, self.quantize//a)
+        if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
+            raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        spans = {k:int(v*a) for k,v in self.spans.items()}
+        return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
     def __mod__(self, a):
         # used in freq2reg etc.
         # do nothing - mod will be applied when compiling the Waveform
@@ -660,17 +663,29 @@ class FullSpeedGenManager(AbsGenManager):
             Pulse parameters
         """
         w = {}
-        if par.get('phrst') is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
-            raise RuntimeError("phrst not supported for %s, only for axis_signal_gen_v6" % (self.gencfg['type']))
+        phrst_gens = ['axis_signal_gen_v6', 'axis_sg_int4_v1']
+        if par.get('phrst') is not None and self.gencfg['type'] not in phrst_gens:
+            raise RuntimeError("phrst not supported for %s, only for %s" % (self.gencfg['type'], phrst_gens))
 
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
+
         # gains should be rounded towards zero to avoid overflow
         if par['style']=='flat_top':
-            # since the flat segment is played at half gain, the ramps should have even gain
-            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2, trunc=True)
-        else:
+            # the flat segment is played at half gain, to match the ramps
+            flat_scale = Fraction("1/2")
+            # for int4 gen, the envelope amplitude will have been limited to maxv_scale
+            # we need to reduce the flat segment amplitude by a corresponding amount
+            flat_scale *= Fraction(self.gencfg['maxv_scale']).limit_denominator(20)
+
+            # this is the gain that will be used for the ramps
+            # because the flat segment will be scaled by flat_scale, we need this to be an even multiple of the flat_scale denominator
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv'], parname='gain', quantize=flat_scale.denominator, trunc=True)
+        elif par['style']=='const':
+            # it's not strictly necessary to apply maxv_scale here, but if we don't the amplitudes for different styles will be extra confusing?
             w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', trunc=True)
+        else:
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv'], parname='gain', trunc=True)
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -699,16 +714,21 @@ class FullSpeedGenManager(AbsGenManager):
             w1['env'] = env_addr
             w1['outsel'] = 'product'
             w1['lenreg'] = env_length//2
-            w1['phrst'] = par.get('phrst')
             w2 = w.copy()
             w2['outsel'] = 'dds'
             w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
-            w2['gainreg'] = w2['gainreg']//2
+            w2['gainreg'] = w2['gainreg'] * flat_scale
             w3 = w1.copy()
             w3['env'] = env_addr + (env_length+1)//2
+            # only the first segment should have phrst
+            w1['phrst'] = par.get('phrst')
             waves.append(self.params2wave(**w1))
             waves.append(self.params2wave(**w2))
             waves.append(self.params2wave(**w3))
+
+            if self.gencfg['type'] == 'axis_sg_int4_v1':
+                # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
+                waves.append(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
 
         return waves
 
@@ -724,8 +744,11 @@ class QickProgramV2(AbsQickProgram):
                 'axis_signal_gen_v5': FullSpeedGenManager,
                 'axis_signal_gen_v6': FullSpeedGenManager,
                 'axis_sg_int4_v1': FullSpeedGenManager,
+                'axis_sg_mux4_v1': FullSpeedGenManager,
+                'axis_sg_mux4_v2': FullSpeedGenManager,
                 'axis_sg_mux4_v3': FullSpeedGenManager,
                 }
+    # TODO: actually write a gen manager for mux!
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
