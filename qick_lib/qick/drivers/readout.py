@@ -93,17 +93,6 @@ class AxisReadoutV2(SocIp, AbsReadout):
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
 
-        """
-        # what buffer does this readout drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
-        blocktype = soc.metadata.mod2type(block)
-        if blocktype == "axis_broadcaster":
-                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.buffer = getattr(soc, block)
-
-        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
-        """
-
     def update(self):
         """
         Update register values
@@ -230,16 +219,6 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         if soc.hs_adc:
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
-
-        """
-        # what buffers does this readout drive?
-        self.buffers=[]
-        for iBuf in range(4):
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis'%(iBuf))
-            self.buffers.append(getattr(soc, block))
-
-        #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
-        """
 
     def initialize(self):
         """
@@ -374,7 +353,7 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         self.N = int(description['parameters']['N'])
 
         # index of the PFB channel that is centered around DC.
-        self.CH_OFFSET = self.N/2
+        self.CH_OFFSET = self.N//2
 
         self.initialize()
 
@@ -384,7 +363,7 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         # The PFB decimation ratio is half the number of channels because it is
         # an overlap 50 % structure.
         self.cfg['f_dds'] /= self.N/2
-        self.cfg['fdds_div'] *= self.N/2
+        self.cfg['fdds_div'] *= self.N//2
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -400,19 +379,6 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         if soc.hs_adc:
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
-
-        """
-        # what buffers does this readout drive?
-        self.buffers=[]
-        for iBuf in range(4):
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis'%(iBuf))
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype == "axis_broadcaster":
-                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-            self.buffers.append(getattr(soc, block))
-
-        #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
-        """
 
     def initialize(self):
         """
