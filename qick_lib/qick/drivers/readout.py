@@ -6,6 +6,9 @@ import numpy as np
 from qick import DummyIp, SocIp
 
 class AbsReadout(DummyIp):
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 1
+
     # Configure this driver with the sampling frequency.
     def configure(self, rf):
         self.rf = rf
@@ -16,8 +19,9 @@ class AbsReadout(DummyIp):
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
             self.cfg[p] = self.rf.adccfg[self['adc']][p]
         # decimation reduces the DDS range
-        self.cfg['f_dds'] = self.cfg['fs']/self['decimation']
+        self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']
+        self.cfg['f_output'] = self['fs']/(self['decimation']*self.DOWNSAMPLING)
 
     def initialize(self):
         """
@@ -62,6 +66,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
 
     # Bits of DDS.
     B_DDS = 32
+
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 8
 
     # this readout is not controlled by the tProc.
     tproc_ch = None
@@ -185,6 +192,9 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
 
     # Bits of DDS. 
     B_DDS = 32
+
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 4
 
     # index of the PFB channel that is centered around DC.
     CH_OFFSET = 4
@@ -352,6 +362,9 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         # Generics.
         self.N = int(description['parameters']['N'])
 
+        # Downsampling ratio (RFDC samples per decimated readout sample)
+        self.DOWNSAMPLING = self.N//2
+
         # index of the PFB channel that is centered around DC.
         self.CH_OFFSET = self.N//2
 
@@ -464,6 +477,9 @@ class AxisReadoutV3(AbsReadout):
     """
     # Bits of DDS.
     B_DDS = 32
+
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 8
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
