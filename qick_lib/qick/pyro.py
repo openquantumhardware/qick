@@ -3,10 +3,12 @@ import Pyro4
 import Pyro4.naming
 from .qick_asm import QickConfig
 # QickSoc is needed for the server but not the client
+# the client needs it to be defined because it's in the start_server definition
+# but it doesn't need to be anything, so we use None as a dummy value
 try:
     from .qick import QickSoc
 except:
-    pass
+    QickSoc = None
 
 def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     """Starts a Pyro4 nameserver.
