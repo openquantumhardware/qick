@@ -756,10 +756,21 @@ class MultiplexedGenManager(AbsGenManager):
     def params2pulse(self, par):
         lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
 
+        freqs = self.prog.gen_chs[self.ch].get('mux_freqs')
+        if freqs is None:
+            raise RuntimeError("mux_freqs not defined for mux gen")
+        gains = None
+        if self.gencfg['type'] in ['axis_sg_mux4_v2', 'axis_sg_mux4_v3']:
+            gains = self.prog.gen_chs[self.ch].get('mux_gains')
+            if gains is None:
+                raise RuntimeError("mux_gains not defined for mux gen")
+
         maskreg = 0
         for maskch in par['mask']:
-            if maskch not in range(4):
-                raise RuntimeError("invalid mask specification")
+            if maskch not in range(len(freqs)):
+                raise RuntimeError("mask includes tone %d, but only %d freqs are declared" % (maskch, len(freqs)))
+            if gains is not None and maskch not in range(len(gains)):
+                raise RuntimeError("mask includes tone %d, but only %d gains are declared" % (maskch, len(gains)))
             maskreg |= (1 << maskch)
         return [self.params2wave(lenreg=lenreg, maskreg=maskreg)]
 
