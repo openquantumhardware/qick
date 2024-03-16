@@ -122,13 +122,13 @@ class QickConfig():
         for iReadout, readout in enumerate(self['readouts']):
             adcname = readout['adc']
             adc = self['adcs'][adcname]
-            buflen = readout['buf_maxlen']/readout['f_fabric']
+            buflen = readout['buf_maxlen']/readout['f_output']
             if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
-                         (adc['fs'], readout['f_fabric'], readout['b_dds'], readout['f_dds']))
+            lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                         (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], buflen))
             lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
@@ -510,7 +510,7 @@ class QickConfig():
         if gen_ch is not None:
             fclk = self['gens'][gen_ch]['f_fabric']
         elif ro_ch is not None:
-            fclk = self['readouts'][ro_ch]['f_fabric']
+            fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
@@ -540,7 +540,7 @@ class QickConfig():
         if gen_ch is not None:
             fclk = self['gens'][gen_ch]['f_fabric']
         elif ro_ch is not None:
-            fclk = self['readouts'][ro_ch]['f_fabric']
+            fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
         #return np.int64(np.round(obtain(us)*fclk))

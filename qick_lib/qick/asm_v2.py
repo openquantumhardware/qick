@@ -166,7 +166,11 @@ class Waveform(Mapping, SimpleClass):
         # if a parameter is swept, the start value is what we write to the wave memory
         startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in params]
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-        # same parameters (freq, phase) are expected to wrap, we do that here
+        # we truncate each parameter to its correct length using mod
+        # some generator parameter lengths are smaller than the waveform parameter length:
+        # e.g. int4 uses 16 bits for all params, full-speed uses 16 bits for length
+        # in these cases the sg_translator will apply the additional truncation
+        # truncation causes parameters to wrap, which is good for some params (freq, phase) not for others (gain, length)
         rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(startvals, self.widths)])
         # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
@@ -619,6 +623,7 @@ class AbsGenManager(AbsRegisterManager):
 class FullSpeedGenManager(AbsGenManager):
     """Manager for the full-speed (non-interpolated, non-muxed) signal generators.
     """
+    # TODO: rename, since this works for int4 as well
     PARAMS_REQUIRED = {'const': ['style', 'freq', 'phase', 'gain', 'length'],
             'arb': ['style', 'freq', 'phase', 'gain', 'envelope'],
             'flat_top': ['style', 'freq', 'phase', 'gain', 'length', 'envelope']}
@@ -662,11 +667,11 @@ class FullSpeedGenManager(AbsGenManager):
         par : dict
             Pulse parameters
         """
-        w = {}
         phrst_gens = ['axis_signal_gen_v6', 'axis_sg_int4_v1']
         if par.get('phrst') is not None and self.gencfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.gencfg['type'], phrst_gens))
 
+        w = {}
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
 
@@ -727,10 +732,36 @@ class FullSpeedGenManager(AbsGenManager):
             waves.append(self.params2wave(**w3))
 
             if self.gencfg['type'] == 'axis_sg_int4_v1':
-                # workaround for FIR bug: we play a zero-gain DDS pulse (length equal to the flat segment) after the ramp-down, which brings the FIR to zero
+                # workaround for FIR bug: we play a zero-gain min-length DDS pulse after the ramp-down, which brings the FIR to zero
                 waves.append(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
 
         return waves
+
+class MultiplexedGenManager(AbsGenManager):
+    """Manager for the muxed signal generators.
+    """
+    PARAMS_REQUIRED = {'const': ['style', 'mask', 'length']}
+    PARAMS_OPTIONAL = {'const': []}
+
+    def params2wave(self, maskreg, lenreg):
+        if isinstance(lenreg, QickSweepRaw):
+            if lenreg.maxval() >= 2**32 or lenreg.minval() < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        else:
+            if lenreg >= 2**32 or lenreg < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        wavereg = Waveform(freq=0, phase=0, env=0, gain=0, length=lenreg, conf=maskreg)
+        return wavereg
+
+    def params2pulse(self, par):
+        lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
+
+        maskreg = 0
+        for maskch in par['mask']:
+            if maskch not in range(4):
+                raise RuntimeError("invalid mask specification")
+            maskreg |= (1 << maskch)
+        return [self.params2wave(lenreg=lenreg, maskreg=maskreg)]
 
 class QickProgramV2(AbsQickProgram):
     """Base class for all tProc v2 programs.
@@ -744,11 +775,10 @@ class QickProgramV2(AbsQickProgram):
                 'axis_signal_gen_v5': FullSpeedGenManager,
                 'axis_signal_gen_v6': FullSpeedGenManager,
                 'axis_sg_int4_v1': FullSpeedGenManager,
-                'axis_sg_mux4_v1': FullSpeedGenManager,
-                'axis_sg_mux4_v2': FullSpeedGenManager,
-                'axis_sg_mux4_v3': FullSpeedGenManager,
+                'axis_sg_mux4_v1': MultiplexedGenManager,
+                'axis_sg_mux4_v2': MultiplexedGenManager,
+                'axis_sg_mux4_v3': MultiplexedGenManager,
                 }
-    # TODO: actually write a gen manager for mux!
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
