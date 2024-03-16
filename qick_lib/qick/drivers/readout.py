@@ -6,6 +6,9 @@ import numpy as np
 from qick import DummyIp, SocIp
 
 class AbsReadout(DummyIp):
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 1
+
     # Configure this driver with the sampling frequency.
     def configure(self, rf):
         self.rf = rf
@@ -16,8 +19,9 @@ class AbsReadout(DummyIp):
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
             self.cfg[p] = self.rf.adccfg[self['adc']][p]
         # decimation reduces the DDS range
-        self.cfg['f_dds'] = self.cfg['fs']/self['decimation']
+        self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']
+        self.cfg['f_output'] = self['fs']/(self['decimation']*self.DOWNSAMPLING)
 
     def initialize(self):
         """
@@ -63,6 +67,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
     # Bits of DDS.
     B_DDS = 32
 
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 8
+
     # this readout is not controlled by the tProc.
     tproc_ch = None
 
@@ -92,17 +99,6 @@ class AxisReadoutV2(SocIp, AbsReadout):
         if soc.hs_adc:
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
-
-        """
-        # what buffer does this readout drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
-        blocktype = soc.metadata.mod2type(block)
-        if blocktype == "axis_broadcaster":
-                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.buffer = getattr(soc, block)
-
-        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
-        """
 
     def update(self):
         """
@@ -197,6 +193,9 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
     # Bits of DDS. 
     B_DDS = 32
 
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 4
+
     # index of the PFB channel that is centered around DC.
     CH_OFFSET = 4
 
@@ -230,16 +229,6 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         if soc.hs_adc:
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
-
-        """
-        # what buffers does this readout drive?
-        self.buffers=[]
-        for iBuf in range(4):
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis'%(iBuf))
-            self.buffers.append(getattr(soc, block))
-
-        #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
-        """
 
     def initialize(self):
         """
@@ -373,8 +362,11 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         # Generics.
         self.N = int(description['parameters']['N'])
 
+        # Downsampling ratio (RFDC samples per decimated readout sample)
+        self.DOWNSAMPLING = self.N//2
+
         # index of the PFB channel that is centered around DC.
-        self.CH_OFFSET = self.N/2
+        self.CH_OFFSET = self.N//2
 
         self.initialize()
 
@@ -384,7 +376,7 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         # The PFB decimation ratio is half the number of channels because it is
         # an overlap 50 % structure.
         self.cfg['f_dds'] /= self.N/2
-        self.cfg['fdds_div'] *= self.N/2
+        self.cfg['fdds_div'] *= self.N//2
 
     def configure_connections(self, soc):
         self.soc = soc
@@ -400,19 +392,6 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         if soc.hs_adc:
             iBlock //= 2
         self.adc = "%d%d" % (iTile, iBlock)
-
-        """
-        # what buffers does this readout drive?
-        self.buffers=[]
-        for iBuf in range(4):
-            ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis'%(iBuf))
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype == "axis_broadcaster":
-                ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-            self.buffers.append(getattr(soc, block))
-
-        #print("%s: ADC tile %s block %s, buffers[0] %s"%(self.fullpath, *self.adc, self.buffers[0].fullpath))
-        """
 
     def initialize(self):
         """
@@ -498,6 +477,9 @@ class AxisReadoutV3(AbsReadout):
     """
     # Bits of DDS.
     B_DDS = 32
+
+    # Downsampling ratio (RFDC samples per decimated readout sample)
+    DOWNSAMPLING = 8
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
