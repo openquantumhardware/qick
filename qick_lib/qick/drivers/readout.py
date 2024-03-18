@@ -901,6 +901,8 @@ class MrBufferEt(SocIp):
         # Preallocate memory buffers for DMA transfers.
         self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)
 
+        # Switch for selecting input.
+        self.switch = None
         # Map from avg_buf name to switch port.
         self.buf2switch = {}
         self.cfg['readouts'] = []
@@ -964,7 +966,11 @@ class MrBufferEt(SocIp):
         self.switch.sel(slv=ch)
 
     def set_switch(self, bufname):
-        self.route(self.buf2switch[bufname])
+        # if there's no switch, just check that the specified buffer is the one that's hardwired
+        if self.switch is None:
+            assert self.buf2switch[bufname]==0
+        else:
+            self.route(self.buf2switch[bufname])
 
     def transfer(self, start=None):
         if start is None: start = self['junk_len']
@@ -1029,6 +1035,7 @@ class AxisBufferDdrV1(SocIp):
         self.switch = None
         # Map from avg_buf name to switch port.
         self.buf2switch = {}
+        self.cfg['readouts'] = []
 
         # Generics.
         self.TARGET_SLAVE_BASE_ADDR   = int(description['parameters']['TARGET_SLAVE_BASE_ADDR'],0)
@@ -1037,7 +1044,6 @@ class AxisBufferDdrV1(SocIp):
         self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1 # words per AXI burst
 
         self.cfg['burst_len'] = self.DATA_WIDTH*self.BURST_SIZE//32
-        self.cfg['readouts'] = []
         self.cfg['junk_len'] = 50*self.DATA_WIDTH//32 + 1 # not clear where this 50 comes from, presumably some FIFO somewhere
         self.cfg['junk_nt'] = int(np.ceil(self['junk_len']/self.cfg['burst_len']))
 
@@ -1124,7 +1130,8 @@ class AxisBufferDdrV1(SocIp):
         # if there's no switch, just check that the specified buffer is the one that's hardwired
         if self.switch is None:
             assert self.buf2switch[bufname]==0
-        self.switch.sel(slv=self.buf2switch[bufname])
+        else:
+            self.switch.sel(slv=self.buf2switch[bufname])
 
     def clear_mem(self, length=None):
         if length is None:
