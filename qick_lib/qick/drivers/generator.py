@@ -177,12 +177,14 @@ class AbsPulsedSignalGen(AbsSignalGen):
     """
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
+    B_PHASE = None
 
     def configure(self, ch, rf):
         super().configure(ch, rf)
         # DDS sampling frequency.
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
+        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         self.cfg['switch_ch'] = self.switch_ch
         self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
         self.cfg['maxv'] = self.MAXV
@@ -221,6 +223,7 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     SAMPS_PER_CLK = 16
     B_DDS = 32
+    B_PHASE = 32
 
     def __init__(self, description):
         """
@@ -271,6 +274,7 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     FS_INTERPOLATION = 4
     MAXV_SCALE = 0.9
     B_DDS = 16
+    B_PHASE = 16
 
     def __init__(self, description):
         """

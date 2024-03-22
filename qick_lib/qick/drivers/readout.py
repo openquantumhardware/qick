@@ -8,6 +8,7 @@ from qick import DummyIp, SocIp
 class AbsReadout(DummyIp):
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 1
+    B_PHASE = None
 
     # Configure this driver with the sampling frequency.
     def configure(self, rf):
@@ -16,6 +17,7 @@ class AbsReadout(DummyIp):
         #self.fs = fs
         self.cfg['adc'] = self.adc
         self.cfg['b_dds'] = self.B_DDS
+        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
             self.cfg[p] = self.rf.adccfg[self['adc']][p]
         # decimation reduces the DDS range
@@ -66,6 +68,7 @@ class AxisReadoutV2(SocIp, AbsReadout):
 
     # Bits of DDS.
     B_DDS = 32
+    B_PHASE = 32
 
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 8
@@ -343,6 +346,7 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
 
     # Bits of DDS. 
     B_DDS = 32
+    B_PHASE = 32
 
     # Number of lanes of PFB output.
     L_PFB = 8
@@ -477,9 +481,10 @@ class AxisReadoutV3(AbsReadout):
     """
     # Bits of DDS.
     B_DDS = 32
+    B_PHASE = 32
 
     # Downsampling ratio (RFDC samples per decimated readout sample)
-    DOWNSAMPLING = 8
+    DOWNSAMPLING = 4
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
