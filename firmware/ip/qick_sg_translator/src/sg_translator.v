@@ -32,7 +32,11 @@ module sg_translator # (
    // OUT DATA mux4_v1 (SEL:2)   
    output wire [39:0]   m_mux4_axis_tdata    ,
    output wire          m_mux4_axis_tvalid   ,
-   input  wire          m_mux4_axis_tready       
+   input  wire          m_mux4_axis_tready   ,
+   // OUT DATA readout_v3 (SEL:3)   
+   output wire [87:0]   m_readout_axis_tdata    ,
+   output wire          m_readout_axis_tvalid   ,
+   input  wire          m_readout_axis_tready       
 );
 
 // GET Data from tPtoc_v2
@@ -60,13 +64,15 @@ assign outsel  = conf[1:0] ;
 assign gen_v6_en = (OUT_TYPE == 0) ;
 assign int4_en   = (OUT_TYPE == 1) ;
 assign mux4_en   = (OUT_TYPE == 2) ;
+assign readout_en   = (OUT_TYPE == 3) ;
 
 // OUTPUTS
 
 ///////////////////////////////////////////////////////////////////////////////
 assign s_axis_tready =  ( gen_v6_en ) ? m_gen_v6_axis_tready : (
                         ( int4_en   ) ? m_int4_axis_tready   : (
-                        ( mux4_en   ) ? m_mux4_axis_tready   : 0 )); 
+                        ( mux4_en   ) ? m_mux4_axis_tready   : (
+                        ( readout_en   ) ? m_readout_axis_tready   : 0 ))); 
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -125,5 +131,22 @@ assign m_mux4_axis_tdata[39:32]  = conf   [7: 0]   ;
 assign m_mux4_axis_tdata[31:0]   = nsamp  [31:0]   ;
 
 assign m_mux4_axis_tvalid = mux4_en ? s_axis_tvalid : 0 ;
+
+///////////////////////////////////////////////////////////////////////////////
+// axis_readout_v3
+// |----------|-------|------|----------|----------|----------|---------|
+// | 87 .. 84 |    83 |   82 | 81 .. 80 | 79 .. 64 | 63 .. 32 | 31 .. 0 |
+// |----------|-------|------|----------|----------|----------|---------|
+// |     xxxx | phrst | mode |   outsel |    nsamp |    phase |    freq |
+// |----------|-------|------|----------|----------|----------|---------|	
+assign m_readout_axis_tdata[87:84]   = 0            ;
+assign m_readout_axis_tdata[83]      = phrst        ;
+assign m_readout_axis_tdata[82]      = mode         ;
+assign m_readout_axis_tdata[81:80]   = outsel       ;
+assign m_readout_axis_tdata[79:64 ]  = nsamp [15:0] ;
+assign m_readout_axis_tdata[ 63: 32] = phase [31:0] ;
+assign m_readout_axis_tdata[ 31:  0] = freq  [31:0] ;
+
+assign m_readout_axis_tvalid = readout_en ? s_axis_tvalid : 0 ;
 
 endmodule
