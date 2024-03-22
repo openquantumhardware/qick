@@ -10,7 +10,7 @@ from fractions import Fraction
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
-from .helpers import to_int, check_bytes
+from .helpers import to_int, check_bytes, check_keys
 
 logger = logging.getLogger(__name__)
 
@@ -346,6 +346,22 @@ class Pulse(Macro):
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
+class ConfigReadout(Macro):
+    # ch, name, t
+    def preprocess(self, prog):
+        t = self.t
+        self.convert_time(prog, t, "t")
+
+    def expand(self, prog):
+        insts = []
+        pulse = prog.pulses[self.name]
+        tproc_ch = prog.soccfg['readouts'][self.ch]['tproc_ctrl']
+        insts.append(self.set_timereg(prog, "t"))
+        for wavename in pulse:
+            idx = prog.wave2idx[wavename]
+            insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
+        return insts
+
 class Trigger(Macro):
     # ros, pins, t, width, ddr4, mr
     def preprocess(self, prog):
@@ -540,43 +556,10 @@ class AbsRegisterManager(ABC):
     def params2pulse(self, params):
         ...
 
-class AbsGenManager(AbsRegisterManager):
-    """Manages the envelope and pulse information for a signal generator channel.
-    """
-    PARAMS_REQUIRED = {}
-    PARAMS_OPTIONAL = {}
-
-    def __init__(self, prog, gen_ch):
-        self.ch = gen_ch
-        self.gencfg = prog.soccfg['gens'][gen_ch]
-        tproc_ch = self.gencfg['tproc_ch']
-        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
-        self.samps_per_clk = self.gencfg['samps_per_clk']
-
-        # dictionary of defined envelopes
-        self.envelopes = prog.envelopes[gen_ch]['envs']
-
-    def check_params(self, params):
-        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
-        Raise an exception if there is a problem.
-
-        Parameters
-        ----------
-        params : dict
-            Parameter values
-
-        """
-        style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
-
     def cfg2reg(self, outsel, mode, stdysel, phrst):
         """Creates generator config register value, by setting flags.
+        The bit ordering here is the one expected by the input to sg_translator.
+        The translator will remap the bits to whatever the peripheral expects.
 
         Parameters
         ----------
@@ -619,6 +602,36 @@ class AbsGenManager(AbsRegisterManager):
         mode_reg = {"oneshot": 0, "periodic": 1}[mode]
         stdysel_reg = {"last": 0, "zero": 1}[stdysel]
         return phrst*0b010000 + stdysel_reg*0b01000 + mode_reg*0b00100 + outsel_reg
+
+class AbsGenManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = {}
+    PARAMS_OPTIONAL = {}
+
+    def __init__(self, prog, gen_ch):
+        self.ch = gen_ch
+        self.gencfg = prog.soccfg['gens'][gen_ch]
+        tproc_ch = self.gencfg['tproc_ch']
+        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
+        self.samps_per_clk = self.gencfg['samps_per_clk']
+
+        # dictionary of defined envelopes
+        self.envelopes = prog.envelopes[gen_ch]['envs']
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+        """
+        style = params['style']
+        required = set(self.PARAMS_REQUIRED[style])
+        allowed = required | set(self.PARAMS_OPTIONAL[style])
+        check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
 
 class FullSpeedGenManager(AbsGenManager):
     """Manager for the full-speed (non-interpolated, non-muxed) signal generators.
@@ -774,6 +787,58 @@ class MultiplexedGenManager(AbsGenManager):
             maskreg |= (1 << maskch)
         return [self.params2wave(lenreg=lenreg, maskreg=maskreg)]
 
+class ReadoutManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = ['freq']
+    PARAMS_OPTIONAL = ['length', 'phase', 'phrst', 'mode', 'outsel', 'gen_ch']
+
+    def __init__(self, prog, ro_ch):
+        self.ch = ro_ch
+        self.rocfg = prog.soccfg['readouts'][self.ch]
+        tproc_ch = self.rocfg['tproc_ctrl']
+        super().__init__(prog, tproc_ch, "readout %d"%(self.ch))
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+        """
+        check_keys(params.keys(), self.PARAMS_REQUIRED, self.PARAMS_OPTIONAL)
+
+    def params2pulse(self, par):
+        """Write whichever pulse registers are fully determined by the defined parameters.
+
+        Parameters
+        ----------
+        par : dict
+            Pulse parameters
+        """
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=par['freq'], gen_ch=par.get('gen_ch'))
+        if 'phase' in par:
+            phasereg = self.prog.deg2reg(gen_ch=None, ro_ch=self.ch, deg=par['phase'])
+        else:
+            phasereg = 0
+        if 'length' in par:
+            lenreg = self.prog.us2cycles(ro_ch=self.ch, us=par['length'])
+        else:
+            lenreg = 3
+        if isinstance(lenreg, QickSweepRaw):
+            if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        else:
+            if lenreg >= 2**16 or lenreg < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+
+        confpars = {k:par.get(k) for k in ['outsel', 'mode', 'phrst']}
+        confpars['stdysel'] = None
+        confreg = self.cfg2reg(**confpars)
+        return [Waveform(freqreg, phasereg, 0, 0, lenreg, confreg)]
+
 class QickProgramV2(AbsQickProgram):
     """Base class for all tProc v2 programs.
 
@@ -836,6 +901,7 @@ class QickProgramV2(AbsQickProgram):
 
         # generator managers handle a gen's envelopes and add_pulse logic
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(self.soccfg['readouts'])]
 
         # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
         self.waves = OrderedDict()
@@ -1029,6 +1095,31 @@ class QickProgramV2(AbsQickProgram):
             for a muxed signal generator, the list of tones to enable for this pulse
         """
         self._gen_mgrs[ch].add_pulse(name, kwargs)
+
+    def add_readoutconfig(self, ch, name, **kwargs):
+        """Add a readout config to the program's pulse library.
+        The "mode" and "length" parameters have no useful effect and should probably never be used.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            name of the config
+        freq : float or QickSweep
+            Frequency (MHz)
+        phase : float or QickSweep
+            Phase (degrees)
+        phrst : int
+            If 1, it resets the DDS phase. The default is 0.
+        mode : str
+            Selects whether the output is "oneshot" (the default) or "periodic."
+        outsel : str
+            Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
+        length : float or QickSweep
+            The duration (us) of the config pulse. The default is the shortest possible length.
+        """
+        self._ro_mgrs[ch].add_pulse(name, kwargs)
 
     # register management
 
@@ -1295,10 +1386,24 @@ class QickProgramV2(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             pulse name (as used in add_pulse())
-        t : float or "auto"
+        t : float, QickSweep, or "auto"
             time (us), or the end of the last pulse on this generator
         """
         self.add_macro(Pulse(ch=ch, name=name, t=t))
+
+    def set_readoutconfig(self, ch, name, t=0):
+        """Send a previously defined readout config to a readout.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            config name (as used in add_readoutconfig())
+        t : float or QickSweep
+            time (us)
+        """
+        self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
 
     def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
         """Pulse readout triggers and output pins.
@@ -1309,9 +1414,9 @@ class QickProgramV2(AbsQickProgram):
             readout channels to trigger (index in 'readouts' list)
         pins : list of int
             output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float
+        t : float or QickSweep
             time (us)
-        width : float
+        width : float or QickSweep
             pulse width (us), default of 10 cycles of the tProc timing clock
         ddr4 : bool
             trigger the DDR4 buffer

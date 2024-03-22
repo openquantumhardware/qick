@@ -9,7 +9,7 @@ from typing import Union, List
 from abc import ABC, abstractmethod
 
 from .qick_asm import AbsQickProgram, AcquireMixin
-from .helpers import ch2list
+from .helpers import ch2list, check_keys
 from .parser import parse_prog
 
 RegisterType = ["freq", "time", "phase", "adc_freq"]
@@ -130,13 +130,7 @@ class ReadoutManager(AbsRegisterManager):
             Parameter values
 
         """
-        required = set(self.PARAMS_REQUIRED)
-        allowed = required | set(self.PARAMS_OPTIONAL)
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+        check_keys(params.keys(), self.PARAMS_REQUIRED, self.PARAMS_OPTIONAL)
 
     def write_regs(self, params, defaults):
         if 'freq' in params:
@@ -224,13 +218,7 @@ class AbsGenManager(AbsRegisterManager):
 
         """
         style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+        check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.

@@ -439,7 +439,32 @@ class QickConfig():
         """
         return self.roundfreq(f, [self['gens'][gen_ch], self['readouts'][ro_ch]])
 
-    def deg2reg(self, deg, gen_ch=0):
+    def _get_ch_cfg(self, gen_ch=None, ro_ch=None):
+        """Helper method to grab the config dictionary for a generator or readout.
+
+        Parameters
+        ----------
+        gen_ch : int
+             generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        dict
+            Config dictionary, or None if neither paramater was defined
+
+        """
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        elif gen_ch is not None:
+            return self['gens'][gen_ch]
+        elif ro_ch is not None:
+            return self['readouts'][ro_ch]
+        else:
+            return None
+
+    def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
         Parameters
@@ -448,21 +473,21 @@ class QickConfig():
             Number of degrees
         gen_ch : int
              generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
 
         Returns
         -------
         int
             Re-formatted number of degrees
-
         """
-        gen_type = self['gens'][gen_ch]['type']
-        if gen_type == 'axis_sg_int4_v1':
-            b_phase = 16
-        else:
-            b_phase = 32
+        ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
+        if ch_cfg is None:
+            raise RuntimeError("must specify either gen_ch or ro_ch!")
+        b_phase = ch_cfg['b_phase']
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
-    def reg2deg(self, reg, gen_ch=0):
+    def reg2deg(self, reg, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
 
         Parameters
@@ -471,18 +496,18 @@ class QickConfig():
             Re-formatted number of degrees
         gen_ch : int
              generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
 
         Returns
         -------
         float
             Number of degrees
-
         """
-        gen_type = self['gens'][gen_ch]['type']
-        if gen_type == 'axis_sg_int4_v1':
-            b_phase = 16
-        else:
-            b_phase = 32
+        ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
+        if ch_cfg is None:
+            raise RuntimeError("must specify either gen_ch or ro_ch!")
+        b_phase = ch_cfg['b_phase']
         return reg*360/2**b_phase
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):

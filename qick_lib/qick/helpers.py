@@ -225,3 +225,24 @@ def ch2list(ch: Union[List[int], int]) -> List[int]:
     except TypeError:
         ch_list = ch
     return ch_list
+
+def check_keys(keys, required, optional):
+    """Check whether the keys defined for a pulse are supported and sufficient for this generator and pulse type.
+    Raise an exception if there is a problem.
+
+    Parameters
+    ----------
+    params : set-like
+        Parameter keys defined for this pulse
+    required : list
+        Required keys (these must be present)
+    optional : list
+        Optional keys (these are not required, but may be present)
+    """
+    required = set(required)
+    allowed = required | set(optional)
+    defined = set(keys)
+    if required - defined:
+        raise RuntimeError("missing required pulse parameter(s)", required - defined)
+    if defined - allowed:
+        raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
