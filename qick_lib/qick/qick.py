@@ -115,19 +115,9 @@ class RFDC(xrfdc.RFdc):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
-        The RFdc driver does its own math to convert a frequency to a register value.
-        (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
-        This is what it does:
-        1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
-        2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
-        3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
-
-        Step 2 is not desirable for us, so we must undo it.
-
-        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
-        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
-        The safest way to get consistent behavior is to always round to a valid NCO frequency.
-        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
+        Note that the RFdc driver does its own math to round the frequency to the NCO's frequency step.
+        If you want predictable behavior, the frequency you use here should already be rounded.
+        Rounding is normally done for you as part of AbsQickProgram.declare_gen().
 
         :param dacname: DAC channel (2-digit string)
         :type dacname: int
@@ -138,14 +128,8 @@ class RFDC(xrfdc.RFdc):
         :param reset: if we change the frequency, also reset the NCO's phase accumulator
         :type reset: bool
         """
-        fs = self.daccfg[dacname]['fs']
-        fstep = fs/2**48
-        rounded_f = round(f/fstep)*fstep
-        if not force and rounded_f == self.get_mixer_freq(dacname):
+        if not force and f == self.get_mixer_freq(dacname):
             return
-        fset = rounded_f
-        if abs(rounded_f) > fs/2 and self.get_nyquist(dacname)==2:
-            fset *= -1
 
         tile, channel = [int(a) for a in dacname]
         # Make a copy of mixer settings.
@@ -155,7 +139,7 @@ class RFDC(xrfdc.RFdc):
         # Update the copy
         new_mixcfg.update({
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
-            'Freq': fset,
+            'Freq': f,
             'MixerType': xrfdc.MIXER_TYPE_FINE,
             'PhaseOffset': 0})
 
@@ -163,7 +147,7 @@ class RFDC(xrfdc.RFdc):
         if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
-        self.mixer_dict[dacname] = rounded_f
+        self.mixer_dict[dacname] = f
 
     def get_mixer_freq(self, dacname):
         try:
