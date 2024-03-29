@@ -77,7 +77,7 @@ class QickSweep(NamedTuple):
         spanmax = max([max(r, 0) for r in self.spans.values()])
         return self.start + spanmax
     def __gt__(self, a):
-        # used when comparing timestamps
+        # used when comparing timestamps, or range-checking before converting to raw
         # compares a to the min possible value of the sweep
         return self.minval() > a
     def __lt__(self, a):
@@ -109,10 +109,15 @@ class SimpleClass:
 class QickSweepRaw(SimpleClass):
     _fields = ['par', 'start', 'spans', 'quantize', 'steps']
     def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
+        # identifies the parameter being swept, so EndLoop can apply the sweep
         self.par = par
+        # the initial value, which will be written to the register or waveform memory
         self.start = start
+        # dict of sweep spans to cover in each loop
         self.spans = spans
+        # when sweeping, the step size will be rounded to a multiple of this value
         self.quantize = quantize
+        # dict of sweep steps for each loop, computed by to_steps() after the loop lengths are known
         self.steps = steps
 
     def to_steps(self, loops):
@@ -143,6 +148,10 @@ class QickSweepRaw(SimpleClass):
         # this will only happen after steps have been defined
         spans = {k:v['span']/a for k,v in self.steps.items()}
         return QickSweep(self.start/a, spans)
+    def __iadd__(self, a):
+        # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
+        self.start += a
+        return self
     def minval(self):
         # used to check for out-of-range values
         spanmin = min([min(r, 0) for r in self.spans.values()])
@@ -818,11 +827,30 @@ class ReadoutManager(AbsRegisterManager):
         par : dict
             Pulse parameters
         """
+        # convert the requested freq, frequency-matching to the generator if specified
+        # freqreg may be an int or a QickSweepRaw
         freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=par['freq'], gen_ch=par.get('gen_ch'))
+        # if the matching generator has a mixer, that frequency needs to be added to this one
+        # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
+        # the relevant quantization step is still going to be the readout+generator step
+        if 'gen_ch' in par and self.prog.gen_chs[par['gen_ch']]['mixer_freq'] is not None:
+            # this will always be an integer
+            freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded'])
+
+        """
+        freq = self.prog.soccfg.adcfreq(f=par['freq'], ro_ch=self.ch, gen_ch=par.get('gen_ch'))
+        # if the matching generator has a mixer, that frequency needs to be added to this one
+        # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
+        if 'gen_ch' in par and self.prog.gen_chs[par['gen_ch']]['mixer_freq'] is not None:
+            freq += self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=freq)
+        """
+
         if 'phase' in par:
             phasereg = self.prog.deg2reg(gen_ch=None, ro_ch=self.ch, deg=par['phase'])
         else:
             phasereg = 0
+
         if 'length' in par:
             lenreg = self.prog.us2cycles(ro_ch=self.ch, us=par['length'])
         else:

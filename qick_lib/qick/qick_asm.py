@@ -352,9 +352,10 @@ class QickConfig():
         else:
             rocfg = self['readouts'][ro_ch]
         gencfg = self['gens'][gen_ch]
-        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        #if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['f_dds']/2:
+            if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -801,7 +802,7 @@ class AbsQickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
@@ -828,12 +829,70 @@ class AbsQickProgram:
         """
         cfg = {
                 'nqz': nqz,
-                'mixer_freq': mixer_freq,
                 'mux_freqs': mux_freqs,
                 'mux_gains': mux_gains,
                 'ro_ch': ro_ch
                 }
+        gencfg = self.soccfg['gens'][ch]
+        if gencfg['has_mixer']:
+            if mixer_freq is None:
+                raise RuntimeError("generator %d has a mixer, but no mixer_freq was defined" % (ch))
+            cfg['mixer_freq'] = self._calc_mixer_freq(mixer_freq, nqz, ch, ro_ch)
+
         self.gen_chs[ch] = cfg
+
+    def _get_mixerdict(self, gen_ch):
+        """
+        Create a fake config dictionary for a generator's NCO, for use in frequency matching.
+        """
+        gencfg = self.soccfg['gens'][gen_ch]
+        mixercfg = {}
+        mixercfg['fs_mult'] = gencfg['fs_mult']
+        mixercfg['fdds_div'] = gencfg['fs_div']
+        mixercfg['b_dds'] = 48
+        return mixercfg
+
+    def _calc_mixer_freq(self, mixer_freq, nqz, gen_ch, ro_ch):
+        """
+        Set the NCO frequency that will be mixed with the generator output.
+
+        The RFdc driver does its own math to convert a frequency to a register value.
+        (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
+        This is what it does:
+        1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
+        2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
+        3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
+
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
+        The safest way to get consistent behavior is to always round to a valid NCO frequency.
+        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param f: NCO frequency
+        :type f: float
+        :param force: force update, even if the setting is the same
+        :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
+        """
+        cfg = {}
+        cfg['userval'] = mixer_freq
+        gencfg = self.soccfg['gens'][gen_ch]
+        if ro_ch is None:
+            rounded_f = f
+        else:
+            mixercfg = self._get_mixerdict(gen_ch)
+            rounded_f = self.soccfg.roundfreq(mixer_freq, [mixercfg, self.soccfg['readouts'][ro_ch]])
+        cfg['rounded'] = rounded_f
+        if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
+            cfg['setval'] = -rounded_f
+        else:
+            cfg['setval'] = rounded_f
+        return cfg
 
     def config_gens(self, soc):
         """Configure the signal generators specified in this program.
@@ -847,7 +906,8 @@ class AbsQickProgram:
         """
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg['nqz'])
-            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if 'mixer_freq' in cfg:
+                soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if cfg['mux_freqs'] is not None:
                 soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
 
