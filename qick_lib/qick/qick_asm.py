@@ -465,6 +465,17 @@ class QickConfig():
         else:
             return None
 
+    def _get_mixer_cfg(self, gen_ch):
+        """
+        Create a fake config dictionary for a generator's NCO, for use in frequency matching.
+        """
+        gencfg = self['gens'][gen_ch]
+        mixercfg = {}
+        mixercfg['fs_mult'] = gencfg['fs_mult']
+        mixercfg['fdds_div'] = gencfg['fs_div']
+        mixercfg['b_dds'] = 48
+        return mixercfg
+
     def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
@@ -841,17 +852,6 @@ class AbsQickProgram:
 
         self.gen_chs[ch] = cfg
 
-    def _get_mixerdict(self, gen_ch):
-        """
-        Create a fake config dictionary for a generator's NCO, for use in frequency matching.
-        """
-        gencfg = self.soccfg['gens'][gen_ch]
-        mixercfg = {}
-        mixercfg['fs_mult'] = gencfg['fs_mult']
-        mixercfg['fdds_div'] = gencfg['fs_div']
-        mixercfg['b_dds'] = 48
-        return mixercfg
-
     def _calc_mixer_freq(self, mixer_freq, nqz, gen_ch, ro_ch):
         """
         Set the NCO frequency that will be mixed with the generator output.
@@ -885,7 +885,7 @@ class AbsQickProgram:
         if ro_ch is None:
             rounded_f = f
         else:
-            mixercfg = self._get_mixerdict(gen_ch)
+            mixercfg = self.soccfg._get_mixer_cfg(gen_ch)
             rounded_f = self.soccfg.roundfreq(mixer_freq, [mixercfg, self.soccfg['readouts'][ro_ch]])
         cfg['rounded'] = rounded_f
         if abs(rounded_f) > gencfg['fs']/2 and nqz==2:

@@ -75,8 +75,10 @@ class AbsSignalGen(SocIp):
         if ro_ch is None:
             self.rf.set_mixer_freq(self.dac, f)
         else:
-            # TODO: do the rounding
-            pass
+            mixercfg = self.soc._get_mixer_cfg(self.ch)
+            rocfg = self.soc['readouts'][ro_ch]
+            rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
+            self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
