@@ -8,7 +8,10 @@ from qick import DummyIp, SocIp
 class AbsReadout(DummyIp):
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 1
+    # Number of bits in the phase register
     B_PHASE = None
+    # Some readouts put a small nonzero offset on the I and Q values due to rounding.
+    OFFSET = 0.0
 
     # Configure this driver with the sampling frequency.
     def configure(self, rf):
@@ -24,6 +27,7 @@ class AbsReadout(DummyIp):
         self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']
         self.cfg['f_output'] = self['fs']/(self['decimation']*self.DOWNSAMPLING)
+        self.cfg['offset'] = self.OFFSET
 
     def initialize(self):
         """
@@ -485,6 +489,8 @@ class AxisReadoutV3(AbsReadout):
 
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 4
+
+    OFFSET = -0.5
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
