@@ -642,10 +642,9 @@ class AbsGenManager(AbsRegisterManager):
         allowed = required | set(self.PARAMS_OPTIONAL[style])
         check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
 
-class FullSpeedGenManager(AbsGenManager):
-    """Manager for the full-speed (non-interpolated, non-muxed) signal generators.
+class StandardGenManager(AbsGenManager):
+    """Manager for the full-speed and interpolated signal generators.
     """
-    # TODO: rename, since this works for int4 as well
     PARAMS_REQUIRED = {'const': ['style', 'freq', 'phase', 'gain', 'length'],
             'arb': ['style', 'freq', 'phase', 'gain', 'envelope'],
             'flat_top': ['style', 'freq', 'phase', 'gain', 'length', 'envelope']}
@@ -875,10 +874,10 @@ class QickProgramV2(AbsQickProgram):
     soccfg : QickConfig
         The QICK firmware configuration dictionary.
     """
-    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
-                'axis_signal_gen_v5': FullSpeedGenManager,
-                'axis_signal_gen_v6': FullSpeedGenManager,
-                'axis_sg_int4_v1': FullSpeedGenManager,
+    gentypes = {'axis_signal_gen_v4': StandardGenManager,
+                'axis_signal_gen_v5': StandardGenManager,
+                'axis_signal_gen_v6': StandardGenManager,
+                'axis_sg_int4_v1': StandardGenManager,
                 'axis_sg_mux4_v1': MultiplexedGenManager,
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
