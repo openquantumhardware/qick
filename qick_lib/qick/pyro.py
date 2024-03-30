@@ -3,10 +3,12 @@ import Pyro4
 import Pyro4.naming
 from .qick_asm import QickConfig
 # QickSoc is needed for the server but not the client
+# the client needs it to be defined because it's in the start_server definition
+# but it doesn't need to be anything, so we use None as a dummy value
 try:
     from .qick import QickSoc
 except:
-    pass
+    QickSoc = None
 
 def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     """Starts a Pyro4 nameserver.
@@ -25,7 +27,7 @@ def start_nameserver(ns_host='0.0.0.0', ns_port=8888):
     Pyro4.config.PICKLE_PROTOCOL_VERSION=4
     Pyro4.naming.startNSloop(host=ns_host, port=ns_port)
 
-def start_server(ns_host, ns_port=8888, proxy_name='myqick', **kwargs):
+def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, **kwargs):
     """Initializes the QickSoc and starts a Pyro4 proxy server.
 
     Parameters
@@ -38,6 +40,8 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', **kwargs):
     proxy_name : str
         name for the QickSoc proxy
         multiple boards can use the same nameserver, but must have different names
+    soc_class : class
+        class to proxy, if you want to use a class other than QickSoc (e.g. if you need to use RFQickSoc)
     kwargs : optional named arguments
         any other options will be passed to the QickSoc constructor;
         see QickSoc documentation for details
@@ -65,7 +69,7 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', **kwargs):
     daemon = Pyro4.Daemon(host=host)
 
     # if you want to use a different firmware image or set some initialization options, you would do that here
-    soc = QickSoc(**kwargs)
+    soc = soc_class(**kwargs)
     print("initialized QICK")
 
     # register the QickSoc in the daemon (so the daemon exposes the QickSoc over Pyro4)

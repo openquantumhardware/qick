@@ -10,6 +10,7 @@ module avg (
 	trigger_i	,
 
 	// Data input.
+	din_valid_i	,
 	din_i		,
 
 	// Memory interface.
@@ -40,6 +41,7 @@ input				clk;
 
 input				trigger_i;
 
+input				din_valid_i;
 input	[2*B-1:0]	din_i;
 
 output				mem_we_o;
@@ -134,7 +136,7 @@ always @(posedge clk) begin
 					state <= AVG_ST;
 
 			AVG_ST:
-				if ( cnt == len_r-1 )
+				if ( cnt == len_r-1 && din_valid_i == 1'b1 )
 					state <= QOUT_ST;
 
 			QOUT_ST:
@@ -152,10 +154,13 @@ always @(posedge clk) begin
 		endcase
 
 		// Counter.
-		if ( avg_state == 1'b1 )
-			cnt	<= cnt + 1;
-		else
+		if ( avg_state == 1'b1 ) begin
+			if ( din_valid_i == 1'b1)
+				cnt	<= cnt + 1;
+		end
+		else begin
 			cnt <= 0;
+		end
 
 		// Registers.
 		if ( start_state == 1'b1 ) begin
@@ -171,7 +176,7 @@ always @(posedge clk) begin
 			acc_i	<= 0;
 			acc_q	<= 0;
 		end
-		else if ( avg_state == 1'b1 ) begin
+		else if ( avg_state == 1'b1 && din_valid_i == 1'b1 ) begin
 			acc_i	<= acc_i + din_ii;
 			acc_q	<= acc_q + din_qq;
 		end

@@ -166,6 +166,104 @@ class QickMetadata:
             return self.systemgraph.blocks[blockname].vlnv.name
         return self.busparser.mod2type[blockname]
 
+    def trace_back(self, start_block, start_port, goal_types):
+        """Follow the AXI-Stream bus backwards from a given block and port.
+        Raise an error if none of the requested IP types is found.
+
+        Parameters
+        ----------
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the input port to start tracing from,
+        goal_types : list of str
+            IP types that we're interested in.
+
+        Returns
+        -------
+        str
+            The fullpath for the block we found.
+        str
+            The output port on the block we found.
+        str
+            The IP type we found.
+        """
+        block = start_block
+        port = start_port
+        ((block, port),) = self.trace_bus(block, port)
+        while True:
+            blocktype = self.mod2type(block)
+            if blocktype in goal_types:
+                return (block, port, blocktype)
+            elif blocktype == "axis_clock_converter":
+                ((block, port),) = self.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_dwidth_converter":
+                ((block, port),) = self.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_cdcsync_v1":
+                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
+                ((block, port),) = self.trace_bus(block, "s"+port[1:])
+            elif blocktype == "sg_translator":
+                ((block, port),) = self.trace_bus(block, "s_tproc_axis")
+            elif blocktype == "axis_resampler_2x1_v1":
+                ((block, port),) = self.trace_bus(block, 's_axis')
+            elif blocktype == "axis_register_slice":
+                ((block, port),) = self.trace_bus(block, 'S_AXIS')
+            elif blocktype == "axis_broadcaster":
+                ((block, port),) = self.trace_bus(block, 'S_AXIS')
+            else:
+                raise RuntimeError("failed to trace back from %s - unrecognized IP block %s" % (start_block, block))
+
+    def trace_forward(self, start_block, start_port, goal_types):
+        """Follow the AXI-Stream bus forwards from a given block and port.
+        If a broadcaster is encountered, follow all outputs.
+        Raise an error if ~=1 matching block is found.
+
+        Parameters
+        ----------
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the output port to start itracing from,
+        goal_types : list of str
+            IP types that we're interested in.
+
+        Returns
+        -------
+        str
+            The fullpath for the block we found.
+        str
+            The input port on the block we found.
+        str
+            The IP type we found.
+        """
+        block = start_block
+        port = start_port
+        to_check = [(start_block, start_port)]
+        found = []
+        dead_ends = []
+
+        while to_check:
+            block, port = to_check.pop(0)
+            ((block, port),) = self.trace_bus(block, port)
+            blocktype = self.mod2type(block)
+            if blocktype in goal_types:
+                found.append((block, port, blocktype))
+            elif blocktype == "axis_broadcaster":
+                for iOut in range(int(self.get_param(block, 'NUM_MI'))):
+                    to_check.append((block, "M%02d_AXIS" % (iOut)))
+            elif blocktype == "axis_clock_converter":
+                to_check.append((block, "M_AXIS"))
+            elif blocktype == "axis_register_slice":
+                to_check.append((block, "M_AXIS"))
+            elif blocktype == "axis_register_slice_nb":
+                to_check.append((block, "m_axis"))
+            else:
+                dead_ends.append(block)
+        if len(found) != 1:
+            raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
+        return found[0]
+
+
 class BusParser:
     """Parses the HWH XML file to extract information on the buses connecting IP blocks.
     """

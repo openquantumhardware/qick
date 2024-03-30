@@ -165,6 +165,13 @@ class NpEncoder(json.JSONEncoder):
             return obj.to_dict()
         return super().default(obj)
 
+def decode_array(json_array):
+    """
+    Convert a base64-encoded array back into numpy.
+    """
+    data, shape, dtype = json_array
+    return np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
+
 def progs2json(proglist):
     """Dump QICK programs to a JSON string.
 
@@ -202,18 +209,6 @@ def json2progs(s):
         # be sure to read dicts back in order (only matters for Python <3.7)
         proglist = json.loads(s, object_pairs_hook=OrderedDict)
 
-    for progdict in proglist:
-        # tweak data structures that got screwed up by JSON:
-        # in JSON, dict keys are always strings, so we must cast back to int
-        progdict['gen_chs'] = OrderedDict([(int(k),v) for k,v in progdict['gen_chs'].items()])
-        progdict['ro_chs'] = OrderedDict([(int(k),v) for k,v in progdict['ro_chs'].items()])
-        # the envelope arrays need to be restored as numpy arrays with the proper type
-        # TODO: move this code to AcquireMixin.load_prog()?
-        for iCh, envdict in enumerate(progdict['envelopes']):
-            for name, env in envdict.items():
-                #env['data'] = np.array(env['data'], dtype=self._gen_mgrs[iCh].env_dtype)
-                data, shape, dtype = env['data']
-                env['data'] = np.frombuffer(base64.b64decode(data), dtype=np.dtype(dtype)).reshape(shape)
     return proglist
 
 def ch2list(ch: Union[List[int], int]) -> List[int]:
@@ -230,3 +225,24 @@ def ch2list(ch: Union[List[int], int]) -> List[int]:
     except TypeError:
         ch_list = ch
     return ch_list
+
+def check_keys(keys, required, optional):
+    """Check whether the keys defined for a pulse are supported and sufficient for this generator and pulse type.
+    Raise an exception if there is a problem.
+
+    Parameters
+    ----------
+    params : set-like
+        Parameter keys defined for this pulse
+    required : list
+        Required keys (these must be present)
+    optional : list
+        Optional keys (these are not required, but may be present)
+    """
+    required = set(required)
+    allowed = required | set(optional)
+    defined = set(keys)
+    if required - defined:
+        raise RuntimeError("missing required pulse parameter(s)", required - defined)
+    if defined - allowed:
+        raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)

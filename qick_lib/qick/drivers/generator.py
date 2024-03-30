@@ -27,6 +27,7 @@ class AbsSignalGen(SocIp):
         self.rf = rf
 
         self.cfg['dac'] = self.dac
+        self.cfg['has_mixer'] = self.HAS_MIXER
 
         for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
             self.cfg[p] = self.rf.daccfg[self['dac']][p]
@@ -38,18 +39,7 @@ class AbsSignalGen(SocIp):
         self.soc = soc
 
         # what RFDC port does this generator drive?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm_axis')
-        # might need to jump through an axis_register_slice
-        while True:
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype == "usp_rf_data_converter": # we're done
-                break
-            elif blocktype == "axis_register_slice":
-                ((block, port),) = soc.metadata.trace_bus(block, "M_AXIS")
-            elif blocktype == "axis_register_slice_nb":
-                ((block, port),) = soc.metadata.trace_bus(block, "m_axis")
-            else:
-                raise RuntimeError("failed to trace RFDC port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        block, port, _ = soc.metadata.trace_forward(self['fullpath'], 'm_axis', ["usp_rf_data_converter"])
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
@@ -83,15 +73,12 @@ class AbsSignalGen(SocIp):
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
         if ro_ch is None:
-            rounded_f = f
+            self.rf.set_mixer_freq(self.dac, f)
         else:
-            mixercfg = {}
-            mixercfg['fs_mult'] = self['fs_mult']
-            mixercfg['fdds_div'] = self['fs_div']
-            mixercfg['b_dds'] = 48
-            fstep = self.soc.calc_fstep([mixercfg, self.soc['readouts'][ro_ch]])
-            rounded_f = round(f/fstep)*fstep
-        self.rf.set_mixer_freq(self.dac, rounded_f)
+            mixercfg = self.soc._get_mixer_cfg(self.ch)
+            rocfg = self.soc['readouts'][ro_ch]
+            rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
+            self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
@@ -188,12 +175,14 @@ class AbsPulsedSignalGen(AbsSignalGen):
     """
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
+    B_PHASE = None
 
     def configure(self, ch, rf):
         super().configure(ch, rf)
         # DDS sampling frequency.
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
+        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         self.cfg['switch_ch'] = self.switch_ch
         self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
         self.cfg['maxv'] = self.MAXV
@@ -203,38 +192,16 @@ class AbsPulsedSignalGen(AbsSignalGen):
         super().configure_connections(soc)
 
         # what tProc output port drives this generator?
-        # we will eventually also use this to find out which tProc drives this gen, for multi-tProc firmwares
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.TPROC_PORT)
-        while True:
-            blocktype = soc.metadata.mod2type(block)
-            if blocktype in ["axis_tproc64x32_x8", "qick_processor"]: # we're done
-                break
-            elif blocktype == "axis_register_slice":
-                ((block, port),) = soc.metadata.trace_bus(block, "S_AXIS")
-            elif blocktype == "axis_clock_converter":
-                ((block, port),) = soc.metadata.trace_bus(block, 'S_AXIS')
-            elif blocktype == "axis_cdcsync_v1":
-                # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
-                ((block, port),) = soc.metadata.trace_bus(block, "s"+port[1:])
-            elif blocktype == "sg_translator":
-                ((block, port),) = soc.metadata.trace_bus(block, "s_tproc_axis")
-            elif blocktype == "axis_tmux_v1":
-                self.cfg['tmux_ch'] = self.port2ch(port)
-                ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
-            else:
-                raise RuntimeError("failed to trace tProc port for %s - ran into unrecognized IP block %s" % (self.fullpath, block))
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], self.TPROC_PORT, ["axis_tproc64x32_x8", "qick_processor", "axis_tmux_v1"])
+
+        if blocktype == "axis_tmux_v1":
+            # which tmux port drives this generator?
+            # port names are of the form 'm2_axis'
+            self.cfg['tmux_ch'] = int(port.split('_')[0][1:])
+            ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
+
         # ask the tproc to translate this port name to a channel number
         self.cfg['tproc_ch'],_ = getattr(soc, block).port2ch(port)
-
-    def port2ch(self, portname):
-        """
-        Translate a port name to a channel number.
-        Used in connection mapping.
-        """
-        # port names are of the form 'm2_axis' (for outputs) and 's2_axis (for inputs)
-        # subtract 1 to get the output channel number (s0/m0 goes to the DMA)
-        chtype = {'m':'output', 's':'input'}[portname[0]]
-        return int(portname.split('_')[0][1:])
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
@@ -254,6 +221,7 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     SAMPS_PER_CLK = 16
     B_DDS = 32
+    B_PHASE = 32
 
     def __init__(self, description):
         """
@@ -304,6 +272,7 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     FS_INTERPOLATION = 4
     MAXV_SCALE = 0.9
     B_DDS = 16
+    B_PHASE = 16
 
     def __init__(self, description):
         """

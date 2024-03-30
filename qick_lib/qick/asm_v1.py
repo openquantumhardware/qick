@@ -9,7 +9,7 @@ from typing import Union, List
 from abc import ABC, abstractmethod
 
 from .qick_asm import AbsQickProgram, AcquireMixin
-from .helpers import ch2list
+from .helpers import ch2list, check_keys
 from .parser import parse_prog
 
 RegisterType = ["freq", "time", "phase", "adc_freq"]
@@ -130,13 +130,7 @@ class ReadoutManager(AbsRegisterManager):
             Parameter values
 
         """
-        required = set(self.PARAMS_REQUIRED)
-        allowed = required | set(self.PARAMS_OPTIONAL)
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+        check_keys(params.keys(), self.PARAMS_REQUIRED, self.PARAMS_OPTIONAL)
 
     def write_regs(self, params, defaults):
         if 'freq' in params:
@@ -211,11 +205,7 @@ class AbsGenManager(AbsRegisterManager):
         self.tmux_ch = self.gencfg.get('tmux_ch') # default to None if undefined
 
         # dictionary of defined pulse envelopes
-        self.envelopes = prog.envelopes[gen_ch]
-        # type and max absolute value for envelopes
-        self.env_dtype = np.int16
-
-        self.addr = 0
+        self.envelopes = prog.envelopes[gen_ch]['envs']
 
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
@@ -228,50 +218,7 @@ class AbsGenManager(AbsRegisterManager):
 
         """
         style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
-
-    def add_envelope(self, name, idata, qdata):
-        """Add a waveform to the list of envelope waveforms available for this channel.
-        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
-
-        Parameters
-        ----------
-        name : str
-            Name for this waveform
-        idata : array
-            I values for this waveform
-        qdata : array
-            Q values for this waveform
-
-        """
-        length = [len(d) for d in [idata, qdata] if d is not None]
-        if len(length)==0:
-            raise RuntimeError("Error: no data argument was supplied")
-        # if both arrays were defined, they must be the same length
-        if len(length)>1 and length[0]!=length[1]:
-            raise RuntimeError("Error: I and Q pulse lengths must be equal")
-        length = length[0]
-
-        if (length % self.samps_per_clk) != 0:
-            raise RuntimeError("Error: pulse lengths must be an integer multiple of %d"%(self.samps_per_clk))
-        data = np.zeros((length, 2), dtype=self.env_dtype)
-
-        for i, d in enumerate([idata, qdata]):
-            if d is not None:
-                # range check
-                if np.max(np.abs(d)) > self.gencfg['maxv']:
-                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.gencfg['maxv']))
-                # copy data
-                data[:,i] = np.round(d)
-
-        self.envelopes[name] = {"data": data, "addr": self.addr}
-        self.addr += length
+        check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
 
     def get_mode_code(self, length, mode=None, outsel=None, stdysel=None, phrst=None):
         """Creates mode code for the mode register in the set command, by setting flags and adding the pulse length.
@@ -373,6 +320,8 @@ class FullSpeedGenManager(AbsGenManager):
             style = params['style']
             # these mode bits could be defined, or left as None
             phrst, stdysel, mode, outsel = [params.get(x) for x in ['phrst', 'stdysel', 'mode', 'outsel']]
+            if phrst is not None and self.gencfg['type'] != 'axis_signal_gen_v6':
+                raise RuntimeError("phrst not supported for %s, only for axis_signal_gen_v6" % (self.gencfg['type']))
 
             self.next_pulse = {}
             self.next_pulse['rp'] = self.rp

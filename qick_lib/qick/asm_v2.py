@@ -6,10 +6,11 @@ from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict
 from abc import ABC, abstractmethod
+from fractions import Fraction
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
-from .helpers import to_int, check_bytes
+from .helpers import to_int, check_bytes, check_keys
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ class QickSweep(NamedTuple):
         spanmax = max([max(r, 0) for r in self.spans.values()])
         return self.start + spanmax
     def __gt__(self, a):
-        # used when comparing timestamps
+        # used when comparing timestamps, or range-checking before converting to raw
         # compares a to the min possible value of the sweep
         return self.minval() > a
     def __lt__(self, a):
@@ -108,10 +109,15 @@ class SimpleClass:
 class QickSweepRaw(SimpleClass):
     _fields = ['par', 'start', 'spans', 'quantize', 'steps']
     def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
+        # identifies the parameter being swept, so EndLoop can apply the sweep
         self.par = par
+        # the initial value, which will be written to the register or waveform memory
         self.start = start
+        # dict of sweep spans to cover in each loop
         self.spans = spans
+        # when sweeping, the step size will be rounded to a multiple of this value
         self.quantize = quantize
+        # dict of sweep steps for each loop, computed by to_steps() after the loop lengths are known
         self.steps = steps
 
     def to_steps(self, loops):
@@ -124,13 +130,15 @@ class QickSweepRaw(SimpleClass):
                 raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
-    def __floordiv__(self, a):
+    def __mul__(self, a):
+        if not isinstance(a, Fraction):
+            raise RuntimeError("QickSweepRaw can only be multipled by Fraction")
         # used when scaling parameters (e.g. flat_top segment gain)
         # this will only happen before steps have been defined
-        if not all([x%a==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
-            raise RuntimeError("cannot divide %s evenly by %d"%(str(self), a))
-        spans = {k:v//a for k,v in self.spans.items()}
-        return QickSweepRaw(self.par, self.start//a, spans, self.quantize//a)
+        if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
+            raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        spans = {k:int(v*a) for k,v in self.spans.items()}
+        return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
     def __mod__(self, a):
         # used in freq2reg etc.
         # do nothing - mod will be applied when compiling the Waveform
@@ -140,6 +148,10 @@ class QickSweepRaw(SimpleClass):
         # this will only happen after steps have been defined
         spans = {k:v['span']/a for k,v in self.steps.items()}
         return QickSweep(self.start/a, spans)
+    def __iadd__(self, a):
+        # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
+        self.start += a
+        return self
     def minval(self):
         # used to check for out-of-range values
         spanmin = min([min(r, 0) for r in self.spans.values()])
@@ -163,7 +175,11 @@ class Waveform(Mapping, SimpleClass):
         # if a parameter is swept, the start value is what we write to the wave memory
         startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in params]
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
-        # same parameters (freq, phase) are expected to wrap, we do that here
+        # we truncate each parameter to its correct length using mod
+        # some generator parameter lengths are smaller than the waveform parameter length:
+        # e.g. int4 uses 16 bits for all params, full-speed uses 16 bits for length
+        # in these cases the sg_translator will apply the additional truncation
+        # truncation causes parameters to wrap, which is good for some params (freq, phase) not for others (gain, length)
         rawbytes = b''.join([int(i%2**(8*w)).to_bytes(length=w, byteorder='little', signed=False) for i, w in zip(startvals, self.widths)])
         # pad with zero bytes to get the 256-bit word (this is the format for DMA transfers)
         paddedbytes = rawbytes[:11]+bytes(1)+rawbytes[11:]+bytes(10)
@@ -333,6 +349,22 @@ class Pulse(Macro):
         insts = []
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['gens'][self.ch]['tproc_ch']
+        insts.append(self.set_timereg(prog, "t"))
+        for wavename in pulse:
+            idx = prog.wave2idx[wavename]
+            insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
+        return insts
+
+class ConfigReadout(Macro):
+    # ch, name, t
+    def preprocess(self, prog):
+        t = self.t
+        self.convert_time(prog, t, "t")
+
+    def expand(self, prog):
+        insts = []
+        pulse = prog.pulses[self.name]
+        tproc_ch = prog.soccfg['readouts'][self.ch]['tproc_ctrl']
         insts.append(self.set_timereg(prog, "t"))
         for wavename in pulse:
             idx = prog.wave2idx[wavename]
@@ -533,82 +565,10 @@ class AbsRegisterManager(ABC):
     def params2pulse(self, params):
         ...
 
-class AbsGenManager(AbsRegisterManager):
-    """Manages the envelope and pulse information for a signal generator channel.
-    """
-    PARAMS_REQUIRED = {}
-    PARAMS_OPTIONAL = {}
-
-    def __init__(self, prog, gen_ch):
-        self.ch = gen_ch
-        self.gencfg = prog.soccfg['gens'][gen_ch]
-        tproc_ch = self.gencfg['tproc_ch']
-        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
-        self.samps_per_clk = self.gencfg['samps_per_clk']
-
-        # dictionary of defined envelopes
-        self.envelopes = prog.envelopes[gen_ch]
-        # type and max absolute value for envelopes
-        self.env_dtype = np.int16
-
-        self.addr = 0
-
-    def check_params(self, params):
-        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
-        Raise an exception if there is a problem.
-
-        Parameters
-        ----------
-        params : dict
-            Parameter values
-
-        """
-        style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
-        defined = params.keys()
-        if required - defined:
-            raise RuntimeError("missing required pulse parameter(s)", required - defined)
-        if defined - allowed:
-            raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
-
-    def add_envelope(self, name, idata, qdata):
-        """Add an envelope to the list of envelopes available for this channel.
-        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
-        Parameters
-        ----------
-        name : str
-            Name for this envelope
-        idata : array
-            I values for this envelope
-        qdata : array
-            Q values for this envelope
-        """
-        length = [len(d) for d in [idata, qdata] if d is not None]
-        if len(length)==0:
-            raise RuntimeError("Error: no data argument was supplied")
-        # if both arrays were defined, they must be the same length
-        if len(length)>1 and length[0]!=length[1]:
-            raise RuntimeError("Error: I and Q envelope lengths must be equal")
-        length = length[0]
-
-        if (length % self.samps_per_clk) != 0:
-            raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(self.samps_per_clk))
-        data = np.zeros((length, 2), dtype=self.env_dtype)
-
-        for i, d in enumerate([idata, qdata]):
-            if d is not None:
-                # range check
-                if np.max(np.abs(d)) > self.gencfg['maxv']:
-                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), self.gencfg['maxv']))
-                # copy data
-                data[:,i] = np.round(d)
-
-        self.envelopes[name] = {"data": data, "addr": self.addr}
-        self.addr += length
-
     def cfg2reg(self, outsel, mode, stdysel, phrst):
         """Creates generator config register value, by setting flags.
+        The bit ordering here is the one expected by the input to sg_translator.
+        The translator will remap the bits to whatever the peripheral expects.
 
         Parameters
         ----------
@@ -652,8 +612,38 @@ class AbsGenManager(AbsRegisterManager):
         stdysel_reg = {"last": 0, "zero": 1}[stdysel]
         return phrst*0b010000 + stdysel_reg*0b01000 + mode_reg*0b00100 + outsel_reg
 
-class FullSpeedGenManager(AbsGenManager):
-    """Manager for the full-speed (non-interpolated, non-muxed) signal generators.
+class AbsGenManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = {}
+    PARAMS_OPTIONAL = {}
+
+    def __init__(self, prog, gen_ch):
+        self.ch = gen_ch
+        self.gencfg = prog.soccfg['gens'][gen_ch]
+        tproc_ch = self.gencfg['tproc_ch']
+        super().__init__(prog, tproc_ch, "generator %d"%(gen_ch))
+        self.samps_per_clk = self.gencfg['samps_per_clk']
+
+        # dictionary of defined envelopes
+        self.envelopes = prog.envelopes[gen_ch]['envs']
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+        """
+        style = params['style']
+        required = set(self.PARAMS_REQUIRED[style])
+        allowed = required | set(self.PARAMS_OPTIONAL[style])
+        check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
+
+class StandardGenManager(AbsGenManager):
+    """Manager for the full-speed and interpolated signal generators.
     """
     PARAMS_REQUIRED = {'const': ['style', 'freq', 'phase', 'gain', 'length'],
             'arb': ['style', 'freq', 'phase', 'gain', 'envelope'],
@@ -698,15 +688,30 @@ class FullSpeedGenManager(AbsGenManager):
         par : dict
             Pulse parameters
         """
-        w = {k:par.get(k) for k in ['phrst', 'stdysel']}
+        phrst_gens = ['axis_signal_gen_v6', 'axis_sg_int4_v1']
+        if par.get('phrst') is not None and self.gencfg['type'] not in phrst_gens:
+            raise RuntimeError("phrst not supported for %s, only for %s" % (self.gencfg['type'], phrst_gens))
+
+        w = {}
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
+
         # gains should be rounded towards zero to avoid overflow
         if par['style']=='flat_top':
-            # since the flat segment is played at half gain, the ramps should have even gain
-            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', quantize=2, trunc=True)
-        else:
+            # the flat segment is played at half gain, to match the ramps
+            flat_scale = Fraction("1/2")
+            # for int4 gen, the envelope amplitude will have been limited to maxv_scale
+            # we need to reduce the flat segment amplitude by a corresponding amount
+            flat_scale *= Fraction(self.gencfg['maxv_scale']).limit_denominator(20)
+
+            # this is the gain that will be used for the ramps
+            # because the flat segment will be scaled by flat_scale, we need this to be an even multiple of the flat_scale denominator
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv'], parname='gain', quantize=flat_scale.denominator, trunc=True)
+        elif par['style']=='const':
+            # it's not strictly necessary to apply maxv_scale here, but if we don't the amplitudes for different styles will be extra confusing?
             w['gainreg'] = to_int(par['gain'], self.gencfg['maxv']*self.gencfg['maxv_scale'], parname='gain', trunc=True)
+        else:
+            w['gainreg'] = to_int(par['gain'], self.gencfg['maxv'], parname='gain', trunc=True)
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -715,16 +720,17 @@ class FullSpeedGenManager(AbsGenManager):
 
         waves = []
         if par['style']=='const':
-            w.update({k:par.get(k) for k in ['mode']})
+            w.update({k:par.get(k) for k in ['mode', 'stdysel', 'phrst']})
             w['outsel'] = 'dds'
             w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
             waves.append(self.params2wave(**w))
         elif par['style']=='arb':
-            w.update({k:par.get(k) for k in ['mode', 'outsel']})
+            w.update({k:par.get(k) for k in ['mode', 'outsel', 'stdysel', 'phrst']})
             w['env'] = env_addr
             w['lenreg'] = env_length
             waves.append(self.params2wave(**w))
         elif par['style']=='flat_top':
+            w.update({k:par.get(k) for k in ['stdysel']})
             w['mode'] = 'oneshot'
             if env_length % 2 != 0:
                 logger.warning("Envelope length %d is an odd number of fabric cycles.\n"
@@ -737,14 +743,128 @@ class FullSpeedGenManager(AbsGenManager):
             w2 = w.copy()
             w2['outsel'] = 'dds'
             w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
-            w2['gainreg'] = w2['gainreg']//2
+            w2['gainreg'] = w2['gainreg'] * flat_scale
             w3 = w1.copy()
             w3['env'] = env_addr + (env_length+1)//2
+            # only the first segment should have phrst
+            w1['phrst'] = par.get('phrst')
             waves.append(self.params2wave(**w1))
             waves.append(self.params2wave(**w2))
             waves.append(self.params2wave(**w3))
 
+            if self.gencfg['type'] == 'axis_sg_int4_v1':
+                # workaround for FIR bug: we play a zero-gain min-length DDS pulse after the ramp-down, which brings the FIR to zero
+                waves.append(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
+
         return waves
+
+class MultiplexedGenManager(AbsGenManager):
+    """Manager for the muxed signal generators.
+    """
+    PARAMS_REQUIRED = {'const': ['style', 'mask', 'length']}
+    PARAMS_OPTIONAL = {'const': []}
+
+    def params2wave(self, maskreg, lenreg):
+        if isinstance(lenreg, QickSweepRaw):
+            if lenreg.maxval() >= 2**32 or lenreg.minval() < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        else:
+            if lenreg >= 2**32 or lenreg < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        wavereg = Waveform(freq=0, phase=0, env=0, gain=0, length=lenreg, conf=maskreg)
+        return wavereg
+
+    def params2pulse(self, par):
+        lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
+
+        freqs = self.prog.gen_chs[self.ch].get('mux_freqs')
+        if freqs is None:
+            raise RuntimeError("mux_freqs not defined for mux gen")
+        gains = None
+        if self.gencfg['type'] in ['axis_sg_mux4_v2', 'axis_sg_mux4_v3']:
+            gains = self.prog.gen_chs[self.ch].get('mux_gains')
+            if gains is None:
+                raise RuntimeError("mux_gains not defined for mux gen")
+
+        maskreg = 0
+        for maskch in par['mask']:
+            if maskch not in range(len(freqs)):
+                raise RuntimeError("mask includes tone %d, but only %d freqs are declared" % (maskch, len(freqs)))
+            if gains is not None and maskch not in range(len(gains)):
+                raise RuntimeError("mask includes tone %d, but only %d gains are declared" % (maskch, len(gains)))
+            maskreg |= (1 << maskch)
+        return [self.params2wave(lenreg=lenreg, maskreg=maskreg)]
+
+class ReadoutManager(AbsRegisterManager):
+    """Manages the envelope and pulse information for a signal generator channel.
+    """
+    PARAMS_REQUIRED = ['freq']
+    PARAMS_OPTIONAL = ['length', 'phase', 'phrst', 'mode', 'outsel', 'gen_ch']
+
+    def __init__(self, prog, ro_ch):
+        self.ch = ro_ch
+        self.rocfg = prog.soccfg['readouts'][self.ch]
+        tproc_ch = self.rocfg['tproc_ctrl']
+        super().__init__(prog, tproc_ch, "readout %d"%(self.ch))
+
+    def check_params(self, params):
+        """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
+        Raise an exception if there is a problem.
+
+        Parameters
+        ----------
+        params : dict
+            Parameter values
+        """
+        check_keys(params.keys(), self.PARAMS_REQUIRED, self.PARAMS_OPTIONAL)
+
+    def params2pulse(self, par):
+        """Write whichever pulse registers are fully determined by the defined parameters.
+
+        Parameters
+        ----------
+        par : dict
+            Pulse parameters
+        """
+        # convert the requested freq, frequency-matching to the generator if specified
+        # freqreg may be an int or a QickSweepRaw
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=par['freq'], gen_ch=par.get('gen_ch'))
+        # if the matching generator has a mixer, that frequency needs to be added to this one
+        # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
+        # the relevant quantization step is still going to be the readout+generator step
+        if 'gen_ch' in par and self.prog.gen_chs[par['gen_ch']]['mixer_freq'] is not None:
+            # this will always be an integer
+            freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded'])
+
+        """
+        freq = self.prog.soccfg.adcfreq(f=par['freq'], ro_ch=self.ch, gen_ch=par.get('gen_ch'))
+        # if the matching generator has a mixer, that frequency needs to be added to this one
+        # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
+        if 'gen_ch' in par and self.prog.gen_chs[par['gen_ch']]['mixer_freq'] is not None:
+            freq += self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=freq)
+        """
+
+        if 'phase' in par:
+            phasereg = self.prog.deg2reg(gen_ch=None, ro_ch=self.ch, deg=par['phase'])
+        else:
+            phasereg = 0
+
+        if 'length' in par:
+            lenreg = self.prog.us2cycles(ro_ch=self.ch, us=par['length'])
+        else:
+            lenreg = 3
+        if isinstance(lenreg, QickSweepRaw):
+            if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+        else:
+            if lenreg >= 2**16 or lenreg < 3:
+                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+
+        confpars = {k:par.get(k) for k in ['outsel', 'mode', 'phrst']}
+        confpars['stdysel'] = None
+        confreg = self.cfg2reg(**confpars)
+        return [Waveform(freqreg, phasereg, 0, 0, lenreg, confreg)]
 
 class QickProgramV2(AbsQickProgram):
     """Base class for all tProc v2 programs.
@@ -754,9 +874,14 @@ class QickProgramV2(AbsQickProgram):
     soccfg : QickConfig
         The QICK firmware configuration dictionary.
     """
-    gentypes = {'axis_signal_gen_v4': FullSpeedGenManager,
-                'axis_signal_gen_v5': FullSpeedGenManager,
-                'axis_signal_gen_v6': FullSpeedGenManager}
+    gentypes = {'axis_signal_gen_v4': StandardGenManager,
+                'axis_signal_gen_v5': StandardGenManager,
+                'axis_signal_gen_v6': StandardGenManager,
+                'axis_sg_int4_v1': StandardGenManager,
+                'axis_sg_mux4_v1': MultiplexedGenManager,
+                'axis_sg_mux4_v2': MultiplexedGenManager,
+                'axis_sg_mux4_v3': MultiplexedGenManager,
+                }
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
@@ -803,6 +928,7 @@ class QickProgramV2(AbsQickProgram):
 
         # generator managers handle a gen's envelopes and add_pulse logic
         self._gen_mgrs = [self.gentypes[ch['type']](self, iCh) for iCh, ch in enumerate(self.soccfg['gens'])]
+        self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(self.soccfg['readouts'])]
 
         # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
         self.waves = OrderedDict()
@@ -996,6 +1122,31 @@ class QickProgramV2(AbsQickProgram):
             for a muxed signal generator, the list of tones to enable for this pulse
         """
         self._gen_mgrs[ch].add_pulse(name, kwargs)
+
+    def add_readoutconfig(self, ch, name, **kwargs):
+        """Add a readout config to the program's pulse library.
+        The "mode" and "length" parameters have no useful effect and should probably never be used.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            name of the config
+        freq : float or QickSweep
+            Frequency (MHz)
+        phase : float or QickSweep
+            Phase (degrees)
+        phrst : int
+            If 1, it resets the DDS phase. The default is 0.
+        mode : str
+            Selects whether the output is "oneshot" (the default) or "periodic."
+        outsel : str
+            Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
+        length : float or QickSweep
+            The duration (us) of the config pulse. The default is the shortest possible length.
+        """
+        self._ro_mgrs[ch].add_pulse(name, kwargs)
 
     # register management
 
@@ -1262,10 +1413,24 @@ class QickProgramV2(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             pulse name (as used in add_pulse())
-        t : float or "auto"
+        t : float, QickSweep, or "auto"
             time (us), or the end of the last pulse on this generator
         """
         self.add_macro(Pulse(ch=ch, name=name, t=t))
+
+    def set_readoutconfig(self, ch, name, t=0):
+        """Send a previously defined readout config to a readout.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            config name (as used in add_readoutconfig())
+        t : float or QickSweep
+            time (us)
+        """
+        self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
 
     def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
         """Pulse readout triggers and output pins.
@@ -1276,9 +1441,9 @@ class QickProgramV2(AbsQickProgram):
             readout channels to trigger (index in 'readouts' list)
         pins : list of int
             output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float
+        t : float or QickSweep
             time (us)
-        width : float
+        width : float or QickSweep
             pulse width (us), default of 10 cycles of the tProc timing clock
         ddr4 : bool
             trigger the DDR4 buffer

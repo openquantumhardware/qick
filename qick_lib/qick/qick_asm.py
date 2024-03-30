@@ -12,7 +12,7 @@ import functools
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import to_int, cosine, gauss, triang, DRAG
+from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array
 
 logger = logging.getLogger(__name__)
 
@@ -122,13 +122,13 @@ class QickConfig():
         for iReadout, readout in enumerate(self['readouts']):
             adcname = readout['adc']
             adc = self['adcs'][adcname]
-            buflen = readout['buf_maxlen']/readout['f_fabric']
+            buflen = readout['buf_maxlen']/readout['f_output']
             if 'tproc_ctrl' in readout:
                 lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
                 lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
-            lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
-                         (adc['fs'], readout['f_fabric'], readout['b_dds'], readout['f_dds']))
+            lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                         (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], buflen))
             lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
@@ -352,9 +352,10 @@ class QickConfig():
         else:
             rocfg = self['readouts'][ro_ch]
         gencfg = self['gens'][gen_ch]
-        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        #if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['f_dds']/2:
+            if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -439,7 +440,43 @@ class QickConfig():
         """
         return self.roundfreq(f, [self['gens'][gen_ch], self['readouts'][ro_ch]])
 
-    def deg2reg(self, deg, gen_ch=0):
+    def _get_ch_cfg(self, gen_ch=None, ro_ch=None):
+        """Helper method to grab the config dictionary for a generator or readout.
+
+        Parameters
+        ----------
+        gen_ch : int
+             generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        dict
+            Config dictionary, or None if neither paramater was defined
+
+        """
+        if gen_ch is not None and ro_ch is not None:
+            raise RuntimeError("can't specify both gen_ch and ro_ch!")
+        elif gen_ch is not None:
+            return self['gens'][gen_ch]
+        elif ro_ch is not None:
+            return self['readouts'][ro_ch]
+        else:
+            return None
+
+    def _get_mixer_cfg(self, gen_ch):
+        """
+        Create a fake config dictionary for a generator's NCO, for use in frequency matching.
+        """
+        gencfg = self['gens'][gen_ch]
+        mixercfg = {}
+        mixercfg['fs_mult'] = gencfg['fs_mult']
+        mixercfg['fdds_div'] = gencfg['fs_div']
+        mixercfg['b_dds'] = 48
+        return mixercfg
+
+    def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
         Parameters
@@ -448,21 +485,21 @@ class QickConfig():
             Number of degrees
         gen_ch : int
              generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
 
         Returns
         -------
         int
             Re-formatted number of degrees
-
         """
-        gen_type = self['gens'][gen_ch]['type']
-        if gen_type == 'axis_sg_int4_v1':
-            b_phase = 16
-        else:
-            b_phase = 32
+        ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
+        if ch_cfg is None:
+            raise RuntimeError("must specify either gen_ch or ro_ch!")
+        b_phase = ch_cfg['b_phase']
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
-    def reg2deg(self, reg, gen_ch=0):
+    def reg2deg(self, reg, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
 
         Parameters
@@ -471,18 +508,18 @@ class QickConfig():
             Re-formatted number of degrees
         gen_ch : int
              generator channel (index in 'gens' list)
+        ro_ch : int
+             readout channel (index in 'readouts' list)
 
         Returns
         -------
         float
             Number of degrees
-
         """
-        gen_type = self['gens'][gen_ch]['type']
-        if gen_type == 'axis_sg_int4_v1':
-            b_phase = 16
-        else:
-            b_phase = 32
+        ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
+        if ch_cfg is None:
+            raise RuntimeError("must specify either gen_ch or ro_ch!")
+        b_phase = ch_cfg['b_phase']
         return reg*360/2**b_phase
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
@@ -510,7 +547,7 @@ class QickConfig():
         if gen_ch is not None:
             fclk = self['gens'][gen_ch]['f_fabric']
         elif ro_ch is not None:
-            fclk = self['readouts'][ro_ch]['f_fabric']
+            fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
@@ -540,7 +577,7 @@ class QickConfig():
         if gen_ch is not None:
             fclk = self['gens'][gen_ch]['f_fabric']
         elif ro_ch is not None:
-            fclk = self['readouts'][ro_ch]['f_fabric']
+            fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
         #return np.int64(np.round(obtain(us)*fclk))
@@ -595,7 +632,7 @@ class AbsQickProgram:
         """
         logger.debug("init_declarations")
         # Pulse envelopes.
-        self.envelopes = [{} for ch in self.soccfg['gens']]
+        self.envelopes = [{"next_addr": 0, "envs": {}} for ch in self.soccfg['gens']]
         # readout channels to configure before running the program
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
@@ -647,6 +684,15 @@ class AbsQickProgram:
         """
         for key in self.dump_keys:
             setattr(self, key, progdict[key])
+
+        # tweak data structures that got screwed up by JSON:
+        # in JSON, dict keys are always strings, so we must cast back to int
+        self.gen_chs = OrderedDict([(int(k),v) for k,v in self.gen_chs.items()])
+        self.ro_chs = OrderedDict([(int(k),v) for k,v in self.ro_chs.items()])
+        # the envelope arrays need to be restored as numpy arrays with the proper type
+        for iCh, envdict in enumerate(self.envelopes):
+            for name, env in envdict['envs'].items():
+                env['data'] = decode_array(env['data'])
 
     def config_all(self, soc, load_pulses=True):
         """
@@ -767,7 +813,7 @@ class AbsQickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
@@ -794,12 +840,59 @@ class AbsQickProgram:
         """
         cfg = {
                 'nqz': nqz,
-                'mixer_freq': mixer_freq,
                 'mux_freqs': mux_freqs,
                 'mux_gains': mux_gains,
                 'ro_ch': ro_ch
                 }
+        gencfg = self.soccfg['gens'][ch]
+        if gencfg['has_mixer']:
+            if mixer_freq is None:
+                raise RuntimeError("generator %d has a mixer, but no mixer_freq was defined" % (ch))
+            cfg['mixer_freq'] = self._calc_mixer_freq(mixer_freq, nqz, ch, ro_ch)
+
         self.gen_chs[ch] = cfg
+
+    def _calc_mixer_freq(self, mixer_freq, nqz, gen_ch, ro_ch):
+        """
+        Set the NCO frequency that will be mixed with the generator output.
+
+        The RFdc driver does its own math to convert a frequency to a register value.
+        (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
+        This is what it does:
+        1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
+        2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
+        3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
+
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
+        The safest way to get consistent behavior is to always round to a valid NCO frequency.
+        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param f: NCO frequency
+        :type f: float
+        :param force: force update, even if the setting is the same
+        :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
+        """
+        cfg = {}
+        cfg['userval'] = mixer_freq
+        gencfg = self.soccfg['gens'][gen_ch]
+        if ro_ch is None:
+            rounded_f = f
+        else:
+            mixercfg = self.soccfg._get_mixer_cfg(gen_ch)
+            rounded_f = self.soccfg.roundfreq(mixer_freq, [mixercfg, self.soccfg['readouts'][ro_ch]])
+        cfg['rounded'] = rounded_f
+        if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
+            cfg['setval'] = -rounded_f
+        else:
+            cfg['setval'] = rounded_f
+        return cfg
 
     def config_gens(self, soc):
         """Configure the signal generators specified in this program.
@@ -813,12 +906,14 @@ class AbsQickProgram:
         """
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg['nqz'])
-            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if 'mixer_freq' in cfg:
+                soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if cfg['mux_freqs'] is not None:
                 soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
-        """Adds a waveform to the waveform library within the program.
+        """Adds a waveform to the list of envelope waveforms available for this channel.
+        The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
 
         Parameters
         ----------
@@ -832,7 +927,31 @@ class AbsQickProgram:
             Q data Numpy array
 
         """
-        self._gen_mgrs[ch].add_envelope(name, idata, qdata)
+        gencfg = self.soccfg['gens'][ch]
+
+        length = [len(d) for d in [idata, qdata] if d is not None]
+        if len(length)==0:
+            raise RuntimeError("Error: no data argument was supplied")
+        # if both arrays were defined, they must be the same length
+        if len(length)>1 and length[0]!=length[1]:
+            raise RuntimeError("Error: I and Q envelope lengths must be equal")
+        length = length[0]
+
+        if (length % gencfg['samps_per_clk']) != 0:
+            raise RuntimeError("Error: envelope lengths must be an integer multiple of %d"%(gencfg['samps_per_clk']))
+        # currently, all gens with envelopes use int16 for I and Q
+        data = np.zeros((length, 2), dtype=np.int16)
+
+        for i, d in enumerate([idata, qdata]):
+            if d is not None:
+                # range check
+                if np.max(np.abs(d)) > gencfg['maxv']:
+                    raise ValueError("max abs val of envelope (%d) exceeds limit (%d)" % (np.max(np.abs(d)), gencfg['maxv']))
+                # copy data
+                data[:,i] = np.round(d)
+
+        self.envelopes[ch]['envs'][name] = {"data": data, "addr": self.envelopes[ch]['next_addr']}
+        self.envelopes[ch]['next_addr'] += length
 
     def add_cosine(self, ch, name, length, maxv=None):
         """Adds a Cosine pulse to the waveform library.
@@ -960,7 +1079,7 @@ class AbsQickProgram:
 
         """
         for iCh, pulses in enumerate(self.envelopes):
-            for name, pulse in pulses.items():
+            for name, pulse in pulses['envs'].items():
                 soc.load_pulse_data(iCh,
                         data=pulse['data'],
                         addr=pulse['addr'])
