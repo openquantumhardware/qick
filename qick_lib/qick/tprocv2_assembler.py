@@ -2,8 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date           : 10-2023
-//  Version        : 2
+//  Date        : 2024_3_28
+//  Compilation : 3
+//  Revision    : 18
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -22,15 +23,14 @@ Get ASM from Program List Structure
 p_asm         = Assembler.list2asm(p_list[0], p_list[1])
 
 ///////////////////////////////////////////////////////////////////////////////
+Release (March 2024)
+To be used with qick_processor version 17th or Higher....
 
-
-Beta-Release (June 2023)
 """
 
 ###################################
 ###      UNDER DEVELOPMENT      ###
 ###################################
-
 
 ##### DEFINITIONS
 ###############################################################################
@@ -57,6 +57,7 @@ instList = {
         'DPORT_WR'   : '110 - Data Port Write',
         'DPORT_RD'   : '110 - Data Port Read',
         'WPORT_WR'   : '110 - WaveParam Port Write',
+        'CLEAR'      : 'Complex Clear Flag (dt_new).',
         'WAIT'       : 'Complex - Jump [HERE] Until time value arrives.'
         }
 
@@ -105,7 +106,6 @@ arithList = {
 'MT'  : '0110', # (D-A)*B
 'MTP' : '0111', # (D-A)*B+C
 'MTM' : '1000', # (D-A)*B-C
-
 }
 
 # CONDITIONALS
@@ -124,104 +124,107 @@ condList = {
 
 # LIT SHOULD BE LAST
 Param_List = { 
-    'TIME'      : {'RegEx' : r'(?<=@)[0-9]+'                 , 'RL': '@'        , 'RR': ''   },
+    'TIME'      : {'RegEx' : r'(?<=@)[\-0-9]+'                 , 'RL': '@'        , 'RR': ''   },
     'ADDR'      : {'RegEx' : r'\[(.*)\]'                     , 'RL': '['        , 'RR': ']'  },
     'UF'        : {'RegEx' : r'-uf'                          , 'RL': ''         , 'RR': ''   },
     'WW'        : {'RegEx' : r'-ww'                          , 'RL': ''         , 'RR': ''   },
     'WP'        : {'RegEx' : r'-wp\(([_a-z\s]*)\)'           , 'RL': '-wp('     , 'RR': ')'  },
-    'OP'        : {'RegEx' : r'-op\(([\s#a-zA-Z0-9+\-<>]*)\)', 'RL': '-op('     , 'RR': ')'  }, 
+    'OP'        : {'RegEx' : r'-op\(([\s#a-zA-Z0-9+\-<>_]*)\)', 'RL': '-op('     , 'RR': ')'  }, 
     'IF'        : {'RegEx' : r'-if\(([A-Z\s]*)\)'            , 'RL': '-if('     , 'RR': ')'  },
     'WR'        : {'RegEx' : r'-wr\(([a-z\s0-9]*)\)'         , 'RL': '-wr('     , 'RR': ')'  },
     'PORT'      : {'RegEx' : r'p([0-9]+)'                    , 'RL': 'p'        , 'RR': ''   },
-    'LIT'       : {'RegEx' : r'(?<=#)[ubh0-9ABCDEF\-]+'      , 'RL': '#'        , 'RR': ''   },
+    'LIT'       : {'RegEx' : r'(?<=#)[ubh0-9ABCDEF\-_]+'      , 'RL': '#'        , 'RR': ''   },
 }
 
 Alias_List = { 
-## REGISTERS
-    'W_FREQ'      : {'RegEx' : r'w_freq'                , 'R': 'w0'        },
-    'W_PHASE'     : {'RegEx' : r'w_phase'               , 'R': 'w1'        },
-    'W_ENV'       : {'RegEx' : r'w_env'                 , 'R': 'w2'        },
-    'W_GAIN'      : {'RegEx' : r'w_gain'                , 'R': 'w3'        },
-    'W_LENGHT'    : {'RegEx' : r'w_length'              , 'R': 'w4'        },
-    'W_CONF'      : {'RegEx' : r'w_conf'                , 'R': 'w5'        },
-    'ZERO'        : {'RegEx' : r'zero'                  , 'R': 's0'        },
-    'RAND'        : {'RegEx' : r'rand'                  , 'R': 's1'        },
-    'CONF'        : {'RegEx' : r's_cfg|s_conf|s_ctrl'   , 'R': 's2'        },
-    'ARITHL'      : {'RegEx' : r'arith_l'               , 'R': 's3'        },
-    'DIVQ'        : {'RegEx' : r'div_q'                 , 'R': 's4'        },
-    'DIVR'        : {'RegEx' : r'div_r'                 , 'R': 's5'        },
-    'CORE_R1'     : {'RegEx' : r'core_r1'               , 'R': 's6'        },
-    'CORE_R2'     : {'RegEx' : r'core_r2'               , 'R': 's7'        },
-    'PORTL'       : {'RegEx' : r'port_l'                , 'R': 's8'        },
-    'PORTH'       : {'RegEx' : r'port_h'                , 'R': 's9'        },
-    'STATUS'      : {'RegEx' : r's_status'              , 'R': 's10'       },
-    'TUSER'       : {'RegEx' : r'curr_usr_time|tuser'   , 'R': 's11'       },
-    'CORE_W1'     : {'RegEx' : r'core_w1'               , 'R': 's12'       },
-    'CORE_W2'     : {'RegEx' : r'core_w2'               , 'R': 's13'       },
-    'TIME'        : {'RegEx' : r'out_usr_time|r_time|s_time' , 'R': 's14'  },
-    'ADDR'        : {'RegEx' : r's_addr|r_addr'         , 'R': 's15'       },
+## REGISTER NAME
+   'w_freq'        : 'w0'  ,
+   'w_phase'       : 'w1'  ,
+   'w_env'         : 'w2'  ,
+   'w_gain'        : 'w3'  ,
+   'w_length'      : 'w4'  ,
+   'w_conf'        : 'w5'  ,
+   'zero'          : 's0'  ,
+   's_zero'        : 's0'  ,
+   's_rand'        : 's1'  ,
+   's_cfg'         : 's2'  ,
+   's_ctrl'        : 's2'  ,
+   's_arith_l'     : 's3'  ,
+   's_div_q'       : 's4'  ,
+   's_div_r'       : 's5'  ,
+   's_core_r1'     : 's6'  ,
+   's_core_r2'     : 's7'  ,
+   's_port_l'      : 's8'  ,
+   's_port_h'      : 's9'  ,
+   's_status'      : 's10' ,
+   's_usr_time'    : 's11' ,
+   'curr_usr_time' : 's11' ,
+   's_core_w1'     : 's12' ,
+   's_core_w2'     : 's13' ,
+   'out_usr_time'  : 's14' ,
+   's_out_time'    : 's14' ,
+   's_addr'        : 's15' ,
 ## Status
-    'RDY_A'   : {'RegEx' : r'arith_rdy'        , 'R': '#1'      },
-    'RDY_D'   : {'RegEx' : r'div_rdy'          , 'R': '#4'      },
-    'RDY_QN'  : {'RegEx' : r'qnet_rdy'         , 'R': '#16'     },
-    'RDY_QC'  : {'RegEx' : r'qcom_rdy'         , 'R': '#64'     },
-    'RDY_QA'  : {'RegEx' : r'qpa_rdy'          , 'R': '#256'    },
-    'RDY_QB'  : {'RegEx' : r'qpb_rdy'          , 'R': '#1024'   },
-    'NEW_A'   : {'RegEx' : r'arith_new'        , 'R': '#2'      },
-    'NEW_D'   : {'RegEx' : r'div_new'          , 'R': '#8'      },
-    'NEW_QN'  : {'RegEx' : r'qnet_new'         , 'R': '#32'     },
-    'NEW_QC'  : {'RegEx' : r'qcom_new'         , 'R': '#128'    },
-    'NEW_QA'  : {'RegEx' : r'qpa_new'           , 'R': '#512'    },
-    'NEW_QB'  : {'RegEx' : r'qpb_new'           , 'R': '#2048'   },
+   'bit_arith_rdy' : '#h0001' ,
+   'bit_arith_new' : '#h0002' ,
+   'bit_div_rdy'   : '#h0004' ,
+   'bit_div_new'   : '#h0008' ,
+   'bit_qnet_rdy'  : '#h0010' ,
+   'bit_qnet_new'  : '#h0020' ,
+   'bit_qcom_rdy'  : '#h0040' ,
+   'bit_qcom_new'  : '#h0080' ,
+   'bit_qpa_rdy'   : '#h0100' ,
+   'bit_qpa_new'   : '#h0200' ,
+   'bit_qpb_rdy'   : '#h0400' ,
+   'bit_qpb_new'   : '#h0800' ,
+   'bit_port_new'  : '#h8000' ,
 ## Config
-    'SRC_DT0'      : {'RegEx' : r'src_tproc|flg_int', 'R': '#0'       },
-    'SRC_DT1'      : {'RegEx' : r'arith_src'        , 'R': '#1'       },
-    'SRC_DT2'      : {'RegEx' : r'qnet_src'         , 'R': '#2'       },
-    'SRC_DT3'      : {'RegEx' : r'qcom_src'         , 'R': '#3'       },
-    'SRC_DT4'      : {'RegEx' : r'qpa_src'          , 'R': '#4'       },
-    'SRC_DT5'      : {'RegEx' : r'qpb_src'          , 'R': '#5'       },
-    'SRC_DT6'      : {'RegEx' : r'core_src'         , 'R': '#6'       },
-    'SRC_DT7'      : {'RegEx' : r'port_src'         , 'R': '#7'       },
-    'FLAG_1'       : {'RegEx' : r'axi_flg'          , 'R': '#16'      },
-    'FLAG_2'       : {'RegEx' : r'ext_flg'          , 'R': '#32'      },
-    'FLAG_3'       : {'RegEx' : r'div_flg|arith_flg', 'R': '#48'      },
-    'FLAG_4'       : {'RegEx' : r'port_flg'         , 'R': '#64'      },
-    'FLAG_5'       : {'RegEx' : r'qnet_flg'         , 'R': '#80'      },
-    'FLAG_6'       : {'RegEx' : r'qcom_flg'         , 'R': '#96'      },
-    'FLAG_7'       : {'RegEx' : r'qpa_flg'          , 'R': '#112'     },
-    'SRC&FLAG_0'   : {'RegEx' : r'arith_sf'         , 'R': '#49'      },
-    'SRC&FLAG_1'   : {'RegEx' : r'qnet_sf'          , 'R': '#82'      },
-    'SRC&FLAG_2'   : {'RegEx' : r'qcom_sf'          , 'R': '#99'      },
-    'SRC&FLAG_3'   : {'RegEx' : r'qpa_sf'           , 'R': '#116'     },
-## Control
-    'RST_A'   : {'RegEx' : r'arith_clr'        , 'R': '#65536'      },
-    'RST_D'   : {'RegEx' : r'div_clr'          , 'R': '#131072'     },
-    'RST_QN'  : {'RegEx' : r'qnet_clr'         , 'R': '#262144'     },
-    'RST_QC'  : {'RegEx' : r'qcom_clr'         , 'R': '#524288'     },
-    'RST_QA'  : {'RegEx' : r'qpa_clr'          , 'R': '#1048576'    },
-    'RST_QB'  : {'RegEx' : r'qpb_clr'          , 'R': '#2097152'    },
-    'RST_PORT': {'RegEx' : r'port_clr'         , 'R': '#4194304'    },
-    'RST&SRC&FLAG_0'   : {'RegEx' : r'arith_csf'         , 'R': '#65585'   },
-    'RST&SRC&FLAG_1'   : {'RegEx' : r'qnet_csf'          , 'R': '#262226'  },
-    'RST&SRC&FLAG_2'   : {'RegEx' : r'qcom_csf'          , 'R': '#99'      },
-    'RST&SRC&FLAG_3'   : {'RegEx' : r'qpa_csf'           , 'R': '#524404'  },
-## CMDS
-    'CLR_ARITH'     : {'RegEx' : r'clr_arith'       , 'R': '#65536'       },
-    'CLR_DIV'       : {'RegEx' : r'clr_div'         , 'R': '#131072'       },
-    'CLR_QNET'      : {'RegEx' : r'clr_qnet'        , 'R': '#262144'       },
-    'CLR_PERIPH'    : {'RegEx' : r'clr_periph'      , 'R': '#524288'       },
-    'CLR_PORT'      : {'RegEx' : r'clr_port'        , 'R': '#1048576'      },
-    'CLR_ALL'       : {'RegEx' : r'clr_all'         , 'R': '#2031616'      },
-
+   'cfg_src_axi'       : '#h00' ,
+   'cfg_src_arith'     : '#h01' ,
+   'cfg_src_qnet'      : '#h02' ,
+   'cfg_src_qcom'      : '#h03' ,
+   'cfg_src_qpa'       : '#h04' ,
+   'cfg_src_qpb'       : '#h05' ,
+   'cfg_src_core'      : '#h06' ,
+   'cfg_src_port'      : '#h07' ,
+   'cfg_flg_int'       : '#h00' ,
+   'cfg_flg_axi'       : '#h10' ,
+   'cfg_flg_ext'       : '#h20' ,
+   'cfg_flg_div'       : '#h30' ,
+   'cfg_flg_arith'     : '#h30' ,
+   'cfg_flg_port'      : '#h40' ,
+   'cfg_flg_qnet'      : '#h50' ,
+   'cfg_flg_qcom'      : '#h60' ,
+   'cfg_flg_qpa'       : '#h70' ,
+   'cfg_src_flg_arith' : '#h31' ,
+   'cfg_src_flg_qnet'  : '#h52' ,
+   'cfg_src_flg_qcom'  : '#h63' ,
+   'cfg_src_flg_qpa'   : '#h76' ,
+## CTRL
+   'ctrl_clr_arith'   : ' #h1_0000'   ,
+   'ctrl_clr_div'     : ' #h2_0000'   ,
+   'ctrl_clr_qnet'    : ' #h4_0000'   ,
+   'ctrl_clr_qcom'    : ' #h8_0000'   ,
+   'ctrl_clr_qpa'     : '#h10_0000'   ,
+   'ctrl_clr_qpb'     : '#h20_0000'   ,
+   'ctrl_clr_port'    : '#h40_0000'   ,
+   'clr_all'          : '#h7F_0000'   ,
+   'ctrl_csf_arith'   : '#h01_00_3_1' ,
+   'ctrl_csf_div'     : '#h02_00_3_0' ,
+   'ctrl_csf_qnet'    : '#h04_00_5_2' ,
+   'ctrl_csf_qcom'    : '#h08_00_6_3' ,
+   'ctrl_csf_qpa'     : '#h10_00_7_4' 
 }
 
-regex = {
-    'LABEL'     : r'[A-Za-z0-9_]+(?=\:)',
-    'CMD'       : r'^[A-Z_]+',
-    'DIRECTIVE' : r'(?<=\.)[A-Z]+',
-    'LIT'       : r'(?<=#)[0-9]+',
-    'CDS'       : r'\s*([\w&\+\']+)'}
 
+regex = {
+    'LABEL'     : r'[A-Za-z0-9_]+(?=\:)' , 
+    'DIRECTIVE' : r'(?<=\.)[A-Z]+'       , 
+    'CMD'       : r'^[A-Z_]+'            , 
+    'CNAME'     : r'^[A-Za-z_]+'         , # Name for CONSTANT
+    'NAME'      : r'^[A-Za-z0-9_]+'      , # Name for ALIAS AND LABEL
+    'LIT'       : r'(?<=#)[ubh0-9ABCDEF\-_]+',
+    'CDS'       : r'\s*([\w&\+\']+)'}
 
 import re
 
@@ -244,7 +247,7 @@ class Logger():
     @staticmethod
     def setLevel(level : int) -> None:
         if level > 2 :
-            raise ValueError(f"Logger.setLevel: show_level must be samller than 2 (0-INFO, 1-WARNINGS, 2-ERRORS)")
+            raise ValueError("Logger.setLevel: show_level must be samller than 2 (0-INFO, 1-WARNINGS, 2-ERRORS)")
         Logger.level = level
     
     @staticmethod
@@ -292,6 +295,182 @@ def find_pattern(regex : str, text : str):
     match = match.group() if (match) else None
     return match
 
+def check_name(name_str : str) -> bool:
+    r = False
+    # Check for correct Characters
+    name_check = re.findall(regex['NAME'], name_str)
+    if name_check:
+        name_check = name_check[0]
+        if (name_check == name_str):
+            # Check for Register Name
+            if ( check_reg(name_str) ):
+                Logger.error('CHECK_NAME', 'Name can not be a Register name.')
+            else:
+                r = True
+        else:
+            Logger.error('CHECK_NAME', 'Name should use AlphaNumeric and _ characters')
+        return r
+    else:
+        Logger.error('CHECK_NAME', 'Name Error')
+            
+
+def check_num(num_str : str) -> bool:
+    r = False
+    num     = re.search('^(\d+)', num_str)
+    extr_num = num.group(0) if num else ''
+    if (extr_num == num_str):
+        r = True
+    return r
+
+def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
+    """
+        receives an integer in str format and returns their bits as a string.
+        
+    :strin (str): string with an integer
+    :bits (int): number of bits to return
+    :uint (int): is unsigned 
+    :returns (str): bits as a string
+    """
+    if (uint == 0):
+        minv = -2**(bits-1)
+        maxv = 2**(bits-1) - 1
+    else:
+        minv = 0
+        maxv = 2**(bits) - 1
+    dec = int(strin, 10)
+    # Check max.
+    if dec < minv:
+        Logger.error("integer2bin", "number %d is smaller than %d" % (dec, minv))
+        return None
+    # Check max.
+    if dec > maxv:
+        Logger.error("integer2bin", "number %d is bigger than %d" % (dec, maxv))
+        return None
+    # Check if number is negative.
+    if dec < 0:
+        dec = dec + 2**bits
+    # Convert to binary.
+    fmt = "{0:0" + str(bits) + "b}"
+    binv = fmt.format(dec)
+    return binv
+
+def get_src_type (src : str) -> str:
+    """
+    :returns (tuple): Type of Source
+    """
+    src_type = 'X'
+    error = 0
+    REG = re.findall('s(\d+)|r(\d+)|w(\d+)|#([ubh0-9A-F\-]+)',src) #S,R,W,Signed, Unsigned, Binary, Hexa
+    if (REG):
+        #print('Register Type> ',REG, REG[0])
+        if ( len(REG) != 1 ):
+            error = Logger.error('get_src_type', 'Source Data not Recognized '+src )
+        else:            
+            REG = REG[0]
+            if   (REG[0]):   
+                src_type = 'RS'
+            elif (REG[1]):   
+                src_type = 'RD'
+            elif (REG[2]):   
+                src_type = 'RW'
+            elif (REG[3]):   
+                src_type = 'N'
+            else:            
+                src_type = 'XX'
+    else:
+        error = Logger.error('get_src_type', 'Source Data not Recognized' )
+    return error, src_type
+
+def check_lit(lit_str : str) -> bool:
+    r = False
+    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)', lit_str)
+    extr_lit = lit.group(0) if lit else ''
+    if (extr_lit == lit_str):
+        r = True
+    return r
+
+def get_imm_dt (lit : str, bit_len : int) -> str:
+    DataImm = ''
+    LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
+    if (LIT):
+        LIT = LIT[0]
+        try: 
+            if (LIT[0]): ## is Signed
+                literal = str(int(LIT[0]))
+                DataImm = '_'+ integer2bin(literal, bit_len)
+            elif (LIT[1]): ## is Unsigned
+                literal = str(int(LIT[1]))
+                DataImm = '_'+ integer2bin(literal, bit_len, 1)
+            elif (LIT[2]): ## is Binary
+                literal = str(int(LIT[2],2))
+                DataImm = '_'+ integer2bin(literal, bit_len)
+            elif (LIT[3]): ## is Hexa
+                literal = str(int(LIT[3],16))
+                DataImm = '_'+ integer2bin(literal, bit_len,1)
+            elif (LIT[4]): ## is Address
+                literal = str(int(LIT[4]))
+                DataImm = '_'+ integer2bin(literal, bit_len, 1)
+            elif (LIT[5]): ## is Time
+                literal = str(int(LIT[5]))
+                DataImm = '_'+ integer2bin(literal, bit_len)
+        except:
+            DataImm = ''
+    else:
+        Logger.error("get_imm_dt", 'Data Format incorrect' )
+    if  (DataImm) : 
+        return 0, DataImm
+    else:
+        return 1, DataImm
+
+def check_reg(name_reg : str) -> bool:
+    r = False
+    name     = re.search('s(\d+)|r(\d+)|w(\d+)', name_reg)
+    extr_reg = name.group(0) if name else ''
+    if (extr_reg == name_reg):
+        r = True
+    return r
+
+def get_reg_addr (reg : str, Type : str) -> tuple:
+    """
+    :returns (tuple): (error, register_address).
+    """
+    error    = 0
+    reg_addr = 'X'
+    if (check_reg(reg) ): #extr_num == name_num):
+        REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)[0]
+        if (Type=='Dest'):
+            if (REG[0]): ## is SREG
+                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                else:               reg_addr =  '00'+integer2bin(REG[0], 5,1)   
+            elif (REG[1]): ## is DREG
+                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                else:               reg_addr     = '01'+integer2bin(REG[1], 5,1)     
+            elif (REG[2]): ## is WREG
+                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+                else:               reg_addr     = '10'+integer2bin(REG[2], 5,1)
+        elif (Type=='src_data'):
+            if (REG[0]): ## is SREG
+                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                else:               reg_addr =  '0_00'+integer2bin(REG[0], 5,1)   
+            elif (REG[1]): ## is DREG
+                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                else:               reg_addr     = '0_01'+integer2bin(REG[1], 5,1)     
+            elif (REG[2]): ## is WREG
+                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[1])+' is not a wreg (Max 5)' )
+                else:               reg_addr     = '0_10'+integer2bin(REG[2], 5,1)
+        elif (Type=='src_addr'):
+            if (REG[0]): ## is SREG
+                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                else:               reg_addr =  '0'+integer2bin(REG[0], 5,1)   
+            elif (REG[1]): ## is DREG
+                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                else:               reg_addr     = '1'+integer2bin(REG[1], 5,1)     
+            elif (REG[2]): ## is WREG
+                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+                error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' Can not be wreg' )
+    else:
+            error = Logger.error('get_reg_addr', 'Register '+ reg +' Name error' )
+    return [error, reg_addr]
 
 class LFSR:
     def __init__(self):
@@ -314,7 +493,8 @@ class LFSR:
         return self.val_int
     def print (self):
         print (self.val_bin, self.val_int)
-        
+
+
 class Assembler():
     @staticmethod
     def list2asm(program_list : list, label_dict : dict) -> str:
@@ -469,63 +649,71 @@ class Assembler():
                 :error (int): if function succeeds error is 0, else it is nonzero.
                 :label_dictionary (dict): dictionary with all labels found plus their memory address in program memory. ({'LABEL': '&0'})
             """
-            
             # register 15 predefinition.
             label_dict = { 's15': 's15' }
             error = 0
             mem_addr = 1 # address 0 goes NOP
-            # Check if LABEL< DIRETIVE OR INSTRUCTION
+            # Check if LABEL, DIRETIVE OR INSTRUCTION
             for line_number, command in enumerate(file_lines, start=1):
-                label = find_pattern(regex['LABEL'], command)
-                directive   = find_pattern(regex['DIRECTIVE'], command)
+                label        = find_pattern(regex['LABEL'], command)
+                directive    = find_pattern(regex['DIRECTIVE'], command)
                 instruction  = find_pattern(regex['CMD'], command)
                 if (label): # add label to label_dict if not already registered.
-                    if label in label_dict:
-                        if (label == 'reg'):
-                            error = Logger.error('LABEL_RECOGNITION', 'reg is not a valid label in line > ' + str(line_number) )
+                    L_Name    = command[:-1]
+                    if (check_name(L_Name)):
+                        if label in label_dict:
+                            if (label == 'reg'):
+                                error = Logger.error('LABEL_RECOGNITION', 'reg is not a valid label in line  ' + str(line_number) )
+                            else:
+                                error = Logger.error('LABEL_RECOGNITION', 'Redefinition of LABEL "' + label + '" in line  ' + str(line_number) )
                         else:
-                            error = Logger.error('LABEL_RECOGNITION', 'Redefinition of LABEL "' + label + '" in line > ' + str(line_number) )
+                            label_dict[label] = '&' + str(mem_addr)
+                            label_line_idxs.append(line_number)
                     else:
-                        label_dict[label] = '&' + str(mem_addr)
-                        label_line_idxs.append(line_number)
+                        error = Logger.error('LABEL_RECOGNITION', 'Label Name error in line  ' + str(line_number) )
                 elif (directive):  # identify Aliases and adds them to Alias_List.
                     if ( directive == 'ALIAS'):
-                        directives = re.findall(regex['CDS'], command)
-                        Name     = 'ALIAS_' + directives[1]
-                        RegEx    = directives[1]
-                        Register = directives[2]
-                        comp_PARAM = "s(\d+)|r(\d+)|w(\d+)"
-                        alias_reg  = re.findall(comp_PARAM, Register)
-                        if (alias_reg):
-                            Alias_List.update({Name : {'RegEx' : RegEx , 'R': Register } } )        
-                            Logger.info("ALIAS_RECOGNITION",' > ' + Register + ' is called ' + RegEx)
+                        directive_params = list(filter(lambda x:x, command.split(' ')))
+                        if (len(directive_params) == 3):
+                            A_Name    = directive_params[1]
+                            A_Reg     = directive_params[2]
+                            if (check_name(A_Name)):
+                                if A_Name in Alias_List:
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name ' + A_Name  +' already in use in line ' + str(line_number) )
+                                else:
+                                    if ( check_reg(A_Reg) ):
+                                        Alias_List.update({ A_Name : A_Reg } )        
+                                        Logger.info("ALIAS_RECOGNITION",' > ' + A_Reg + ' is called ' + A_Name)
+                                    else:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Register Name error in line ' + str(line_number) )
+                            else:
+                                error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
                         else:
-                            error = Logger.error('ALIAS_RECOGNITION', 'Alias Register not recognized.')
+                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Parameters error in line ' + str(line_number) )
                     elif ( directive == 'CONST'):
-                        directives = re.findall(regex['CDS'], command)
-                        Name     = 'CONS_' + directives[1]
-                        RegEx    = directives[1]
-                        Value    = directives[2]
-                        comp_PARAM = r'[0-9]+'
-                        cons_val   = re.findall(comp_PARAM, Value)
-                        if (cons_val):
-                            Alias_List.update({Name : {'RegEx' : RegEx , 'R': '#'+Value } } )        
-                            Logger.info("CONSTANT_RECOGNITION",' > ' + Value + ' is called ' + RegEx)
+                        directive_params = list(filter(lambda x:x, command.split(' ')))
+                        C_name    = directive_params[1]
+                        C_val    = directive_params[2]
+                        if (check_lit(C_val)):
+                            Alias_List.update({ C_name : '#'+C_val } )        
+                            Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
                         else:
-                            error = Logger.error('CONSTANT_RECOGNITION', 'CONST Value not recognized.')
+                            error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
                     elif ( directive == 'ADDR'):
-                        directives = re.findall(regex['CDS'], command)
-                        Name     = 'ADDR_' + directives[1]
-                        Value    = int(directives[1])
-                        distance = Value - mem_addr
-                        if  (distance < 0):
-                            error = Logger.error('DIRECTIVE', 'New Memory Address '+str(Value)+ ' before than next empty '+str(mem_addr)+' in Line > ' + str(line_number))
-                        else :                          
-                            mem_addr = Value
-                       
-                        
+                        directive_params = list(filter(lambda x:x, command.split(' ')))
+                        if  (check_num(directive_params[1])):
+                            Value    = int(directive_params[1])
+                            distance = Value - mem_addr
+                            if  (distance < 0):
+                                error = Logger.error('DIRECTIVE_RECOGNITION', 'New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
+                            else :                          
+                                mem_addr = Value
+                        else:
+                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Address Value '+Value+ ' error in Line ' + str(line_number))
                     elif ( directive == 'END'):
-                        mem_addr += 1            
+                        mem_addr += 1  
+                    else:
+                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Directive Not Recognized in Line ' + str(line_number))
                 elif (instruction): # Identify instructions to correctly set addresses.
                     if ( instruction in instList.keys() ) :
                         if (instruction == 'WAIT'):
@@ -533,12 +721,12 @@ class Assembler():
                         else:                            
                             mem_addr += 1
                     else:
-                        error = Logger.error('LABEL_RECOGNITION', 'Command Not Recognized in Line > ' + str(line_number))
+                        error = Logger.error('LABEL_RECOGNITION', 'Command Not Recognized in Line ' + str(line_number))
             show_info =  ('\n## ALIAS LIST')
             show_info += '\n' + ('###############################')
             show_info += '\n' + ('REG  > ALIAS NAME\n-----|-------------')
             for key in Alias_List:
-                show_info += '\n' + str( (f"{Alias_List[key]['R']:<3}" + ' > '+ Alias_List[key]['RegEx']) )
+                show_info += '\n' + str( (f"{Alias_List[key]:<3}" + ' > '+ key) )
             show_info += '\n' + ('###############################')
             Logger.info("ALIAS_RECOGNITION",show_info)
             
@@ -584,13 +772,10 @@ class Assembler():
                             'CMD'      : 'JUMP' }
                         program_list.append(command_info)
                         Logger.info("COMMAND_RECOGNITION",'END OF PROGRAM ')
-                    elif ( directive == 'ADDR'):
-                        directives = re.findall(regex['CDS'], command)
-                        Name     = 'ADDR_' + directives[1]
-                        Value    = int(directives[1])
+                    elif ( directive == 'ADDR'): ## Already Verified on Label Recognition
+                        directive_params = list(filter(lambda x:x, command.split(' ')))
+                        Value    = int(directive_params[1])
                         distance = Value - mem_addr
-                        if  (distance < 1):
-                            error = Logger.error('DIRECTIVE', 'Memory Address is before than last command >' + str(line_number))
                         for ind in range(distance-1):
                             mem_addr += 1
                             command_nop = {}
@@ -598,7 +783,6 @@ class Assembler():
                             command_nop['LINE']   = line_number
                             command_nop['CMD']    = 'NOP'
                             program_list.append(command_nop)
-                
                 elif (instruction):
                     if ( instruction in instList.keys() ) :
                         mem_addr += 1            
@@ -611,10 +795,12 @@ class Assembler():
                         
                         # CHANGE ALIAS 
                         ###############################################################
+                        cmd_words = re.split(' |\(|\)|\[|\]', command)
                         for key in Alias_List:
-                            CHANGE = find_pattern(Alias_List[key]['RegEx'], command)
-                            command = command.replace(CHANGE, Alias_List[key]['R']) if CHANGE else command
-                            
+                            CHANGE = find_pattern(key, command)
+                            if (key in cmd_words):
+                                command = command.replace(CHANGE, Alias_List[key]) if CHANGE else command
+                        
                         # Extract PARAMETERS
                         ###############################################################
                         if (error == 0):
@@ -623,7 +809,7 @@ class Assembler():
                                 PARAM = re.findall(Param_List[key]['RegEx'], command)
                                 if PARAM:
                                     if (len(PARAM) >1):
-                                        error = Logger.error('COMMAND_RECOGNITION', 'Duplicated Parameter ' + key +' in line > '+str(line_number))
+                                        error = Logger.error('COMMAND_RECOGNITION', 'Duplicated Parameter ' + key +' in line '+str(line_number))
                                     command_info[key] = PARAM[0].strip()
                                     aux  = Param_List[key]['RL'] + PARAM[0] + Param_List[key]['RR']
                                     command = command.replace(aux, '')
@@ -642,11 +828,18 @@ class Assembler():
                                     except ValueError:
                                         error = Logger.error("COMMAND_RECOGNITION", "Binary value incorrect in Line " + str(line_number))
                             if ('LIT' in command_info) :
+                                # Remove underscores
+                                command_info['LIT'] = command_info['LIT'].replace('_','')
+                                # Check if Binary OK
                                 if (command_info['LIT'][0] == 'b'):
                                     try:
                                         command_info['LIT'] = str(int(command_info['LIT'][1:],2))
                                     except ValueError:
                                         error = Logger.error("COMMAND_RECOGNITION", "Binary value incorrect in Line " + str(line_number))
+                                command_info['LIT'] = '#' + command_info['LIT']
+                            ###########################################################
+                            if ('TIME' in command_info) :
+                                command_info['TIME'] = '@' + command_info['TIME']
                             ###########################################################
                             if ('WW' in command_info) :
                                 command_info['WW'] = '1'
@@ -659,18 +852,21 @@ class Assembler():
                             ## COMMAND VERIFICATION
                             ###########################################################
                             if (CMD_DEST_SOURCE[0] == 'REG_WR'):
-                                if (CMD_DEST_SOURCE[1] == 'r_wave'):
-                                    if ('TIME' in command_info):
-                                        error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                if (len(CMD_DEST_SOURCE) > 2):
+                                    if (CMD_DEST_SOURCE[1] == 'r_wave'):
+                                        if ('TIME' in command_info):
+                                            error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                    else:
+                                        if ('WP' in command_info):
+                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
+                                        if ('WR' in command_info):
+                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Register < -wr() > in Line " + str(line_number))
+                                        if ('WW' in command_info):
+                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                                        if ('TIME' in command_info):
+                                            error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
                                 else:
-                                    if ('WP' in command_info):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
-                                    if ('WR' in command_info):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Register < -wr() > in Line " + str(line_number))
-                                    if ('WW' in command_info):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
-                                    if ('TIME' in command_info):
-                                        error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                    error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Not enough parameters in Line " + str(line_number))
 
 
                             if ( (CMD_DEST_SOURCE[0] == 'NOP')  or (CMD_DEST_SOURCE[0] == 'TEST') or (CMD_DEST_SOURCE[0] == 'RET') \
@@ -752,8 +948,6 @@ class Assembler():
                                     else:
                                         error = Logger.error('COMMAND_RECOGNITION', 'Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
                                 else:
-                                    print ('Command Info',command_info)
-                                    print ('Command Destination Source',CMD_DEST_SOURCE)
                                     error = Logger.error("COMMAND_RECOGNITION", "[>3] Parameter Error in line " + str(line_number) )
                             ###############################################################################
                             ## ONLY ONE SOURCE / DEST
@@ -765,8 +959,8 @@ class Assembler():
                                        command_info['DST'] = CMD_DEST_SOURCE[1]
                                        command_info['SRC'] = CMD_DEST_SOURCE[2]        
                                 elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
-                                    if ( int(command_info['PORT'])  > 7):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port max value is 7 in line " + str(line_number))
+                                    if ( int(command_info['PORT'])  > 3):
+                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port port number is p3 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -780,8 +974,6 @@ class Assembler():
                                     command_info['NUM'] = CMD_DEST_SOURCE[1]
                                     command_info['DEN'] = CMD_DEST_SOURCE[2]        
                                 else:
-                                    print ('Command Info',command_info)
-                                    print ('Command Destination Source',CMD_DEST_SOURCE)
                                     error = Logger.error("COMMAND_RECOGNITION", "[3] Parameter Error in line " + str(line_number) )
                             ###############################################################################
                             ## NO SOURCE OR -- SOURCE IN EXTRACTED PARAMETER
@@ -792,8 +984,8 @@ class Assembler():
                                     command_info.pop('ADDR')     
                                 elif (CMD_DEST_SOURCE[0] =='TRIG'):
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    if ( int(command_info['PORT'])  > 7):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Trigger Port max value is 7 in line " + str(line_number))
+                                    if ( int(command_info['PORT'])  > 31):
+                                        error = Logger.error("COMMAND_RECOGNITION", "Trigger Port max por number is p31 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -834,9 +1026,18 @@ class Assembler():
                                             command_info['ADDR'] = '&'+str(mem_addr+2)
                                         else:   
                                             error = Logger.error("COMMAND_RECOGNITION", "Branch Address ERROR (Should be a label) in line " + str(line_number))
+                                elif (CMD_DEST_SOURCE[0]=='WAIT'):
+                                    Logger.info("COMMAND_RECOGNITION", "WAIT adding Instruction")
+                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
+                                    command_info['P_ADDR'] = mem_addr
+
+                                    mem_addr = mem_addr + 1            
+                                elif (CMD_DEST_SOURCE[0]=='CLEAR'):
+                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
+                                    Logger.info("COMMAND_RECOGNITION", "CLEAR Instruction")
+                                    command_info['P_ADDR'] = mem_addr
+
                                 else:
-                                    print ('Command Info',command_info)
-                                    print ('Command Destination Source',CMD_DEST_SOURCE)
                                     error = Logger.error("COMMAND_RECOGNITION", "[2] Parameter Error in line " + str(line_number))
                             ###############################################################################
                             ## NO DESTINATION OR -- DESTINATION / SOURCE IN EXTRACTED PARAMETER
@@ -867,17 +1068,10 @@ class Assembler():
                                         command_info['ADDR'] = command_info['ADDR']
                                     else:
                                         error = Logger.error("COMMAND_RECOGNITION", "Address Parameter Error in line " + str(line_number))
-                                elif (CMD_DEST_SOURCE[0]=='WAIT'):
-                                    Logger.info("COMMAND_RECOGNITION", "IS WAIT adding Instruction")
-                                    command_info['P_ADDR'] = mem_addr
-                                    mem_addr = mem_addr + 1            
                                 else:
-                                    print ('Command Info',command_info)
-                                    print ('Command Destination Source',CMD_DEST_SOURCE)
                                     error = Logger.error("COMMAND_RECOGNITION", "[1] Parameter Error in line " + str(line_number))
                             else:
                                 error = Logger.error("COMMAND_RECOGNITION", "Error Processing Line " + str(line_number)) + ". Command not recognized."
-                            
 
                             # ADD CMD TO PROGRAM
                             ###########################################################
@@ -890,7 +1084,7 @@ class Assembler():
                     else:
                         error = Logger.error("COMMAND_RECOGNITION", f"< {instruction} > is not a Recognized Command in Line " + str(line_number))
                 else:
-                    error = Logger.error("COMMAND_RECOGNITION", "Not a Command in Line >" + str(line_number))
+                    error = Logger.error("COMMAND_RECOGNITION", "Not a Command in Line " + str(line_number))
             return (error, program_list)
         
         
@@ -899,7 +1093,7 @@ class Assembler():
         error, label_dict = label_recognition(asm_str)
         
         if (error):
-            Logger.warning("LABEL_RECOGNITION", "Errors found!")
+            Logger.warning('LABEL_RECOGNITION', 'Error found ')
             return (None, None)
         
         Logger.info("ASM2LIST", "##### STEP_2 - COMMAND RECOGNITION")
@@ -985,6 +1179,9 @@ class Assembler():
                 elif command['CMD'] == 'ARITH':
                     error, CODE = Instruction.ARITH(command)
             ###############################################################################
+                elif command['CMD'] == 'CLEAR':
+                    error, CODE = Instruction.CLEAR(command)
+            ###############################################################################
                 elif command['CMD'] == 'WAIT':
                     error, CODE = Instruction.WAIT(command)
                 else:
@@ -992,7 +1189,6 @@ class Assembler():
             else:    
                 error = Logger.error("COMMAND_TRANSLATION", "No Command at line " + str(command['LINE']))
         ###################################################################################
-        
             length = CODE.count('0') + CODE.count('1')
             if (length != 72):
                 if (command['CMD'] == 'WAIT'):
@@ -1057,76 +1253,6 @@ class Assembler():
             binary_program_list = [[],[]]
             Logger.error("ASM2BIN", "Program list with errors.")
         return binary_program_list
-
-def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
-    """
-        receives an integer in str format and returns their bits as a string.
-        
-    :strin (str): string with an integer
-    :bits (int): number of bits to return
-    :uint (int): is unsigned 
-    :returns (str): bits as a string
-    """
-    if (uint == 0):
-        minv = -2**(bits-1)
-        maxv = 2**(bits-1) - 1
-    else:
-        minv = 0
-        maxv = 2**(bits) - 1
-    dec = int(strin, 10)
-    # Check max.
-    if dec < minv:
-        Logger.error("integer2bin", "number %d is smaller than %d" % (dec, minv))
-        return None
-    # Check max.
-    if dec > maxv:
-        Logger.error("integer2bin", "number %d is bigger than %d" % (dec, maxv))
-        return None
-    # Check if number is negative.
-    if dec < 0:
-        dec = dec + 2**bits
-    # Convert to binary.
-    fmt = "{0:0" + str(bits) + "b}"
-    binv = fmt.format(dec)
-    return binv
-
-
-def get_reg_addr (reg : str, Type : str) -> tuple:
-    """
-    :returns (tuple): (error, register_address).
-    """
-    error = 0
-    REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)
-    if (REG):
-        REG = REG[0]
-        if (Type=='Source'):
-            if (REG[0]): ## is SREG 
-                reg_addr =  '0_00'+integer2bin(REG[0], 5)   
-            elif (REG[1]): ## is DREG 
-                reg_addr     = '0_01'+integer2bin(REG[1], 5)     
-            elif (REG[2]): ## is WREG
-                reg_addr     = '0_10'+integer2bin(REG[2], 5)     
-        elif (Type=='Dest'):
-            if (REG[0]): ## is SREG
-                reg_addr =  '00'+integer2bin(REG[0], 5)   
-            elif (REG[1]): ## is DREG
-                reg_addr     = '01'+integer2bin(REG[1], 5)     
-            elif (REG[2]): ## is WREG
-                reg_addr     = '10'+integer2bin(REG[2], 5)
-        elif (Type=='Addr'):
-            if (REG[0]): ## is SREG
-                reg_addr =  '0'+integer2bin(REG[0], 5)   
-            elif (REG[1]): ## is DREG
-                reg_addr =  '1'+integer2bin(REG[1], 5)   
-            elif (REG[2]): ## W_Reg
-                reg_addr     = 'X'
-                error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' Can not be wreg' )
-    else:
-        reg_addr     = 'X'
-        error = Logger.error('get_reg_addr', 'Register not Recognized (Registers Starts with r, s or w) ' )
-    
-    return [error, reg_addr]
-  
 ###############################################################################
 ## BASIC COMANDS
 ###############################################################################
@@ -1160,7 +1286,7 @@ class Instruction():
                     if ('OP' in command ):
                         Rdi    = '0'
                     else:
-                        error = Logger.error('Parameter.WR', 'Pperation < -op() > option not found in instruction ' + str(command['LINE']) )
+                        error = Logger.error('Parameter.WR', 'Operation < -op() > option not found in instruction ' + str(command['LINE']) )
                 elif (DEST_SOURCE[1] == 'imm'):
                     if ('LIT' in command ):
                         Rdi    = '1'
@@ -1171,7 +1297,8 @@ class Instruction():
             else:
                 error = Logger.error('Parameter.WR', 'Write Register error <-wr(reg source) in instruction ' + str(command['LINE']) )
             #### DESTINATION REGISTER
-            error, RD = get_reg_addr (DEST_SOURCE [0], 'Dest')
+            if (error==0):
+                error, RD = get_reg_addr (DEST_SOURCE [0], 'Dest')
         return error, Wr, Rdi, RD
 
     @staticmethod
@@ -1202,114 +1329,81 @@ class Instruction():
         rsD0 = rsD1 = DataImm =''
         FULL = (command['CMD']=='REG_WR') and (command['SRC']=='op')
         if ('OP' in command):
-            error = 0
-            comp_OP_PARAM = "s(\d+)|r(\d+)|w(\d+)|#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|\s*([A-Z]{3}|[A-Z><]{2}|\+|\-)"
-            param_op  = re.findall(comp_OP_PARAM, command['OP'])
-            DataImm = rsD1 = '' 
-            if (len(param_op)==1 ) : # COPY REG
+            cmd_op        = command['OP'].split()
+            if (len(cmd_op)==1 ) : # Operation is COPY REG (Add Zero)
+                #print('LEN 1')
+                error, src_type = get_src_type(cmd_op[0])
+                #print('src_type[0] > ', src_type )
                 df          = '01'
                 rsD1         = '0_0000000'
-                if ('LIT' in command):
-                    DataImm = '_'+integer2bin(command ['LIT'], 16)
-                else:
-                    DataImm     = '0000000000000000'
-                if FULL:
-                    alu_op      = '0000'
-                else:
-                    alu_op      = '00'
-                ## CHECK FOR ONLY OPERAND (COPY REG) (ADD S0)
-                if (param_op[0][0]): ## is SREG
-                    rsD0     = '0_00'+integer2bin(param_op[0][0], 5)     
-                elif (param_op[0][1]): ## is DREG
-                    rsD0     = '0_01'+integer2bin(param_op[0][1], 5)     
-                elif (param_op[0][2]): ## is WREG
-                    rsD0     = '0_10'+integer2bin(param_op[0][2], 5)     
-                elif (param_op[0][3] or param_op[0][4] or param_op[0][5] or param_op[0][6] ):#is Signed,Unsigned,Binary,Hexa
-                    error = Logger.error('Parameter.SRC', 'Operand can not be a Literal.')
-                else:
-                    error = Logger.error('Parameter.SRC', 'Operand not recognized.')
-            elif (len(param_op)==2 ) :
-                operation = param_op[0][7]
+                if FULL:                    alu_op  = '0000' # REG_WR rd op -op(rs)
+                else:                       alu_op  = '00'   # -wr(rd op) -op(rs)
+                if (error==0):
+                    if ('LIT' in command):      error, DataImm = get_imm_dt (command ['LIT'], 16)
+                    else:                       DataImm = '_0000000000000000'
+                if (error==0):
+                    if   (src_type[0]=='R'):    error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
+                    else:                       error = Logger.error('Parameter.SRC', 'Operand can not be a Literal.')
+            
+            elif (len(cmd_op)==2 ) :
+                #print('LEN 2 >',cmd_op)
+                operation = cmd_op[0]
+                error, src_type = get_src_type(cmd_op[1])
+                #print('src_type[1] > ', src_type)
                 if (FULL):
                     if (operation in aluList_op) : #ALU LIST ONE PARAMETER
                         df          = '10'
-                        alu_op      = aluList[param_op[0][7]]
-                        DataImm     = '000000000000000000000000'
-                        ## CHECK FOR OPERAND (ALU_IN_A > rsD)
-                        if (param_op[1][0]): ## is SREG
-                            rsD0     = '0_00'+integer2bin(param_op[1][0], 5)     
-                        elif (param_op[1][1]): ## is DREG
-                            rsD0     = '0_01'+integer2bin(param_op[1][1], 5)     
-                        elif (param_op[1][2]): ## is WREG
-                            rsD0     = '0_10'+integer2bin(param_op[1][2], 5)     
-                        elif (param_op[1][3] or param_op[1][4] or param_op[1][5] or param_op[1][6] ):#is Signed,Unsigned,Binary,Hexa
-                            error = Logger.error('Parameter.SRC', 'Operand can not be a Literal in instruction ' + str(command['LINE']) )
+                        alu_op      = aluList[operation]
+                        DataImm     = '__000000000000000000000000'
+                        if   (src_type[0]=='R'): 
+                            error, rsD0    = get_reg_addr(cmd_op[1], 'src_data')
+                        else:                    
+                            error = Logger.error('Parameter.SRC', 'Operand can not be a Literal.')
                     else:
                         error = Logger.error('Parameter.SRC', 'Operation Not Recognized > ' + str(command['OP']) )
-                else:
-                    error = Logger.error('Parameter.SRC', '1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
-                ## ABS Should be on rsD1
-                if (param_op[0][7] == 'ABS') :
-                    df          = '01'
-                    rsD1         = rsD0
-                    rsD0         = '0_0000000'
-                    DataImm     = '0000000000000000'
-
-            elif (len(param_op)==3 ) :
-                ## CHECK FOR FIRST OPERAND (ALU_IN_A > rsD)
-                if (param_op[0][0]): ## is SREG
-                    rsD0     = '0_00'+integer2bin(param_op[0][0], 5)     
-                elif (param_op[0][1]): ## is DREG
-                    rsD0     = '0_01'+integer2bin(param_op[0][1], 5)     
-                elif (param_op[0][2]): ## is WREG
-                    rsD0     = '0_10'+integer2bin(param_op[0][2], 5)     
-                elif (param_op[0][3] or param_op[0][4] or param_op[0][5] or param_op[0][6] ):#is Signed,Unsigned,Binary,Hexa
-                    error = Logger.error('Parameter.SRC', 'First Operand can not be a Literal.')
-                else:
-                    error = Logger.error('Parameter.SRC', 'First Operand not recognized.')
-                ## CHECK FOR SECOND OPERAND (ALU_IN_B > Imm|rsC)
-                if (error == 0):
-                    if ( (param_op[2][0]) or (param_op[2][1]) or (param_op[2][2]) ): ## REG OP REG
-                        if ('LIT' in command):
-                            Logger.info('Parameter.SRC', 'With < -op() > imm value should be 16 Bits in instruction ' + str(command['LINE']) )
-                            if ( int(command ['LIT']) >= 65535):
-                                error = Logger.error('Parameter.SRC',  ('Literal '+ command ['LIT'] + ' should be 16 Bits.') )
-                            else:
-                                Logger.info("Parameter.SRC", "[OK] Literal " + command ['LIT'] + " can be represented with 16 Bits.")
-                                df    = '01'
-                                DataImm = integer2bin(command ['LIT'], 16)
-                        else:
-                            DataImm = '0000000000000000'
-                        if (param_op[2][0]): ## is SREG
-                            df = '01'
-                            rsD1     = '0_00'+integer2bin(param_op[2][0], 5)   
-                        elif (param_op[2][1]): ## is DREG
-                            df = '01'
-                            rsD1     = '0_01'+integer2bin(param_op[2][1], 5)     
-                        elif (param_op[2][2]): ## is WREG
-                            df = '01'
-                            rsD1     = '0_10'+integer2bin(param_op[2][2], 5)     
-                    elif (param_op[2][3]): ## is Signed
-                        df = '10'
-                        DataImm = '_'+ integer2bin(param_op[2][3], 24)
-                    elif (param_op[2][4]): ## is Unsigned
-                        df = '10'
-                        literal = str(int(param_op[2][4]))
-                        DataImm = '_'+ integer2bin(literal, 24, 1)
-                    elif (param_op[2][5]): ## is Binary
-                        df = '10'
-                        literal = str(int(param_op[2][5],2))
-                        DataImm = '_'+ integer2bin(literal, 24)
-                    elif (param_op[2][6]): ## is Hexa
-                        df = '10'
-                        literal = str(int(param_op[2][6],16))
-                        DataImm = '_'+ integer2bin(literal, 24,1)
-                    
+                    ## ABS Should be on rsD1
+                    if (error==0):
+                        if (operation == 'ABS') :
+                            df        = '01'
+                            rsD1      = rsD0
+                            rsD0      = '0_0000000'
+                            DataImm   = '_0000000000000000'
                     else:
-                        error = Logger.error('Parameter.SRC', 'Second Operand not recognized in instruction ' + str(command['LINE']) )
+                        error = Logger.error('Parameter.SRC', '1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+
+            elif (len(cmd_op)==3 ) :
+                #print('LEN 3 >',cmd_op)
+                ## CHECK FOR FIRST OPERAND (ALU_IN_A > rsD0)
+                error, src_type = get_src_type(cmd_op[0])
+                #print('First Operand >',src_type, cmd_op[0])
+                if   (src_type[0]=='R'): 
+                    error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
+                else:                    
+                    error = Logger.error('Parameter.SRC', 'First Operand can not be a Literal.')
+                ## CHECK FOR SECOND OPERAND (ALU_IN_B > Imm|rsD1)
+                if (error==0):
+                    error, src_type = get_src_type(cmd_op[2])
+                    #print('Second Operand >',src_type, cmd_op[2])
+                    if   (src_type[0]=='R'): ## REG OP REG
+                        df             = '01'
+                        error, rsD1    = get_reg_addr(cmd_op[2], 'src_data')
+                        ## Literal for Second Data Task -wr(rd imm)
+                        if ('LIT' in command):
+                                error, DataImm = get_imm_dt (command['LIT'], 16)
+                        else:
+                            DataImm = '_0000000000000000'
+                    elif (src_type[0]=='N'): ## is Number
+                        if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
+                            LIT      = int(re.findall(regex['LIT'], cmd_op[2])[0])
+                            if (LIT > 15): 
+                                error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
+                        df             = '10'
+                        error, DataImm = get_imm_dt (cmd_op[2], 24)
+                        DataImm  = '_'+DataImm 
+
                 ## CHECK FOR OPERATION
-                if (error == 0):
-                    operation = param_op[1][7]
+                if (error==0):
+                    operation = cmd_op[1]
                     if (FULL):
                         if operation in aluList:
                             alu_op      = aluList[ operation ]
@@ -1322,32 +1416,21 @@ class Instruction():
                             error = Logger.error('Parameter.SRC', 'ALU {Reduced List} Operation Not Recognized in instruction ' + str(command['LINE']) )
         ## LITERAL and NO OP
         elif ('LIT' in command): 
-            comp_LIT_PARAM = "(-?\d+)|u(\d+)|b(\d+)|h([0-9A-F]+)"
-            param_lit  = re.findall(comp_LIT_PARAM, command['LIT'])[0]
-            if (param_lit):
-                df = '11'
-                alu_op  = '00'
-                if (param_lit[0]): ## is Signed
-                    literal = str(int(param_lit[0]))
-                    DataImm = '__'+ integer2bin(literal, 32)
-                elif (param_lit[1]): ## is Unsigned
-                    literal = str(int(param_lit[1]))
-                    DataImm = '__'+ integer2bin(literal, 32, 1)
-                elif (param_lit[2]): ## is Binary
-                    literal = str(int(param_lit[2],2))
-                    DataImm = '__'+ integer2bin(literal, 32)
-                elif (param_lit[3]): ## is Hexa
-                    literal = str(int(param_lit[3],16))
-                    DataImm = '__'+ integer2bin(literal, 32,1)
-            else:
-                error = Logger.error("COMMAND_RECOGNITION", "Data Format incorrect in Line " + str(command['LINE']) )
+            df = '11'
+            alu_op  = '00'
+            error, DataImm = get_imm_dt (command ['LIT'], 32)
+            DataImm  = '__'+DataImm 
         else:
             df      = '11'
             alu_op  = '00'
-            DataImm = '__00000000000000000000000000000000'
-        Data_Source = rsD0 +'__'+ rsD1 +'__'+ DataImm
-        return error, Data_Source, alu_op, df
-
+            DataImm = '___00000000000000000000000000000000'
+        
+        if (error==0):
+            Data_Source = rsD0 +'__'+ rsD1 +'_'+ DataImm
+            return error, Data_Source, alu_op, df
+        else:
+            error = Logger.error('Parameter.SRC', 'Error in line ' + str(command['LINE']) )
+            return error, 'X', 'X', 'X'
     @staticmethod
     def __PROCESS_MEM_ADDR (ADDR_CMD : str) -> tuple:
         error = 0
@@ -1393,7 +1476,6 @@ class Instruction():
         return error, rsA0, rsA1, AI
 
 
-      
     #INSTRUCTIONS
     @staticmethod
     def REG_WR (current : dict) -> tuple:
@@ -1419,8 +1501,6 @@ class Instruction():
                     error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
                     CFG = '11__' + current ['UF'] + '_00_' + alu_op
                     ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
-                    if ( current ['DST'] == 's14' and int(current ['LIT']) < 0 ):
-                        error = Logger.error('Instruction.REG_WR', 'out_usr_time can not be negative in instruction ' + str(current['LINE']) )
                 else:
                     error = Logger.error('Instruction.REG_WR', 'No Literal value for immediate Assignation (#) in instruction ' + str(current['LINE']) )
             #### SOURCE LABEL
@@ -1429,7 +1509,7 @@ class Instruction():
                 if ('ADDR' in current):
                     comp_addr = "&(\d+)"
                     address = re.findall(comp_addr, current['ADDR'])
-                    current['LIT'] = address[0]
+                    current['LIT'] = current['ADDR']
                     if (address[0]): # LITERAL
                         error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
                         ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
@@ -1446,14 +1526,13 @@ class Instruction():
                 #### Get ADDRESS
                 if error == 0:
                     if ('ADDR' in current):
-                        error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                        ADDR  = RsF + '__' + RsE
+                        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                        ADDR  = rsA0 + '__' + rsA1
                         CFG = '01__' + current ['UF'] + '_00_'+alu_op
                     else:
                         error = Logger.error('Instruction.REG_WR', 'No Address for dmem in line ' + str(current['LINE']) )
             #### SOURCE WAVE MEM
             elif (current ['SRC'] == 'wmem'):
-                if (current ['DST'] == 'r_wave'):
                     if (COND != '000'):
                         error = Logger.error('Instruction.REG_WR', 'Wave Register Write is not conditional < -if() >  in instruction ' + str(current['LINE']) )
                     else:
@@ -1473,38 +1552,35 @@ class Instruction():
                     #### Get ADDRESS
                     if error == 0:
                         if ('ADDR' in current):
-                            error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                            if (RsE != '000000'):
+                            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                            if (rsA1 != '000000'):
                                 error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in instruction ' + str(current['LINE']) )                    
-                            ADDR  = RsF + '__' + RdP
+                            ADDR  = rsA0 + '__' + RdP
                         else:
                             error = Logger.error('Instruction.REG_WR', 'No addres for <wmem> source in instruction ' + str(current['LINE']) )
-                else:
-                    error = Logger.error('Instruction.REG_WR', 'Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
             else:
                 error = Logger.error('Instruction.REG_WR', 'Posible REG_WR sources are (op, imm, dmem, wmem, label ) in instruction ' + str(current['LINE']) )
+
             ######### DESTINATION REGISTER
             if (error==0):
-                comp_OP_PARAM = "s(\d+)|r(\d+)|w(\d+)|(r_wave)"
-                RD    = re.findall(comp_OP_PARAM, current ['DST'])
-                if (RD):
-                    if ( (current ['SRC'] == 'label') and (RD[0][1]!='15') ):
+                if (current ['SRC'] == 'wmem'):
+                    if (current ['DST'] != 'w0'):
+                        Wr = Rdi = '0'
+                        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+                        CFG = '10__' + current ['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
+                    
+                    else:
+                        error = Logger.error('Instruction.REG_WR', 'Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
+                elif ( (current ['SRC'] == 'label') and () ):
+                    if (RD!='15'):
                         error = Logger.warning('Instruction.REG_WR', 'Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
-                    if (RD[0][0]) : #SREG
-                        RD    = '00' + integer2bin(RD[0][0], 5)
-                    elif (RD[0][1]) : #DREG
-                        RD    = '01' + integer2bin(RD[0][1], 5) 
-                    elif (RD[0][2]) : #WREG
-                        RD    = '10' + integer2bin(RD[0][2], 5) 
-                    elif (RD[0][3]) : #r_wave
-                        if (current ['SRC'] == 'wmem'):
-                            Wr = Rdi = '0'
-                            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
-                            CFG = '10__' + current ['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
-                        else:
-                            error = Logger.error('Instruction.REG_WR', 'Wave Register Destination Should have a Wave Memory <wmem> Source ' + str(current['LINE']) + " (possible missing alias)")
                 else:
-                    error = Logger.error('Instruction.REG_WR', 'Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
+                    comp_OP_PARAM = "^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
+                    RD    = re.findall(comp_OP_PARAM, current ['DST'])
+                    if (RD):
+                        error, RD = get_reg_addr (current ['DST'], 'Dest')
+                    else:
+                        error = Logger.error('Instruction.REG_WR', 'Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
         if (error==0):
             CODE  = '100_' + AI + DF +'__'+ COND +'__'+ CFG +'___'+ADDR+'____'+DATA + '__' + RD
         else:
@@ -1514,6 +1590,7 @@ class Instruction():
     @staticmethod
     def DMEM_WR (current : dict) -> tuple:
         error   = 0
+        CODE = 'X'
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
@@ -1525,8 +1602,8 @@ class Instruction():
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         #### ADDRESS
         if (error==0):
-            error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
-            ADDR  = RsF + '__' + RsE
+            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
+            ADDR  = rsA0 + '__' + rsA1
         #### SOURCE    
         if (error==0):
             if (current ['SRC'] == 'op'):
@@ -1541,12 +1618,9 @@ class Instruction():
                     error = Logger.error('Instruction.MEM_WR', 'No Literal value found in instruction ' + str(current['LINE']) )
             else:
                 error = Logger.error('Instruction.MEM_WR', 'Posible MEM_WR sources are (op, imm) in instruction ' + str(current['LINE']) )
-        
         if (error==0):
             CFG = current['UF']+ '_'+Wr+Rdi+'_'+ alu_op
             CODE = '101_'+AI+DF+'__'+COND+'__0_'+DI+'_'+CFG+"___"+ADDR+'____'+DATA+'__'+RD
-        else:
-            CODE = 'X'
         return error, CODE
         
     @staticmethod
@@ -1555,8 +1629,8 @@ class Instruction():
         AI=Wp=TI='0'
         #### WMEM ADDRESS
         if 'DST' in current:
-            error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
-            if (RsE != '000000'):
+            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
+            if (rsA1 != '000000'):
                 error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
         else:
             error = Logger.error('Instruction.WMEM_WR', 'No address specified in line ' + str(current['LINE']) )
@@ -1573,9 +1647,11 @@ class Instruction():
         if (error==0):
             if ('TIME' in current ):
                 TI='1'
-                DATA = '______' +integer2bin(current['TIME'], 32)
+                error, TIME = get_imm_dt (current ['TIME'], 32)
+                DATA = '_____' + TIME 
+                #DATA = '______' +integer2bin(current['TIME'], 32)
             CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
-            CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+RsF+'__'+Dp+'____'+DATA+'__'+RD
+            CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
         else:
             error = Logger.error('Instruction.WMEM_WR', 'Error in line ' + str(current['LINE']) )
             CODE = 'X'
@@ -1590,14 +1666,16 @@ class Instruction():
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
         Wr = Rdi = '0'
-        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+        if (error==0):
+            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
         if (error==0):
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         if (error==0):
             CFG  = current['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
-            CODE = '000_'+AI+DF+'__'+COND+'___'+SO+TO+'__'+CFG+"______"+ADDR+'____'+DATA+'__'+RD
+            CODE = '000_'+AI+DF+'__'+COND+'__'+SO+TO+'__'+CFG+"_______"+ADDR+'____'+DATA+'__'+RD
         else:
+            error = Logger.error('Instruction.CFG', 'Error in line ' + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
     
@@ -1646,59 +1724,64 @@ class Instruction():
     @staticmethod
     def PORT_WR (current : dict) -> tuple:
         error   = 0
+        ##### DATA PORTS
         if (current['CMD'] == 'DPORT_WR' or current['CMD'] == 'DPORT_RD') \
         or (current['CMD'] == 'TRIG'):
             SO=AI=Ww=Sp= '0'
-            RsF = '___00000000000'
+            rsA0 = '___00000000000'
             #### WRITE REGISTER
-            if error == 0:
+            if (error==0):
                 Wr = Rdi = '0'
                 if (error==0):
                     error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
-            #### DATA SOURCE
+            #### PORT DESTINATION 
             if (error==0):
-                error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-            if (current['CMD'] == 'TRIG'):
-                if (current['SRC'] == 'set'):
-                    Wp= '1'
-                    AI=Sp = '1'
-                    RsF     = '___00000000001'
-                    current['DST'] = str(int(current['DST'])+8)
-                elif (current['SRC'] == 'clr'):
-                    Wp= '1'
-                    AI=Sp = '1'
-                    RsF     = '___00000000000'
-                    current['DST'] = str(int(current['DST'])+8)
-                else:
-                    error = Logger.error('Instruction.PORT_WR', 'Posible options for TRIG command are (set, clr)' )
+                #### TRIG PORT
+                if (current['CMD'] == 'TRIG'):
+                    if (current['SRC'] == 'set'):
+                        Wp= '1'
+                        AI=Sp = '1'
+                        rsA0     = '___00000000001'
+                        current['DST'] = str(int(current['DST'])+32)
+                    elif (current['SRC'] == 'clr'):
+                        Wp= '1'
+                        AI=Sp = '1'
+                        rsA0     = '___00000000000'
+                        current['DST'] = str(int(current['DST'])+32)
+                    else:
+                        error = Logger.error('Instruction.PORT_WR', 'Posible options for TRIG command are (set, clr)' )
 
-            elif (current['CMD'] == 'DPORT_WR'):
-                Wp= '1'
-                Sp= '0'
-                if (current ['SRC'] == 'imm'):
-                    if 'DATA' in current:
-                        if ( int(current['DATA']) > 2047 ):
-                            error = Logger.error('Instruction.PORT_WR', 'Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
+                #### DATA PORT
+                elif (current['CMD'] == 'DPORT_WR'):
+                    Wp= '1'
+                    Sp= '0'
+                    if (current ['SRC'] == 'imm'):
+                        if 'DATA' in current:
+                            if ( int(current['DATA']) > 2047 ):
+                                error = Logger.error('Instruction.PORT_WR', 'Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
+                            else:
+                                AI=Sp = '1'
+                                # DATA CAMES WITHOUT #
+                                rsA0     = '___'+ integer2bin(current['DATA'], 11)
                         else:
-                            AI=Sp = '1'
-                            RsF     = '___'+ integer2bin(current['DATA'], 11)
-                    else:
-                        error = Logger.error('Instruction.PORT_WR', 'No Port Data value found in line ' + str(current['LINE']) )
-                elif (current ['SRC'] == 'reg'):
-                    if ('DATA' in current ):
-                        AI=Sp = '0'
-                        comp_REG_FMT = "r(\d+)"
-                        param_op  = re.findall(comp_REG_FMT, current['DATA'])
-                        if (param_op):
-                           RsF     = '00000___1' + integer2bin(param_op[0], 5)     
+                            error = Logger.error('Instruction.PORT_WR', 'No Port Data value found in line ' + str(current['LINE']) )
+                    elif (current ['SRC'] == 'reg'):
+                        if ('DATA' in current ):
+                            AI=Sp = '0'
+                            comp_REG_FMT = "r(\d+)"
+                            param_op  = re.findall(comp_REG_FMT, current['DATA'])
+                            if (param_op):
+                               rsA0     = '00000___1' + integer2bin(param_op[0], 5)     
+                            else:
+                                error = Logger.error('Instruction.PORT_WR', 'Register Selection Error, should be dreg in line ' + str(current['LINE']) )
                         else:
-                            error = Logger.error('Instruction.PORT_WR', 'Register Selection Error, should be dreg in line ' + str(current['LINE']) )
+                            error = Logger.error('Instruction.PORT_WR', 'No Port Register found in line ' + str(current['LINE']) )
                     else:
-                        error = Logger.error('Instruction.PORT_WR', 'No Port Register found in line ' + str(current['LINE']) )
+                        error = Logger.error('Instruction.PORT_WR', 'Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
+                #### READ DATA PORT
                 else:
-                    error = Logger.error('Instruction.PORT_WR', 'Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
-            else: #DPORT_RD
-                TO=Wp='0'
+                    TO=Wp='0'
+        ##### WAVEFORM PORT
         else:
             AI=Ww=Sp= '0'
             SO=Wp= '1'
@@ -1707,8 +1790,8 @@ class Instruction():
                 if (current['SRC'] == 'wmem'):
                     Sp = '0'
                     if 'ADDR' in current:
-                        error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                        if (RsE != '000000'):
+                        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                        if (rsA1 != '000000'):
                             error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
                     else:
                         error = Logger.error('Instruction.PORT_WR', 'No address specified for < wmem > in line ' + str(current['LINE']) )
@@ -1718,14 +1801,14 @@ class Instruction():
                     if ('WW' in current ): 
                         if 'ADDR' in current:
                             Ww = '1'
-                            error, RsF, RsE, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                            if (RsE != '000000'):
+                            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                            if (rsA1 != '000000'):
                                 error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
                         else:
                             error = Logger.error('Instruction.PORT_WR', 'No address specified for < -ww > in line ' + str(current['LINE']) )
                     else:
                         Ww  = '0'
-                        RsF = '___00000000000'
+                        rsA0 = '___00000000000'
                 else:
                     error = Logger.error('Instruction.PORT_WR', 'Posible wave sources are (wmem, r_wave) in line ' + str(current['LINE']) )
                     DF = '11'
@@ -1734,14 +1817,16 @@ class Instruction():
             if ('TIME' in current): 
                 TO = '1'
                 DF = '11'
-                DATA = '______'+ integer2bin(current['TIME'], 32)
+                error, TIME = get_imm_dt (current ['TIME'], 32)
+                DATA = '_____'+ TIME 
+                #DATA = '______'+ integer2bin(current['TIME'], 32)
                 CFG = SO+TO+'____00000'
                 RD = '0000000'
-                if ('WR' in current): 
-                    error = Logger.error('Instruction.PORT_WR', 'If time specified, Not allowed SDI <-wr()> in line ' + str(current['LINE']) )
+                if ('WR' in current or 'OP' in current): 
+                    error = Logger.error('Instruction.PORT_WR', 'If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
             else:
                 TO = '0'
-                error = Logger.info('Instruction.PORT_WR', 'No time specified for command will use r_time in line ' + str(current['LINE']) )
+                error = Logger.info('Instruction.PORT_WR', 'No time specified for command will use s_time in line ' + str(current['LINE']) )
                 #### WRITE REGISTER
                 Wr = Rdi = '0'
                 if (error==0):
@@ -1753,12 +1838,12 @@ class Instruction():
         #### OUT PORT
         if (error==0):
             if ('DST' in current):
-                RsE = integer2bin(current['DST'], 6)
+                rsA1 = integer2bin(current['DST'], 6,1)
             else:
                 error = Logger.error('Instruction.PORT_WR', 'No Destination Port in line ' + str(current['LINE']) )        
         if (error == 0):
             COND = Ww+Sp+Wp
-            ADDR  = RsF+'__'+RsE
+            ADDR  = rsA0+'__'+rsA1
             CODE = '110'+'_'+AI+DF+'__'+COND+'__'+CFG+ '___'+ADDR +'____'+ DATA+'__'+RD
         else:
             Logger.error("Instruction.PORT_WR", "Exit with Error in line " + str(current['LINE']) )
@@ -1774,6 +1859,7 @@ class Instruction():
         RD0=RD1='0_0000000'
         ImmFill='__0000000000000000'
         DF='10'
+        AI='0'
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
         ######### TIME 
@@ -1790,12 +1876,12 @@ class Instruction():
             else:
                 error = Logger.error('Instruction.CTRL', 'Posible Operations for TIME command are (rst, set_ref, inc_ref)' )
             if ('LIT' in current ):
-                DF='11'
+                DF  ='11'
                 RD0 = '_'
-                RD1 = '___'+integer2bin(current['LIT'], 32)
-                ImmFill=''
+                error, RD1 = get_imm_dt (current ['LIT'], 32)
+                ImmFill='__'
             elif ('R1' in current):
-                error, RD1 = get_reg_addr (current['R1'], 'Source')
+                error, RD1 = get_reg_addr (current['R1'], 'src_data')
             else: 
                 if   (current['C_OP'] !='rst'):
                     error = Logger.error('Instruction.CTRL', 'No Time Data' )
@@ -1812,19 +1898,17 @@ class Instruction():
         elif (current ['CMD'] == 'DIV'):
             CTRL_ADDR  = '011'
             OPERATION  = '_0000'
-            if ('NUM' in current ):
-                error, RD0 = get_reg_addr (current['NUM'], 'Source')
-            if (error == 0) and ('DEN' in current ):
-                comp_den = "(\d+)|r(\d+)"
-                den = re.findall(comp_den, current['DEN'])
-                if (den[0][0]): # LITERAL
-                    DF='11'
-                    RD1 = '___'+integer2bin(current['DEN'], 24)
-                    ImmFill=''
-                elif (den[0][1]): #REGISTER
-                    error, RD1 = get_reg_addr (current['DEN'], 'Source')
+            error, RA1 = get_reg_addr (current['NUM'], 'src_addr')
+            if (error == 0):
+                if (check_reg(current['DEN'])) : # Is Register 
+                    error, RD1 = get_reg_addr (current['DEN'], 'src_data')
+                elif (check_lit(current['DEN'])) : # Is Literal Value
+                    DF  ='11'
+                    RD0 ='_'
+                    error, RD1 = get_imm_dt (current ['DEN'], 32)
+                    ImmFill='__'
                 else:
-                    error = Logger.error('Instruction.CTRL', 'Data not recognized in line ' + str(current['LINE']) )        
+                    error = Logger.error('Instruction.CTRL', 'DIV Denominator not recognized in line ' + str(current['LINE']) )        
         ######### NET
         elif (current ['CMD'] == 'NET'):
             Header = '011'
@@ -1844,7 +1928,7 @@ class Instruction():
             elif (current['C_OP'] == 'get_flag'):
                 OPERATION = '01011'
             else:
-                error = Logger.error('Instruction.CTRL', 'Operation not recognized' )
+                error = Logger.error('Instruction.CTRL', 'NET Operation not recognized' )
         ######### COM
         elif (current ['CMD'] == 'COM'):
             Header = '011'
@@ -1855,7 +1939,7 @@ class Instruction():
                 elif (current['R1'] == '1'):
                     OPERATION = '00010'
                 else:
-                    error = Logger.error('Instruction.CTRL', 'flag value can be 0 or 1' )
+                    error = Logger.error('Instruction.CTRL', 'COM flag value can be 0 or 1' )
             elif (current['C_OP'] == 'sync'):
                 OPERATION = '00110'
             elif (current['C_OP'] == 'reset'):
@@ -1878,12 +1962,12 @@ class Instruction():
                 if ('LIT' in current ):
                     DF='11'
                     RD0 = ''
-                    RD1 = '____'+integer2bin(current['LIT'], 32)
+                    error, RD1 = get_imm_dt (current ['LIT'], 32)
                     ImmFill=''
                 elif ('R1' in current):
-                    error, RD1 = get_reg_addr (current['R1'], 'Source')
+                    error, RD1 = get_reg_addr (current['R1'], 'src_data')
                 else: 
-                    if   (current['C_OP'] !='rst'):
+                    if (current['C_OP'] !='rst'):
                         error = Logger.error('Instruction.CTRL', 'No Time Data' )
         ######### CUSTOM Peripheral
         elif (current ['CMD'] == 'PA' or current ['CMD'] == 'PB'):
@@ -1900,19 +1984,18 @@ class Instruction():
                         error = Logger.error('Instruction.CTRL', 'No Immediate value allowed in Peripheral instruction' )
                 else :
                     if ('R1' in current):
-                        error, RD0 = get_reg_addr (current['R1'], 'Source')
+                        error, RD0 = get_reg_addr (current['R1'], 'src_data')
                     if ('R2' in current):
-                        error, RD1 = get_reg_addr (current['R2'], 'Source')
+                        error, RD1 = get_reg_addr (current['R2'], 'src_data')
                     if ('R3' in current):
-                        error, RA0 = get_reg_addr (current['R3'], 'Addr')
+                        error, RA0 = get_reg_addr (current['R3'], 'src_addr')
                     if ('R4' in current):
-                        error, RA1 = get_reg_addr (current['R4'], 'Addr')
-                    
+                        error, RA1 = get_reg_addr (current['R4'], 'src_addr')
         if (error):
             Logger.error("Instruction.CTRL", "Error in instruction " + str(current['LINE']) )
             CODE = 'X'
         else:
-            CODE = Header+'_0'+DF+'__'+COND+'___'+CTRL_ADDR+'__'+OPERATION+'___00000___'+RA0+'__'+RA1+'____'+RD0+'__'+RD1+ImmFill+'__0000000'
+            CODE = Header+'_'+AI+DF+'__'+COND+'___'+CTRL_ADDR+'__'+OPERATION+'___00000___'+RA0+'__'+RA1+'____'+RD0+'__'+RD1+ImmFill+'__0000000'
         return error, CODE
 
     
@@ -1931,53 +2014,75 @@ class Instruction():
                 ARITH_OP = arithList[current['C_OP']]
             if   (current['C_OP'] == 'T'): # A*B
                 if ('R1' in current and 'R2' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsB = get_reg_addr (current['R2'], 'Source')
+                    error, RsA = get_reg_addr (current['R1'], 'src_data')
+                    error, RsB = get_reg_addr (current['R2'], 'src_data')
                 else:
                     error = Logger.error('Instruction.ARITH', 'Few Sources > Need Two Source Register for T operation' )
             elif (current['C_OP'] == 'TP') : # A*B+C
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsB = get_reg_addr (current['R2'], 'Source')
-                    error, RsC = get_reg_addr (current['R3'], 'Addr')
+                    error, RsA = get_reg_addr (current['R1'], 'src_data')
+                    error, RsB = get_reg_addr (current['R2'], 'src_data')
+                    error, RsC = get_reg_addr (current['R3'], 'src_addr')
                 else:
                     error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for TP operation' )
             elif (current['C_OP'] == 'TM') : # A*B-C
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsB = get_reg_addr (current['R2'], 'Source')
-                    error, RsC = get_reg_addr (current['R3'], 'Addr')
+                    error, RsA = get_reg_addr (current['R1'], 'src_data')
+                    error, RsB = get_reg_addr (current['R2'], 'src_data')
+                    error, RsC = get_reg_addr (current['R3'], 'src_addr')
                 else:
                     error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for TM operation' )
-            elif (current['C_OP'] == 'PT') : # (A+D)*B
+            elif (current['C_OP'] == 'PT') : # (D+A)*B
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsD = get_reg_addr (current['R2'], 'Addr')
-                    error, RsB = get_reg_addr (current['R3'], 'Source')
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
                 else:
                     error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for PT operation' )
-            elif (current['C_OP'] == 'PTP'): #(A+D)*B+C
+            elif (current['C_OP'] == 'PTP'): #(D+A)*B+C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsD = get_reg_addr (current['R2'], 'Addr')
-                    error, RsB = get_reg_addr (current['R3'], 'Source')
-                    error, RsC = get_reg_addr (current['R4'], 'Addr')
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
+                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
                     error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
-            elif (current['C_OP'] == 'PTM'): #(A+D)*B-C
+            elif (current['C_OP'] == 'PTM'): #(D+A)*B-C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'Source')
-                    error, RsD = get_reg_addr (current['R2'], 'Addr')
-                    error, RsB = get_reg_addr (current['R3'], 'Source')
-                    error, RsC = get_reg_addr (current['R4'], 'Addr')
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
+                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTM operation' )
+                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+            elif (current['C_OP'] == 'MT' ): #(D-A)*B
+                if ('R1' in current and 'R2' in current and 'R3' in current ):
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
+                else:
+                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for PT operation' )
+            
+            elif (current['C_OP'] == 'MTP'): #(D-A)*B+C
+                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
+                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
+                else:
+                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+            elif (current['C_OP'] == 'MTM'): #(D-A)*B-C
+                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
+                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
+                    error, RsA = get_reg_addr (current['R2'], 'src_data')
+                    error, RsB = get_reg_addr (current['R3'], 'src_data')
+                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
+                else:
+                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
             else:
                     error = Logger.error('Instruction.ARITH', 'No Recognized Operation' )
-
         if (error==0):
             CODE = '010_000__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
-        
         else:
             Logger.error("Instruction.ARITH", "Exit with Error in line " + str(current['LINE']) )
             CODE = 'X'
@@ -1985,20 +2090,62 @@ class Instruction():
 
     @staticmethod
     def WAIT (current : dict) -> tuple:
+        print(current)
         error   = 0
         binary_multi_list = []
-        ######### WAIT 
         current['ADDR'] = '&'+str(current['P_ADDR'])
-        current['TIME'] = str(int(current['TIME'])-10)
-        current['UF'] = '1'
-        current['IF'] = '1'
-        current['OP'] = 's11-#' + current['TIME']
-        error, CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
+        test_op   = ''
+        jump_cond = ''
+        if   (current['C_OP'] == 'time') : 
+            test_op   = 's11 - #' + str(int(current['TIME'][1:])-10)
+            jump_cond = 'S'
+        elif (current['C_OP'] == 'port_dt') : 
+            test_op   = 's10 AND #h8000'
+            jump_cond = 'Z'
+        elif (current['C_OP'] == 'div_rdy') : 
+            test_op   = 's10 AND #h4'
+            jump_cond = 'Z'
+        elif (current['C_OP'] == 'div_dt') : 
+            test_op   = 's10 AND #h8'
+            jump_cond = 'Z'
+        elif (current['C_OP'] == 'qpa_rdy') : 
+            test_op   = 's10 AND #h100'
+            jump_cond = 'Z'
+        elif (current['C_OP'] == 'qpa_dt') : 
+            test_op   = 's10 AND #h200'
+            jump_cond = 'Z'
+        else:
+            msg = 'No Recognized Operation in line ' + str(current['LINE'])
+            error = Logger.error('Instruction.WAIT', msg )
         if (error==0):
-            binary_multi_list.append(CODE)
-            current['IF'] = 'S'
-            error, CODE = Instruction.BRANCH(current, '00') ## ADD JUMP INSTRUCTION
-        if (error==0):
-            binary_multi_list.append(CODE)
-
+            current['OP'] = test_op
+            current['UF'] = '1'
+            error, CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
+            if (error==0):
+                binary_multi_list.append(CODE)
+                current['IF'] = jump_cond
+                error, CODE = Instruction.BRANCH(current, '00') ## ADD JUMP INSTRUCTION
+            if (error==0):
+                binary_multi_list.append(CODE)
         return error, binary_multi_list        
+
+    @staticmethod
+    def CLEAR (current : dict) -> tuple:
+        error   = 0
+        current['CMD'] = 'REG_WR'
+        current['DST'] = 's2'
+        current['SRC'] = 'imm'
+        if   (current['C_OP'] == 'arith') : current['LIT'] =  '#h10000'
+        elif (current['C_OP'] == 'div'  ) : current['LIT'] =  '#h20000'
+        elif (current['C_OP'] == 'qnet' ) : current['LIT'] =  '#h40000'
+        elif (current['C_OP'] == 'qcom' ) : current['LIT'] =  '#h80000'
+        elif (current['C_OP'] == 'qpa'  ) : current['LIT'] = '#h100000'
+        elif (current['C_OP'] == 'qpb'  ) : current['LIT'] = '#h200000'
+        elif (current['C_OP'] == 'port' ) : current['LIT'] = '#h400000'
+        elif (current['C_OP'] == 'all'  ) : current['LIT'] = '#h7F0000'
+        else:
+            error = Logger.error('Instruction.CLEAR', 'No Recognized Operation in line ' + str(current['LINE']) )
+        if (error==0):
+            error, CODE = Instruction.REG_WR(current)
+        return error, CODE        
+
