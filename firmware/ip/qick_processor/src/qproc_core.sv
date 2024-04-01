@@ -133,7 +133,7 @@ reg [63:0 ] in_port_dt_r;
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge c_clk_i) begin
    if      ( restart_i )    in_port_dt_r  <= 0 ;
-   else if ( port_re   )    in_port_dt_r  <= port_dt_i[port_o.p_addr];
+   else if ( port_re   )    in_port_dt_r  <= port_dt_i[port_o.p_addr[3:0]];
 end
 
  

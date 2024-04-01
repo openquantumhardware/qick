@@ -121,10 +121,10 @@ always_comb begin
    c_fifo_trig_push    = 0;
    if (port_we)
       if (out_port_data.p_type)
-         if ( out_port_data.p_addr[3] == 1'b1 ) //TRIGGER
-            c_fifo_trig_push [out_port_data.p_addr[2:0] ] = 1'b1 ;
+         if ( out_port_data.p_addr[5] == 1'b1 ) //TRIGGER Selection Bit
+            c_fifo_trig_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
          else // DATA
-            c_fifo_data_push [out_port_data.p_addr[2:0] ] = 1'b1 ;
+            c_fifo_data_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
       else
          c_fifo_wave_push [out_port_data.p_addr] = 1'b1 ;
    if (core_en) begin 
@@ -151,7 +151,8 @@ always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
       c_fifo_wave_push_r     <= c_fifo_wave_push ;
          if (c_fifo_trig_push | c_fifo_data_push | c_fifo_wave_push) begin
          c_fifo_data_in_r       <= out_port_data.p_data ;
-         c_fifo_time_in_r       <= {16'd0, out_port_data.p_time} + c_time_ref_dt;
+         //c_fifo_time_in_r       <= {16'd0, out_port_data.p_time} + c_time_ref_dt;
+         c_fifo_time_in_r       <= { {16{out_port_data.p_time[31]}} , out_port_data.p_time} + c_time_ref_dt;
       end
    end
 end

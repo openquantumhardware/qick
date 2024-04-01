@@ -125,7 +125,6 @@ wire [47:0]    time_abs               ; // Absolute Time Counter Value "out_abs_
 reg  [47:0]    t_time_abs_cdc, c_time_abs_r ; // Absolute Time Counter Value "Registered"
 reg  [47:0]    c_time_ref_dt           ; // Reference time "ref_time"
 wire [31:0]    c_time_usr  ; // User time "current_user_time"
-reg  [31:0]    c_time_usr_r  ; // User time "current_user_time"
 
 reg  [31:0]    time_updt_dt            ; // New incremental time value 
 
@@ -230,7 +229,7 @@ always_ff @(posedge c_clk_i)
    if (!c_rst_ni) begin
       offset_dt_r     <= 0;
    end else begin
-      if      ( time_updt_core ) offset_dt_r  <= core_usr_a_dt      ; // Update from CORE
+      if      ( time_updt_core ) offset_dt_r  <= core_usr_b_dt      ; // Update from CORE
       else if ( time_update_p  ) offset_dt_r  <= xreg_TPROC_W_DT[0] ; // Update from PYTHON
    end
 
@@ -263,6 +262,7 @@ always_comb begin
    if       ( ctrl_c_stop    )  core_st_nxt = C_STOP;
    else if  ( ctrl_c_run     )  core_st_nxt = C_RUN;
    else if  ( ctrl_c_rst_run )  core_st_nxt = C_RST_RUN;
+   else if  ( ctrl_c_rst_stop)  core_st_nxt = C_RST_STOP;
    else if  ( ctrl_c_step    )  core_st_nxt = C_STEP;
    //State Transitions and Out
    case (core_st)
@@ -433,8 +433,8 @@ assign sreg_status[10]     = qp2_rdy_r ;
 assign sreg_status[11]     = qp2_dt_new ;
 assign sreg_status[12]     = 1'b0 ;
 assign sreg_status[13]     = 1'b0 ;
-assign sreg_status[14]     = 1'b0 ;
-assign sreg_status[15]     = some_fifo_full ;
+assign sreg_status[14]     = some_fifo_full ;
+assign sreg_status[15]     = |port_dt_new;
 assign sreg_status[31:16]  = port_dt_new ;
 
 
@@ -622,7 +622,7 @@ qproc_axi_reg QPROC_xREG (
    .MEM_DT_O         ( xreg_MEM_DT_O       ) ,
    .TPROC_R_DT1      ( xreg_TPROC_R_DT[0]  ) ,
    .TPROC_R_DT2      ( xreg_TPROC_R_DT[1]  ) ,
-   .TIME_USR         ( c_time_usr_r        ) ,
+   .TIME_USR         ( c_time_usr        ) ,
    .TPROC_STATUS     ( xreg_TPROC_STATUS   ) ,
    .TPROC_DEBUG      ( xreg_TPROC_DEBUG    ) );
 // AXI_REG TPROC_R_DT source selection
@@ -683,13 +683,12 @@ generate
       wire [31:0] div_remainder_s, div_quotient_s;
       reg [31:0] div_remainder_r, div_quotient_r;
       div_r #(
-         .DW     ( 32 ) ,
-         .N_PIPE ( 32 )
+         .DW     ( 32 ) 
       ) DIV (
          .clk_i           ( c_clk_i ) ,
          .rst_ni          ( c_rst_ni ) ,
          .start_i         ( int_div_pen ) ,
-         .A_i             ( core_usr_a_dt ) ,
+         .A_i             ( core_usr_d_dt ) ,
          .B_i             ( core_usr_b_dt ) ,
          .ready_o         ( div_rdy  ) ,
          .div_remainder_o ( div_remainder_s ) ,
@@ -753,11 +752,11 @@ generate
       end
 
       always_ff @(posedge c_clk_i) begin
-         if      ( !c_rst_ni  )   c_time_usr_r  <= 0;
-         else if ( c_time_en  )   c_time_usr_r  <= t_time_abs_cdc;
+         if      ( !c_rst_ni  )   c_time_abs_r  <= 0;
+         else if ( c_time_en  )   c_time_abs_r  <= t_time_abs_cdc;
       end
 
-      assign c_time_usr = (c_time_usr_r - c_time_ref_dt);
+      assign c_time_usr = (c_time_abs_r - c_time_ref_dt);
 
    end else begin : TIME_READ_NO
       assign c_time_usr       = 0;
@@ -782,7 +781,7 @@ always_comb begin
       4'b000 : flag_c0  = int_flag_r ;
       4'b001 : flag_c0  = axi_flag_r ;
       4'b010 : flag_c0  = ext_flag_r ;
-      4'b011 : flag_c0  = div_dt_new & arith_dt_new ;
+      4'b011 : flag_c0  = div_dt_new | arith_dt_new ;
       4'b100 : flag_c0  = |port_dt_new   ;
       4'b101 : flag_c0  = qnet_flag_i;
       4'b110 : flag_c0  = qcom_flag_i ;

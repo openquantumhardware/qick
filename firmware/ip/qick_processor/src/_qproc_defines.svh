@@ -47,7 +47,7 @@
    typedef struct packed {
       logic [31:0]   p_time ;
       logic          p_type ; // 00-WAVE 01-DATA 10-
-      logic [3:0]    p_addr ;
+      logic [5:0]    p_addr ;
       logic [167:0]  p_data ;
    } PORT_DT;
    

@@ -71,8 +71,7 @@ module qcore_cpu # (
 
 // Address Signals
 reg  [10:0]      r_id_imm_addr, r_rd_imm_addr ;
-//reg  [WMEM_AW-1:0]      r_rd_rsA0_addr, r_rd_rsA1_addr ;
-reg  [WMEM_AW-1:0]      r_rd_rsA1_addr ;
+reg  [5:0]      r_rd_rsA1_addr ;
 wire [PMEM_AW-1:0]      reg_addr;
 //Data Signals
 reg [31 :0]    r_id_imm_dt, r_rd_imm_dt, r_x1_imm_dt;
@@ -184,6 +183,8 @@ reg [8:0] id_usr_ctrl; // MSB indicate Internal or External
 reg id_cond_ok, id_exec_ok, id_branch_cond_ok;
 reg alu_fZ_r, alu_fS_r;
 
+reg id_wpd_imm, id_periph_imm;
+
 always_comb begin : DECODER
    id_type_cfg       = ( id_HEADER == CFG    ) ;
    id_type_br        = ( id_HEADER == BRANCH  ) ;
@@ -200,8 +201,10 @@ always_comb begin : DECODER
    id_type_wpd       = id_type_wp & ~id_SO             ; // Write Data Port
    id_type_wpw       = id_type_wp &  id_SO             ; // Write Wave Port
 
-
    id_cfg_port_src   =  r_if_op_code[8] ;
+   //id_wpd_imm        =  id_type_wpd & id_cfg_port_src ;
+   //id_periph_imm     =  id_type_int_ctrl & id_AI;
+   //id_cfg_dt_imm     =  &id_DF | ( (id_type_wm | id_type_cfg) & id_TO ) | id_wpd_imm | id_periph_imm ; // Immediate input Data
    id_cfg_dt_imm     =  &id_DF | ( (id_type_wm | id_type_cfg) & id_TO ) | (id_type_wpd & id_cfg_port_src) ; // Immediate input Data
    id_cfg_alu_src    = ( id_DF == 2'b10)                   ; //With DI=10 Source =1 
    id_cfg_alu_op     =   id_type_wra         ? r_if_op_code[3:0] : {1'b0, r_if_op_code[1:0], 1'b0 } ;
@@ -247,14 +250,23 @@ always_comb
 
 ///////////////////////////////////////////////////////////////////////////////
 // ADDRESS
+// Immediate DATA is not Register ADDRESS
+//assign id_use_RA0 = id_AI;
+//assign id_use_RA1 = id_type_wmd | (id_type_wr & (~id_SO & id_TO));
+assign id_use_RD0 = id_DF != 2'b11;
+assign id_use_RD1 = id_DF  == 0'b01;
+
+assign id_type_wr_dmem = id_type_wr & (~id_SO & id_TO); // Write Data Register from DMEM
+
 always_comb begin
    id_imm_addr     = r_if_op_data [ 55 : 45 ] ;
    id_rs_A_addr[0] = r_if_op_data [ 50 : 45 ] ;
    id_rs_A_addr[1] = r_if_op_data [ 44 : 39 ] ;
-   id_rs_D_addr[0] = r_if_op_data [ 37 : 31 ] ;
-   id_rs_D_addr[1] = r_if_op_data [ 29 : 23 ] ;
+   id_rs_D_addr[0] = id_use_RD0 ? r_if_op_data [ 37 : 31 ] : 0 ;
+   id_rs_D_addr[1] = id_use_RD1 ? r_if_op_data [ 29 : 23 ] : 0 ;
    id_rd_addr      = r_if_op_data [  6 :  0 ] ;
 end
+
 assign id_reg.we        = id_dreg_we      ;
 assign id_reg.r_wave_we = id_r_wave_we    ;
 assign id_reg.addr      = id_rd_addr      ;
@@ -371,8 +383,8 @@ assign x1_wave_addr   = x1_rsA0_dt[WMEM_AW-1:0] ;
 
 // PORT
 ///////////////////////////////////////////////////////////////////////////////
-wire [3:0] x1_port_w_addr;
-assign x1_port_w_addr   =  r_rd_rsA1_addr[3:0] ;
+wire [5:0] x1_port_w_addr;
+assign x1_port_w_addr   =  r_rd_rsA1_addr[5:0] ;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -406,7 +418,7 @@ assign x2_wave_w_dt = x2_ctrl.cfg_port_src ? reg_wave_dt : wmem_r_dt_i ;
 // PORT
 /////////////////////////////////////////////////
 wire [167:0] x2_port_w_dt  ;
-reg [3:0] r_x1_port_w_addr;
+reg [5:0] r_x1_port_w_addr;
 
 
 reg [31:0] r_x1_port_dt;
@@ -422,8 +434,6 @@ assign x2_port_w_dt  = x2_ctrl.cfg_port_type ? r_x1_port_dt : x2_wave_w_dt ;
 CTRL_REG    id_reg, rd_reg, x1_reg, x2_reg, wr_reg  ;
 CTRL_FLOW   id_ctrl, rd_ctrl, x1_ctrl, x2_ctrl   ;
 
-wire [31 : 0] wr_reg_dt;
-
 qcore_ctrl_hazard ctrl_hzrd (
    .clk_i            ( clk_i           ) ,
    .rst_ni           ( rst_ni          ) ,
@@ -438,7 +448,6 @@ qcore_ctrl_hazard ctrl_hzrd (
    .x1_reg_i         ( x1_reg          ) ,
    .x2_reg_i         ( x2_reg          ) ,
    .wr_reg_i         ( wr_reg          ) ,
-   .wr_reg_dt_i      ( wr_reg_dt       ) ,
    // Peripheral
    .rd_periph_use    ( rd_ctrl.usr_ctrl[8]     ) ,
    .x1_periph_use    ( x1_ctrl.usr_ctrl[8]     ) ,
@@ -449,7 +458,6 @@ qcore_ctrl_hazard ctrl_hzrd (
    // FLAG 
    .id_flag_used     ( id_flag_used        ) , // SELECCIONAR CORRECTAMENTE WR/MEM_WR and JUMPD
    .flag_we          ( rd_ctrl.flag_we | x1_ctrl.flag_we       ) ,
-   .qp_we            ( rd_ctrl.usr_ctrl[8] | x1_ctrl.usr_ctrl[8] | x1_ctrl.usr_ctrl[8]   ) ,
    // PC JUMP 
    .id_jmp_i         ( id_jmp_reg_used       ) ,
    // ALU (00) Data in each Pipeline Stage
@@ -494,7 +502,6 @@ qcore_reg_bank # (
    .wave_dt_i        ( x2_wave_w_dt      ) ,
    .rs_A_addr_i      ( r_id_rs_A_addr   ) ,
    .rs_D_addr_i      ( r_id_rs_D_addr   ) ,
-   .w_dt_o           ( wr_reg_dt      ) ,
    .rs_A_dt_o        ( rs_A_dt        ) ,
    .rs_D_dt_o        ( rs_D_dt        ) ,
    .sreg_dt_o        ( sreg_core_w_dt_o       ) ,

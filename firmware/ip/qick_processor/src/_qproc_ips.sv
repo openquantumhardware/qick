@@ -2,14 +2,55 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 10-2023
-//  Version        : 2
+//  Date           : 3-2024
+//  Version        : 3
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  qick_processor tProc_v2
 /* Description: 
 IPs used in the design of the qick_processor
+
+* SYNCHRONIZATION REGISTER
+* DUAL PORT RAM
+* LIFO
+* GRAY CODE COUNTER
+* FIFO DUAL CLOCK
+* TWO inputs ALU
+* DSP ARITH BLOCK
+* DIVIDER REGISTERED
+* INTERLEAVING DUACL CLOCK EN
+- DIVISION Pipelined 32 BIT integer
+- gray_2_bin
+- bin_2_gray
+
 */
 //////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+/// SYNC - Clock Domain Data Syncronization
+///////////////////////////////////////////////////////////////////////////////
+module sync_reg # (
+   parameter DW  = 32
+)(
+   input  wire [DW-1:0] dt_i     , 
+   input  wire          clk_i    ,
+   input  wire          rst_ni   ,
+   output wire [DW-1:0] dt_o     );
+   
+// FAST REGISTER GRAY TRANSFORM OF INPUT
+(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_cdc, data_r ;
+always_ff @(posedge clk_i)
+   if(!rst_ni) begin
+      data_cdc  <= 0;
+      data_r    <= 0;
+   end else begin 
+      data_cdc  <= dt_i;
+      data_r    <= data_cdc;
+      end
+assign dt_o = data_r ;
+
+endmodule
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // DUAL PORT RAM
@@ -20,17 +61,17 @@ module bram_dual_port_dc # (
    parameter RAM_OUT  = "NO_REGISTERED" // Select "NO_REGISTERED" or "REGISTERED" 
 ) ( 
    input  wire               clk_a_i  ,
-   input  wire               en_a_i  ,
-   input  wire               we_a_i  ,
-   input  wire [MEM_AW-1:0]  addr_a_i  ,
-   input  wire [MEM_DW-1:0]  dt_a_i  ,
-   output wire [MEM_DW-1:0]  dt_a_o  ,
+   input  wire               en_a_i   ,
+   input  wire               we_a_i   ,
+   input  wire [MEM_AW-1:0]  addr_a_i ,
+   input  wire [MEM_DW-1:0]  dt_a_i   ,
+   output wire [MEM_DW-1:0]  dt_a_o   ,
    input  wire               clk_b_i  ,
-   input  wire               en_b_i  ,
-   input  wire               we_b_i  ,
-   input  wire [MEM_AW-1:0]  addr_b_i  ,
-   input  wire [MEM_DW-1:0]  dt_b_i  ,
-   output wire [MEM_DW-1:0]  dt_b_o  );
+   input  wire               en_b_i   ,
+   input  wire               we_b_i   ,
+   input  wire [MEM_AW-1:0]  addr_b_i ,
+   input  wire [MEM_DW-1:0]  dt_b_i   ,
+   output wire [MEM_DW-1:0]  dt_b_o   );
 
 localparam RAM_SIZE = 2**MEM_AW ;
   
@@ -43,8 +84,6 @@ always @(posedge clk_a_i)
       ram_dt_a <= RAM[addr_a_i] ;
       if (we_a_i)
          RAM[addr_a_i] <= dt_a_i;
-      //else
-      //   ram_dt_a <= RAM[addr_a_i] ;
    end
 always @(posedge clk_b_i)
    if (en_b_i)
@@ -111,31 +150,6 @@ assign data_o = stack[ptr_m1];
 
 endmodule
 
-
-///////////////////////////////////////////////////////////////////////////////
-/// SYNC - Clock Domain Change
-///////////////////////////////////////////////////////////////////////////////
-module sync_reg # (
-   parameter DW  = 32
-)(
-   input  wire [DW-1:0] dt_i     , 
-   input  wire          clk_i    ,
-   input  wire          rst_ni   ,
-   output wire [DW-1:0] dt_o     );
-   
-// FAST REGISTER GRAY TRANSFORM OF INPUT
-(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_cdc, data_r ;
-always_ff @(posedge clk_i)
-   if(!rst_ni) begin
-      data_cdc  <= 0;
-      data_r    <= 0;
-   end else begin 
-      data_cdc  <= dt_i;
-      data_r    <= data_cdc;
-      end
-assign dt_o = data_r ;
-
-endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
 //GRAY CODE COUNTER
@@ -356,28 +370,12 @@ module AB_alu (
 reg [32:0]  result;
 wire zero_flag, carry_flag, sign_flag;
 
-//    << .... Left shift   (i.e. a << 2 shifts a two bits to the left)
-//    <<< ... Left shift and fill with zeroes
-//    >> .... Right shift (i.e. b >> 1 shifts b one bits to the right)
-//    >>> ... Right shift and maintain sign bit
-			
-/*
-reg [2:0] shift;
-always_comb begin
-      case ( B_i[3:0] )
-         4'b0001: shift  = 1  ; // 1
-         4'b0010: shift  = 2  ; // 2
-         4'b0100: shift  = 4  ; // 4
-         4'b1000: shift  = 8  ; // 8 
-         default: shift  = 0  ; //Others
-     endcase
-end
-*/
 wire[3:0] shift ;
 assign shift = B_i[3:0];
 
 wire [31:0] neg_B, a_plus_b, a_minus_b, abs_b;
 wire [31:0] msh_a, lsh_a, swap_a;  
+wire [31:0] a_cat_b, a_sl_b, a_lsr_b, a_asr_b ;
 
 assign neg_B      = -B_i ;
 assign a_plus_b   = A_i + B_i;
@@ -386,8 +384,6 @@ assign abs_b      = B_i[31] ? neg_B : B_i;
 assign msh_a      = {16'b00000000_00000000, A_i[31:16]} ;
 assign lsh_a      = {16'b00000000_00000000, A_i[15: 0]} ;
 assign swap_a     = {A_i[15:0], A_i[31:16]} ;
-
-wire [31:0] a_cat_b, a_sl_b, a_lsr_b, a_asr_b ;
 assign a_cat_b    = {A_i[15:0], B_i[15:0]};
 assign a_sl_b     = A_i <<  shift ;
 assign a_lsr_b    = A_i >>  shift ;
@@ -399,12 +395,12 @@ always_comb begin
       case ( alu_op_i[3:1] )
          3'b000: result = a_plus_b  ;
          3'b001: result = a_minus_b ;
-         3'b010: result = A_i & B_i   ;
-         3'b011: result = a_asr_b ;
-         3'b100: result = abs_b ;
-         3'b101: result = msh_a    ;
-         3'b110: result = lsh_a   ;
-         3'b111: result = swap_a   ;
+         3'b010: result = A_i & B_i ;
+         3'b011: result = a_asr_b   ;
+         3'b100: result = abs_b     ;
+         3'b101: result = msh_a     ;
+         3'b110: result = lsh_a     ;
+         3'b111: result = swap_a    ;
       endcase
    else
       // LOGIC
@@ -412,10 +408,10 @@ always_comb begin
          3'b000: result = ~A_i      ;
          3'b001: result = A_i | B_i ;
          3'b010: result = A_i ^ B_i ;
-         3'b011: result = a_cat_b ;
+         3'b011: result = a_cat_b   ;
          3'b100: result = 0         ;
-         3'b101: result = {31'd0, ^A_i}      ;
-         3'b110: result =  a_sl_b  ;
+         3'b101: result = {31'b0, ^A_i} ;
+         3'b110: result =  a_sl_b   ;
          3'b111: result =  a_lsr_b  ;
       endcase
 end
@@ -425,16 +421,309 @@ assign carry_flag = result[32];
 assign sign_flag  = result[31];
 
 assign alu_result_o  = result[31:0] ;
-assign Z_o           = zero_flag ;
-assign C_o           = carry_flag ;
-assign S_o           = sign_flag ;
+assign Z_o           = zero_flag    ;
+assign C_o           = carry_flag   ;
+assign S_o           = sign_flag    ;
 
 endmodule
 
+
+///////////////////////////////////////////////////////////////////////////////
+// DSP ARITH BLOCK
+///////////////////////////////////////////////////////////////////////////////
+module arith (
+   input  wire                clk_i          ,
+   input  wire                rst_ni         ,
+   input  wire                start_i        ,
+   input  wire signed [31:0]  A_i            ,
+   input  wire signed [31:0]  B_i            ,
+   input  wire signed [31:0]  C_i            ,
+   input  wire signed [31:0]  D_i            ,
+   input  wire [4:0]          alu_op_i       ,
+   output wire                ready_o        ,
+   output wire signed [63:0]  arith_result_o );
+
+// DSP OUTPUTS
+wire [45:0] arith_result ;
+// DSP INPUTS
+reg  [3:0] ALU_OP  ;
+
+reg signed [26:0] A_dt ; 
+reg signed [17:0] B_dt ; 
+reg signed [31:0] C_dt ; 
+reg signed [26:0] D_dt ; 
+reg working, working_r, working_r2, working_r3 ;
+
+always_ff @ (posedge clk_i, negedge rst_ni) begin
+   if (!rst_ni) begin
+         A_dt        <= 0;
+         B_dt        <= 0;
+         C_dt        <= 0;
+         D_dt        <= 0; 
+         ALU_OP      <= 0;
+         working     <= 1'b0 ;
+         working_r   <= 1'b0 ;
+         working_r2  <= 1'b0 ;
+         working_r3  <= 1'b0 ;
+   end else begin
+      working_r  <= working ;
+      working_r2  <= working_r ;
+      working_r3  <= working_r2 ;
+      if (start_i) begin
+         A_dt     <= A_i[26:0] ;
+         B_dt     <= B_i[17:0] ;
+         C_dt     <= C_i[31:0] ;
+         D_dt     <= D_i[26:0] ; 
+         ALU_OP   <= { alu_op_i[3:0]}  ;
+         working  <= 1'b1 ;
+      end else if (working_r3) begin
+         working            <= 1'b0;
+         working_r          <= 1'b0;
+         working_r2         <= 1'b0;
+         working_r3         <= 1'b0;
+         
+      end
+   end
+end
+
+
+dsp_macro_0 ARITH_DSP (
+  .CLK  ( clk_i        ),  // input wire CLK
+  .SEL  ( ALU_OP       ),  // input wire [3 : 0] SEL
+  .A    ( A_dt[26:0]   ),  // input wire [26 : 0] A
+  .B    ( B_dt[17:0]   ),  // input wire [17 : 0] B
+  .C    ( C_dt[31:0]   ),  // input wire [31 : 0] C
+  .D    ( D_dt[26:0]   ),  // input wire [26 : 0] D
+  .P    ( arith_result )   // output wire [45 : 0] P
+);
+
+//signed extension of 
+assign arith_result_o  = { {18{arith_result[45]}}, arith_result };
+// assign ready_o          = ~ ( working | working_r  );
+assign ready_o          = ~ ( working  );
+
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////////////
+// DIVIDER REGISTERED
+///////////////////////////////////////////////////////////////////////////////
+module div_r #(
+   parameter DW = 32
+) (
+   input  wire             clk_i           ,
+   input  wire             rst_ni          ,
+   input  wire             start_i         ,
+   input  wire [DW-1:0]    A_i             ,
+   input  wire [DW-1:0]    B_i             ,
+   output wire             ready_o         ,
+   output reg  [DW-1:0]    div_quotient_o  ,
+   output reg  [DW-1:0]    div_remainder_o );
+
+// Registers
+reg [DW-1:0] inB        ;
+reg [DW-1:0] r_temp, q_temp;
+reg [4:0]    ind_bit; 
+
+reg working;
+
+reg qtb;
+reg [2*DW-1 :0] sub_temp  ;
+reg [DW-1   :0] r_temp_nxt  ;
+
+wire [31:0] ind_bit_m1;
+
+
+assign ind_bit_m1 = ind_bit - 1'b1;
+assign div_start  = start_i;
+assign div_end    = (ind_bit==0) ;
+
+// State Machine
+///////////////////////////////////////////////////////////////////////////
+enum {IDLE, WORKING} div_st, div_st_nxt;
+
+always_ff @(posedge clk_i)
+   if (!rst_ni)     div_st  <= IDLE;
+   else             div_st  <= div_st_nxt;
+
+
+always_comb begin
+   div_st_nxt  = div_st;
+   working     = 1'b0;
+   case (div_st)
+      IDLE: begin
+         if ( div_start )    div_st_nxt = WORKING;
+      end
+      WORKING: begin
+         working = 1'b1;
+         if ( div_end ) div_st_nxt = IDLE;
+      end
+   endcase
+end
+
+always_ff @ (posedge clk_i) begin
+   if (!rst_ni) begin        
+      ind_bit     <= 31;
+      q_temp      <= 0 ;
+      r_temp      <= 0 ;
+   end else if (div_start) begin
+      ind_bit     <= 31;
+      q_temp      <= 0 ;
+      r_temp      <= A_i ;
+      inB         <= B_i ;
+   end else if (div_end) begin
+      ind_bit     <= 31;
+      q_temp      <= 0 ;
+      r_temp      <= A_i ;
+      inB         <= B_i ;
+   end else if (working) begin
+      ind_bit         <= ind_bit_m1;
+      r_temp          <= r_temp_nxt   ;
+      q_temp[ind_bit_m1] <= qtb   ;
+  end
+end // Always
+
+///////////////////////////////////////////////////////////////////////////
+// COMBINATORIAL PART
+always_comb begin
+   qtb         = 1'b0;
+   r_temp_nxt  = r_temp ;
+   sub_temp    = inB << ind_bit_m1  ;
+   if (r_temp_nxt >= sub_temp ) begin
+      qtb        = 1'b1 ;
+      r_temp_nxt = r_temp_nxt  - sub_temp ;
+   end
+end
+
+///////////////////////////////////////////////////////////////////////////
+// OUT REG
+always_ff @ (posedge clk_i) begin
+   if (!rst_ni) begin        
+      div_quotient_o  <= 0;
+      div_remainder_o <= 0 ;
+   end else if (div_end) begin
+      div_quotient_o  <= q_temp;
+      div_remainder_o <= r_temp_nxt ;
+  end
+end // Always
+
+assign ready_o = ~working;
+
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////////////
+// LFSR
+///////////////////////////////////////////////////////////////////////////////
+module LFSR (
+   input   wire             clk_i         ,
+   input   wire             rst_ni        ,
+   input   wire             en_i          ,
+   input   wire             load_we_i     ,
+   input   wire [31:0]      load_dt_i     ,
+   output  wire [31:0]      lfsr_dt_o     );
+
+// LFSR
+///////////////////////////////////////////////////////////////////////////////
+
+reg [31:0] reg_lfsr ;
+
+always_ff @(posedge clk_i, negedge rst_ni)
+   if (!rst_ni)
+      reg_lfsr <= 0;//32'h00000000;
+   else begin
+      if (load_we_i)
+         reg_lfsr <= load_dt_i ;
+      else if (en_i) begin
+         //reg_lfsr[0] <= ~^{reg_lfsr[31], reg_lfsr[21], reg_lfsr[1:0]};
+         reg_lfsr[31:1] <= reg_lfsr[30:0];
+         reg_lfsr[0] <= ~^{reg_lfsr[31], reg_lfsr[21], reg_lfsr[1:0]};
+      end
+   end
+assign lfsr_dt_o = reg_lfsr ;
+
+endmodule
+
+///////////////////////////////////////////////////////////////////////////////
+// INTERLEAVING DUACL CLOCK EN
+///////////////////////////////////////////////////////////////////////////////
+/*
+sync_ab_en sync_pulse_inst (
+   .clk_a_i    (  ) ,
+   .rst_a_ni   (  ) ,
+   .clk_b_i    (  ) ,
+   .rst_b_ni   (  ) ,
+   .a_en_o     (  ) ,
+   .b_en_o     (  ) );
+  */ 
+module sync_ab_en (
+   input  wire    clk_a_i    ,
+   input  wire    rst_a_ni   ,
+   input  wire    clk_b_i    ,
+   input  wire    rst_b_ni   ,
+   output wire    a_en_o     ,
+   output wire    b_en_o     
+);
+/// REQ Time from C to T
+///////////////////////////////////////////////////////////////////////////////
+reg a_pulse_req;
+always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
+   if ( !rst_a_ni  ) begin
+      a_pulse_req   <= 1'b0;
+   end else
+      if      (  a_pulse_ack ) a_pulse_req <= 1'b0; 
+      else if ( !a_pulse_ack ) a_pulse_req <= 1'b1; 
+end
+
+/// Generate B PULSE
+///////////////////////////////////////////////////////////////////////////////
+(* ASYNC_REG = "TRUE" *) reg pulse_req_cdc, b_pulse_req ;
+reg pulse_b_req_r;
+always_ff @(posedge clk_b_i)
+   if(!rst_b_ni) begin
+      pulse_req_cdc  <= 0;
+      b_pulse_req    <= 0;
+   end else begin 
+      pulse_req_cdc  <= a_pulse_req;
+      b_pulse_req    <= pulse_req_cdc;
+      pulse_b_req_r  <= b_pulse_req;
+   end
+
+assign pulse_b = b_pulse_req ^ pulse_b_req_r;
+
+/// ACK
+///////////////////////////////////////////////////////////////////////////////
+reg b_pulse_ack;
+always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
+   if ( !rst_a_ni  ) begin
+      b_pulse_ack   <= 1'b0;
+   end else
+      if      (  b_pulse_req ) b_pulse_ack <= 1'b1; 
+      else if ( !b_pulse_req ) b_pulse_ack <= 1'b0; 
+end
+
+(* ASYNC_REG = "TRUE" *) reg pulse_ack_cdc, a_pulse_ack ;
+always_ff @(posedge clk_a_i)
+   if(!rst_a_ni) begin
+      pulse_ack_cdc  <= 0;
+      a_pulse_ack    <= 0;
+   end else begin 
+      pulse_ack_cdc  <= b_pulse_ack;
+      a_pulse_ack    <= pulse_ack_cdc;
+   end
+
+assign pulse_a = a_pulse_req ~^ a_pulse_ack ;
+
+assign a_en_o  = pulse_a;
+assign b_en_o  = pulse_b;
+
+endmodule
+
+/*
 ////////////////////////////////////////////////////////////////////////////////
 // DIVISION Pipelined 32 BIT integer
 ///////////////////////////////////////////////////////////////////////////////
-module div_r #(
+module div_p #(
    parameter DW      = 32 ,
    parameter N_PIPE  = 32 
 ) (
@@ -520,182 +809,28 @@ assign div_quotient_o   = q_temp;
 assign div_remainder_o  = r_temp_nxt[N_PIPE-1];
 
 endmodule
+module bin_2_gray # (
+   parameter DW  = 32
+)(
+   input  wire [DW-1:0] count_bin_i    , 
+   output wire [DW-1:0] count_gray_o   );
+assign count_gray_o   = count_bin_i ^ {1'b0,count_bin_i[DW-1:1]};
+endmodule
 
-
-///////////////////////////////////////////////////////////////////////////////
-// DSP ARITH BLOCK
-///////////////////////////////////////////////////////////////////////////////
-module arith (
-   input  wire                clk_i          ,
-   input  wire                rst_ni         ,
-   input  wire                start_i        ,
-   input  wire signed [31:0]  A_i            ,
-   input  wire signed [31:0]  B_i            ,
-   input  wire signed [31:0]  C_i            ,
-   input  wire signed [31:0]  D_i            ,
-   input  wire [4:0]          alu_op_i       ,
-   output wire                ready_o        ,
-   output wire signed [63:0]  arith_result_o );
-
-// DSP OUTPUTS
-wire [45:0] arith_result ;
-// DSP INPUTS
-reg  [3:0] ALU_OP  ;
-
-reg signed [26:0] A_dt ; 
-reg signed [17:0] B_dt ; 
-reg signed [31:0] C_dt ; 
-reg signed [26:0] D_dt ; 
-reg working, working_r, working_r2, working_r3 ;
-
-always_ff @ (posedge clk_i, negedge rst_ni) begin
-   if (!rst_ni) begin
-         A_dt        <= 0;
-         B_dt        <= 0;
-         C_dt        <= 0;
-         D_dt        <= 0; 
-         ALU_OP      <= 0;
-         working     <= 1'b0 ;
-         working_r   <= 1'b0 ;
-         working_r2  <= 1'b0 ;
-         working_r3  <= 1'b0 ;
-   end else begin
-      working_r  <= working ;
-      working_r2  <= working_r ;
-      working_r3  <= working_r2 ;
-      if (start_i) begin
-         A_dt     <= A_i[26:0] ;
-         B_dt     <= B_i[17:0] ;
-         C_dt     <= C_i[31:0] ;
-         D_dt     <= D_i[26:0] ; 
-         ALU_OP   <= { alu_op_i[3:0]}  ;
-         working  <= 1'b1 ;
-      end else if (working_r3) begin
-         working            <= 1'b0;
-         working_r          <= 1'b0;
-         working_r2         <= 1'b0;
-         working_r3         <= 1'b0;
-         
-      end
+module gray_2_bin # (
+   parameter DW  = 32
+)(
+   input  wire [DW-1:0] count_gray_i   ,
+   output  reg [DW-1:0] count_bin_o    );
+integer ind;
+always_comb begin
+   count_bin_o[DW-1] = count_gray_i[DW-1];
+   for (ind=DW-2 ; ind>=0; ind=ind-1) begin
+      count_bin_o[ind] = count_bin_o[ind+1]^count_gray_i[ind];
    end
 end
 
-
-dsp_macro_0 ARITH_DSP (
-  .CLK  ( clk_i        ),  // input wire CLK
-  .SEL  ( ALU_OP       ),  // input wire [3 : 0] SEL
-  .A    ( A_dt[26:0]   ),  // input wire [26 : 0] A
-  .B    ( B_dt[17:0]   ),  // input wire [17 : 0] B
-  .C    ( C_dt[31:0]   ),  // input wire [31 : 0] C
-  .D    ( D_dt[26:0]   ),  // input wire [26 : 0] D
-  .P    ( arith_result )   // output wire [45 : 0] P
-);
-
-//signed extension of 
-assign arith_result_o  = { {18{arith_result[45]}}, arith_result };
-// assign ready_o          = ~ ( working | working_r  );
-assign ready_o          = ~ ( working  );
 endmodule
+*/
 
-module LFSR (
-   input   wire             clk_i         ,
-   input   wire             rst_ni        ,
-   input   wire             en_i          ,
-   input   wire             load_we_i     ,
-   input   wire [31:0]      load_dt_i     ,
-   output  wire [31:0]      lfsr_dt_o     );
 
-// LFSR
-///////////////////////////////////////////////////////////////////////////////
-
-reg [31:0] reg_lfsr ;
-
-always_ff @(posedge clk_i, negedge rst_ni)
-   if (!rst_ni)
-      reg_lfsr <= 0;//32'h00000000;
-   else begin
-      if (load_we_i)
-         reg_lfsr <= load_dt_i ;
-      else if (en_i) begin
-         //reg_lfsr[0] <= ~^{reg_lfsr[31], reg_lfsr[21], reg_lfsr[1:0]};
-         reg_lfsr[31:1] <= reg_lfsr[30:0];
-         reg_lfsr[0] <= ~^{reg_lfsr[31], reg_lfsr[21], reg_lfsr[1:0]};
-      end
-   end
-assign lfsr_dt_o = reg_lfsr ;
-
-endmodule
-
-// EN SYNC
-///////////////////////////////////////////////////////////////////////////////
-/*
-sync_ab_en sync_pulse_inst (
-   .clk_a_i    (  ) ,
-   .rst_a_ni   (  ) ,
-   .clk_b_i    (  ) ,
-   .rst_b_ni   (  ) ,
-   .a_en_o     (  ) ,
-   .b_en_o     (  ) );
-  */ 
-module sync_ab_en (
-   input  wire    clk_a_i    ,
-   input  wire    rst_a_ni   ,
-   input  wire    clk_b_i    ,
-   input  wire    rst_b_ni   ,
-   output wire    a_en_o     ,
-   output wire    b_en_o     
-);
-/// REQ Time from C to T
-///////////////////////////////////////////////////////////////////////////////
-reg a_pulse_req;
-always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
-   if ( !rst_a_ni  ) begin
-      a_pulse_req   <= 1'b0;
-   end else
-      if      (  a_pulse_ack ) a_pulse_req <= 1'b0; 
-      else if ( !a_pulse_ack ) a_pulse_req <= 1'b1; 
-end
-
-/// Generate B PULSE
-///////////////////////////////////////////////////////////////////////////////
-(* ASYNC_REG = "TRUE" *) reg pulse_req_cdc, b_pulse_req ;
-reg pulse_b_req_r;
-always_ff @(posedge clk_b_i)
-   if(!rst_b_ni) begin
-      pulse_req_cdc  <= 0;
-      b_pulse_req    <= 0;
-   end else begin 
-      pulse_req_cdc  <= a_pulse_req;
-      b_pulse_req    <= pulse_req_cdc;
-      pulse_b_req_r  <= b_pulse_req;
-   end
-
-assign pulse_b = b_pulse_req ^ pulse_b_req_r;
-
-/// ACK
-///////////////////////////////////////////////////////////////////////////////
-reg b_pulse_ack;
-always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
-   if ( !rst_a_ni  ) begin
-      b_pulse_ack   <= 1'b0;
-   end else
-      if      (  b_pulse_req ) b_pulse_ack <= 1'b1; 
-      else if ( !b_pulse_req ) b_pulse_ack <= 1'b0; 
-end
-
-(* ASYNC_REG = "TRUE" *) reg pulse_ack_cdc, a_pulse_ack ;
-always_ff @(posedge clk_a_i)
-   if(!rst_a_ni) begin
-      pulse_ack_cdc  <= 0;
-      a_pulse_ack    <= 0;
-   end else begin 
-      pulse_ack_cdc  <= b_pulse_ack;
-      a_pulse_ack    <= pulse_ack_cdc;
-   end
-
-assign pulse_a = a_pulse_req ~^ a_pulse_ack ;
-
-assign a_en_o  = pulse_a;
-assign b_en_o  = pulse_b;
-
-endmodule

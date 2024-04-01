@@ -3,7 +3,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor Compilation 2024_1}
+  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_3, Compilation 3, Revision 18 (Use Assembler v3)}
   ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]
@@ -25,7 +25,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${OUT_Port_Configuration}
   ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${OUT_Port_Configuration}
   #Adding Group
-  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${OUT_Port_Configuration}]
+  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${OUT_Port_Configuration} -display_name {External Peripherals Interfaces}]
   ipgui::add_param $IPINST -name "QCOM" -parent ${External_Peripherals} -widget checkBox
   ipgui::add_param $IPINST -name "TNET" -parent ${External_Peripherals} -widget checkBox
   ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget comboBox

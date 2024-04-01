@@ -38,7 +38,6 @@ module qcore_reg_bank # (
    input   wire [31:0]           w_dt_i         ,
    input   wire [ 5 : 0 ]        rs_A_addr_i[2] ,
    input   wire [ 6 : 0 ]        rs_D_addr_i[2] ,
-   output  reg  [31:0]           w_dt_o         ,
    output  wire [31:0]           rs_D_dt_o [2]  ,
    output  wire [31:0]           rs_A_dt_o [2]  ,
    output  wire [31:0]           sreg_dt_o [2]  ,       
@@ -228,14 +227,6 @@ generate
       end
    end
 endgenerate
-
-// Value Just Written - used for Forwarding
-always_ff @ (posedge clk_i, negedge rst_ni) 
-   if (!rst_ni) 
-      w_dt_o               <= 0;
-   else if (~halt_i)
-      w_dt_o               <= w_dt_i;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // OUTPUT ASSIGNMENT

@@ -34,15 +34,15 @@ import axi_mst_0_pkg::*;
 `define DIVIDER          1
 `define ARITH            1
 `define TIME_READ        1
-`define FIFO_DEPTH       3
+`define FIFO_DEPTH       9
 `define PMEM_AW          8 
 `define DMEM_AW          4 
 `define WMEM_AW          4 
 `define REG_AW           4 
 `define IN_PORT_QTY      2
-`define OUT_TRIG_QTY     4
-`define OUT_DPORT_QTY    2
-`define OUT_DPORT_DW     10
+`define OUT_TRIG_QTY     8
+`define OUT_DPORT_QTY    1
+`define OUT_DPORT_DW     4
 `define OUT_WPORT_QTY    3 
 
 
@@ -472,7 +472,7 @@ initial begin
    //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
    //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   //$readmemb("/home/mdifeder/IPs/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    
   	// Create agents.
 	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_axis_qick_processor.axi_mst_0_i.inst.IF);
@@ -539,8 +539,14 @@ initial begin
    @ (posedge c_clk); #0.1;
    proc_start_i   = 1'b0;
 
-   #10000;
+   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
+   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
+   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
+   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
+   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
+   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
 
+   #10000;
 
 /*
 // CONFIGURE LFSR
@@ -948,9 +954,21 @@ task TEST_AXI (); begin
 end
 endtask
 
-   
+
+/*
+always @(posedge t_clk)
+   if (!rst_ni)
+         count_bin_i <= 0;
+   else 
+   count_bin_i <= count_bin_i + 1'b1;
+      
+reg [31:0] count_gray, count_bin_i, count_bin_o;
+bin_2_gray bin_2_gray_inst (count_bin_i , count_gray );
+gray_2_bin gray_2_bin_inst (count_gray , count_bin_o );
+*/
 
 endmodule
+
 
 
 
