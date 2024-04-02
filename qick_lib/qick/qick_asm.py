@@ -1207,7 +1207,7 @@ class AcquireMixin:
             self.reads_per_shot = reads_per_shot
 
     def get_raw(self):
-        """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
+        """Get the raw integer I/Q values (before normalizing to the readout window, averaging across reps, removing the readout offset, or thresholding).
 
         Returns
         -------
@@ -1347,7 +1347,7 @@ class AcquireMixin:
             if length_norm:
                 avg /= ro['length']
                 if remove_offset:
-                    offset = self.soccfg['readouts'][ro_ch]['offset']
+                    offset = self.soccfg['readouts'][ro_ch]['iq_offset']
                     avg -= offset
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
@@ -1397,7 +1397,7 @@ class AcquireMixin:
         for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
             avg = d_buf[i_ch]/ro['length']
             if remove_offset:
-                offset = self.soccfg['readouts'][ro_ch]['offset']
+                offset = self.soccfg['readouts'][ro_ch]['iq_offset']
                 avg -= offset
             rotated = np.inner(avg, [np.cos(angles[i_ch]), np.sin(angles[i_ch])])
             shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
@@ -1582,7 +1582,7 @@ class AcquireMixin:
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
             d_avg = dec_buf[ii]/soft_avgs
             if remove_offset:
-                offset = self.soccfg['readouts'][ch]['offset']
+                offset = self.soccfg['readouts'][ch]['iq_offset']
                 d_avg -= offset
             if total_count == 1 and onetrig:
                 # simple case: data is 1D (one rep and one shot), just average over rounds
