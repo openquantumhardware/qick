@@ -1207,7 +1207,7 @@ class AcquireMixin:
             self.reads_per_shot = reads_per_shot
 
     def get_raw(self):
-        """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
+        """Get the raw integer I/Q values (before normalizing to the readout window, averaging across reps, removing the readout offset, or thresholding).
 
         Returns
         -------
@@ -1226,7 +1226,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
+    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1251,6 +1251,9 @@ class AcquireMixin:
             A list must have length equal to the number of declared readout channels.
         progress: bool
             if true, displays progress bar
+        remove_offset: bool
+            Some readouts (muxed and tProc-configured) introduce a small fixed offset to the I and Q values of every decimated sample.
+            This subtracts that offset, if any, before returning the averaged IQ values or rotating to apply software thresholding.
 
         Returns
         -------
@@ -1307,10 +1310,10 @@ class AcquireMixin:
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
                 d_reps = self.d_buf
-                round_d = self._average_buf(d_reps, self.reads_per_shot)
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=True, remove_offset=remove_offset)
             else:
                 d_reps = [np.zeros_like(d) for d in self.d_buf]
-                self.shots = self._apply_threshold(self.d_buf, threshold, angle)
+                self.shots = self._apply_threshold(self.d_buf, threshold, angle, remove_offset=remove_offset)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
@@ -1326,7 +1329,7 @@ class AcquireMixin:
 
         return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True, remove_offset: bool=True) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
@@ -1334,20 +1337,24 @@ class AcquireMixin:
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
         :param length_norm: normalize by readout window length (disable for thresholded values)
+        :param remove_offset: if normalizing by length, also subtract the readout's IQ offset if any
         :return: averaged iq data after each round.
         """
         avg_d = []
-        for i_ch, ro in enumerate(self.ro_chs.values()):
+        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
             if length_norm:
                 avg /= ro['length']
+                if remove_offset:
+                    offset = self.soccfg['readouts'][ro_ch]['iq_offset']
+                    avg -= offset
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
         return avg_d
 
-    def _apply_threshold(self, d_buf, threshold, angle):
+    def _apply_threshold(self, d_buf, threshold, angle, remove_offset):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -1365,6 +1372,8 @@ class AcquireMixin:
             Units of radians.
             If scalar, the same angle will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
+        remove_offset: bool
+            Subtract the readout's IQ offset, if any.
 
         Returns
         -------
@@ -1385,9 +1394,13 @@ class AcquireMixin:
             angles = angle
 
         shots = []
-        for i, ch in enumerate(self.ro_chs):
-            rotated = np.inner(d_buf[i], [np.cos(angles[i]), np.sin(angles[i])])/self.ro_chs[ch]['length']
-            shots.append(np.heaviside(rotated - thresholds[i], 0))
+        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
+            avg = d_buf[i_ch]/ro['length']
+            if remove_offset:
+                offset = self.soccfg['readouts'][ro_ch]['iq_offset']
+                avg -= offset
+            rotated = np.inner(avg, [np.cos(angles[i_ch]), np.sin(angles[i_ch])])
+            shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
     def get_time_axis(self, ro_index):
@@ -1493,7 +1506,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1508,6 +1521,8 @@ class AcquireMixin:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
+        remove_offset: bool
+            Subtract the readout's IQ offset, if any.
 
         Returns
         -------
@@ -1563,18 +1578,20 @@ class AcquireMixin:
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
         # average the decimated data
-        if total_count == 1 and onetrig:
-            # simple case: data is 1D (one rep and one shot), just average over rounds
-            return [d/soft_avgs for d in dec_buf]
-        else:
-            # split the data into the individual reps
-            result = []
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+        result = []
+        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+            d_avg = dec_buf[ii]/soft_avgs
+            if remove_offset:
+                offset = self.soccfg['readouts'][ch]['iq_offset']
+                d_avg -= offset
+            if total_count == 1 and onetrig:
+                # simple case: data is 1D (one rep and one shot), just average over rounds
+                result.append(d_avg)
+            else:
+                # split the data into the individual reps
                 if onetrig or total_count==1:
-                    d_reshaped = dec_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = d_avg.reshape(total_count*ro['trigs'], -1, 2)
                 else:
-                    d_reshaped = dec_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = d_avg.reshape(total_count, ro['trigs'], -1, 2)
                 result.append(d_reshaped)
-            return result
-
-
+        return result

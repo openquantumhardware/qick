@@ -1028,7 +1028,7 @@ class QickProgram(AbsQickProgram):
                     print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[ro]['length']
-                ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
+                ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_output']
                 self.set_timestamp(t_start + ro_length, ro_ch=ro)
         t_end = t_start + width
 

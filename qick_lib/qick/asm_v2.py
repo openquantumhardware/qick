@@ -402,7 +402,7 @@ class Trigger(Macro):
             ts = prog.get_timestamp(ro_ch=ro)
             if self.t < ts: logger.warning("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
             ro_length = prog.ro_chs[ro]['length']
-            ro_length /= prog.soccfg['readouts'][ro]['f_fabric']
+            ro_length /= prog.soccfg['readouts'][ro]['f_output']
             prog.set_timestamp(self.t + ro_length, ro_ch=ro)
             # update trigger count for this readout
             prog.ro_chs[ro]['trigs'] += 1
