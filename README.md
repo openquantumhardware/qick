@@ -19,7 +19,11 @@ Note: The firmware and software here is still very much a work in progress. This
 Download and Installation
 -------------------------
 
-Follow the quick start guide located [here](quick_start) to set up your board, install `qick` on your board, and run a Jupyter notebook example. 
+Follow the quick start guide located [here](quick_start) to set up your board, install `qick` on your board, and run a Jupyter notebook example.
+
+If you want your board's state to persist between notebooks or scripts, you should install Pyro4 on your board and run QICK in a Pyro server: [Pyro demo](pyro4/00_nameserver.ipynb)
+
+If you would like to save the instrument configuration for every measurement using [QCoDeS](https://microsoft.github.io/Qcodes/), you can also install [this QCoDeS driver](https://github.com/aalto-qcd/qcodes_qick).
 
 Documentation
 -------------
