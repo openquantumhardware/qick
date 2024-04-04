@@ -21,6 +21,8 @@ Download and Installation
 
 Follow the quick start guide located [here](quick_start) to set up your board, install `qick` on your board, and run a Jupyter notebook example. 
 
+If you would like to save the instrument configuration for every measurement using [QCoDeS](https://microsoft.github.io/Qcodes/), you can also install [this QCoDeS driver](https://github.com/aalto-qcd/qcodes_qick).
+
 Documentation
 -------------
 
