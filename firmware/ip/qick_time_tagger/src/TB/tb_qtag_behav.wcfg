@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_qick_time_tagger_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="axi_vip_pkg" />
+            <top_module name="glbl" />
+            <top_module name="std" />
+            <top_module name="tb_qick_time_tagger" />
+            <top_module name="xil_common_vip_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="21.000001 us"></ZoomEndTime>
+      <Cursor1Time time="18.010000 us"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="177"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="55" />
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/adc_smp">
+      <obj_property name="ElementShortName">adc_smp[7:0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">adc_smp[7:0][15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/time_cnt">
+      <obj_property name="ElementShortName">time_cnt[28:0]</obj_property>
+      <obj_property name="ObjectShortName">time_cnt[28:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/th_i">
+      <obj_property name="ElementShortName">th_i[15:0]</obj_property>
+      <obj_property name="ObjectShortName">th_i[15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/ftr_smp">
+      <obj_property name="ElementShortName">ftr_smp[7:0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">ftr_smp[7:0][15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/cmp_smp">
+      <obj_property name="ElementShortName">cmp_smp[7:0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">cmp_smp[7:0][15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/cmp_rslt">
+      <obj_property name="ElementShortName">cmp_rslt[7:0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">cmp_rslt[7:0][15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/adc_smp[0]">
+      <obj_property name="ElementShortName">[0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+      <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_FIXED</obj_property>
+      <obj_property name="AnalogYRangeMin">-100.000000</obj_property>
+      <obj_property name="AnalogYRRangeMax">16000.000000</obj_property>
+      <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_LINEAR</obj_property>
+      <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+      <obj_property name="AnalogHorizLine">0.000000</obj_property>
+      <obj_property name="Radix">SIGNEDMAGRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/time_trig_st">
+      <obj_property name="ElementShortName">time_trig_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">time_trig_st[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/time_ck_s">
+      <obj_property name="ElementShortName">time_ck_s[28:0]</obj_property>
+      <obj_property name="ObjectShortName">time_ck_s[28:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/time_adc_s">
+      <obj_property name="ElementShortName">time_adc_s[2:0]</obj_property>
+      <obj_property name="ObjectShortName">time_adc_s[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/trig_time_ck_o">
+      <obj_property name="ElementShortName">trig_time_ck_o[28:0]</obj_property>
+      <obj_property name="ObjectShortName">trig_time_ck_o[28:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/trig_time_adc_o">
+      <obj_property name="ElementShortName">trig_time_adc_o[2:0]</obj_property>
+      <obj_property name="ObjectShortName">trig_time_adc_o[2:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/trig_time_int_o">
+      <obj_property name="ElementShortName">trig_time_int_o[6:0]</obj_property>
+      <obj_property name="ObjectShortName">trig_time_int_o[6:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/CMP/cfg_inter_i">
+      <obj_property name="ElementShortName">cfg_inter_i[2:0]</obj_property>
+      <obj_property name="ObjectShortName">cfg_inter_i[2:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FFA500</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_dt">
+      <obj_property name="ElementShortName">tag_dt[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tag_dt[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_DT1">
+      <obj_property name="ElementShortName">QTT_DT1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_DT1[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_DT2">
+      <obj_property name="ElementShortName">QTT_DT2[31:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_DT2[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_DT3">
+      <obj_property name="ElementShortName">QTT_DT3[31:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_DT3[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_DT4">
+      <obj_property name="ElementShortName">QTT_DT4[31:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_DT4[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/do_push">
+      <obj_property name="ElementShortName">do_push</obj_property>
+      <obj_property name="ObjectShortName">do_push</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/FIFO_DC/pop_i">
+      <obj_property name="ElementShortName">pop_i</obj_property>
+      <obj_property name="ObjectShortName">pop_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/dma_qty">
+      <obj_property name="ElementShortName">dma_qty[9:0]</obj_property>
+      <obj_property name="ObjectShortName">dma_qty[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/proc_qty">
+      <obj_property name="ElementShortName">proc_qty[9:0]</obj_property>
+      <obj_property name="ObjectShortName">proc_qty[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/do_dma_pop">
+      <obj_property name="ElementShortName">do_dma_pop</obj_property>
+      <obj_property name="ObjectShortName">do_dma_pop</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/do_proc_pop">
+      <obj_property name="ElementShortName">do_proc_pop</obj_property>
+      <obj_property name="ObjectShortName">do_proc_pop</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/qtag_en_i">
+      <obj_property name="ElementShortName">qtag_en_i</obj_property>
+      <obj_property name="ObjectShortName">qtag_en_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/qtag_op_i">
+      <obj_property name="ElementShortName">qtag_op_i[4:0]</obj_property>
+      <obj_property name="ObjectShortName">qtag_op_i[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/qtt_op">
+      <obj_property name="ElementShortName">qtt_op[4:0]</obj_property>
+      <obj_property name="ObjectShortName">qtt_op[4:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_STATUS">
+      <obj_property name="ElementShortName">QTT_STATUS[15:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_STATUS[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/dma_tag_rd">
+      <obj_property name="ElementShortName">dma_tag_rd</obj_property>
+      <obj_property name="ObjectShortName">dma_tag_rd</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/p_en_i">
+      <obj_property name="ElementShortName">p_en_i</obj_property>
+      <obj_property name="ObjectShortName">p_en_i</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/p_op_i">
+      <obj_property name="ElementShortName">p_op_i[4:0]</obj_property>
+      <obj_property name="ObjectShortName">p_op_i[4:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/c_en_i">
+      <obj_property name="ElementShortName">c_en_i</obj_property>
+      <obj_property name="ObjectShortName">c_en_i</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/c_op_i">
+      <obj_property name="ElementShortName">c_op_i[4:0]</obj_property>
+      <obj_property name="ObjectShortName">c_op_i[4:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/dma_m_axis_tdata_o">
+      <obj_property name="ElementShortName">dma_m_axis_tdata_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dma_m_axis_tdata_o[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/dma_m_axis_tvalid_o">
+      <obj_property name="ElementShortName">dma_m_axis_tvalid_o</obj_property>
+      <obj_property name="ObjectShortName">dma_m_axis_tvalid_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/dma_m_axis_tlast_o">
+      <obj_property name="ElementShortName">dma_m_axis_tlast_o</obj_property>
+      <obj_property name="ObjectShortName">dma_m_axis_tlast_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/AXI_REG/QTT_DEBUG">
+      <obj_property name="ElementShortName">QTT_DEBUG[31:0]</obj_property>
+      <obj_property name="ObjectShortName">QTT_DEBUG[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/qtt_rst_req">
+      <obj_property name="ElementShortName">qtt_rst_req</obj_property>
+      <obj_property name="ObjectShortName">qtt_rst_req</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/qtt_rst_ack">
+      <obj_property name="ElementShortName">qtt_rst_ack</obj_property>
+      <obj_property name="ObjectShortName">qtt_rst_ack</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/FIFO_DC/rd_ptr">
+      <obj_property name="ElementShortName">rd_ptr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_ptr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/FIFO_DC/wr_ptr">
+      <obj_property name="ElementShortName">wr_ptr[7:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_ptr[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/rd_proc_ptr">
+      <obj_property name="ElementShortName">rd_proc_ptr[9:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_proc_ptr[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/rd_dma_ptr">
+      <obj_property name="ElementShortName">rd_dma_ptr[9:0]</obj_property>
+      <obj_property name="ObjectShortName">rd_dma_ptr[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_mem/wr_ptr">
+      <obj_property name="ElementShortName">wr_ptr[9:0]</obj_property>
+      <obj_property name="ObjectShortName">wr_ptr[9:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/qtt_rst">
+      <obj_property name="ElementShortName">qtt_rst</obj_property>
+      <obj_property name="ObjectShortName">qtt_rst</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/qtt_pop">
+      <obj_property name="ElementShortName">qtt_pop</obj_property>
+      <obj_property name="ObjectShortName">qtt_pop</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/pop_req_o">
+      <obj_property name="ElementShortName">pop_req_o</obj_property>
+      <obj_property name="ObjectShortName">pop_req_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/rst_req_o">
+      <obj_property name="ElementShortName">rst_req_o</obj_property>
+      <obj_property name="ObjectShortName">rst_req_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/CMD/rst_ack_i">
+      <obj_property name="ElementShortName">rst_ack_i</obj_property>
+      <obj_property name="ObjectShortName">rst_ack_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/ps_clk_i">
+      <obj_property name="ElementShortName">ps_clk_i</obj_property>
+      <obj_property name="ObjectShortName">ps_clk_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/c_clk_i">
+      <obj_property name="ElementShortName">c_clk_i</obj_property>
+      <obj_property name="ObjectShortName">c_clk_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/adc_clk_i">
+      <obj_property name="ElementShortName">adc_clk_i</obj_property>
+      <obj_property name="ObjectShortName">adc_clk_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_dt_o">
+      <obj_property name="ElementShortName">tag_dt_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tag_dt_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick_time_tagger/axi_qick_time_tagger/QTT/tag_vld_o">
+      <obj_property name="ElementShortName">tag_vld_o</obj_property>
+      <obj_property name="ObjectShortName">tag_vld_o</obj_property>
+   </wvobject>
+</wave_config>
