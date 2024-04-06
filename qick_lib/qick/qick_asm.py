@@ -327,7 +327,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['f_dds'] / 2**thisch['b_dds']
+        return r / (2**thisch['b_dds'] / thisch['f_dds'])
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -400,7 +400,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
+        gencfg = self['gens'][gen_ch]
+        return self.int2freq(r, gencfg)
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -418,7 +419,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
+        rocfg = self['readouts'][ro_ch]
+        return self.int2freq(r, rocfg)
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.
@@ -520,7 +522,7 @@ class QickConfig():
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
         b_phase = ch_cfg['b_phase']
-        return reg*360/2**b_phase
+        return reg / (2**b_phase / 360)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
