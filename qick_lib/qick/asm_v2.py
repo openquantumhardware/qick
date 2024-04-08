@@ -1086,15 +1086,18 @@ class QickProgramV2(AbsQickProgram):
         return asm
 
     def __str__(self):
+        # make sure the program's been compiled
+        if self.binprog is None:
+            self.compile()
         lines = []
         lines.append("macros:")
         lines.extend(["\t%s" % (p) for p in self.macro_list])
-        lines.append("pulses:")
-        lines.extend(["\t%s: %s" % (k,v) for k,v in self.pulses.items()])
-        lines.append("waveforms:")
-        lines.extend(["\t%s" % (w) for w in self.waves])
         lines.append("registers:")
         lines.extend(["\t%s: %s" % (k,v) for k,v in self.reg_dict.items()])
+        lines.append("pulses:")
+        lines.extend(["\t%s: %s" % (k,v) for k,v in self.pulses.items()])
+        #lines.append("waveforms:")
+        #lines.extend(["\t%s" % (w) for w in self.waves])
 
         lines.append("expanded ASM:")
         lines.extend(textwrap.indent(self.asm(), "\t").splitlines())
