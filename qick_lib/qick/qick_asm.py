@@ -9,6 +9,7 @@ import json
 from collections import namedtuple, OrderedDict, defaultdict
 import operator
 import functools
+from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
@@ -604,6 +605,24 @@ class DummyIp:
 
 class AbsQickProgram:
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
+    QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
+
+    The tProc executes binary machine code; you write declarations and ASM code (or macros that get expanded to ASM).
+    So before a program gets run, you need to fill it with declarations and ASM, and they need to get compiled (converted to machine code).
+    There are three ways to prepare a QickProgram for running:
+
+    1. External initialization: Create an empty program object.
+    Write the program by calling declaration and ASM methods of the program object.
+    The program will be compiled when you try to run, dump, or print it.
+
+    2. Internal initialization: Create a subclass which calls declaration and ASM methods as part of __init__().
+    When you create an instance of the subclass, it will automatically fill itself.
+    Typically you won't subclass QickProgram directly, you will subclass something like AveragerProgram which does a lot of the work for you.
+    The program will be compiled when you try to run, dump, or print.
+
+    3. Loading a dump: Create an empty program object.
+    Call QickProgram.load_prog() to load the program definition from a dump.
+    The program will be compiled as part of load_prog().
     """
     # Calls to these methods will be passed through to the soccfg object.
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
@@ -620,6 +639,9 @@ class AbsQickProgram:
         self.tproccfg = self.soccfg['tprocs'][0]
         self._init_declarations()
         self._init_instructions()
+
+        # binary program, ready to execute
+        self.binprog = None
 
         # Attributes to dump when saving the program to JSON.
         self.dump_keys = ['envelopes', 'ro_chs', 'gen_chs']
@@ -667,6 +689,12 @@ class AbsQickProgram:
         else:
             return object.__getattribute__(self, a)
 
+    @abstractmethod
+    def compile(self):
+        """Fills self.binprog with a binary representation of the program.
+        """
+        ...
+
     def dump_prog(self):
         """
         Dump the program to a dictionary.
@@ -696,14 +724,28 @@ class AbsQickProgram:
             for name, env in envdict['envs'].items():
                 env['data'] = decode_array(env['data'])
 
-    def config_all(self, soc, load_pulses=True):
+    def config_all(self, soc, load_pulses=True, reset=False):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
         The tProc is set to internal start before any other configuration is done, to prevent spurious external starts.
+
+        Parameters
+        ----------
+        reset : bool
+            Force-stop the tProc before loading the program.
+            This option only affects tProc v1, where the reset takes several ms.
+            For tProc v2, where reset is easy, we always do the reset.
         """
+        # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
+        if self.binprog is None:
+            self.binprog = self.compile()
+
         # set tproc to internal-start, to prevent spurious starts
         soc.start_src("internal")
+
+        # now stop the tproc (if the tproc supports it)
+        soc.stop_tproc(lazy=not reset)
 
         # Load the pulses from the program into the soc
         if load_pulses:
@@ -714,6 +756,9 @@ class AbsQickProgram:
 
         # Configure the readout down converters
         self.config_readouts(soc)
+
+        # Load the program into the tProc
+        soc.load_bin_program(self.binprog)
 
     def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
