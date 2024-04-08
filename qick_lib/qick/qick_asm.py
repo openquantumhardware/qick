@@ -739,7 +739,7 @@ class AbsQickProgram:
         """
         # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
         if self.binprog is None:
-            self.binprog = self.compile()
+            self.compile()
 
         # set tproc to internal-start, to prevent spurious starts
         soc.start_src("internal")
