@@ -502,7 +502,7 @@ class QickConfig():
         b_phase = ch_cfg['b_phase']
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
-    def reg2deg(self, reg, gen_ch=0, ro_ch=None):
+    def reg2deg(self, r, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
 
         Parameters
@@ -523,7 +523,7 @@ class QickConfig():
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
         b_phase = ch_cfg['b_phase']
-        return reg / (2**b_phase / 360)
+        return r / (2**b_phase / 360)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
