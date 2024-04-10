@@ -993,6 +993,7 @@ class QickProgramV2(AbsQickProgram):
     def _init_instructions(self):
         # initialize the low-level objects that get filled by macro expansion
 
+        # this will also reset self.binprog
         super()._init_instructions()
 
         # high-level program structure
@@ -1041,11 +1042,14 @@ class QickProgramV2(AbsQickProgram):
         self._make_binprog()
 
     def _make_binprog(self):
+        # convert the low-level program definition (ASM and waveform list) to binary
         self.binprog = {}
         self.binprog['pmem'] = self._compile_prog()
         self.binprog['wmem'] = self._compile_waves()
 
     def _make_asm(self):
+        # convert the high-level program definition (macros and pulses) to low-level (ASM and waveform list)
+
         # reset the low-level program objects
         self._init_instructions()
 
@@ -1248,7 +1252,7 @@ class QickProgramV2(AbsQickProgram):
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
 
-    def get_pulse_param_sweep(self, pulsename, parname):
+    def get_pulse_param(self, pulsename, parname):
         pulse = self.pulses[pulsename]
         if parname=='total_length':
             return pulse.get_length()
@@ -1261,7 +1265,7 @@ class QickProgramV2(AbsQickProgram):
         # TODO: docstring, think about method names
         # TODO: do the right thing if this isn't a sweep
         # TODO: how do you know the loop size etc. are defined already?
-        sweep = self.get_pulse_param_sweep(pulsename, parname)
+        sweep = self.get_pulse_param(pulsename, parname)
 
         allpoints = None
         for name, n in self.loop_dict.items():
@@ -1621,7 +1625,7 @@ class AveragerProgramV2(AcquireProgramV2):
 
     COUNTER_ADDR = 1
     def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, cfg=None):
-        self.cfg = {} if cfg is None else cfg
+        self.cfg = {} if cfg is None else cfg.copy()
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
@@ -1629,19 +1633,25 @@ class AveragerProgramV2(AcquireProgramV2):
         super().__init__(soccfg)
 
         # fill the program
-        self._make_asm()
+        self.compile()
 
-    def _init_declarations(self):
-        super()._init_declarations()
-        self.loops = [("reps", self.reps)]
+    def compile(self):
+        # we should only need to compile once
+        if self.binprog is not None:
+            return
 
-    def _make_asm(self):
         # wipe out macros
         self._init_declarations()
+
+        # prepare the loop list
+        self.loops = [("reps", self.reps)]
+
         # make_program() should add all the declarations and macros
         self.make_program()
-        # process macros, generate ASM and waveform list
-        super()._make_asm()
+
+        # process macros, generate ASM and waveform list, generate binary program
+        super().compile()
+
         # use the loop list to set up the data shape
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
 

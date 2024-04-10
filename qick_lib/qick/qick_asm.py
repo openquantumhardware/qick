@@ -640,9 +640,6 @@ class AbsQickProgram:
         self._init_declarations()
         self._init_instructions()
 
-        # binary program, ready to execute
-        self.binprog = None
-
         # Attributes to dump when saving the program to JSON.
         self.dump_keys = ['envelopes', 'ro_chs', 'gen_chs']
 
@@ -673,6 +670,9 @@ class AbsQickProgram:
         # Timestamps, for keeping track of pulse and readout end times.
         self._gen_ts = [0]*len(self.soccfg['gens'])
         self._ro_ts = [0]*len(self.soccfg['readouts'])
+
+        # binary program, ready to execute
+        self.binprog = None
 
     def __getattr__(self, a):
         """
@@ -1232,9 +1232,11 @@ class AcquireMixin:
         avg_level : int
             Which loop level to average over (0 is outermost).
         """
+        # this doesn't work unless trigger macros have been processed, so compile if we haven't already compiled
+        if self.binprog is None:
+            self.compile()
         self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
-        # TODO: this doesn't work unless trigger macros have been processed
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
     def set_reads_per_shot(self, reads_per_shot):
