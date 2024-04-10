@@ -753,14 +753,14 @@ class StandardGenManager(AbsGenManager):
             # this is the gain that will be used for the ramps
             # because the flat segment will be scaled by flat_scale, we need this to be an even multiple of the flat_scale denominator
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', quantize=flat_scale.denominator, trunc=True)
-            par_map['gain'] = (0, 1/self.chcfg['maxv'])
+            par_map['gain'] = (0, self.chcfg['maxv'])
         elif par['style']=='const':
             # it's not strictly necessary to apply maxv_scale here, but if we don't the amplitudes for different styles will be extra confusing?
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv']*self.chcfg['maxv_scale'], parname='gain', trunc=True)
-            par_map['gain'] = (0, 1/(self.chcfg['maxv']*self.chcfg['maxv_scale']))
+            par_map['gain'] = (0, (self.chcfg['maxv']*self.chcfg['maxv_scale']))
         else:
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', trunc=True)
-            par_map['gain'] = (0, 1/self.chcfg['maxv'])
+            par_map['gain'] = (0, self.chcfg['maxv'])
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
