@@ -109,7 +109,7 @@ class SimpleClass:
 # ASM units, multi-dimension
 class QickSweepRaw(SimpleClass):
     _fields = ['par', 'start', 'spans', 'quantize', 'steps']
-    def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1, steps: Dict[str, Dict[str, int]]=None):
+    def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1):
         # identifies the parameter being swept, so EndLoop can apply the sweep
         self.par = par
         # the initial value, which will be written to the register or waveform memory
@@ -119,7 +119,7 @@ class QickSweepRaw(SimpleClass):
         # when sweeping, the step size will be rounded to a multiple of this value
         self.quantize = quantize
         # dict of sweep steps for each loop, computed by to_steps() after the loop lengths are known
-        self.steps = steps
+        self.steps = None
 
     def to_steps(self, loops):
         self.steps = {}
@@ -132,10 +132,13 @@ class QickSweepRaw(SimpleClass):
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __mul__(self, a):
-        if not isinstance(a, Fraction):
-            raise RuntimeError("QickSweepRaw can only be multipled by Fraction")
+        # multiplying a QickSweepRaw by a Fraction yields a QickSweepRaw
         # used when scaling parameters (e.g. flat_top segment gain)
         # this will only happen before steps have been defined
+        if not isinstance(a, Fraction):
+            raise RuntimeError("QickSweepRaw can only be multiplied by Fraction")
+        if self.steps is not None:
+            raise RuntimeError("QickSweepRaw can only be multiplied before steps have been defined")
         if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
             raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
         spans = {k:int(v*a) for k,v in self.spans.items()}
@@ -145,8 +148,12 @@ class QickSweepRaw(SimpleClass):
         # do nothing - mod will be applied when compiling the Waveform
         return self
     def __truediv__(self, a):
-        # this is used to convert duration to us
+        # dividing a QickSweepRaw by a number yields a QickSweep
+        # this is used to convert duration to us (for updating timestamps)
+        # or generally to convert sweeps back to user units (for getting sweep points)
         # this will only happen after steps have been defined
+        if self.steps is None:
+            raise RuntimeError("QickSweepRaw can only be divided after steps have been defined")
         spans = {k:v['span']/a for k,v in self.steps.items()}
         return QickSweep(self.start/a, spans)
     def __iadd__(self, a):
@@ -208,6 +215,8 @@ class Waveform(Mapping, SimpleClass):
         return iter(self._fields)
     def to_dict(self):
         # for JSON serialization with helpers.NpEncoder
+        # note that if a Waveform has swept parameters, the sweeps will be lost
+        # this is OK because the sweeps should already have been converted to ASM
         d = OrderedDict()
         for k in self._fields:
             d[k] = getattr(self, k)
@@ -1251,6 +1260,7 @@ class QickProgramV2(AbsQickProgram):
     def get_pulse_param_points(self, pulsename, parname):
         # TODO: docstring, think about method names
         # TODO: do the right thing if this isn't a sweep
+        # TODO: how do you know the loop size etc. are defined already?
         sweep = self.get_pulse_param_sweep(pulsename, parname)
 
         allpoints = None
