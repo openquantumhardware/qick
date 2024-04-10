@@ -1252,30 +1252,53 @@ class QickProgramV2(AbsQickProgram):
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
 
-    def get_pulse_param(self, pulsename, parname):
+    def get_pulse_param(self, pulsename, parname, as_array=False):
+        """Get the fully rounded value of a pulse parameter, in the same units that are used to specify the parameter in add_pulse().
+        By default, a swept parameter will be returned as a QickSweep.
+        If instead you ask for an array, the array will have a dimension for each loop where the parameter is swept.
+        The dimensions will be ordered by the loop order.
+
+        The rounded value is only available after the program has been compiled (or run).
+        So you can't call this method from inside your program definition.
+
+        Parameters
+        ----------
+        pulsename : str
+            Name of the pulse
+        parname : str
+            Name of the parameter
+        as_array : bool
+            If the parameter is swept, return an array instead of a QickSweep
+
+        Returns
+        -------
+        float, QickSweep, or array
+            Parameter value
+        """
+        # if the parameter is swept, it's not fully defined until the loop macros have been processed
+        if self.binprog is None:
+            raise RuntimeError("get_pulse_param() can only be called on a program after it's been compiled")
+
         pulse = self.pulses[pulsename]
         if parname=='total_length':
-            return pulse.get_length()
+            param = pulse.get_length()
         else:
             index, scale = pulse.par_map[parname]
             waveform = pulse.waveforms[index]
-            return getattr(waveform, parname)/scale
+            param = getattr(waveform, parname)/scale
 
-    def get_pulse_param_points(self, pulsename, parname):
-        # TODO: docstring, think about method names
-        # TODO: do the right thing if this isn't a sweep
-        # TODO: how do you know the loop size etc. are defined already?
-        sweep = self.get_pulse_param(pulsename, parname)
-
-        allpoints = None
-        for name, n in self.loop_dict.items():
-            if name in sweep.spans:
-                points = np.linspace(0, sweep.spans[name], n)
-                if allpoints is None:
-                    allpoints = points + sweep.start
-                else:
-                    allpoints = np.add.outer(allpoints, points)
-        return allpoints
+        if as_array and isinstance(param, QickSweep):
+            allpoints = None
+            for name, n in self.loop_dict.items():
+                if name in param.spans:
+                    points = np.linspace(0, param.spans[name], n)
+                    if allpoints is None:
+                        allpoints = points + param.start
+                    else:
+                        allpoints = np.add.outer(allpoints, points)
+            return allpoints
+        else:
+            return param
 
     # register management
 
