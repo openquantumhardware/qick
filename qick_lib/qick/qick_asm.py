@@ -9,6 +9,7 @@ import json
 from collections import namedtuple, OrderedDict, defaultdict
 import operator
 import functools
+from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
@@ -327,7 +328,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['f_dds'] / 2**thisch['b_dds']
+        return r / (2**thisch['b_dds'] / thisch['f_dds'])
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -352,9 +353,10 @@ class QickConfig():
         else:
             rocfg = self['readouts'][ro_ch]
         gencfg = self['gens'][gen_ch]
-        if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        #if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
+        if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
-            if abs(f)>gencfg['f_dds']/2:
+            if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
@@ -399,7 +401,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
+        gencfg = self['gens'][gen_ch]
+        return self.int2freq(r, gencfg)
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -417,7 +420,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
+        rocfg = self['readouts'][ro_ch]
+        return self.int2freq(r, rocfg)
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.
@@ -464,6 +468,17 @@ class QickConfig():
         else:
             return None
 
+    def _get_mixer_cfg(self, gen_ch):
+        """
+        Create a fake config dictionary for a generator's NCO, for use in frequency matching.
+        """
+        gencfg = self['gens'][gen_ch]
+        mixercfg = {}
+        mixercfg['fs_mult'] = gencfg['fs_mult']
+        mixercfg['fdds_div'] = gencfg['fs_div']
+        mixercfg['b_dds'] = 48
+        return mixercfg
+
     def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
@@ -487,7 +502,7 @@ class QickConfig():
         b_phase = ch_cfg['b_phase']
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
-    def reg2deg(self, reg, gen_ch=0, ro_ch=None):
+    def reg2deg(self, r, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
 
         Parameters
@@ -508,7 +523,7 @@ class QickConfig():
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
         b_phase = ch_cfg['b_phase']
-        return reg*360/2**b_phase
+        return r / (2**b_phase / 360)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
@@ -590,6 +605,24 @@ class DummyIp:
 
 class AbsQickProgram:
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
+    QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
+
+    The tProc executes binary machine code; you write declarations and ASM code (or macros that get expanded to ASM).
+    So before a program gets run, you need to fill it with declarations and ASM, and they need to get compiled (converted to machine code).
+    There are three ways to prepare a QickProgram for running:
+
+    1. External initialization: Create an empty program object.
+    Write the program by calling declaration and ASM methods of the program object.
+    The program will be compiled when you try to run, dump, or print it.
+
+    2. Internal initialization: Create a subclass which calls declaration and ASM methods as part of __init__().
+    When you create an instance of the subclass, it will automatically fill itself.
+    Typically you won't subclass QickProgram directly, you will subclass something like AveragerProgram which does a lot of the work for you.
+    The program will be compiled when you try to run, dump, or print.
+
+    3. Loading a dump: Create an empty program object.
+    Call QickProgram.load_prog() to load the program definition from a dump.
+    The program will be compiled as part of load_prog().
     """
     # Calls to these methods will be passed through to the soccfg object.
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
@@ -638,6 +671,9 @@ class AbsQickProgram:
         self._gen_ts = [0]*len(self.soccfg['gens'])
         self._ro_ts = [0]*len(self.soccfg['readouts'])
 
+        # binary program, ready to execute
+        self.binprog = None
+
     def __getattr__(self, a):
         """
         Include QickConfig methods as methods of the QickProgram.
@@ -652,6 +688,12 @@ class AbsQickProgram:
             return getattr(self.soccfg, a)
         else:
             return object.__getattribute__(self, a)
+
+    @abstractmethod
+    def compile(self):
+        """Fills self.binprog with a binary representation of the program.
+        """
+        ...
 
     def dump_prog(self):
         """
@@ -682,14 +724,28 @@ class AbsQickProgram:
             for name, env in envdict['envs'].items():
                 env['data'] = decode_array(env['data'])
 
-    def config_all(self, soc, load_pulses=True):
+    def config_all(self, soc, load_pulses=True, reset=False):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
         The tProc is set to internal start before any other configuration is done, to prevent spurious external starts.
+
+        Parameters
+        ----------
+        reset : bool
+            Force-stop the tProc before loading the program.
+            This option only affects tProc v1, where the reset takes several ms.
+            For tProc v2, where reset is easy, we always do the reset.
         """
+        # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
+        if self.binprog is None:
+            self.compile()
+
         # set tproc to internal-start, to prevent spurious starts
         soc.start_src("internal")
+
+        # now stop the tproc (if the tproc supports it)
+        soc.stop_tproc(lazy=not reset)
 
         # Load the pulses from the program into the soc
         if load_pulses:
@@ -700,6 +756,9 @@ class AbsQickProgram:
 
         # Configure the readout down converters
         self.config_readouts(soc)
+
+        # Load the program into the tProc
+        soc.load_bin_program(self.binprog)
 
     def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
@@ -801,7 +860,7 @@ class AbsQickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=0, mux_freqs=None, mux_gains=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
@@ -828,12 +887,59 @@ class AbsQickProgram:
         """
         cfg = {
                 'nqz': nqz,
-                'mixer_freq': mixer_freq,
                 'mux_freqs': mux_freqs,
                 'mux_gains': mux_gains,
                 'ro_ch': ro_ch
                 }
+        gencfg = self.soccfg['gens'][ch]
+        if gencfg['has_mixer']:
+            if mixer_freq is None:
+                raise RuntimeError("generator %d has a mixer, but no mixer_freq was defined" % (ch))
+            cfg['mixer_freq'] = self._calc_mixer_freq(mixer_freq, nqz, ch, ro_ch)
+
         self.gen_chs[ch] = cfg
+
+    def _calc_mixer_freq(self, mixer_freq, nqz, gen_ch, ro_ch):
+        """
+        Set the NCO frequency that will be mixed with the generator output.
+
+        The RFdc driver does its own math to convert a frequency to a register value.
+        (see XRFdc_SetMixerSettings in xrfdc_mixer.c, and "NCO Frequency Conversion" in PG269)
+        This is what it does:
+        1. Add/subtract fs to get the frequency in the range of [-fs/2, fs/2].
+        2. If the original frequency was not in [-fs/2, fs/2] and the DAC is configured for 2nd Nyquist zone, multiply by -1.
+        3. Convert to a 48-bit register value, rounding using C integer casting (i.e. round towards 0).
+
+        Step 2 is not desirable for us, so we must undo it.
+
+        The rounding gives unexpected results sometimes: it's hard to tell if a freq will get rounded up or down.
+        This is important if the demanded frequency was rounded to a valid frequency for frequency matching.
+        The safest way to get consistent behavior is to always round to a valid NCO frequency.
+        We are trusting that the floating-point math is exact and a number we rounded here is still a round number in the RFdc driver.
+
+        :param dacname: DAC channel (2-digit string)
+        :type dacname: int
+        :param f: NCO frequency
+        :type f: float
+        :param force: force update, even if the setting is the same
+        :type force: bool
+        :param reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type reset: bool
+        """
+        cfg = {}
+        cfg['userval'] = mixer_freq
+        gencfg = self.soccfg['gens'][gen_ch]
+        if ro_ch is None:
+            rounded_f = f
+        else:
+            mixercfg = self.soccfg._get_mixer_cfg(gen_ch)
+            rounded_f = self.soccfg.roundfreq(mixer_freq, [mixercfg, self.soccfg['readouts'][ro_ch]])
+        cfg['rounded'] = rounded_f
+        if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
+            cfg['setval'] = -rounded_f
+        else:
+            cfg['setval'] = rounded_f
+        return cfg
 
     def config_gens(self, soc):
         """Configure the signal generators specified in this program.
@@ -847,7 +953,8 @@ class AbsQickProgram:
         """
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg['nqz'])
-            soc.set_mixer_freq(ch, cfg['mixer_freq'], cfg['ro_ch'])
+            if 'mixer_freq' in cfg:
+                soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if cfg['mux_freqs'] is not None:
                 soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
 
@@ -1125,9 +1232,11 @@ class AcquireMixin:
         avg_level : int
             Which loop level to average over (0 is outermost).
         """
+        # this doesn't work unless trigger macros have been processed, so compile if we haven't already compiled
+        if self.binprog is None:
+            self.compile()
         self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
-        # TODO: this doesn't work unless trigger macros have been processed
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
     def set_reads_per_shot(self, reads_per_shot):
@@ -1147,7 +1256,7 @@ class AcquireMixin:
             self.reads_per_shot = reads_per_shot
 
     def get_raw(self):
-        """Get the raw integer I/Q values before normalizing to the readout window or averaging across reps.
+        """Get the raw integer I/Q values (before normalizing to the readout window, averaging across reps, removing the readout offset, or thresholding).
 
         Returns
         -------
@@ -1166,7 +1275,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True):
+    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1191,6 +1300,9 @@ class AcquireMixin:
             A list must have length equal to the number of declared readout channels.
         progress: bool
             if true, displays progress bar
+        remove_offset: bool
+            Some readouts (muxed and tProc-configured) introduce a small fixed offset to the I and Q values of every decimated sample.
+            This subtracts that offset, if any, before returning the averaged IQ values or rotating to apply software thresholding.
 
         Returns
         -------
@@ -1247,10 +1359,10 @@ class AcquireMixin:
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
                 d_reps = self.d_buf
-                round_d = self._average_buf(d_reps, self.reads_per_shot)
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=True, remove_offset=remove_offset)
             else:
                 d_reps = [np.zeros_like(d) for d in self.d_buf]
-                self.shots = self._apply_threshold(self.d_buf, threshold, angle)
+                self.shots = self._apply_threshold(self.d_buf, threshold, angle, remove_offset=remove_offset)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
@@ -1266,7 +1378,7 @@ class AcquireMixin:
 
         return avg_d
 
-    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True) -> np.ndarray:
+    def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True, remove_offset: bool=True) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
         if the data is created in a different shape.
@@ -1274,20 +1386,24 @@ class AcquireMixin:
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
         :param length_norm: normalize by readout window length (disable for thresholded values)
+        :param remove_offset: if normalizing by length, also subtract the readout's IQ offset if any
         :return: averaged iq data after each round.
         """
         avg_d = []
-        for i_ch, ro in enumerate(self.ro_chs.values()):
+        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
             if length_norm:
                 avg /= ro['length']
+                if remove_offset:
+                    offset = self.soccfg['readouts'][ro_ch]['iq_offset']
+                    avg -= offset
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
         return avg_d
 
-    def _apply_threshold(self, d_buf, threshold, angle):
+    def _apply_threshold(self, d_buf, threshold, angle, remove_offset):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
@@ -1305,6 +1421,8 @@ class AcquireMixin:
             Units of radians.
             If scalar, the same angle will be applied to all readout channels.
             A list must have length equal to the number of declared readout channels.
+        remove_offset: bool
+            Subtract the readout's IQ offset, if any.
 
         Returns
         -------
@@ -1325,9 +1443,13 @@ class AcquireMixin:
             angles = angle
 
         shots = []
-        for i, ch in enumerate(self.ro_chs):
-            rotated = np.inner(d_buf[i], [np.cos(angles[i]), np.sin(angles[i])])/self.ro_chs[ch]['length']
-            shots.append(np.heaviside(rotated - thresholds[i], 0))
+        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
+            avg = d_buf[i_ch]/ro['length']
+            if remove_offset:
+                offset = self.soccfg['readouts'][ro_ch]['iq_offset']
+                avg -= offset
+            rotated = np.inner(avg, [np.cos(angles[i_ch]), np.sin(angles[i_ch])])
+            shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
     def get_time_axis(self, ro_index):
@@ -1433,7 +1555,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True):
+    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -1448,6 +1570,8 @@ class AcquireMixin:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
+        remove_offset: bool
+            Subtract the readout's IQ offset, if any.
 
         Returns
         -------
@@ -1503,18 +1627,20 @@ class AcquireMixin:
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
         # average the decimated data
-        if total_count == 1 and onetrig:
-            # simple case: data is 1D (one rep and one shot), just average over rounds
-            return [d/soft_avgs for d in dec_buf]
-        else:
-            # split the data into the individual reps
-            result = []
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+        result = []
+        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+            d_avg = dec_buf[ii]/soft_avgs
+            if remove_offset:
+                offset = self.soccfg['readouts'][ch]['iq_offset']
+                d_avg -= offset
+            if total_count == 1 and onetrig:
+                # simple case: data is 1D (one rep and one shot), just average over rounds
+                result.append(d_avg)
+            else:
+                # split the data into the individual reps
                 if onetrig or total_count==1:
-                    d_reshaped = dec_buf[ii].reshape(total_count*ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = d_avg.reshape(total_count*ro['trigs'], -1, 2)
                 else:
-                    d_reshaped = dec_buf[ii].reshape(total_count, ro['trigs'], -1, 2)/soft_avgs
+                    d_reshaped = d_avg.reshape(total_count, ro['trigs'], -1, 2)
                 result.append(d_reshaped)
-            return result
-
-
+        return result

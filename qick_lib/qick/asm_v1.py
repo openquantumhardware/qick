@@ -617,12 +617,6 @@ class QickProgram(AbsQickProgram):
                     mgr.regmap[(mgr.ch, regname)] = (page, regnum)
                     regnum += 1
 
-    def config_all(self, soc, load_pulses=True, reset=False, debug=False):
-        super().config_all(soc, load_pulses)
-
-        # load this program into the soc's tproc
-        soc.load_bin_program(self.compile(debug=debug), reset=reset)
-
     def ch_page(self, gen_ch):
         """Gets tProc register page associated with generator channel.
 
@@ -1028,7 +1022,7 @@ class QickProgram(AbsQickProgram):
                     print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[ro]['length']
-                ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_fabric']
+                ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_output']
                 self.set_timestamp(t_start + ro_length, ro_ch=ro)
         t_end = t_start + width
 
@@ -1230,7 +1224,6 @@ class QickProgram(AbsQickProgram):
         -------
         list of int
             List of binary instructions
-
         """
         labels = {}
         # Scan the ASM instructions for labels. Skip comment lines.
@@ -1243,7 +1236,7 @@ class QickProgram(AbsQickProgram):
                     raise RuntimeError("label used twice:", inst['label'])
                 labels[inst['label']] = prog_counter
             prog_counter += 1
-        return [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
+        self.binprog = [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
 
     def append_instruction(self, name, *args):
         """Append instruction to the program list
@@ -1307,7 +1300,8 @@ class QickProgram(AbsQickProgram):
         str
             Compiled program in hex format
         """
-        return "\n".join([format(mc, '#018x') for mc in self.compile()])
+        self.compile()
+        return "\n".join([format(mc, '#018x') for mc in self.binprog])
 
     def bin(self):
         """Returns binary representation of program as string.
@@ -1317,7 +1311,8 @@ class QickProgram(AbsQickProgram):
         str
             Compiled program in binary format
         """
-        return "\n".join([format(mc, '#066b') for mc in self.compile()])
+        self.compile()
+        return "\n".join([format(mc, '#066b') for mc in self.binprog])
 
     def asm(self):
         """Returns assembly representation of program as string, should be compatible with the parse_prog from the parser module.

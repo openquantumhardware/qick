@@ -1,10 +1,13 @@
 QICK papers
 =================================================
 
-This list of academic papers that used the QICK was last updated December 2, 2023.
+This list of academic papers that used the QICK was last updated March 26, 2024.
 
 Superconducting qubit
 #############################
+* `Yen, A. et al. All-Pass Readout for Robust and Scalable Quantum Measurement (2024) <https://arxiv.org/abs/2403.01375>`_.
+* `Anferov, A. et al. Superconducting Qubits Above 20 GHz Operating over 200 mK (2024) <https://arxiv.org/abs/2402.03031>`_.
+* `Odeh, M. et al. Non-Markovian dynamics of a superconducting qubit in a phononic bandgap (2023) <https://arxiv.org/abs/2312.01031>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits (2023) <https://arXiv.org/abs/2309.05720>`_.
 * `Cruz-Martinez, J. M., Robbiati, M., and Carrazza, S. Multi-variable integration with a variational quantum circuit (2023) <https://arXiv.org/abs/2308.05657>`_.
 * `Anferov, A, Lee, K.-H., Zhao, F., Simon, J. and Schuster, D.I. Improved coherence in optically-defined niobium trilayer junction qubits (2023) <https://arXiv.org/abs/2306.05883>`_.

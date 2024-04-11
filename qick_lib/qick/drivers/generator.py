@@ -27,6 +27,7 @@ class AbsSignalGen(SocIp):
         self.rf = rf
 
         self.cfg['dac'] = self.dac
+        self.cfg['has_mixer'] = self.HAS_MIXER
 
         for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
             self.cfg[p] = self.rf.daccfg[self['dac']][p]
@@ -72,15 +73,12 @@ class AbsSignalGen(SocIp):
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
         if ro_ch is None:
-            rounded_f = f
+            self.rf.set_mixer_freq(self.dac, f)
         else:
-            mixercfg = {}
-            mixercfg['fs_mult'] = self['fs_mult']
-            mixercfg['fdds_div'] = self['fs_div']
-            mixercfg['b_dds'] = 48
-            fstep = self.soc.calc_fstep([mixercfg, self.soc['readouts'][ro_ch]])
-            rounded_f = round(f/fstep)*fstep
-        self.rf.set_mixer_freq(self.dac, rounded_f)
+            mixercfg = self.soc._get_mixer_cfg(self.ch)
+            rocfg = self.soc['readouts'][ro_ch]
+            rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
+            self.rf.set_mixer_freq(self.dac, rounded_f)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
