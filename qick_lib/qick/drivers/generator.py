@@ -492,6 +492,147 @@ class AxisSgMux4V3(AxisSgMux4V2):
     bindto = ['user.org:user:axis_sg_mux4_v3:1.0']
     HAS_MIXER = False
 
+class AxisSgMux8V1(AbsPulsedSignalGen):
+    """
+    AxisSgMux8V1
+
+    AXIS Signal Generator with 8 muxed outputs V1 registers.
+
+    PINC0_REG : frequency of tone 0.
+    PINC1_REG : frequency of tone 1.
+    PINC2_REG : frequency of tone 2.
+    PINC3_REG : frequency of tone 3.
+    PINC4_REG : frequency of tone 4.
+    PINC5_REG : frequency of tone 5.
+    PINC6_REG : frequency of tone 6.
+    PINC7_REG : frequency of tone 7.
+    POFF0_REG : phase of tone 0.
+    POFF1_REG : phase of tone 1.
+    POFF2_REG : phase of tone 2.
+    POFF3_REG : phase of tone 3.
+    POFF4_REG : phase of tone 4.
+    POFF5_REG : phase of tone 5.
+    POFF6_REG : phase of tone 6.
+    POFF7_REG : phase of tone 7.
+    GAIN0_REG : gain of tone 0.
+    GAIN1_REG : gain of tone 1.
+    GAIN2_REG : gain of tone 2.
+    GAIN3_REG : gain of tone 3.
+    GAIN4_REG : gain of tone 4.
+    GAIN5_REG : gain of tone 5.
+    GAIN6_REG : gain of tone 6.
+    GAIN7_REG : gain of tone 7.
+
+    WE_REG
+    * 0 : disable writes.
+    * 1 : enable writes.
+    """
+    bindto = ['user.org:user:axis_sg_mux8_v1:1.0']
+    REGISTERS = {'pinc0_reg':0,
+                 'pinc1_reg':1,
+                 'pinc2_reg':2,
+                 'pinc3_reg':3,
+                 'pinc4_reg':4,
+                 'pinc5_reg':5,
+                 'pinc6_reg':6,
+                 'pinc7_reg':7,
+                 'poff0_reg':8,
+                 'poff1_reg':9,
+                 'poff2_reg':10,
+                 'poff3_reg':11,
+                 'poff4_reg':12,
+                 'poff5_reg':13,
+                 'poff6_reg':14,
+                 'poff7_reg':15,
+                 'gain0_reg':16,
+                 'gain1_reg':17,
+                 'gain2_reg':18,
+                 'gain3_reg':19,
+                 'gain4_reg':20,
+                 'gain5_reg':21,
+                 'gain6_reg':22,
+                 'gain7_reg':23,
+                 'we_reg':24}
+
+    HAS_MIXER = False
+    B_DDS = 32
+    TPROC_PORT = 's_axis'
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+
+        # Generics
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        # dummy values, since this doesn't have a waveform memory.
+        self.switch_ch = -1
+        self.MAX_LENGTH = 0
+
+        # Default registers.
+        for i in range(8):
+            setattr(self, 'pinc{}_reg'.format(i), 0)
+            setattr(self, 'poff{}_reg'.format(i), 0)
+            setattr(self, 'gain{}_reg'.format(i), self.MAXV)
+
+        self.update()
+
+    def update(self):
+        """
+        Update register values
+        """
+        self.we_reg = 1
+        self.we_reg = 0
+
+    def set_freq(self, f, out, ro_ch=0):
+        """
+        Set frequency register
+
+        :param f: frequency in MHz
+        :type f: float
+        :param out: muxed channel to configure
+        :type out: int
+        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
+        :type ro_ch: int
+        """
+        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
+        self.set_freq_int(k_i, out)
+
+    def set_freq_int(self, k_i, out):
+        if out not in range(8):
+            raise IndexError("Invalid output index for mux.")
+        setattr(self, "pinc%d_reg" % (out), np.uint32(k_i))
+
+        # Register update.
+        self.update()
+
+    def get_freq(self, out):
+        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
+
+    def set_gain(self, g, out):
+        """
+        Set gain register
+
+        :param g: gain (in range -1 to 1)
+        :type g: float
+        :param out: muxed channel to configure
+        :type out: int
+        """
+        self.set_gain_int(np.round(g*self.MAXV), out)
+
+    def set_gain_int(self, g_i, out):
+        # Sanity checks.
+        if out not in range(8):
+            raise IndexError("Invalid output index for mux.")
+        if np.abs(g_i)>self.MAXV:
+            raise RuntimeError("Requested gain exceeds max limit.")
+        setattr(self, "gain%d_reg" % (out), np.int16(g_i))
+
+        # Register update.
+        self.update()
+
 class AxisConstantIQ(AbsSignalGen):
     """Plays a constant IQ value, which gets mixed with the DAC's built-in oscillator.
     """
