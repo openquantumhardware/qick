@@ -9,6 +9,7 @@ import json
 from collections import namedtuple, OrderedDict, defaultdict
 import operator
 import functools
+from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
@@ -327,7 +328,7 @@ class QickConfig():
             Re-formatted frequency (MHz)
 
         """
-        return r * thisch['f_dds'] / 2**thisch['b_dds']
+        return r / (2**thisch['b_dds'] / thisch['f_dds'])
 
     def freq2reg(self, f, gen_ch=0, ro_ch=None):
         """Converts frequency in MHz to tProc generator register value.
@@ -400,7 +401,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['gens'][gen_ch]['b_dds']) * self['gens'][gen_ch]['f_dds']
+        gencfg = self['gens'][gen_ch]
+        return self.int2freq(r, gencfg)
 
     def reg2freq_adc(self, r, ro_ch=0):
         """Converts frequency from format readable by readout to MHz.
@@ -418,7 +420,8 @@ class QickConfig():
             Re-formatted frequency in MHz
 
         """
-        return (r/2**self['readouts'][ro_ch]['b_dds']) * self['readouts'][ro_ch]['f_dds']
+        rocfg = self['readouts'][ro_ch]
+        return self.int2freq(r, rocfg)
 
     def adcfreq(self, f, gen_ch=0, ro_ch=0):
         """Takes a frequency and trims it to the closest DDS frequency valid for both channels.
@@ -499,7 +502,7 @@ class QickConfig():
         b_phase = ch_cfg['b_phase']
         return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
 
-    def reg2deg(self, reg, gen_ch=0, ro_ch=None):
+    def reg2deg(self, r, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
 
         Parameters
@@ -520,7 +523,7 @@ class QickConfig():
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
         b_phase = ch_cfg['b_phase']
-        return reg*360/2**b_phase
+        return r / (2**b_phase / 360)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
@@ -602,6 +605,24 @@ class DummyIp:
 
 class AbsQickProgram:
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
+    QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
+
+    The tProc executes binary machine code; you write declarations and ASM code (or macros that get expanded to ASM).
+    So before a program gets run, you need to fill it with declarations and ASM, and they need to get compiled (converted to machine code).
+    There are three ways to prepare a QickProgram for running:
+
+    1. External initialization: Create an empty program object.
+    Write the program by calling declaration and ASM methods of the program object.
+    The program will be compiled when you try to run, dump, or print it.
+
+    2. Internal initialization: Create a subclass which calls declaration and ASM methods as part of __init__().
+    When you create an instance of the subclass, it will automatically fill itself.
+    Typically you won't subclass QickProgram directly, you will subclass something like AveragerProgram which does a lot of the work for you.
+    The program will be compiled when you try to run, dump, or print.
+
+    3. Loading a dump: Create an empty program object.
+    Call QickProgram.load_prog() to load the program definition from a dump.
+    The program will be compiled as part of load_prog().
     """
     # Calls to these methods will be passed through to the soccfg object.
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
@@ -650,6 +671,9 @@ class AbsQickProgram:
         self._gen_ts = [0]*len(self.soccfg['gens'])
         self._ro_ts = [0]*len(self.soccfg['readouts'])
 
+        # binary program, ready to execute
+        self.binprog = None
+
     def __getattr__(self, a):
         """
         Include QickConfig methods as methods of the QickProgram.
@@ -664,6 +688,12 @@ class AbsQickProgram:
             return getattr(self.soccfg, a)
         else:
             return object.__getattribute__(self, a)
+
+    @abstractmethod
+    def compile(self):
+        """Fills self.binprog with a binary representation of the program.
+        """
+        ...
 
     def dump_prog(self):
         """
@@ -694,14 +724,28 @@ class AbsQickProgram:
             for name, env in envdict['envs'].items():
                 env['data'] = decode_array(env['data'])
 
-    def config_all(self, soc, load_pulses=True):
+    def config_all(self, soc, load_pulses=True, reset=False):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
         The tProc is set to internal start before any other configuration is done, to prevent spurious external starts.
+
+        Parameters
+        ----------
+        reset : bool
+            Force-stop the tProc before loading the program.
+            This option only affects tProc v1, where the reset takes several ms.
+            For tProc v2, where reset is easy, we always do the reset.
         """
+        # compile() first, because envelopes might be declared in a make_program() inside _make_asm()
+        if self.binprog is None:
+            self.compile()
+
         # set tproc to internal-start, to prevent spurious starts
         soc.start_src("internal")
+
+        # now stop the tproc (if the tproc supports it)
+        soc.stop_tproc(lazy=not reset)
 
         # Load the pulses from the program into the soc
         if load_pulses:
@@ -712,6 +756,9 @@ class AbsQickProgram:
 
         # Configure the readout down converters
         self.config_readouts(soc)
+
+        # Load the program into the tProc
+        soc.load_bin_program(self.binprog)
 
     def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
@@ -1185,9 +1232,11 @@ class AcquireMixin:
         avg_level : int
             Which loop level to average over (0 is outermost).
         """
+        # this doesn't work unless trigger macros have been processed, so compile if we haven't already compiled
+        if self.binprog is None:
+            self.compile()
         self.setup_counter(counter_addr, loop_dims)
         self.avg_level = avg_level
-        # TODO: this doesn't work unless trigger macros have been processed
         self.reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
     def set_reads_per_shot(self, reads_per_shot):

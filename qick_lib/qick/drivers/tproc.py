@@ -154,15 +154,10 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-    def load_bin_program(self, binprog, reset=False):
+    def load_bin_program(self, binprog):
         """
         Write the program to the tProc program memory.
-
-        :param reset: Reset the tProc before writing the program.
-        :type reset: bool
         """
-        if reset: self.reset()
-
         # cast the program words to 64-bit uints
         self.binprog = np.array(binprog, dtype=np.uint64)
         # reshape to 32 bits to match the program memory

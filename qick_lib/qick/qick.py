@@ -805,15 +805,12 @@ class QickSoc(Overlay, QickConfig):
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
 
-    def load_bin_program(self, binprog, reset=False):
+    def load_bin_program(self, binprog):
         """
         Write the program to the tProc program memory.
-
-        :param reset: Reset the tProc before writing the program.
-        :type reset: bool
         """
         if self.TPROC_VERSION == 1:
-            self.tproc.load_bin_program(obtain(binprog), reset)
+            self.tproc.load_bin_program(obtain(binprog))
         elif self.TPROC_VERSION == 2:
             self.tproc.Load_PMEM(binprog['pmem'])
             self.tproc.load_mem(3, binprog['wmem'])
@@ -838,16 +835,22 @@ class QickSoc(Overlay, QickConfig):
             self.tproc.stop()
             self.tproc.start()
 
-    def stop_tproc(self):
+    def stop_tproc(self, lazy=False):
         """
         Stop the tProc.
         This is somewhat slow (tens of ms) for tProc v1.
+
+        Parameters
+        ----------
+        lazy : bool
+            Only stop the tProc if it's easy (i.e. do nothing for v1)
         """
         if self.TPROC_VERSION == 1:
-            # there's no easy way to stop v1 - we need to reset and reload
-            self.tproc.reset()
-            # reload the program (since the reset will have wiped it out)
-            self.tproc.reload_program()
+            if not lazy:
+                # there's no easy way to stop v1 - we need to reset and reload
+                self.tproc.reset()
+                # reload the program (since the reset will have wiped it out)
+                self.tproc.reload_program()
         elif self.TPROC_VERSION == 2:
             self.tproc.stop()
 
