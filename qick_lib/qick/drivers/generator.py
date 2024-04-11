@@ -295,6 +295,9 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
 
 class AbsMuxSignalGen(AbsPulsedSignalGen):
     """
+    Generic class for multiplexed generators.
+
+    Registers:
     PINCx_REG : frequency of tone x.
     POFFx_REG : phase of tone x.
     GAINx_REG : gain of tone x.
@@ -422,182 +425,24 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
     * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
-    REGISTERS = {'pinc0_reg': 0,
-            'pinc1_reg': 1,
-            'pinc2_reg': 2,
-            'pinc3_reg': 3,
-            'we_reg': 4}
-
     HAS_MIXER = True
-    TPROC_PORT = 's_axis'
     B_DDS = 16
+    N_TONES = 4
+    HAS_GAIN = False
+    HAS_PHASE = False
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-
-        # Generics
-        self.NDDS = int(description['parameters']['N_DDS'])
-
-        # dummy values, since this doesn't have a waveform memory.
-        self.switch_ch = -1
-        self.MAX_LENGTH = 0
-
-        # Default registers.
-        self.pinc0_reg = 0
-        self.pinc1_reg = 0
-        self.pinc2_reg = 0
-        self.pinc3_reg = 0
-
-        self.update()
-
-    def update(self):
-        """
-        Update register values
-        """
-        self.we_reg = 1
-        self.we_reg = 0
-
-    def set_freq(self, f, out=0, ro_ch=0):
-        """
-        Set frequency register
-
-        :param f: frequency in MHz
-        :type f: float
-        :param out: muxed channel to configure
-        :type out: int
-        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
-        """
-        # Sanity check.
-        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
-        self.set_freq_int(k_i, out)
-
-    def set_freq_int(self, k_i, out=0):
-        if out not in [0,1,2,3]:
-            raise IndexError("Invalid output index for mux.")
-        setattr(self, "pinc%d_reg" % (out), np.uint16(k_i))
-
-        # Register update.
-        self.update()
-
-    def get_freq(self, out=0):
-        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
-
-class AxisSgMux4V2(AbsPulsedSignalGen):
+class AxisSgMux4V2(AbsMuxSignalGen):
     """
     AxisSgMux4V2
 
-    AXIS Signal Generator with 4 muxed outputs V2 registers.
-
-    PINC0_REG : frequency of tone 0.
-    PINC1_REG : frequency of tone 1.
-    PINC2_REG : frequency of tone 2.
-    PINC3_REG : frequency of tone 3.
-    GAIN0_REG : gain of tone 0.
-    GAIN1_REG : gain of tone 1.
-    GAIN2_REG : gain of tone 2.
-    GAIN3_REG : gain of tone 3.
-
-    WE_REG
-    * 0 : disable writes.
-    * 1 : enable writes.
+    AXIS Signal Generator with 4 muxed outputs.
     """
     bindto = ['user.org:user:axis_sg_mux4_v2:1.0']
-    REGISTERS = {'pinc0_reg':0,
-                 'pinc1_reg':1,
-                 'pinc2_reg':2,
-                 'pinc3_reg':3,
-                 'gain0_reg':4,
-                 'gain1_reg':5,
-                 'gain2_reg':6,
-                 'gain3_reg':7,
-                 'we_reg':8}
-
     HAS_MIXER = True
     B_DDS = 32
-    TPROC_PORT = 's_axis'
-
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-
-        # Generics
-        self.NDDS = int(description['parameters']['N_DDS'])
-
-        # dummy values, since this doesn't have a waveform memory.
-        self.switch_ch = -1
-        self.MAX_LENGTH = 0
-
-        # Default registers.
-        self.pinc0_reg=0
-        self.pinc1_reg=0
-        self.pinc2_reg=0
-        self.pinc3_reg=0
-        self.gain0_reg=self.MAXV
-        self.gain1_reg=self.MAXV
-        self.gain2_reg=self.MAXV
-        self.gain3_reg=self.MAXV
-
-        self.update()
-
-    def update(self):
-        """
-        Update register values
-        """
-        self.we_reg = 1
-        self.we_reg = 0
-
-    def set_freq(self, f, out, ro_ch=0):
-        """
-        Set frequency register
-
-        :param f: frequency in MHz
-        :type f: float
-        :param out: muxed channel to configure
-        :type out: int
-        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
-        """
-        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
-        self.set_freq_int(k_i, out)
-
-    def set_freq_int(self, k_i, out):
-        if out not in range(4):
-            raise IndexError("Invalid output index for mux.")
-        setattr(self, "pinc%d_reg" % (out), np.uint32(k_i))
-
-        # Register update.
-        self.update()
-
-    def get_freq(self, out):
-        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
-
-    def set_gain(self, g, out):
-        """
-        Set gain register
-
-        :param g: gain (in range -1 to 1)
-        :type g: float
-        :param out: muxed channel to configure
-        :type out: int
-        """
-        self.set_gain_int(np.round(g*self.MAXV), out)
-
-    def set_gain_int(self, g_i, out):
-        # Sanity checks.
-        if out not in range(4):
-            raise IndexError("Invalid output index for mux.")
-        if np.abs(g_i)>self.MAXV:
-            raise RuntimeError("Requested gain exceeds max limit.")
-        setattr(self, "gain%d_reg" % (out), np.int16(g_i))
-
-        # Register update.
-        self.update()
+    N_TONES = 4
+    HAS_GAIN = True
+    HAS_PHASE = False
 
 class AxisSgMux4V3(AxisSgMux4V2):
     """AxisSgMux4V3: no digital mixer, but otherwise behaves identically to AxisSgMux4V2.
@@ -610,14 +455,6 @@ class AxisSgMux8V1(AbsMuxSignalGen):
     AxisSgMux8V1
 
     AXIS Signal Generator with 8 muxed outputs.
-
-    PINCx_REG : frequency of tone x.
-    POFFx_REG : phase of tone x.
-    GAINx_REG : gain of tone x.
-
-    WE_REG
-    * 0 : disable writes.
-    * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_sg_mux8_v1:1.0']
     HAS_MIXER = False
