@@ -486,6 +486,191 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
         else:
             raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(self.pfb_ch, self.N-1))
 
+class AxisPFBReadoutV4(SocIp, AbsReadout):
+    """
+    AxisPFBReadoutV4 class.
+
+    This readout block contains a polyphase filter bank with 64 channels.
+    Channel i mixes the input signal down by a fixed frequency f = i * fs/64,
+    then by a programmable DDS with a range of +/- fs/32.
+
+    The PFB channels can be freely mapped to the 8 outputs of the readout block.
+
+    DDS blocks are Phase-Coherent. The same PFB channel can be sent to multiple outputs.
+
+    For channel selection, channels are streamed out the PFB using TDM, with L=8 parallel
+    channels each clock. The number of packets is N/L = 64/8 = 8. The IDx_REG should be 
+    mapped as follows:
+    
+    * IDx_REG   : lower 8 bits are the "packet" field, from 0 .. 7 (N/L).
+                : upper 8 bits are the "index" field, from 0 .. 7 (L-1). 
+
+    There are 8 IDx_REG, one per selectable output.
+
+    Registers.
+    ID[0-7]_REG     : 16-bit channel selection.
+    FREQ[0-7]_REG   : 32-bit frequency of each output channel.
+    PHASE[0-7]_REG  : 32-bit phase of each output channel.
+    """
+    bindto = ['user.org:user:axis_pfb_readout_v4:1.0']
+    REGISTERS = {   'id0_reg'   : 0,
+                    'id1_reg'   : 1,
+                    'id2_reg'   : 2,
+                    'id3_reg'   : 3,
+                    'id4_reg'   : 4,
+                    'id5_reg'   : 5,
+                    'id6_reg'   : 6,
+                    'id7_reg'   : 7,
+                    'freq0_reg' : 8,
+                    'phase0_reg': 9,
+                    'freq1_reg' : 10,
+                    'phase1_reg': 11,
+                    'freq2_reg' : 12,
+                    'phase2_reg': 13,
+                    'freq3_reg' : 14,
+                    'phase3_reg': 15,
+                    'freq4_reg' : 16,
+                    'phase4_reg': 17,
+                    'freq5_reg' : 18,
+                    'phase5_reg': 19,
+                    'freq6_reg' : 20,
+                    'phase6_reg': 21,
+                    'freq7_reg' : 22,
+                    'phase7_reg': 23}
+
+    # Bits of DDS. 
+    B_DDS = 32
+    B_PHASE = 32
+
+    # based on testing this seems like it might really be some weird value like -0.48, even though this makes no sense
+    IQ_OFFSET = -0.5
+
+    # Number of lanes of PFB output.
+    L_PFB = 8
+
+    # Number of outputs.
+    NOUT = 8
+
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+
+        # Generics.
+        self.N = int(description['parameters']['N'])
+
+        # Downsampling ratio (RFDC samples per decimated readout sample)
+        self.DOWNSAMPLING = self.N//2
+
+        # index of the PFB channel that is centered around DC.
+        self.CH_OFFSET = self.N//2
+
+        self.initialize()
+
+    def configure(self, rf):
+        super().configure(rf)
+        # The DDS range is reduced by both the RF-ADC decimation and the PFB.
+        # The PFB decimation ratio is half the number of channels because it is
+        # an overlap 50 % structure.
+        self.cfg['f_dds'] /= self.N/2
+        self.cfg['fdds_div'] *= self.N//2
+
+    def configure_connections(self, soc):
+        self.soc = soc
+
+        # what RFDC port drives this readout?
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter", "axis_combiner"])
+        # for dual ADC (ZCU111, RFSoC4x2) the RFDC block has two outputs per ADC, which we combine - look at the first one
+        if blocktype == "axis_combiner":
+            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
+
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        if soc.hs_adc:
+            iBlock //= 2
+        self.adc = "%d%d" % (iTile, iBlock)
+
+    def initialize(self):
+        """
+        Set up local variables to track definitions of frequencies or readout modes.
+        """
+        self.ch_freqs = {}
+        self.out_chs = {}
+
+    def set_out(self, sel="product"):
+        # There is no output selection option in this readout version.
+        # Function added for backwards compatibility.
+        pass
+
+    def set_freq(self, f, out_ch, gen_ch=0):
+        """
+        Select the best PFB channel for reading out the requested frequency.
+        Set that channel's frequency register, and wire that channel to the specified output of the PFB readout block.
+
+        :param f: frequency in MHz (before adding any DAC mixer frequency)
+        :type f: float
+        :param out_ch: output channel
+        :type out_ch: int
+        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
+        :type gen_ch: int
+        """
+        # calculate the exact frequency we expect to see
+        ro_freq = f
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
+        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
+            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
+
+        nqz = int(ro_freq // (self['fs']/2)) + 1
+        if nqz % 2 == 0: # even Nyquist zone
+            ro_freq *= -1
+        # the PFB channels are separated by half the DDS range
+        # round() gives you the single best channel
+        # floor() and ceil() would give you the 2 best channels
+        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
+        f_steps = int(np.round(ro_freq/(self['f_dds']/2)))
+        f_dds = ro_freq - f_steps*(self['f_dds']/2)
+        pfb_ch = (self.CH_OFFSET + f_steps) % self.N
+
+        #print("{}: ro_freq = {}, f_steps = {}, f_dds = {}, pfb_ch = {}".format(self.__class__.__name__, ro_freq, f_steps, f_dds, pfb_ch))
+
+        # we can calculate the register value without further referencing the gen_ch
+        freq_int = self.soc.freq2int(f_dds, self.cfg)
+        self.set_freq_int(freq_int, pfb_ch, out_ch)
+
+    def set_freq_int(self, f_int, pfb_ch, out_ch):
+        # There are 8 outputs. Any PFB channel can be assigned to any output.
+        # No need to check for collisions are they are all truly independent.
+
+        # Check pfb channel is within allowed range.
+        if (0 <= pfb_ch < self.N):
+            # Compute packet and index fields from pfb channel.
+            packet = int(pfb_ch/self.L_PFB)
+            index  = int(pfb_ch % self.L_PFB)
+            id_val = (index <<8) + packet
+
+            # Check output channel is within allowed range.
+            if (0 <= out_ch < self.NOUT):
+                # Set id.
+                setattr(self, "id%d_reg"%(out_ch), id_val)
+
+                # Set frequency.
+                setattr(self, "freq%d_reg"%(out_ch), f_int)
+
+                # TODO: set phase.
+                setattr(self, "phase%d_reg"%(out_ch), 0)
+
+                #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
+            
+            else:
+                raise RuntimeError("Invalid %d output channel. It must be within [0, %d]"%(out_ch, self.N-1))
+        else:
+            raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(self.pfb_ch, self.N-1))
+
 class AxisReadoutV3(AbsReadout):
     """tProc-controlled readout block.
     This isn't a PYNQ driver, since the block has no registers for PYNQ control.
@@ -623,7 +808,7 @@ class AxisAvgBuffer(SocIp):
 
     def configure_connections(self, soc):
         # what readout port drives this buffer?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3"])
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"])
 
         if blocktype == "axis_readout_v3":
             # the V3 readout block has no registers, so it doesn't get a PYNQ driver
@@ -632,7 +817,7 @@ class AxisAvgBuffer(SocIp):
             self.readout.configure_connections(soc)
         else:
             self.readout = getattr(soc, block)
-            if blocktype in ["axis_pfb_readout_v2", "axis_pfb_readout_v3"]:
+            if blocktype in ["axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"]:
                 # port names are of the form 'm1_axis'
                 self.readoutport = int(port.split('_')[0][1:], 10)
 
@@ -693,7 +878,7 @@ class AxisAvgBuffer(SocIp):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        if isinstance(self.readout, (AxisPFBReadoutV2, AxisPFBReadoutV3)):
+        if isinstance(self.readout, (AxisPFBReadoutV2, AxisPFBReadoutV3, AxisPFBReadoutV4)):
             self.readout.set_freq(f, self.readoutport, gen_ch=gen_ch)
         else:
             self.readout.set_freq(f, gen_ch=gen_ch)
