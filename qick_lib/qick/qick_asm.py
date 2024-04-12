@@ -638,7 +638,7 @@ class QickConfig():
                 tone['gain_rounded'] = tone['gain_int']/gencfg['maxv']
             if gencfg['has_phase']:
                 phase = 0.0 if phases is None else phases[i]
-                tone['phase_int'] = self.deg2reg(phases[i], gen_ch=gen_ch)
+                tone['phase_int'] = self.deg2reg(phase, gen_ch=gen_ch)
                 tone['phase_rounded'] = self.reg2deg(tone['phase_int'], gen_ch=gen_ch)
             tones.append(tone)
         return tones
@@ -987,7 +987,7 @@ class AbsQickProgram:
             soc.set_nyquist(ch, cfg['nqz'])
             if 'mixer_freq' in cfg:
                 soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
-            if cfg['mux_tones'] is not None:
+            if 'mux_tones' in cfg:
                 soc.set_mux_tones(ch, cfg['mux_tones'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
