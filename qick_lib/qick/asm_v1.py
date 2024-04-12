@@ -491,7 +491,7 @@ class MultiplexedGenManager(AbsGenManager):
             val_mask = 0
             mask = params['mask']
             for maskch in mask:
-                if maskch not in range(8):
+                if maskch not in range(self.gencfg['n_tones']):
                     raise RuntimeError("invalid mask specification")
                 val_mask |= (1 << maskch)
             self.set_reg('phase', val_mask, f'mask = {mask}', defaults=defaults)
