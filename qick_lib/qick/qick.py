@@ -765,7 +765,7 @@ class QickSoc(Overlay, QickConfig):
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
-    def set_mux_freqs(self, ch, freqs, gains=None, ro_ch=0):
+    def set_mux_freqs(self, ch, freqs, gains=None, phases=None, ro_ch=0):
         """
         Set muxed frequencies and gains for a signal generator.
         If it's not a muxed signal generator, you will get an error.
@@ -784,10 +784,14 @@ class QickSoc(Overlay, QickConfig):
         """
         if gains is not None and len(gains) != len(freqs):
             raise RuntimeError("lengths of freqs and gains lists do not match")
+        if phases is not None and len(phases) != len(freqs):
+            raise RuntimeError("lengths of freqs and phases lists do not match")
         for ii, f in enumerate(freqs):
             self.gens[ch].set_freq(f, out=ii, ro_ch=ro_ch)
             if gains is not None:
                 self.gens[ch].set_gain(gains[ii], out=ii)
+            if phases is not None:
+                self.gens[ch].set_phase(phases[ii], out=ii)
 
     def set_iq(self, ch, f, i, q):
         """

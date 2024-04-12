@@ -860,7 +860,7 @@ class AbsQickProgram:
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, mux_phases=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
@@ -882,6 +882,8 @@ class AbsQickProgram:
             Positive and negative values are allowed.
         mux_gains : list of float, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
+        mux_phases : list of float, optional
+            Phases for the muxed generator (in units of degrees).
         ro_ch : int, optional
             readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
         """
@@ -889,6 +891,7 @@ class AbsQickProgram:
                 'nqz': nqz,
                 'mux_freqs': mux_freqs,
                 'mux_gains': mux_gains,
+                'mux_phases': mux_phases,
                 'ro_ch': ro_ch
                 }
         gencfg = self.soccfg['gens'][ch]
@@ -896,6 +899,16 @@ class AbsQickProgram:
             if mixer_freq is None:
                 raise RuntimeError("generator %d has a mixer, but no mixer_freq was defined" % (ch))
             cfg['mixer_freq'] = self._calc_mixer_freq(mixer_freq, nqz, ch, ro_ch)
+        if 'n_tones' in gencfg:
+            if mux_freqs is None:
+                raise RuntimeError("generator %d is multiplexed, but no mux_freqs were defined" % (ch))
+            if mux_gains is not None and not gencfg['has_gain']:
+                raise RuntimeError("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
+            if mux_phases is not None and not gencfg['has_phase']:
+                raise RuntimeError("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
+        else:
+            if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
+                raise RuntimeError("generator %d is not multiplexed, but mux parameters were defined" % (ch))
 
         self.gen_chs[ch] = cfg
 
@@ -956,7 +969,7 @@ class AbsQickProgram:
             if 'mixer_freq' in cfg:
                 soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if cfg['mux_freqs'] is not None:
-                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], ro_ch=cfg['ro_ch'])
+                soc.set_mux_freqs(ch, freqs=cfg['mux_freqs'], gains=cfg['mux_gains'], phases=cfg['mux_phases'], ro_ch=cfg['ro_ch'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the list of envelope waveforms available for this channel.

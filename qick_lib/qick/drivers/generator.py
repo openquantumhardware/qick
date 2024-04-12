@@ -335,6 +335,8 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         super().__init__(description)
 
         self.cfg['n_tones'] = self.N_TONES
+        self.cfg['has_gain'] = self.HAS_GAIN
+        self.cfg['has_phase'] = self.HAS_PHASE
 
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
@@ -409,20 +411,64 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         # Register update.
         self.update()
 
+    def set_phase(self, p, out):
+        """
+        Set phase register
+
+        :param p: phase (in range -1 to 1)
+        :type p: float
+        :param out: muxed channel to configure
+        :type out: int
+        """
+        if not self.HAS_PHASE:
+            raise RuntimeError("This generator doesn't support setting the phase.")
+        self.set_phase_int(np.round(p*(2**self.B_PHASE/360)) % 2**self.B_PHASE, out)
+
+    def set_phase_int(self, p_i, out):
+        if not self.HAS_PHASE:
+            raise RuntimeError("This generator doesn't support setting the phase.")
+        # Sanity checks.
+        if out not in range(self.N_TONES):
+            raise IndexError("Invalid output index for mux.")
+        setattr(self, "poff%d_reg" % (out), np.uint32(p_i))
+
+        # Register update.
+        self.update()
+
+    def set_all_int(self, tones):
+        """Set up a list of tones all at once, using raw (integer) units.
+        If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
+
+        Parameters
+        ----------
+        tones : list of tuple of int
+            Tones to configure.
+            The order of parameters for each tone is (freq, gain, phase).
+            Omit parameters not supported by this version of the generator.
+            All supported parameters must be defined.
+        """
+        if len(tones) > self.N_TONES:
+            raise RuntimeError("Too many tones defined for this mux generator.")
+        for i in range(self.N_TONES):
+            if i < len(tones):
+                tone = tones[i]
+                setattr(self,'pinc%d_reg'%(i), tone[0])
+                if self.HAS_GAIN:
+                    setattr(self,'gain%d_reg'%(i), tone[1])
+                if self.HAS_PHASE:
+                    setattr(self,'poff%d_reg'%(i), tone[2])
+            else:
+                # zero the gain of unused tones
+                if self.HAS_GAIN:
+                    setattr(self,'gain%d_reg'%(i), 0)
+        # Register update.
+        self.update()
+
 class AxisSgMux4V1(AbsPulsedSignalGen):
     """
     AxisSgMux4V1
 
-    AXIS Signal Generator with 4 muxed outputs V1 registers.
-
-    PINC0_REG : frequency of tone 0.
-    PINC1_REG : frequency of tone 1.
-    PINC2_REG : frequency of tone 2.
-    PINC3_REG : frequency of tone 3.
-
-    WE_REG
-    * 0 : disable writes.
-    * 1 : enable writes.
+    AXIS Signal Generator with 4 muxed outputs.
     """
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0']
     HAS_MIXER = True
@@ -507,5 +553,3 @@ class AxisConstantIQ(AbsSignalGen):
 
         # Register update.
         self.update()
-
-
