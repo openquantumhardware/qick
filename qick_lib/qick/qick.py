@@ -793,6 +793,20 @@ class QickSoc(Overlay, QickConfig):
             if phases is not None:
                 self.gens[ch].set_phase(phases[ii], out=ii)
 
+    def set_mux_tones(self, ch, tones):
+        """Set up a list of tones all at once, using raw (integer) units.
+        If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
+
+        Parameters
+        ----------
+        tones : list of tuple of int
+            Tones to configure.
+            The order of parameters for each tone is (freq, gain, phase).
+            Omit parameters not supported by this version of the generator.
+            All supported parameters must be defined.
+        """
+        self.gens[ch].set_tones_int(tones)
+
     def set_iq(self, ch, f, i, q):
         """
         Set frequency, I, and Q for a constant-IQ output.

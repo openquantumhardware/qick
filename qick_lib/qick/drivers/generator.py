@@ -360,82 +360,7 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         self.we_reg = 1
         self.we_reg = 0
 
-    def set_freq(self, f, out, ro_ch=0):
-        """
-        Set frequency register
-
-        :param f: frequency in MHz
-        :type f: float
-        :param out: muxed channel to configure
-        :type out: int
-        :param ro_ch: ADC channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
-        """
-        k_i = np.int64(self.soc.freq2reg(f, gen_ch=self.ch, ro_ch=ro_ch))
-        self.set_freq_int(k_i, out)
-
-    def set_freq_int(self, k_i, out):
-        if out not in range(self.N_TONES):
-            raise IndexError("Invalid output index for mux.")
-        setattr(self, "pinc%d_reg" % (out), np.uint32(k_i))
-
-        # Register update.
-        self.update()
-
-    def get_freq(self, out):
-        return getattr(self, "pinc%d_reg" % (out)) * self['f_dds'] / (2**self.B_DDS)
-
-    def set_gain(self, g, out):
-        """
-        Set gain register
-
-        :param g: gain (in range -1 to 1)
-        :type g: float
-        :param out: muxed channel to configure
-        :type out: int
-        """
-        if not self.HAS_GAIN:
-            raise RuntimeError("This generator doesn't support setting the gain.")
-        self.set_gain_int(np.round(g*self.MAXV), out)
-
-    def set_gain_int(self, g_i, out):
-        if not self.HAS_GAIN:
-            raise RuntimeError("This generator doesn't support setting the gain.")
-        # Sanity checks.
-        if out not in range(self.N_TONES):
-            raise IndexError("Invalid output index for mux.")
-        if np.abs(g_i)>self.MAXV:
-            raise RuntimeError("Requested gain exceeds max limit.")
-        setattr(self, "gain%d_reg" % (out), np.int16(g_i))
-
-        # Register update.
-        self.update()
-
-    def set_phase(self, p, out):
-        """
-        Set phase register
-
-        :param p: phase (in range -1 to 1)
-        :type p: float
-        :param out: muxed channel to configure
-        :type out: int
-        """
-        if not self.HAS_PHASE:
-            raise RuntimeError("This generator doesn't support setting the phase.")
-        self.set_phase_int(np.round(p*(2**self.B_PHASE/360)) % 2**self.B_PHASE, out)
-
-    def set_phase_int(self, p_i, out):
-        if not self.HAS_PHASE:
-            raise RuntimeError("This generator doesn't support setting the phase.")
-        # Sanity checks.
-        if out not in range(self.N_TONES):
-            raise IndexError("Invalid output index for mux.")
-        setattr(self, "poff%d_reg" % (out), np.uint32(p_i))
-
-        # Register update.
-        self.update()
-
-    def set_all_int(self, tones):
+    def set_tones_int(self, tones):
         """Set up a list of tones all at once, using raw (integer) units.
         If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
 
@@ -452,17 +377,22 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         for i in range(self.N_TONES):
             if i < len(tones):
                 tone = tones[i]
-                setattr(self,'pinc%d_reg'%(i), tone[0])
+                setattr(self,'pinc%d_reg'%(i), tone['freq_int'])
                 if self.HAS_GAIN:
-                    setattr(self,'gain%d_reg'%(i), tone[1])
+                    setattr(self,'gain%d_reg'%(i), tone['gain_int'])
                 if self.HAS_PHASE:
-                    setattr(self,'poff%d_reg'%(i), tone[2])
+                    setattr(self,'poff%d_reg'%(i), tone['phase_int'])
             else:
                 # zero the gain of unused tones
                 if self.HAS_GAIN:
                     setattr(self,'gain%d_reg'%(i), 0)
         # Register update.
         self.update()
+
+    def set_tones(self, freqs, gains=None, phases=None, ro_ch=None):
+        # TODO: docstring
+        tones = self.soc.calc_mux_regs(self.ch, freqs, gains, phases, ro_ch)
+        self.set_all_int(tones)
 
 class AxisSgMux4V1(AbsPulsedSignalGen):
     """

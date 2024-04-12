@@ -627,24 +627,19 @@ class QickConfig():
             raise RuntimeError("lengths of freqs and gains lists do not match")
         if phases is not None and len(phases) != len(freqs):
             raise RuntimeError("lengths of freqs and phases lists do not match")
-        if gencfg['has_gain'] and gains is None:
-            gains = [1.0] * len(freqs)
-        if gencfg['has_phase'] and phases is None:
-            phases = [0.0] * len(freqs)
         tones = []
         for i, freq in enumerate(freqs):
-            tone = []
-            tone.append(self.freq2reg(freq, gen_ch=gen_ch, ro_ch=ro_ch))
+            tone = {}
+            tone['freq_int'] = self.freq2reg(freq, gen_ch=gen_ch, ro_ch=ro_ch)
+            tone['freq_rounded'] = self.reg2freq(tone['freq_int'], gen_ch=gen_ch)
             if gencfg['has_gain']:
-                if gains is None:
-                    tone.append(1.0)
-                else:
-                    tone.append(int(np.round(gains[i] * gencfg['maxv'])))
+                gain = 1.0 if gains is None else gains[i]
+                tone['gain_int'] = int(np.round(gain * gencfg['maxv']))
+                tone['gain_rounded'] = tone['gain_int']/gencfg['maxv']
             if gencfg['has_phase']:
-                if phases is None:
-                    tone.append(1.0)
-                else:
-                    tone.append(self.deg2reg(phases[i], gen_ch=gen_ch))
+                phase = 0.0 if phases is None else phases[i]
+                tone['phase_int'] = self.deg2reg(phases[i], gen_ch=gen_ch)
+                tone['phase_rounded'] = self.reg2deg(tone['phase_int'], gen_ch=gen_ch)
             tones.append(tone)
         return tones
 
