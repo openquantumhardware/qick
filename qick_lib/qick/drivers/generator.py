@@ -364,11 +364,13 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         """Set up a list of tones all at once, using raw (integer) units.
         If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
 
+        This method isn't meant to be called directly. It is called by set_tones() or QickProgram.config_gens().
+
         Parameters
         ----------
-        tones : list of tuple of int
+        tones : list of dict
             Tones to configure.
-            The order of parameters for each tone is (freq, gain, phase).
+            The tone parameters are defined with keys freq_int, gain_int, phase_int.
             Omit parameters not supported by this version of the generator.
             All supported parameters must be defined.
         """
@@ -390,7 +392,23 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         self.update()
 
     def set_tones(self, freqs, gains=None, phases=None, ro_ch=None):
-        # TODO: docstring
+        """Set up a list of tones.
+
+        This method is not normally used, it's only for debugging and testing.
+        Normally the generator is configured based on parameters supplied in QickProgram.declare_gen().
+
+        Parameters
+        ----------
+        freqs : list of float
+            Tone frequencies for the muxed generator (in MHz).
+            Positive and negative values are allowed.
+        gains : list of float, optional
+            Tone amplitudes for the muxed generator (in range -1 to 1).
+        phases : list of float, optional
+            Phases for the muxed generator (in degrees).
+        ro_ch : int, optional
+            readout channel for frequency-matching
+        """
         tones = self.soc.calc_mux_regs(self.ch, freqs, gains, phases, ro_ch)
         self.set_all_int(tones)
 

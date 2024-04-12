@@ -921,8 +921,10 @@ class AbsQickProgram:
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
 
-        If this is a muxed generator, the mux_freqs and mux_gains lists must be long enough to define all the tones you will play.
+        If this is a muxed generator, the mux_freqs list must be long enough to define all the tones you will play.
         (in other words, if your mask list ever enables tone 2 you must define at least 3 freqs+gains)
+        If your mux gen supports gains and/or phases and you define them, those lists must be the same length.
+        If you don't define gains or phases, they will be set to defaults (max positive gain, zero phase).
 
         Parameters
         ----------
@@ -939,11 +941,10 @@ class AbsQickProgram:
         mux_gains : list of float, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
         mux_phases : list of float, optional
-            Phases for the muxed generator (in units of degrees).
+            Phases for the muxed generator (in degrees).
         ro_ch : int, optional
-            readout channel (use None if you don't want mixer and mux freqs to be rounded to a valid ADC frequency)
+            readout channel for frequency-matching mixer and mux freqs
         """
-        #TODO update docstring for mux?
         cfg = {
                 'nqz': nqz,
                 'mux_freqs': mux_freqs,
@@ -954,8 +955,11 @@ class AbsQickProgram:
         gencfg = self.soccfg['gens'][ch]
         if gencfg['has_mixer']:
             if mixer_freq is None:
-                raise RuntimeError("generator %d has a mixer, but no mixer_freq was defined" % (ch))
+                raise RuntimeError("generator %d has a digital mixer, but no mixer_freq was defined" % (ch))
             cfg['mixer_freq'] = self.soccfg.calc_mixer_freq(ch, mixer_freq, nqz, ro_ch)
+        else:
+            if mixer_freq is not None:
+                raise RuntimeError("generator %d doesn't have a digital mixer, but mixer_freq was defined" % (ch))
         if 'n_tones' in gencfg:
             if mux_freqs is None:
                 raise RuntimeError("generator %d is multiplexed, but no mux_freqs were defined" % (ch))
@@ -967,6 +971,8 @@ class AbsQickProgram:
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 raise RuntimeError("generator %d is not multiplexed, but mux parameters were defined" % (ch))
+        if ro_ch is not None and not gencfg['has_mixer'] and 'n_tones' not in gencfg:
+            logger.warning("ro_ch was defined for generator %d, but it's not multiplexed and doesn't have a mixer, so it will do nothing" % (ch))
 
         self.gen_chs[ch] = cfg
 
