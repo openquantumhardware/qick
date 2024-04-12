@@ -829,21 +829,11 @@ class MultiplexedGenManager(AbsGenManager):
         par_map = {'length': (0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))}
         lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
 
-        freqs = self.prog.gen_chs[self.ch].get('mux_freqs')
-        if freqs is None:
-            raise RuntimeError("mux_freqs not defined for mux gen")
-        gains = None
-        if self.chcfg['type'] in ['axis_sg_mux4_v2', 'axis_sg_mux4_v3']:
-            gains = self.prog.gen_chs[self.ch].get('mux_gains')
-            if gains is None:
-                raise RuntimeError("mux_gains not defined for mux gen")
-
+        tones = self.prog.gen_chs[self.ch]['mux_tones']
         maskreg = 0
         for maskch in par['mask']:
-            if maskch not in range(len(freqs)):
-                raise RuntimeError("mask includes tone %d, but only %d freqs are declared" % (maskch, len(freqs)))
-            if gains is not None and maskch not in range(len(gains)):
-                raise RuntimeError("mask includes tone %d, but only %d gains are declared" % (maskch, len(gains)))
+            if maskch not in range(len(tones)):
+                raise RuntimeError("mask includes tone %d, but only %d tones are declared" % (maskch, len(tones)))
             maskreg |= (1 << maskch)
         return [self.params2wave(lenreg=lenreg, maskreg=maskreg)], par_map
 
@@ -938,6 +928,7 @@ class QickProgramV2(AbsQickProgram):
                 'axis_sg_mux4_v1': MultiplexedGenManager,
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
+                'axis_sg_mux8_v1': MultiplexedGenManager,
                 }
 
     def __init__(self, soccfg):
@@ -1570,7 +1561,7 @@ class QickProgramV2(AbsQickProgram):
         """
         self.add_macro(Pulse(ch=ch, name=name, t=t))
 
-    def set_readoutconfig(self, ch, name, t=0):
+    def send_readoutconfig(self, ch, name, t=0):
         """Send a previously defined readout config to a readout.
 
         Parameters

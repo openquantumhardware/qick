@@ -491,7 +491,7 @@ class MultiplexedGenManager(AbsGenManager):
             val_mask = 0
             mask = params['mask']
             for maskch in mask:
-                if maskch not in range(4):
+                if maskch not in range(self.gencfg['n_tones']):
                     raise RuntimeError("invalid mask specification")
                 val_mask |= (1 << maskch)
             self.set_reg('phase', val_mask, f'mask = {mask}', defaults=defaults)
@@ -557,7 +557,8 @@ class QickProgram(AbsQickProgram):
                 'axis_sg_int4_v1': InterpolatedGenManager,
                 'axis_sg_mux4_v1': MultiplexedGenManager,
                 'axis_sg_mux4_v2': MultiplexedGenManager,
-                'axis_sg_mux4_v3': MultiplexedGenManager}
+                'axis_sg_mux4_v3': MultiplexedGenManager,
+                'axis_sg_mux8_v1': MultiplexedGenManager}
 
     def __init__(self, soccfg):
         """
