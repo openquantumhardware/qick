@@ -947,9 +947,6 @@ class AbsQickProgram:
         """
         cfg = {
                 'nqz': nqz,
-                'mux_freqs': mux_freqs,
-                'mux_gains': mux_gains,
-                'mux_phases': mux_phases,
                 'ro_ch': ro_ch
                 }
         gencfg = self.soccfg['gens'][ch]
@@ -959,18 +956,18 @@ class AbsQickProgram:
             cfg['mixer_freq'] = self.soccfg.calc_mixer_freq(ch, mixer_freq, nqz, ro_ch)
         else:
             if mixer_freq is not None:
-                raise RuntimeError("generator %d doesn't have a digital mixer, but mixer_freq was defined" % (ch))
+                logger.warning("generator %d doesn't have a digital mixer, but mixer_freq was defined" % (ch))
         if 'n_tones' in gencfg:
             if mux_freqs is None:
                 raise RuntimeError("generator %d is multiplexed, but no mux_freqs were defined" % (ch))
             if mux_gains is not None and not gencfg['has_gain']:
-                raise RuntimeError("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
+                logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
-                raise RuntimeError("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
+                logger.warning("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
             cfg['mux_tones'] = self.soccfg.calc_mux_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
-                raise RuntimeError("generator %d is not multiplexed, but mux parameters were defined" % (ch))
+                logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
         if ro_ch is not None and not gencfg['has_mixer'] and 'n_tones' not in gencfg:
             logger.warning("ro_ch was defined for generator %d, but it's not multiplexed and doesn't have a mixer, so it will do nothing" % (ch))
 
