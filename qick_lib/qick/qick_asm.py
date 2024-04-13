@@ -619,7 +619,7 @@ class QickConfig():
             cfg['setval'] = rounded_f
         return cfg
 
-    def calc_mux_regs(self, gen_ch, freqs, gains, phases, ro_ch):
+    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch):
         """Calculate the register values to program into a multiplexed generator.
         """
         gencfg = self['gens'][gen_ch]
@@ -643,7 +643,7 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_pfb_regs(self, ro_ch, freq, gen_ch, mixer_freq):
+    def calc_pfbro_regs(self, ro_ch, freq, gen_ch, mixer_freq):
         """Calculate the PFB settings to configure a readout chain.
 
         Parameters
@@ -950,7 +950,7 @@ class AbsQickProgram:
                         mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                     else:
                         mixer_freq = None
-                    cfg['pfb_config'] = self.soccfg.calc_pfb_regs(ch, cfg['freq'], cfg['gen_ch'], mixer_freq)
+                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(ch, cfg['freq'], cfg['gen_ch'], mixer_freq)
                 else:
                     soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
         # store PFB parameters in PFB list so we can check for collisions and configure the PFB
@@ -1030,7 +1030,7 @@ class AbsQickProgram:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
                 logger.warning("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
-            cfg['mux_tones'] = self.soccfg.calc_mux_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
