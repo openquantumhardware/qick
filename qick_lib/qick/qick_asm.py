@@ -643,6 +643,40 @@ class QickConfig():
             tones.append(tone)
         return tones
 
+    def calc_pfb_regs(self, ro_ch, chcfg_ro, gen_chs):
+        rocfg = self['readouts'][ro_ch]
+        freq = chcfg_ro['freq']
+        gen_ch = chcfg_ro['gen_ch']
+
+        pfb_reg = {}
+        pfb_reg['pfb_path'] = rocfg['ro_fullpath']
+        pfb_reg['userval'] = freq
+        pfb_reg['pfb_port'] = rocfg['pfb_port']
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            freq = self.roundfreq(freq, [self['gens'][gen_ch], rocfg])
+            mixercfg = gen_chs[gen_ch].get('mixer_freq')
+            if mixercfg is not None:
+                freq += mixercfg['rounded']
+        pfb_fstep = self.ch_fstep(rocfg)
+        # round to RO frequency (if gen_ch was defined this should be a no-op)
+        freq = np.round(freq/pfb_fstep) * pfb_fstep
+        pfb_reg['rounded'] = freq
+
+        nqz = int(freq // (rocfg['fs']/2)) + 1
+        if nqz % 2 == 0: # even Nyquist zone
+            freq *= -1
+
+        # the PFB channels are separated by half the DDS range
+        # round() gives you the single best channel
+        # floor() and ceil() would give you the 2 best channels
+        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
+        f_steps = int(np.round(freq/(rocfg['f_dds']/2)))
+        f_dds = freq - f_steps*(rocfg['f_dds']/2)
+        pfb_reg['fdds'] = f_dds
+        pfb_reg['pfb_ch'] = (rocfg['pfb_ch_offset'] + f_steps) % rocfg['pfb_nch']
+        pfb_reg['fdds_int'] = self.freq2int(f_dds, rocfg)
+        return pfb_reg
+
 class DummyIp:
     """Stores the configuration constants for a firmware IP block.
     """
@@ -892,9 +926,19 @@ class AbsQickProgram:
 
         """
         soc.init_readouts()
+        pfbs = defaultdict(list)
         for ch, cfg in self.ro_chs.items():
-            if 'tproc_ctrl' not in self.soccfg['readouts'][ch]:
-                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+            rocfg = self.soccfg['readouts'][ch]
+            if 'tproc_ctrl' not in rocfg:
+                if 'pfb_port' in rocfg:
+                    # if this is a muxed readout, compute the settings but don't write them yet
+                    pfbcfg = self.soccfg.calc_pfb_regs(ch, cfg, self.gen_chs)
+                    pfbs[pfbcfg['pfb_path']].append(pfbcfg)
+                else:
+                    soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+        # write the mux settings
+        for pfbpath, pfb_regs in pfbs.items():
+            soc.config_mux_readout(pfbpath, pfb_regs)
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
@@ -908,7 +952,6 @@ class AbsQickProgram:
             enable the accumulated (averaging) buffer
         enable_buf : bool
             enable the decimated (waveform) buffer
-
         """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
