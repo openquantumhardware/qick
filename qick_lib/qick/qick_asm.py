@@ -643,13 +643,15 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_pfbro_regs(self, ro_ch, freq, gen_ch, mixer_freq):
+    def calc_pfbro_regs(self, rocfg, pfb_port, freq, gen_ch, mixer_freq):
         """Calculate the PFB settings to configure a readout chain.
 
         Parameters
         ----------
-        ro_ch : int
-            readout channel (index in 'readouts' list)
+        rocfg : dict
+            firmware config dictionary for the PFB or the readout chain
+        pfb_port : int
+            index of the PFB output port
         freq : float
             downconversion frequency (MHz)
         gen_ch : int or None
@@ -663,11 +665,8 @@ class QickConfig():
         dict
             PFB settings for QickSoc.config_mux_readout()
         """
-        rocfg = self['readouts'][ro_ch]
-
         pfb_reg = {}
-        pfb_reg['pfb_path'] = rocfg['ro_fullpath']
-        pfb_reg['pfb_port'] = rocfg['pfb_port']
+        pfb_reg['pfb_port'] = pfb_port
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
             freq = self.roundfreq(freq, [self['gens'][gen_ch], rocfg])
             if mixer_freq is not None:
@@ -950,7 +949,8 @@ class AbsQickProgram:
                         mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                     else:
                         mixer_freq = None
-                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(ch, cfg['freq'], cfg['gen_ch'], mixer_freq)
+                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg['freq'], cfg['gen_ch'], mixer_freq)
+                    cfg['pfb_config']['pfb_path'] = rocfg['ro_fullpath']
                 else:
                     soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
         # store PFB parameters in PFB list so we can check for collisions and configure the PFB
