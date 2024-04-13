@@ -643,22 +643,37 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_pfb_regs(self, ro_ch, chcfg_ro, gen_chs):
+    def calc_pfb_regs(self, ro_ch, freq, gen_ch, mixer_freq):
+        """Calculate the PFB settings to configure a readout chain.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        freq : float
+            downconversion frequency (MHz)
+        gen_ch : int or None
+            generator channel (index in 'gens' list) for frequency-matching
+        mixer_freq : float or None
+            upconversion frequency of the specified generator's digital mixer (MHz)
+            assumed to be rounded to the mixer and readout frequency steps
+
+        Returns
+        -------
+        dict
+            PFB settings for QickSoc.config_mux_readout()
+        """
         rocfg = self['readouts'][ro_ch]
-        freq = chcfg_ro['freq']
-        gen_ch = chcfg_ro['gen_ch']
 
         pfb_reg = {}
         pfb_reg['pfb_path'] = rocfg['ro_fullpath']
-        pfb_reg['userval'] = freq
         pfb_reg['pfb_port'] = rocfg['pfb_port']
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
             freq = self.roundfreq(freq, [self['gens'][gen_ch], rocfg])
-            mixercfg = gen_chs[gen_ch].get('mixer_freq')
-            if mixercfg is not None:
-                freq += mixercfg['rounded']
+            if mixer_freq is not None:
+                freq += mixer_freq
         pfb_fstep = self.ch_fstep(rocfg)
-        # round to RO frequency (if gen_ch was defined this should be a no-op)
+        # round to RO frequency (if gen_ch was defined the frequency should already be rounded)
         freq = np.round(freq/pfb_fstep) * pfb_fstep
         pfb_reg['rounded'] = freq
 
@@ -897,6 +912,7 @@ class AbsQickProgram:
                 raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
             # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
             # and the sum buffer values are 32 bit signed
+            # TODO: check this math
             if length > 2**(31-15):
                 logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
             cfg = {
@@ -923,19 +939,26 @@ class AbsQickProgram:
         ----------
         soc : QickSoc
             the QickSoc that will execute this program
-
         """
         soc.init_readouts()
-        pfbs = defaultdict(list)
         for ch, cfg in self.ro_chs.items():
             rocfg = self.soccfg['readouts'][ch]
             if 'tproc_ctrl' not in rocfg:
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, compute the settings but don't write them yet
-                    pfbcfg = self.soccfg.calc_pfb_regs(ch, cfg, self.gen_chs)
-                    pfbs[pfbcfg['pfb_path']].append(pfbcfg)
+                    if cfg['gen_ch'] is not None and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
+                        mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
+                    else:
+                        mixer_freq = None
+                    cfg['pfb_config'] = self.soccfg.calc_pfb_regs(ch, cfg['freq'], cfg['gen_ch'], mixer_freq)
                 else:
                     soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+        # store PFB parameters in PFB list so we can check for collisions and configure the PFB
+        pfbs = defaultdict(list)
+        for ch, cfg in self.ro_chs.items():
+            if 'pfb_config' in cfg:
+                pfb_reg = cfg['pfb_config']
+                pfbs[pfb_reg['pfb_path']].append(pfb_reg)
         # write the mux settings
         for pfbpath, pfb_regs in pfbs.items():
             soc.config_mux_readout(pfbpath, pfb_regs)
@@ -1031,7 +1054,7 @@ class AbsQickProgram:
             if 'mixer_freq' in cfg:
                 soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if 'mux_tones' in cfg:
-                soc.set_mux_tones(ch, cfg['mux_tones'])
+                soc.config_mux_gen(ch, cfg['mux_tones'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the list of envelope waveforms available for this channel.
