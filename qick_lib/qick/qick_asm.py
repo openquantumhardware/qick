@@ -680,6 +680,10 @@ class QickConfig():
         if nqz % 2 == 0: # even Nyquist zone
             freq *= -1
 
+        # fold into 1st nyquist zone
+        freq %= rocfg['fs']
+        pfb_reg['folded'] = freq
+
         # the PFB channels are separated by half the DDS range
         # round() gives you the single best channel
         # floor() and ceil() would give you the 2 best channels
@@ -687,9 +691,63 @@ class QickConfig():
         f_steps = int(np.round(freq/(rocfg['f_dds']/2)))
         f_dds = freq - f_steps*(rocfg['f_dds']/2)
         pfb_reg['fdds'] = f_dds
+        pfb_reg['pfb_lo'] = (f_steps-0.5) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_hi'] = (f_steps+0.5) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_center'] = f_steps * (rocfg['f_dds']/2)
+        pfb_reg['pfb_lolo'] = max(f_steps-1, 0) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_hihi'] = min(f_steps+1, rocfg['pfb_nch']) * (rocfg['f_dds']/2)
         pfb_reg['pfb_ch'] = (rocfg['pfb_ch_offset'] + f_steps) % rocfg['pfb_nch']
         pfb_reg['fdds_int'] = self.freq2int(f_dds, rocfg)
         return pfb_reg
+
+    def check_pfb_collisions(self, rocfg, cfg1, cfgs):
+        """Check whether the specified PFB config collides or interefers with any others.
+        If this PFB block can't put two readouts on the same channel, this method will raise an error on collisions.
+        Possible crosstalk will be identified in warnings.
+
+        Parameters
+        ----------
+        rocfg : dict
+            firmware config dictionary for the PFB or the readout chain
+        cfg1 : dict
+            PFB config to check
+        cfgs : list of dict
+            PFB configs to check cfg1 against
+        """
+        for cfg2 in cfgs:
+            if cfg2['rounded'] == cfg1['rounded']:
+                # it's fine to set two PFB outputs to identical frequencies
+                continue
+            if cfg2['pfb_ch'] == cfg1['pfb_ch']:
+                p = {k:[x[k] for x in [cfg1, cfg2]] for k in ['rounded', 'folded']}
+                message = []
+                message.append('Two tones on same PFB channel:')
+                message.append("You have readouts at frequencies %.3f and %.3f MHz."% (cfg1['rounded'], cfg2['rounded']))
+                message.append("(after rounding and accounting for the generator's digital mixer, if applicable).")
+                message.append("Both map to the same PFB channel. In terms of the ADC's first Nyquist zone:")
+                message.append("The tone frequencies are %.3f and %.3f MHz, and"% (cfg1['folded'], cfg2['folded']))
+                message.append("the PFB channel range is [%.3f, %.3f] MHz."% (cfg1['pfb_lo'], cfg2['pfb_hi']))
+                if rocfg['pfb_dds_on_output']:
+                    message.append("This is allowed, but you should expect significant crosstalk if you play one tone while reading out the other.")
+                    logger.warning('\n'.join(message))
+                else:
+                    message.append("The PFB used in your firmware does not allow reading out two tones on the same channel.")
+                    raise RuntimeError('\n'.join(message))
+            else:
+                # no collision, but we must check if either tone is in the overlap region of the other tone's channel
+                if np.abs(cfg2['folded'] - cfg1['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg1['rounded'], cfg2['rounded']))
+                    #source = cfg2
+                    #victim = cfg1
+                    #message = []
+                    #message.append("Possible PFB crosstalk:")
+                    #message.append("You have declared a readout at %s MHz, or %s MHz after Nyquist folding."% (victim['rounded'], victim['folded']))
+                    #message.append("The PFB channel for this tone is sensitive over [%f, %f] MHz."% (victim['pfb_lolo'], victim['pfb_hihi']))
+                    #message.append("You have declared another readout at %s MHz, or %s MHz after Nyquist folding."% (source['rounded'], source['folded']))
+                    #message.append("The readout at %s MHz may see some crosstalk from the tone at %s MHz." % (victim['rounded'], source['rounded']))
+                    #logger.warning('\n'.join(message))
+                if np.abs(cfg1['folded'] - cfg2['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg2['rounded'], cfg1['rounded']))
 
 class DummyIp:
     """Stores the configuration constants for a firmware IP block.
@@ -958,6 +1016,8 @@ class AbsQickProgram:
         for ch, cfg in self.ro_chs.items():
             if 'pfb_config' in cfg:
                 pfb_reg = cfg['pfb_config']
+                rocfg = self.soccfg['readouts'][ch]
+                self.soccfg.check_pfb_collisions(rocfg, pfb_reg, pfbs[pfb_reg['pfb_path']])
                 pfbs[pfb_reg['pfb_path']].append(pfb_reg)
         # write the mux settings
         for pfbpath, pfb_regs in pfbs.items():
