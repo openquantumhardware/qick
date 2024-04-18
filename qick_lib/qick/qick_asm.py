@@ -678,7 +678,7 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_pfbro_regs(self, rocfg, pfb_port, ro_chcfg, mixer_freq):
+    def calc_pfbro_regs(self, rocfg, pfb_port, ro_pars, mixer_freq):
         """Calculate the PFB settings to configure a readout chain.
 
         Parameters
@@ -687,12 +687,8 @@ class QickConfig():
             firmware config dictionary for the PFB or the readout chain
         pfb_port : int
             index of the PFB output port
-        freq : float
-            downconversion frequency (MHz)
-        sel : str
-            output selection ('product', 'input', 'dds')
-        gen_ch : int or None
-            generator channel (index in 'gens' list) for frequency-matching
+        ro_pars : dict
+            readout parameters, from declare_readout()
         mixer_freq : float or None
             upconversion frequency of the specified generator's digital mixer (MHz)
             assumed to be rounded to the mixer and readout frequency steps
@@ -702,18 +698,16 @@ class QickConfig():
         dict
             PFB settings for QickSoc.config_mux_readout()
         """
-        freq = ro_chcfg['freq']
-        phase = ro_chcfg['phase']
-        sel = ro_chcfg['sel']
-        gen_ch = ro_chcfg['gen_ch']
+        gen_ch = ro_pars['gen_ch']
         pfb_reg = {}
         pfb_reg['pfb_port'] = pfb_port
+        pfb_reg['sel'] = ro_pars['sel']
         # calculate phase register
-        pfb_reg['phase_int'] = self.deg2int(phase, rocfg)
+        pfb_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
 
         # now do frequency stuff
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            freq = self.roundfreq(freq, [self['gens'][gen_ch], rocfg])
+            freq = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
             if mixer_freq is not None:
                 freq += mixer_freq
         pfb_fstep = self.ch_fstep(rocfg)
@@ -1074,7 +1068,10 @@ class AbsQickProgram:
                 pfbs[pfb_reg['pfb_path']].append(pfb_reg)
         # write the mux settings
         for pfbpath, pfb_regs in pfbs.items():
-            soc.config_mux_readout(pfbpath, pfb_regs)
+            sels = [x['sel'] for x in pfb_regs]
+            if len(set(sels)) != 1:
+                raise RuntimeError("all declared readouts on a muxed readout must have the same 'sel' setting, you have %s" % (sels))
+            soc.config_mux_readout(pfbpath, sels[0], pfb_regs)
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
