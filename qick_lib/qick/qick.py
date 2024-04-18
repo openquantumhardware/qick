@@ -655,33 +655,19 @@ class QickSoc(Overlay, QickConfig):
         # we remove the padding here
         return data[2:length+2]
 
-    def init_readouts(self):
-        """
-        Initialize readouts, in preparation for configuring them.
-        """
-        for readout in self.readouts:
-            # if this is a tProc-controlled readout, we don't initialize it here
-            if not isinstance(readout, AxisReadoutV3):
-                readout.initialize()
-
-    def configure_readout(self, ch, output, frequency, gen_ch=0):
+    def configure_readout(self, ch, ro_regs):
         """Configure readout channel output style and frequency.
-        This method is only for use with PYNQ-controlled readouts.
-        :param ch: Channel to configure
-        :type ch: int
-        :param output: output type from 'product', 'dds', 'input'
-        :type output: str
-        :param frequency: frequency
-        :type frequency: float
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
+        This method is only for use with PYNQ-configured readouts.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel number (index in 'readouts' list)
+        ro_regs : dict
+            readout registers, from QickConfig.calc_ro_regs()
         """
         buf = self.avg_bufs[ch]
-        buf.readout.set_out(sel=output)
-        buf.set_freq(frequency, gen_ch=gen_ch)
-        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
-        # this has only really been seen with setting the V2 (standard) readout to a downconversion freq of 0.
-        buf.readout.update()
+        buf.readout.set_all_int(ro_regs)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer

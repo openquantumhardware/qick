@@ -30,12 +30,6 @@ class AbsReadout(DummyIp):
         self.cfg['iq_offset'] = self.IQ_OFFSET
         self.cfg['has_outsel'] = self.HAS_OUTSEL
 
-    def initialize(self):
-        """
-        Reset the readout configuration.
-        """
-        pass
-
     def update(self):
         """
         Push the register values to the readout logic.
@@ -121,52 +115,35 @@ class AxisReadoutV2(SocIp, AbsReadout):
         self.we_reg = 1
         self.we_reg = 0
 
-    def set_out(self, sel="product"):
+    def set_all_int(self, regs):
+        """Set all readout parameters using a dictionary computed by QickCOnfig.calc_ro_regs().
         """
-        Select readout signal output
-
-        :param sel: select mux control
-        :type sel: int
-        """
-        self.outsel_reg = {"product": 0, "dds": 1, "input": 2}[sel]
-
-        # Register update.
+        self.outsel_reg = {"product": 0, "dds": 1, "input": 2}[regs['sel']]
+        self.freq_reg = regs['freq_int'] % 2**self.B_DDS
+        self.phase_reg = regs['phase_int'] % 2**self.B_PHASE
+        self.nsamp_reg = 10
+        self.mode_reg = 1
+        self.update()
+        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
+        # this has only really been seen with setting a downconversion freq of 0.
         self.update()
 
-    def set_freq(self, f, gen_ch=0):
-        """
-        Set frequency register
+    def set_all(self, f, sel='product', gen_ch=None, phase=0):
+        """Set up the readout directly.
 
-        :param f: frequency in MHz (before adding any DAC mixer frequency)
-        :type f: float
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
+        This method is not normally used, it's only for debugging and testing.
+        Normally the PFB is configured based on parameters supplied in QickProgram.declare_readout().
         """
-        # calculate the exact frequency we expect to see
-        ro_freq = f
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
+        mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
-        ro_freq = ro_freq % self['f_dds']
-        # we can calculate the register value without further referencing the gen_ch
-        f_int = self.soc.freq2int(ro_freq, self.cfg)
-        self.set_freq_int(f_int)
-
-    def set_freq_int(self, f_int):
-        """
-        Set frequency register (integer version)
-
-        :param f_int: frequency value register
-        :type f_int: int
-        """
-        self.freq_reg = np.int64(f_int)
-
-        # Register update.
-        self.update()
-
-    def get_freq(self):
-        return self.freq_reg * self.fs / (2**self.B_DDS)
+            mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
+        ro_pars = {'freq': f,
+                'phase': phase,
+                'sel': sel,
+                'gen_ch': gen_ch
+                }
+        cfg = self.soc.calc_ro_regs(self.cfg, ro_pars, mixer_freq)
+        self.set_all_int(cfg)
 
 class AbsPFBReadout(SocIp, AbsReadout):
     # Bits of DDS.
@@ -214,7 +191,7 @@ class AbsPFBReadout(SocIp, AbsReadout):
         self.cfg['f_dds'] /= self.DOWNSAMPLING
         self.cfg['fdds_div'] *= self.DOWNSAMPLING
 
-    def set_freq(self, f, out_ch, sel='product', gen_ch=0, phase=0):
+    def set_freq(self, f, out_ch, sel='product', gen_ch=None, phase=0):
         """Set up a single PFB output.
 
         This method is not normally used, it's only for debugging and testing.
@@ -223,12 +200,12 @@ class AbsPFBReadout(SocIp, AbsReadout):
         mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        ro_chcfg = {'freq': f,
+        ro_pars = {'freq': f,
                 'phase': phase,
                 'sel': sel,
                 'gen_ch': gen_ch
                 }
-        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, ro_chcfg, mixer_freq)
+        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, ro_pars, mixer_freq)
         self.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
 
 class AxisPFBReadoutV2(AbsPFBReadout):
