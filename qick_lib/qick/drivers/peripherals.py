@@ -5,6 +5,174 @@ from pynq.buffer import allocate
 import numpy as np
 from qick import SocIp
 
+class Axis_QICK_time_tagger(SocIp):
+    """
+    """
+    bindto = ['Fermi:user:qick_time_tagger:1.0']
+
+    REGISTERS = {
+        'qtt_ctrl'     :0 ,
+        'qtt_cfg'      :1 ,
+        'qtt_addr'     :2 ,
+        'qtt_len'      :3 ,
+        'axi_dt1'      :4 ,
+        'axi_dt2'      :5 ,
+        'axi_dt3'      :6 ,
+        'axi_dt4'      :7 ,
+        'tag_dt'       :9 ,
+        'proc_qty'     :10,
+        'dma_qty'      :11,
+        'thr_inh'      :12,
+        'qtt_status'   :14,
+        'qtt_debug'    :15,
+    }
+    dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+
+        # Parameters
+        self.cfg['mem_size'] = pow( 2, int(description['parameters']['TAG_FIFO_AW']) )
+        
+        for param in ['dma_rd', 'proc_rd', 'cmp_slope','cmp_inter', 'smp_store']:
+            self.cfg[param] = int(description['parameters'][param.upper()])
+        self.cfg['debug']  = int(description['parameters']['DEBUG'])
+
+        # Initial Values 
+        self.qtt_ctrl = 0
+        self.qtt_cfg  = 0
+        self.qtt_addr = 0
+        self.qtt_len  = 1
+        self.axi_dt1  = 0
+        self.axi_dt2  = 0
+        self.axi_dt3  = 0
+        self.axi_dt4  = 0
+
+    # Configure this driver with links to its memory and DMA.
+    def configure(self, axi_dma):
+        # dma
+        self.dma = axi_dma
+        mem_len = self['mem_size']
+        self.buff_rd = allocate(shape=(mem_len, 1), dtype=np.int32)
+    def __str__(self):
+        lines = []
+        lines.append('---------------------------------------------')
+        lines.append(' QICK Time Tagger INFO ')
+        lines.append('---------------------------------------------')
+        lines.append("Configuration:")
+        for param in ['mem_size', 'dma_rd', 'proc_rd', 'cmp_slope','cmp_inter', 'smp_store']:
+            lines.append("%-14s: %d" % (param, self.cfg[param]) )
+        lines.append("----------\n")
+
+        
+        return "\n".join(lines)
+                                                                                                           
+    def info(self):
+        print(self)
+
+    def disarm(self):
+        self.qtt_cfg     = 0
+        self.qtt_ctrl    = 1
+    def arm(self,cfg_filter, cfg_slope, cfg_inter):
+        self.qtt_cfg     = 1 + cfg_filter*8 + cfg_slope*16 + cfg_inter*32
+        self.qtt_ctrl    = 1
+    def pop_dt(self,value):
+        self.qtt_cfg     = 2
+        self.qtt_ctrl    = 1
+    def set_threshold(self,value):
+        self.axi_dt1     = value
+        self.qtt_cfg     = 4
+        self.qtt_ctrl    = 1
+    def set_dead_time(self,value):
+        self.axi_dt1     = value
+        self.qtt_cfg     = 5
+        self.qtt_ctrl    = 1
+    def reset(self,value):
+        self.qtt_cfg     = 7
+        self.qtt_ctrl    = 1
+
+        
+    def read_mem(self,length=-1):
+        """
+        Read Time Tagger memory using DMA
+
+        Parameters
+        ----------
+        length : int
+            Number of words to read
+            -1 Read ALL memory.
+            
+        """
+        if (length == -1):
+            data_len = self.dma_qty
+        else:
+            data_len = length
+        if (data_len==0):
+            return 0
+        else:
+            self.qtt_len     = data_len
+            self.qtt_ctrl    = 4
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(data_len*4))
+            self.dma.recvchannel.wait()
+            # truncate, copy, convert PynqBuffer to ndarray
+            return np.array(self.buff_rd[:data_len], copy=True)
+
+    def print_axi_regs(self):
+        print('---------------------------------------------')
+        print('--- AXI Registers')
+        for xreg in self.REGISTERS.keys():
+            print(f'{xreg:>15}', getattr(self, xreg))
+
+    def print_debug(self):
+        print('---------------------------------------------')
+        print('--- AXI Time Tagger DEBUG')
+        status_num = self.qtt_status
+        status_bin = '{:032b}'.format(status_num)
+        trig_st      = int(status_bin[24:32], 2) 
+        dma_st       = int(status_bin[22:24], 2) 
+        print( ' ST_TRIG  : ' + str(trig_st) )
+        print( ' ST_DMA   : ' + str(dma_st) )
+        debug_num = self.qtt_debug
+        debug_bin = '{:032b}'.format(debug_num)
+        dma_st  = int(debug_bin[0:1], 2) 
+        len_cnt      = int(debug_bin[10:16], 2) 
+        frd_cnt      = int(debug_bin[6:10], 2) 
+        vld_cnt      = int(debug_bin[2:6], 2) 
+        print( ' -- FIFO --' )
+        print( ' DMA_FULL   : ' + str(debug_bin[31])  )
+        print( ' DMA_EMPTY  : ' + str(debug_bin[30])  )
+        print( ' PROC_FULL  : ' + str(debug_bin[29])  )
+        print( ' PROC_EMPTY : ' + str(debug_bin[28])  )
+        print( ' -- DMA --' )
+        print( ' DMA_ST     : ' + str(dma_st) + ' - ' + self.dma_st_list[dma_st])
+        print( ' DMA_REQ    : ' + str(debug_bin[25])  )
+        print( ' DMA_ACK    : ' + str(debug_bin[24])  )
+        print( ' POP_REQ    : ' + str(debug_bin[23])  )
+        print( ' POP_ACK    : ' + str(debug_bin[22])  )
+        print( ' FIFO_RD  : ' + str(debug_bin[21])  )
+        print( ' DT_TX    : ' + str(debug_bin[20]) )
+        print( ' DT_W     : ' + str(debug_bin[19])  )
+        print( ' DT_VLD   : ' + str(debug_bin[18]) )
+        print( ' DT_BF    : ' + str(debug_bin[17]) )
+        print( ' LP_CNT_EN: ' + str(debug_bin[16]) )
+        print( ' LEN_CNT    : ' + str(len_cnt) )
+        print( ' FIFO_RD_CNT: ' + str(frd_cnt) )
+        print( ' VLD_CNT    : ' + str(vld_cnt) )
+        th_num = self.thr_inh
+        th_bin = '{:032b}'.format(th_num)
+        thr          = int(th_bin[16:32], 2) 
+        inh          = int(th_bin[8:16], 2) 
+        cmd_cnt      = int(th_bin[0:8], 2) 
+        print( ' THRESHOLD  : ' + str(thr) )
+        print( ' INHIBIT    : ' + str(inh) )
+        print( ' CMD_CNT    : ' + str(cmd_cnt) )
+
+            
+
+            
 class Axis_QICK_Net(SocIp):
     """
     Axis_QICK_Proc class
