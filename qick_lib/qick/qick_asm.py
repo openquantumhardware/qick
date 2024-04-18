@@ -125,9 +125,9 @@ class QickConfig():
             adc = self['adcs'][adcname]
             buflen = readout['buf_maxlen']/readout['f_output']
             if 'tproc_ctrl' in readout:
-                lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
+                lines.append("\t%d:\t%s - configured by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
-                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+                lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                          (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
@@ -678,6 +678,44 @@ class QickConfig():
             tones.append(tone)
         return tones
 
+    def calc_ro_regs(self, rocfg, ro_pars, mixer_freq):
+        """Calculate the settings to configure a readout.
+
+        Parameters
+        ----------
+        rocfg : dict
+            firmware config dictionary for the readout chain
+        ro_pars : dict
+            readout parameters, from declare_readout()
+        mixer_freq : float or None
+            upconversion frequency of the specified generator's digital mixer (MHz)
+            assumed to be rounded to the mixer and readout frequency steps
+
+        Returns
+        -------
+        dict
+            settings for QickSoc.config_readout()
+        """
+        gen_ch = ro_pars['gen_ch']
+
+        ro_reg = {}
+        ro_reg['sel'] = ro_pars['sel']
+
+        # calculate phase register
+        ro_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
+        ro_reg['phase_rounded'] = self.int2deg(ro_reg['phase_int'], rocfg)
+
+        # now do frequency stuff
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
+            if mixer_freq is not None:
+                ro_reg['freq_rounded'] += mixer_freq
+        else:
+            # round to RO frequency
+            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
+        ro_reg['freq_int'] = self.freq2int(ro_reg['freq_rounded'], rocfg)
+        return ro_reg
+
     def calc_pfbro_regs(self, rocfg, pfb_port, ro_pars, mixer_freq):
         """Calculate the PFB settings to configure a readout chain.
 
@@ -710,9 +748,9 @@ class QickConfig():
             freq = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
             if mixer_freq is not None:
                 freq += mixer_freq
-        pfb_fstep = self.ch_fstep(rocfg)
-        # round to RO frequency (if gen_ch was defined the frequency should already be rounded)
-        freq = np.round(freq/pfb_fstep) * pfb_fstep
+        else:
+            # round to RO frequency (if gen_ch was defined the frequency should already be rounded)
+            freq = self.roundfreq(ro_pars['freq'], [rocfg])
         pfb_reg['rounded'] = freq
 
         nqz = int(freq // (rocfg['fs']/2)) + 1
@@ -1027,7 +1065,7 @@ class AbsQickProgram:
                 raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
             cfg['phase'] = phase
             if freq is None:
-                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
+                raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
         else: # readout is controlled by tProc
@@ -1044,20 +1082,22 @@ class AbsQickProgram:
         soc : QickSoc
             the QickSoc that will execute this program
         """
-        soc.init_readouts()
+        # because readout freqs need to account for mixer freqs, we can only compute readout registers here, after we know all gens have been declared
         for ch, cfg in self.ro_chs.items():
             rocfg = self.soccfg['readouts'][ch]
             if 'tproc_ctrl' not in rocfg:
+                if cfg['gen_ch'] is not None and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
+                    mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
+                else:
+                    mixer_freq = None
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, compute the settings but don't write them yet
-                    if cfg['gen_ch'] is not None and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
-                        mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
-                    else:
-                        mixer_freq = None
                     cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg, mixer_freq)
                     cfg['pfb_config']['pfb_path'] = rocfg['ro_fullpath']
                 else:
-                    soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+                    # if this is a standard readout, save the settings and write them to the readout
+                    cfg['ro_config'] = self.soccfg.calc_ro_regs(rocfg, cfg, mixer_freq)
+                    soc.configure_readout(ch, cfg['ro_config'])
         # store PFB parameters in PFB list so we can check for collisions and configure the PFB
         pfbs = defaultdict(list)
         for ch, cfg in self.ro_chs.items():
@@ -1071,7 +1111,7 @@ class AbsQickProgram:
             sels = [x['sel'] for x in pfb_regs]
             if len(set(sels)) != 1:
                 raise RuntimeError("all declared readouts on a muxed readout must have the same 'sel' setting, you have %s" % (sels))
-            soc.config_mux_readout(pfbpath, sels[0], pfb_regs)
+            soc.config_mux_readout(pfbpath, pfb_regs, sels[0])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
