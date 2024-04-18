@@ -17,9 +17,7 @@ class AbsReadout(DummyIp):
     def configure(self, rf):
         self.rf = rf
         # Sampling frequency.
-        #self.fs = fs
         self.cfg['adc'] = self.adc
-        self.cfg['b_dds'] = self.B_DDS
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
             self.cfg[p] = self.rf.adccfg[self['adc']][p]
@@ -27,7 +25,10 @@ class AbsReadout(DummyIp):
         self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']
         self.cfg['f_output'] = self['fs']/(self['decimation']*self.DOWNSAMPLING)
+
+        self.cfg['b_dds'] = self.B_DDS
         self.cfg['iq_offset'] = self.IQ_OFFSET
+        self.cfg['has_outsel'] = self.HAS_OUTSEL
 
     def initialize(self):
         """
@@ -82,6 +83,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
 
     # this readout is not controlled by the tProc.
     tproc_ch = None
+
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
 
     def __init__(self, description):
         """
@@ -210,7 +214,7 @@ class AbsPFBReadout(SocIp, AbsReadout):
         self.cfg['f_dds'] /= self.DOWNSAMPLING
         self.cfg['fdds_div'] *= self.DOWNSAMPLING
 
-    def set_freq(self, f, out_ch, gen_ch=0):
+    def set_freq(self, f, out_ch, sel='product', gen_ch=0, phase=0):
         """Set up a single PFB output.
 
         This method is not normally used, it's only for debugging and testing.
@@ -219,8 +223,13 @@ class AbsPFBReadout(SocIp, AbsReadout):
         mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, f, gen_ch, mixer_freq)
-        self.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'])
+        ro_chcfg = {'freq': f,
+                'phase': phase,
+                'sel': sel,
+                'gen_ch': gen_ch
+                }
+        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, ro_chcfg, mixer_freq)
+        self.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
 
 class AxisPFBReadoutV2(AbsPFBReadout):
     """
@@ -270,21 +279,6 @@ class AxisPFBReadoutV2(AbsPFBReadout):
     # Output mode selection is supported.
     HAS_OUTSEL = True
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-        self.initialize()
-
-    def initialize(self):
-        """
-        Set up local variables to track definitions of frequencies or readout modes.
-        """
-        self.ch_freqs = {}
-        self.sel = None
-        self.out_chs = {}
-
     def set_out(self, sel="product"):
         """
         Select readout signal output
@@ -292,24 +286,16 @@ class AxisPFBReadoutV2(AbsPFBReadout):
         :param sel: select mux control
         :type sel: int
         """
-        # TODO: add outsel back in
-        if self.sel is not None and sel != self.sel:
-            raise RuntimeError("trying to set output mode to %s, but mode was previously set to %s"%(sel, self.sel))
-        self.sel = sel
         self.outsel_reg = {"product": 0, "input": 1, "dds": 2}[sel]
 
-    def set_freq_int(self, f_int, in_ch, out_ch):
-        if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            # we are already using this PFB channel, and it's set to a different frequency
-            # now do a bunch of math to print an informative message
-            centerfreq = ((in_ch - self.CH_OFFSET) % 8) * (self['f_dds']/2)
-            lofreq = centerfreq - self['f_dds']/4
-            hifreq = centerfreq + self['f_dds']/4
-            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], self.cfg)
-            newfreq = centerfreq + self.soc.int2freq(f_int, self.cfg)
-            raise RuntimeError("frequency collision: tried to set PFB output %d to %f MHz and output %d to %f MHz, but both map to the PFB channel that is optimal for [%f, %f] (all freqs expressed in first Nyquist zone)"%(out_ch, newfreq, self.out_chs[in_ch], oldfreq, lofreq, hifreq))
-        self.ch_freqs[in_ch] = f_int
-        self.out_chs[in_ch] = out_ch
+    def set_freq_int(self, f_int, in_ch, out_ch, phase_int):
+        # it's assumed that channel collisions have already been checked in config_readouts()
+        # we don't check here, so a collision will break the previously set channel
+
+        # phase_int is ignored
+        if phase_int != 0:
+            raise RuntimeError("this muxed readout does not support setting the phase")
+
         # wire the selected PFB channel to the output
         setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
         # set the PFB channel's DDS frequency
@@ -342,18 +328,6 @@ class AxisPFBReadoutV3(AbsPFBReadout):
     PHASE[0-3]_REG  : 32-bit phase of each output channel.
     """
     bindto = ['user.org:user:axis_pfb_readout_v3:1.0']
-    REGISTERS = {   'id0_reg'   : 0,
-                    'id1_reg'   : 1,
-                    'id2_reg'   : 2,
-                    'id3_reg'   : 3,
-                    'freq0_reg' : 4,
-                    'phase0_reg': 5,
-                    'freq1_reg' : 6,
-                    'phase1_reg': 7,
-                    'freq2_reg' : 8,
-                    'phase2_reg': 9,
-                    'freq3_reg' : 10,
-                    'phase3_reg': 11}
 
     # Bits of DDS. 
     B_PHASE = 32
@@ -374,93 +348,54 @@ class AxisPFBReadoutV3(AbsPFBReadout):
         """
         Constructor method
         """
+
+        # define the register map
+        iReg = 0
+        for i in range(self.NOUT): self.REGISTERS['id%d_reg'%(i)] = i + iReg
+        iReg += self.NOUT
+        for i in range(self.NOUT):
+            self.REGISTERS['freq%d_reg'%(i)] = i + iReg
+            self.REGISTERS['phase%d_reg'%(i)] = i + iReg
+
         # Generics.
         self.NCH = int(description['parameters']['N'])
 
         super().__init__(description)
 
-        self.initialize()
-
-    def set_freq_int(self, f_int, pfb_ch, out_ch):
+    def set_freq_int(self, f_int, pfb_ch, out_ch, phase_int):
         # There are 4 outputs. Any PFB channel can be assigned to any output.
         # No need to check for collisions are they are all truly independent.
 
         # Check pfb channel is within allowed range.
-        if (0 <= pfb_ch < self.NCH):
-            # Compute packet and index fields from pfb channel.
-            packet = int(pfb_ch/self.L_PFB)
-            index  = int(pfb_ch % self.L_PFB)
-            id_val = (index <<8) + packet
+        if pfb_ch not in range(self.NCH):
+            raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(pfb_ch, self.NCH-1))
+        # Check output channel is within allowed range.
+        if out_ch not in range(self.NOUT):
+            raise RuntimeError("Invalid %d output channel. It must be within [0, %d]"%(out_ch, self.NOUT-1))
 
-            # Check output channel is within allowed range.
-            if (0 <= out_ch < self.NOUT):
-                # Set id.
-                setattr(self, "id%d_reg"%(out_ch), id_val)
+        # Compute packet and index fields from pfb channel.
+        packet = int(pfb_ch/self.L_PFB)
+        index  = int(pfb_ch % self.L_PFB)
+        id_val = (index <<8) + packet
 
-                # Set frequency.
-                setattr(self, "freq%d_reg"%(out_ch), f_int)
+        # Set id.
+        setattr(self, "id%d_reg"%(out_ch), id_val)
 
-                # TODO: set phase.
-                setattr(self, "phase%d_reg"%(out_ch), 0)
+        # Set frequency.
+        setattr(self, "freq%d_reg"%(out_ch), f_int)
 
-                #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
-            
-            else:
-                raise RuntimeError("Invalid %d output channel. It must be within [0, %d]"%(out_ch, self.N-1))
-        else:
-            raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(self.pfb_ch, self.N-1))
+        # Set phase.
+        setattr(self, "phase%d_reg"%(out_ch), phase_int)
+
+        #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
 
 class AxisPFBReadoutV4(AxisPFBReadoutV3):
     """
     AxisPFBReadoutV4 class.
 
-    This readout block contains a polyphase filter bank with 64 channels.
-    Channel i mixes the input signal down by a fixed frequency f = i * fs/64,
-    then by a programmable DDS with a range of +/- fs/32.
-
-    The PFB channels can be freely mapped to the 8 outputs of the readout block.
-
-    DDS blocks are Phase-Coherent. The same PFB channel can be sent to multiple outputs.
-
-    For channel selection, channels are streamed out the PFB using TDM, with L=8 parallel
-    channels each clock. The number of packets is N/L = 64/8 = 8. The IDx_REG should be 
-    mapped as follows:
-    
-    * IDx_REG   : lower 8 bits are the "packet" field, from 0 .. 7 (N/L).
-                : upper 8 bits are the "index" field, from 0 .. 7 (L-1). 
-
-    There are 8 IDx_REG, one per selectable output.
-
-    Registers.
-    ID[0-7]_REG     : 16-bit channel selection.
-    FREQ[0-7]_REG   : 32-bit frequency of each output channel.
-    PHASE[0-7]_REG  : 32-bit phase of each output channel.
+    This is identical to AxisPFBReadoutV3, but with 8 outputs instead of 4.
     """
     bindto = ['user.org:user:axis_pfb_readout_v4:1.0']
-    REGISTERS = {   'id0_reg'   : 0,
-                    'id1_reg'   : 1,
-                    'id2_reg'   : 2,
-                    'id3_reg'   : 3,
-                    'id4_reg'   : 4,
-                    'id5_reg'   : 5,
-                    'id6_reg'   : 6,
-                    'id7_reg'   : 7,
-                    'freq0_reg' : 8,
-                    'phase0_reg': 9,
-                    'freq1_reg' : 10,
-                    'phase1_reg': 11,
-                    'freq2_reg' : 12,
-                    'phase2_reg': 13,
-                    'freq3_reg' : 14,
-                    'phase3_reg': 15,
-                    'freq4_reg' : 16,
-                    'phase4_reg': 17,
-                    'freq5_reg' : 18,
-                    'phase5_reg': 19,
-                    'freq6_reg' : 20,
-                    'phase6_reg': 21,
-                    'freq7_reg' : 22,
-                    'phase7_reg': 23}
 
     # Number of outputs.
     NOUT = 8
@@ -478,6 +413,9 @@ class AxisReadoutV3(AbsReadout):
     DOWNSAMPLING = 4
 
     IQ_OFFSET = -0.5
+
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
