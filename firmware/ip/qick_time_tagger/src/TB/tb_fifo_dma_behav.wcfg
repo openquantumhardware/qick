@@ -11,165 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="520.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="642.201 ns"></ZoomEndTime>
-      <Cursor1Time time="642.000 ns"></Cursor1Time>
+      <ZoomStartTime time="457.200 ns"></ZoomStartTime>
+      <ZoomEndTime time="638.001 ns"></ZoomEndTime>
+      <Cursor1Time time="558.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="209"></NameColumnWidth>
+      <NameColumnWidth column_width="205"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="41" />
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/do_dma">
-      <obj_property name="ElementShortName">do_dma</obj_property>
-      <obj_property name="ObjectShortName">do_dma</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/do_rd">
-      <obj_property name="ElementShortName">do_rd</obj_property>
-      <obj_property name="ObjectShortName">do_rd</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/do_push">
-      <obj_property name="ElementShortName">do_push</obj_property>
-      <obj_property name="ObjectShortName">do_push</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/do_rd_r">
-      <obj_property name="ElementShortName">do_rd_r</obj_property>
-      <obj_property name="ObjectShortName">do_rd_r</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/do_dma_r">
-      <obj_property name="ElementShortName">do_dma_r</obj_property>
-      <obj_property name="ObjectShortName">do_dma_r</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/rd_do_push">
-      <obj_property name="ElementShortName">rd_do_push</obj_property>
-      <obj_property name="ObjectShortName">rd_do_push</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/rd_ptr">
-      <obj_property name="ElementShortName">rd_ptr[15:0]</obj_property>
-      <obj_property name="ObjectShortName">rd_ptr[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/wr_ptr">
-      <obj_property name="ElementShortName">wr_ptr[15:0]</obj_property>
-      <obj_property name="ObjectShortName">wr_ptr[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/rd_qty">
-      <obj_property name="ElementShortName">rd_qty[15:0]</obj_property>
-      <obj_property name="ObjectShortName">rd_qty[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/dma_qty">
-      <obj_property name="ElementShortName">dma_qty[15:0]</obj_property>
-      <obj_property name="ObjectShortName">dma_qty[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/rd_qty_o">
-      <obj_property name="ElementShortName">rd_qty_o[20:0]</obj_property>
-      <obj_property name="ObjectShortName">rd_qty_o[20:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/dma_qty_o">
-      <obj_property name="ElementShortName">dma_qty_o[20:0]</obj_property>
-      <obj_property name="ObjectShortName">dma_qty_o[20:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/rd_pop_o">
-      <obj_property name="ElementShortName">rd_pop_o</obj_property>
-      <obj_property name="ObjectShortName">rd_pop_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma/dma_pop_o">
-      <obj_property name="ElementShortName">dma_pop_o</obj_property>
-      <obj_property name="ObjectShortName">dma_pop_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma/dt_o">
-      <obj_property name="ElementShortName">dt_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">dt_o[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/FIFO_DC/async_full_o">
-      <obj_property name="ElementShortName">async_full_o</obj_property>
-      <obj_property name="ObjectShortName">async_full_o</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/push_empty">
-      <obj_property name="ElementShortName">push_empty</obj_property>
-      <obj_property name="ObjectShortName">push_empty</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/do_push">
-      <obj_property name="ElementShortName">do_push</obj_property>
-      <obj_property name="ObjectShortName">do_push</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/do_dma_pop">
-      <obj_property name="ElementShortName">do_dma_pop</obj_property>
-      <obj_property name="ObjectShortName">do_dma_pop</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/do_proc_pop">
-      <obj_property name="ElementShortName">do_proc_pop</obj_property>
-      <obj_property name="ObjectShortName">do_proc_pop</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/do_proc_pop_r">
-      <obj_property name="ElementShortName">do_proc_pop_r</obj_property>
-      <obj_property name="ObjectShortName">do_proc_pop_r</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/do_dma_pop_r">
-      <obj_property name="ElementShortName">do_dma_pop_r</obj_property>
-      <obj_property name="ObjectShortName">do_dma_pop_r</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/rd_proc_ptr">
-      <obj_property name="ElementShortName">rd_proc_ptr[15:0]</obj_property>
-      <obj_property name="ObjectShortName">rd_proc_ptr[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/rd_dma_ptr">
-      <obj_property name="ElementShortName">rd_dma_ptr[15:0]</obj_property>
-      <obj_property name="ObjectShortName">rd_dma_ptr[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/dma_qty">
-      <obj_property name="ElementShortName">dma_qty[15:0]</obj_property>
-      <obj_property name="ObjectShortName">dma_qty[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/proc_qty">
-      <obj_property name="ElementShortName">proc_qty[15:0]</obj_property>
-      <obj_property name="ObjectShortName">proc_qty[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/proc_qty_o">
-      <obj_property name="ElementShortName">proc_qty_o[20:0]</obj_property>
-      <obj_property name="ObjectShortName">proc_qty_o[20:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/dma_qty_o">
-      <obj_property name="ElementShortName">dma_qty_o[20:0]</obj_property>
-      <obj_property name="ObjectShortName">dma_qty_o[20:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/proc_pop_o">
-      <obj_property name="ElementShortName">proc_pop_o</obj_property>
-      <obj_property name="ObjectShortName">proc_pop_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_fifo_dma/fifo_dc_dma_2/dma_pop_o">
-      <obj_property name="ElementShortName">dma_pop_o</obj_property>
-      <obj_property name="ObjectShortName">dma_pop_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_fifo_dma/fifo_dc_dma_2/dt_o">
-      <obj_property name="ElementShortName">dt_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">dt_o[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
+   <WVObjectSize size="19" />
    <wvobject type="logic" fp_name="/tb_fifo_dma/tag_mem/adc_push_i">
       <obj_property name="ElementShortName">adc_push_i</obj_property>
       <obj_property name="ObjectShortName">adc_push_i</obj_property>
@@ -230,5 +80,52 @@
       <obj_property name="CustomSignalColor">#D2691E</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_fifo_dma/dma_fifo_rd/m_axis_tready_i">
+      <obj_property name="ElementShortName">m_axis_tready_i</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tready_i</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_fifo_dma/dma_fifo_rd/m_axis_tdata_o">
+      <obj_property name="ElementShortName">m_axis_tdata_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tdata_o[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_fifo_dma/dma_fifo_rd/m_axis_tvalid_o">
+      <obj_property name="ElementShortName">m_axis_tvalid_o</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tvalid_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_fifo_dma/dma_fifo_rd/m_axis_tlast_o">
+      <obj_property name="ElementShortName">m_axis_tlast_o</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tlast_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_fifo_dma/dma_fifo_rd/dma_rd_st">
+      <obj_property name="ElementShortName">dma_rd_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dma_rd_st[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_fifo_dma/dma_fifo_rd/len_cnt">
+      <obj_property name="ElementShortName">len_cnt[15:0]</obj_property>
+      <obj_property name="ObjectShortName">len_cnt[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_fifo_dma/dma_fifo_rd/len_cnt_en">
+      <obj_property name="ElementShortName">len_cnt_en</obj_property>
+      <obj_property name="ObjectShortName">len_cnt_en</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_fifo_dma/dma_fifo_rd/lp_cnt">
+      <obj_property name="ElementShortName">lp_cnt[3:0]</obj_property>
+      <obj_property name="ObjectShortName">lp_cnt[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_fifo_dma/dma_fifo_rd/lp_cnt_en">
+      <obj_property name="ElementShortName">lp_cnt_en</obj_property>
+      <obj_property name="ObjectShortName">lp_cnt_en</obj_property>
    </wvobject>
 </wave_config>

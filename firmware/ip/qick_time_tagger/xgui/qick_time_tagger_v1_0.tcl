@@ -24,7 +24,7 @@ proc init_gui { IPINST } {
 
   #Adding Group
   set Debug [ipgui::add_group $IPINST -name "Debug" -parent ${Page_0}]
-  ipgui::add_param $IPINST -name "DEBUG" -parent ${Debug} -widget checkBox
+  ipgui::add_param $IPINST -name "DEBUG" -parent ${Debug} -widget comboBox
 
 
 

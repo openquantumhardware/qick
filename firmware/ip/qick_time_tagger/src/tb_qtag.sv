@@ -9,20 +9,20 @@
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
-`define T_C_CLK         3 // 1.66 // Half Clock Period for Simulation
-`define T_ADC_CLK       3 // 1.66 // Half Clock Period for Simulation
-`define T_PS_CLK        3  // Half Clock Period for Simulation
+`define T_C_CLK         2 // 1.66 // Half Clock Period for Simulation
+`define T_ADC_CLK       1 // 1.66 // Half Clock Period for Simulation
+`define T_PS_CLK        10  // Half Clock Period for Simulation
 
 `define DMA_RD        1 
 `define PROC_RD       1 
 `define CMP_SLOPE     1 
-`define CMP_INTER     1 
+`define CMP_INTER     4 
 `define SMP_DW        16 
 `define SMP_CK        8  
 `define TAG_FIFO_AW   10 
 `define SMP_STORE     0  
 `define SMP_FIFO_AW   10 
-`define DEBUG         1  
+`define DEBUG         2  
    
 
 module tb_qick_time_tagger();
@@ -81,6 +81,32 @@ initial begin
   forever # (`T_PS_CLK) ps_clk = ~ps_clk;
 end
 
+reg pulse_f;
+reg dma_m_axis_tready_i;
+
+
+always @ (posedge ps_clk, negedge rst_ni) begin
+   if ( !rst_ni  )       
+      dma_m_axis_tready_i = 1'b1;
+   else  
+      if ( dma_m_axis_tvalid_o) begin 
+         #0.5;
+         dma_m_axis_tready_i = 0;
+         #100;
+      end else begin
+         #0.5;         
+         dma_m_axis_tready_i = 1'b1;
+      end 
+end
+
+always_ff @ (posedge adc_clk, negedge rst_ni) begin
+   if ( !rst_ni  )       pulse_f   <= 1'b0;
+   else  
+      if ( pulse_f2 | rdy_a) pulse_f <= 1'b1; 
+      if ( pulse_f ) pulse_f <= 1'b0; 
+end
+
+
 reg         qtag_en_i ;
 reg [4 :0]  qtag_op_i ;
 reg [31:0]  qtag_dt1_i, qtag_dt2_i, qtag_dt3_i, qtag_dt4_i ;
@@ -105,6 +131,24 @@ parameter QTT_STATUS   = 14* 4 ;
 parameter QTT_DEBUG    = 15* 4 ;
 
 
+
+pulse_cdc pulse_f2s (
+   .clk_a_i   ( adc_clk ) ,
+   .rst_a_ni  ( rst_ni ) ,
+   .pulse_a_i ( pulse_f ) ,
+   .rdy_a_o   ( rdy_a ) ,
+   .clk_b_i   ( ps_clk ) ,
+   .rst_b_ni  ( rst_ni ) ,
+   .pulse_b_o ( pulse_slow ) );
+
+pulse_cdc pulse_s2f (
+   .clk_a_i   ( ps_clk ) ,
+   .rst_a_ni  ( rst_ni ) ,
+   .pulse_a_i ( pulse_slow ) ,
+   .rdy_a_o   (  ) ,
+   .clk_b_i   ( adc_clk ) ,
+   .rst_b_ni  ( rst_ni ) ,
+   .pulse_b_o ( pulse_f2 ) );
 //////////////////////////////////////////////////////////////////////////
 //  AXI AGENT
 axi_mst_0 axi_mst_0_i (
@@ -242,12 +286,12 @@ thr_cmp CMP_3 (
    .trig_time_adc_o    ( time_adc_s3 ) ,
    .trig_time_int_o    ( time_int_s3 ) ,
    .trig_vld_o    ( time_vld_s3 ) );
-reg dma_m_axis_tready_i;
 
 assign adc_s_axis_tvalid_i = 1'b1;
 assign adc_s_axis_tdata_i  = adc_dt;
 
 integer INTER, rand_mult;
+reg p_start;
 
 initial begin
    rand_mult = 0;
@@ -273,6 +317,7 @@ initial begin
    WRITE_AXI( QTT_CTRL ,  1);
    end
 
+//Micro POP
     qtag_en_i     = 1;   
     qtag_op_i     = 2;   
    @ (posedge c_clk); #0.1;
@@ -280,8 +325,28 @@ initial begin
     qtag_op_i     = 2;   
 
    @ (posedge c_clk); #0.1;
-   WRITE_AXI( QTT_LEN  ,  4);
+   WRITE_AXI( QTT_LEN  ,  10);
    WRITE_AXI( QTT_CTRL ,  4); // TAG READ
+   #5000;
+   @ (posedge c_clk); #0.1;
+   WRITE_AXI( QTT_LEN  ,  10);
+   WRITE_AXI( QTT_CTRL ,  4); // TAG READ
+
+//DMA POP
+   WRITE_AXI( QTT_CFG ,  2); // POP
+   WRITE_AXI( QTT_CTRL ,  1);
+//DMA POP
+   WRITE_AXI( QTT_CFG ,  2); // POP
+   WRITE_AXI( QTT_CTRL ,  1);
+//DMA POP
+   WRITE_AXI( QTT_CFG ,  2); // POP
+   WRITE_AXI( QTT_CTRL ,  1);
+
+   WRITE_AXI( QTT_CFG ,  1); // ARM
+   WRITE_AXI( QTT_CTRL ,  1);
+
+   WRITE_AXI( QTT_CFG ,  7); // RESET
+   WRITE_AXI( QTT_CTRL ,  1);
 
 end
 
@@ -300,10 +365,16 @@ task START_SIMULATION (); begin
     qtag_dt2_i    = 0;   
     qtag_dt3_i    = 0;   
     qtag_dt4_i    = 0; 
+    p_start   = 0;
     adc_dt = 0;
-    dma_m_axis_tready_i = 1'b1;
+
    @ (posedge ps_clk); #0.1;
    rst_ni            = 1'b1;
+   @ (posedge adc_clk); #0.1;
+    p_start   = 1;
+   @ (posedge adc_clk); #0.1;
+    p_start   = 0;
+
    end
 endtask
 
@@ -345,6 +416,8 @@ task TEST_CMD (); begin
    WRITE_AXI( AXI_DT1 ,  123); 
    WRITE_AXI( QTT_CTRL ,  2); // CMD
 
+   WRITE_AXI( QTT_ADDR ,  3);
+   WRITE_AXI( QTT_LEN  ,  10);
    WRITE_AXI( QTT_CTRL ,  4); // TAG READ
    WRITE_AXI( QTT_CTRL ,  8); // SMP READ
 end

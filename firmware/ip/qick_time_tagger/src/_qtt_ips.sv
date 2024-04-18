@@ -54,8 +54,8 @@ module priority_encoder # (
    input  wire                clk_i          ,
    input  wire                rst_ni         ,
    input  wire [2**DW-1:0]    one_hot_dt_i   , 
-   output wire [DW-1:0]       bin_dt_o       , 
-   output  wire               vld_o          );
+   output reg [DW-1:0]       bin_dt_o       , 
+   output  reg               vld_o          );
 
 localparam ONE_HOT_DW =    2**DW;
 
@@ -73,8 +73,18 @@ always_comb begin
    end
 end
 
-assign vld_o    = valid;
-assign bin_dt_o = bin_dt;
+always_ff @(posedge clk_i, negedge rst_ni) begin
+   if    ( !rst_ni   )  begin
+      vld_o        <= 0;
+      bin_dt_o     <= 0;
+   end else begin
+      vld_o        <= valid;
+      bin_dt_o     <= bin_dt;
+   end
+end
+
+//assign vld_o    = valid;
+//assign bin_dt_o = bin_dt;
    
 endmodule
 
@@ -306,11 +316,12 @@ always_ff @ (posedge clk_i) begin
       ind_bit     <= 0;
       q_temp      <= 0 ;
       r_temp      <= 0 ;
+      inB         <= 0 ;
    end else if (div_start) begin
       ind_bit     <= cfg_inter_i;
       q_temp      <= 0 ;
       r_temp      <= ( (thr_i - prev_i)  << cfg_inter_i);
-      inB         <= (curr_i - prev_i);
+      inB         <= ( curr_i - prev_i );
    end else if (working) begin
       ind_bit            <= ind_bit_m1;
       r_temp             <= r_temp_nxt   ;

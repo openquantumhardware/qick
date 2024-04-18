@@ -31,10 +31,11 @@ end
 initial begin
    ready = 1'b0;
    forever begin
-      //#(1)
-      #(16)
+      #(1)
+      //#(16)
       //#(24)
       //#(34)
+      //#(37)
       @ (posedge rd_clk_i); #0.4;
       ready = ~ready;
    end
@@ -74,7 +75,7 @@ FIFO_SC_DMA # (
 
 reg push_i, rd_pop_i, dma_pop_i;
 reg flush_i;
-
+/*
 FIFO_DC_DMA # (
    .DMA_BLOCK ( 1 ) , 
    .RD_BLOCK ( 1 ) , 
@@ -122,7 +123,7 @@ FIFO_DC_DMA_2 # (
    .dma_empty_o   (   ) , 
    .dt_o          ( ) , 
    .full_o        (   ) );
-
+*/
 TAG_FIFO_TC # (
    .DMA_BLOCK ( 1 ) , 
    .RD_BLOCK  ( 1 ) , 
@@ -142,11 +143,11 @@ TAG_FIFO_TC # (
    .c_pop_o    (   ) , 
    .c_qty_o    (   ) , 
    .c_empty_o  (   ) , 
-   .dma_pop_i     ( fifo_pop_o   ) , 
-   .dma_pop_o     (    ) , 
+   .dma_pop_i     ( dma_pop_i   ) , 
+   .dma_pop_o     ( dma_pop_o   ) , 
    .dma_qty_o     (   ) , 
    .dma_empty_o   (   ) , 
-   .dt_o          (   ) , 
+   .dt_o          ( fifo_dt_o  ) , 
    .full_o        (   ) );
       
 wire [DW-1:0] fifo_dt_o;
@@ -163,8 +164,8 @@ dma_fifo_rd # (
    .dma_req_i        ( dma_req_i        ) ,
    .dma_ack_o        ( dma_ack_o        ) ,
    .dma_len_i        ( dma_len_i        ) ,
-   .fifo_pop_o       ( fifo_pop_o       ) ,
-   .fifo_pop_i       ( fifo_pop_i       ) ,
+   .fifo_pop_o       ( dma_pop_i       ) ,
+   .fifo_pop_i       ( dma_pop_o       ) ,
    .fifo_dt_i        ( fifo_dt_o        ) ,
    .m_axis_tready_i  ( ready  ) ,
    .m_axis_tdata_o   ( m_axis_tdata_o   ) ,

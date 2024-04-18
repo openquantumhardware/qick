@@ -45,9 +45,9 @@ wire [ 6:0] time_inter_s;
 
 reg [28:0] trig_time_ck_r;
 reg [2:0] trig_time_adc_r;
-reg [6:0] trig_time_inter_r;
+reg [CMP_INTER-1:0] trig_time_inter_r;
 
-wire[6:0] thr_inter_smp;
+wire[CMP_INTER-1:0] thr_inter_smp;
 wire x_inter_end;
 
 // TYPE
@@ -142,7 +142,7 @@ assign time_inter_s =  cfg_inter_i              ? thr_inter_smp : 0        ;
 assign trigger_cmp = en_i & trigger_cmp_s ;
 
 priority_encoder  # (
-   .DW  (SMP_CK)
+   .DW  (3)
 ) p_enc (
    .clk_i         ( clk_i     ) ,
    .rst_ni        ( rst_ni    ) ,
@@ -151,10 +151,10 @@ priority_encoder  # (
    .vld_o         ( trigger_cmp_s ) );
 
 generate
-   if (CMP_INTER ==1 )  begin: INTER
+   if (CMP_INTER > 0 )  begin: INTER
       x_inter #(
          .DW  ( SMP_DW ) ,
-         .IW  ( 7 )
+         .IW  ( CMP_INTER )
       ) x_inter (
          .clk_i      ( clk_i                 ) ,
          .rst_ni     ( rst_ni                ) ,
@@ -171,11 +171,11 @@ generate
          assign thr_inter_smp = 7'b0;
       end
 endgenerate
-
+localparam zfp = 6-CMP_INTER;
 assign  trig_inter_end_o = x_inter_end;
 assign  trig_time_ck_o   = trig_time_ck_r; 
 assign  trig_time_adc_o  = trig_time_adc_r; 
-assign  trig_time_int_o  = trig_time_inter_r; 
+assign  trig_time_int_o  = {{ zfp {1'b0}}, trig_time_inter_r}; 
 assign  trig_vld_o       = trigger_cmp_s; 
 
 endmodule

@@ -24,7 +24,9 @@ module dma_fifo_rd # (
    input    wire                 m_axis_tready_i   ,
    output   wire  [DMA_DW-1:0]   m_axis_tdata_o    ,
    output   wire                 m_axis_tvalid_o   ,
-   output   wire                 m_axis_tlast_o    );
+   output   wire                 m_axis_tlast_o    ,
+   output   wire  [7:0]          dma_do            
+   );
 
 ///// Signals
 ///////////////////////////////////////////////////////////////////////////////
@@ -45,7 +47,7 @@ assign last_rd_addr  =  len_cnt_last & m_axis_tvalid_o ;
 ///// DMA STATE
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum { ST_IDLE, ST_TXING, ST_LAST, ST_END } TYPE_DMA_RD_ST;
-(* fsm_encoding = "one_hot" *) TYPE_DMA_RD_ST dma_rd_st;
+(* fsm_encoding = "sequential" *) TYPE_DMA_RD_ST dma_rd_st;
 TYPE_DMA_RD_ST dma_rd_st_nxt;
 
 always_ff @ (posedge clk_i, negedge rst_ni) begin
@@ -127,11 +129,30 @@ always_ff @ (posedge clk_i, negedge rst_ni) begin
    end
 end
 
+// OUT REG
+reg  [DMA_DW-1:0] m_axis_tdata_r ;
+reg         m_axis_tvalid_r, m_axis_tlast_r  ;
+always_ff @ (posedge clk_i, negedge rst_ni) begin
+   if ( !rst_ni ) begin
+      m_axis_tvalid_r  <= 0;
+      m_axis_tdata_r   <= 0;
+      m_axis_tlast_r   <= 0;
+   end else begin
+      m_axis_tvalid_r  <= dt_tx & (dt_w | dt_vld) & m_axis_tready_i ;
+      m_axis_tdata_r   <= dt_w ? dt_r : fifo_dt_i    ;
+      m_axis_tlast_r   <= dt_last & m_axis_tvalid_o;
+   end
+end
 // Assign outputs.
+assign  dma_do[7:4] = len_cnt[3:0];
+assign  dma_do[3:2] = {dma_rd_ack, dma_req_i} ;
+assign  dma_do[1:0] = dma_rd_st[1:0];
+
+
 assign fifo_pop_o       = fifo_rd & m_axis_tready_i ;
-assign m_axis_tvalid_o  = dt_tx & (dt_w | dt_vld) & m_axis_tready_i ;
-assign m_axis_tdata_o   = dt_w ? dt_r : fifo_dt_i    ;
-assign m_axis_tlast_o   = dt_last & m_axis_tvalid_o;
+assign m_axis_tvalid_o  = m_axis_tvalid_r;
+assign m_axis_tdata_o   = m_axis_tdata_r;
+assign m_axis_tlast_o   = m_axis_tlast_r;
 assign dma_ack_o        = dma_rd_ack   ;
 endmodule
 

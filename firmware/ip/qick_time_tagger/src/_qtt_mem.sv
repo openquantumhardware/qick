@@ -6,7 +6,6 @@
 //  Versión        : 2
 ///////////////////////////////////////////////////////////////////////////////
 
-
 ///////////////////////////////////////////////////////////////////////////////
 module dma_fifo_rd # (
    parameter   MEM_AW      = 16  ,  // Memory Address Width
@@ -18,13 +17,16 @@ module dma_fifo_rd # (
    input    wire                 dma_req_i         ,
    output   wire                 dma_ack_o         ,
    input    wire  [MEM_AW-1:0]   dma_len_i         ,
-   output   wire                 fifo_pop_o        ,
-   input    wire                 fifo_pop_i        ,
+   output   wire                 pop_req_o , //fifo_pop_o        ,
+   input    wire                 pop_ack_i , //fifo_pop_i        ,
    input    wire  [MEM_DW-1:0]   fifo_dt_i         ,
    input    wire                 m_axis_tready_i   ,
    output   wire  [DMA_DW-1:0]   m_axis_tdata_o    ,
    output   wire                 m_axis_tvalid_o   ,
-   output   wire                 m_axis_tlast_o    );
+   output   wire                 m_axis_tlast_o    ,
+   output   wire  [15:0]         dma_do            ,
+   output   wire  [25:0]         dma_reg_do            
+   );
 
 ///// Signals
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,14 +40,13 @@ reg dt_last ; // Last Data of Stream
 reg dt_tx   ; // Transmitting Data
 reg dt_w    ; // Data Buffered is is waiting for rdy
 
-assign len_cnt_en    = ( dt_vld | dt_w) & m_axis_tready_i ; //fifo_pop_i & !len_cnt_last;
 assign len_cnt_last  = (len_cnt_p1 == dma_len_i)  ;
 assign last_rd_addr  =  len_cnt_last & m_axis_tvalid_o ;
 
 ///// DMA STATE
 ///////////////////////////////////////////////////////////////////////////////
-typedef enum { ST_IDLE, ST_TXING, ST_LAST, ST_END } TYPE_DMA_RD_ST;
-(* fsm_encoding = "one_hot" *) TYPE_DMA_RD_ST dma_rd_st;
+typedef enum { ST_IDLE, ST_TXING, ST_PRE_LAST, ST_LAST, ST_END } TYPE_DMA_RD_ST;
+(* fsm_encoding = "sequential" *) TYPE_DMA_RD_ST dma_rd_st;
 TYPE_DMA_RD_ST dma_rd_st_nxt;
 
 always_ff @ (posedge clk_i, negedge rst_ni) begin
@@ -70,24 +71,25 @@ always_comb begin
          if (dma_req_i) dma_rd_st_nxt = ST_TXING;
       end
       ST_TXING : begin
-         fifo_rd  = 1'b1;
+         dt_bf    = pop_ack_i & !m_axis_tready_i ;
+         fifo_rd  = ~dt_bf; // Read From FIFO if no data is waiting for READY
          dt_tx    = 1'b1;
-         dt_bf    = fifo_pop_i & !m_axis_tready_i ;
-         dt_vld   = fifo_pop_i ;
-         if (len_cnt_last & len_cnt_en) 
+         dt_vld   = pop_ack_i ;
+         //if (len_cnt_last & len_cnt_en)
+         if (len_cnt_last & m_axis_tvalid_o) 
             dma_rd_st_nxt = ST_LAST;
       end
       ST_LAST : begin
-         lp_cnt_en = 1'b1;
-         fifo_rd = &lp_cnt;
-         dt_bf    = fifo_pop_i & !m_axis_tready_i ;
-         dt_vld   = fifo_pop_i ;
+         lp_cnt_en     = m_axis_tready_i;
+         fifo_rd  = &lp_cnt; //Read from FIFO, every 8 READY (IN CASE TPROC has read )
+         dt_bf    = pop_ack_i & !m_axis_tready_i ;
+         dt_vld   = pop_ack_i ;
          dt_last  = 1'b1;
          dt_tx    = 1'b1;
-         if ( m_axis_tvalid_o ) dma_rd_st_nxt = ST_END;
+         if ( m_axis_tvalid_o & m_axis_tready_i) dma_rd_st_nxt = ST_END;
       end
       ST_END : begin
-         if (!dma_req_i)   dma_rd_st_nxt = ST_IDLE;
+         if (!dma_req_i & m_axis_tready_i)   dma_rd_st_nxt = ST_IDLE;
       end
    endcase
 end
@@ -96,9 +98,15 @@ end
 assign len_cnt_p1 = len_cnt + 1'b1;
 
 always_ff @ (posedge clk_i, negedge rst_ni) begin
-   if      ( !rst_ni     ) len_cnt  <= 1;
-   else if ( len_cnt_rst ) len_cnt  <= 1;
-   else if ( len_cnt_en  ) len_cnt  <= len_cnt_p1;
+   if      ( !rst_ni     ) 
+      len_cnt  <= 0;
+   else begin 
+      if ( len_cnt_rst ) 
+         len_cnt  <= 1;
+      //else if ( len_cnt_en  ) 
+      else if ( m_axis_tvalid_o  )
+         len_cnt  <= len_cnt_p1;
+   end
 end
 
 // Last Pulse Count
@@ -127,12 +135,48 @@ always_ff @ (posedge clk_i, negedge rst_ni) begin
    end
 end
 
+
 // Assign outputs.
-assign fifo_pop_o       = fifo_rd & m_axis_tready_i ;
+reg [3:0] cnt_fifo_rd, cnt_vld;
+
+always_ff @ (posedge clk_i, negedge rst_ni) begin
+   if ( !rst_ni ) begin
+      cnt_fifo_rd   <= 0;
+      cnt_vld       <= 0;
+   end else begin
+      if      ( dt_vld  )           cnt_fifo_rd <= cnt_fifo_rd + 1'b1; 
+      else if ( m_axis_tvalid_o )   cnt_vld     <= cnt_vld + 1'b1; 
+   end
+end
+
+// ILA Debug 16 Bits  
+assign  dma_do[0]  = dma_req_i  ;
+assign  dma_do[1]  = dma_rd_ack ;
+assign  dma_do[2]  = pop_req_o  ;
+assign  dma_do[3]  = pop_ack_i  ;
+assign  dma_do[4]  = fifo_rd    ;
+assign  dma_do[5]  = dt_tx      ;
+assign  dma_do[6]  = dt_w       ;
+assign  dma_do[7]  = dt_vld     ;
+assign  dma_do[8]  = dt_bf      ;
+assign  dma_do[9]  = lp_cnt_en  ;
+assign  dma_do[11:10]  = len_cnt[1:0];
+assign  dma_do[13:12]  = cnt_fifo_rd[1:0];
+assign  dma_do[15:14]  = cnt_vld[1:0];
+
+// Register Debug 24 Bits
+assign  dma_reg_do[9:0]    = dma_do[9:0];
+assign  dma_reg_do[15:10]  = len_cnt[5:0];
+assign  dma_reg_do[19:16]  = cnt_fifo_rd;
+assign  dma_reg_do[23:20]  = cnt_vld ;
+assign  dma_reg_do[25:24]  = dma_rd_st[1:0] ;
+
+assign pop_req_o       = fifo_rd & m_axis_tready_i ;
 assign m_axis_tvalid_o  = dt_tx & (dt_w | dt_vld) & m_axis_tready_i ;
 assign m_axis_tdata_o   = dt_w ? dt_r : fifo_dt_i    ;
-assign m_axis_tlast_o   = dt_last & m_axis_tvalid_o;
+assign m_axis_tlast_o   = dt_last & m_axis_tvalid_o;;
 assign dma_ack_o        = dma_rd_ack   ;
+
 endmodule
 
 
@@ -319,6 +363,8 @@ always_ff @(posedge wr_clk_i, negedge wr_rst_ni) begin
    if (!wr_rst_ni) begin
       clr_fifo_req <= 0 ;
       clr_fifo_ack <= 0 ;
+      clr_rd_rdc <= 0 ;
+      clr_rd_r <= 0 ;
    end else begin
       clr_rd_rdc      <= clr_rd;
       clr_rd_r        <= clr_rd_rdc;
@@ -433,7 +479,7 @@ module TAG_FIFO_TC # (
    parameter DMA_BLOCK = 1 , 
    parameter RD_BLOCK  = 0 , 
    parameter FIFO_DW   = 32 , 
-   parameter FIFO_AW   = 20 
+   parameter FIFO_AW   = 10 
 ) ( 
    input  wire                   adc_clk_i   ,
    input  wire                   adc_rst_ni  ,
@@ -447,14 +493,15 @@ module TAG_FIFO_TC # (
    input  wire [FIFO_DW - 1:0]   adc_data_i  ,
    input  wire                   c_pop_i     ,
    output wire                   c_pop_o     ,
-   output wire [20:0]            c_qty_o     ,
+   output wire [FIFO_AW-1:0]     c_qty_o     ,
    output wire                   c_empty_o   ,
    input  wire                   dma_pop_i   ,
    output wire                   dma_pop_o   ,
-   output wire [20:0]            dma_qty_o   ,
+   output wire [FIFO_AW-1:0]     dma_qty_o   ,
    output wire                   dma_empty_o ,
    output wire [FIFO_DW - 1:0]   dt_o        ,
-   output wire                   full_o      );
+   output wire                   full_o      ,
+   output wire [15:0]            debug_do    );
 
 
 // The WRITE_POINTER is on the Last Empty Value
@@ -553,7 +600,7 @@ generate
       assign proc_full     = ( rd_proc_ptr == wr_ptr_p1) ;
       // PROC_RD Data QTY
       always_ff @(posedge dma_clk_i) begin
-         if      ( !dma_rst_ni )              proc_qty <= 0;
+         if      ( !dma_rst_ni )             proc_qty <= 0;
          else if (  do_push & !do_proc_pop ) proc_qty <= proc_qty + 1'b1 ;
          else if ( !do_push &  do_proc_pop ) proc_qty <= proc_qty - 1'b1 ;
       end
@@ -614,6 +661,23 @@ always_ff @(posedge dma_clk_i) begin
       do_dma_pop_r   <= do_dma_pop;
    end
 end
+
+  
+assign debug_do[0]    = dma_full ;
+assign debug_do[1]    = dma_empty;
+assign debug_do[2]    = proc_full;
+assign debug_do[3]    = proc_empty;
+assign debug_do[4]    = do_push;
+assign debug_do[5]    = dma_pop_i ;
+assign debug_do[6]    = do_dma_pop ;
+assign debug_do[7]    = dma_pop_o;
+assign debug_do[8]    = c_pop_i;
+assign debug_do[9]    = do_proc_pop;
+assign debug_do[10]   = c_pop_o;
+assign debug_do[11]   = flush_i;
+assign debug_do[12]   = flush_o;
+assign debug_do[13]   = full_o;
+assign debug_do[15:14] = 0;
 
 assign flush_o      =  push_empty & push_full ;
 assign full_o        = proc_full | dma_full;

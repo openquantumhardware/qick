@@ -54,11 +54,12 @@ module qick_time_tagger # (
    output wire [31:0]               tag_dt_o   ,
    output wire                      tag_vld_o   ,
 ///// DATA OUT   
-   output wire [19:0]               dma_qty_o   ,
-   output wire [19:0]               proc_qty_o   ,
+   output wire [TAG_FIFO_AW-1:0]    dma_qty_o   ,
+   output wire [TAG_FIFO_AW-1:0]    proc_qty_o   ,
 ///// STATUS & DEBUG   
-   output wire [31:0]               qtt_status_o ,
-   output wire [31:0]               qtt_debug_o
+   output wire [31:0]               qtt_debug_o ,
+   output wire [15:0]               qtt_reg_status_o ,
+   output wire [31:0]               qtt_reg_debug_o
    );
 
 wire[31:0] tag_fifo_dt;
@@ -185,7 +186,7 @@ assign tag_dt =   ( cfg_inter_i ) == 3'b000 ?  { time_ck_s[28:0], time_adc_s }  
                   ( cfg_inter_i ) == 3'b101 ?  { time_ck_s[23:0], time_adc_s, time_int_s[4:0] } : // Interpolation of 5 bit
                   ( cfg_inter_i ) == 3'b110 ?  { time_ck_s[22:0], time_adc_s, time_int_s[5:0] } : // Interpolation of 6 bit
                                                { time_ck_s[21:0], time_adc_s, time_int_s[6:0] } ; // Interpolation of 7 bit
-   
+wire [15:0] tag_mem_ds;
 TAG_FIFO_TC # (
    .DMA_BLOCK ( DMA_RD ) , 
    .RD_BLOCK  ( PROC_RD ) , 
@@ -206,31 +207,38 @@ TAG_FIFO_TC # (
    .c_pop_o       ( qtt_pop_ack    ) , 
    .c_qty_o       ( proc_qty_o  ) , 
    .c_empty_o  (   ) , 
-   .dma_pop_i     ( dma_pop_so   ) , 
-   .dma_pop_o     ( dma_pop_si   ) , 
+   .dma_pop_i     ( dma_pop_req   ) , 
+   .dma_pop_o     ( dma_pop_ack   ) , 
    .dma_qty_o     ( dma_qty_o  ) , 
    .dma_empty_o   (   ) , 
    .dt_o          ( tag_fifo_dt  ) , 
-   .full_o        (   ) );
+   .full_o        (   ) ,
+   .debug_do      ( tag_mem_ds ));
 
+
+wire [15:0 ]dma_ds;
+wire [25:0 ]dma_reg_ds;
 dma_fifo_rd # (
    .MEM_AW      ( TAG_FIFO_AW )  ,  // Memory Address Width
    .MEM_DW      ( 32 )   ,  // Memory Data Width
    .DMA_DW      ( 32 )      // DMA   Data Width
 ) dma_rd (
-   .clk_i            ( c_clk_i          ) ,
-   .rst_ni           ( c_rst_ni         ) ,
+   .clk_i            ( ps_clk_i          ) ,
+   .rst_ni           ( ps_rst_ni         ) ,
    .dma_req_i        ( dma_req_i        ) ,
    .dma_ack_o        ( dma_ack_o        ) ,
    .dma_len_i        ( dma_len_i        ) ,
-   .fifo_pop_o       ( dma_pop_so       ) ,
-   .fifo_pop_i       ( dma_pop_si       ) ,
+   .pop_req_o        ( dma_pop_req       ) ,
+   .pop_ack_i        ( dma_pop_ack       ) ,
    .fifo_dt_i        ( tag_fifo_dt           ) ,
    .m_axis_tready_i  ( dma_m_axis_tready_i   ) ,
    .m_axis_tdata_o   ( dma_m_axis_tdata_o    ) ,
    .m_axis_tvalid_o  ( dma_m_axis_tvalid_o   ) ,
-   .m_axis_tlast_o   ( dma_m_axis_tlast_o    ) );   
+   .m_axis_tlast_o   ( dma_m_axis_tlast_o    ) ,
+   .dma_do           ( dma_ds                ) ,  
+   .dma_reg_do       ( dma_reg_ds            ));   
 
+wire [31:0] smp_fifo_dt;
 generate
    if (SMP_STORE ==1 )  begin: SMP
       TAG_FIFO_TC # (
@@ -257,15 +265,17 @@ generate
          .dma_qty_o     (   ) , 
          .dma_empty_o   (   ) , 
          .dt_o          ( smp_fifo_dt  ) , 
-         .full_o        (   ) );
+         .full_o        (   ) ,
+         .debug_do      ( smp_mem_ds ));
     end else begin
+        assign smp_fifo_dt        = 0;
         assign smp_m_axis_tdata_o = 0;
         assign smp_m_axis_tvalid_o = 0;
         assign smp_m_axis_tlast_o = 0;
     end
 endgenerate
 
-wire [31:0] smp_fifo_dt;
+
 ///////////////////////////////////////////////////////////////////////////////
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////
@@ -288,13 +298,22 @@ end
 
 assign tag_dt_o  = tag_dt_r;
 assign tag_vld_o = tadg_vld;
+
 // STATUS
 ///////////////////////////////////////////////////////////////////////////////
-assign qtt_status_o[31:8] = 0;
-assign qtt_status_o[7:0] = time_trig_st[7:0];
+assign qtt_reg_status_o[7:0]   = time_trig_st[7:0];
+assign qtt_reg_status_o[9:8]   = dma_reg_ds[25:24];
+assign qtt_reg_status_o[15:10] = 0;
 
 // DEBUG 
 ///////////////////////////////////////////////////////////////////////////////
-assign qtt_debug_o = 0;
+assign qtt_debug_o[15:0]    = tag_mem_ds;
+assign qtt_debug_o[31:16]   = dma_ds;
+
+assign qtt_reg_debug_o[3:0] = tag_mem_ds[3:0];
+assign qtt_reg_debug_o[5:4] = 2'b00;
+assign qtt_reg_debug_o[31:6] = dma_reg_ds;
+
+
 
 endmodule

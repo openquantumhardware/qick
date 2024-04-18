@@ -20,8 +20,8 @@ module qtt_cmd (
    input  wire             rst_ack_i     ,
    output  wire            qtt_arm_o     ,
    output  wire [15:0]     qtt_cmp_th_o  ,
-   output  wire [ 7:0]     qtt_cmp_inh_o ,
-   output  wire  [8:0]     cmd_cnt_do    );
+   output  wire [7 :0]     qtt_cmp_inh_o ,
+   output  wire [7 :0]     cmd_cnt_do    );
 
 
 // Sincronization
@@ -31,7 +31,7 @@ wire [4:0]  p_op_r;
 reg         p_en_2r;
 
 sync_reg # (
-   .DW (  )
+   .DW ( 6 )
 ) sync_tx_i (
    .dt_i      ( {p_en_i, p_op_i} ) ,
    .clk_i     ( clk_i ) ,
@@ -65,9 +65,7 @@ always_ff @(posedge clk_i)
          cmd_dt      <= c_dt_i ;
          c_cmd_cnt   <= c_cmd_cnt + 1'b1;
       end else
-      if ( cmd_req ) begin 
-         cmd_req  <= 1'b0;
-      end
+      if ( cmd_req ) cmd_req  <= 1'b0;
    end
 
 // Command Decoding 
