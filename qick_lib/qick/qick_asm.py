@@ -247,7 +247,7 @@ class QickConfig():
         return dict1['fs_mult'] * (self['refclk_freq']/dict1['fdds_div']) / 2**dict1['b_dds']
 
     def calc_fstep(self, dicts):
-        """Finds the least common multiple of the frequency steps of two or more channels (typically a generator and readout)
+        """Finds the least common multiple of the frequency steps of one or more channels (typically two, a generator and a readout)
         For proper frequency matching, you should only use frequencies that are evenly divisible by this value.
         The order of the parameters does not matter.
 
@@ -261,13 +261,16 @@ class QickConfig():
         float
             frequency step common to all channels
         """
-        # find the multiplier from channel 1's minimum step size to the common step size
-        step_int1 = self.calc_fstep_int(dicts[0], dicts[1:])
-        # multiply channel 1's step size by the multiplier
-        return step_int1 * self.ch_fstep(dicts[0])
+        fstep = self.ch_fstep(dicts[0])
+        if len(dicts) > 1:
+            # find the multiplier from channel 1's minimum step size to the common step size
+            step_int1 = self.calc_fstep_int(dicts[0], dicts[1:])
+            # multiply channel 1's step size by the multiplier
+            fstep *= step_int1
+        return fstep
 
     def roundfreq(self, f, dicts):
-        """Round a frequency to the LCM of the frequency steps of two or more channels (typically a generator and readout).
+        """Round a frequency to the LCM of the frequency steps of one or more channels (typically two, a generator and a readout).
 
         Parameters
         ----------
@@ -280,7 +283,6 @@ class QickConfig():
         -------
         float or array
             rounded frequency (MHz)
-
         """
         fstep = self.calc_fstep(dicts)
         return np.round(f/fstep) * fstep
@@ -303,7 +305,6 @@ class QickConfig():
         -------
         int
             Re-formatted frequency
-
         """
         if otherch is None:
             step_int = 1
@@ -479,6 +480,42 @@ class QickConfig():
         mixercfg['b_dds'] = 48
         return mixercfg
 
+    def deg2int(self, deg, thisch):
+        """Converts phase in degrees to integer value suitable for writing to a register.
+        This method works for both generators and readouts.
+
+        Parameters
+        ----------
+        deg : float
+            phase (degrees)
+        thisch : dict
+            config dict for the channel you're configuring
+
+        Returns
+        -------
+        int
+            Re-formatted phase
+        """
+        return to_int(deg, 2**thisch['b_phase']/360, parname='phase') % 2**thisch['b_phase']
+
+    def int2deg(self, r, thisch):
+        """Converts register value to degrees.
+        This method works for both generators and readouts.
+
+        Parameters
+        ----------
+        r : int
+            register value
+        thisch : dict
+            config dict for the channel you're configuring
+
+        Returns
+        -------
+        float
+            Re-formatted phase (degrees)
+        """
+        return r / (2**thisch['b_phase'] / 360)
+
     def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
@@ -499,8 +536,7 @@ class QickConfig():
         ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
-        b_phase = ch_cfg['b_phase']
-        return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
+        return self.deg2int(deg, ch_cfg)
 
     def reg2deg(self, r, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
@@ -522,8 +558,7 @@ class QickConfig():
         ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
-        b_phase = ch_cfg['b_phase']
-        return r / (2**b_phase / 360)
+        return self.int2deg(r, ch_cfg)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
@@ -607,10 +642,10 @@ class QickConfig():
         cfg = {}
         cfg['userval'] = mixer_freq
         gencfg = self['gens'][gen_ch]
+        mixercfg = self._get_mixer_cfg(gen_ch)
         if ro_ch is None:
-            rounded_f = f
+            rounded_f = self.roundfreq(mixer_freq, [mixercfg])
         else:
-            mixercfg = self._get_mixer_cfg(gen_ch)
             rounded_f = self.roundfreq(mixer_freq, [mixercfg, self['readouts'][ro_ch]])
         cfg['rounded'] = rounded_f
         if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
@@ -643,7 +678,7 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_pfbro_regs(self, rocfg, pfb_port, freq, gen_ch, mixer_freq):
+    def calc_pfbro_regs(self, rocfg, pfb_port, ro_chcfg, mixer_freq):
         """Calculate the PFB settings to configure a readout chain.
 
         Parameters
@@ -654,6 +689,8 @@ class QickConfig():
             index of the PFB output port
         freq : float
             downconversion frequency (MHz)
+        sel : str
+            output selection ('product', 'input', 'dds')
         gen_ch : int or None
             generator channel (index in 'gens' list) for frequency-matching
         mixer_freq : float or None
@@ -665,8 +702,16 @@ class QickConfig():
         dict
             PFB settings for QickSoc.config_mux_readout()
         """
+        freq = ro_chcfg['freq']
+        phase = ro_chcfg['phase']
+        sel = ro_chcfg['sel']
+        gen_ch = ro_chcfg['gen_ch']
         pfb_reg = {}
         pfb_reg['pfb_port'] = pfb_port
+        # calculate phase register
+        pfb_reg['phase_int'] = self.deg2int(phase, rocfg)
+
+        # now do frequency stuff
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
             freq = self.roundfreq(freq, [self['gens'][gen_ch], rocfg])
             if mixer_freq is not None:
@@ -728,7 +773,7 @@ class QickConfig():
                 message.append("The tone frequencies are %.3f and %.3f MHz, and"% (cfg1['folded'], cfg2['folded']))
                 message.append("the PFB channel range is [%.3f, %.3f] MHz."% (cfg1['pfb_lo'], cfg2['pfb_hi']))
                 if rocfg['pfb_dds_on_output']:
-                    message.append("This is allowed, but you should expect significant crosstalk if you play one tone while reading out the other.")
+                    message.append("This is allowed, but you should expect crosstalk if you play one tone while reading out the other.")
                     logger.warning('\n'.join(message))
                 else:
                     message.append("The PFB used in your firmware does not allow reading out two tones on the same channel.")
@@ -792,6 +837,8 @@ class AbsQickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+    # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
+    USER_DURATIONS = False
 
     def __init__(self, soccfg):
         """
@@ -947,7 +994,7 @@ class AbsQickProgram:
         # if start_src="external", it won't actually start until it sees a pulse
         soc.start_tproc()
 
-    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
+    def declare_readout(self, ch, length, freq=None, phase=0, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
 
         Parameters
@@ -956,6 +1003,8 @@ class AbsQickProgram:
             readout channel number (index in 'readouts' list)
         freq : float
             downconverting frequency (MHz)
+        phase : float
+            phase (degrees)
         length : int
             readout length (number of samples)
         sel : str
@@ -964,28 +1013,32 @@ class AbsQickProgram:
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         ro_cfg = self.soccfg['readouts'][ch]
+        # the number of triggers per shot will be filled in later, by trigger() or set_read_per_shot()
+        cfg = {'trigs': 0}
+        if self.USER_DURATIONS:
+            cfg['length'] = self.us2cycles(ro_ch=ch, us=length)
+        else:
+            cfg['length'] = length
+        # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+        # and the sum buffer values are 32 bit signed
+        # TODO: check this math
+        if cfg['length'] > 2**(31-15):
+            logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
+
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
+            if sel != 'product' and not ro_cfg['has_outsel']:
+                raise RuntimeError("sel parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            cfg['sel'] = sel
+            if phase != 0 and 'b_phase' not in ro_cfg:
+                raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            cfg['phase'] = phase
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
-            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
-            # and the sum buffer values are 32 bit signed
-            # TODO: check this math
-            if length > 2**(31-15):
-                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
-            cfg = {
-                    'freq': freq,
-                    'length': length,
-                    'sel': sel,
-                    'gen_ch': gen_ch,
-                    'trigs': 0
-                    }
+            cfg['freq'] = freq
+            cfg['gen_ch'] = gen_ch
         else: # readout is controlled by tProc
             if (freq is not None) or sel!='product' or (gen_ch is not None):
                 raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
-            cfg = {
-                    'length': length,
-                    'trigs': 0
-                    }
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -1007,7 +1060,7 @@ class AbsQickProgram:
                         mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                     else:
                         mixer_freq = None
-                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg['freq'], cfg['gen_ch'], mixer_freq)
+                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg, mixer_freq)
                     cfg['pfb_config']['pfb_path'] = rocfg['ro_fullpath']
                 else:
                     soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
