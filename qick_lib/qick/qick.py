@@ -111,7 +111,7 @@ class RFDC(xrfdc.RFdc):
         self.daccfg = soc['dacs']
         self.adccfg = soc['adcs']
 
-    def set_mixer_freq(self, dacname, f, force=False, reset=False):
+    def set_mixer_freq(self, dacname, f, phase_reset=True, force=False):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
@@ -125,8 +125,8 @@ class RFDC(xrfdc.RFdc):
         :type f: float
         :param force: force update, even if the setting is the same
         :type force: bool
-        :param reset: if we change the frequency, also reset the NCO's phase accumulator
-        :type reset: bool
+        :param phase_reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type phase_reset: bool
         """
         if not force and f == self.get_mixer_freq(dacname):
             return
@@ -144,9 +144,11 @@ class RFDC(xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
-        if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
+        # The phase reset is mostly important when setting the frequency to 0: you want the NCO to end up at 1 instead of a complex value.
+        # So we apply the reset after setting the new frequency (otherwise you accumulate some rotation before stopping the NCO).
+        if phase_reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.mixer_dict[dacname] = f
 
     def get_mixer_freq(self, dacname):
@@ -733,20 +735,25 @@ class QickSoc(Overlay, QickConfig):
 
         self.gens[ch].set_nyquist(nqz)
 
-    def set_mixer_freq(self, ch, f, ro_ch=None):
+    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True):
         """
         Set mixer frequency for a signal generator.
         If the generator does not have a mixer, you will get an error.
 
-        :param ch: DAC channel (index in 'gens' list)
-        :type ch: int
-        :param f: frequency (MHz)
-        :type f: float
-        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
+        Parameters
+        ----------
+        ch : int
+            DAC channel (index in 'gens' list)
+        f : float
+            Mixer frequency (in MHz)
+        ro_ch : int
+            readout channel (index in 'readouts' list) for frequency matching
+            use None if you don't want mixer freq to be rounded to a valid readout frequency
+        phase_reset : bool
+            if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         """
         if self.gens[ch].HAS_MIXER:
-            self.gens[ch].set_mixer_freq(f, ro_ch)
+            self.gens[ch].set_mixer_freq(f, ro_ch, phase_reset=phase_reset)
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
@@ -786,18 +793,25 @@ class QickSoc(Overlay, QickConfig):
         for cfg in cfgs:
             pfb.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
 
-    def set_iq(self, ch, f, i, q):
+    def set_iq(self, ch, f, i, q, ro_ch=None, phase_reset=True):
         """
         Set frequency, I, and Q for a constant-IQ output.
 
-        :param ch: IQ channel (index in 'iqs' list)
-        :type ch: int
-        :param f: frequency (MHz)
-        :type f: float
-        :param i: I value (in range -1 to 1)
-        :type i: float
-        :param q: Q value (in range -1 to 1)
-        :type q: float
+        Parameters
+        ----------
+        ch : int
+            DAC channel (index in 'gens' list)
+        f : float
+            frequency (in MHz)
+        i : float
+            I value (in range -1 to 1)
+        q : float
+            Q value (in range -1 to 1)
+        ro_ch : int
+            readout channel (index in 'readouts' list) for frequency matching
+            use None if you don't want freq to be rounded to a valid readout frequency
+        phase_reset : bool
+            if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         """
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
