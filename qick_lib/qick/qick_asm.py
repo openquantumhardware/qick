@@ -715,7 +715,7 @@ class QickConfig():
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
 
         # calculate the freq register(s)
-        if 'pfb_port' in rocfg:
+        if 'pfb_nout' in rocfg:
             # for mux readout, this is complicated
             self._calc_pfbro_freq(rocfg, ro_regs)
         else:
