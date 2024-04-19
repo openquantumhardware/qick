@@ -116,10 +116,10 @@ class AxisReadoutV2(SocIp, AbsReadout):
         self.we_reg = 0
 
     def set_all_int(self, regs):
-        """Set all readout parameters using a dictionary computed by QickCOnfig.calc_ro_regs().
+        """Set all readout parameters using a dictionary computed by QickConfig.calc_ro_regs().
         """
         self.outsel_reg = {"product": 0, "dds": 1, "input": 2}[regs['sel']]
-        self.freq_reg = regs['freq_int'] % 2**self.B_DDS
+        self.freq_reg = regs['f_int'] % 2**self.B_DDS
         self.phase_reg = regs['phase_int'] % 2**self.B_PHASE
         self.nsamp_reg = 10
         self.mode_reg = 1
@@ -134,15 +134,15 @@ class AxisReadoutV2(SocIp, AbsReadout):
         This method is not normally used, it's only for debugging and testing.
         Normally the PFB is configured based on parameters supplied in QickProgram.declare_readout().
         """
+        cfg = self.soc.calc_ro_regs(self.cfg, phase, sel)
+
+        ro_pars = {'freq': f,
+                'gen_ch': gen_ch
+                }
         mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        ro_pars = {'freq': f,
-                'phase': phase,
-                'sel': sel,
-                'gen_ch': gen_ch
-                }
-        cfg = self.soc.calc_ro_regs(self.cfg, ro_pars, mixer_freq)
+        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, mixer_freq)
         self.set_all_int(cfg)
 
 class AbsPFBReadout(SocIp, AbsReadout):
@@ -191,22 +191,25 @@ class AbsPFBReadout(SocIp, AbsReadout):
         self.cfg['f_dds'] /= self.DOWNSAMPLING
         self.cfg['fdds_div'] *= self.DOWNSAMPLING
 
-    def set_freq(self, f, out_ch, sel='product', gen_ch=None, phase=0):
+    def set_ch(self, f, out_ch, sel='product', gen_ch=None, phase=0):
         """Set up a single PFB output.
 
         This method is not normally used, it's only for debugging and testing.
         Normally the PFB is configured based on parameters supplied in QickProgram.declare_readout().
         """
+        cfg = self.soc.calc_ro_regs(self.cfg, phase, sel)
+
+        ro_pars = {'freq': f,
+                'gen_ch': gen_ch
+                }
         mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        ro_pars = {'freq': f,
-                'phase': phase,
-                'sel': sel,
-                'gen_ch': gen_ch
-                }
-        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, ro_pars, mixer_freq)
-        self.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
+        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, mixer_freq)
+        cfg['pfb_port'] = out_ch
+        if self.HAS_OUTSEL:
+            self.set_out(sel)
+        self.set_freq_int(cfg)
 
 class AxisPFBReadoutV2(AbsPFBReadout):
     """
@@ -256,7 +259,7 @@ class AxisPFBReadoutV2(AbsPFBReadout):
     # Output mode selection is supported.
     HAS_OUTSEL = True
 
-    def set_out(self, sel="product"):
+    def set_out(self, sel='product'):
         """
         Select readout signal output
 
@@ -265,18 +268,18 @@ class AxisPFBReadoutV2(AbsPFBReadout):
         """
         self.outsel_reg = {"product": 0, "input": 1, "dds": 2}[sel]
 
-    def set_freq_int(self, f_int, in_ch, out_ch, phase_int):
+    def set_freq_int(self, cfg):
         # it's assumed that channel collisions have already been checked in config_readouts()
         # we don't check here, so a collision will break the previously set channel
 
         # phase_int is ignored
-        if phase_int != 0:
+        if 'phase_int' in cfg:
             raise RuntimeError("this muxed readout does not support setting the phase")
 
         # wire the selected PFB channel to the output
-        setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
+        setattr(self, "ch%dsel_reg"%(cfg['pfb_port']), cfg['pfb_ch'])
         # set the PFB channel's DDS frequency
-        setattr(self, "freq%d_reg"%(in_ch), f_int)
+        setattr(self, "freq%d_reg"%(cfg['pfb_ch']), cfg['f_int'])
 
 class AxisPFBReadoutV3(AbsPFBReadout):
     """
@@ -331,18 +334,20 @@ class AxisPFBReadoutV3(AbsPFBReadout):
         for i in range(self.NOUT): self.REGISTERS['id%d_reg'%(i)] = i + iReg
         iReg += self.NOUT
         for i in range(self.NOUT):
-            self.REGISTERS['freq%d_reg'%(i)] = i + iReg
-            self.REGISTERS['phase%d_reg'%(i)] = i + iReg
+            self.REGISTERS['freq%d_reg'%(i)] = 2*i + iReg
+            self.REGISTERS['phase%d_reg'%(i)] = 2*i + iReg + 1
 
         # Generics.
         self.NCH = int(description['parameters']['N'])
 
         super().__init__(description)
 
-    def set_freq_int(self, f_int, pfb_ch, out_ch, phase_int):
+    def set_freq_int(self, cfg):
         # There are 4 outputs. Any PFB channel can be assigned to any output.
         # No need to check for collisions are they are all truly independent.
 
+        pfb_ch = cfg['pfb_ch']
+        out_ch = cfg['pfb_port']
         # Check pfb channel is within allowed range.
         if pfb_ch not in range(self.NCH):
             raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(pfb_ch, self.NCH-1))
@@ -359,10 +364,10 @@ class AxisPFBReadoutV3(AbsPFBReadout):
         setattr(self, "id%d_reg"%(out_ch), id_val)
 
         # Set frequency.
-        setattr(self, "freq%d_reg"%(out_ch), f_int)
+        setattr(self, "freq%d_reg"%(out_ch), cfg['f_int'])
 
         # Set phase.
-        setattr(self, "phase%d_reg"%(out_ch), phase_int)
+        setattr(self, "phase%d_reg"%(out_ch), cfg['phase_int'])
 
         #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
 

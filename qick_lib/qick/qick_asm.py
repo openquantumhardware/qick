@@ -678,80 +678,54 @@ class QickConfig():
             tones.append(tone)
         return tones
 
-    def calc_ro_regs(self, rocfg, ro_pars, mixer_freq):
+    def calc_ro_regs(self, rocfg, phase, sel):
         """Calculate the settings to configure a readout.
-
-        Parameters
-        ----------
-        rocfg : dict
-            firmware config dictionary for the readout chain
-        ro_pars : dict
-            readout parameters, from declare_readout()
-        mixer_freq : float or None
-            upconversion frequency of the specified generator's digital mixer (MHz)
-            assumed to be rounded to the mixer and readout frequency steps
 
         Returns
         -------
         dict
             settings for QickSoc.config_readout()
         """
-        gen_ch = ro_pars['gen_ch']
 
-        ro_reg = {}
-        ro_reg['sel'] = ro_pars['sel']
-
+        ro_regs = {}
+        if rocfg['has_outsel']:
+            ro_regs['sel'] = sel
+        elif sel != 'product':
+            raise RuntimeError("sel parameter was specified for readout %d, which doesn't support this parameter" % (ch))
         # calculate phase register
-        ro_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
-        ro_reg['phase_rounded'] = self.int2deg(ro_reg['phase_int'], rocfg)
+        if 'b_phase' in rocfg:
+            ro_regs['phase_int'] = self.deg2int(phase, rocfg)
+            ro_regs['phase_rounded'] = self.int2deg(ro_regs['phase_int'], rocfg)
+        elif phase != 0:
+            raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+        return ro_regs
 
-        # now do frequency stuff
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
-            if mixer_freq is not None:
-                ro_reg['freq_rounded'] += mixer_freq
-        else:
-            # round to RO frequency
-            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
-        ro_reg['freq_int'] = self.freq2int(ro_reg['freq_rounded'], rocfg)
-        return ro_reg
-
-    def calc_pfbro_regs(self, rocfg, pfb_port, ro_pars, mixer_freq):
-        """Calculate the PFB settings to configure a readout chain.
-
-        Parameters
-        ----------
-        rocfg : dict
-            firmware config dictionary for the PFB or the readout chain
-        pfb_port : int
-            index of the PFB output port
-        ro_pars : dict
-            readout parameters, from declare_readout()
-        mixer_freq : float or None
-            upconversion frequency of the specified generator's digital mixer (MHz)
-            assumed to be rounded to the mixer and readout frequency steps
-
-        Returns
-        -------
-        dict
-            PFB settings for QickSoc.config_mux_readout()
+    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, mixer_freq):
+        """Calculate the readout frequency and registers.
         """
         gen_ch = ro_pars['gen_ch']
-        pfb_reg = {}
-        pfb_reg['pfb_port'] = pfb_port
-        pfb_reg['sel'] = ro_pars['sel']
-        # calculate phase register
-        pfb_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
 
         # now do frequency stuff
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            freq = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
+            ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
             if mixer_freq is not None:
-                freq += mixer_freq
+                ro_regs['f_rounded'] += mixer_freq
         else:
-            # round to RO frequency (if gen_ch was defined the frequency should already be rounded)
-            freq = self.roundfreq(ro_pars['freq'], [rocfg])
-        pfb_reg['rounded'] = freq
+            # round to RO frequency
+            ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
+
+        # calculate the freq register(s)
+        if 'pfb_nout' in rocfg:
+            # for mux readout, this is complicated
+            self._calc_pfbro_freq(rocfg, ro_regs)
+        else:
+            # for regular readout, this is easy
+            ro_regs['f_int'] = self.freq2int(ro_regs['f_rounded'], rocfg)
+
+    def _calc_pfbro_freq(self, rocfg, ro_regs):
+        """Calculate the PFB settings to configure a muxed readout.
+        """
+        freq = ro_regs['f_rounded']
 
         nqz = int(freq // (rocfg['fs']/2)) + 1
         if nqz % 2 == 0: # even Nyquist zone
@@ -759,7 +733,7 @@ class QickConfig():
 
         # fold into 1st nyquist zone
         freq %= rocfg['fs']
-        pfb_reg['folded'] = freq
+        ro_regs['f_folded'] = freq
 
         # the PFB channels are separated by half the DDS range
         # round() gives you the single best channel
@@ -767,15 +741,14 @@ class QickConfig():
         # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
         f_steps = int(np.round(freq/(rocfg['f_dds']/2)))
         f_dds = freq - f_steps*(rocfg['f_dds']/2)
-        pfb_reg['fdds'] = f_dds
-        pfb_reg['pfb_lo'] = (f_steps-0.5) * (rocfg['f_dds']/2)
-        pfb_reg['pfb_hi'] = (f_steps+0.5) * (rocfg['f_dds']/2)
-        pfb_reg['pfb_center'] = f_steps * (rocfg['f_dds']/2)
-        pfb_reg['pfb_lolo'] = max(f_steps-1, 0) * (rocfg['f_dds']/2)
-        pfb_reg['pfb_hihi'] = min(f_steps+1, rocfg['pfb_nch']) * (rocfg['f_dds']/2)
-        pfb_reg['pfb_ch'] = (rocfg['pfb_ch_offset'] + f_steps) % rocfg['pfb_nch']
-        pfb_reg['fdds_int'] = self.freq2int(f_dds, rocfg)
-        return pfb_reg
+        ro_regs['pfb_f'] = f_dds
+        ro_regs['pfb_lo'] = (f_steps-0.5) * (rocfg['f_dds']/2)
+        ro_regs['pfb_hi'] = (f_steps+0.5) * (rocfg['f_dds']/2)
+        ro_regs['pfb_center'] = f_steps * (rocfg['f_dds']/2)
+        ro_regs['pfb_lolo'] = max(f_steps-1, 0) * (rocfg['f_dds']/2)
+        ro_regs['pfb_hihi'] = min(f_steps+1, rocfg['pfb_nch']) * (rocfg['f_dds']/2)
+        ro_regs['pfb_ch'] = (rocfg['pfb_ch_offset'] + f_steps) % rocfg['pfb_nch']
+        ro_regs['f_int'] = self.freq2int(f_dds, rocfg)
 
     def check_pfb_collisions(self, rocfg, cfg1, cfgs):
         """Check whether the specified PFB config collides or interefers with any others.
@@ -792,17 +765,17 @@ class QickConfig():
             PFB configs to check cfg1 against
         """
         for cfg2 in cfgs:
-            if cfg2['rounded'] == cfg1['rounded']:
+            if cfg2['f_rounded'] == cfg1['f_rounded']:
                 # it's fine to set two PFB outputs to identical frequencies
                 continue
             if cfg2['pfb_ch'] == cfg1['pfb_ch']:
-                p = {k:[x[k] for x in [cfg1, cfg2]] for k in ['rounded', 'folded']}
+                p = {k:[x[k] for x in [cfg1, cfg2]] for k in ['f_rounded', 'f_folded']}
                 message = []
                 message.append('Two tones on same PFB channel:')
-                message.append("You have readouts at frequencies %.3f and %.3f MHz."% (cfg1['rounded'], cfg2['rounded']))
+                message.append("You have readouts at frequencies %.3f and %.3f MHz."% (cfg1['f_rounded'], cfg2['f_rounded']))
                 message.append("(after rounding and accounting for the generator's digital mixer, if applicable).")
                 message.append("Both map to the same PFB channel. In terms of the ADC's first Nyquist zone:")
-                message.append("The tone frequencies are %.3f and %.3f MHz, and"% (cfg1['folded'], cfg2['folded']))
+                message.append("The tone frequencies are %.3f and %.3f MHz, and"% (cfg1['f_folded'], cfg2['f_folded']))
                 message.append("the PFB channel range is [%.3f, %.3f] MHz."% (cfg1['pfb_lo'], cfg2['pfb_hi']))
                 if rocfg['pfb_dds_on_output']:
                     message.append("This is allowed, but you should expect crosstalk if you play one tone while reading out the other.")
@@ -812,8 +785,8 @@ class QickConfig():
                     raise RuntimeError('\n'.join(message))
             else:
                 # no collision, but we must check if either tone is in the overlap region of the other tone's channel
-                if np.abs(cfg2['folded'] - cfg1['pfb_center']) < rocfg['f_dds']/2:
-                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg1['rounded'], cfg2['rounded']))
+                if np.abs(cfg2['f_folded'] - cfg1['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg1['f_rounded'], cfg2['f_rounded']))
                     #source = cfg2
                     #victim = cfg1
                     #message = []
@@ -823,8 +796,8 @@ class QickConfig():
                     #message.append("You have declared another readout at %s MHz, or %s MHz after Nyquist folding."% (source['rounded'], source['folded']))
                     #message.append("The readout at %s MHz may see some crosstalk from the tone at %s MHz." % (victim['rounded'], source['rounded']))
                     #logger.warning('\n'.join(message))
-                if np.abs(cfg1['folded'] - cfg2['pfb_center']) < rocfg['f_dds']/2:
-                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg2['rounded'], cfg1['rounded']))
+                if np.abs(cfg1['f_folded'] - cfg2['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg2['f_rounded'], cfg1['f_rounded']))
 
 class DummyIp:
     """Stores the configuration constants for a firmware IP block.
@@ -1060,19 +1033,14 @@ class AbsQickProgram:
             logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
 
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
-            if sel != 'product' and not ro_cfg['has_outsel']:
-                raise RuntimeError("sel parameter was specified for readout %d, which doesn't support this parameter" % (ch))
-            cfg['sel'] = sel
-            if phase != 0 and 'b_phase' not in ro_cfg:
-                raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
-            cfg['phase'] = phase
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
+            cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
         else: # readout is controlled by tProc
-            if (freq is not None) or sel!='product' or (gen_ch is not None):
-                raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
+            if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
+                raise RuntimeError("this is a tProc-configured readout - freq/phase/sel parameters are set using tProc instructions")
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -1084,7 +1052,9 @@ class AbsQickProgram:
         soc : QickSoc
             the QickSoc that will execute this program
         """
-        # because readout freqs need to account for mixer freqs, we can only compute readout registers here, after we know all gens have been declared
+        # because readout freqs need to account for mixer freqs, we can only compute freq registers here, after we know all gens have been declared
+        # store PFB parameters in PFB list so we can check for collisions and configure the PFB
+        pfbs = defaultdict(list)
         for ch, cfg in self.ro_chs.items():
             rocfg = self.soccfg['readouts'][ch]
             if 'tproc_ctrl' not in rocfg:
@@ -1092,25 +1062,22 @@ class AbsQickProgram:
                     mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                 else:
                     mixer_freq = None
+                # add frequency
+                ro_regs = cfg['ro_config']
+                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, mixer_freq)
                 if 'pfb_port' in rocfg:
-                    # if this is a muxed readout, compute the settings but don't write them yet
-                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg, mixer_freq)
-                    cfg['pfb_config']['pfb_path'] = rocfg['ro_fullpath']
+                    # if this is a muxed readout, don't write the settings yet
+                    ro_regs['pfb_port'] = rocfg['pfb_port']
+                    pfbname = rocfg['ro_fullpath']
+                    self.soccfg.check_pfb_collisions(rocfg, ro_regs, pfbs[pfbname])
+                    pfbs[pfbname].append(ro_regs)
                 else:
                     # if this is a standard readout, save the settings and write them to the readout
-                    cfg['ro_config'] = self.soccfg.calc_ro_regs(rocfg, cfg, mixer_freq)
                     soc.configure_readout(ch, cfg['ro_config'])
-        # store PFB parameters in PFB list so we can check for collisions and configure the PFB
-        pfbs = defaultdict(list)
-        for ch, cfg in self.ro_chs.items():
-            if 'pfb_config' in cfg:
-                pfb_reg = cfg['pfb_config']
-                rocfg = self.soccfg['readouts'][ch]
-                self.soccfg.check_pfb_collisions(rocfg, pfb_reg, pfbs[pfb_reg['pfb_path']])
-                pfbs[pfb_reg['pfb_path']].append(pfb_reg)
         # write the mux settings
         for pfbpath, pfb_regs in pfbs.items():
-            sels = [x['sel'] for x in pfb_regs]
+            sels = [x.get('sel') for x in pfb_regs]
+            # all sels should be the same (if has_outsel=False, get() will return None)
             if len(set(sels)) != 1:
                 raise RuntimeError("all declared readouts on a muxed readout must have the same 'sel' setting, you have %s" % (sels))
             soc.config_mux_readout(pfbpath, pfb_regs, sels[0])
