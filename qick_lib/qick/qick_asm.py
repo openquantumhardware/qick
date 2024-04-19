@@ -1088,7 +1088,7 @@ class AbsQickProgram:
         for ch, cfg in self.ro_chs.items():
             rocfg = self.soccfg['readouts'][ch]
             if 'tproc_ctrl' not in rocfg:
-                if cfg['gen_ch'] is not None and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
+                if cfg['gen_ch'] is not None and cfg['gen_ch'] in self.gen_chs and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
                     mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                 else:
                     mixer_freq = None
