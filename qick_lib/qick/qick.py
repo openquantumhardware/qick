@@ -902,7 +902,7 @@ class QickSoc(Overlay, QickConfig):
             return self.tproc.single_read(addr=addr)
         elif self.TPROC_VERSION == 2:
             self.tproc.read_sel=1
-            reg = {1:'tproc_r_dt1', 2:'tproc_r_dt2'}[addr]
+            reg = {1:'axi_r_dt1', 2:'axi_r_dt2'}[addr]
             return getattr(self.tproc, reg)
 
     def reset_gens(self):
