@@ -1028,6 +1028,7 @@ class AbsQickProgram:
 
     def declare_readout(self, ch, length, freq=None, phase=0, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
+        Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
         Parameters
         ----------
@@ -1037,8 +1038,8 @@ class AbsQickProgram:
             downconverting frequency (MHz)
         phase : float
             phase (degrees)
-        length : int
-            readout length (number of samples)
+        length : int or float
+            readout length (number of decimated samples for tProc v1, us for tProc v2)
         sel : str
             output select ('product', 'dds', 'input')
         gen_ch : int
@@ -1051,6 +1052,7 @@ class AbsQickProgram:
             cfg['length'] = self.us2cycles(ro_ch=ch, us=length)
         else:
             cfg['length'] = length
+        cfg['length_us'] = self.cycles2us(cfg['length'], ro_ch=ch)
         # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
         # and the sum buffer values are 32 bit signed
         # TODO: check this math
@@ -1248,83 +1250,107 @@ class AbsQickProgram:
         self.envelopes[ch]['envs'][name] = {"data": data, "addr": self.envelopes[ch]['next_addr']}
         self.envelopes[ch]['next_addr'] += length
 
-    def add_cosine(self, ch, name, length, maxv=None):
-        """Adds a Cosine pulse to the waveform library.
-        The pulse will peak at after ramp until length and then ramp down again with ramp.
-        The total length is 2*ramp+length.
+    def add_cosine(self, ch, name, length, maxv=None, even_length=False):
+        """Adds a cosine to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
+            Name of the envelope
         length : int
-            Total pulse length (in units of fabric clocks)
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+        else:
+            lenreg = np.round(length)
+        # convert to number of samples
+        lenreg *= samps_per_clk
 
-        self.add_pulse(ch, name, idata=cosine(length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=cosine(length=lenreg, maxv=maxv))
 
-    def add_gauss(self, ch, name, sigma, length, maxv=None):
-        """Adds a Gaussian pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
+        """Adds a Gaussian to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
+            Name of the envelope
         sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Standard deviation of the Gaussian (in fabric clocks or us)
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        else:
+            lenreg = np.round(length)
+            sigreg = np.round(sigma)
 
-        self.add_envelope(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
+        # convert to number of samples
+        lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
 
+        self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
-    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
-        """Adds a DRAG pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None, even_length=False):
+        """Adds a DRAG to the envelope library.
+        The envelope will peak at length/2.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
-        sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Name of the envelope
+        sigma : float or float
+            Standard deviation of the Gaussian (in fabric clocks or us)
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
         delta : float
             anharmonicity of the qubit (units of MHz)
         alpha : float
             alpha parameter of DRAG (order-1 scale factor)
-
-        Returns
-        -------
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
@@ -1333,36 +1359,60 @@ class AbsQickProgram:
 
         delta /= samps_per_clk*f_fabric
 
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        else:
+            lenreg = np.round(length)
+            sigreg = np.round(sigma)
 
-        idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
+        # convert to number of samples
+        lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
+
+        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
 
         self.add_envelope(ch, name, idata=idata, qdata=qdata)
 
-    def add_triangle(self, ch, name, length, maxv=None):
-        """Adds a triangle pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_triangle(self, ch, name, length, maxv=None, even_length=False):
+        """Adds a triangle to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Name of the envelope
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+        else:
+            lenreg = np.round(length)
+        # convert to number of samples
+        lenreg *= samps_per_clk
 
-        self.add_envelope(ch, name, idata=triang(length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
 
     def load_pulses(self, soc):
         """Loads pulses that were added using add_envelope into the SoC's signal generator memories.
