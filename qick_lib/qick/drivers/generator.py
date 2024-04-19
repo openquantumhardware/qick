@@ -58,7 +58,7 @@ class AbsSignalGen(SocIp):
         """
         self.rf.set_nyquist(self.dac, nqz)
 
-    def set_mixer_freq(self, f, ro_ch=None):
+    def set_mixer_freq(self, f, ro_ch=None, phase_reset=True):
         """Set the mixer frequency for the DAC linked to this generator.
         For tProc-controlled generators, this method is called automatically during program config.
         You should normally only call this method directly for a constant-IQ output.
@@ -69,16 +69,18 @@ class AbsSignalGen(SocIp):
             Mixer frequency (in MHz)
         ro_ch : int
             readout channel for frequency matching (use None if you don't want mixer freq to be rounded to a valid readout frequency)
+        phase_reset : bool
+            if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         """
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
         if ro_ch is None:
-            self.rf.set_mixer_freq(self.dac, f)
+            self.rf.set_mixer_freq(self.dac, f, phase_reset=phase_reset)
         else:
             mixercfg = self.soc._get_mixer_cfg(self.ch)
             rocfg = self.soc['readouts'][ro_ch]
             rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
-            self.rf.set_mixer_freq(self.dac, rounded_f)
+            self.rf.set_mixer_freq(self.dac, rounded_f, phase_reset=phase_reset)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
@@ -409,7 +411,7 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         ro_ch : int, optional
             readout channel for frequency-matching
         """
-        tones = self.soc.calc_mux_regs(self.ch, freqs, gains, phases, ro_ch)
+        tones = self.soc.calc_muxgen_regs(self.ch, freqs, gains, phases, ro_ch)
         self.set_all_int(tones)
 
 class AxisSgMux4V1(AbsPulsedSignalGen):

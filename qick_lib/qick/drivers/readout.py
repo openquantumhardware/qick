@@ -17,9 +17,7 @@ class AbsReadout(DummyIp):
     def configure(self, rf):
         self.rf = rf
         # Sampling frequency.
-        #self.fs = fs
         self.cfg['adc'] = self.adc
-        self.cfg['b_dds'] = self.B_DDS
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
             self.cfg[p] = self.rf.adccfg[self['adc']][p]
@@ -27,13 +25,10 @@ class AbsReadout(DummyIp):
         self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']
         self.cfg['f_output'] = self['fs']/(self['decimation']*self.DOWNSAMPLING)
-        self.cfg['iq_offset'] = self.IQ_OFFSET
 
-    def initialize(self):
-        """
-        Reset the readout configuration.
-        """
-        pass
+        self.cfg['b_dds'] = self.B_DDS
+        self.cfg['iq_offset'] = self.IQ_OFFSET
+        self.cfg['has_outsel'] = self.HAS_OUTSEL
 
     def update(self):
         """
@@ -83,6 +78,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
     # this readout is not controlled by the tProc.
     tproc_ch = None
 
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
+
     def __init__(self, description):
         """
         Constructor method
@@ -117,54 +115,100 @@ class AxisReadoutV2(SocIp, AbsReadout):
         self.we_reg = 1
         self.we_reg = 0
 
-    def set_out(self, sel="product"):
+    def set_all_int(self, regs):
+        """Set all readout parameters using a dictionary computed by QickCOnfig.calc_ro_regs().
         """
-        Select readout signal output
-
-        :param sel: select mux control
-        :type sel: int
-        """
-        self.outsel_reg = {"product": 0, "dds": 1, "input": 2}[sel]
-
-        # Register update.
+        self.outsel_reg = {"product": 0, "dds": 1, "input": 2}[regs['sel']]
+        self.freq_reg = regs['freq_int'] % 2**self.B_DDS
+        self.phase_reg = regs['phase_int'] % 2**self.B_PHASE
+        self.nsamp_reg = 10
+        self.mode_reg = 1
+        self.update()
+        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
+        # this has only really been seen with setting a downconversion freq of 0.
         self.update()
 
-    def set_freq(self, f, gen_ch=0):
-        """
-        Set frequency register
+    def set_all(self, f, sel='product', gen_ch=None, phase=0):
+        """Set up the readout directly.
 
-        :param f: frequency in MHz (before adding any DAC mixer frequency)
-        :type f: float
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
+        This method is not normally used, it's only for debugging and testing.
+        Normally the PFB is configured based on parameters supplied in QickProgram.declare_readout().
         """
-        # calculate the exact frequency we expect to see
-        ro_freq = f
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
+        mixer_freq = None
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
-        ro_freq = ro_freq % self['f_dds']
-        # we can calculate the register value without further referencing the gen_ch
-        f_int = self.soc.freq2int(ro_freq, self.cfg)
-        self.set_freq_int(f_int)
+            mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
+        ro_pars = {'freq': f,
+                'phase': phase,
+                'sel': sel,
+                'gen_ch': gen_ch
+                }
+        cfg = self.soc.calc_ro_regs(self.cfg, ro_pars, mixer_freq)
+        self.set_all_int(cfg)
 
-    def set_freq_int(self, f_int):
+class AbsPFBReadout(SocIp, AbsReadout):
+    # Bits of DDS.
+    B_DDS = 32
+
+    # based on testing this seems like it might really be some weird value like -0.48, even though this makes no sense
+    IQ_OFFSET = -0.5
+
+    # this readout is not controlled by the tProc.
+    tproc_ch = None
+
+    def __init__(self, description):
+        super().__init__(description)
+
+        # Downsampling ratio (RFDC samples per decimated readout sample)
+        self.DOWNSAMPLING = self.NCH//2
+        # index of the PFB channel that is centered around DC.
+        self.CH_OFFSET = self.NCH//2
+
+        self.cfg['pfb_nch'] = self.NCH
+        self.cfg['pfb_nout'] = self.NOUT
+        self.cfg['pfb_ch_offset'] = self.CH_OFFSET
+        self.cfg['pfb_dds_on_output'] = self.DDS_ON_OUTPUT
+
+    def configure_connections(self, soc):
+        self.soc = soc
+
+        # what RFDC port drives this readout?
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter", "axis_combiner"])
+        # for dual ADC (ZCU111, RFSoC4x2) the RFDC block has two outputs per ADC, which we combine - look at the first one
+        if blocktype == "axis_combiner":
+            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
+
+        # port names are of the form 'm02_axis' where the block number is always even
+        iTile, iBlock = [int(x) for x in port[1:3]]
+        if soc.hs_adc:
+            iBlock //= 2
+        self.adc = "%d%d" % (iTile, iBlock)
+
+    def configure(self, rf):
+        super().configure(rf)
+        # The DDS range is reduced by both the RF-ADC decimation and the PFB.
+        # The PFB decimation ratio is half the number of channels because it is
+        # an overlap 50 % structure.
+        self.cfg['f_dds'] /= self.DOWNSAMPLING
+        self.cfg['fdds_div'] *= self.DOWNSAMPLING
+
+    def set_freq(self, f, out_ch, sel='product', gen_ch=None, phase=0):
+        """Set up a single PFB output.
+
+        This method is not normally used, it's only for debugging and testing.
+        Normally the PFB is configured based on parameters supplied in QickProgram.declare_readout().
         """
-        Set frequency register (integer version)
+        mixer_freq = None
+        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
+            mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
+        ro_pars = {'freq': f,
+                'phase': phase,
+                'sel': sel,
+                'gen_ch': gen_ch
+                }
+        cfg = self.soc.calc_pfbro_regs(self.cfg, out_ch, ro_pars, mixer_freq)
+        self.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
 
-        :param f_int: frequency value register
-        :type f_int: int
-        """
-        self.freq_reg = np.int64(f_int)
-
-        # Register update.
-        self.update()
-
-    def get_freq(self):
-        return self.freq_reg * self.fs / (2**self.B_DDS)
-
-class AxisPFBReadoutV2(SocIp, AbsReadout):
+class AxisPFBReadoutV2(AbsPFBReadout):
     """
     AxisPFBReadoutV2 class.
 
@@ -200,55 +244,17 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
             'ch3sel_reg': 12,
             }
 
-    # Bits of DDS. 
-    B_DDS = 32
+    # Number of PFB channels.
+    NCH = 8
 
-    IQ_OFFSET = -0.5
+    # Number of outputs.
+    NOUT = 4
 
-    # Downsampling ratio (RFDC samples per decimated readout sample)
-    DOWNSAMPLING = 4
+    # The DDS is per-channel, not per-output.
+    DDS_ON_OUTPUT = False
 
-    # index of the PFB channel that is centered around DC.
-    CH_OFFSET = 4
-
-    # this readout is not controlled by the tProc.
-    tproc_ch = None
-
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-        self.initialize()
-
-    def configure(self, rf):
-        super().configure(rf)
-        # The DDS range is reduced by both the RF-ADC decimation and the PFB.
-        self.cfg['f_dds'] /= 4
-        self.cfg['fdds_div'] *= 4
-
-    def configure_connections(self, soc):
-        self.soc = soc
-
-        # what RFDC port drives this readout?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter", "axis_combiner"])
-        # for dual ADC (ZCU111, RFSoC4x2) the RFDC block has two outputs per ADC, which we combine - look at the first one
-        if blocktype == "axis_combiner":
-            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-
-        # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
-
-    def initialize(self):
-        """
-        Set up local variables to track definitions of frequencies or readout modes.
-        """
-        self.ch_freqs = {}
-        self.sel = None
-        self.out_chs = {}
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
 
     def set_out(self, sel="product"):
         """
@@ -257,63 +263,22 @@ class AxisPFBReadoutV2(SocIp, AbsReadout):
         :param sel: select mux control
         :type sel: int
         """
-        if self.sel is not None and sel != self.sel:
-            raise RuntimeError("trying to set output mode to %s, but mode was previously set to %s"%(sel, self.sel))
-        self.sel = sel
         self.outsel_reg = {"product": 0, "input": 1, "dds": 2}[sel]
 
-    def set_freq(self, f, out_ch, gen_ch=0):
-        """
-        Select the best PFB channel for reading out the requested frequency.
-        Set that channel's frequency register, and wire that channel to the specified output of the PFB readout block.
+    def set_freq_int(self, f_int, in_ch, out_ch, phase_int):
+        # it's assumed that channel collisions have already been checked in config_readouts()
+        # we don't check here, so a collision will break the previously set channel
 
-        :param f: frequency in MHz (before adding any DAC mixer frequency)
-        :type f: float
-        :param out_ch: output channel
-        :type out_ch: int
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
-        """
-        # calculate the exact frequency we expect to see
-        ro_freq = f
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
-        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
+        # phase_int is ignored
+        if phase_int != 0:
+            raise RuntimeError("this muxed readout does not support setting the phase")
 
-        nqz = int(ro_freq // (self['fs']/2)) + 1
-        if nqz % 2 == 0: # even Nyquist zone
-            ro_freq *= -1
-        # the PFB channels are separated by half the DDS range
-        # round() gives you the single best channel
-        # floor() and ceil() would give you the 2 best channels
-        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
-        f_steps = int(np.round(ro_freq/(self['f_dds']/2)))
-        f_dds = ro_freq - f_steps*(self['f_dds']/2)
-        in_ch = (self.CH_OFFSET + f_steps) % 8
-
-        # we can calculate the register value without further referencing the gen_ch
-        freq_int = self.soc.freq2int(f_dds, self.cfg)
-        self.set_freq_int(freq_int, in_ch, out_ch)
-
-    def set_freq_int(self, f_int, in_ch, out_ch):
-        if in_ch in self.ch_freqs and f_int != self.ch_freqs[in_ch]:
-            # we are already using this PFB channel, and it's set to a different frequency
-            # now do a bunch of math to print an informative message
-            centerfreq = ((in_ch - self.CH_OFFSET) % 8) * (self['f_dds']/2)
-            lofreq = centerfreq - self['f_dds']/4
-            hifreq = centerfreq + self['f_dds']/4
-            oldfreq = centerfreq + self.soc.int2freq(self.ch_freqs[in_ch], self.cfg)
-            newfreq = centerfreq + self.soc.int2freq(f_int, self.cfg)
-            raise RuntimeError("frequency collision: tried to set PFB output %d to %f MHz and output %d to %f MHz, but both map to the PFB channel that is optimal for [%f, %f] (all freqs expressed in first Nyquist zone)"%(out_ch, newfreq, self.out_chs[in_ch], oldfreq, lofreq, hifreq))
-        self.ch_freqs[in_ch] = f_int
-        self.out_chs[in_ch] = out_ch
         # wire the selected PFB channel to the output
         setattr(self, "ch%dsel_reg"%(out_ch), in_ch)
         # set the PFB channel's DDS frequency
         setattr(self, "freq%d_reg"%(in_ch), f_int)
 
-class AxisPFBReadoutV3(SocIp, AbsReadout):
+class AxisPFBReadoutV3(AbsPFBReadout):
     """
     AxisPFBReadoutV3 class.
 
@@ -340,25 +305,9 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
     PHASE[0-3]_REG  : 32-bit phase of each output channel.
     """
     bindto = ['user.org:user:axis_pfb_readout_v3:1.0']
-    REGISTERS = {   'id0_reg'   : 0,
-                    'id1_reg'   : 1,
-                    'id2_reg'   : 2,
-                    'id3_reg'   : 3,
-                    'freq0_reg' : 4,
-                    'phase0_reg': 5,
-                    'freq1_reg' : 6,
-                    'phase1_reg': 7,
-                    'freq2_reg' : 8,
-                    'phase2_reg': 9,
-                    'freq3_reg' : 10,
-                    'phase3_reg': 11}
 
     # Bits of DDS. 
-    B_DDS = 32
     B_PHASE = 32
-
-    # based on testing this seems like it might really be some weird value like -0.48, even though this makes no sense
-    IQ_OFFSET = -0.5
 
     # Number of lanes of PFB output.
     L_PFB = 8
@@ -366,125 +315,67 @@ class AxisPFBReadoutV3(SocIp, AbsReadout):
     # Number of outputs.
     NOUT = 4
 
-    # this readout is not controlled by the tProc.
-    tproc_ch = None
+    # The DDS is per-output.
+    DDS_ON_OUTPUT = True
+
+    # No output mode selection.
+    HAS_OUTSEL = False
 
     def __init__(self, description):
         """
         Constructor method
         """
-        super().__init__(description)
+
+        # define the register map
+        iReg = 0
+        for i in range(self.NOUT): self.REGISTERS['id%d_reg'%(i)] = i + iReg
+        iReg += self.NOUT
+        for i in range(self.NOUT):
+            self.REGISTERS['freq%d_reg'%(i)] = i + iReg
+            self.REGISTERS['phase%d_reg'%(i)] = i + iReg
 
         # Generics.
-        self.N = int(description['parameters']['N'])
+        self.NCH = int(description['parameters']['N'])
 
-        # Downsampling ratio (RFDC samples per decimated readout sample)
-        self.DOWNSAMPLING = self.N//2
+        super().__init__(description)
 
-        # index of the PFB channel that is centered around DC.
-        self.CH_OFFSET = self.N//2
-
-        self.initialize()
-
-    def configure(self, rf):
-        super().configure(rf)
-        # The DDS range is reduced by both the RF-ADC decimation and the PFB.
-        # The PFB decimation ratio is half the number of channels because it is
-        # an overlap 50 % structure.
-        self.cfg['f_dds'] /= self.N/2
-        self.cfg['fdds_div'] *= self.N//2
-
-    def configure_connections(self, soc):
-        self.soc = soc
-
-        # what RFDC port drives this readout?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter", "axis_combiner"])
-        # for dual ADC (ZCU111, RFSoC4x2) the RFDC block has two outputs per ADC, which we combine - look at the first one
-        if blocktype == "axis_combiner":
-            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-
-        # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
-
-    def initialize(self):
-        """
-        Set up local variables to track definitions of frequencies or readout modes.
-        """
-        self.ch_freqs = {}
-        self.out_chs = {}
-
-    def set_out(self, sel="product"):
-        # There is no output selection option in this readout version.
-        # Function added for backwards compatibility.
-        pass
-
-    def set_freq(self, f, out_ch, gen_ch=0):
-        """
-        Select the best PFB channel for reading out the requested frequency.
-        Set that channel's frequency register, and wire that channel to the specified output of the PFB readout block.
-
-        :param f: frequency in MHz (before adding any DAC mixer frequency)
-        :type f: float
-        :param out_ch: output channel
-        :type out_ch: int
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
-        """
-        # calculate the exact frequency we expect to see
-        ro_freq = f
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
-            ro_freq = self.soc.roundfreq(f, [self.soc['gens'][gen_ch], self.cfg])
-        if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
-            ro_freq += self.soc.gens[gen_ch].get_mixer_freq()
-
-        nqz = int(ro_freq // (self['fs']/2)) + 1
-        if nqz % 2 == 0: # even Nyquist zone
-            ro_freq *= -1
-        # the PFB channels are separated by half the DDS range
-        # round() gives you the single best channel
-        # floor() and ceil() would give you the 2 best channels
-        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
-        f_steps = int(np.round(ro_freq/(self['f_dds']/2)))
-        f_dds = ro_freq - f_steps*(self['f_dds']/2)
-        pfb_ch = (self.CH_OFFSET + f_steps) % self.N
-
-        #print("{}: ro_freq = {}, f_steps = {}, f_dds = {}, pfb_ch = {}".format(self.__class__.__name__, ro_freq, f_steps, f_dds, pfb_ch))
-
-        # we can calculate the register value without further referencing the gen_ch
-        freq_int = self.soc.freq2int(f_dds, self.cfg)
-        self.set_freq_int(freq_int, pfb_ch, out_ch)
-
-    def set_freq_int(self, f_int, pfb_ch, out_ch):
+    def set_freq_int(self, f_int, pfb_ch, out_ch, phase_int):
         # There are 4 outputs. Any PFB channel can be assigned to any output.
         # No need to check for collisions are they are all truly independent.
 
         # Check pfb channel is within allowed range.
-        if (0 <= pfb_ch < self.N):
-            # Compute packet and index fields from pfb channel.
-            packet = int(pfb_ch/self.L_PFB)
-            index  = int(pfb_ch % self.L_PFB)
-            id_val = (index <<8) + packet
+        if pfb_ch not in range(self.NCH):
+            raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(pfb_ch, self.NCH-1))
+        # Check output channel is within allowed range.
+        if out_ch not in range(self.NOUT):
+            raise RuntimeError("Invalid %d output channel. It must be within [0, %d]"%(out_ch, self.NOUT-1))
 
-            # Check output channel is within allowed range.
-            if (0 <= out_ch < self.NOUT):
-                # Set id.
-                setattr(self, "id%d_reg"%(out_ch), id_val)
+        # Compute packet and index fields from pfb channel.
+        packet = int(pfb_ch/self.L_PFB)
+        index  = int(pfb_ch % self.L_PFB)
+        id_val = (index <<8) + packet
 
-                # Set frequency.
-                setattr(self, "freq%d_reg"%(out_ch), f_int)
+        # Set id.
+        setattr(self, "id%d_reg"%(out_ch), id_val)
 
-                # TODO: set phase.
-                setattr(self, "phase%d_reg"%(out_ch), 0)
+        # Set frequency.
+        setattr(self, "freq%d_reg"%(out_ch), f_int)
 
-                #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
-            
-            else:
-                raise RuntimeError("Invalid %d output channel. It must be within [0, %d]"%(out_ch, self.N-1))
-        else:
-            raise RuntimeError("Invalid PFB channel: %d. It must be within [0, %d]"%(self.pfb_ch, self.N-1))
+        # Set phase.
+        setattr(self, "phase%d_reg"%(out_ch), phase_int)
+
+        #print("{}: f_int = {}, pfb_ch = {}, out_ch = {}, packet = {}, index = {}, id_val = {}".format(self.__class__.__name__, f_int, pfb_ch, out_ch, packet, index, id_val))
+
+class AxisPFBReadoutV4(AxisPFBReadoutV3):
+    """
+    AxisPFBReadoutV4 class.
+
+    This is identical to AxisPFBReadoutV3, but with 8 outputs instead of 4.
+    """
+    bindto = ['user.org:user:axis_pfb_readout_v4:1.0']
+
+    # Number of outputs.
+    NOUT = 8
 
 class AxisReadoutV3(AbsReadout):
     """tProc-controlled readout block.
@@ -499,6 +390,9 @@ class AxisReadoutV3(AbsReadout):
     DOWNSAMPLING = 4
 
     IQ_OFFSET = -0.5
+
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
@@ -623,7 +517,7 @@ class AxisAvgBuffer(SocIp):
 
     def configure_connections(self, soc):
         # what readout port drives this buffer?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3"])
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"])
 
         if blocktype == "axis_readout_v3":
             # the V3 readout block has no registers, so it doesn't get a PYNQ driver
@@ -632,9 +526,11 @@ class AxisAvgBuffer(SocIp):
             self.readout.configure_connections(soc)
         else:
             self.readout = getattr(soc, block)
-            if blocktype in ["axis_pfb_readout_v2", "axis_pfb_readout_v3"]:
+            if isinstance(self.readout, AbsPFBReadout):
+                #if blocktype in ["axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"]:
                 # port names are of the form 'm1_axis'
                 self.readoutport = int(port.split('_')[0][1:], 10)
+                self.cfg['pfb_port'] = self.readoutport
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm0_axis')
@@ -693,7 +589,7 @@ class AxisAvgBuffer(SocIp):
         :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
         :type gen_ch: int
         """
-        if isinstance(self.readout, (AxisPFBReadoutV2, AxisPFBReadoutV3)):
+        if isinstance(self.readout, (AxisPFBReadoutV2, AxisPFBReadoutV3, AxisPFBReadoutV4)):
             self.readout.set_freq(f, self.readoutport, gen_ch=gen_ch)
         else:
             self.readout.set_freq(f, gen_ch=gen_ch)

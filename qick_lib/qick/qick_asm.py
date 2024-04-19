@@ -125,9 +125,9 @@ class QickConfig():
             adc = self['adcs'][adcname]
             buflen = readout['buf_maxlen']/readout['f_output']
             if 'tproc_ctrl' in readout:
-                lines.append("\t%d:\t%s - controlled by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
+                lines.append("\t%d:\t%s - configured by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
             else:
-                lines.append("\t%d:\t%s - controlled by PYNQ" % (iReadout, readout['ro_type']))
+                lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                          (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
@@ -247,7 +247,7 @@ class QickConfig():
         return dict1['fs_mult'] * (self['refclk_freq']/dict1['fdds_div']) / 2**dict1['b_dds']
 
     def calc_fstep(self, dicts):
-        """Finds the least common multiple of the frequency steps of two or more channels (typically a generator and readout)
+        """Finds the least common multiple of the frequency steps of one or more channels (typically two, a generator and a readout)
         For proper frequency matching, you should only use frequencies that are evenly divisible by this value.
         The order of the parameters does not matter.
 
@@ -261,13 +261,16 @@ class QickConfig():
         float
             frequency step common to all channels
         """
-        # find the multiplier from channel 1's minimum step size to the common step size
-        step_int1 = self.calc_fstep_int(dicts[0], dicts[1:])
-        # multiply channel 1's step size by the multiplier
-        return step_int1 * self.ch_fstep(dicts[0])
+        fstep = self.ch_fstep(dicts[0])
+        if len(dicts) > 1:
+            # find the multiplier from channel 1's minimum step size to the common step size
+            step_int1 = self.calc_fstep_int(dicts[0], dicts[1:])
+            # multiply channel 1's step size by the multiplier
+            fstep *= step_int1
+        return fstep
 
     def roundfreq(self, f, dicts):
-        """Round a frequency to the LCM of the frequency steps of two or more channels (typically a generator and readout).
+        """Round a frequency to the LCM of the frequency steps of one or more channels (typically two, a generator and a readout).
 
         Parameters
         ----------
@@ -280,7 +283,6 @@ class QickConfig():
         -------
         float or array
             rounded frequency (MHz)
-
         """
         fstep = self.calc_fstep(dicts)
         return np.round(f/fstep) * fstep
@@ -303,7 +305,6 @@ class QickConfig():
         -------
         int
             Re-formatted frequency
-
         """
         if otherch is None:
             step_int = 1
@@ -479,6 +480,42 @@ class QickConfig():
         mixercfg['b_dds'] = 48
         return mixercfg
 
+    def deg2int(self, deg, thisch):
+        """Converts phase in degrees to integer value suitable for writing to a register.
+        This method works for both generators and readouts.
+
+        Parameters
+        ----------
+        deg : float
+            phase (degrees)
+        thisch : dict
+            config dict for the channel you're configuring
+
+        Returns
+        -------
+        int
+            Re-formatted phase
+        """
+        return to_int(deg, 2**thisch['b_phase']/360, parname='phase') % 2**thisch['b_phase']
+
+    def int2deg(self, r, thisch):
+        """Converts register value to degrees.
+        This method works for both generators and readouts.
+
+        Parameters
+        ----------
+        r : int
+            register value
+        thisch : dict
+            config dict for the channel you're configuring
+
+        Returns
+        -------
+        float
+            Re-formatted phase (degrees)
+        """
+        return r / (2**thisch['b_phase'] / 360)
+
     def deg2reg(self, deg, gen_ch=0, ro_ch=None):
         """Converts degrees into phase register values; numbers greater than 360 will effectively be wrapped.
 
@@ -499,8 +536,7 @@ class QickConfig():
         ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
-        b_phase = ch_cfg['b_phase']
-        return to_int(deg, 2**b_phase/360, parname='phase') % 2**b_phase
+        return self.deg2int(deg, ch_cfg)
 
     def reg2deg(self, r, gen_ch=0, ro_ch=None):
         """Converts phase register values into degrees.
@@ -522,8 +558,7 @@ class QickConfig():
         ch_cfg = self._get_ch_cfg(gen_ch=gen_ch, ro_ch=ro_ch)
         if ch_cfg is None:
             raise RuntimeError("must specify either gen_ch or ro_ch!")
-        b_phase = ch_cfg['b_phase']
-        return r / (2**b_phase / 360)
+        return self.int2deg(r, ch_cfg)
 
     def cycles2us(self, cycles, gen_ch=None, ro_ch=None):
         """Converts clock cycles to microseconds.
@@ -607,10 +642,10 @@ class QickConfig():
         cfg = {}
         cfg['userval'] = mixer_freq
         gencfg = self['gens'][gen_ch]
+        mixercfg = self._get_mixer_cfg(gen_ch)
         if ro_ch is None:
-            rounded_f = f
+            rounded_f = self.roundfreq(mixer_freq, [mixercfg])
         else:
-            mixercfg = self._get_mixer_cfg(gen_ch)
             rounded_f = self.roundfreq(mixer_freq, [mixercfg, self['readouts'][ro_ch]])
         cfg['rounded'] = rounded_f
         if abs(rounded_f) > gencfg['fs']/2 and nqz==2:
@@ -619,7 +654,7 @@ class QickConfig():
             cfg['setval'] = rounded_f
         return cfg
 
-    def calc_mux_regs(self, gen_ch, freqs, gains, phases, ro_ch):
+    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch):
         """Calculate the register values to program into a multiplexed generator.
         """
         gencfg = self['gens'][gen_ch]
@@ -642,6 +677,154 @@ class QickConfig():
                 tone['phase_rounded'] = self.reg2deg(tone['phase_int'], gen_ch=gen_ch)
             tones.append(tone)
         return tones
+
+    def calc_ro_regs(self, rocfg, ro_pars, mixer_freq):
+        """Calculate the settings to configure a readout.
+
+        Parameters
+        ----------
+        rocfg : dict
+            firmware config dictionary for the readout chain
+        ro_pars : dict
+            readout parameters, from declare_readout()
+        mixer_freq : float or None
+            upconversion frequency of the specified generator's digital mixer (MHz)
+            assumed to be rounded to the mixer and readout frequency steps
+
+        Returns
+        -------
+        dict
+            settings for QickSoc.config_readout()
+        """
+        gen_ch = ro_pars['gen_ch']
+
+        ro_reg = {}
+        ro_reg['sel'] = ro_pars['sel']
+
+        # calculate phase register
+        ro_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
+        ro_reg['phase_rounded'] = self.int2deg(ro_reg['phase_int'], rocfg)
+
+        # now do frequency stuff
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
+            if mixer_freq is not None:
+                ro_reg['freq_rounded'] += mixer_freq
+        else:
+            # round to RO frequency
+            ro_reg['freq_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
+        ro_reg['freq_int'] = self.freq2int(ro_reg['freq_rounded'], rocfg)
+        return ro_reg
+
+    def calc_pfbro_regs(self, rocfg, pfb_port, ro_pars, mixer_freq):
+        """Calculate the PFB settings to configure a readout chain.
+
+        Parameters
+        ----------
+        rocfg : dict
+            firmware config dictionary for the PFB or the readout chain
+        pfb_port : int
+            index of the PFB output port
+        ro_pars : dict
+            readout parameters, from declare_readout()
+        mixer_freq : float or None
+            upconversion frequency of the specified generator's digital mixer (MHz)
+            assumed to be rounded to the mixer and readout frequency steps
+
+        Returns
+        -------
+        dict
+            PFB settings for QickSoc.config_mux_readout()
+        """
+        gen_ch = ro_pars['gen_ch']
+        pfb_reg = {}
+        pfb_reg['pfb_port'] = pfb_port
+        pfb_reg['sel'] = ro_pars['sel']
+        # calculate phase register
+        pfb_reg['phase_int'] = self.deg2int(ro_pars['phase'], rocfg)
+
+        # now do frequency stuff
+        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+            freq = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
+            if mixer_freq is not None:
+                freq += mixer_freq
+        else:
+            # round to RO frequency (if gen_ch was defined the frequency should already be rounded)
+            freq = self.roundfreq(ro_pars['freq'], [rocfg])
+        pfb_reg['rounded'] = freq
+
+        nqz = int(freq // (rocfg['fs']/2)) + 1
+        if nqz % 2 == 0: # even Nyquist zone
+            freq *= -1
+
+        # fold into 1st nyquist zone
+        freq %= rocfg['fs']
+        pfb_reg['folded'] = freq
+
+        # the PFB channels are separated by half the DDS range
+        # round() gives you the single best channel
+        # floor() and ceil() would give you the 2 best channels
+        # if you have two RO frequencies close together, you might need to force one of them onto a non-optimal channel
+        f_steps = int(np.round(freq/(rocfg['f_dds']/2)))
+        f_dds = freq - f_steps*(rocfg['f_dds']/2)
+        pfb_reg['fdds'] = f_dds
+        pfb_reg['pfb_lo'] = (f_steps-0.5) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_hi'] = (f_steps+0.5) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_center'] = f_steps * (rocfg['f_dds']/2)
+        pfb_reg['pfb_lolo'] = max(f_steps-1, 0) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_hihi'] = min(f_steps+1, rocfg['pfb_nch']) * (rocfg['f_dds']/2)
+        pfb_reg['pfb_ch'] = (rocfg['pfb_ch_offset'] + f_steps) % rocfg['pfb_nch']
+        pfb_reg['fdds_int'] = self.freq2int(f_dds, rocfg)
+        return pfb_reg
+
+    def check_pfb_collisions(self, rocfg, cfg1, cfgs):
+        """Check whether the specified PFB config collides or interefers with any others.
+        If this PFB block can't put two readouts on the same channel, this method will raise an error on collisions.
+        Possible crosstalk will be identified in warnings.
+
+        Parameters
+        ----------
+        rocfg : dict
+            firmware config dictionary for the PFB or the readout chain
+        cfg1 : dict
+            PFB config to check
+        cfgs : list of dict
+            PFB configs to check cfg1 against
+        """
+        for cfg2 in cfgs:
+            if cfg2['rounded'] == cfg1['rounded']:
+                # it's fine to set two PFB outputs to identical frequencies
+                continue
+            if cfg2['pfb_ch'] == cfg1['pfb_ch']:
+                p = {k:[x[k] for x in [cfg1, cfg2]] for k in ['rounded', 'folded']}
+                message = []
+                message.append('Two tones on same PFB channel:')
+                message.append("You have readouts at frequencies %.3f and %.3f MHz."% (cfg1['rounded'], cfg2['rounded']))
+                message.append("(after rounding and accounting for the generator's digital mixer, if applicable).")
+                message.append("Both map to the same PFB channel. In terms of the ADC's first Nyquist zone:")
+                message.append("The tone frequencies are %.3f and %.3f MHz, and"% (cfg1['folded'], cfg2['folded']))
+                message.append("the PFB channel range is [%.3f, %.3f] MHz."% (cfg1['pfb_lo'], cfg2['pfb_hi']))
+                if rocfg['pfb_dds_on_output']:
+                    message.append("This is allowed, but you should expect crosstalk if you play one tone while reading out the other.")
+                    logger.warning('\n'.join(message))
+                else:
+                    message.append("The PFB used in your firmware does not allow reading out two tones on the same channel.")
+                    raise RuntimeError('\n'.join(message))
+            else:
+                # no collision, but we must check if either tone is in the overlap region of the other tone's channel
+                if np.abs(cfg2['folded'] - cfg1['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg1['rounded'], cfg2['rounded']))
+                    #source = cfg2
+                    #victim = cfg1
+                    #message = []
+                    #message.append("Possible PFB crosstalk:")
+                    #message.append("You have declared a readout at %s MHz, or %s MHz after Nyquist folding."% (victim['rounded'], victim['folded']))
+                    #message.append("The PFB channel for this tone is sensitive over [%f, %f] MHz."% (victim['pfb_lolo'], victim['pfb_hihi']))
+                    #message.append("You have declared another readout at %s MHz, or %s MHz after Nyquist folding."% (source['rounded'], source['folded']))
+                    #message.append("The readout at %s MHz may see some crosstalk from the tone at %s MHz." % (victim['rounded'], source['rounded']))
+                    #logger.warning('\n'.join(message))
+                if np.abs(cfg1['folded'] - cfg2['pfb_center']) < rocfg['f_dds']/2:
+                    logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg2['rounded'], cfg1['rounded']))
 
 class DummyIp:
     """Stores the configuration constants for a firmware IP block.
@@ -686,6 +869,8 @@ class AbsQickProgram:
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg']
 
+    # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
+    USER_DURATIONS = False
 
     def __init__(self, soccfg):
         """
@@ -841,8 +1026,9 @@ class AbsQickProgram:
         # if start_src="external", it won't actually start until it sees a pulse
         soc.start_tproc()
 
-    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
+    def declare_readout(self, ch, length, freq=None, phase=0, sel='product', gen_ch=None):
         """Add a channel to the program's list of readouts.
+        Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
         Parameters
         ----------
@@ -850,35 +1036,43 @@ class AbsQickProgram:
             readout channel number (index in 'readouts' list)
         freq : float
             downconverting frequency (MHz)
-        length : int
-            readout length (number of samples)
+        phase : float
+            phase (degrees)
+        length : int or float
+            readout length (number of decimated samples for tProc v1, us for tProc v2)
         sel : str
             output select ('product', 'dds', 'input')
         gen_ch : int
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         ro_cfg = self.soccfg['readouts'][ch]
+        # the number of triggers per shot will be filled in later, by trigger() or set_read_per_shot()
+        cfg = {'trigs': 0}
+        if self.USER_DURATIONS:
+            cfg['length'] = self.us2cycles(ro_ch=ch, us=length)
+        else:
+            cfg['length'] = length
+        cfg['length_us'] = self.cycles2us(cfg['length'], ro_ch=ch)
+        # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
+        # and the sum buffer values are 32 bit signed
+        # TODO: check this math
+        if cfg['length'] > 2**(31-15):
+            logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
+
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
+            if sel != 'product' and not ro_cfg['has_outsel']:
+                raise RuntimeError("sel parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            cfg['sel'] = sel
+            if phase != 0 and 'b_phase' not in ro_cfg:
+                raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
+            cfg['phase'] = phase
             if freq is None:
-                raise RuntimeError("frequency must be declared for a PYNQ-controlled readout")
-            # this number comes from the fact that the ADC is 12 bit + 3 bits from decimation = 15 bit
-            # and the sum buffer values are 32 bit signed
-            if length > 2**(31-15):
-                logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
-            cfg = {
-                    'freq': freq,
-                    'length': length,
-                    'sel': sel,
-                    'gen_ch': gen_ch,
-                    'trigs': 0
-                    }
+                raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
+            cfg['freq'] = freq
+            cfg['gen_ch'] = gen_ch
         else: # readout is controlled by tProc
             if (freq is not None) or sel!='product' or (gen_ch is not None):
                 raise RuntimeError("this is a tProc-controlled readout - freq/sel parameters are set using tProc instructions")
-            cfg = {
-                    'length': length,
-                    'trigs': 0
-                    }
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -889,12 +1083,37 @@ class AbsQickProgram:
         ----------
         soc : QickSoc
             the QickSoc that will execute this program
-
         """
-        soc.init_readouts()
+        # because readout freqs need to account for mixer freqs, we can only compute readout registers here, after we know all gens have been declared
         for ch, cfg in self.ro_chs.items():
-            if 'tproc_ctrl' not in self.soccfg['readouts'][ch]:
-                soc.configure_readout(ch, output=cfg['sel'], frequency=cfg['freq'], gen_ch=cfg['gen_ch'])
+            rocfg = self.soccfg['readouts'][ch]
+            if 'tproc_ctrl' not in rocfg:
+                if cfg['gen_ch'] is not None and cfg['gen_ch'] in self.gen_chs and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
+                    mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
+                else:
+                    mixer_freq = None
+                if 'pfb_port' in rocfg:
+                    # if this is a muxed readout, compute the settings but don't write them yet
+                    cfg['pfb_config'] = self.soccfg.calc_pfbro_regs(rocfg, rocfg['pfb_port'], cfg, mixer_freq)
+                    cfg['pfb_config']['pfb_path'] = rocfg['ro_fullpath']
+                else:
+                    # if this is a standard readout, save the settings and write them to the readout
+                    cfg['ro_config'] = self.soccfg.calc_ro_regs(rocfg, cfg, mixer_freq)
+                    soc.configure_readout(ch, cfg['ro_config'])
+        # store PFB parameters in PFB list so we can check for collisions and configure the PFB
+        pfbs = defaultdict(list)
+        for ch, cfg in self.ro_chs.items():
+            if 'pfb_config' in cfg:
+                pfb_reg = cfg['pfb_config']
+                rocfg = self.soccfg['readouts'][ch]
+                self.soccfg.check_pfb_collisions(rocfg, pfb_reg, pfbs[pfb_reg['pfb_path']])
+                pfbs[pfb_reg['pfb_path']].append(pfb_reg)
+        # write the mux settings
+        for pfbpath, pfb_regs in pfbs.items():
+            sels = [x['sel'] for x in pfb_regs]
+            if len(set(sels)) != 1:
+                raise RuntimeError("all declared readouts on a muxed readout must have the same 'sel' setting, you have %s" % (sels))
+            soc.config_mux_readout(pfbpath, pfb_regs, sels[0])
 
     def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
@@ -908,7 +1127,6 @@ class AbsQickProgram:
             enable the accumulated (averaging) buffer
         enable_buf : bool
             enable the decimated (waveform) buffer
-
         """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
@@ -964,7 +1182,7 @@ class AbsQickProgram:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
                 logger.warning("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
-            cfg['mux_tones'] = self.soccfg.calc_mux_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
@@ -988,7 +1206,7 @@ class AbsQickProgram:
             if 'mixer_freq' in cfg:
                 soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
             if 'mux_tones' in cfg:
-                soc.set_mux_tones(ch, cfg['mux_tones'])
+                soc.config_mux_gen(ch, cfg['mux_tones'])
 
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the list of envelope waveforms available for this channel.
@@ -1032,83 +1250,107 @@ class AbsQickProgram:
         self.envelopes[ch]['envs'][name] = {"data": data, "addr": self.envelopes[ch]['next_addr']}
         self.envelopes[ch]['next_addr'] += length
 
-    def add_cosine(self, ch, name, length, maxv=None):
-        """Adds a Cosine pulse to the waveform library.
-        The pulse will peak at after ramp until length and then ramp down again with ramp.
-        The total length is 2*ramp+length.
+    def add_cosine(self, ch, name, length, maxv=None, even_length=False):
+        """Adds a cosine to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
+            Name of the envelope
         length : int
-            Total pulse length (in units of fabric clocks)
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+        else:
+            lenreg = np.round(length)
+        # convert to number of samples
+        lenreg *= samps_per_clk
 
-        self.add_pulse(ch, name, idata=cosine(length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=cosine(length=lenreg, maxv=maxv))
 
-    def add_gauss(self, ch, name, sigma, length, maxv=None):
-        """Adds a Gaussian pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
+        """Adds a Gaussian to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
+            Name of the envelope
         sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Standard deviation of the Gaussian (in fabric clocks or us)
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        else:
+            lenreg = np.round(length)
+            sigreg = np.round(sigma)
 
-        self.add_envelope(ch, name, idata=gauss(mu=length/2-0.5, si=sigma, length=length, maxv=maxv))
+        # convert to number of samples
+        lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
 
+        self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
-    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None):
-        """Adds a DRAG pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None, even_length=False):
+        """Adds a DRAG to the envelope library.
+        The envelope will peak at length/2.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
-        sigma : float
-            Standard deviation of the Gaussian (in units of fabric clocks)
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Name of the envelope
+        sigma : float or float
+            Standard deviation of the Gaussian (in fabric clocks or us)
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
         delta : float
             anharmonicity of the qubit (units of MHz)
         alpha : float
             alpha parameter of DRAG (order-1 scale factor)
-
-        Returns
-        -------
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
@@ -1117,36 +1359,60 @@ class AbsQickProgram:
 
         delta /= samps_per_clk*f_fabric
 
-        length = np.round(length) * samps_per_clk
-        sigma *= samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+        else:
+            lenreg = np.round(length)
+            sigreg = np.round(sigma)
 
-        idata, qdata = DRAG(mu=length/2-0.5, si=sigma, length=length, maxv=maxv, alpha=alpha, delta=delta)
+        # convert to number of samples
+        lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
+
+        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
 
         self.add_envelope(ch, name, idata=idata, qdata=qdata)
 
-    def add_triangle(self, ch, name, length, maxv=None):
-        """Adds a triangle pulse to the waveform library.
-        The pulse will peak at length/2.
+    def add_triangle(self, ch, name, length, maxv=None, even_length=False):
+        """Adds a triangle to the envelope library.
+        The envelope will peak at length/2.
+        Duration units depend on the program type: tProc v1 programs use integer number of fabric clocks, tProc v2 programs use float us.
 
         Parameters
         ----------
         ch : int
             generator channel (index in 'gens' list)
         name : str
-            Name of the pulse
-        length : int
-            Total pulse length (in units of fabric clocks)
+            Name of the envelope
+        length : int or float
+            Total envelope length (in fabric clocks or us)
         maxv : float
             Value at the peak (if None, the max value for this generator will be used)
-
+        even_length : bool
+            If length is in us, round the envelope length to an even number of fabric clock cycles.
+            This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
-        length = np.round(length) * samps_per_clk
+        # convert to integer number of fabric clocks
+        if self.USER_DURATIONS:
+            if even_length:
+                lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
+            else:
+                lenreg = self.us2cycles(gen_ch=ch, us=length)
+        else:
+            lenreg = np.round(length)
+        # convert to number of samples
+        lenreg *= samps_per_clk
 
-        self.add_envelope(ch, name, idata=triang(length=length, maxv=maxv))
+        self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
 
     def load_pulses(self, soc):
         """Loads pulses that were added using add_envelope into the SoC's signal generator memories.

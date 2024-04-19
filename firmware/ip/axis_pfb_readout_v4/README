@@ -1,0 +1,9 @@
+This block has 3 main components:
+* Polyphse Filter Bank with 64 channels, 50 % overlap, x32 decimation.
+* Channel selector to grab 8 channels from the PFB.
+* Eight phase-coherent DDSs with frequency/phase settings.
+
+The 8 outputs are independent from each other. The same PFB channels can
+be routed multiple times to individual outputs, and apply a different
+DDS down-conversion frequency.
+

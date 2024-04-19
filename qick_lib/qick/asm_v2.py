@@ -931,6 +931,9 @@ class QickProgramV2(AbsQickProgram):
                 'axis_sg_mux8_v1': MultiplexedGenManager,
                 }
 
+    # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
+    USER_DURATIONS = True
+
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
@@ -1121,39 +1124,6 @@ class QickProgramV2(AbsQickProgram):
         lines.append("expanded ASM:")
         lines.extend(textwrap.indent(self.asm(), "\t").splitlines())
         return "\n".join(lines)
-
-    # natural-units wrappers for methods of AbsQickProgram
-
-    def add_gauss(self, ch, name, sigma, length, maxv=None, even_length=False):
-        """Adds a Gaussian envelope to the envelope library.
-        The Gaussian will peak at length/2.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            Name of the envelope
-        sigma : float
-            Standard deviation of the Gaussian (in units of us)
-        length : float
-            Total pulse length (in units of us)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
-        even_length : bool
-            Round the envelope length to an even number of fabric clock cycles.
-            This is useful for flat_top pulses, where the envelope gets split into two halves.
-        """
-        if even_length:
-            lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
-        else:
-            lenreg = self.us2cycles(gen_ch=ch, us=length)
-        sigreg = self.us2cycles(gen_ch=ch, us=sigma)
-        super().add_gauss(ch, name, sigreg, lenreg, maxv)
-
-    def declare_readout(self, ch, length, freq=None, sel='product', gen_ch=None):
-        lenreg = self.us2cycles(ro_ch=ch, us=length)
-        super().declare_readout(ch, lenreg, freq, sel, gen_ch)
 
     # waves+pulses
 

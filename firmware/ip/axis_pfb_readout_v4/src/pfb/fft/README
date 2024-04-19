@@ -1,0 +1,9 @@
+This block integrates Xilinx's SSR FFT, generated with Syetem Generator.
+
+The top level also includes the framing block, which aligns the data with
+the input TLAST to ensure data is properly aligned.
+
+NOTE: This implementation does not use pkt_align block, which allows to
+buffer packets in the case tvalid drops in the middle of a frame. This 
+simplified implementation will just discard samples and re-sync again.
+

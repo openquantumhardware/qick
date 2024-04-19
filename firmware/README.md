@@ -89,6 +89,14 @@ RFDC ADC settings:
 
 connect: RFDC -> axis register slice (optional, defaults) -> readout
 
+### tProc-configured readout (`axis_readout_v3`):
+
+RFDC ADC settings: same as standard
+
+connect:
+* RFDC -> axis clock converter (optional, defaults) -> axis resampler (B=16, N=8) -> axis register slice (optional, fully-registered) ->  readout, s1_axis
+* tProc -> axis clock converter or cdcsync -> readout, s0_axis
+
 ### mux readout (`axis_pfb_readout_v2`) on 111:
 
 RFDC ADC settings:
@@ -126,7 +134,7 @@ RFDC DAC settings:
 * Mixer Type: Coarse
 * Mixer Mode: Real->Real
 
-### mux gen (`axis_sg_mux4_v2`):
+### mux gen (`axis_sg_mux4`) v1 or v2:
 
 gen settings: N_DDS=4
 
@@ -136,6 +144,12 @@ RFDC DAC settings:
 * Datapath Mode: DUC 0 to Fs/2
 * Mixer Type: Fine
 * Mixer Mode: I/Q->Real
+
+### mux gen v3 (`axis_sg_mux4_v3`):
+
+gen settings: N Dds=16
+
+RFDC DAC settings: same as full-speed
 
 ### I/Q gen (`axis_constant_iq`):
 

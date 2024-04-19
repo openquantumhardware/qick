@@ -111,7 +111,7 @@ class RFDC(xrfdc.RFdc):
         self.daccfg = soc['dacs']
         self.adccfg = soc['adcs']
 
-    def set_mixer_freq(self, dacname, f, force=False, reset=False):
+    def set_mixer_freq(self, dacname, f, phase_reset=True, force=False):
         """
         Set the NCO frequency that will be mixed with the generator output.
 
@@ -125,8 +125,8 @@ class RFDC(xrfdc.RFdc):
         :type f: float
         :param force: force update, even if the setting is the same
         :type force: bool
-        :param reset: if we change the frequency, also reset the NCO's phase accumulator
-        :type reset: bool
+        :param phase_reset: if we change the frequency, also reset the NCO's phase accumulator
+        :type phase_reset: bool
         """
         if not force and f == self.get_mixer_freq(dacname):
             return
@@ -144,9 +144,11 @@ class RFDC(xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
-        if reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
         self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
+        # The phase reset is mostly important when setting the frequency to 0: you want the NCO to end up at 1 instead of a complex value.
+        # So we apply the reset after setting the new frequency (otherwise you accumulate some rotation before stopping the NCO).
+        if phase_reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
         self.mixer_dict[dacname] = f
 
     def get_mixer_freq(self, dacname):
@@ -342,7 +344,6 @@ class QickSoc(Overlay, QickConfig):
 
         # Readout blocks.
         self.readouts = []
-        ro_drivers = set([AxisReadoutV2, AxisPFBReadoutV2, AxisPFBReadoutV3])
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
@@ -350,7 +351,7 @@ class QickSoc(Overlay, QickConfig):
                 self.gens.append(getattr(self, key))
             elif val['driver'] == AxisConstantIQ:
                 self.iqs.append(getattr(self, key))
-            elif val['driver'] in ro_drivers:
+            elif issubclass(val['driver'], AbsReadout):
                 self.readouts.append(getattr(self, key))
             elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
@@ -656,33 +657,19 @@ class QickSoc(Overlay, QickConfig):
         # we remove the padding here
         return data[2:length+2]
 
-    def init_readouts(self):
-        """
-        Initialize readouts, in preparation for configuring them.
-        """
-        for readout in self.readouts:
-            # if this is a tProc-controlled readout, we don't initialize it here
-            if not isinstance(readout, AxisReadoutV3):
-                readout.initialize()
-
-    def configure_readout(self, ch, output, frequency, gen_ch=0):
+    def configure_readout(self, ch, ro_regs):
         """Configure readout channel output style and frequency.
-        This method is only for use with PYNQ-controlled readouts.
-        :param ch: Channel to configure
-        :type ch: int
-        :param output: output type from 'product', 'dds', 'input'
-        :type output: str
-        :param frequency: frequency
-        :type frequency: float
-        :param gen_ch: DAC channel (use None if you don't want to round to a valid DAC frequency)
-        :type gen_ch: int
+        This method is only for use with PYNQ-configured readouts.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel number (index in 'readouts' list)
+        ro_regs : dict
+            readout registers, from QickConfig.calc_ro_regs()
         """
         buf = self.avg_bufs[ch]
-        buf.readout.set_out(sel=output)
-        buf.set_freq(frequency, gen_ch=gen_ch)
-        # sometimes it seems that we need to update the readout an extra time to make it configure everything correctly?
-        # this has only really been seen with setting the V2 (standard) readout to a downconversion freq of 0.
-        buf.readout.update()
+        buf.readout.set_all_int(ro_regs)
 
     def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
@@ -748,77 +735,83 @@ class QickSoc(Overlay, QickConfig):
 
         self.gens[ch].set_nyquist(nqz)
 
-    def set_mixer_freq(self, ch, f, ro_ch=None):
+    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True):
         """
         Set mixer frequency for a signal generator.
         If the generator does not have a mixer, you will get an error.
 
-        :param ch: DAC channel (index in 'gens' list)
-        :type ch: int
-        :param f: frequency (MHz)
-        :type f: float
-        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
+        Parameters
+        ----------
+        ch : int
+            DAC channel (index in 'gens' list)
+        f : float
+            Mixer frequency (in MHz)
+        ro_ch : int
+            readout channel (index in 'readouts' list) for frequency matching
+            use None if you don't want mixer freq to be rounded to a valid readout frequency
+        phase_reset : bool
+            if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         """
         if self.gens[ch].HAS_MIXER:
-            self.gens[ch].set_mixer_freq(f, ro_ch)
+            self.gens[ch].set_mixer_freq(f, ro_ch, phase_reset=phase_reset)
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
-    def set_mux_freqs(self, ch, freqs, gains=None, phases=None, ro_ch=0):
-        """
-        Set muxed frequencies and gains for a signal generator.
-        If it's not a muxed signal generator, you will get an error.
-
-        Gains can only be specified for a muxed generator with configurable gains.
-        The gain list must be the same length as the freqs list.
-
-        :param ch: DAC channel (index in 'gens' list)
-        :type ch: int
-        :param freqs: frequencies (MHz)
-        :type freqs: list
-        :param gains: gains (in range -1 to 1)
-        :type gains: list
-        :param ro_ch: readout channel (use None if you don't want to round to a valid ADC frequency)
-        :type ro_ch: int
-        """
-        if gains is not None and len(gains) != len(freqs):
-            raise RuntimeError("lengths of freqs and gains lists do not match")
-        if phases is not None and len(phases) != len(freqs):
-            raise RuntimeError("lengths of freqs and phases lists do not match")
-        for ii, f in enumerate(freqs):
-            self.gens[ch].set_freq(f, out=ii, ro_ch=ro_ch)
-            if gains is not None:
-                self.gens[ch].set_gain(gains[ii], out=ii)
-            if phases is not None:
-                self.gens[ch].set_phase(phases[ii], out=ii)
-
-    def set_mux_tones(self, ch, tones):
+    def config_mux_gen(self, ch, tones):
         """Set up a list of tones all at once, using raw (integer) units.
         If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
 
         Parameters
         ----------
-        tones : list of tuple of int
+        ch : int
+            generator channel (index in 'gens' list)
+        tones : list of dict
             Tones to configure.
-            The order of parameters for each tone is (freq, gain, phase).
-            Omit parameters not supported by this version of the generator.
-            All supported parameters must be defined.
+            This is generated by QickConfig.calc_muxgen_regs().
         """
         self.gens[ch].set_tones_int(tones)
 
-    def set_iq(self, ch, f, i, q):
+    def config_mux_readout(self, pfbpath, cfgs, sel='product'):
+        """Set up a list of readout frequencies all at once, using raw (integer) units.
+
+        Parameters
+        ----------
+        pfbpath : str
+            Firmware path of the PFB readout being configured.
+        cfgs : list of dict
+            Readout chains to configure.
+            This is generated by QickConfig.calc_pfbro_regs().
+        sel : str
+            Output selection (if supported)
+        """
+        pfb = getattr(self, pfbpath)
+        if pfb.HAS_OUTSEL:
+            pfb.set_out(sel)
+        else:
+            if sel != 'product':
+                raise RuntimeError("this readout only supports sel='product', you have sel=%s" % (sel))
+        for cfg in cfgs:
+            pfb.set_freq_int(cfg['fdds_int'], cfg['pfb_ch'], cfg['pfb_port'], cfg['phase_int'])
+
+    def set_iq(self, ch, f, i, q, ro_ch=None, phase_reset=True):
         """
         Set frequency, I, and Q for a constant-IQ output.
 
-        :param ch: IQ channel (index in 'iqs' list)
-        :type ch: int
-        :param f: frequency (MHz)
-        :type f: float
-        :param i: I value (in range -1 to 1)
-        :type i: float
-        :param q: Q value (in range -1 to 1)
-        :type q: float
+        Parameters
+        ----------
+        ch : int
+            DAC channel (index in 'gens' list)
+        f : float
+            frequency (in MHz)
+        i : float
+            I value (in range -1 to 1)
+        q : float
+            Q value (in range -1 to 1)
+        ro_ch : int
+            readout channel (index in 'readouts' list) for frequency matching
+            use None if you don't want freq to be rounded to a valid readout frequency
+        phase_reset : bool
+            if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         """
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
