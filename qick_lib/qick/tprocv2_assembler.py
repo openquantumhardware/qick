@@ -2090,7 +2090,7 @@ class Instruction():
 
     @staticmethod
     def WAIT (current : dict) -> tuple:
-        print(current)
+        # print(current)
         error   = 0
         binary_multi_list = []
         current['ADDR'] = '&'+str(current['P_ADDR'])
