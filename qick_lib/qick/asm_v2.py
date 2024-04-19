@@ -353,7 +353,7 @@ class Wait(Macro):
         if isinstance(t_reg, QickRegister):
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
         else:
-            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
+            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
 
 class Delay(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
@@ -370,7 +370,7 @@ class Delay(Macro):
         if isinstance(t_reg, QickRegister):
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
         else:
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
 
 class Pulse(Macro):
     # ch, name, t
@@ -518,7 +518,7 @@ class EndLoop(Macro):
 
         # increment and test the loop counter
         lreg = prog.reg_dict[lname]
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr} - #1', 'UF':'1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
@@ -535,7 +535,7 @@ class EndLoop(Macro):
 class SetReg(Macro):
     # reg, val
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)}, addr_inc=1)]
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "#%d"%(self.val)}, addr_inc=1)]
 
 class IncReg(Macro):
     # reg, val
@@ -557,15 +557,18 @@ class CondJump(Macro):
             raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
                                %(self.val2, self.reg2))
         elif nvals==1:
+            if self.op is None:
+                raise RuntimeError("a second operand was supplied, but no operation")
             op = {'+': '+',
                   '-': '-',
                   '>>': 'ASR',
                   '&': 'AND'}[self.op]
             v2 = self.reg2 if self.val2 is None else '#%d'%(self.val2)
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': " ".join([self.reg1, op, v2]), 'UF': '1'}, addr_inc=1))
         else:
-            v2 = None
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+            if self.op is not None:
+                raise RuntimeError("an operation was supplied, but no second operand")
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1, 'UF': '1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
         return insts
 
@@ -1078,7 +1081,7 @@ class QickProgramV2(AbsQickProgram):
         # initialize sweep registers
         for reg in self.reg_dict.values():
             if reg.sweep is not None:
-                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
+                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'#{reg.sweep.start}'})
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
