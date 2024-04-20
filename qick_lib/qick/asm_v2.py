@@ -125,10 +125,14 @@ class QickSweepRaw(SimpleClass):
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
-            # to avoid overflow, values are rounded towards zero using np.trunc()
-            stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
-            if stepsize==0:
-                raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
+            if nSteps==1:
+                # a loop with one step isn't really a sweep
+                stepsize = 0
+            else:
+                # to avoid overflow, values are rounded towards zero using np.trunc()
+                stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
+                if stepsize==0:
+                    raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __mul__(self, a):
@@ -277,13 +281,18 @@ class Macro(SimpleNamespace):
     def convert_time(self, prog, t, name):
         # helper method, to be used in preprocess()
         # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
+        # return actual (rounded, stepped) time value
         t_reg = prog.us2cycles(t)
         if isinstance(t_reg, QickSweepRaw):
             t_reg = prog.new_reg(sweep=t_reg)
             t_reg.sweep.to_steps(prog.loop_dict)
+            t_rounded = prog.cycles2us(t_reg.sweep)
+        else:
+            t_rounded = prog.cycles2us(t_reg)
         if not hasattr(self, "t_reg"):
             self.t_reg = {}
         self.t_reg[name] = t_reg
+        return t_rounded
 
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
@@ -343,11 +352,16 @@ class IncrementWave(Macro):
 class Wait(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
+        wait = self.t
         if self.auto:
-            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            self.convert_time(prog, max_t + self.t, "t")
-        else:
-            self.convert_time(prog, self.t, "t")
+            wait += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+        if isinstance(wait, QickSweep):
+            # TODO: maybe rounding up should be optional?
+            # TODO: track wait time in timestamps?
+            waitmax = wait.maxval()
+            logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
+            wait = waitmax
+        wait_rounded = self.convert_time(prog, wait, "t")
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
@@ -358,13 +372,12 @@ class Wait(Macro):
 class Delay(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
+        delay = self.t
         if self.auto:
-            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            self.convert_time(prog, max_t+self.t, "t")
-            prog.reset_timestamps()
-        else:
-            self.convert_time(prog, self.t, "t")
-            prog.decrement_timestamps(self.t)
+            # TODO: check for cases where auto doesn't work
+            delay += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+        delay_rounded = self.convert_time(prog, delay, "t")
+        prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
