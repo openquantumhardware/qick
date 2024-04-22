@@ -125,9 +125,10 @@ class QickSweepRaw(SimpleClass):
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
-            if nSteps==1:
-                # a loop with one step isn't really a sweep
+            if nSteps==1 or r==0:
+                # a loop with one step or zero span isn't really a sweep, we can set a stepsize of 0
                 stepsize = 0
+                # TODO: continue, and get rid of zero sweep checks?
             else:
                 # to avoid overflow, values are rounded towards zero using np.trunc()
                 stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
@@ -509,7 +510,8 @@ class EndLoop(Macro):
         for wave in prog.waves:
             spans_to_apply = []
             for sweep in wave.sweeps():
-                if lname in sweep.steps:
+                # skip zero sweeps
+                if lname in sweep.steps and sweep.steps[lname]['step']!=0:
                     spans_to_apply.append((sweep.par, sweep.steps[lname]))
             if spans_to_apply:
                 wave_sweeps.append((wave.name, spans_to_apply))
@@ -517,7 +519,8 @@ class EndLoop(Macro):
         # check for register sweeps
         reg_sweeps = []
         for reg in prog.reg_dict.values():
-            if reg.sweep is not None and lname in reg.sweep.spans:
+            # skip zero sweeps
+            if reg.sweep is not None and lname in reg.sweep.spans and reg.sweep.steps[lname]['step']!=0:
                 reg_sweeps.append((reg, reg.sweep.steps[lname]))
 
         # increment waves and registers
