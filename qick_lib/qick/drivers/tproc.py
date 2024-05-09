@@ -96,6 +96,8 @@ class AxisTProc64x32_x8(SocIp):
         self.cfg['pmem_size'] = self.mem.mmio.length//8
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
         self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "aclk")
@@ -399,6 +401,8 @@ class Axis_QICK_Proc(SocIp):
 
     
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
         self.cfg['f_core'] = soc.metadata.get_fclk(self.fullpath, "c_clk_i")

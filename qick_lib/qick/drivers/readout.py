@@ -98,6 +98,8 @@ class AxisReadoutV2(SocIp, AbsReadout):
         self.update()
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # what RFDC port drives this readout?
@@ -169,6 +171,8 @@ class AbsPFBReadout(SocIp, AbsReadout):
         self.cfg['pfb_dds_on_output'] = self.DDS_ON_OUTPUT
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # what RFDC port drives this readout?
@@ -408,6 +412,8 @@ class AxisReadoutV3(AbsReadout):
         self.cfg['f_fabric'] *= 2
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # what tProc output port controls this readout?
@@ -521,6 +527,8 @@ class AxisAvgBuffer(SocIp):
         self.buf_buff = allocate(shape=self['buf_maxlen'], dtype=np.int32)
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         # what readout port drives this buffer?
         block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"])
 
@@ -828,6 +836,8 @@ class MrBufferEt(SocIp):
         self.cfg['readouts'] = []
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm00_axis')
@@ -968,6 +978,8 @@ class AxisBufferDdrV1(SocIp):
         self.cfg['junk_nt'] = int(np.ceil(self['junk_len']/self.cfg['burst_len']))
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # follow the output to find the DDR4 controller

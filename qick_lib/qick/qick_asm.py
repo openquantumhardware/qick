@@ -141,8 +141,8 @@ class QickConfig():
             lines.append("\t%d:\t%s" % (iPin, name))
             #lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
-        lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
-                (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\ttProc %s (\"%s\") rev %d: program memory %d words, data memory %d words" %
+                (tproc['type'], {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']], tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
         bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
@@ -806,6 +806,8 @@ class DummyIp:
         # config dictionary for QickConfig
         self._cfg = {'type': iptype,
                     'fullpath': fullpath}
+        # logger for messages associated with this block
+        self.logger = logging.getLogger(self.type)
 
     @property
     def cfg(self):

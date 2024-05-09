@@ -36,6 +36,8 @@ class AbsSignalGen(SocIp):
         self.cfg['fdds_div'] = self['fs_div']*self['interpolation']
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # what RFDC port does this generator drive?

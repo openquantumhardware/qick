@@ -25,8 +25,6 @@ class SocIp(DefaultIP, DummyIp):
         # this block's type
         self.type = description['type'].split(':')[-2]
         DummyIp.__init__(self, self.type, self.fullpath)
-        # logger for messages associated with this block
-        self.logger = logging.getLogger(self.type)
 
     def __setattr__(self, a, v):
         """
@@ -57,6 +55,16 @@ class SocIp(DefaultIP, DummyIp):
             return self.mmio.array[index]
         except KeyError:
             return super().__getattribute__(a)
+
+    def configure_connections(self, soc):
+        """Use the HWH metadata to figure out what connects to this IP block.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The overlay object, used to look up metadata and dereference driver names.
+        """
+        self.cfg['revision'] = soc.metadata.mod2rev(self.cfg['fullpath'])
 
 class QickMetadata:
     """
@@ -165,6 +173,9 @@ class QickMetadata:
         if self.systemgraph is not None:
             return self.systemgraph.blocks[blockname].vlnv.name
         return self.busparser.mod2type[blockname]
+
+    def mod2rev(self, blockname):
+        return self.busparser.mod2rev[blockname]
 
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
@@ -280,9 +291,11 @@ class BusParser:
         self.nets = {}
         self.pins = {}
         self.mod2type = {}
+        self.mod2rev = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
+            self.mod2rev[fullpath] = int(module.get('COREREVISION'))
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')
