@@ -77,6 +77,8 @@ write_bd_tcl -force -include_layout bd.tcl
 ```
 
 ## Generators and readouts
+Block RAM (1080 tiles total) is always the limiting resource. It is only used for our own IPs as listed below, with the exception of DMA cores which use 1-8 tiles each and the DDR4 interface which uses ~25.5 tiles.
+High BRAM utilization will often make it harder for a design to meet timing.
 
 ### standard readout (`axis_readout_v2`):
 
@@ -89,6 +91,8 @@ RFDC ADC settings:
 
 connect: RFDC -> axis register slice (optional, defaults) -> readout
 
+BRAM: 16 tiles
+
 ### tProc-configured readout (`axis_readout_v3`):
 
 RFDC ADC settings: same as standard
@@ -96,6 +100,8 @@ RFDC ADC settings: same as standard
 connect:
 * RFDC -> axis clock converter (optional, defaults) -> axis resampler (B=16, N=8) -> axis register slice (optional, fully-registered) ->  readout, s1_axis
 * tProc -> axis clock converter or cdcsync -> readout, s0_axis
+
+BRAM: 8 tiles
 
 ### mux readout (`axis_pfb_readout_v2`) on 111:
 
@@ -123,6 +129,11 @@ RFDC ADC settings:
 
 connect: RFDC -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" checked)
 
+### mux readout (`axis_pfb_readout_v3`) on 216:
+Same RFDC settings and connectivity as v2; this readout does not currently support dual-ADC systems (ZCU111, RFSoC4x2)
+
+BRAM: 8 tiles
+
 ### full-speed gen (`axis_signal_gen_v6`):
 
 gen settings: N Dds=16, N is up to you (buffer size will be `16*2^N`)
@@ -134,7 +145,9 @@ RFDC DAC settings:
 * Mixer Type: Coarse
 * Mixer Mode: Real->Real
 
-### mux gen (`axis_sg_mux4`) v1 or v2:
+BRAM: 32 tiles for the DDSes, 64 tiles for our typical buffer size of N=12
+
+### mux4 gen (`axis_sg_mux4`) v1 or v2:
 
 gen settings: N_DDS=4
 
@@ -145,11 +158,23 @@ RFDC DAC settings:
 * Mixer Type: Fine
 * Mixer Mode: I/Q->Real
 
-### mux gen v3 (`axis_sg_mux4_v3`):
+BRAM: 32 tiles
+
+### mux4 gen v3 (`axis_sg_mux4_v3`):
 
 gen settings: N Dds=16
 
 RFDC DAC settings: same as full-speed
+
+BRAM: 128 tiles
+
+### mux8 gen v1 (`axis_sg_mux8_v1`):
+
+gen settings: N Dds=16
+
+RFDC DAC settings: same as full-speed
+
+BRAM: 256 tiles
 
 ### I/Q gen (`axis_constant_iq`):
 
@@ -173,7 +198,38 @@ RFDC DAC settings:
 * Mixer Type: Fine
 * Mixer Mode: I/Q->Real
 
-## Expanding the program memory
+BRAM: 8 tiles for DDSes, 4 tiles for our typical N=12
+
+### standard buffer (`axis_avg_buffer`):
+
+buffer settings: N_AVG and N_BUF are up to you, setting the accumulated and decimated buffer lengths (buffer size will be `2^N`)
+
+BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile for decimated at typical N_BUF=10
+
+### multi-rate buffer (`mr_buffer_et`):
+
+buffer settings: NM is samples per fabric clock, use 8; B is bits per sample, use 32; N is buffer size, up to you (buffer size will be `NM*2^N` samples)
+BRAM: 8 tiles for typical N=10
+
+### tProc v1 (`axis_tproc64x32_x8`):
+
+BRAM: 0.5 tile base, 1 tile for data memory, 2 tiles for standard program memory of 1k words (8 kB in address map)
+
+### tProc v2 (`qick_processor`):
+* s0_axis: feedback inputs
+* dma: to DMA AXIS ports
+* t_clk: timing clock (typically one of the DAC clocks)
+* c_clk: core clock (can be anything, but max ~200 MHz, doubling the PL clock makes sense)
+* ps_clk: AXI clock, from PS
+
+need a DMA:
+* buffer length width 26, address width 32
+* read enabled, 1 channel, width 256, burst 2
+* write enabled, 1 channel, width 256, burst 16
+
+BRAM: 1 tile for trigger port FIFO, roughly 3 tiles per wave output (33 for 11 outputs, 20 for 7 outputs), 2/1/5 tiles for P/D/W memories with AW=10/10/8
+
+## Expanding the program memory (tProc v1)
 
 In theory you just need to change it in the address editor and it will propagate to the block design, but there is some bug in Vivado which leads to an error message that complains about asymmetry between the two memory ports:
 
