@@ -2,9 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_3_28
-//  Compilation : 3
-//  Revision    : 18
+//  Date        : 2024_5_10
+//  Version     : 3
+//  Revision    : 20
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -124,7 +124,7 @@ condList = {
 
 # LIT SHOULD BE LAST
 Param_List = { 
-    'TIME'      : {'RegEx' : r'(?<=@)[\-0-9]+'                 , 'RL': '@'        , 'RR': ''   },
+    'TIME'      : {'RegEx' : r'(?<=@)[\-0-9]+'               , 'RL': '@'        , 'RR': ''   },
     'ADDR'      : {'RegEx' : r'\[(.*)\]'                     , 'RL': '['        , 'RR': ']'  },
     'UF'        : {'RegEx' : r'-uf'                          , 'RL': ''         , 'RR': ''   },
     'WW'        : {'RegEx' : r'-ww'                          , 'RL': ''         , 'RR': ''   },
@@ -389,7 +389,7 @@ def check_lit(lit_str : str) -> bool:
         r = True
     return r
 
-def get_imm_dt (lit : str, bit_len : int) -> str:
+def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
     DataImm = ''
     LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
     if (LIT):
@@ -400,16 +400,16 @@ def get_imm_dt (lit : str, bit_len : int) -> str:
                 DataImm = '_'+ integer2bin(literal, bit_len)
             elif (LIT[1]): ## is Unsigned
                 literal = str(int(LIT[1]))
-                DataImm = '_'+ integer2bin(literal, bit_len, 1)
+                DataImm = '_'+ integer2bin(literal, bit_len,1)
             elif (LIT[2]): ## is Binary
                 literal = str(int(LIT[2],2))
-                DataImm = '_'+ integer2bin(literal, bit_len)
+                DataImm = '_'+ integer2bin(literal, bit_len,1)
             elif (LIT[3]): ## is Hexa
                 literal = str(int(LIT[3],16))
                 DataImm = '_'+ integer2bin(literal, bit_len,1)
             elif (LIT[4]): ## is Address
                 literal = str(int(LIT[4]))
-                DataImm = '_'+ integer2bin(literal, bit_len, 1)
+                DataImm = '_'+ integer2bin(literal, bit_len,1)
             elif (LIT[5]): ## is Time
                 literal = str(int(LIT[5]))
                 DataImm = '_'+ integer2bin(literal, bit_len)
@@ -418,9 +418,12 @@ def get_imm_dt (lit : str, bit_len : int) -> str:
     else:
         Logger.error("get_imm_dt", 'Data Format incorrect' )
     if  (DataImm) : 
-        return 0, DataImm
+        if (lit_val) :
+            return 0, int(literal)
+        else:
+            return 0, DataImm
     else:
-        return 1, DataImm
+        return 1, 0
 
 def check_reg(name_reg : str) -> bool:
     r = False
@@ -655,73 +658,89 @@ class Assembler():
             mem_addr = 1 # address 0 goes NOP
             # Check if LABEL, DIRETIVE OR INSTRUCTION
             for line_number, command in enumerate(file_lines, start=1):
-                label        = find_pattern(regex['LABEL'], command)
-                directive    = find_pattern(regex['DIRECTIVE'], command)
-                instruction  = find_pattern(regex['CMD'], command)
-                if (label): # add label to label_dict if not already registered.
-                    L_Name    = command[:-1]
-                    if (check_name(L_Name)):
-                        if label in label_dict:
-                            if (label == 'reg'):
-                                error = Logger.error('LABEL_RECOGNITION', 'reg is not a valid label in line  ' + str(line_number) )
+                if (command):
+                    label        = find_pattern(regex['LABEL'], command)
+                    directive    = find_pattern(regex['DIRECTIVE'], command)
+                    instruction  = find_pattern(regex['CMD'], command)
+                    if (label): # add label to label_dict if not already registered.
+                        L_Name    = command[:-1]
+                        if (check_name(L_Name)):
+                            if label in label_dict:
+                                error = Logger.error('LABEL_RECOGNITION', 'Label  "' + label + '" already in use as LABEL in line ' + str(line_number) )
+                            elif label in Alias_List:
+                                 error = Logger.error('LABEL_RECOGNITION', 'Label "' + label + '" already in use as ALIAS in line ' + str(line_number) )
                             else:
-                                error = Logger.error('LABEL_RECOGNITION', 'Redefinition of LABEL "' + label + '" in line  ' + str(line_number) )
-                        else:
-                            label_dict[label] = '&' + str(mem_addr)
-                            label_line_idxs.append(line_number)
-                    else:
-                        error = Logger.error('LABEL_RECOGNITION', 'Label Name error in line  ' + str(line_number) )
-                elif (directive):  # identify Aliases and adds them to Alias_List.
-                    if ( directive == 'ALIAS'):
-                        directive_params = list(filter(lambda x:x, command.split(' ')))
-                        if (len(directive_params) == 3):
-                            A_Name    = directive_params[1]
-                            A_Reg     = directive_params[2]
-                            if (check_name(A_Name)):
-                                if A_Name in Alias_List:
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name ' + A_Name  +' already in use in line ' + str(line_number) )
+                                if (label == 'reg'):
+                                    error = Logger.error('LABEL_RECOGNITION', 'reg is not a valid label in line  ' + str(line_number) )
                                 else:
-                                    if ( check_reg(A_Reg) ):
-                                        Alias_List.update({ A_Name : A_Reg } )        
-                                        Logger.info("ALIAS_RECOGNITION",' > ' + A_Reg + ' is called ' + A_Name)
+                                    label_dict[label] = '&' + str(mem_addr)
+                                    label_line_idxs.append(line_number)
+                        else:
+                            error = Logger.error('LABEL_RECOGNITION', 'Label Name error in line  ' + str(line_number) )
+                    elif (directive):  # identify Aliases and adds them to Alias_List.
+                        if ( directive == 'ALIAS'):
+                            directive_params = list(filter(lambda x:x, command.split(' ')))
+                            if (len(directive_params) == 3):
+                                A_Name    = directive_params[1]
+                                A_Reg     = directive_params[2]
+                                if (check_name(A_Name)):
+                                    if A_Name in Alias_List:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias "' + A_Name  +'" already in use as ALIAS in line ' + str(line_number) )
+                                    elif A_Name in label_dict:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias "' + A_Name  +'" already in use as LABEL in line ' + str(line_number) )
                                     else:
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Register Name error in line ' + str(line_number) )
+                                        if ( check_reg(A_Reg) ):
+                                            Alias_List.update({ A_Name : A_Reg } )        
+                                            Logger.info("ALIAS_RECOGNITION",' > ' + A_Reg + ' is called ' + A_Name)
+                                        else:
+                                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Register Name error in line ' + str(line_number) )
+                                else:
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
                             else:
-                                error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
+                                error = Logger.error('DIRECTIVE_RECOGNITION', 'ALIAS Parameters error in line ' + str(line_number) )
+                        elif ( directive == 'CONST'):
+                            directive_params = list(filter(lambda x:x, command.split(' ')))
+                            if (len(directive_params) == 3):
+                                C_name    = directive_params[1]
+                                C_val    = directive_params[2]
+                                error, lit_val = get_imm_dt (C_val, 32, 1)
+                                if (error):
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                else:
+                                    Alias_List.update({ C_name : C_val } )        
+                                    Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
+                            else:
+                                error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST Parameters error in line ' + str(line_number) )
+    
+                        elif ( directive == 'ADDR'):
+                            directive_params = list(filter(lambda x:x, command.split(' ')))
+                            if (len(directive_params) == 2):
+                                if  (check_num(directive_params[1])):
+                                    Value    = int(directive_params[1])
+                                    distance = Value - mem_addr
+                                    if  (distance < 0):
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
+                                    else :                          
+                                        mem_addr = Value
+                                else:
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Address Value '+ directive_params[1] + ' error in Line ' + str(line_number))
+                            else:
+                                error = Logger.error('DIRECTIVE_RECOGNITION', 'ADDR Parameters error in line ' + str(line_number) )
+                        elif ( directive == 'END'):
+                            mem_addr += 1  
                         else:
-                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Parameters error in line ' + str(line_number) )
-                    elif ( directive == 'CONST'):
-                        directive_params = list(filter(lambda x:x, command.split(' ')))
-                        C_name    = directive_params[1]
-                        C_val    = directive_params[2]
-                        if (check_lit(C_val)):
-                            Alias_List.update({ C_name : '#'+C_val } )        
-                            Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
+                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Directive Not Recognized in Line ' + str(line_number))
+                    elif (instruction): # Identify instructions to correctly set addresses.
+                        if ( instruction in instList.keys() ) :
+                            if (instruction == 'WAIT'):
+                                mem_addr += 2
+                            else:                            
+                                mem_addr += 1
                         else:
-                            error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
-                    elif ( directive == 'ADDR'):
-                        directive_params = list(filter(lambda x:x, command.split(' ')))
-                        if  (check_num(directive_params[1])):
-                            Value    = int(directive_params[1])
-                            distance = Value - mem_addr
-                            if  (distance < 0):
-                                error = Logger.error('DIRECTIVE_RECOGNITION', 'New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
-                            else :                          
-                                mem_addr = Value
-                        else:
-                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Address Value '+Value+ ' error in Line ' + str(line_number))
-                    elif ( directive == 'END'):
-                        mem_addr += 1  
+                            error = Logger.error('CMD_RECOGNITION', 'Command Not Recognized in Line ' + str(line_number))
                     else:
-                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Directive Not Recognized in Line ' + str(line_number))
-                elif (instruction): # Identify instructions to correctly set addresses.
-                    if ( instruction in instList.keys() ) :
-                        if (instruction == 'WAIT'):
-                            mem_addr += 2
-                        else:                            
-                            mem_addr += 1
-                    else:
-                        error = Logger.error('LABEL_RECOGNITION', 'Command Not Recognized in Line ' + str(line_number))
+                        error = Logger.error('CMD_RECOGNITION', 'Instruction Not Recognized in Line ' + str(line_number))
+
             show_info =  ('\n## ALIAS LIST')
             show_info += '\n' + ('###############################')
             show_info += '\n' + ('REG  > ALIAS NAME\n-----|-------------')
@@ -753,8 +772,8 @@ class Assembler():
                 :program_list (list): program instructions as a list of dictionaries.
                 
             """
-           
-            program_list = []
+            program_list = [{'P_ADDR': 1, 'LINE': 2, 'CMD': 'NOP'}]
+            #program_list = []
             error = 0
             mem_addr = 0
             for line_number, command in enumerate(file_lines, start=1):
@@ -1128,7 +1147,8 @@ class Assembler():
         parse_lines_and_labels(program_list, label_dict)
         
         # first line is NOP
-        binary_program_list = ['000_000__000__0_0_0_00_00___00000___000000__000000____0_0000000__0_0000000__0000000000000000__0000000']
+        #binary_program_list = ['000_000__000__0_0_0_00_00___00000___000000__000000____0_0000000__0_0000000__0000000000000000__0000000']
+        binary_program_list = []
         error = 0
         CODE = 'x'
         for command in program_list:
@@ -1202,6 +1222,7 @@ class Assembler():
             if (command['CMD'] == 'WAIT'):
                 binary_program_list.extend(CODE)
             else:
+                CODE = CODE + ' //' + command['CMD']
                 binary_program_list.append(CODE)
                 
         if (save_unparsed_filename):
@@ -1394,11 +1415,14 @@ class Instruction():
                             DataImm = '_0000000000000000'
                     elif (src_type[0]=='N'): ## is Number
                         if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
-                            LIT      = int(re.findall(regex['LIT'], cmd_op[2])[0])
-                            if (LIT > 15): 
+                            error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
+                            if (lit_val > 15): 
                                 error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
                         df             = '10'
                         error, DataImm = get_imm_dt (cmd_op[2], 24)
+                        if (error): 
+                            error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
+                        
                         DataImm  = '_'+DataImm 
 
                 ## CHECK FOR OPERATION
@@ -1418,8 +1442,9 @@ class Instruction():
         elif ('LIT' in command): 
             df = '11'
             alu_op  = '00'
-            error, DataImm = get_imm_dt (command ['LIT'], 32)
-            DataImm  = '__'+DataImm 
+            error, DataImm = get_imm_dt (command['LIT'], 32)
+            if (error==0):
+                DataImm  = '__'+DataImm 
         else:
             df      = '11'
             alu_op  = '00'
@@ -1858,7 +1883,7 @@ class Instruction():
         RA0=RA1='000000'
         RD0=RD1='0_0000000'
         ImmFill='__0000000000000000'
-        DF='10'
+        DF='01'
         AI='0'
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
@@ -2082,7 +2107,7 @@ class Instruction():
             else:
                     error = Logger.error('Instruction.ARITH', 'No Recognized Operation' )
         if (error==0):
-            CODE = '010_000__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
+            CODE = '010_001__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
         else:
             Logger.error("Instruction.ARITH", "Exit with Error in line " + str(current['LINE']) )
             CODE = 'X'
@@ -2090,7 +2115,6 @@ class Instruction():
 
     @staticmethod
     def WAIT (current : dict) -> tuple:
-        # print(current)
         error   = 0
         binary_multi_list = []
         current['ADDR'] = '&'+str(current['P_ADDR'])
