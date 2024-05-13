@@ -1,11 +1,12 @@
 """
+2024-5-10
 Drivers for qick_processor Peripherals.
 """
 from pynq.buffer import allocate
 import numpy as np
 from qick import SocIp
 
-class Axis_QICK_time_tagger(SocIp):
+class QICK_Time_Tagger(SocIp):
     """
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0']
@@ -56,7 +57,8 @@ class Axis_QICK_time_tagger(SocIp):
         # dma
         self.dma = axi_dma
         mem_len = self['mem_size']
-        self.buff_rd = allocate(shape=(mem_len, 1), dtype=np.int32)
+        self.buff_rd = allocate(shape=(mem_len, 1), dtype=np.uint32)
+        
     def __str__(self):
         lines = []
         lines.append('---------------------------------------------')
@@ -66,10 +68,8 @@ class Axis_QICK_time_tagger(SocIp):
         for param in ['mem_size', 'dma_rd', 'proc_rd', 'cmp_slope','cmp_inter', 'smp_store']:
             lines.append("%-14s: %d" % (param, self.cfg[param]) )
         lines.append("----------\n")
-
-        
         return "\n".join(lines)
-                                                                                                           
+                                                                                           
     def info(self):
         print(self)
 
@@ -77,8 +77,15 @@ class Axis_QICK_time_tagger(SocIp):
         self.qtt_cfg     = 0
         self.qtt_ctrl    = 1
     def arm(self,cfg_filter, cfg_slope, cfg_inter):
-        self.qtt_cfg     = 1 + cfg_filter*8 + cfg_slope*16 + cfg_inter*32
-        self.qtt_ctrl    = 1
+        # Check for Parameters
+        if (cfg_slope <= self.cfg['cmp_slope']):
+            if (cfg_inter <= self.cfg['cmp_inter']):
+                self.qtt_cfg     = 1 + cfg_filter*8 + cfg_slope*16 + cfg_inter*32
+                self.qtt_ctrl    = 1
+            else:
+                print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
+        else:
+            print('error Slope Comparator not implemented')
     def pop_dt(self,value):
         self.qtt_cfg     = 2
         self.qtt_ctrl    = 1
@@ -110,8 +117,8 @@ class Axis_QICK_time_tagger(SocIp):
             data_len = self.dma_qty
         else:
             data_len = length
-        if (data_len==0):
-            return 0
+        if (data_len<2):
+            return []
         else:
             self.qtt_len     = data_len
             self.qtt_ctrl    = 4
@@ -170,12 +177,119 @@ class Axis_QICK_time_tagger(SocIp):
         print( ' INHIBIT    : ' + str(inh) )
         print( ' CMD_CNT    : ' + str(cmd_cnt) )
 
-            
+class QICK_Com(SocIp):
+    """
+    QICK_Comm class
+
+    ####################
+    QICK COM xREG
+    ####################
+    QCOM_CTRL        Write / Read 32-Bits
+    QCOM_CFG         Write / Read 32-Bits
+    AXI_DT1          Write / Read 32-Bits
+    QCOM_FLAG        Read Only    32-Bits
+    QCOM_DT1         Read Only    32-Bits
+    QCOM_DT2         Read Only    32-Bits
+    QCOM_STATUS      Read Only    32-Bits
+    QCOM_TX_DT       Read Only    32-Bits
+    QCOM_RX_DT       Read Only    32-Bits
+    QCOM_DEBUG       Read Only    32-Bits
+    """
+    bindto = ['Fermi:user:qick_com:1.0']
+    REGISTERS = {
+        'qcom_ctrl'     :0 ,
+        'qcom_cfg'      :1 ,
+        'axi_dt1'       :2 ,
+        'flag'     :7 ,
+        'dt1'      :8 ,
+        'dt2'      :9,
+        'status'   :12,
+        'tx_dt'    :13,
+        'rx_dt'    :14,
+        'debug'    :15
+    }    
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        # Initial Values 
+        self.qcom_ctrl = 0
+        self.qcom_cfg  = 10
+        self.raxi_dt1  = 0
+
+    def __str__(self):
+        lines = []
+        lines.append('---------------------------------------------')
+        lines.append(' QICK Com INFO ')
+        lines.append('---------------------------------------------')
+        lines.append("----------\n")
+        return "\n".join(lines)
+
+    def clr_flg(self):
+        self.qcom_ctrl = 1
+    def send_byte(self, data, dst):
+        self.axi_dt1 = data
+        if   (dst == 1):
+            self.qcom_ctrl = 1+2*2
+        elif (dst == 2):
+            self.qcom_ctrl = 1+2*3
+        else:
+            raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (dst))
+    def send_half_word(self, data, dst):
+        self.axi_dt1 = data
+        if   (dst == 1):
+            self.qcom_ctrl = 1+2*4
+        elif (dst == 2):
+            self.qcom_ctrl = 1+2*5
+        else:
+            raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (dst))
+    def send_word(self, data, dst):
+        self.axi_dt1 = data
+        if   (dst == 1):
+            self.qcom_ctrl = 1+2*6
+        elif (dst == 2):
+            self.qcom_ctrl = 1+2*7
+        else:
+            raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (dst))
+    def set_flg(self):
+        self.qcom_ctrl = 1+2*8
+
+    def print_dt(self):
+        print("FLAG:{}   DT1:{}   DT2:{}   ".format(self.flag, self.dt1, self.dt2))
+    
+    def print_axi_reg(self):
+        print('--- AXI Registers')
+        for xreg in self.REGISTERS.keys():
+            print(f'{xreg:>15}', getattr(self, xreg))
+    def print_status(self):
+        debug_num = self.status
+        debug_bin = '{:032b}'.format(debug_num)
+        print('---------------------------------------------')
+        print('--- AXI TNET Register RX_STATUS')
+        print( ' qcom_rx_st   : ' + debug_bin[30:32] )
+        print( ' rx_header    : ' + debug_bin[27:30] )
+        print( ' reg_sel      : ' + debug_bin[25:27] )
+        print( ' reg_wr_size  : ' + debug_bin[23:25] )
+        print( ' qcom_tx_st   : ' + debug_bin[20:23] )
+        print( ' tx_header    : ' + debug_bin[17:20]  )            
+    def print_debug(self):
+        debug_num = self.debug
+        debug_bin = '{:032b}'.format(debug_num)
+        print('---------------------------------------------')
+        print('--- AXI TNET Register RX_STATUS')
+        print( ' qcom_rx_st   : ' + debug_bin[30:32] )
+        print( ' rx_header    : ' + debug_bin[27:30] )
+        print( ' reg_sel      : ' + debug_bin[25:27] )
+        print( ' reg_wr_size  : ' + debug_bin[23:25] )
+        print( ' qcom_tx_st   : ' + debug_bin[20:23] )
+        print( ' tx_header    : ' + debug_bin[17:20]  )            
 
             
-class Axis_QICK_Net(SocIp):
+class QICK_Net(SocIp):
     """
-    Axis_QICK_Proc class
+    QICK_Net class
 
     ####################
     AXIS T_CORE xREG
