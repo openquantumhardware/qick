@@ -56,16 +56,6 @@ class SocIp(DefaultIP, DummyIp):
         except KeyError:
             return super().__getattribute__(a)
 
-    def configure_connections(self, soc):
-        """Use the HWH metadata to figure out what connects to this IP block.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            The overlay object, used to look up metadata and dereference driver names.
-        """
-        self.cfg['revision'] = soc.metadata.mod2rev(self.cfg['fullpath'])
-
 class QickMetadata:
     """
     Provides information about the connections between IP blocks, extracted from the HWH file.

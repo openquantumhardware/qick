@@ -807,7 +807,7 @@ class DummyIp:
         self._cfg = {'type': iptype,
                     'fullpath': fullpath}
         # logger for messages associated with this block
-        self.logger = logging.getLogger(self.type)
+        self.logger = logging.getLogger(self['type'])
 
     @property
     def cfg(self):
@@ -816,6 +816,15 @@ class DummyIp:
     def __getitem__(self, key):
         return self._cfg[key]
 
+    def configure_connections(self, soc):
+        """Use the HWH metadata to figure out what connects to this IP block.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The overlay object, used to look up metadata and dereference driver names.
+        """
+        self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
 
 class AbsQickProgram:
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
