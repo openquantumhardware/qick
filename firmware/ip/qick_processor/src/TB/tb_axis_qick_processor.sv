@@ -24,6 +24,7 @@ import axi_mst_0_pkg::*;
 `define T_SCLK         5  // Half Clock Period for Simulation
 
 
+`define GEN_SYNC         1
 `define DUAL_CORE        0
 `define IO_CTRL          0
 `define DEBUG            3
@@ -271,6 +272,7 @@ assign qp1_vld_i     = qp1_en_r  ;
    
 axis_qick_processor # (
    .DUAL_CORE      (  `DUAL_CORE   ) ,
+   .GEN_SYNC      (  `GEN_SYNC   ) ,
    .IO_CTRL        (  `IO_CTRL   ) ,
    .DEBUG          (  `DEBUG     ) ,
    .TNET           (  `TNET      ) ,
@@ -530,14 +532,30 @@ initial begin
    // WRITE_AXI( REG_TPROC_CFG , 1024); //ENABLE IO ENABLE NET
    // TEST_STATES();
 
-
    WRITE_AXI( REG_TPROC_CFG, 1024); //ENABLE EXTERNAL CONTROL
+
+   TEST_STATES();
+
+
+   #100;
+   @ (posedge t_clk); #0.1;
+   proc_start_i   = 1'b1;
+   @ (posedge t_clk); #0.1;
+   proc_start_i   = 1'b0;
+
 
    #100;
    @ (posedge c_clk); #0.1;
    proc_start_i   = 1'b1;
    @ (posedge c_clk); #0.1;
    proc_start_i   = 1'b0;
+
+   #100;
+   @ (posedge t_clk); #0.1;
+   proc_start_i   = 1'b1;
+   @ (posedge t_clk); #0.1;
+   proc_start_i   = 1'b0;
+
 
    WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
    WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG

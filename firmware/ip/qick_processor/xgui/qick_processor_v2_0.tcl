@@ -3,7 +3,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_3, Compilation 3, Revision 18 (Use Assembler v3)}
+  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_5, Revision 20 ( Use Assembler Revision 20 )}
   ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]
@@ -18,20 +18,6 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "WMEM_AW" -parent ${Memory_Configuration}
 
   #Adding Group
-  set OUT_Port_Configuration [ipgui::add_group $IPINST -name "OUT Port Configuration" -parent ${Process} -display_name {OUT Configuration}]
-  set_property tooltip {OUT Configuration} ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_TRIG_QTY" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_DPORT_QTY" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${OUT_Port_Configuration}
-  #Adding Group
-  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${OUT_Port_Configuration} -display_name {External Peripherals Interfaces}]
-  ipgui::add_param $IPINST -name "QCOM" -parent ${External_Peripherals} -widget checkBox
-  ipgui::add_param $IPINST -name "TNET" -parent ${External_Peripherals} -widget checkBox
-  ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget comboBox
-
-
-  #Adding Group
   set IN_Port_Configuration [ipgui::add_group $IPINST -name "IN Port Configuration" -parent ${Process} -display_name {IN Configuration}]
   ipgui::add_param $IPINST -name "IN_PORT_QTY" -parent ${IN_Port_Configuration}
   ipgui::add_param $IPINST -name "EXT_FLAG" -parent ${IN_Port_Configuration} -widget checkBox
@@ -39,13 +25,28 @@ proc init_gui { IPINST } {
   set_property tooltip {External Inputs Qick Control Pins} ${IO_CTRL}
 
   #Adding Group
-  set Options [ipgui::add_group $IPINST -name "Options" -parent ${Process} -layout horizontal]
+  set OUT_Port_Configuration [ipgui::add_group $IPINST -name "OUT Port Configuration" -parent ${Process} -display_name {OUT Configuration}]
+  set_property tooltip {OUT Configuration} ${OUT_Port_Configuration}
+  ipgui::add_param $IPINST -name "OUT_TRIG_QTY" -parent ${OUT_Port_Configuration}
+  ipgui::add_param $IPINST -name "OUT_DPORT_QTY" -parent ${OUT_Port_Configuration}
+  ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${OUT_Port_Configuration}
+  ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${OUT_Port_Configuration}
+  ipgui::add_param $IPINST -name "GEN_SYNC" -parent ${OUT_Port_Configuration} -widget checkBox
+
+  #Adding Group
+  set Options [ipgui::add_group $IPINST -name "Options" -parent ${Process} -display_name {Internal Peripherals} -layout horizontal]
   set LFSR [ipgui::add_param $IPINST -name "LFSR" -parent ${Options} -widget checkBox]
   set_property tooltip {Linear Feedback Shit Register} ${LFSR}
   ipgui::add_param $IPINST -name "ARITH" -parent ${Options} -widget checkBox
   set DIVIDER [ipgui::add_param $IPINST -name "DIVIDER" -parent ${Options} -widget checkBox]
   set_property tooltip {32-bit Integer Divider (Quotient - Reminder)} ${DIVIDER}
   ipgui::add_param $IPINST -name "TIME_READ" -parent ${Options} -widget checkBox
+
+  #Adding Group
+  set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${Process} -display_name {External Peripherals Interfaces}]
+  ipgui::add_param $IPINST -name "QCOM" -parent ${External_Peripherals} -widget checkBox
+  ipgui::add_param $IPINST -name "TNET" -parent ${External_Peripherals} -widget checkBox
+  ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget comboBox
 
 
   #Adding Group
@@ -134,6 +135,15 @@ proc update_PARAM_VALUE.FIFO_DEPTH { PARAM_VALUE.FIFO_DEPTH } {
 
 proc validate_PARAM_VALUE.FIFO_DEPTH { PARAM_VALUE.FIFO_DEPTH } {
 	# Procedure called to validate FIFO_DEPTH
+	return true
+}
+
+proc update_PARAM_VALUE.GEN_SYNC { PARAM_VALUE.GEN_SYNC } {
+	# Procedure called to update GEN_SYNC when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.GEN_SYNC { PARAM_VALUE.GEN_SYNC } {
+	# Procedure called to validate GEN_SYNC
 	return true
 }
 
@@ -363,5 +373,10 @@ proc update_MODELPARAM_VALUE.QCOM { MODELPARAM_VALUE.QCOM PARAM_VALUE.QCOM } {
 proc update_MODELPARAM_VALUE.CALL_DEPTH { MODELPARAM_VALUE.CALL_DEPTH PARAM_VALUE.CALL_DEPTH } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.CALL_DEPTH}] ${MODELPARAM_VALUE.CALL_DEPTH}
+}
+
+proc update_MODELPARAM_VALUE.GEN_SYNC { MODELPARAM_VALUE.GEN_SYNC PARAM_VALUE.GEN_SYNC } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.GEN_SYNC}] ${MODELPARAM_VALUE.GEN_SYNC}
 }
 

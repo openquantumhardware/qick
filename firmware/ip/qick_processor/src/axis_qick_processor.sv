@@ -2,9 +2,9 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024-3-28
-//  Version        : 3 (Use Assembler Compiation 3)
-//  Revision       : 18
+//  Date           : 2024-5-10
+//  Version        : 3 
+//  Revision       : 20 (Use Assembler Version 3 Rev-20)
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  tProc_v2
 /* Description: 
@@ -16,6 +16,7 @@ qick_processor top level file
 
 module axis_qick_processor # (
    parameter DUAL_CORE      =  0 , // 0-Single Core  1-Dual core
+   parameter GEN_SYNC       =  0 , // Generate Sync Signal
    parameter IO_CTRL        =  0 , // 0-No IO control 1-Add proc_strat and Proc Stop IN
    parameter DEBUG          =  1, // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
    parameter TNET           =  0 , // QNET Interfrace 0-No 1-Yes
@@ -31,11 +32,11 @@ module axis_qick_processor # (
    parameter DMEM_AW        =  8, // Bits in Data Memory address
    parameter WMEM_AW        =  8, // Bits in WaveParam Memory address
    parameter REG_AW         =  4 , // Bits to address DREG
-   parameter IN_PORT_QTY    =  2 , // Number of Input Ports
+   parameter IN_PORT_QTY    =  1 , // Number of Input Ports
    parameter OUT_TRIG_QTY   =  2 , // Number of Output Trigger  Ports
    parameter OUT_DPORT_QTY  =  1 , // Number of Output Data Ports
    parameter OUT_DPORT_DW   =  4 , // BitSize of Output Data Ports
-   parameter OUT_WPORT_QTY  =  2 ,  // Number of Output Wave Ports
+   parameter OUT_WPORT_QTY  =  1 ,  // Number of Output Wave Ports
    parameter CALL_DEPTH     =  255 // Nested Functions
 )(
 // Core, Time and AXI CLK & RST.
@@ -56,6 +57,7 @@ module axis_qick_processor # (
    input  wire                time_updt_i    ,
    input  wire  [31:0]        time_dt_i      ,
    output wire  [47:0]        t_time_abs_o   ,
+   output wire                pulse_sync_o   ,
 //QNET
    output wire                qnet_en_o      ,
    output wire  [4 :0]        qnet_op_o      ,
@@ -613,4 +615,17 @@ assign m14_axis_tvalid    = m_axis_tvalid_s[14]  ;
 assign m15_axis_tdata     = m_axis_tdata_s [15]  ;
 assign m15_axis_tvalid    = m_axis_tvalid_s[15]  ;
 
+
+generate
+   reg net_sync;
+   if (GEN_SYNC == 1) begin : SYNC_OUT
+      always_ff @ (posedge t_clk_i, negedge t_resetn) begin
+         if (!t_resetn)   net_sync     <= 1'b0;
+         else             net_sync     <= t_time_abs_o[9];
+      end
+      assign pulse_sync_o = net_sync;
+   end else
+      assign pulse_sync_o = 0;
+endgenerate
+      
 endmodule

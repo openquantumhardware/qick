@@ -356,6 +356,7 @@
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="axis" spirit:version="1.0"/>
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="axis_rtl" spirit:version="1.0"/>
       <spirit:slave/>
+      <spirit:connectionRequired>true</spirit:connectionRequired>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -382,6 +383,13 @@
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:vendorExtensions>
+        <xilinx:busInterfaceInfo>
+          <xilinx:enablement>
+            <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="BUSIF_ENABLEMENT.s0_axis" xilinx:dependency="spirit:decode(id(&apos;MODELPARAM_VALUE.IN_PORT_QTY&apos;)) > 0">true</xilinx:isEnabled>
+          </xilinx:enablement>
+        </xilinx:busInterfaceInfo>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>s1_axis</spirit:name>
@@ -1722,7 +1730,6 @@
       <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control" spirit:version="1.0"/>
       <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
       <spirit:slave/>
-      <spirit:connectionRequired>true</spirit:connectionRequired>
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
@@ -2229,7 +2236,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>f2e3b277</spirit:value>
+            <spirit:value>04588420</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2248,7 +2255,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>f2e3b277</spirit:value>
+            <spirit:value>04588420</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2263,7 +2270,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>4258543d</spirit:value>
+            <spirit:value>643f3f6d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2277,7 +2284,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>fc489e30</spirit:value>
+            <spirit:value>0694f472</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2402,7 +2409,7 @@
         <spirit:vendorExtensions>
           <xilinx:portInfo>
             <xilinx:enablement>
-              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.proc_start_i" xilinx:dependency="spirit:decode(id(&apos;PARAM_VALUE.IO_CTRL&apos;)) = 1">false</xilinx:isEnabled>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.proc_start_i" xilinx:dependency="spirit:decode(id(&apos;PARAM_VALUE.IO_CTRL&apos;)) = 1 or spirit:decode(id(&apos;MODELPARAM_VALUE.QCOM&apos;)) = 1">false</xilinx:isEnabled>
             </xilinx:enablement>
           </xilinx:portInfo>
         </spirit:vendorExtensions>
@@ -2592,6 +2599,26 @@
           <xilinx:portInfo>
             <xilinx:enablement>
               <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.t_time_abs_o" xilinx:dependency="spirit:decode(id(&apos;MODELPARAM_VALUE.DEBUG&apos;)) > 2 or spirit:decode(id(&apos;PARAM_VALUE.TNET&apos;)) = 1">false</xilinx:isEnabled>
+            </xilinx:enablement>
+          </xilinx:portInfo>
+        </spirit:vendorExtensions>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>pulse_sync_o</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+        <spirit:vendorExtensions>
+          <xilinx:portInfo>
+            <xilinx:enablement>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.pulse_sync_o" xilinx:dependency="spirit:decode(id(&apos;MODELPARAM_VALUE.GEN_SYNC&apos;)) = 1">false</xilinx:isEnabled>
             </xilinx:enablement>
           </xilinx:portInfo>
         </spirit:vendorExtensions>
@@ -6187,6 +6214,11 @@
         <spirit:displayName>Call Depth</spirit:displayName>
         <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.CALL_DEPTH">255</spirit:value>
       </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>GEN_SYNC</spirit:name>
+        <spirit:displayName>Gen Sync</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.GEN_SYNC">0</spirit:value>
+      </spirit:modelParameter>
     </spirit:modelParameters>
   </spirit:model>
   <spirit:choices>
@@ -6307,7 +6339,7 @@
       <spirit:file>
         <spirit:name>src/axis_qick_processor.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_ba520bce</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_1860be10</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6429,7 +6461,7 @@
       <spirit:file>
         <spirit:name>xgui/qick_processor_v2_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_fc489e30</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_0694f472</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -6550,6 +6582,11 @@
       <spirit:displayName>Call Depth</spirit:displayName>
       <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.CALL_DEPTH">255</spirit:value>
     </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>GEN_SYNC</spirit:name>
+      <spirit:displayName>Generate Syncronization Pulse</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.GEN_SYNC" spirit:choiceRef="choice_list_8af5a703">0</spirit:value>
+    </spirit:parameter>
   </spirit:parameters>
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
@@ -6584,11 +6621,11 @@
       </xilinx:taxonomies>
       <xilinx:displayName>qick_processor</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>18</xilinx:coreRevision>
+      <xilinx:coreRevision>20</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axis_tproc_B:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2024-03-21T17:11:27Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2024-05-13T16:38:58Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@648bece3_ARCHIVE_LOCATION">/home/mdifeder/Projects/20.2/IPs/TPROCB_1</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@7858384c_ARCHIVE_LOCATION">/home/mdifeder/Projects/20.2/IPs/TPROCB_1</xilinx:tag>
@@ -7429,12 +7466,12 @@
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2022.1</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="f0c4bb77"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="de458cb2"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="cf1e812c"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="40ef0477"/>
-      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="9cf46314"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="91ea3243"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="a5ff8889"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="074faa6f"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="221abaf4"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="c6f2148d"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>
