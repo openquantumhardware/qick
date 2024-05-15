@@ -232,6 +232,10 @@ class QickSoc(Overlay, QickConfig):
     :type external_clk: bool or None
     :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
     :type ignore_version: bool
+    :param no_tproc: Use if this is a special firmware that doesn't have a tProcessor.
+    :type no_tproc: bool
+    :param no_rf: Use if this is a special firmware that doesn't have an RF data converter.
+    :type no_rf: bool
     """
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
@@ -253,7 +257,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, clk_output=None, external_clk=None, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, **kwargs):
         """
         Constructor method
         """
@@ -276,15 +280,16 @@ class QickSoc(Overlay, QickConfig):
         self['board'] = os.environ["BOARD"]
         self['sw_version'] = get_version()
 
-        # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
-        self.list_rf_blocks(
-            self.ip_dict['usp_rf_data_converter_0']['parameters'])
-
-        self.config_clocks(force_init_clks)
-
-        # RF data converter (for configuring ADCs and DACs, and setting NCOs)
-        self.rf = self.usp_rf_data_converter_0
-        self.rf.configure(self)
+        if not no_rf:
+            # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
+            self.list_rf_blocks(
+                self.ip_dict['usp_rf_data_converter_0']['parameters'])
+    
+            self.config_clocks(force_init_clks)
+    
+            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
+            self.rf = self.usp_rf_data_converter_0
+            self.rf.configure(self)
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
