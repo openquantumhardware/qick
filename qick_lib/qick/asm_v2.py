@@ -956,6 +956,12 @@ class QickProgramV2(AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
+        ASM_REVISION = 20
+        if self.tproccfg['type']!='qick_processor':
+            raise RuntimeError("tProc v2 programs can only be run on a tProc v2 firmware")
+        if self.tproccfg['revision']!=ASM_REVISION:
+            raise RuntimeError("this version of the QICK library only supports tProc v2 revision %d, you have %d"%(ASM_REVISION, self.tproccfg['revision']))
+
         # all current v1 programs are processed in one pass:
         # * init the program
         # * fill the ASM list (using make_program or by calling ASM wrappers directly)
