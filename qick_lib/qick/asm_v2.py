@@ -1022,14 +1022,13 @@ class QickProgramV2(AbsQickProgram):
 
         # low-level ASM management
 
-        self.prog_list = []
+        # the initial values here are copied from command_recognition() and label_recognition() in tprocv2_assembler.py
+        self.prog_list = [{'P_ADDR':1, 'LINE':2, 'CMD':'NOP'}]
         self.labels = {'s15': 's15'} # register 15 predefinition
-
         # address in program memory
         self.p_addr = 1
         # line number
-        self.line = 1
-        # first instruction is always NOP, so both counters start at 1
+        self.line = 2
 
     def load_prog(self, progdict):
         # note that we only dump+load the raw waveforms and ASM (the low-level stuff that gets converted to binary)
@@ -1110,6 +1109,7 @@ class QickProgramV2(AbsQickProgram):
         self.prog_list.append(inst)
 
     def _add_label(self, label):
+        self.line += 1
         self.labels[label] = '&%d' % (self.p_addr)
 
     def asm(self):
