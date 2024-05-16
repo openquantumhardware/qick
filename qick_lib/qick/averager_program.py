@@ -161,7 +161,7 @@ class AveragerProgram(AcquireProgram):
             self.set_reads_per_shot(readouts_per_experiment)
         buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress)
         # move the I/Q axis from last to second-last
-        return np.moveaxis(buf, -1, -2)
+        return [np.moveaxis(b, -1, -2) for b in buf]
 
 class RAveragerProgram(AcquireProgram):
     """
