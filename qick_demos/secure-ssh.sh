@@ -23,17 +23,24 @@ sec_lvl_0 () {
     echo "===== THIS IS YOUR NEW PASSWORD!===="
     echo
     echo
-    echo "NB - don't write this down on a whiteboard/post-it! Please use"
-    echo "something like a notebook that you keep somewhere safe."
     # set the new password - but only if it's the bad one. -MC
     echo "[i] Changing 'xilinx' user password..."
     echo -e "xilinx\n$pass\n$pass" | passwd
+    if [[ $? -eq 0 ]]; then
+        echo "[!] Password Successfully Changed!!"
+        echo "NB - don't write this down on a whiteboard/post-it! Please use"
+        echo "something like a notebook that you keep somewhere safe."
+    else
+        echo "[i] Password Not Changed! Ignore the above string."
+    fi
     # GENERATE SSH keys
-    echo "[i] Generating SSH keys. Private key is in the file 'id_rsa' and"
-    echo "    the public key is in 'id_rsa.pub'. You will need 'id_rsa'"
-    echo "    locally accessible to access the server with that key."
-    ssh-keygen -t rsa -b 4096 -C "Qick server" -f ./id_rsa -N ""
-    cat ./id_rsa.pub >> ~/.ssh/authorized_keys
+    if [ ! -f ./id_rsa ]; then
+        echo "[i] Generating SSH keys. Private key is in the file 'id_rsa' and"
+        echo "    the public key is in 'id_rsa.pub'. You will need 'id_rsa'"
+        echo "    locally accessible to access the server with that key."
+        ssh-keygen -t rsa -b 4096 -C "Qick server" -f ./id_rsa -N ""
+        cat ./id_rsa.pub >> ~/.ssh/authorized_keys
+    fi
 }
 
 sec_lvl_1 () {
