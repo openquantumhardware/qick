@@ -14,9 +14,9 @@ sec_lvl_0 () {
     echo "$SecurityVar"
     # reset Password
     pass=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24;)
-    echo "========= WRITE THIS DOWN! =========
+    echo "========= WRITE THIS DOWN! ========="
     echo "[!] New Password: ${pass}"
-    echo "===== THIS IS YOUR NEW PASSWORD!====
+    echo "===== THIS IS YOUR NEW PASSWORD!===="
     echo "NB - don't write this down on a whiteboard/post-it! Please use"
     echo "something like a notebook that you keep somewhere safe."
     # set the new password - but only if it's the bad one. -MC
