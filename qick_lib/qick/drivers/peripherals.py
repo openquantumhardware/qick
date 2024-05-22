@@ -1,6 +1,6 @@
 """
-2024-5-20
 Drivers for qick_processor Peripherals.
+2024-5-22
 """
 from pynq.buffer import allocate
 import numpy as np
@@ -8,6 +8,7 @@ from qick import SocIp
 
 class QICK_Time_Tagger(SocIp):
     """
+    QICK_Time_Tagger class
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0']
 
@@ -104,6 +105,7 @@ class QICK_Time_Tagger(SocIp):
         #Strat DMA Transfer
         self.qtt_ctrl     = 32
         # DMA data.
+        print(data_len)
         self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(data_len*4))
         self.dma.recvchannel.wait()
         # truncate, copy, convert PynqBuffer to ndarray
@@ -143,7 +145,9 @@ class QICK_Time_Tagger(SocIp):
         print('---------------------------------------------')
         print('--- AXI Registers')
         for xreg in self.REGISTERS.keys():
-            print(f'{xreg:>15}', getattr(self, xreg))
+            reg_num = getattr(self, xreg)
+            reg_bin = '{:039_b}'.format(reg_num)
+            print(f'{xreg:>10}', f'{reg_num:>11}'+' - '+f'{reg_bin:>33}' )
     def print_status(self):
         print('---------------------------------------------')
     def print_debug(self):
@@ -276,10 +280,13 @@ class QICK_Com(SocIp):
     def print_dt(self):
         print("FLAG:{}   DT1:{}   DT2:{}   ".format(self.flag, self.dt1, self.dt2))
     
-    def print_axi_reg(self):
+    def print_axi_regs(self):
+        print('---------------------------------------------')
         print('--- AXI Registers')
         for xreg in self.REGISTERS.keys():
-            print(f'{xreg:>15}', getattr(self, xreg))
+            reg_num = getattr(self, xreg)
+            reg_bin = '{:039_b}'.format(reg_num)
+            print(f'{xreg:>10}', f'{reg_num:>11}'+' - '+f'{reg_bin:>33}' )
     def print_status(self):
         debug_num = self.status
         debug_bin = '{:032b}'.format(debug_num)

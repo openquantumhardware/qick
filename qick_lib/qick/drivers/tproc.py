@@ -1,5 +1,6 @@
 """
-Drivers for the QICK timed processor (tProc).
+Drivers for the QICK Timed Processor (tProc).
+2024-5-22
 """
 from pynq.buffer import allocate
 import numpy as np
@@ -666,13 +667,15 @@ class Axis_QICK_Proc(SocIp):
             else:
                 self.logger.error('Error Loading Program')
 
-    def axi_registers(self):
+    def print_axi_regs(self):
         print('---------------------------------------------')
         print('--- AXI Registers')
         for xreg in self.REGISTERS.keys():
-            print(f'{xreg:>15}', getattr(self, xreg))
+            reg_num = getattr(self, xreg)
+            reg_bin = '{:039_b}'.format(reg_num)
+            print(f'{xreg:>15}', f'{reg_num:>11}'+' - '+f'{reg_bin:>33}' )
 
-    def status(self):
+    def print_status(self):
         core_st = ['C_RST_STOP', 'C_RST_STOP_WAIT', 'C_RST_RUN', 'C_RST_RUN_WAIT', 'C_STOP', 'C_RUN', 'C_STEP', 'C_END_STEP']
         time_st = ['T_RST_STOP','T_RST_RUN', 'T_UPDT',  'T_INIT', 'T_RUN', 'T_STOP', 'T_STEP']
         status_num = self.tproc_status
@@ -712,7 +715,7 @@ class Axis_QICK_Proc(SocIp):
         print( 'qp2_rdy         : ' + status_bin[0] )
 
             
-    def debug(self):
+    def print_debug(self):
         self.read_sel  = 3
         div_q = self.axi_r_dt1
         div_r = self.axi_r_dt2
