@@ -58,6 +58,7 @@ class QICK_Time_Tagger(SocIp):
         # dma
         self.dma = axi_dma
         maxlen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
+        print(maxlen)
         self.buff_rd = allocate(shape=(maxlen, 1), dtype=np.int32)
     def __str__(self):
         lines = []
@@ -101,16 +102,19 @@ class QICK_Time_Tagger(SocIp):
             self.dma_cfg     = 5+16* data_len
         else:
             raise RuntimeError('Source Memeory error should be TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
-        
-        #Strat DMA Transfer
-        self.qtt_ctrl     = 32
-        # DMA data.
-        print(data_len)
-        self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(data_len*4))
-        self.dma.recvchannel.wait()
-        # truncate, copy, convert PynqBuffer to ndarray
-        #print(len(self.buff_rd), data_len)
-        return np.array(self.buff_rd[:data_len], copy=True)
+       
+        if   (data_len==0):
+            print('DATA_LEN>', data_len)
+            return []
+        else:
+            #Strat DMA Transfer
+            self.qtt_ctrl     = 32
+            # DMA data.
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(data_len*4))
+            self.dma.recvchannel.wait()
+            # truncate, copy, convert PynqBuffer to ndarray
+            #print(len(self.buff_rd), data_len)
+            return np.array(self.buff_rd[:data_len], copy=True)
     
     def disarm(self):
         self.qtt_ctrl    = 1+2* 0 
