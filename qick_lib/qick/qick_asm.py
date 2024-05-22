@@ -97,8 +97,9 @@ class QickConfig():
         lines.append("\n\tBoard: " + self['board'])
         lines.append("\n\tSoftware version: " + self['sw_version'])
         lines.append("\tFirmware timestamp: " + self['fw_timestamp'])
-        lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
-            tproc['f_time'], self['refclk_freq']))
+        if 'refclk_freq' in self._cfg:
+            lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
+                tproc['f_time'], self['refclk_freq']))
 
         lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
         for iGen, gen in enumerate(self['gens']):
