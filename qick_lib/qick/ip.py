@@ -13,13 +13,16 @@ class SocIp(DefaultIP, DummyIp):
     Registers are accessed as attributes.
     Configuration constants are accessed as dictionary items.
     """
-    REGISTERS = {}
 
     def __init__(self, description):
         """
         Constructor method
         """
+        # this block's register map: to be defined by subclass
+        self.REGISTERS = {}
+
         DefaultIP.__init__(self, description)
+
         # this block's unique identifier in the firmware
         self.fullpath = description['fullpath']
         # this block's type
@@ -35,10 +38,10 @@ class SocIp(DefaultIP, DummyIp):
         :param v: value to be written
         :type v: int
         """
-        try:
+        if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             self.mmio.array[index] = np.uint32(obtain(v))
-        except KeyError:
+        else:
             super().__setattr__(a, v)
 
     def __getattr__(self, a):
@@ -50,10 +53,10 @@ class SocIp(DefaultIP, DummyIp):
         :return: Register arguments
         :rtype: *args object
         """
-        try:
+        if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             return self.mmio.array[index]
-        except KeyError:
+        else:
             return super().__getattribute__(a)
 
 class QickMetadata:

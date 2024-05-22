@@ -62,8 +62,6 @@ class AxisReadoutV2(SocIp, AbsReadout):
     :type fs: float
     """
     bindto = ['user.org:user:axis_readout_v2:1.0']
-    REGISTERS = {'freq_reg': 0, 'phase_reg': 1, 'nsamp_reg': 2,
-                 'outsel_reg': 3, 'mode_reg': 4, 'we_reg': 5}
 
     # Bits of DDS.
     B_DDS = 32
@@ -86,6 +84,9 @@ class AxisReadoutV2(SocIp, AbsReadout):
         Constructor method
         """
         super().__init__(description)
+
+        self.REGISTERS = {'freq_reg': 0, 'phase_reg': 1, 'nsamp_reg': 2,
+                          'outsel_reg': 3, 'mode_reg': 4, 'we_reg': 5}
 
         # Default registers.
         self.freq_reg = 0
@@ -236,20 +237,6 @@ class AxisPFBReadoutV2(AbsPFBReadout):
     CH[0-3]SEL_REG : 3-bit ID mapping an output channel to an input.
     """
     bindto = ['user.org:user:axis_pfb_readout_v2:1.0']
-    REGISTERS = {'freq0_reg': 0,
-            'freq1_reg': 1,
-            'freq2_reg': 2,
-            'freq3_reg': 3,
-            'freq4_reg': 4,
-            'freq5_reg': 5,
-            'freq6_reg': 6,
-            'freq7_reg': 7,
-            'outsel_reg': 8,
-            'ch0sel_reg': 9,
-            'ch1sel_reg': 10,
-            'ch2sel_reg': 11,
-            'ch3sel_reg': 12,
-            }
 
     # Number of PFB channels.
     NCH = 8
@@ -262,6 +249,23 @@ class AxisPFBReadoutV2(AbsPFBReadout):
 
     # Output mode selection is supported.
     HAS_OUTSEL = True
+
+    def __init__(self, description):
+        super().__init__(description)
+        self.REGISTERS = {'freq0_reg': 0,
+                          'freq1_reg': 1,
+                          'freq2_reg': 2,
+                          'freq3_reg': 3,
+                          'freq4_reg': 4,
+                          'freq5_reg': 5,
+                          'freq6_reg': 6,
+                          'freq7_reg': 7,
+                          'outsel_reg': 8,
+                          'ch0sel_reg': 9,
+                          'ch1sel_reg': 10,
+                          'ch2sel_reg': 11,
+                          'ch3sel_reg': 12,
+                          }
 
     def set_out(self, sel='product'):
         """
@@ -332,19 +336,20 @@ class AxisPFBReadoutV3(AbsPFBReadout):
         """
         Constructor method
         """
+        # Generics.
+        self.NCH = int(description['parameters']['N'])
+
+        super().__init__(description)
 
         # define the register map
+        self.REGISTERS = {}
+
         iReg = 0
         for i in range(self.NOUT): self.REGISTERS['id%d_reg'%(i)] = i + iReg
         iReg += self.NOUT
         for i in range(self.NOUT):
             self.REGISTERS['freq%d_reg'%(i)] = 2*i + iReg
             self.REGISTERS['phase%d_reg'%(i)] = 2*i + iReg + 1
-
-        # Generics.
-        self.NCH = int(description['parameters']['N'])
-
-        super().__init__(description)
 
     def set_freq_int(self, cfg):
         # There are 4 outputs. Any PFB channel can be assigned to any output.
@@ -488,35 +493,36 @@ class AxisAvgBuffer(SocIp):
     :type channel: int
     """
     bindto = ['user.org:user:axis_avg_buffer:1.0']
-    REGISTERS = {'avg_start_reg': 0,
-                 'avg_addr_reg': 1,
-                 'avg_len_reg': 2,
-                 'avg_dr_start_reg': 3,
-                 'avg_dr_addr_reg': 4,
-                 'avg_dr_len_reg': 5,
-                 'buf_start_reg': 6,
-                 'buf_addr_reg': 7,
-                 'buf_len_reg': 8,
-                 'buf_dr_start_reg': 9,
-                 'buf_dr_addr_reg': 10,
-                 'buf_dr_len_reg': 11}
 
     def __init__(self, description):
         """
         Constructor method
         """
+        # Generics
+        self.B = int(description['parameters']['B'])
+        self.N_AVG = int(description['parameters']['N_AVG'])
+        self.N_BUF = int(description['parameters']['N_BUF'])
+
         super().__init__(description)
+
+        self.REGISTERS = {'avg_start_reg': 0,
+                          'avg_addr_reg': 1,
+                          'avg_len_reg': 2,
+                          'avg_dr_start_reg': 3,
+                          'avg_dr_addr_reg': 4,
+                          'avg_dr_len_reg': 5,
+                          'buf_start_reg': 6,
+                          'buf_addr_reg': 7,
+                          'buf_len_reg': 8,
+                          'buf_dr_start_reg': 9,
+                          'buf_dr_addr_reg': 10,
+                          'buf_dr_len_reg': 11}
 
         # Default registers.
         self.avg_start_reg = 0
         self.avg_dr_start_reg = 0
         self.buf_start_reg = 0
         self.buf_dr_start_reg = 0
-
-        # Generics
-        self.B = int(description['parameters']['B'])
-        self.N_AVG = int(description['parameters']['N_AVG'])
-        self.N_BUF = int(description['parameters']['N_BUF'])
 
         # Maximum number of samples
         self.cfg['avg_maxlen'] = 2**self.N_AVG
@@ -806,20 +812,21 @@ class MrBufferEt(SocIp):
     # DR_START_REG needs to be de-assereted and asserted again to allow a new transfer.
     #
     bindto = ['user.org:user:mr_buffer_et:1.0']
-    REGISTERS = {'dw_capture_reg': 0, 'dr_start_reg': 1}
 
     def __init__(self, description):
-        # Init IP.
-        super().__init__(description)
-
-        # Default registers.
-        self.dw_capture_reg = 0
-        self.dr_start_reg = 0
-
         # Generics
         self.B = int(description['parameters']['B'])
         self.N = int(description['parameters']['N'])
         self.NM = int(description['parameters']['NM'])
+
+        # Init IP.
+        super().__init__(description)
+
+        self.REGISTERS = {'dw_capture_reg': 0, 'dr_start_reg': 1}
+
+        # Default registers.
+        self.dw_capture_reg = 0
+        self.dr_start_reg = 0
 
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
@@ -933,20 +940,27 @@ class AxisBufferDdrV1(SocIp):
     """
     # AXIS Buffer DDR V1 Registers.
     bindto = ['user.org:user:axis_buffer_ddr_v1:1.0']
-    REGISTERS = {   'rstart_reg' : 0,
-                    'raddr_reg'  : 1,
-                    'rlength_reg': 2,
-                    'wstart_reg' : 3,
-                    'waddr_reg'  : 4,
-                    'wnburst_reg': 5
-                }
 
     # Stream Input Port.
     STREAM_IN_PORT  = "s_axis"
 
     def __init__(self, description):
+        # Generics.
+        self.TARGET_SLAVE_BASE_ADDR   = int(description['parameters']['TARGET_SLAVE_BASE_ADDR'],0)
+        self.ID_WIDTH                 = int(description['parameters']['ID_WIDTH'])
+        self.DATA_WIDTH               = int(description['parameters']['DATA_WIDTH']) # width of the AXI bus, in bits
+        self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1 # words per AXI burst
+
         # Initialize ip
         super().__init__(description)
+
+        self.REGISTERS = {'rstart_reg' : 0,
+                          'raddr_reg'  : 1,
+                          'rlength_reg': 2,
+                          'wstart_reg' : 3,
+                          'waddr_reg'  : 4,
+                          'wnburst_reg': 5
+                         }
 
         # Default registers.
         self.rstart_reg  = 0
@@ -966,12 +980,6 @@ class AxisBufferDdrV1(SocIp):
         # Map from avg_buf name to switch port.
         self.buf2switch = {}
         self.cfg['readouts'] = []
-
-        # Generics.
-        self.TARGET_SLAVE_BASE_ADDR   = int(description['parameters']['TARGET_SLAVE_BASE_ADDR'],0)
-        self.ID_WIDTH                 = int(description['parameters']['ID_WIDTH'])
-        self.DATA_WIDTH               = int(description['parameters']['DATA_WIDTH']) # width of the AXI bus, in bits
-        self.BURST_SIZE               = int(description['parameters']['BURST_SIZE']) + 1 # words per AXI burst
 
         self.cfg['burst_len'] = self.DATA_WIDTH*self.BURST_SIZE//32
         self.cfg['junk_len'] = 50*self.DATA_WIDTH//32 + 1 # not clear where this 50 comes from, presumably some FIFO somewhere

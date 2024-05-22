@@ -30,18 +30,19 @@ class AxisSwitch(SocIp):
     :type nmaster: int
     """
     bindto = ['xilinx.com:ip:axis_switch:1.1']
-    REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
     def __init__(self, description):
         """
         Constructor method
         """
-        super().__init__(description)
-
         # Number of slave interfaces.
         self.NSL = int(description['parameters']['NUM_SI'])
         # Number of master interfaces.
         self.NMI = int(description['parameters']['NUM_MI'])
+
+        super().__init__(description)
+
+        self.REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
         # Init axis_switch.
         self.ctrl = 0
