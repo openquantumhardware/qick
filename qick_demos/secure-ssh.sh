@@ -11,7 +11,7 @@
 SecurityVar="${QICK_SECURITY_LEVEL:-0}" # default is '0' if QICK_SECURITY_LEVEL isn't set. -MC
 
 sec_lvl_0 () {
-    echo "$SecurityVar"
+    echo "[i] Security Level: ${SecurityVar}"
     # reset Password
     pass=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24;)
     echo "[!] Generated Password: ${pass}"
