@@ -44,7 +44,7 @@ sec_lvl_0 () {
 }
 
 sec_lvl_1 () {
-    echo "[i] Editing /etc/sshd.config, with backup at sshd.config.bak" # TODO Check file path for xilinx linux
+    echo "[i] Editing /etc/ssh/sshd_config, with backup at sshd_config.bak"
     cd /etc/ssh
     sudo cp sshd_config sshd_config.bak
     sudo sed -E -i 's/(#\s*PermitRootLogin.*|PermitRootLogin yes)/PermitRootLogin no/g' sshd_config
