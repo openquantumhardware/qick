@@ -14,24 +14,27 @@ sec_lvl_0 () {
     echo "$SecurityVar"
     # reset Password
     pass=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 24;)
-    echo
-    echo
-    echo "========= WRITE THIS DOWN! ========="
-    echo
-    echo "[!] New Password: ${pass}"
-    echo
-    echo "===== THIS IS YOUR NEW PASSWORD!===="
-    echo
-    echo
+    echo "[!] Generated Password: ${pass}"
     # set the new password - but only if it's the bad one. -MC
     echo "[i] Changing 'xilinx' user password..."
     echo -e "xilinx\n$pass\n$pass" | passwd
     if [[ $? -eq 0 ]]; then
         echo "[!] Password Successfully Changed!!"
+        echo
+        echo
+        echo "========= WRITE THIS DOWN! ========="
+        echo
+        echo "[!] New Password: ${pass}"
+        echo
+        echo "===== THIS IS YOUR NEW PASSWORD!===="
+        echo
+        echo
         echo "NB - don't write this down on a whiteboard/post-it! Please use"
         echo "something like a notebook that you keep somewhere safe."
     else
+        echo
         echo "[i] Password Not Changed! Ignore the above string."
+        echo
     fi
     # GENERATE SSH keys
     if [ ! -f ./id_rsa ]; then
