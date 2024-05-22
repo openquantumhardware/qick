@@ -66,6 +66,6 @@ case $SecurityVar in
     ;;
 
   *)
-    echo "Something has gone wrong... You shouldn't be here. Seek help!"
+    echo "[!!] Something has gone wrong... You shouldn't be here. Seek help!"
     ;;
 esac
