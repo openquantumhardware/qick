@@ -104,8 +104,9 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 ### Log in to the RFSoC and configure the network
 You will normally connect to the RFSoC over a network connection, most typical setups are one of the following:
 * Point-to-point: the RFSoC is always directly connected to the PC through a single Ethernet cable. This is the simplest but usually not a long-term solution, because it consumes an Ethernet port on the PC.
-* Router: the RFSoC, PC, and possibly other lab equipment are connected to a router, which assigns IP addresses automatically. Other lab equipment might be connected to the router as well.
 * Switch: the RFSoC, PC, and possibly other lab equipment are connected to a switch, which doesn't assign IP addresses. Each piece of equipment has a static IP configured internally.
+* Router: the RFSoC, PC, and possibly other lab equipment are connected to a router, which assigns IP addresses automatically. Other lab equipment might be connected to the router as well. The router could additionally be configured as an Internet gateway, to allow the PC and RFSoC to access the Internet.
+ * Your institution's network is probably capable of playing this role, but this is not recommended because problems are difficult to debug, and because this exposes the RFSoC to all other users on the network. Only do this if you have experience with Linux network configuration and security, and follow all of the security recommendations below.
 
 The default network settings of the RFSoC are as follows:
 * If it's connected to a router, it will use an assigned address.
@@ -165,7 +166,14 @@ Use a router (e.g. a Cisco RV160 VPN Router which is available for purchase at w
 * Finally, the RFSoC may need to be configured to properly access the internet. Open `/etc/resolv.conf` in a text editor such as `vim` or `nano`, and ensure that it contains `nameserver 8.8.8.8`, `options eth0`. Note that `resolv.conf` may be re-generated when the board is power-cycled.
 -->
 
-### Connecting to your RFSOC via Jupyter and via SSH
+### Connecting to your RFSoC via Jupyter and via SSH
+You can connect to the RFSoC over the network in two ways: through the RFSoC's Jupyter server, which you access using a web browser, and through the RFSoC's SSH server, which you access using SSH and SCP clients. Jupyter will probably be your main interface, and you will use it to run the QICK demos. SSH gives you a terminal and SCP is used for file transfers; you can also create terminals and upload/download files in Jupyter, but it's not as flexible. You will use SCP to upload the QICK software and firmware to the RFSoC.
+
+The default access credentials are as follows:
+* Jupyter: password is `xilinx`.
+* SSH/SCP: user is `xilinx`, password is `xilinx`.
+
+
 
 #### Via Jupyter
 
