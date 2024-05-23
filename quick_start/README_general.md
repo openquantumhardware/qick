@@ -112,9 +112,9 @@ The default network settings of the RFSoC are as follows:
 * Otherwise it will use 192.168.2.99.
 
 These settings are fine for point-to-point or router setups, but for a switch setup you will generally want a static IP other than 192.168.2.99, because your other equipment is unlikely to be using the 192.168.2.xxx IP range.
-In that case you should make an initial connection to change the RFSoC's network settings. Below are three ways to do it (the first two double as ways to configure the point-to-point or router setups). Once you have a terminal:
+In that case you should make an initial connection to change the RFSoC's network settings. Below are three ways to do it (the first two double as ways to configure the point-to-point or router setups).
 
-Open `/etc/network/interfaces.d/eth0` in a text editor such as `vim` or `nano`. It will look like this:
+Once you have a terminal with root pirivileges, open `/etc/network/interfaces.d/eth0` in a text editor such as `vim` or `nano`. It will look like this:
 
 ```
 auto eth0
@@ -126,14 +126,14 @@ address 192.168.2.99
 netmask 255.255.255.0
 ```
 
-Change the `192.168.2.99` to the desired static IP address.
+Change the `192.168.2.99` to the desired static IP address, and save the file. You can now close the terminal, power off the RFSoC board, and connect it to the switch.
 
 ### Recommended: via point-to-point Ethernet connection
 * Connect your Ethernet cable from your computer to the RFSoC Ethernet port.
 * Configure your computer's Ethernet port with a static IP in the 192.168.2.xxx range, similar to below:
 
 <p align="center">
- SCREENSHOT HERE
+ <img src="quick-start-guide-pics/static_ip.png" alt="Setting a static IP in Windows">
 </p>
 
 * After powering up, connect to the board by navigating to `192.168.2.99` on your browser. This should open Jupyter. The default Jupyter password is `xilinx`. Now click the "New" button at the upper right and open a terminal.
@@ -176,7 +176,8 @@ Use a router (e.g. a Cisco RV160 VPN Router which is available for purchase at w
  <img src="quick-start-guide-pics/pynqstartup.PNG" alt="PYNQ startup">
 </p>
 
-* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now let's connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC and do the upcoming QICK loopback demo. 
+* You can see that there are a few demo Jupyter notebooks already loaded onto the RFSOC which you can feel free to explore. But now let's connect to the RFSOC via SSH, where you will have more flexibility and control. For instance, only after you have established an SSH connection can you copy the `qick` repo onto the RFSOC and do the upcoming QICK loopback demo.
+* If you need to open a root terminal for changing network settings, click the "New" button at the upper right and open a terminal.
 
 #### Via SSH
 
@@ -196,6 +197,8 @@ Use a router (e.g. a Cisco RV160 VPN Router which is available for purchase at w
 <p align="center">
  <img src="quick-start-guide-pics/putty3.PNG" alt="Using PuTTY (3)">
 </p>
+
+* If you need root privileges for changing network settings, run `sudo -s` and enter the user password again.
 
 ### Copy the QICK tools onto your RFSOC
 
