@@ -35,7 +35,7 @@ class QickSpan(NamedTuple):
         return QickSweep(0, {self.loop:self.span})
     def to_int(self, scale, quantize, parname, trunc=False):
         # this will get called if you use a single QickSpan as a parameter
-        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname, trunc=trune)
+        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname, trunc=trunc)
     def __add__(self, a):
         return self._to_sweep() + a
     def __radd__(self, a):
