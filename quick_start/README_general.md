@@ -4,6 +4,11 @@
 
 This guide will show you how to set up QICK after configuring your computer and RFSoC board on a local area network (LAN). By the end of this guide you will have run a QICK program in loopback mode (where signals loop back from an RF-DAC directly into an RF-ADC)!
 
+Up to the QICK-specific steps, the setup instructions below run parallel to the PYNQ and RFSoC documentation, and you might want to refer to that as well:
+* https://www.rfsoc-pynq.io/getting_started.html
+* https://www.rfsoc-pynq.io/rfsoc_4x2_getting_started.html
+* https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/57606309/ZCU111+RFSoC+RF+Data+Converter+Evaluation+Tool+Getting+Started+Guide
+
 ## Getting a board
 The ZCU216, RFSoC4x2, and ZCU111 are all supported by QICK and have identical FPGA logic capabilities; the differences are in the RF DACs+ADCs and the design of the rest of the board.
 For new purchases we generally recommend the current generation of RFSoC boards for the best high-frequency performance: the ZCU216 or RFSoC4x2. The ZCU216 has a higher channel count, allows for flexibility in AC- or DC-coupling your signals, and can be used with custom frontend boards; the RFSoC4x2 is available with academic pricing. But we highly recommend that you look at the board specifications yourself.
@@ -47,7 +52,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 -->
 
 ## Flashing the PYNQ operating system image onto your micro SD card
-* Your RFSoC board kit comes with a micro SD card. QICK requires an up-to-date PYNQ image (v2.6 through v3.0.1), so let's update the micro SD card with this version of the PYNQ image. 
+* Your RFSoC board kit comes with a micro SD card. QICK requires an up-to-date PYNQ image (v2.6 through v3.0.1), so let's update the micro SD card with this version of the PYNQ image. The PYNQ documentation for this step is also good: https://pynq.readthedocs.io/en/latest/appendix/sdcard.html
 * First, download the PYNQ image:
   * For ZCU111 and RFSoC4x2, v3.0.1 is the current recommended version: http://www.pynq.io/boards.html
   * For ZCU216, download the v2.7.0 version from the link in https://github.com/sarafs1926/ZCU216-PYNQ/issues/1.
@@ -106,8 +111,8 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 ## Connecting to your RFSoC over the network
 
 You will normally connect to the RFSoC over a network connection, most typical setups are one of the following:
-* Point-to-point: the RFSoC is always directly connected to the PC through a single Ethernet cable. This is the simplest but usually not a long-term solution, because it consumes an Ethernet port on the PC.
-* Local area network (LAN) with static IPs: the RFSoC, PC, and other lab equipment are connected to a switch, which doesn't assign IP addresses. Each piece of equipment has a unique static IP configured internally; all IPs are in a common range.
+* Point-to-point: the RFSoC is directly connected to the PC through a single Ethernet cable. This is the simplest but usually not a long-term solution, because it consumes an Ethernet port on the PC. (The RFSoC4x2 also supports creating a point-to-point network connection over USB; refer to the 4x2 documentation.)
+* LAN with static IPs: the RFSoC, PC, and other lab equipment are connected to a switch, which doesn't assign IP addresses. Each piece of equipment has a unique static IP configured internally; all IPs are in a common range.
 * LAN with router: the RFSoC, PC, and other lab equipment are connected to a router, which assigns IP addresses automatically. Other lab equipment might be connected to the router as well. The router could additionally be configured as an Internet gateway, to allow the PC and RFSoC to access the Internet.
  * Your institution's network is probably capable of playing this role, but this is not recommended because problems are difficult to debug, and because this exposes the RFSoC to all other users on the network. Only do this if you have experience with Linux network configuration and security, know the network security rules for your institution, and follow all of the security recommendations below.
 
@@ -125,7 +130,13 @@ It is sometimes difficult to tell what IP address the RFSoC is using. Here are s
 The default settings are fine for point-to-point or router setups, but for a static-IP LAN you will generally want an IP other than 192.168.2.99, because your other equipment is unlikely to be using the 192.168.2.xxx IP range.
 In that case you should make an initial connection to change the RFSoC's network settings, using one of the other options (point-to-point network, router network, or serial-over-USB). We recommend the point-to-point network, which is usually the easiest to set up.
 
-Once you have a terminal with root privileges, open `/etc/network/interfaces.d/eth0` in a text editor such as `vim` or `nano`. It will look like this:
+* Once you have a terminal with root privileges, open `/etc/network/interfaces.d/eth0` in a text editor such as `vim` or `nano`.
+ * If you're not familiar with any command-line text editor, `nano` is a good choice:
+  * Run `nano /etc/network/interfaces.d/eth0` to open the file.
+  * Make your change. You can cut entire lines with Control+k and paste them with Control+u. A hash at the start of a line in an `interfaces` file comments it, which you might use to stash old settings or describe your changes.
+  * Save with Control+o (hit Enter to write to the same file you opened)
+  * Exit with Control+x.
+* The file will look like this:
 
 ```
 auto eth0
@@ -137,11 +148,12 @@ address 192.168.2.99
 netmask 255.255.255.0
 ```
 
-Change the `192.168.2.99` to the desired static IP address, and save the file. You can now close the terminal, power off the RFSoC board, and connect it to the switch.
+* Change the `192.168.2.99` to the desired static IP address, and save the file. You can now close the terminal, power off the RFSoC board, and connect it to the switch.
+* Configure youe computer's Ethernet port to connect to the LAN with a static IP.
 
 #### For a point-to-point Ethernet connection
 * Connect your Ethernet cable from your computer to the RFSoC Ethernet port.
-* Configure your computer's Ethernet port with a static IP in the 192.168.2.xxx range, similar to below:
+* Configure your computer's Ethernet port with a static IP in the 192.168.2.xxx range, similar to below (see also https://pynq.readthedocs.io/en/latest/appendix/assign_a_static_ip.html):
 
 <p align="center">
  <img src="quick-start-guide-pics/static_ip.png" alt="Setting a static IP in Windows">
@@ -170,7 +182,7 @@ The Jupyter server and the Linux operating system have separate access credentia
 * Jupyter: password is `xilinx`.
 * Linux OS: username is `xilinx`, password is `xilinx`. There is also a root (admin) account, password `xilinx`, but the `xilinx` user can become root using `sudo -s` (you will need to enter the user password).
 
-***These defaults are very insecure.*** You must change them (and other settings) if your RFSoC will be connected to a network accessible to people outside your lab group. Some of the default settings have alternatives that add no inconvenience, and we recommend that everyone should change those even if the network is safe. See the section below on "Securing your RFSoC" for details.
+***These defaults are very insecure.*** You must change them if your RFSoC will be connected to a network accessible to people outside your lab group. Some of the default settings have alternatives that add no inconvenience, and we recommend that everyone should change those even if the network is safe. See the section below on "Securing your RFSoC" for details.
 
 #### Over the network, via Jupyter
 
@@ -204,6 +216,7 @@ The Jupyter server and the Linux operating system have separate access credentia
 </p>
 
 * If you need root privileges for changing settings, run `sudo -s` and enter the user password again.
+* It's convenient to save these session settings; you can also set the username as part of the hostname e.g. `xilinx@192.168.1.146`.
 
 #### Through a serial connection over USB, for debugging or changing the configuration
 You can also log in to the RFSoC using a serial connection.
@@ -218,11 +231,85 @@ These are things you might check:
 * Finally, the RFSoC may need to be configured to properly access the internet. Open `/etc/resolv.conf` in a text editor such as `vim` or `nano`, and ensure that it contains `nameserver 8.8.8.8`, `options eth0`. Note that `resolv.conf` may be re-generated when the board is power-cycled.
 
 ### Securing your RFSoC
-PLACEHOLDER
 
+#### Disabling root login
+Brute-force password-guessing attacks against SSH servers are extremely common, and the root account is a common target because the username is standard and the account has maximum privileges. The default root password of `xilinx` is easily guessed.
+You could set a stronger root password, or block SSH login for the root account, but given that `sudo` is just as easy a way to get root privileges, you never actually need to use the root password and it's easier to disable it completely.
+In other words, this improves security and adds no inconvenience; *everyone should make this change.*
 
+* Log in via SSH using the `xilinx` username and that account's password (`xilinx`, unless you've changed it).
+* Run `su` and enter the root password (`xilinx`) to become root.
+* Run `passwd -l root` to lock the root password. This makes it impossible to log in as root over SSH or using `su`, but you can still get root access through Jupyter or `sudo`.
+* Run `exit` (or use the keyboard shortcut Control-d) to exit your root session and get back to being a regular user.
+* Run `su` and enter the `xilinx` password again. This should fail!
+* Run `sudo -s` and enter the user password to check that you can still use `sudo` to become root.
 
+The terminal output from these steps should look like this:
+```
+xilinx@pynq:~$ su
+Password: 
+root@pynq:/home/xilinx# passwd -l root
+passwd: password expiry information changed.
+root@pynq:/home/xilinx# exit
+exit
+xilinx@pynq:~$ su
+Password: 
+su: Authentication failure
+xilinx@pynq:~$ sudo -s
+[sudo] password for xilinx: 
+root@pynq:/home/xilinx#
+```
 
+#### Changing the Linux user password
+The default username and password are both `xilinx`, and this is easily guessed if an attacker knows the board is running PYNQ OS.
+Because this account has `sudo` rights, knowing this account's password is as good as having root access.
+Changing the password doesn't add significant inconvenience.
+*We strongly recommend that you change this password.*
+
+The strength and style (random characters, random words, etc.) of the password are up to you based on what is natural to you and your lab group, how secure you need your RFSoC to be, and how dangerous the network environment is.
+You should store the password in a secure and resilient way; again this will depend on how your lab group operates, but could mean a lab notebook or a file on a secure shared disk.
+
+* Choose a new password and make a record of it. 
+* Log in via SSH using the `xilinx` username and that account's password (`xilinx`).
+* Run `passwd`; enter the current password (`xilinx` again) and then enter your desired password twice.
+* Disconnect and check that you can log in via SSH using the new password.
+
+The terminal output from these steps should look like this:
+```
+xilinx@pynq:~$ passwd
+Changing password for xilinx.
+Current password: 
+New password: 
+Retype new password: 
+passwd: password updated successfully
+xilinx@pynq:~$ 
+```
+
+#### Restricting remote Jupyter access
+Because the Jupyter server runs with root privileges, having access to Jupyter is as good as having root access.
+The default password `xilinx` is easily guessed; also, because the Jupyter server uses HTTP and not HTTPS, an attacker listening to traffic on your network could get a hash of your password when you log in (not as bad as getting the password, but this is still considered a risk).
+The preferred solution is to block remote access to Jupyter, and only access Jupyter through SSH.
+This adds a step when connecting to Jupyter, but is easy to set up (easier than changing the Jupyter password, and more effective for security).
+*We strongly recommend this if your RFSoC is on an untrusted network.*
+
+To set this up, get a terminal with root privileges and open `/root/.jupyter/jupyter_notebook_config.py` in a text editor (such as `nano` - see the section above on setting up a static IP). Page down to the bottom, where you should see something liek this:
+```
+# c.TerminalManager.cull_interval = 300
+c.NotebookApp.ip = '0.0.0.0'
+c.NotebookApp.notebook_dir = '/home/xilinx/jupyter_notebooks'
+c.NotebookApp.password = 'sha1:46c5ef4fa52f:ee46dad5008c6270a52f6272828a51b16336b492'
+```
+
+Put a hash at the beginning of the line with `c.NotebookApp.ip`, to comment out that setting. Now reboot. Point your browser to the RFSoC's IP address (for example 192.168.1.146): it should redirect to port 9090 (i.e. the address bar should show `192.168.1.146:9090`) as usual, but the page should not load.
+
+To access Jupyter after making this change, you will need to use SSH port forwarding:
+* Add port forwarding to your SSH configuration. The example below shows how you would tell PuTTY to forward port 5678 on your PC to port 9090 on the RFSoC (the Jupyter server's port). The choice of 5678 is arbitrary, and if you connect to multiple RFSoCs from the same computer in this way you need to use different ports. (If using macOS or Linux, you would specify port forwarding as part of the command, e.g. `ssh xilinx@192.168.1.146 -L 5678:localhost:9090`.)
+<p align="center">
+ PLACEHOLDER
+</p>
+* Make the SSH connection. You will need to leave the connection open while using the Jupyter server.
+* Point your browser to `localhost:5678`. You should get the Jupyter server.
+* You might need to open port 5678 in your firewall: one way to do this is to enable the checkbox "Local ports accept connections from other hosts" in the PuTTY configuration shown above and make the connection, which should trigger Windows to ask if you want to open the port. Once you've done this, you should disable that checkbox (since you're otherwise exposing the Jupyter server to the network again, just through your PC instead of directly from the RFSoC).
 
 ## Copy the QICK tools onto your RFSoC
 
