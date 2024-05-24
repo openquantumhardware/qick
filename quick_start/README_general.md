@@ -305,7 +305,7 @@ Put a hash at the beginning of the line with `c.NotebookApp.ip`, to comment out 
 To access Jupyter after making this change, you will need to use SSH port forwarding:
 * Add port forwarding to your SSH configuration. The example below shows how you would tell PuTTY to forward port 5678 on your PC to port 9090 on the RFSoC (the Jupyter server's port). The choice of 5678 is arbitrary, and if you connect to multiple RFSoCs from the same computer in this way you need to use different ports. (If using macOS or Linux, you would specify port forwarding as part of the command, e.g. `ssh xilinx@192.168.1.146 -L 5678:localhost:9090`.)
 <p align="center">
- PLACEHOLDER
+ <img src="quick-start-guide-pics/port_forward.png" alt="PuTTY configuration for port forwarding">
 </p>
 * Make the SSH connection. You will need to leave the connection open while using the Jupyter server.
 * Point your browser to `localhost:5678`. You should get the Jupyter server.
