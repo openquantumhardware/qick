@@ -235,7 +235,7 @@ These are things you might check:
 #### Disabling root login
 Brute-force password-guessing attacks against SSH servers are extremely common, and the root account is a common target because the username is standard and the account has maximum privileges. The default root password of `xilinx` is easily guessed.
 You could set a stronger root password, or block SSH login for the root account, but given that `sudo` is just as easy a way to get root privileges, you never actually need to use the root password and it's easier to disable it completely.
-In other words, this improves security and adds no inconvenience; *everyone should make this change.*
+In other words, this improves security and adds no inconvenience; **everyone should make this change.**
 
 * Log in via SSH using the `xilinx` username and that account's password (`xilinx`, unless you've changed it).
 * Run `su` and enter the root password (`xilinx`) to become root.
@@ -264,7 +264,7 @@ root@pynq:/home/xilinx#
 The default username and password are both `xilinx`, and this is easily guessed if an attacker knows the board is running PYNQ OS.
 Because this account has `sudo` rights, knowing this account's password is as good as having root access.
 Changing the password doesn't add significant inconvenience.
-*We strongly recommend that you change this password.*
+**We strongly recommend that you change this password.**
 
 Choose the strength and style (random characters, random words, etc.) of the password based on what is natural to you and your lab group, how secure you need your RFSoC to be, and how dangerous the network environment is.
 You should store the password in a secure and resilient way; again this will depend on how your lab group operates, but could mean a lab notebook or a file on a secure shared disk.
@@ -290,9 +290,9 @@ Because the Jupyter server runs with root privileges, having access to Jupyter i
 The default password `xilinx` is easily guessed; also, because the Jupyter server uses HTTP and not HTTPS, an attacker listening to traffic on your network could get a hash of your password when you log in (not as bad as getting the password, but this is still considered a risk).
 The preferred solution is to block remote access to Jupyter, and only access Jupyter through SSH.
 This adds a step when connecting to Jupyter, but is easy to set up (easier than changing the Jupyter password, and more effective for security).
-*We strongly recommend this if your RFSoC is on an untrusted network.*
+**We strongly recommend this if your RFSoC is on an untrusted network.**
 
-To set this up, get a terminal with root privileges and open `/root/.jupyter/jupyter_notebook_config.py` in a text editor (such as `nano` - see the section above on setting up a static IP). Page down to the bottom, where you should see something liek this:
+To set this up, get a terminal with root privileges and open `/root/.jupyter/jupyter_notebook_config.py` in a text editor (such as `nano` - see the section above on setting up a static IP). Page down to the bottom, where you should see something like this:
 ```
 # c.TerminalManager.cull_interval = 300
 c.NotebookApp.ip = '0.0.0.0'
