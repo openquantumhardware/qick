@@ -9,7 +9,7 @@ Up to the QICK-specific steps, the setup instructions below run parallel to the 
 * https://www.rfsoc-pynq.io/rfsoc_4x2_getting_started.html
 * https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/57606309/ZCU111+RFSoC+RF+Data+Converter+Evaluation+Tool+Getting+Started+Guide
 
-## Getting a board
+## Get a board
 The ZCU216, RFSoC4x2, and ZCU111 are all supported by QICK and have identical FPGA logic capabilities; the differences are in the RF DACs+ADCs and the design of the rest of the board.
 For new purchases we generally recommend the current generation of RFSoC boards for the best high-frequency performance: the ZCU216 or RFSoC4x2. The ZCU216 has a higher channel count, allows for flexibility in AC- or DC-coupling your signals, and can be used with custom frontend boards; the RFSoC4x2 is available with academic pricing. But we highly recommend that you look at the board specifications yourself.
 
@@ -51,7 +51,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 * Two Ethernet cables that you will use to attach 1) your ZCU111 board and 2) your personal computer to the router.
 -->
 
-## Flashing the PYNQ operating system image onto your micro SD card
+## Flash the PYNQ operating system image onto your micro SD card
 * Your RFSoC board kit comes with a micro SD card. QICK requires an up-to-date PYNQ image (v2.6 through v3.0.1), so let's update the micro SD card with this version of the PYNQ image. The PYNQ documentation for this step is also good: https://pynq.readthedocs.io/en/latest/appendix/sdcard.html
 * First, download the PYNQ image:
   * For ZCU111 and RFSoC4x2, v3.0.1 is the current recommended version: http://www.pynq.io/boards.html
@@ -77,7 +77,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 </p>
 
 
-## Assembling and powering on your RFSoC board
+## Assemble and power on your RFSoC board
 
 * For the ZCU216 and ZCU111, assemble the board with daughterboard(s). The 4 mm hex wrench is used to tighten the jackscrew nuts under the frontend board screws, then the screwdriver is used to screw down the board. For both the frontend board and the ZCU216's CLK-104 board, be careful to align the high-density connector before screwing down the board. You may find these resources useful in addition to the kit documentation:
   * For the ZCU216 board, the basic assembly section of this webpage: https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/246153525/RF+DC+Evaluation+Tool+for+ZCU216+board+-+Quick+start. 
@@ -91,13 +91,17 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
  <img src="quick-start-guide-pics/Bootmodeswitch.png" alt="Boot mode switch">
 </p>
 
-* Use your torque wrench to wire an SMA cable between an RF-DAC channel and an RF-ADC channel.
+* Use your wrench to wire an SMA cable between an RF-DAC channel and an RF-ADC channel.
   * For the ZCU216, choose DAC 2_231 and ADC 0_226, which will be generator 6 and readout 0. This is a two-step process, because the XM655 directly exposes the differential ports of the RF-DACs and RF-ADCs, and you must patch these through to the baluns that convert them to regular (single-ended) signals:
     * First identify the gold HC2 connector you want; e.g. 2_231 is labeled next to connector JHC3. Connect an HC2-SMA cable and screw it down.
     * Now identify the P/N pair of SMA pigtails you want; e.g. the pair for 2_231 are the last two on this cable. Connect these to the P and N ports of an available low-frequency (10 MHz-1 GHz) balun. The third SMA connector next to this balun is the single-ended port; your SMA cable will connect the single-ended ports of the two baluns.
     * See also https://docs.amd.com/r/en-US/ug1390-zcu216-eval-bd/CoreHC2-Connector-Pinout-XM655-Only
   * For the RFSoC4x2, choose DAC_B and ADC_D, which will be generator 0 and readout 0. (You will need to change the generator number in the demo notebook later, since the demos assume generator 6.)
   * For the ZCU111, choose DAC 229 CH3 and ADC 224 CH0, which will be generator 6 and readout 0. These names are written directly on the XM500 breakout board. See also https://docs.amd.com/r/en-US/ug1271-zcu111-eval-bd/XM500-ADC/DAC-Data-and-Clock-SMA
+  * You're doing this with the board powered down, but in general: it's OK to connect/disconnect RF cables with the board powered. However, you should be very careful not to touch any of the exposed electrical components with metal tools or connectors. ***This can cause immediate, permanent damage to your board which cannot be repaired.*** In particular:
+   * The frontend daughterboards of the ZCU216 and ZCU111 have rows of header pins, some of which can destroy the board if shorted to each other or to ground.
+   * If you have SMA cables with loose ends (for example, the unused lines of a ZCU216's HC2-to-SMA cable), always cover their connectors completely with the rubber caps that came with the cables.
+   * Observe general housekeeping and workplace hygiene principles - don't leave loose tools rolling around your lab bench, keep loose adapters in bowls or drawers, be aware of where a tool might fall if dropped.
 * Connect an Ethernet cable and/or USB cable, and configure your computer, as specified in the next section.
 * Connect the power cable to the RFSoC board. Flip the board power switch on (it's next to the power cable). You should hear the fan above the RFSoC chip begin to whir, and you should see LED lights blinking all over the board. You should also see lit or blinking LEDs that indicate the Ethernet port is connected to your computer: two LEDs built into the face of the port and a third LED next to the port labeled "LINK."
 * Your board setup should look something like the below cartoon:
@@ -108,7 +112,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 
 * The board will take a minute or two to boot up. Five minutes is more than enough; if you can't connect to the RFSoC after this time something is wrong with your setup (check your cabling, check that your SD card is properly inserted, retry with a serial connection over USB as described below).
 
-## Connecting to your RFSoC over the network
+## Connect to your RFSoC over the network
 
 You will normally connect to the RFSoC over a network connection, most typical setups are one of the following:
 * Point-to-point: the RFSoC is directly connected to the PC through a single Ethernet cable. This is the simplest but usually not a long-term solution, because it consumes an Ethernet port on the PC. (The RFSoC4x2 also supports creating a point-to-point network connection over USB; refer to the 4x2 documentation.)
@@ -116,7 +120,7 @@ You will normally connect to the RFSoC over a network connection, most typical s
 * LAN with router: the RFSoC, PC, and other lab equipment are connected to a router, which assigns IP addresses automatically. Other lab equipment might be connected to the router as well. The router could additionally be configured as an Internet gateway, to allow the PC and RFSoC to access the Internet.
  * Your institution's network is probably capable of playing this role, but this is not recommended because problems are difficult to debug, and because this exposes the RFSoC to all other users on the network. Only do this if you have experience with Linux network configuration and security, know the network security rules for your institution, and follow all of the security recommendations below.
 
-### Configuring the network
+### Configure the network
 The default network settings of the RFSoC are as follows (see the section below for instructions on changing them):
 * If it's connected to a router, it will use an assigned address.
 * Otherwise it will use 192.168.2.99.
@@ -175,14 +179,14 @@ Use a router (e.g. a Cisco RV160 VPN Router which is available for purchase at w
 
 * Most routers will allow you to assign a permanent IP address to the RFSoC based on its MAC address, which you can get by running the `ifconfig` command in a terminal and looking for `ether`. The ZCU216 and ZCU111 have a sticker with the MAC address, and you should check that this matches the output of `ifconfig` (if not, see https://github.com/openquantumhardware/qick/issues/182).
 
-### Logging in
+### Log in
 You can connect to the RFSoC over the network in two ways: through the RFSoC's Jupyter server, which you access using a web browser and Jupyter password, and through the RFSoC's SSH server, which you access using SSH and SCP clients and Linux password. Jupyter will probably be your main interface, and you will use it to run the QICK demos. SSH gives you a terminal and SCP is used for file transfers; you can also create terminals and upload/download files in Jupyter, but it's not as flexible. You will use SCP to upload the QICK software and firmware to the RFSoC.
 
 The Jupyter server and the Linux operating system have separate access credentials, with the following defaults:
 * Jupyter: password is `xilinx`.
 * Linux OS: username is `xilinx`, password is `xilinx`. There is also a root (admin) account, password `xilinx`, but the `xilinx` user can become root using `sudo -s` (you will need to enter the user password).
 
-***These defaults are very insecure.*** You must change them if your RFSoC will be connected to a network accessible to people outside your lab group. Some of the default settings have alternatives that add no inconvenience, and we recommend that everyone should change those even if the network is safe. See the section below on "Securing your RFSoC" for details.
+***These defaults are very insecure.*** You must change them if your RFSoC will be connected to a network accessible to people outside your lab group. Some of the default settings have alternatives that add no inconvenience, and we recommend that everyone should change those even if the network is safe. See the section below on "Secure your RFSoC" for details.
 
 #### Over the network, via Jupyter
 
@@ -230,9 +234,9 @@ These are things you might check:
 * If the RFSoC is having trouble accessing network devices outside the LAN, the default gateway may not be set; this can be checked with `ip route`. There should be an IP address marked as `default`. If this is not present, a default must be set using `sudo ip route add default via xxx.xxx.xxx.1`, replacing the IP address with the local network address.
 * Finally, the RFSoC may need to be configured to properly access the internet. Open `/etc/resolv.conf` in a text editor such as `vim` or `nano`, and ensure that it contains `nameserver 8.8.8.8`, `options eth0`. Note that `resolv.conf` may be re-generated when the board is power-cycled.
 
-### Securing your RFSoC
+### Secure your RFSoC
 
-#### Disabling root login
+#### Disable root login
 Brute-force password-guessing attacks against SSH servers are extremely common, and the root account is a common target because the username is standard and the account has maximum privileges. The default root password of `xilinx` is easily guessed.
 You could set a stronger root password, or block SSH login for the root account, but given that `sudo` is just as easy a way to get root privileges, you never actually need to use the root password and it's easier to disable it completely.
 In other words, this improves security and adds no inconvenience; **everyone should make this change.**
@@ -260,7 +264,7 @@ xilinx@pynq:~$ sudo -s
 root@pynq:/home/xilinx#
 ```
 
-#### Changing the Linux user password
+#### Change the Linux user password
 The default username and password are both `xilinx`, and this is easily guessed if an attacker knows the board is running PYNQ OS.
 Because this account has `sudo` rights, knowing this account's password is as good as having root access.
 Changing the password doesn't add significant inconvenience.
@@ -285,7 +289,7 @@ passwd: password updated successfully
 xilinx@pynq:~$ 
 ```
 
-#### Restricting remote Jupyter access
+#### Restrict remote Jupyter access
 Because the Jupyter server runs with root privileges, having access to Jupyter is as good as having root access.
 The default password `xilinx` is easily guessed; also, because the Jupyter server uses HTTP and not HTTPS, an attacker listening to traffic on your network could get a hash of your password when you log in (not as bad as getting the password, but this is still considered a risk).
 The preferred solution is to block remote access to Jupyter, and only access Jupyter through SSH.
@@ -335,21 +339,24 @@ To access Jupyter after making this change, you will need to use SSH port forwar
  <img src="quick-start-guide-pics/jupyternotebook1.PNG" alt="Jupyter notebook main folder">
 </p>
 
-## Installing the `qick` Python package
+## Install the `qick` Python package and running a QICK program in loopback mode
 
-<!--* Navigate to the `qick` directory and run: `sudo python3 -m pip install .`
+<!--
+* Navigate to the `qick` directory and run: `sudo python3 -m pip install .`
 This will install the qick Python package.
 -->
 * Navigate to the `qick_demos` subfolder within the `qick` directory and run the Jupyter notebook `000_Install_qick_package.ipynb`. This will walk you through installing and testing the `qick` package.
+* Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSoC RF-DACs and looping back to the RFSoC RF-ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 
+<!--
 ## Running a QICK program in loopback mode
 
-* Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSoC RF-DACs and looping back to the RFSoC RF-ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 * You can also take the opportunity to check that you have flashed the correct PYNQ version: 
 
 <p align="center">
  <img src="quick-start-guide-pics/correctpynqversion.PNG" alt="The correct PYNQ version">
 </p>
+-->
 
 ## Copy data off of your RFSoC and onto your personal computer
 
