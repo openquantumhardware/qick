@@ -266,7 +266,7 @@ Because this account has `sudo` rights, knowing this account's password is as go
 Changing the password doesn't add significant inconvenience.
 *We strongly recommend that you change this password.*
 
-The strength and style (random characters, random words, etc.) of the password are up to you based on what is natural to you and your lab group, how secure you need your RFSoC to be, and how dangerous the network environment is.
+Choose the strength and style (random characters, random words, etc.) of the password based on what is natural to you and your lab group, how secure you need your RFSoC to be, and how dangerous the network environment is.
 You should store the password in a secure and resilient way; again this will depend on how your lab group operates, but could mean a lab notebook or a file on a secure shared disk.
 
 * Choose a new password and make a record of it. 
@@ -307,6 +307,7 @@ To access Jupyter after making this change, you will need to use SSH port forwar
 <p align="center">
  <img src="quick-start-guide-pics/port_forward.png" alt="PuTTY configuration for port forwarding">
 </p>
+
 * Make the SSH connection. You will need to leave the connection open while using the Jupyter server.
 * Point your browser to `localhost:5678`. You should get the Jupyter server.
 * You might need to open port 5678 in your firewall: one way to do this is to enable the checkbox "Local ports accept connections from other hosts" in the PuTTY configuration shown above and make the connection, which should trigger Windows to ask if you want to open the port. Once you've done this, you should disable that checkbox (since you're otherwise exposing the Jupyter server to the network again, just through your PC instead of directly from the RFSoC).
@@ -353,12 +354,12 @@ This will install the qick Python package.
 ## Copy data off of your RFSoC and onto your personal computer
 
 * Let's say that you have created a `quick_start_demo` directory with your work and you want a local copy of the entire directory (for example, you exported your data to `.png` plots that are within the `quick_start_demo` directory on the RFSoC, and you want to move those plots back to your personal computer). To do this, you do something analogous to when you copied the `qick` repository onto the RFSoC earlier in this guide:
-* Open the Command Prompt application in Windows and, after navigating to your local directory containing your `pscp.exe` executable, type in the following command (substituting the IP address that was assigned to your RFSoC):
+* Open the Command Prompt application in Windows and, after navigating to your local directory where you want the files to go, type in the following command (substituting the IP address that was assigned to your RFSoC):
  
 <p align="center">
  <img src="quick-start-guide-pics/pullingdataofftheboard.PNG" alt="Pulling data off the RFSoC with PSCP">
 </p>
 
-* Now the `quick_start_demo` directory has been copied to your local directory which contains your `pscp.exe` executable. 
+* Now the `quick_start_demo` directory has been copied to your local directory.
 
 ***Hopefully this guide was a helpful introduction to QICK!***
