@@ -235,6 +235,12 @@ These are things you might check:
 * Finally, the RFSoC may need to be configured to properly access the internet. Open `/etc/resolv.conf` in a text editor such as `vim` or `nano`, and ensure that it contains `nameserver 8.8.8.8`, `options eth0`. Note that `resolv.conf` may be re-generated when the board is power-cycled.
 
 ### Secure your RFSoC
+As mentioned above, the default settings for accessing the RFSoC are quite insecure. If you change nothing, anybody with access to the RFSoC's network will be able to get full access without much difficulty. The significance of this depends on your network configuration and the harm that could be caused by a breach. In other words:
+* How much do you trust the people and devices on the RFSoC's network? If you have a point-to-point connection, the RFSoC is only connected to your PC, so the network is as secure as your PC. If you put the RFSoC on your institution's network, you can trust the network only as much as you trust every user and device on the network - if an attacker compromises any computer at your institution, they could then attack your RFSoC.
+* What harm could an attacker do? If the security of your RFSoC is compromised, they could read, delete, or modify anything on the SD card, run arbitrary malware on the RFSoC, or control any equipment controlled by the RFSoC. So you should judge the consequences of this.
+* Are there any rules you need to follow? Your institution may have rules about securing computers that are connected to the institution's network, connected to expensive equipment, or used for important/sensitive research. These rules may apply, and may be stricter than what you would arrive at by taking a "common sense" approach to the two points above.
+
+You should weigh these factors and the recommendations below.
 
 #### Disable root login
 Brute-force password-guessing attacks against SSH servers are extremely common, and the root account is a common target because the username is standard and the account has maximum privileges. The default root password of `xilinx` is easily guessed.
