@@ -47,27 +47,35 @@ module axis_cdcsync_v1
 		input	wire			m_axis_aresetn	,
 		input	wire			m_axis_aclk		,
 
+		input	wire 			m0_axis_tready	,
 		output	wire			m0_axis_tvalid	,
 		output	wire	[B-1:0]	m0_axis_tdata	,
 
+		input	wire 			m1_axis_tready	,
 		output	wire			m1_axis_tvalid	,
 		output	wire	[B-1:0]	m1_axis_tdata	,
 
+		input	wire 			m2_axis_tready	,
 		output	wire			m2_axis_tvalid	,
 		output	wire	[B-1:0]	m2_axis_tdata	,
 
+		input	wire 			m3_axis_tready	,
 		output	wire			m3_axis_tvalid	,
 		output	wire	[B-1:0]	m3_axis_tdata	,
 
+		input	wire 			m4_axis_tready	,
 		output	wire			m4_axis_tvalid	,
 		output	wire	[B-1:0]	m4_axis_tdata	,
 
+		input	wire 			m5_axis_tready	,
 		output	wire			m5_axis_tvalid	,
 		output	wire	[B-1:0]	m5_axis_tdata	,
 
+		input	wire 			m6_axis_tready	,
 		output	wire			m6_axis_tvalid	,
 		output	wire	[B-1:0]	m6_axis_tdata	,
 
+		input	wire 			m7_axis_tready	,
 		output	wire			m7_axis_tvalid	,
 		output	wire	[B-1:0]	m7_axis_tdata
 	);
@@ -125,27 +133,35 @@ cdcsync
 		.m_axis_aresetn	(m_axis_aresetn	),
 		.m_axis_aclk	(m_axis_aclk	),
 
+		.m0_axis_tready	(m0_axis_tready	),
 		.m0_axis_tvalid	(m0_axis_tvalid	),
 		.m0_axis_tdata	(m0_axis_tdata	),
 
+		.m1_axis_tready	(m1_axis_tready	),
 		.m1_axis_tvalid	(m1_axis_tvalid	),
 		.m1_axis_tdata	(m1_axis_tdata	),
 
+		.m2_axis_tready	(m2_axis_tready	),
 		.m2_axis_tvalid	(m2_axis_tvalid	),
 		.m2_axis_tdata	(m2_axis_tdata	),
 
+		.m3_axis_tready	(m3_axis_tready	),
 		.m3_axis_tvalid	(m3_axis_tvalid	),
 		.m3_axis_tdata	(m3_axis_tdata	),
 
+		.m4_axis_tready	(m4_axis_tready	),
 		.m4_axis_tvalid	(m4_axis_tvalid	),
 		.m4_axis_tdata	(m4_axis_tdata	),
 
+		.m5_axis_tready	(m5_axis_tready	),
 		.m5_axis_tvalid	(m5_axis_tvalid	),
 		.m5_axis_tdata	(m5_axis_tdata	),
 
+		.m6_axis_tready	(m6_axis_tready	),
 		.m6_axis_tvalid	(m6_axis_tvalid	),
 		.m6_axis_tdata	(m6_axis_tdata	),
 
+		.m7_axis_tready	(m7_axis_tready	),
 		.m7_axis_tvalid	(m7_axis_tvalid	),
 		.m7_axis_tdata	(m7_axis_tdata	)
 	);

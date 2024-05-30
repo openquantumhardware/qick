@@ -47,27 +47,35 @@ module cdcsync
 		input	wire			m_axis_aresetn	,
 		input	wire			m_axis_aclk		,
 
+		input	wire 			m0_axis_tready	,
 		output	wire			m0_axis_tvalid	,
 		output	wire	[B-1:0]	m0_axis_tdata	,
 
+		input	wire 			m1_axis_tready	,
 		output	wire			m1_axis_tvalid	,
 		output	wire	[B-1:0]	m1_axis_tdata	,
 
+		input	wire 			m2_axis_tready	,
 		output	wire			m2_axis_tvalid	,
 		output	wire	[B-1:0]	m2_axis_tdata	,
 
+		input	wire 			m3_axis_tready	,
 		output	wire			m3_axis_tvalid	,
 		output	wire	[B-1:0]	m3_axis_tdata	,
 
+		input	wire 			m4_axis_tready	,
 		output	wire			m4_axis_tvalid	,
 		output	wire	[B-1:0]	m4_axis_tdata	,
 
+		input	wire 			m5_axis_tready	,
 		output	wire			m5_axis_tvalid	,
 		output	wire	[B-1:0]	m5_axis_tdata	,
 
+		input	wire 			m6_axis_tready	,
 		output	wire			m6_axis_tvalid	,
 		output	wire	[B-1:0]	m6_axis_tdata	,
 
+		input	wire 			m7_axis_tready	,
 		output	wire			m7_axis_tvalid	,
 		output	wire	[B-1:0]	m7_axis_tdata
 	);
@@ -82,10 +90,12 @@ localparam	BT = N*BD;
 // Input data to vector.
 wire	[B-1:0]		din_data_v	[8]	;
 wire	[7:0]		din_valid_v		;
+wire	[7:0]		din_ready_v		;
 
 // Output vector to data.
 wire	[B-1:0]		dout_data_v	[8]	;
 wire	[7:0]		dout_valid_v	;
+wire	[7:0]		dout_ready_v	;
 
 wire 				fifo_wr_en		;
 wire	[BT-1:0]	fifo_din		;
@@ -116,6 +126,15 @@ assign din_valid_v	[5] = s5_axis_tvalid	;
 assign din_valid_v	[6] = s6_axis_tvalid	;
 assign din_valid_v	[7] = s7_axis_tvalid	;
 
+assign din_ready_v	[0] = m0_axis_tready	;
+assign din_ready_v	[1] = m1_axis_tready	;
+assign din_ready_v	[2] = m2_axis_tready	;
+assign din_ready_v	[3] = m3_axis_tready	;
+assign din_ready_v	[4] = m4_axis_tready	;
+assign din_ready_v	[5] = m5_axis_tready	;
+assign din_ready_v	[6] = m6_axis_tready	;
+assign din_ready_v	[7] = m7_axis_tready	;
+
 // Output vector to data.
 assign m0_axis_tdata	= dout_data_v	[0] ;
 assign m1_axis_tdata	= dout_data_v	[1] ;
@@ -134,6 +153,15 @@ assign m4_axis_tvalid	= dout_valid_v	[4] & ~fifo_empty;
 assign m5_axis_tvalid	= dout_valid_v	[5] & ~fifo_empty;
 assign m6_axis_tvalid	= dout_valid_v	[6] & ~fifo_empty;
 assign m7_axis_tvalid	= dout_valid_v	[7] & ~fifo_empty;
+
+assign s0_axis_tready	= dout_ready_v	[0];
+assign s1_axis_tready	= dout_ready_v	[1];
+assign s2_axis_tready	= dout_ready_v	[2];
+assign s3_axis_tready	= dout_ready_v	[3];
+assign s4_axis_tready	= dout_ready_v	[4];
+assign s5_axis_tready	= dout_ready_v	[5];
+assign s6_axis_tready	= dout_ready_v	[6];
+assign s7_axis_tready	= dout_ready_v	[7];
 
 genvar i;
 generate
@@ -180,15 +208,30 @@ fifo_dc_axi
 // Or together all valid inputs.
 assign fifo_wr_en	= |din_valid_v	;
 
-// Always ready.
-assign s0_axis_tready	= 1'b1 ;
-assign s1_axis_tready	= 1'b1 ;
-assign s2_axis_tready	= 1'b1 ;
-assign s3_axis_tready	= 1'b1 ;
-assign s4_axis_tready	= 1'b1 ;
-assign s5_axis_tready	= 1'b1 ;
-assign s6_axis_tready	= 1'b1 ;
-assign s7_axis_tready	= 1'b1 ;
+
+// xpm_cdc_array_single: Single-bit Array Synchronizer
+// Xilinx Parameterized Macro, version 2022.1
+
+xpm_cdc_array_single
+    #(
+      .DEST_SYNC_FF(4),   // DECIMAL; range: 2-10
+      .INIT_SYNC_FF(0),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
+      .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
+      .SRC_INPUT_REG(1),  // DECIMAL; 0=do not register input, 1=register input
+      .WIDTH(8)           // DECIMAL; range: 1-1024
+   )
+   xpm_cdc_array_single_i (
+      .dest_out(dout_ready_v), // WIDTH-bit output: src_in synchronized to the destination clock domain. This
+                           // output is registered.
+
+      .dest_clk(s_axis_aclk), // 1-bit input: Clock signal for the destination clock domain.
+      .src_clk(m_axis_aclk),   // 1-bit input: optional; required when SRC_INPUT_REG = 1
+      .src_in(din_ready_v)      // WIDTH-bit input: Input single-bit array to be synchronized to destination clock
+                           // domain. It is assumed that each bit of the array is unrelated to the others. This
+                           // is reflected in the constraints applied to this macro. To transfer a binary value
+                           // losslessly across the two clock domains, use the XPM_CDC_GRAY macro instead.
+   );
+   // End of xpm_cdc_array_single_inst instantiation
 
 endmodule
 

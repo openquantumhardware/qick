@@ -36,6 +36,8 @@ class AbsSignalGen(SocIp):
         self.cfg['fdds_div'] = self['fs_div']*self['interpolation']
 
     def configure_connections(self, soc):
+        super().configure_connections(soc)
+
         self.soc = soc
 
         # what RFDC port does this generator drive?
@@ -220,7 +222,6 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0',
               'user.org:user:axis_signal_gen_v6:1.0']
-    REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
     SAMPS_PER_CLK = 16
     B_DDS = 32
     B_PHASE = 32
@@ -229,16 +230,18 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
         """
         Constructor method
         """
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = int(description['parameters']['N_DDS'])
+
         super().__init__(description)
+
+        self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
 
         # Default registers.
         self.start_addr_reg = 0
         self.we_reg = 0
         self.rndq_reg = 10
-
-        # Generics
-        self.N = int(description['parameters']['N'])
-        self.NDDS = int(description['parameters']['N_DDS'])
 
         # Maximum number of samples
         self.MAX_LENGTH = 2**self.N*self.NDDS
@@ -269,7 +272,6 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     * 1 : enable writes.
     """
     bindto = ['user.org:user:axis_sg_int4_v1:1.0']
-    REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
     HAS_MIXER = True
     FS_INTERPOLATION = 4
     MAXV_SCALE = 0.9
@@ -280,15 +282,17 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
         """
         Constructor method
         """
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = 4  # Fixed by design, not accesible.
+
         super().__init__(description)
+
+        self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
 
         # Default registers.
         self.start_addr_reg = 0
         self.we_reg = 0
-
-        # Generics
-        self.N = int(description['parameters']['N'])
-        self.NDDS = 4  # Fixed by design, not accesible.
 
         # Maximum number of samples
         # Table is interpolated. Length is given only by parameter N.
@@ -322,6 +326,11 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         """
         Constructor method
         """
+        # Generics
+        self.NDDS = int(description['parameters']['N_DDS'])
+
+        super().__init__(description)
+
         # define the register map
         iReg = 0
         for i in range(self.N_TONES): self.REGISTERS['pinc%d_reg'%(i)] = i + iReg
@@ -334,14 +343,9 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
             iReg += self.N_TONES
         self.REGISTERS['we_reg'] = iReg
 
-        super().__init__(description)
-
         self.cfg['n_tones'] = self.N_TONES
         self.cfg['has_gain'] = self.HAS_GAIN
         self.cfg['has_phase'] = self.HAS_PHASE
-
-        # Generics
-        self.NDDS = int(description['parameters']['N_DDS'])
 
         # dummy values, since this doesn't have a waveform memory.
         self.switch_ch = -1
@@ -468,12 +472,13 @@ class AxisConstantIQ(AbsSignalGen):
     # IMAG_REG : 16-bit.
     # WE_REG   : 1-bit. Update registers.
     bindto = ['user.org:user:axis_constant_iq:1.0']
-    REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
     HAS_MIXER = True
 
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
+
+        self.REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
 
         # Default registers.
         self.real_reg = self.MAXV

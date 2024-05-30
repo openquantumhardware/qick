@@ -13,20 +13,21 @@ class SocIp(DefaultIP, DummyIp):
     Registers are accessed as attributes.
     Configuration constants are accessed as dictionary items.
     """
-    REGISTERS = {}
 
     def __init__(self, description):
         """
         Constructor method
         """
+        # this block's register map: to be defined by subclass
+        self.REGISTERS = {}
+
         DefaultIP.__init__(self, description)
+
         # this block's unique identifier in the firmware
         self.fullpath = description['fullpath']
         # this block's type
         self.type = description['type'].split(':')[-2]
         DummyIp.__init__(self, self.type, self.fullpath)
-        # logger for messages associated with this block
-        self.logger = logging.getLogger(self.type)
 
     def __setattr__(self, a, v):
         """
@@ -37,10 +38,10 @@ class SocIp(DefaultIP, DummyIp):
         :param v: value to be written
         :type v: int
         """
-        try:
+        if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             self.mmio.array[index] = np.uint32(obtain(v))
-        except KeyError:
+        else:
             super().__setattr__(a, v)
 
     def __getattr__(self, a):
@@ -52,10 +53,10 @@ class SocIp(DefaultIP, DummyIp):
         :return: Register arguments
         :rtype: *args object
         """
-        try:
+        if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             return self.mmio.array[index]
-        except KeyError:
+        else:
             return super().__getattribute__(a)
 
 class QickMetadata:
@@ -165,6 +166,9 @@ class QickMetadata:
         if self.systemgraph is not None:
             return self.systemgraph.blocks[blockname].vlnv.name
         return self.busparser.mod2type[blockname]
+
+    def mod2rev(self, blockname):
+        return self.busparser.mod2rev[blockname]
 
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
@@ -280,9 +284,11 @@ class BusParser:
         self.nets = {}
         self.pins = {}
         self.mod2type = {}
+        self.mod2rev = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
+            self.mod2rev[fullpath] = int(module.get('COREREVISION'))
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')

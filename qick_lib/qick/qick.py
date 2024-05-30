@@ -30,18 +30,19 @@ class AxisSwitch(SocIp):
     :type nmaster: int
     """
     bindto = ['xilinx.com:ip:axis_switch:1.1']
-    REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
     def __init__(self, description):
         """
         Constructor method
         """
-        super().__init__(description)
-
         # Number of slave interfaces.
         self.NSL = int(description['parameters']['NUM_SI'])
         # Number of master interfaces.
         self.NMI = int(description['parameters']['NUM_MI'])
+
+        super().__init__(description)
+
+        self.REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
         # Init axis_switch.
         self.ctrl = 0
@@ -907,7 +908,7 @@ class QickSoc(Overlay, QickConfig):
             return self.tproc.single_read(addr=addr)
         elif self.TPROC_VERSION == 2:
             self.tproc.read_sel=1
-            reg = {1:'tproc_r_dt1', 2:'tproc_r_dt2'}[addr]
+            reg = {1:'axi_r_dt1', 2:'axi_r_dt2'}[addr]
             return getattr(self.tproc, reg)
 
     def reset_gens(self):

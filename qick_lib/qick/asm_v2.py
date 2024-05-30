@@ -126,10 +126,15 @@ class QickSweepRaw(SimpleClass):
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
-            # to avoid overflow, values are rounded towards zero using np.trunc()
-            stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
-            if stepsize==0:
-                raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
+            if nSteps==1 or r==0:
+                # a loop with one step or zero span isn't really a sweep, we can set a stepsize of 0
+                stepsize = 0
+                # TODO: continue, and get rid of zero sweep checks?
+            else:
+                # to avoid overflow, values are rounded towards zero using np.trunc()
+                stepsize = int(self.quantize * np.trunc(r/(nSteps-1)/self.quantize))
+                if stepsize==0:
+                    raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __mul__(self, a):
@@ -278,13 +283,18 @@ class Macro(SimpleNamespace):
     def convert_time(self, prog, t, name):
         # helper method, to be used in preprocess()
         # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
+        # return actual (rounded, stepped) time value
         t_reg = prog.us2cycles(t)
         if isinstance(t_reg, QickSweepRaw):
             t_reg = prog.new_reg(sweep=t_reg)
             t_reg.sweep.to_steps(prog.loop_dict)
+            t_rounded = prog.cycles2us(t_reg.sweep)
+        else:
+            t_rounded = prog.cycles2us(t_reg)
         if not hasattr(self, "t_reg"):
             self.t_reg = {}
         self.t_reg[name] = t_reg
+        return t_rounded
 
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
@@ -344,34 +354,38 @@ class IncrementWave(Macro):
 class Wait(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
+        wait = self.t
         if self.auto:
-            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            self.convert_time(prog, max_t + self.t, "t")
-        else:
-            self.convert_time(prog, self.t, "t")
+            wait += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+        if isinstance(wait, QickSweep):
+            # TODO: maybe rounding up should be optional?
+            # TODO: track wait time in timestamps?
+            waitmax = wait.maxval()
+            logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
+            wait = waitmax
+        wait_rounded = self.convert_time(prog, wait, "t")
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
         else:
-            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'TIME': f'{t_reg}'}, addr_inc=2)]
+            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
 
 class Delay(Macro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
+        delay = self.t
         if self.auto:
-            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            self.convert_time(prog, max_t+self.t, "t")
-            prog.reset_timestamps()
-        else:
-            self.convert_time(prog, self.t, "t")
-            prog.decrement_timestamps(self.t)
+            # TODO: check for cases where auto doesn't work
+            delay += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+        delay_rounded = self.convert_time(prog, delay, "t")
+        prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
         else:
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'{t_reg}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
 
 class Pulse(Macro):
     # ch, name, t
@@ -497,7 +511,8 @@ class EndLoop(Macro):
         for wave in prog.waves:
             spans_to_apply = []
             for sweep in wave.sweeps():
-                if lname in sweep.steps:
+                # skip zero sweeps
+                if lname in sweep.steps and sweep.steps[lname]['step']!=0:
                     spans_to_apply.append((sweep.par, sweep.steps[lname]))
             if spans_to_apply:
                 wave_sweeps.append((wave.name, spans_to_apply))
@@ -505,7 +520,8 @@ class EndLoop(Macro):
         # check for register sweeps
         reg_sweeps = []
         for reg in prog.reg_dict.values():
-            if reg.sweep is not None and lname in reg.sweep.spans:
+            # skip zero sweeps
+            if reg.sweep is not None and lname in reg.sweep.spans and reg.sweep.steps[lname]['step']!=0:
                 reg_sweeps.append((reg, reg.sweep.steps[lname]))
 
         # increment waves and registers
@@ -519,7 +535,7 @@ class EndLoop(Macro):
 
         # increment and test the loop counter
         lreg = prog.reg_dict[lname]
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr}-#1', 'UF':'1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr} - #1', 'UF':'1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
@@ -536,7 +552,7 @@ class EndLoop(Macro):
 class SetReg(Macro):
     # reg, val
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "%d"%(self.val)}, addr_inc=1)]
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "#%d"%(self.val)}, addr_inc=1)]
 
 class IncReg(Macro):
     # reg, val
@@ -558,15 +574,18 @@ class CondJump(Macro):
             raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
                                %(self.val2, self.reg2))
         elif nvals==1:
+            if self.op is None:
+                raise RuntimeError("a second operand was supplied, but no operation")
             op = {'+': '+',
                   '-': '-',
                   '>>': 'ASR',
                   '&': 'AND'}[self.op]
             v2 = self.reg2 if self.val2 is None else '#%d'%(self.val2)
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': " ".join([self.reg1, op, v2]), 'UF': '1'}, addr_inc=1))
         else:
-            v2 = None
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1 + op + v2, 'UF': '1'}, addr_inc=1))
+            if self.op is not None:
+                raise RuntimeError("an operation was supplied, but no second operand")
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': self.reg1, 'UF': '1'}, addr_inc=1))
         insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
         return insts
 
@@ -938,6 +957,12 @@ class QickProgramV2(AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
+        ASM_REVISION = 20
+        if self.tproccfg['type']!='qick_processor':
+            raise RuntimeError("tProc v2 programs can only be run on a tProc v2 firmware")
+        if self.tproccfg['revision']!=ASM_REVISION:
+            raise RuntimeError("this version of the QICK library only supports tProc v2 revision %d, you have %d"%(ASM_REVISION, self.tproccfg['revision']))
+
         # all current v1 programs are processed in one pass:
         # * init the program
         # * fill the ASM list (using make_program or by calling ASM wrappers directly)
@@ -1004,14 +1029,13 @@ class QickProgramV2(AbsQickProgram):
 
         # low-level ASM management
 
-        self.prog_list = []
+        # the initial values here are copied from command_recognition() and label_recognition() in tprocv2_assembler.py
+        self.prog_list = [{'P_ADDR':1, 'LINE':2, 'CMD':'NOP'}]
         self.labels = {'s15': 's15'} # register 15 predefinition
-
         # address in program memory
         self.p_addr = 1
         # line number
-        self.line = 1
-        # first instruction is always NOP, so both counters start at 1
+        self.line = 2
 
     def load_prog(self, progdict):
         # note that we only dump+load the raw waveforms and ASM (the low-level stuff that gets converted to binary)
@@ -1079,7 +1103,7 @@ class QickProgramV2(AbsQickProgram):
         # initialize sweep registers
         for reg in self.reg_dict.values():
             if reg.sweep is not None:
-                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'{reg.sweep.start}'})
+                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'#{reg.sweep.start}'})
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
@@ -1092,6 +1116,7 @@ class QickProgramV2(AbsQickProgram):
         self.prog_list.append(inst)
 
     def _add_label(self, label):
+        self.line += 1
         self.labels[label] = '&%d' % (self.p_addr)
 
     def asm(self):

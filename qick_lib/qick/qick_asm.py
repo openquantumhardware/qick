@@ -142,8 +142,8 @@ class QickConfig():
             lines.append("\t%d:\t%s" % (iPin, name))
             #lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
-        lines.append("\n\ttProc %s: program memory %d words, data memory %d words" %
-                (tproc['type'], tproc['pmem_size'], tproc['dmem_size']))
+        lines.append("\n\ttProc %s (\"%s\") rev %d: program memory %d words, data memory %d words" %
+                (tproc['type'], {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']], tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
         lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
 
         bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
@@ -807,6 +807,8 @@ class DummyIp:
         # config dictionary for QickConfig
         self._cfg = {'type': iptype,
                     'fullpath': fullpath}
+        # logger for messages associated with this block
+        self.logger = logging.getLogger(self['type'])
 
     @property
     def cfg(self):
@@ -815,6 +817,15 @@ class DummyIp:
     def __getitem__(self, key):
         return self._cfg[key]
 
+    def configure_connections(self, soc):
+        """Use the HWH metadata to figure out what connects to this IP block.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The overlay object, used to look up metadata and dereference driver names.
+        """
+        self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
 
 class AbsQickProgram:
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
@@ -1616,6 +1627,11 @@ class AcquireMixin:
                     new_data = obtain(soc.poll_data())
                     for new_points, (d, s) in new_data:
                         for ii, nreads in enumerate(self.reads_per_shot):
+                            #print(count, new_points, nreads, d[ii].shape, total_count)
+                            if new_points*nreads != d[ii].shape[0]:
+                                logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
+                            if count+new_points > total_count:
+                                logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
                             # use reshape to view the d_buf array in a shape that matches the raw data
                             self.d_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points

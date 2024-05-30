@@ -566,6 +566,9 @@ class QickProgram(AbsQickProgram):
         """
         super().__init__(soccfg)
 
+        if self.tproccfg['type']!='axis_tproc64x32_x8':
+            raise RuntimeError("tProc v1 programs can only be run on a tProc v1 firmware")
+
         # List of commands. This may include comments.
         self.prog_list = []
 
