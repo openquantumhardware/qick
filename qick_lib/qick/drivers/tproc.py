@@ -423,7 +423,7 @@ class Axis_QICK_Proc(SocIp):
             pass
         # WE have trig_%d_o and port_%d_dt_o as OUT of the QICK_PROCESSOR...
         # those can go to vec2bits or to the output...
-        ## Number of triggers is in ther parameter 'out_trig_qty', the MAX is 8
+        ## Number of triggers is in ther parameter 'out_trig_qty', the MAX is 32
         ## Number of data ports  is in ther parameter 'out_dport_qty', the MAX is 4
         for iPin in range(self['out_trig_qty']):
             try:
