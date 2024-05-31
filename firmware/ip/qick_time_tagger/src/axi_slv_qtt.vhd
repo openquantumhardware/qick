@@ -34,19 +34,20 @@ entity axi_slv_qtt is
 		rvalid		: out std_logic;
 		rready		: in std_logic;
 		-- Registers.
-     QTT_CTRL       : out std_logic_vector ( 7 downto 0) ;
-     QTT_CFG        : out std_logic_vector ( 7 downto 0) ;
-     QTT_ADDR       : out std_logic_vector (19 downto 0) ;
-     QTT_LEN        : out std_logic_vector (19 downto 0) ;
-     AXI_DT1        : out std_logic_vector (31 downto 0) ;
-     AXI_DT2        : out std_logic_vector (31 downto 0) ;
-     AXI_DT3        : out std_logic_vector (31 downto 0) ;
-     AXI_DT4        : out std_logic_vector (31 downto 0) ;
-     QTT_DT1        : in  std_logic_vector (31 downto 0) ;
-     QTT_DT2        : in  std_logic_vector (31 downto 0) ;
-     QTT_DT3        : in  std_logic_vector (31 downto 0) ;
-     QTT_DT4        : in  std_logic_vector (31 downto 0) ;
-     QTT_STATUS     : in  std_logic_vector (15 downto 0) ;
+     CTRL       : out std_logic_vector ( 7 downto 0) ;
+     CFG        : out std_logic_vector (10 downto 0) ;
+     DMA_CFG    : out std_logic_vector (23 downto 0) ;
+     AXI_DT1    : out std_logic_vector (31 downto 0) ;
+     PROC_DT        : in  std_logic_vector (31 downto 0) ;
+     PROC_QTY       : in  std_logic_vector (19 downto 0) ;
+     TAG0_QTY       : in  std_logic_vector (19 downto 0) ;
+     TAG1_QTY       : in  std_logic_vector (19 downto 0) ;
+     TAG2_QTY       : in  std_logic_vector (19 downto 0) ;
+     TAG3_QTY       : in  std_logic_vector (19 downto 0) ;
+     SMP_QTY        : in  std_logic_vector (19 downto 0) ;
+     ARM_QTY        : in  std_logic_vector (19 downto 0) ;
+     THR_INH        : in  std_logic_vector (31 downto 0) ;
+     QTT_STATUS     : in  std_logic_vector (31 downto 0) ;
      QTT_DEBUG      : in  std_logic_vector (31 downto 0) );
 end axi_slv_qtt;
 
@@ -451,7 +452,7 @@ begin
 	-- 4 : TAVG_LOW_REG	(r).
 	-- 5 : TAVG_HIGH_REG(r).
 
-	process (slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7, QTT_DT1, QTT_DT2, QTT_DT3, QTT_DT4, QTT_STATUS, QTT_DEBUG, axi_araddr)
+	process (slv_reg0, slv_reg1, slv_reg2, slv_reg3, slv_reg4, slv_reg5, slv_reg6, slv_reg7, axi_araddr)
 	variable loc_addr :std_logic_vector(OPT_MEM_ADDR_BITS downto 0);
 	begin
 	    -- Address decoding for reading registers
@@ -468,25 +469,25 @@ begin
 	      when b"0100" =>
 	        reg_data_out <= slv_reg4;
 	      when b"0101" =>
-	        reg_data_out <= slv_reg5;
+	        reg_data_out <= PROC_DT;
 	      when b"0110" =>
-	        reg_data_out <= slv_reg6;
+	        reg_data_out <= "000000000000" & PROC_QTY;
 	      when b"0111" =>
-	        reg_data_out <= slv_reg7;
+	        reg_data_out <= "000000000000" & TAG0_QTY;
 	      when b"1000" =>
-	        reg_data_out <= "00000000000000000000000000000000";
+	        reg_data_out <= "000000000000" & TAG1_QTY;
 	      when b"1001" =>
-	        reg_data_out <= QTT_DT1;
+	        reg_data_out <= "000000000000" & TAG2_QTY;
 	      when b"1010" =>
-	        reg_data_out <= QTT_DT2;
+	        reg_data_out <= "000000000000" & TAG3_QTY;
 	      when b"1011" =>
-	        reg_data_out <= QTT_DT3;
+	        reg_data_out <= "000000000000" & SMP_QTY;
 	      when b"1100" =>
-	        reg_data_out <= QTT_DT4;
+	        reg_data_out <= "000000000000" & ARM_QTY;
 	      when b"1101" =>
-	        reg_data_out <= "00000000000000000000000000000000";
+	        reg_data_out <= THR_INH;
 	      when b"1110" =>
-	        reg_data_out <= "0000000000000000" & QTT_STATUS;
+	        reg_data_out <= QTT_STATUS;
 	      when b"1111" =>
 	        reg_data_out <= QTT_DEBUG;
 	      when others =>
@@ -512,13 +513,9 @@ begin
 	  end if;
 	end process;
 
-QTT_CTRL    <= slv_reg0( 7 downto 0);
-QTT_CFG     <= slv_reg1( 7 downto 0);
-QTT_ADDR    <= slv_reg2(19 downto 0);
-QTT_LEN     <= slv_reg3(19 downto 0);
-AXI_DT1     <= slv_reg4(31 downto 0);
-AXI_DT2     <= slv_reg5(31 downto 0);
-AXI_DT3     <= slv_reg6(31 downto 0);
-AXI_DT4     <= slv_reg7(31 downto 0);
+CTRL        <= slv_reg0( 7 downto 0);
+CFG         <= slv_reg1(10 downto 0);
+DMA_CFG     <= slv_reg2(23 downto 0);
+AXI_DT1     <= slv_reg3(31 downto 0);
 
 end rtl;

@@ -2,23 +2,25 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024_4_17
-//  Version        : 2
+//  Date           : 2024_5_31
+//  Version        : 3
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  Time Tagger
 //////////////////////////////////////////////////////////////////////////////
 
    
 module axi_qick_time_tagger # (
-   parameter DMA_RD       = 1  , // TAG FIFO Read from DMA
-   parameter PROC_RD      = 1  , // TAG FIFO Read from tProcessor
-   parameter CMP_SLOPE    = 1  , // Compare with SLOPE
-   parameter CMP_INTER    = 4  , // Interpolate SAMPLES
-   parameter TAG_FIFO_AW  = 19 , // Size of TAG FIFO Memory
+   parameter EXT_ARM      = 0  , // External ARM Control
+   parameter ADC_QTY      = 1  , // Number of ADC Inputs
+   parameter CMP_INTER    = 4  , // Max Number of Interpolation bits
+   parameter ARM_STORE    = 1  , // Store NUmber of Triggers on each ARM
+   parameter SMP_STORE    = 0  , // Store Sample Values
+   parameter TAG_FIFO_AW  = 16 , // Size of TAG FIFO Memory
+   parameter ARM_FIFO_AW  = 10 , // Size of ARM FIFO Memory
+   parameter SMP_FIFO_AW  = 18 , // Size of SAMPLE FIFO Memory
+   parameter CMP_SLOPE    = 1  , // Compare with SLOPE Option
    parameter SMP_DW       = 16 , // Samples WIDTH
    parameter SMP_CK       = 8  , // Samples per Clock
-   parameter SMP_STORE    = 0  , // Store Samples Value
-   parameter SMP_FIFO_AW  = 10 , // Size of SAMPLES FIFO Memory
    parameter DEBUG        = 1  
 ) (
 // Core and AXI CLK & RST
@@ -28,6 +30,8 @@ module axi_qick_time_tagger # (
    input  wire                      adc_aresetn    ,
    input  wire                      ps_clk         ,
    input  wire                      ps_aresetn     ,
+// EXTERNAL INTERFACE
+   input  wire                      arm_i          ,
 // PROCESSOR INTERFACE
    input  wire                      qtag_en_i      ,
    input  wire  [ 4:0]              qtag_op_i      ,
@@ -61,9 +65,18 @@ module axi_qick_time_tagger # (
    output wire                      s_axi_rvalid   ,
    input  wire                      s_axi_rready   ,
 ///// ADC DATA
-   input  wire                     adc_s_axis_tvalid_i ,
-   input  wire [SMP_CK*SMP_DW-1:0] adc_s_axis_tdata_i  ,
-   output wire                     adc_s_axis_tready_o ,
+   input  wire                     adc0_s_axis_tvalid_i ,
+   input  wire [SMP_CK*SMP_DW-1:0] adc0_s_axis_tdata_i  ,
+   output wire                     adc0_s_axis_tready_o ,
+   input  wire                     adc1_s_axis_tvalid_i ,
+   input  wire [SMP_CK*SMP_DW-1:0] adc1_s_axis_tdata_i  ,
+   output wire                     adc1_s_axis_tready_o ,
+   input  wire                     adc2_s_axis_tvalid_i ,
+   input  wire [SMP_CK*SMP_DW-1:0] adc2_s_axis_tdata_i  ,
+   output wire                     adc2_s_axis_tready_o ,
+   input  wire                     adc3_s_axis_tvalid_i ,
+   input  wire [SMP_CK*SMP_DW-1:0] adc3_s_axis_tdata_i  ,
+   output wire                     adc3_s_axis_tready_o ,
 ///// DATA DMA
    input  wire                      dma_m_axis_tready_i ,
    output wire                      dma_m_axis_tvalid_o ,
@@ -73,30 +86,70 @@ module axi_qick_time_tagger # (
    output wire [31:0]               qtt_do
    );
 
-///////////////////////////////////////////////////////////////////////////////
+// Signal Declaration
+//////////////////////////////////////////////////////////////////////////
+
+
+wire [31:0]            tag_dt  ;
+wire [TAG_FIFO_AW-1:0] dma_qty [4] ;
+wire [TAG_FIFO_AW-1:0] proc_qty ;
+wire [SMP_FIFO_AW-1:0] smp_qty ;
+wire [ARM_FIFO_AW-1:0] arm_qty ;
+
+
+wire [2:0] cfg_inter;
+wire [4:0] qtt_op;
+
+wire [ 2:0] dma_mem_sel;
+wire [19:0] dma_len;
+wire [4:0]          cfg_smp_wr_qty;
+
 // PERIPHERAL
 ///////////////////////////////////////////////////////////////////////////////
 wire [31:0] qtt_reg_debug_s, qtt_debug_s;
 
-wire [ 7:0] r_qtt_ctrl, r_qtt_cfg;
-wire [19:0] r_qtt_addr, r_qtt_len;
-wire [31:0] r_axi_dt1, r_axi_dt2, r_axi_dt3, r_axi_dt4;
-wire [31:0] r_qtt_dt1 , r_qtt_dt2, r_qtt_dt3, r_qtt_dt4;
+wire [ 7:0] axi_reg_CTRL;
+wire [10:0] axi_reg_CFG;
+wire [23:0] axi_reg_DMA_CFG ;
+wire [31:0] axi_reg_AXI_DT1 ;
+wire [31:0] axi_reg_PROC_DT ;
+wire [19:0] axi_reg_PROC_QTY, axi_reg_TAG0_QTY ;
+wire [19:0] axi_reg_TAG1_QTY, axi_reg_TAG2_QTY, axi_reg_TAG3_QTY ;
+wire [19:0] axi_reg_SMP_QTY, axi_reg_ARM_QTY ;
+wire [31:0] axi_reg_THR_INH , axi_reg_QTT_STATUS, axi_reg_QTT_DEBUG;
 
 wire [SMP_DW-1:0] qtt_cmp_th;
 wire[7:0] qtt_cmp_inh;
-wire [15:0]qtt_reg_status_s;
+wire [23:0]qtt_reg_status_s;
+
+wire [SMP_CK*SMP_DW-1:0] adc_dt [ADC_QTY];
+
+generate
+   if             (ADC_QTY == 1 )  begin: ONE_ADC
+      assign adc_dt = '{adc0_s_axis_tdata_i};
+   end else if    (ADC_QTY == 2)   begin: TWO_ADC
+      assign adc_dt = '{adc0_s_axis_tdata_i, adc1_s_axis_tdata_i};
+   end else if    (ADC_QTY == 3)   begin: TWO_ADC
+      assign adc_dt = '{adc0_s_axis_tdata_i, adc1_s_axis_tdata_i, adc2_s_axis_tdata_i};
+   end else if    (ADC_QTY == 4)   begin: TWO_ADC
+      assign adc_dt = '{adc0_s_axis_tdata_i, adc1_s_axis_tdata_i, adc2_s_axis_tdata_i, adc3_s_axis_tdata_i};
+   end
+endgenerate
+generate
+
+endgenerate
 
 qick_time_tagger # (
-   .DMA_RD        ( DMA_RD ) ,
-   .PROC_RD       ( PROC_RD ) ,
-   .CMP_SLOPE     ( CMP_SLOPE ) ,
-   .CMP_INTER     ( CMP_INTER ) ,
+   .ADC_QTY       ( ADC_QTY     ) ,
+   .CMP_SLOPE     ( CMP_SLOPE   ) ,
+   .CMP_INTER     ( CMP_INTER   ) ,
+   .ARM_STORE     ( ARM_STORE   ) ,
+   .SMP_STORE     ( SMP_STORE   ) ,
    .TAG_FIFO_AW   ( TAG_FIFO_AW ) ,
+   .ARM_FIFO_AW   ( ARM_FIFO_AW ) ,
+   .SMP_FIFO_AW   ( SMP_FIFO_AW ) ,
    .SMP_DW        ( SMP_DW      ) ,
    .SMP_CK        ( SMP_CK      ) ,
-   .SMP_STORE     ( SMP_STORE   ) ,
-   .SMP_FIFO_AW   ( SMP_FIFO_AW ) ,
    .DEBUG         ( DEBUG       )    
 ) QTT (
    .ps_clk_i            ( ps_clk ) ,
@@ -106,26 +159,34 @@ qick_time_tagger # (
    .adc_clk_i           ( adc_clk      ) ,
    .adc_rst_ni          ( adc_aresetn  ) ,
    .qtt_pop_req_i       ( qtt_pop_req    ) ,
-   .tag_vld_o           ( qtt_tag_vld  ) ,
    .qtt_rst_req_i       ( qtt_rst_req    ) ,
    .qtt_rst_ack_o       ( qtt_rst_ack    ) ,
+   .cfg_invert_i        ( cfg_invert   ),
    .cfg_filter_i        ( cfg_filter   ),
    .cfg_slope_i         ( cfg_slope    ),
-   .cfg_inter_i         ( cfg_inter    ),
+   .cfg_inter_i         ( cfg_inter     ),
+   .cfg_smp_wr_qty_i    ( cfg_smp_wr_qty ) ,
    .arm_i               ( qtt_arm ) , // Arm Trigger (ONE works)
    .cmp_th_i            ( qtt_cmp_th ) , // Threhold Data
    .cmp_inh_i           ( qtt_cmp_inh ) , // Inhibit Clock Pulses
-   .adc_dt_i            ( adc_s_axis_tdata_i ) ,
-   .dma_req_i           ( dma_tag_rd ) ,
+   .adc_dt_i            ( adc_dt ) ,
+// DMA
+   .dma_req_i           ( dma_rd ) ,
+   .dma_mem_sel_i       ( dma_mem_sel ) ,
+   .dma_len_i           ( dma_len     ) , 
    .dma_ack_o           (  ) ,
-   .dma_len_i           ( r_qtt_len[TAG_FIFO_AW-1:0] ) , 
    .dma_m_axis_tready_i ( dma_m_axis_tready_i ) ,
    .dma_m_axis_tvalid_o ( dma_m_axis_tvalid_o ) ,
    .dma_m_axis_tdata_o  ( dma_m_axis_tdata_o ) ,
    .dma_m_axis_tlast_o  ( dma_m_axis_tlast_o ) ,
+//PROC
    .tag_dt_o            ( tag_dt )  ,
-   .dma_qty_o           ( dma_qty )  ,
+   .tag_vld_o           ( qtt_tag_vld  ) ,
+//DATA
    .proc_qty_o          ( proc_qty  )  ,   
+   .dma_qty_o           ( dma_qty )  ,
+   .smp_qty_o           ( smp_qty )  ,
+   .arm_qty_o           ( arm_qty )  ,
    .qtt_debug_o         ( qtt_debug_s ) ,
    .qtt_reg_status_o    ( qtt_reg_status_s ) ,
    .qtt_reg_debug_o     ( qtt_reg_debug_s ) );
@@ -134,12 +195,13 @@ wire[7:0]   cmd_cnt_do;
 qtt_cmd CMD (
    .clk_i         ( c_clk           ) ,
    .rst_ni        ( c_aresetn       ) ,
+   .ext_arm_i     ( arm_i           ) ,
    .c_en_i        ( qtag_en_i       ) ,
    .c_op_i        ( qtag_op_i       ) ,
    .c_dt_i        ( qtag_dt1_i      ) ,
    .p_en_i        ( qtt_cmd_en      ) ,
    .p_op_i        ( qtt_op          ) ,
-   .p_dt_i        ( r_axi_dt1       ) ,
+   .p_dt_i        ( axi_reg_AXI_DT1 ) ,
    .pop_req_o     ( qtt_pop_req     ) ,
 //   .pop_ack_i     ( qtt_pop_ack     ) ,
    .rst_req_o     ( qtt_rst_req     ) ,
@@ -149,101 +211,114 @@ qtt_cmd CMD (
    .qtt_cmp_inh_o ( qtt_cmp_inh     ) ,
    .cmd_cnt_do    ( cmd_cnt_do      ) );
 
-localparam zf_th = 16-SMP_DW;
-localparam zf_aw = 19-TAG_FIFO_AW;
 
 
-wire [2:0] cfg_inter;
-wire [4:0] qtt_op;
-assign qtt_cmd_en = r_qtt_ctrl[0];
-assign qtt_reset  = r_qtt_ctrl[1];
-assign dma_tag_rd = r_qtt_ctrl[2];
-assign dma_smp_rd = r_qtt_ctrl[3];
+assign qtt_cmd_en = axi_reg_CTRL[0];
+assign qtt_op     = {1'b0,axi_reg_CTRL[4:1]};
+assign dma_rd     = axi_reg_CTRL[5];
 
-assign qtt_op     = {2'b00,r_qtt_cfg[2:0]};
-assign cfg_filter = r_qtt_cfg[3];
-assign cfg_slope  = r_qtt_cfg[4];
-assign cfg_inter  = r_qtt_cfg[7:5];
+assign cfg_filter      = axi_reg_CFG[0];
+assign cfg_slope       = axi_reg_CFG[1];
+assign cfg_inter       = axi_reg_CFG[4:2];
+assign cfg_smp_wr_qty  = axi_reg_CFG[9:5];
+assign cfg_invert      = axi_reg_CFG[10];
 
-assign r_qtt_dt1 = tag_dt;
-assign r_qtt_dt2 = { 13'd0, {zf_aw{1'b0}}, proc_qty};
-assign r_qtt_dt3 = { 13'd0, {zf_aw{1'b0}}, dma_qty };
-assign r_qtt_dt4 = { cmd_cnt_do, qtt_cmp_inh, {zf_th{1'b0}}, qtt_cmp_th };
+assign dma_mem_sel = axi_reg_DMA_CFG[ 2:0];
+assign dma_len     = axi_reg_DMA_CFG[23:4];
+
+// AXI REGISTER ASSIGNMENT
+///////////////////////////////////////////////////////////////////////////////
+localparam zf_taw = 20-TAG_FIFO_AW;
+localparam zf_saw = 20-SMP_FIFO_AW;
+localparam zf_aaw = 20-ARM_FIFO_AW;
+localparam zf_th  = 16-SMP_DW;
+
+assign axi_reg_PROC_DT     = tag_dt;
+assign axi_reg_PROC_QTY    = { 12'd0, {zf_taw{1'b0}}, proc_qty   };
+assign axi_reg_TAG0_QTY    = { 12'd0, {zf_taw{1'b0}}, dma_qty[0] };
+assign axi_reg_TAG1_QTY    = { 12'd0, {zf_taw{1'b0}}, dma_qty[1] };
+assign axi_reg_TAG2_QTY    = { 12'd0, {zf_taw{1'b0}}, dma_qty[2] };
+assign axi_reg_TAG3_QTY    = { 12'd0, {zf_taw{1'b0}}, dma_qty[3] };
+assign axi_reg_SMP_QTY     = { 12'd0, {zf_saw{1'b0}}, smp_qty };
+assign axi_reg_ARM_QTY     = { 12'd0, {zf_aaw{1'b0}}, arm_qty };
+assign axi_reg_THR_INH     = {  8'd0, qtt_cmp_inh, {zf_th{1'b0}}, qtt_cmp_th };
+assign axi_reg_QTT_STATUS  = { qtt_reg_status_s , cmd_cnt_do } ;
 
 ///// DATA PROC
-wire                      proc_ack ;
-wire [31:0]               tag_dt  ;
-wire [TAG_FIFO_AW-1:0]    dma_qty, proc_qty ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // AXI Registers
 ///////////////////////////////////////////////////////////////////////////////
 axi_slv_qtt AXI_REG (
-   .aclk       ( ps_clk             ) , 
-   .aresetn    ( ps_aresetn         ) , 
-   .awaddr     ( s_axi_awaddr[5:0]  ) , 
-   .awprot     ( s_axi_awprot       ) , 
-   .awvalid    ( s_axi_awvalid      ) , 
-   .awready    ( s_axi_awready      ) , 
-   .wdata      ( s_axi_wdata        ) , 
-   .wstrb      ( s_axi_wstrb        ) , 
-   .wvalid     ( s_axi_wvalid       ) , 
-   .wready     ( s_axi_wready       ) , 
-   .bresp      ( s_axi_bresp        ) , 
-   .bvalid     ( s_axi_bvalid       ) , 
-   .bready     ( s_axi_bready       ) , 
-   .araddr     ( s_axi_araddr       ) , 
-   .arprot     ( s_axi_arprot       ) , 
-   .arvalid    ( s_axi_arvalid      ) , 
-   .arready    ( s_axi_arready      ) , 
-   .rdata      ( s_axi_rdata        ) , 
-   .rresp      ( s_axi_rresp        ) , 
-   .rvalid     ( s_axi_rvalid       ) , 
-   .rready     ( s_axi_rready       ) , 
+   .aclk       ( ps_clk             ), 
+   .aresetn    ( ps_aresetn         ), 
+   .awaddr     ( s_axi_awaddr[5:0]  ), 
+   .awprot     ( s_axi_awprot       ), 
+   .awvalid    ( s_axi_awvalid      ), 
+   .awready    ( s_axi_awready      ), 
+   .wdata      ( s_axi_wdata        ), 
+   .wstrb      ( s_axi_wstrb        ), 
+   .wvalid     ( s_axi_wvalid       ), 
+   .wready     ( s_axi_wready       ), 
+   .bresp      ( s_axi_bresp        ), 
+   .bvalid     ( s_axi_bvalid       ), 
+   .bready     ( s_axi_bready       ), 
+   .araddr     ( s_axi_araddr       ), 
+   .arprot     ( s_axi_arprot       ), 
+   .arvalid    ( s_axi_arvalid      ), 
+   .arready    ( s_axi_arready      ), 
+   .rdata      ( s_axi_rdata        ), 
+   .rresp      ( s_axi_rresp        ), 
+   .rvalid     ( s_axi_rvalid       ), 
+   .rready     ( s_axi_rready       ), 
 // Registers
-   .QTT_CTRL   ( r_qtt_ctrl    ) ,
-   .QTT_CFG    ( r_qtt_cfg     ) ,
-   .QTT_ADDR   ( r_qtt_addr    ) ,
-   .QTT_LEN    ( r_qtt_len     ) ,
-   .AXI_DT1    ( r_axi_dt1     ) ,
-   .AXI_DT2    ( r_axi_dt2     ) ,
-   .AXI_DT3    ( r_axi_dt3     ) ,
-   .AXI_DT4    ( r_axi_dt4     ) ,
-   .QTT_DT1    ( r_qtt_dt1     ) ,
-   .QTT_DT2    ( r_qtt_dt2     ) ,
-   .QTT_DT3    ( r_qtt_dt3     ) ,
-   .QTT_DT4    ( r_qtt_dt4     ) ,
-   .QTT_STATUS ( qtt_reg_status_s  ) ,
-   .QTT_DEBUG  ( r_qtt_debug   ) );
+   .CTRL       (axi_reg_CTRL        ),
+   .CFG        (axi_reg_CFG         ),
+   .DMA_CFG    (axi_reg_DMA_CFG     ),
+   .AXI_DT1    (axi_reg_AXI_DT1     ),
+   .PROC_DT    (axi_reg_PROC_DT     ),
+   .PROC_QTY   (axi_reg_PROC_QTY    ),
+   .TAG0_QTY   (axi_reg_TAG0_QTY    ),
+   .TAG1_QTY   (axi_reg_TAG1_QTY    ),
+   .TAG2_QTY   (axi_reg_TAG2_QTY    ),
+   .TAG3_QTY   (axi_reg_TAG3_QTY    ),
+   .SMP_QTY    (axi_reg_SMP_QTY     ),
+   .ARM_QTY    (axi_reg_ARM_QTY     ),
+   .THR_INH    (axi_reg_THR_INH     ),
+   .QTT_STATUS (axi_reg_QTT_STATUS  ),
+   .QTT_DEBUG  (axi_reg_QTT_DEBUG   )
+);
 
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////
-assign adc_s_axis_tready_o = 1'b1;
+assign adc0_s_axis_tready_o = 1'b1;
+assign adc1_s_axis_tready_o = 1'b1;
+assign adc2_s_axis_tready_o = 1'b1;
+assign adc3_s_axis_tready_o = 1'b1;
 
 assign qtag_rdy_o   = 1;
 assign qtag_dt1_o   = tag_dt;
-assign qtag_dt2_o   = r_qtt_dt2;
+assign qtag_dt2_o   = axi_reg_SMP_QTY;
 assign qtag_vld_o   = qtt_tag_vld;
 assign qtag_flag_o  = 0;
 
 
 
-wire [31:0] r_qtt_debug;
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
 generate
    if             (DEBUG == 0 )  begin: DEBUG_NO
-      assign r_qtt_debug    = 0;
+      assign axi_reg_QTT_DEBUG    = 0;
       assign qtt_do         = 0;
    end else if    (DEBUG == 1)   begin: DEBUG_REG
-      assign r_qtt_debug   = qtt_reg_debug_s;
-      assign qtt_do             = 0;
+      assign axi_reg_QTT_DEBUG   = qtt_reg_debug_s;
+      assign qtt_do              = 0;
    end else if    (DEBUG == 2)   begin: DEBUG_OUT
-      assign r_qtt_debug        = qtt_reg_debug_s;
-      assign qtt_do             = qtt_debug_s;
+      assign axi_reg_QTT_DEBUG   = qtt_reg_debug_s;
+      assign qtt_do              = qtt_debug_s;
    end
 endgenerate
 

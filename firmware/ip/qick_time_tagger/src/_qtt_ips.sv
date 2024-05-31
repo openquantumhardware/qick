@@ -49,12 +49,13 @@ endmodule
 /// Priority Encoder 
 ///////////////////////////////////////////////////////////////////////////////
 module priority_encoder # (
-   parameter DW  = 5
+   parameter DW       = 5 ,
+   parameter OUT      = "NO_REG"
 )(
-   input  wire                clk_i          ,
-   input  wire                rst_ni         ,
-   input  wire [2**DW-1:0]    one_hot_dt_i   , 
-   output reg [DW-1:0]       bin_dt_o       , 
+   input   wire                clk_i          ,
+   input   wire                rst_ni         ,
+   input   wire [2**DW-1:0]    one_hot_dt_i   , 
+   output  reg [DW-1:0]       bin_dt_o       , 
    output  reg               vld_o          );
 
 localparam ONE_HOT_DW =    2**DW;
@@ -73,19 +74,20 @@ always_comb begin
    end
 end
 
-always_ff @(posedge clk_i, negedge rst_ni) begin
-   if    ( !rst_ni   )  begin
-      vld_o        <= 0;
-      bin_dt_o     <= 0;
-   end else begin
-      vld_o        <= valid;
-      bin_dt_o     <= bin_dt;
+generate
+   if (OUT == "NO_REG") begin: no_output_register // 1 clock cycle read
+      assign vld_o     = valid ;
+      assign bin_dt_o  = bin_dt ;
+   end else begin: output_register // 2 clock cycle read
+      reg          vld_r    = {DW{1'b0}};
+      reg [DW-1:0] bin_dt_r = {DW{1'b0}};
+      always @(posedge clk_i) vld_r    <= valid;
+      always @(posedge clk_i) bin_dt_r <= bin_dt;
+      assign vld_o    = vld_r ;
+      assign bin_dt_o = bin_dt_r ;
    end
-end
+endgenerate
 
-//assign vld_o    = valid;
-//assign bin_dt_o = bin_dt;
-   
 endmodule
 
 
@@ -313,7 +315,7 @@ end
 
 always_ff @ (posedge clk_i) begin
    if (!rst_ni) begin        
-      ind_bit     <= 0;
+      ind_bit     <= -1;
       q_temp      <= 0 ;
       r_temp      <= 0 ;
       inB         <= 0 ;
@@ -334,11 +336,43 @@ always_comb begin
    qtb         = 1'b0;
    r_temp_nxt  = r_temp ;
    sub_temp    = inB << ind_bit_m1  ;
-   if (r_temp_nxt >= sub_temp ) begin
+   if (r_temp >= sub_temp ) begin
       qtb        = 1'b1 ;
-      r_temp_nxt = r_temp_nxt  - sub_temp ;
-   end
+      r_temp_nxt = r_temp  - sub_temp ;
+   end else
+      r_temp_nxt = r_temp;
 end
+
+/*
+// In case wnat to use a DSP 
+wire [IW+DW-1:0] d_sub_a;
+reg [IW+DW-1:0] r_temp_nxt_dsp, sub_temp_dsp;
+ADDSUB_MACRO #(
+      .DEVICE  ("7SERIES"), // Target Device: "7SERIES" 
+      .LATENCY (0),        // Desired clock cycle latency, 0-2
+      .WIDTH   (IW+DW)          // Input / output bus width, 1-48
+   ) ADDSUB_MACRO_inst (
+      .CARRYOUT   ( ), // 1-bit carry-out output signal
+      .RESULT     ( d_sub_a   ),// Add/sub result output, width defined by WIDTH parameter
+      .A          ( r_temp    ),// Input A bus, width defined by WIDTH parameter
+      .ADD_SUB    ( 1'b0      ),// 1-bit add/sub input, high selects add, low selects subtract
+      .B          ( sub_temp_dsp  ),// Input B bus, width defined by WIDTH parameter
+      .CARRYIN    ( 1'b0      ),// 1-bit carry-in input
+      .CE         ( 1'b1      ),// 1-bit clock enable input
+      .CLK        ( clk_i     ),// 1-bit clock input
+      .RST        ( ~rst_ni)    // 1-bit active high synchronous reset
+);
+
+always_comb begin
+   qtb         = 1'b0;
+   sub_temp_dsp    = inB << ind_bit_m1  ;
+   if (d_sub_a[IW+DW-1] == r_temp[IW+DW-1]) begin  // (r_temp >= sub_temp ) begin
+      qtb        = 1'b1 ;
+      r_temp_nxt_dsp = d_sub_a ;
+   end else
+      r_temp_nxt_dsp = r_temp;
+end
+*/
 
 ///////////////////////////////////////////////////////////////////////////
 // OUT REG
