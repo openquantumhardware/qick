@@ -2,7 +2,7 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024-5-2
+//  Date           : 2024-5-31
 //  Version        : 1
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -227,7 +227,7 @@ dma_fifo_rd # (
 );   
 
 generate
-   if (SMP_STORE ==1 )  begin: SMP
+   if (SMP_STORE == 1 )  begin: SMP
       smp_mem # (
          .SMP_DW            ( SMP_DW   ) , // Samples WIDTH
          .SMP_CK            ( SMP_CK   ) , // Samples per Clock
@@ -283,7 +283,7 @@ generate
 
       TAG_FIFO_DC # (
          .FIFO_AW     ( ARM_FIFO_AW )
-      ) MEM ( 
+      ) ARM_MEM ( 
          .dma_clk_i   ( ps_clk_i        ),
          .dma_rst_ni  ( ps_rst_ni       ),
          .adc_clk_i   ( adc_clk_i       ),

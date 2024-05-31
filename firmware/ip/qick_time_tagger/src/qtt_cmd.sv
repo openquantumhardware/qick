@@ -2,9 +2,9 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 1-2024
-//  Version        : 1
+//  Date           : 2024_5_31
 ///////////////////////////////////////////////////////////////////////////////
+
 
 module qtt_cmd (
    input  wire             clk_i       ,
@@ -34,7 +34,7 @@ reg         ext_arm_2r, p_en_2r;
 
 sync_reg # (
    .DW ( 7 )
-) sync_tx_i (
+) sync_cmd (
    .dt_i      ( {ext_arm_i, p_en_i, p_op_i} ) ,
    .clk_i     ( clk_i ) ,
    .rst_ni    ( rst_ni ) ,

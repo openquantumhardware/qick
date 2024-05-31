@@ -8,7 +8,6 @@
 //  QICK PROCESSOR :  Time Tagger
 //////////////////////////////////////////////////////////////////////////////
 
-   
 module axi_qick_time_tagger # (
    parameter EXT_ARM      = 0  , // External ARM Control
    parameter ADC_QTY      = 1  , // Number of ADC Inputs
@@ -18,7 +17,7 @@ module axi_qick_time_tagger # (
    parameter TAG_FIFO_AW  = 16 , // Size of TAG FIFO Memory
    parameter ARM_FIFO_AW  = 10 , // Size of ARM FIFO Memory
    parameter SMP_FIFO_AW  = 18 , // Size of SAMPLE FIFO Memory
-   parameter CMP_SLOPE    = 1  , // Compare with SLOPE Option
+   parameter CMP_SLOPE    = 0  , // Compare with SLOPE Option
    parameter SMP_DW       = 16 , // Samples WIDTH
    parameter SMP_CK       = 8  , // Samples per Clock
    parameter DEBUG        = 1  

@@ -2,9 +2,9 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 1-2024
-//  Version        : 1
+//  Date           : 2024_5_31
 ///////////////////////////////////////////////////////////////////////////////
+
 module smp_mem # (
    parameter SMP_DW       = 16 , // Samples WIDTH
    parameter SMP_CK       = 8  , // Samples per Clock
