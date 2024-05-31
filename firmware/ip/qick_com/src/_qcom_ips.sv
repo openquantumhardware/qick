@@ -1,3 +1,10 @@
+///////////////////////////////////////////////////////////////////////////////
+//  FERMI RESEARCH LAB
+///////////////////////////////////////////////////////////////////////////////
+//  Author         : Martin Di Federico
+//  Date           : 2024_5
+//  Version        : 1
+///////////////////////////////////////////////////////////////////////////////
 
 /// Clock Domain Register Change
 module sync_reg # (
@@ -8,14 +15,14 @@ module sync_reg # (
    input  wire          rst_ni  ,
    output wire [DW-1:0] dt_o     );
    
-(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_rcd, data_r ;
+(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_cdc, data_r ;
 always_ff @(posedge clk_i)
    if(!rst_ni) begin
-      data_rcd  <= 0;
+      data_cdc  <= 0;
       data_r    <= 0;
    end else begin 
-      data_rcd  <= dt_i;
-      data_r    <= data_rcd;
+      data_cdc  <= dt_i;
+      data_r    <= data_cdc;
       end
 assign dt_o = data_r ;
 

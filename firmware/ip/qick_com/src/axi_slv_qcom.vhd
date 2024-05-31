@@ -34,31 +34,31 @@ entity axi_slv_qcom is	Generic
 		rvalid		: out std_logic;
 		rready		: in std_logic;
 		-- Registers.
-     QCOM_CTRL       : out std_logic_vector ( 3 downto 0) ;
+     QCOM_CTRL       : out std_logic_vector ( 7 downto 0) ;
      QCOM_CFG        : out std_logic_vector ( 3 downto 0) ;
      RAXI_DT1        : out std_logic_vector (31 downto 0) ;
      QCOM_FLAG       : in  std_logic ;
      QCOM_DT_1       : in  std_logic_vector (31 downto 0) ;
      QCOM_DT_2       : in  std_logic_vector (31 downto 0) ;
-     QCOM_STATUS     : in  std_logic;
+     QCOM_STATUS     : in  std_logic_vector ( 7 downto 0) ;
      QCOM_TX_DT      : in  std_logic_vector (31 downto 0) ;
      QCOM_RX_DT      : in  std_logic_vector (31 downto 0) ;
-     QCOM_DEBUG      : in  std_logic_vector (15 downto 0) );
+     QCOM_DEBUG      : in  std_logic_vector (23 downto 0) );
 end axi_slv_qcom;
 
 architecture rtl of axi_slv_qcom is
 
 	-- AXI4LITE signals
 	signal axi_awaddr	  : std_logic_vector(ADDR_WIDTH-1 downto 0);
-	signal axi_awready    : std_logic;
+	signal axi_awready  : std_logic;
 	signal axi_wready	  : std_logic;
 	signal axi_bresp	  : std_logic_vector(1 downto 0);
 	signal axi_bvalid	  : std_logic;
 	signal axi_araddr	  : std_logic_vector(ADDR_WIDTH-1 downto 0);
-	signal axi_arready    : std_logic;
-	signal axi_rdata      : std_logic_vector(DATA_WIDTH-1 downto 0);
-	signal axi_rresp      : std_logic_vector(1 downto 0);
-	signal axi_rvalid     : std_logic;
+	signal axi_arready  : std_logic;
+	signal axi_rdata    : std_logic_vector(DATA_WIDTH-1 downto 0);
+	signal axi_rresp    : std_logic_vector(1 downto 0);
+	signal axi_rvalid   : std_logic;
 
 	-- Example-specific design signals
 	-- local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
@@ -191,7 +191,7 @@ begin
 	  if rising_edge(aclk) then 
 	    if aresetn = '0' then
 	      slv_reg0 <= (others => '0');
-	      slv_reg1 <= "00000000000000000000000000001111";
+	      slv_reg1 <= "00000000000000000000000000000011";
 	      slv_reg2 <= (others => '0');
 	      slv_reg3 <= (others => '0');
 	      slv_reg4 <= (others => '0');
@@ -474,7 +474,7 @@ begin
 	      when b"1001" =>
 	        reg_data_out <= QCOM_DT_2;
 	      when b"1010" =>
-	        reg_data_out <= "0000000000000000000000000000000" & QCOM_STATUS;
+	        reg_data_out <= "000000000000000000000000" & QCOM_STATUS;
 	      when b"1011" =>
 	        reg_data_out <= "00000000000000000000000000000000";
 	      when b"1100" =>
@@ -484,7 +484,7 @@ begin
 	      when b"1110" =>
 	        reg_data_out <= QCOM_RX_DT;
 	      when b"1111" =>
-	        reg_data_out <= "0000000000000000" & QCOM_DEBUG;
+	        reg_data_out <= "00000000" & QCOM_DEBUG;
 	      when others =>
 	        reg_data_out  <= (others => '0');
 	    end case;
@@ -510,7 +510,7 @@ begin
 
 -- Output Registers.
 
-QCOM_CTRL    <= slv_reg0( 3 downto 0);
+QCOM_CTRL    <= slv_reg0( 7 downto 0);
 QCOM_CFG     <= slv_reg1( 3 downto 0);
 RAXI_DT1     <= slv_reg2(31 downto 0);
 

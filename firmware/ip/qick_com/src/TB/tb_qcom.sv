@@ -9,10 +9,11 @@
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
-`define T_C_CLK         5 // 1.66 // Half Clock Period for Simulation
-`define T_PS_CLK        25  // Half Clock Period for Simulation
+`define T_T_CLK         1 // 1.66 // Half Clock Period for Simulation
+`define T_C_CLK         2 
+`define T_PS_CLK        5  // Half Clock Period for Simulation
 
-localparam DEBUG    =     1;  // Debugging
+localparam DEBUG    =     0;  // Debugging
 
 module tb_qcom();
 
@@ -24,7 +25,7 @@ xil_axi_prot_t  prot        = 0;
 xil_axi_resp_t  resp;
 
 // Signals
-reg c_clk, ps_clk;
+reg c_clk, t_clk, ps_clk;
 reg rst_ni;
 reg[31:0]       data_wr     = 32'h12345678;
 
@@ -57,6 +58,10 @@ initial begin
   forever # (`T_C_CLK) c_clk = ~c_clk;
 end
 initial begin
+  t_clk = 1'b0;
+  forever # (`T_T_CLK) t_clk = ~t_clk;
+end
+initial begin
   ps_clk = 1'b0;
   forever # (`T_PS_CLK) ps_clk = ~ps_clk;
 end
@@ -70,6 +75,15 @@ end
 
 reg         c_cmd_i  ;
 reg [4 :0]  c_op_i;
+
+// Register ADDRESS
+parameter QCOM_CTRL     = 0 * 4 ;
+parameter QCOM_CFG      = 1 * 4 ;
+parameter RAXI_DT1      = 2 * 4 ;
+parameter QCOM_FLAG     = 7 * 4 ;
+parameter QCOM_DT1      = 8 * 4 ;
+parameter QCOM_DT2      = 9 * 4 ;
+parameter QCOM_STATUS   = 10 * 4 ;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -104,11 +118,13 @@ reg [31:0] c_dt1_i, c_dt2_i, c_dt3_i ;
 
 //////////////////////////////////////////////////////////////////////////
 //  QCOM1
-axis_qick_com # (
+axi_qick_com # (
    .DEBUG         ( DEBUG )
 ) QICK_COM_1 (
    .c_clk         ( c_clk         ) ,
    .c_aresetn     ( rst_ni        ) ,
+   .t_clk         ( t_clk         ) ,
+   .t_aresetn     ( rst_ni        ) ,
    .ps_clk        ( ps_clk        ) ,
    .ps_aresetn    ( rst_ni        ) ,
    .sync_i        ( sync_i        ) ,
@@ -146,11 +162,13 @@ axis_qick_com # (
 );
 //////////////////////////////////////////////////////////////////////////
 //  QCOM
-axis_qick_com # (
+axi_qick_com # (
    .DEBUG         ( DEBUG )
 ) QICK_COM_2 (
    .c_clk         ( c_clk         ) ,
    .c_aresetn     ( rst_ni        ) ,
+   .t_clk         ( t_clk         ) ,
+   .t_aresetn     ( rst_ni        ) ,
    .ps_clk        ( ps_clk        ) ,
    .ps_aresetn    ( rst_ni        ) ,
    .sync_i        ( sync_i        ) ,
@@ -193,153 +211,15 @@ reg tx_loop;
 
 initial begin
    START_SIMULATION();
+   SIM_BUG();
+   //SIM_CMD_TPROC();
+   //SIM_CMD_PYTHON();
+   //TEST_AXI () ;
+   //#2000;
    // SIM_RX();
-   SIM_TX();
+   // SIM_TX();
 
 end
-
-assign  pmod_i = tx_loop  ? pmod_o1 : pmod_si;
-
-task SIM_TX(); begin
-   $display("SIM TX");
-
-   tx_loop  = 1'b0 ;
-   c_cmd_i  = 1'b0 ;
-   c_op_i   = 4'd0;
-   c_dt1_i  = 0;
-   c_dt2_i  = 0;
-   c_dt3_i  = 0;
-
-   wait (ready == 1'b1)
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0001_0; //SET FLAG
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0000_0; //CLR FLAG
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0010_0; //SEND 8_BIT
-   c_dt1_i  = 8'b10101010 ;
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0100_0; //SEND 16_BIT
-   c_dt1_i  = 16'b0100_0011_0010_0001 ;
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0110_0; //SEND 32_BIT
-   c_dt1_i  = 4660;
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0110_1; //SEND 32_BIT
-   c_dt1_i  =53758;
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   wait (ready == 1'b1)
-   # (5 * `T_C_CLK);
-
-   @ (posedge c_clk); #0.1;
-   c_op_i   = 5'b0011_0; //SYNC
-   c_dt1_i  =53758;
-   c_cmd_i  = 1'b1 ;
-   @ (posedge c_clk); #0.1;
-   c_cmd_i  = 1'b0 ;
-   @ (posedge c_clk); #0.1;
-
-   end
-endtask
-
-task SIM_RX(); begin
-   tx_loop  = 1'b0 ;
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0001; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1001; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1001; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0001; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0000; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1000; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1110; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0110; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0100; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1100; // Same DATA CLK
-
-   # (33 * `T_C_CLK);
-   pmod_si = 4'b011; // Same DATA CLK
-
-   # (18 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0111; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1111; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1110; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0110; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0101; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1101; // Same DATA CLK
-   # (5 * `T_C_CLK);
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b1100; // DATA
-   @ (posedge c_clk); #0.1;
-   pmod_si = 4'b0100; // Same DATA CLK
-   end
-endtask
-
 
 task START_SIMULATION (); begin
    $display("START SIMULATION");
@@ -351,18 +231,175 @@ task START_SIMULATION (); begin
 	axi_mst_0_agent.start_master();
    rst_ni   = 1'b0;
    c_cmd_i  = 1'b0 ;
-   c_op_i   = 4'd0;
+   c_op_i   = 5'd0;
    c_dt1_i  = 0;
    c_dt2_i  = 0;
    c_dt3_i  = 0;
    pmod_si   = 0;
    tx_loop  = 1'b0 ;
-
+   #25;
    @ (posedge ps_clk); #0.1;
    rst_ni            = 1'b1;
 
+end
+endtask
+
+assign  pmod_i = tx_loop  ? pmod_o1 : pmod_si;
+
+integer conf;
+
+task SIM_BUG(); begin
+   $display("SIM BUG");
+
+   for (conf = 1 ; conf <= 15; conf=conf+1) begin
+      WRITE_AXI( QCOM_CFG ,  conf); // DATA
+      WRITE_AXI( RAXI_DT1 ,  1001001*conf); // DATA
+      CMD_SEND_32B_DT1 ();
+      #1000;
+      WRITE_AXI( RAXI_DT1 ,  2002001*conf); // DATA
+      CMD_SEND_32B_DT2 ();
+      #1000;
+   end
+end
+endtask   
+		
+
+task SIM_CMD_PYTHON(); begin
+   $display("SIM Command from PYTHON");
+   @ (posedge c_clk); #0.1;
+   WRITE_AXI( RAXI_DT1 ,  -1); // DATA
+   CMD_SET_FLG ();
+   CMD_CLR_FLG ();
+   WRITE_AXI( QCOM_CFG ,  7); // DATA
+   WRITE_AXI( RAXI_DT1 ,  700000007); // DATA
+
+   CMD_SEND_8B_DT1 ();
+   CMD_SEND_8B_DT2 ();
+   CMD_SEND_16B_DT1 ();
+   #250;
+   CMD_SEND_16B_DT2 ();
+   #250;
+   CMD_SEND_32B_DT1 ();
+   #500;
+   CMD_SEND_32B_DT2 ();
+   #500;
+   CMD_SYNC_START ();
+   #4000;
+   WRITE_AXI( RAXI_DT1 , 0 ); // DATA
+   CMD_SEND_32B_DT1 ();
+   #500;
+   CMD_SEND_32B_DT2 ();
+   #500;
+end
+endtask   
+
+task CMD_RUN(); begin
+   c_cmd_i  = 1'b1 ;
+   @ (posedge c_clk); #0.1;
+   c_cmd_i  = 1'b0 ;
+   @ (posedge c_clk); #0.1;
+   wait (ready == 1'b1);
+end
+endtask   
+
+task SIM_CMD_TPROC(); begin
+   $display("SIM Command from TPROC");
+   c_dt1_i  = -1;
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd8; //SET FLAG
+   CMD_RUN();
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd0; //CLR FLAG
+   CMD_RUN();
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd2; //SEND 8_BIT
+   CMD_RUN();
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd3; //SEND 8_BIT
+   CMD_RUN();
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd4; //SEND 16_BIT
+   CMD_RUN();
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd5; //SEND 16_BIT
+   CMD_RUN();
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd6; //SEND 32_BIT
+   CMD_RUN();
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd7; //SEND 32_BIT
+   CMD_RUN();
+
+   @ (posedge c_clk); #0.1;
+   c_op_i   = 5'd10; //SYNC
+   CMD_RUN();
+   end
+   #4000;
+endtask
+
+task CMD_CLR_FLG ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 0);
+endtask
+task CMD_SEND_8B_DT1 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 2);
+endtask
+task CMD_SEND_8B_DT2 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 3);
+endtask
+task CMD_SEND_16B_DT1 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 4);
+endtask
+task CMD_SEND_16B_DT2 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 5);
+endtask
+task CMD_SEND_32B_DT1 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 6);
+endtask
+task CMD_SEND_32B_DT2 ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 7);
+endtask
+task CMD_SET_FLG ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 8);
+endtask
+task CMD_SYNC_START ();
+   WRITE_AXI( QCOM_CTRL ,  1 + 2 * 10);
+endtask
+
+
+
+task WRITE_AXI(integer PORT_AXI, DATA_AXI); begin
+   @ (posedge ps_clk); #0.1;
+   axi_mst_0_agent.AXI4LITE_WRITE_BURST(PORT_AXI, prot, DATA_AXI, resp);
    end
 endtask
+
+task TEST_AXI (); begin
+   $display("-----Writting AXI ");
+   WRITE_AXI( QCOM_CTRL ,  1 *2+1); // Set Flag
+   WRITE_AXI( QCOM_CTRL ,  0 *2+1); // Clear Flag
+   WRITE_AXI( QCOM_CTRL ,  1 *2+1); // Set Flag
+   WRITE_AXI( QCOM_CTRL ,  0 *2+1); // Clear Flag
+   WRITE_AXI( RAXI_DT1 ,  -1); // DATA
+   WRITE_AXI( QCOM_CTRL ,  2 *2+1); // Send 8bit (1)
+   WRITE_AXI( RAXI_DT1 ,  8); // DATA
+   WRITE_AXI( QCOM_CTRL , 10 *2+1); // Send 8bit (2)
+   WRITE_AXI( QCOM_CTRL , 3 *2+1); // SYNC_START
+   WRITE_AXI( RAXI_DT1 ,  -1); // DATA
+   WRITE_AXI( QCOM_CTRL , 4 *2+1); // Send 16bit (1)
+   WRITE_AXI( RAXI_DT1 ,  16); // DATA
+   WRITE_AXI( QCOM_CTRL , 12 *2+1); // Send 16bit (2)
+   WRITE_AXI( RAXI_DT1 ,  -1); // DATA
+   WRITE_AXI( QCOM_CTRL , 6 *2+1); // Send 32bit (1)
+   WRITE_AXI( RAXI_DT1 ,  32); // DATA
+   WRITE_AXI( QCOM_CTRL , 14 *2+1); // Send 32bit (2)
+end
+endtask
+
 
 
 endmodule

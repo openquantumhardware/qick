@@ -1,4 +1,10 @@
-`include "_qcom_defines.svh"
+///////////////////////////////////////////////////////////////////////////////
+//  FERMI RESEARCH LAB
+///////////////////////////////////////////////////////////////////////////////
+//  Author         : Martin Di Federico
+//  Date           : 2024_5
+//  Version        : 1
+///////////////////////////////////////////////////////////////////////////////
 
 module qcom_link (
 // Core and AXI CLK & RST
@@ -21,11 +27,6 @@ module qcom_link (
 ///// DEBUG   
    output wire [31:0]   qcom_link_do        
    );
-
-///////////////////////////////////////////////////////////////////////////////
-// Temporary Values 
-
-// assign tick_cfg       = 15;
 
 ///////////////////////////////////////////////////////////////////////////////
 // ######   #     # 
@@ -295,7 +296,6 @@ always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
             tick_clk    <= 1'b0;
             tx_tick_cnt <= tx_tick_cnt + 1'b1 ;
          end
-         
          if (tx_tick_cnt == tick_cfg>>1) tick_dt <= 1'b1;
          else                            tick_dt <= 1'b0;
       end else begin 

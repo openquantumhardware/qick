@@ -14,15 +14,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="11.000001 us"></ZoomEndTime>
-      <Cursor1Time time="1.405000 us"></Cursor1Time>
+      <ZoomStartTime time="17,436.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="18,271.001 ns"></ZoomEndTime>
+      <Cursor1Time time="17,990.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="191"></NameColumnWidth>
-      <ValueColumnWidth column_width="76"></ValueColumnWidth>
+      <NameColumnWidth column_width="173"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="50" />
+   <WVObjectSize size="77" />
    <wvobject type="logic" fp_name="/tb_qcom/ps_clk">
       <obj_property name="ElementShortName">ps_clk</obj_property>
       <obj_property name="ObjectShortName">ps_clk</obj_property>
@@ -31,13 +31,90 @@
       <obj_property name="ElementShortName">c_clk</obj_property>
       <obj_property name="ObjectShortName">c_clk</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/QCOM_LINK/tick_clk">
-      <obj_property name="ElementShortName">tick_clk</obj_property>
-      <obj_property name="ObjectShortName">tick_clk</obj_property>
+   <wvobject type="logic" fp_name="/tb_qcom/rst_ni">
+      <obj_property name="ElementShortName">rst_ni</obj_property>
+      <obj_property name="ObjectShortName">rst_ni</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/CMD/cmd_ack_i">
+      <obj_property name="ElementShortName">cmd_ack_i</obj_property>
+      <obj_property name="ObjectShortName">cmd_ack_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/CMD/p_op_r">
+      <obj_property name="ElementShortName">p_op_r[3:0]</obj_property>
+      <obj_property name="ObjectShortName">p_op_r[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/CMD/cmd_op">
+      <obj_property name="ElementShortName">cmd_op[3:0]</obj_property>
+      <obj_property name="ObjectShortName">cmd_op[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/CMD/cmd_req_o">
+      <obj_property name="ElementShortName">cmd_req_o</obj_property>
+      <obj_property name="ObjectShortName">cmd_req_o</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/CMD/cmd_op_o">
+      <obj_property name="ElementShortName">cmd_op_o[3:0]</obj_property>
+      <obj_property name="ObjectShortName">cmd_op_o[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM_CFG">
+      <obj_property name="ElementShortName">QCOM_CFG[3:0]</obj_property>
+      <obj_property name="ObjectShortName">QCOM_CFG[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM_CTRL">
+      <obj_property name="ElementShortName">QCOM_CTRL[7:0]</obj_property>
+      <obj_property name="ObjectShortName">QCOM_CTRL[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/RAXI_DT1">
+      <obj_property name="ElementShortName">RAXI_DT1[31:0]</obj_property>
+      <obj_property name="ObjectShortName">RAXI_DT1[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/CMD/c_en_i">
+      <obj_property name="ElementShortName">c_en_i</obj_property>
+      <obj_property name="ObjectShortName">c_en_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/CMD/c_op_i">
+      <obj_property name="ElementShortName">c_op_i[4:0]</obj_property>
+      <obj_property name="ObjectShortName">c_op_i[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/cmd_op">
+      <obj_property name="ElementShortName">cmd_op[3:0]</obj_property>
+      <obj_property name="ObjectShortName">cmd_op[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/cmd_cnt">
+      <obj_property name="ElementShortName">cmd_cnt[7:0]</obj_property>
+      <obj_property name="ObjectShortName">cmd_cnt[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/cmd_req">
+      <obj_property name="ElementShortName">cmd_req</obj_property>
+      <obj_property name="ObjectShortName">cmd_req</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tb_qcom/ready">
       <obj_property name="ElementShortName">ready</obj_property>
       <obj_property name="ObjectShortName">ready</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/qcom_header">
+      <obj_property name="ElementShortName">qcom_header[3:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_header[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/QCOM_LINK/tx_vld_i">
+      <obj_property name="ElementShortName">tx_vld_i</obj_property>
+      <obj_property name="ObjectShortName">tx_vld_i</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/QCOM_LINK/tx_header_i">
+      <obj_property name="ElementShortName">tx_header_i[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_header_i[3:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/QCOM_LINK/tx_data_i">
+      <obj_property name="ElementShortName">tx_data_i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_data_i[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#E0FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tb_qcom/c_cmd_i">
       <obj_property name="ElementShortName">c_cmd_i</obj_property>
@@ -64,12 +141,6 @@
       <obj_property name="CustomSignalColor">#00FFFF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/sync_i">
-      <obj_property name="ElementShortName">sync_i</obj_property>
-      <obj_property name="ObjectShortName">sync_i</obj_property>
-      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tb_qcom/qcom_dt1_o">
       <obj_property name="ElementShortName">qcom_dt1_o</obj_property>
@@ -108,250 +179,230 @@
       <obj_property name="UseCustomSignalColor">true</obj_property>
       <obj_property name="isExpanded"></obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qcom_tx_st">
-      <obj_property name="ElementShortName">qcom_tx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_tx_st[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM_xREG/QCOM_CFG">
+      <obj_property name="ElementShortName">QCOM_CFG[3:0]</obj_property>
+      <obj_property name="ObjectShortName">QCOM_CFG[3:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/QCOM_LINK/tx_st">
-      <obj_property name="ElementShortName">tx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">tx_st[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/qcom_dt1_o">
+      <obj_property name="ElementShortName">qcom_dt1_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_dt1_o[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qctrl_st">
-      <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qcom_rx_st">
-      <obj_property name="ElementShortName">qcom_rx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_rx_st[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/QCOM_LINK/rx_st">
-      <obj_property name="ElementShortName">rx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">rx_st[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qreg1_dt">
-      <obj_property name="ElementShortName">qreg1_dt[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qreg1_dt[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qreg2_dt">
-      <obj_property name="ElementShortName">qreg2_dt[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qreg2_dt[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/QCOM_LINK/tx_vld_i">
-      <obj_property name="ElementShortName">tx_vld_i</obj_property>
-      <obj_property name="ObjectShortName">tx_vld_i</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/QCOM_LINK/tx_ok">
-      <obj_property name="ElementShortName">tx_ok</obj_property>
-      <obj_property name="ObjectShortName">tx_ok</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/qcom_sync">
-      <obj_property name="ElementShortName">qcom_sync</obj_property>
-      <obj_property name="ObjectShortName">qcom_sync</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/tx_sync">
-      <obj_property name="ElementShortName">tx_sync</obj_property>
-      <obj_property name="ObjectShortName">tx_sync</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/rx_sync">
-      <obj_property name="ElementShortName">rx_sync</obj_property>
-      <obj_property name="ObjectShortName">rx_sync</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/rx_sync">
-      <obj_property name="ElementShortName">rx_sync</obj_property>
-      <obj_property name="ObjectShortName">rx_sync</obj_property>
-   </wvobject>
-   <wvobject type="group" fp_name="group141">
-      <obj_property name="label">AXI_REG 1</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_CTRL">
-         <obj_property name="ElementShortName">xreg_QCOM_CTRL[3:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_CTRL[3:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_CFG">
-         <obj_property name="ElementShortName">xreg_QCOM_CFG[3:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_CFG[3:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_RAXI_DT1">
-         <obj_property name="ElementShortName">xreg_RAXI_DT1[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_RAXI_DT1[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_FLAG">
-         <obj_property name="ElementShortName">xreg_QCOM_FLAG</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_FLAG</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_STATUS">
-         <obj_property name="ElementShortName">xreg_QCOM_STATUS</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_STATUS</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_DT_1">
-         <obj_property name="ElementShortName">xreg_QCOM_DT_1[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DT_1[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_DT_2">
-         <obj_property name="ElementShortName">xreg_QCOM_DT_2[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DT_2[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_TX_DT">
-         <obj_property name="ElementShortName">xreg_QCOM_TX_DT[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_TX_DT[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_RX_DT">
-         <obj_property name="ElementShortName">xreg_QCOM_RX_DT[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_RX_DT[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QICK_COM/xreg_QCOM_DEBUG">
-         <obj_property name="ElementShortName">xreg_QCOM_DEBUG[15:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DEBUG[15:0]</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/pmod_i">
-      <obj_property name="ElementShortName">pmod_i[3:0]</obj_property>
-      <obj_property name="ObjectShortName">pmod_i[3:0]</obj_property>
-      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_rx_st">
-      <obj_property name="ElementShortName">qcom_rx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_rx_st[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_tx_st">
-      <obj_property name="ElementShortName">qcom_tx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_tx_st[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qctrl_st">
-      <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/rx_wreg">
-      <obj_property name="ElementShortName">rx_wreg</obj_property>
-      <obj_property name="ObjectShortName">rx_wreg</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/rx_wreg_r">
-      <obj_property name="ElementShortName">rx_wreg_r</obj_property>
-      <obj_property name="ObjectShortName">rx_wreg_r</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/rx_wreg_en">
-      <obj_property name="ElementShortName">rx_wreg_en</obj_property>
-      <obj_property name="ObjectShortName">rx_wreg_en</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/reg_sel">
-      <obj_property name="ElementShortName">reg_sel[1:0]</obj_property>
-      <obj_property name="ObjectShortName">reg_sel[1:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qcom_rdy_o">
-      <obj_property name="ElementShortName">qcom_rdy_o</obj_property>
-      <obj_property name="ObjectShortName">qcom_rdy_o</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qcom_vld_o">
-      <obj_property name="ElementShortName">qcom_vld_o</obj_property>
-      <obj_property name="ObjectShortName">qcom_vld_o</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/qcom_dt2_o">
+      <obj_property name="ElementShortName">qcom_dt2_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_dt2_o[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qcom_flag_o">
       <obj_property name="ElementShortName">qcom_flag_o</obj_property>
       <obj_property name="ObjectShortName">qcom_flag_o</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qproc_start_o">
-      <obj_property name="ElementShortName">qproc_start_o</obj_property>
-      <obj_property name="ObjectShortName">qproc_start_o</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/qcom_tx_st">
+      <obj_property name="ElementShortName">qcom_tx_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_tx_st[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/qcom_rx_st">
+      <obj_property name="ElementShortName">qcom_rx_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_rx_st[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/qctrl_st">
+      <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/tx_vld">
+      <obj_property name="ElementShortName">tx_vld</obj_property>
+      <obj_property name="ObjectShortName">tx_vld</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/qcom_sync">
+      <obj_property name="ElementShortName">qcom_sync</obj_property>
+      <obj_property name="ObjectShortName">qcom_sync</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/qctrl_sync">
+      <obj_property name="ElementShortName">qctrl_sync</obj_property>
+      <obj_property name="ObjectShortName">qctrl_sync</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/start_req">
+      <obj_property name="ElementShortName">start_req</obj_property>
+      <obj_property name="ObjectShortName">start_req</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/t_start_req">
+      <obj_property name="ElementShortName">t_start_req</obj_property>
+      <obj_property name="ObjectShortName">t_start_req</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/t_start_ack">
+      <obj_property name="ElementShortName">t_start_ack</obj_property>
+      <obj_property name="ObjectShortName">t_start_ack</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/start_ack">
+      <obj_property name="ElementShortName">start_ack</obj_property>
+      <obj_property name="ObjectShortName">start_ack</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/tx_vld_i">
+      <obj_property name="ElementShortName">tx_vld_i</obj_property>
+      <obj_property name="ObjectShortName">tx_vld_i</obj_property>
       <obj_property name="CustomSignalColor">#808000</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_dt1_o">
-      <obj_property name="ElementShortName">qcom_dt1_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_dt1_o[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/tx_header_i">
+      <obj_property name="ElementShortName">tx_header_i[3:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_header_i[3:0]</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_dt2_o">
-      <obj_property name="ElementShortName">qcom_dt2_o[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_dt2_o[31:0]</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/tx_data_i">
+      <obj_property name="ElementShortName">tx_data_i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">tx_data_i[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_flag_o">
-      <obj_property name="ElementShortName">qcom_flag_o</obj_property>
-      <obj_property name="ObjectShortName">qcom_flag_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/qcom_rx_st">
+      <obj_property name="ElementShortName">qcom_rx_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_rx_st[31:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FF00FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/qctrl_st">
+      <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/rx_vld_o">
+      <obj_property name="ElementShortName">rx_vld_o</obj_property>
+      <obj_property name="ObjectShortName">rx_vld_o</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/rx_header_o">
+      <obj_property name="ElementShortName">rx_header_o[2:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_header_o[2:0]</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/QCOM_LINK/rx_data_o">
+      <obj_property name="ElementShortName">rx_data_o[32:0]</obj_property>
+      <obj_property name="ObjectShortName">rx_data_o[32:0]</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qcom_vld_o">
       <obj_property name="ElementShortName">qcom_vld_o</obj_property>
       <obj_property name="ObjectShortName">qcom_vld_o</obj_property>
-      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/cmd_req_i">
+      <obj_property name="ElementShortName">cmd_req_i</obj_property>
+      <obj_property name="ObjectShortName">cmd_req_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/cmd_op_i">
+      <obj_property name="ElementShortName">cmd_op_i[3:0]</obj_property>
+      <obj_property name="ObjectShortName">cmd_op_i[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qcom_flag_o">
+      <obj_property name="ElementShortName">qcom_flag_o</obj_property>
+      <obj_property name="ObjectShortName">qcom_flag_o</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/qcom_dt1_o">
+      <obj_property name="ElementShortName">qcom_dt1_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_dt1_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/qcom_dt2_o">
+      <obj_property name="ElementShortName">qcom_dt2_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qcom_dt2_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/c_clk">
+      <obj_property name="ElementShortName">c_clk</obj_property>
+      <obj_property name="ObjectShortName">c_clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/t_clk">
+      <obj_property name="ElementShortName">t_clk</obj_property>
+      <obj_property name="ObjectShortName">t_clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/ps_clk">
+      <obj_property name="ElementShortName">ps_clk</obj_property>
+      <obj_property name="ObjectShortName">ps_clk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/sync_i">
+      <obj_property name="ElementShortName">sync_i</obj_property>
+      <obj_property name="ObjectShortName">sync_i</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_rdy_o">
-      <obj_property name="ElementShortName">qcom_rdy_o</obj_property>
-      <obj_property name="ObjectShortName">qcom_rdy_o</obj_property>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/qproc_start_o">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">qproc_start_o</obj_property>
+      <obj_property name="ObjectShortName">qproc_start_o</obj_property>
       <obj_property name="CustomSignalColor">#0000FF</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="label">qproc_start_1</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_rx_st">
-      <obj_property name="ElementShortName">qcom_rx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_rx_st[31:0]</obj_property>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/qproc_start_o">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">qproc_start_o</obj_property>
+      <obj_property name="ObjectShortName">qproc_start_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000A0</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+      <obj_property name="label">qproc_start_2</obj_property>
    </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qcom_tx_st">
-      <obj_property name="ElementShortName">qcom_tx_st[31:0]</obj_property>
-      <obj_property name="ObjectShortName">qcom_tx_st[31:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/qctrl_st">
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_1/QCOM/qctrl_st">
       <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
       <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
    </wvobject>
-   <wvobject type="group" fp_name="group152">
-      <obj_property name="label">AXI_REG 2</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_CTRL">
-         <obj_property name="ElementShortName">xreg_QCOM_CTRL[3:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_CTRL[3:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_CFG">
-         <obj_property name="ElementShortName">xreg_QCOM_CFG[3:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_CFG[3:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_RAXI_DT1">
-         <obj_property name="ElementShortName">xreg_RAXI_DT1[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_RAXI_DT1[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_FLAG">
-         <obj_property name="ElementShortName">xreg_QCOM_FLAG</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_FLAG</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_STATUS">
-         <obj_property name="ElementShortName">xreg_QCOM_STATUS</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_STATUS</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_DT_1">
-         <obj_property name="ElementShortName">xreg_QCOM_DT_1[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DT_1[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_DT_2">
-         <obj_property name="ElementShortName">xreg_QCOM_DT_2[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DT_2[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_TX_DT">
-         <obj_property name="ElementShortName">xreg_QCOM_TX_DT[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_TX_DT[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_RX_DT">
-         <obj_property name="ElementShortName">xreg_QCOM_RX_DT[31:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_RX_DT[31:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QICK_COM/xreg_QCOM_DEBUG">
-         <obj_property name="ElementShortName">xreg_QCOM_DEBUG[15:0]</obj_property>
-         <obj_property name="ObjectShortName">xreg_QCOM_DEBUG[15:0]</obj_property>
-      </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/tx_sync">
+      <obj_property name="ElementShortName">tx_sync</obj_property>
+      <obj_property name="ObjectShortName">tx_sync</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/rx_sync">
+      <obj_property name="ElementShortName">rx_sync</obj_property>
+      <obj_property name="ObjectShortName">rx_sync</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/t_start_req">
+      <obj_property name="ElementShortName">t_start_req</obj_property>
+      <obj_property name="ObjectShortName">t_start_req</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/t_start_ack">
+      <obj_property name="ElementShortName">t_start_ack</obj_property>
+      <obj_property name="ObjectShortName">t_start_ack</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_1/QCOM/start_ack">
+      <obj_property name="ElementShortName">start_ack</obj_property>
+      <obj_property name="ObjectShortName">start_ack</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qcom/QICK_COM_2/QCOM/qctrl_st">
+      <obj_property name="ElementShortName">qctrl_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">qctrl_st[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/tx_sync">
+      <obj_property name="ElementShortName">tx_sync</obj_property>
+      <obj_property name="ObjectShortName">tx_sync</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/rx_sync">
+      <obj_property name="ElementShortName">rx_sync</obj_property>
+      <obj_property name="ObjectShortName">rx_sync</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/t_start_req">
+      <obj_property name="ElementShortName">t_start_req</obj_property>
+      <obj_property name="ObjectShortName">t_start_req</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/t_start_ack">
+      <obj_property name="ElementShortName">t_start_ack</obj_property>
+      <obj_property name="ObjectShortName">t_start_ack</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qcom/QICK_COM_2/QCOM/start_ack">
+      <obj_property name="ElementShortName">start_ack</obj_property>
+      <obj_property name="ObjectShortName">start_ack</obj_property>
+      <obj_property name="CustomSignalColor">#808000</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
 </wave_config>
