@@ -12,31 +12,31 @@ class QICK_Time_Tagger(SocIp):
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0']
 
-    REGISTERS = {
-        'qtt_ctrl'     :0 ,
-        'qtt_cfg'      :1 ,
-        'dma_cfg'      :2 ,
-        'axi_dt1'      :3 ,
-        'proc_dt'      :5 ,
-        'proc_qty'     :6,
-        'tag0_qty'     :7,
-        'tag1_qty'     :8,
-        'tag2_qty'     :9,
-        'tag3_qty'     :10,
-        'smp_qty'      :11,
-        'arm_qty'      :12,
-        'thr_inh'      :13,
-        'qtt_status'   :14,
-        'qtt_debug'    :15,
-    }
-    dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
 
     def __init__(self, description):
         """
         Constructor method
         """
         super().__init__(description)
-
+        
+        self.REGISTERS = {
+            'qtt_ctrl'     :0 ,
+            'qtt_cfg'      :1 ,
+            'dma_cfg'      :2 ,
+            'axi_dt1'      :3 ,
+            'proc_dt'      :5 ,
+            'proc_qty'     :6,
+            'tag0_qty'     :7,
+            'tag1_qty'     :8,
+            'tag2_qty'     :9,
+            'tag3_qty'     :10,
+            'smp_qty'      :11,
+            'arm_qty'      :12,
+            'thr_inh'      :13,
+            'qtt_status'   :14,
+            'qtt_debug'    :15,
+        }
+        
         # Parameters
         self.cfg['tag_mem_size'] = pow( 2, int(description['parameters']['TAG_FIFO_AW']) )
         self.cfg['arm_mem_size'] = pow( 2, int(description['parameters']['ARM_FIFO_AW']) )
@@ -52,7 +52,10 @@ class QICK_Time_Tagger(SocIp):
         self.dma_cfg  = 0 + 16* 1
         self.axi_dt1  = 0
 
-    # Configure this driver with links to its memory and DMA.
+        # Used Values
+        self.dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
+
+        # Configure this driver with links to its memory and DMA.
     def configure(self, axi_dma):
         # dma
         self.dma = axi_dma
@@ -217,25 +220,27 @@ class QICK_Com(SocIp):
     QCOM_DEBUG       Read Only    32-Bits
     """
     bindto = ['Fermi:user:qick_com:1.0']
-    REGISTERS = {
-        'qcom_ctrl'     :0 ,
-        'qcom_cfg'      :1 ,
-        'axi_dt1'       :2 ,
-        'flag'     :7 ,
-        'dt1'      :8 ,
-        'dt2'      :9,
-        'status'   :12,
-        'tx_dt'    :13,
-        'rx_dt'    :14,
-        'debug'    :15
-    }    
 
     def __init__(self, description):
         """
         Constructor method
         """
         super().__init__(description)
-        # Initial Values 
+
+        self.REGISTERS = {
+            'qcom_ctrl'     :0 ,
+            'qcom_cfg'      :1 ,
+            'axi_dt1'       :2 ,
+            'flag'     :7 ,
+            'dt1'      :8 ,
+            'dt2'      :9,
+            'status'   :12,
+            'tx_dt'    :13,
+            'rx_dt'    :14,
+            'debug'    :15
+        }    
+
+    # Initial Values 
         self.qcom_ctrl = 0
         self.qcom_cfg  = 10
         self.raxi_dt1  = 0
