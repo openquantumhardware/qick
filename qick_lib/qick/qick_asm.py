@@ -1701,7 +1701,7 @@ class AcquireMixin:
         :return: averaged iq data after each round.
         """
         avg_d = []
-        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
+        for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
             if length_norm:
