@@ -117,7 +117,7 @@ class QickConfig():
             for iIQ, iq in enumerate(self['iqs']):
                 dacname = iq['dac']
                 dac = self['dacs'][dacname]
-                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, *dacname, iq['fs']))
+                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
