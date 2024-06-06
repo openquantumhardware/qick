@@ -117,7 +117,7 @@ class QickConfig():
             for iIQ, iq in enumerate(self['iqs']):
                 dacname = iq['dac']
                 dac = self['dacs'][dacname]
-                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, *dacname, iq['fs']))
+                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
         lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
@@ -359,7 +359,7 @@ class QickConfig():
         if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
             if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
-                raise RuntimeError("requested frequency %f is outside of the range [-fs/2, fs/2]"%(f))
+                raise RuntimeError("requested frequency %f is outside of [-range/2, range/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
 
     def freq2reg_adc(self, f, ro_ch=0, gen_ch=None):
@@ -1660,6 +1660,35 @@ class AcquireMixin:
 
         return avg_d
 
+    def _ro_offset(self, ch, chcfg):
+        """Computes the IQ offset expected from this readout.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        chcfg : dict
+            readout config from program
+
+        Returns
+        -------
+        float
+            DC offset expected on decimated I and Q samples, to be subtracted
+        """
+        rocfg = self.soccfg['readouts'][ch]
+        offset = rocfg['iq_offset']
+
+        # for PFB readout, there are two offsets:
+        # there's an output offset, which is always at DC after output downconversion
+        # and a channelizer offset, which is at DC (before downconversion) for even-numbered channels and at fs_ch/2 for odd-numbered channels
+        # we can always subtract out the output offset
+        # if the channelizer offset is at DC after downconversion, we can subtract it; otherwise it's a noise source
+        if 'pfb_ch' in chcfg:
+            fs_int = 2**rocfg['b_dds']
+            if chcfg['f_int'] == (chcfg['pfb_ch']%2)*(fs_int//2):
+                offset *= 2
+        return offset
+
     def _average_buf(self, d_reps: np.ndarray, reads_per_shot: list, length_norm: bool=True, remove_offset: bool=True) -> np.ndarray:
         """
         calculate averaged data in a data acquire round. This function should be overwritten in the child qick program
@@ -1672,14 +1701,13 @@ class AcquireMixin:
         :return: averaged iq data after each round.
         """
         avg_d = []
-        for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
+        for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
             if length_norm:
                 avg /= ro['length']
                 if remove_offset:
-                    offset = self.soccfg['readouts'][ro_ch]['iq_offset']
-                    avg -= offset
+                    avg -= self._ro_offset(ch, ro['ro_config'])
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
@@ -1913,8 +1941,7 @@ class AcquireMixin:
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
             d_avg = dec_buf[ii]/soft_avgs
             if remove_offset:
-                offset = self.soccfg['readouts'][ch]['iq_offset']
-                d_avg -= offset
+                d_avg -= self._ro_offset(ch, ro['ro_config'])
             if total_count == 1 and onetrig:
                 # simple case: data is 1D (one rep and one shot), just average over rounds
                 result.append(d_avg)

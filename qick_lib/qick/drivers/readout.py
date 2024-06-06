@@ -11,6 +11,7 @@ class AbsReadout(DummyIp):
     # Number of bits in the phase register
     B_PHASE = None
     # Some readouts put a small nonzero offset on the I and Q values due to rounding.
+    # For muxed readouts, this offset is usually different between even and odd channels.
     IQ_OFFSET = 0.0
 
     # Configure this driver with the sampling frequency.
