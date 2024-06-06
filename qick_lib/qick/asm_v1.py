@@ -876,7 +876,7 @@ class QickProgram(AbsQickProgram):
         ch : int or list of int
             generator channel (index in 'gens' list)
         t : int, optional
-            The number of tProc cycles at which the pulse starts (None to use the time register as is, 'auto' to start whenever the last pulse ends)
+            The number of tProc cycles at which the pulse starts (None to use the time register as is, 'auto' to start whenever the last pulse on this generator ends)
         """
         # try to convert pulse_ch to int; if that fails, assume it's list of ints
         ch_list = ch2list(ch)
@@ -890,14 +890,16 @@ class QickProgram(AbsQickProgram):
             if t is not None:
                 ts = self.get_timestamp(gen_ch=ch)
                 if t == 'auto':
-                    t = int(ts)
+                    t_ch = int(ts)
                 elif t < ts:
-                    print("warning: pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
+                    logger.warning("pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
+                else:
+                    t_ch = t
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
                 pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
                 self.set_timestamp(t + pulse_length, gen_ch=ch)
-                self.safe_regwi(rp, r_t, t, f't = {t}')
+                self.safe_regwi(rp, r_t, t, f't = {t_ch}')
 
             # Play each pulse segment.
             # We specify the same time for all segments and rely on the signal generator to concatenate them without gaps.
@@ -1023,7 +1025,7 @@ class QickProgram(AbsQickProgram):
             for ro in adcs:
                 ts = self.get_timestamp(ro_ch=ro)
                 if t_start < ts:
-                    print("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
+                    logger.warning("Readout time %d appears to conflict with previous readout ending at %f?"%(t, ts))
                 # convert from readout clock to tProc clock
                 ro_length = self.ro_chs[ro]['length']
                 ro_length *= self.tproccfg['f_time']/self.soccfg['readouts'][ro]['f_output']
@@ -1095,7 +1097,7 @@ class QickProgram(AbsQickProgram):
                 if ch_type == "generator":
                     ts = self.get_timestamp(gen_ch=ch)
                     if t < ts:
-                        print(f"warning: generator {ch} phase reset at t={t} appears to conflict "
+                        logger.warning(f"generator {ch} phase reset at t={t} appears to conflict "
                               f"with previous pulse ending at {ts}")
                     ch_mgr = self._gen_mgrs[ch]
                     phrst_params = dict(style="const", phase=0, freq=0, gain=0, length=3, phrst=1)
@@ -1106,7 +1108,7 @@ class QickProgram(AbsQickProgram):
                     if ch_mgr is None: continue
                     ts = self.get_timestamp(ro_ch=ch)
                     if t < ts:
-                        print(f"warning: readout {ch} phase reset at t={t} appears to conflict "
+                        logger.warning(f"readout {ch} phase reset at t={t} appears to conflict "
                               f"with previous readout ending at {ts}")
                     phrst_params = dict(freq=0, length=3, phrst=1)
                     tproc_ch = self.soccfg["readouts"][ch]['tproc_ctrl']
