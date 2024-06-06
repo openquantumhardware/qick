@@ -894,12 +894,12 @@ class QickProgram(AbsQickProgram):
                 elif t < ts:
                     logger.warning("pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
                 else:
-                    t_ch = t
+                    t_ch = int(t)
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
                 pulse_length *= self.tproccfg['f_time']/self.soccfg['gens'][ch]['f_fabric']
-                self.set_timestamp(t + pulse_length, gen_ch=ch)
-                self.safe_regwi(rp, r_t, t, f't = {t_ch}')
+                self.set_timestamp(t_ch + pulse_length, gen_ch=ch)
+                self.safe_regwi(rp, r_t, t_ch, f't = {t_ch}')
 
             # Play each pulse segment.
             # We specify the same time for all segments and rely on the signal generator to concatenate them without gaps.
