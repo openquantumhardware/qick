@@ -87,6 +87,9 @@ class AxisTProc64x32_x8(SocIp):
 
         self.cfg['dmem_size'] = 2**self.DMEM_N
 
+        # the currently loaded program - cached here so it can be reloaded after a tProc reset
+        self.binprog = None
+
     # Configure this driver with links to its memory and DMA.
     def configure(self, mem, axi_dma):
         # Program memory.
@@ -172,10 +175,11 @@ class AxisTProc64x32_x8(SocIp):
     def reload_program(self):
         """
         Write the most recently written program to the tProc program memory.
-        This is normally useful after a reset (which erases the program memory)
+        This is normally useful after a reset (which erases the program memory).
         """
-        # write the program to memory with a fast copy
-        np.copyto(self.mem.mmio.array[:len(self.binprog)], self.binprog)
+        if self.binprog is not None:
+            # write the program to memory with a fast copy
+            np.copyto(self.mem.mmio.array[:len(self.binprog)], self.binprog)
 
     def start_src(self, src):
         """
