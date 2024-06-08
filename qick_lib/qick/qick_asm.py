@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array
+from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array, nqz, nyquist_image
 
 logger = logging.getLogger(__name__)
 
@@ -358,6 +358,8 @@ class QickConfig():
         #if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
         if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
+            # TODO: what matters here is not the RF-DAC interpolation, but the internal generator interpolation
+            # (but they are the same for all current generators)
             if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of [-range/2, range/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
@@ -655,10 +657,13 @@ class QickConfig():
             cfg['setval'] = rounded_f
         return cfg
 
-    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch):
+    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch, mixer_freq):
         """Calculate the register values to program into a multiplexed generator.
         """
         gencfg = self['gens'][gen_ch]
+        round_dicts = [gencfg]
+        if ro_ch is not None:
+            round_dicts.append(self['readouts'][ro_ch])
         if gains is not None and len(gains) != len(freqs):
             raise RuntimeError("lengths of freqs and gains lists do not match")
         if phases is not None and len(phases) != len(freqs):
@@ -666,8 +671,19 @@ class QickConfig():
         tones = []
         for i, freq in enumerate(freqs):
             tone = {}
-            tone['freq_int'] = self.freq2reg(freq, gen_ch=gen_ch, ro_ch=ro_ch)
-            tone['freq_rounded'] = self.reg2freq(tone['freq_int'], gen_ch=gen_ch)
+            f_rounded = self.roundfreq(freq, round_dicts)
+            tone['freq_rounded'] = f_rounded
+            if gencfg['interpolation']!=1 and abs(f_rounded) > gencfg['f_dds']/2:
+                fs = gencfg['fs']
+                # if the requested DDS frequency is out of range, check if there's a Nyquist image of the desired output freq that is reachable
+                # generally this will be the image in the same Nyquist zone as the mixer frequency
+                f_output = f_rounded+mixer_freq
+                f_image = nyquist_image(f_output, fs, nqz(mixer_freq, fs)) - mixer_freq
+                # if the image is reachable, use that
+                # otherwise, change nothing (and let freq2reg raise an error)
+                if abs(f_image) <= gencfg['f_dds']:
+                    f_rounded = f_image
+            tone['freq_int'] = self.freq2reg(f_rounded, gen_ch=gen_ch)
             if gencfg['has_gain']:
                 gain = 1.0 if gains is None else gains[i]
                 tone['gain_int'] = int(np.round(gain * gencfg['maxv']))
@@ -1161,7 +1177,11 @@ class AbsQickProgram:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
                 logger.warning("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
-            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
+            if gencfg['has_mixer']:
+                mixer_freq = cfg['mixer_freq']['rounded']
+            else:
+                mixer_freq = 0
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch, mixer_freq)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))

@@ -246,3 +246,25 @@ def check_keys(keys, required, optional):
         raise RuntimeError("missing required pulse parameter(s)", required - defined)
     if defined - allowed:
         raise RuntimeError("unsupported pulse parameter(s)", defined - allowed)
+
+def nqz(f, fs):
+    """Compute the Nyquist zone of a given frequency.
+    """
+    return int(f/(fs/2) + 1)
+
+def folded_freq(f, fs):
+    """Compute the zone-1 Nyquist image of a given frequency.
+    """
+    f_nqz = nqz(f, fs)
+    if f_nqz%2 == 0:
+        f_folded = -f
+    else:
+        f_folded = f
+    f_folded %= (fs/2)
+    return f_folded
+
+def nyquist_image(f, fs, nqz):
+    """Compute the Nyquist image of a given frequency in the specified zone.
+    """
+    f_folded = folded_freq(f, fs)
+    return -f_folded*((-1)**nqz) + fs*(nqz//2)
