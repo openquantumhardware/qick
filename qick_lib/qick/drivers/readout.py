@@ -143,10 +143,10 @@ class AxisReadoutV2(SocIp, AbsReadout):
         ro_pars = {'freq': f,
                 'gen_ch': gen_ch
                 }
-        mixer_freq = None
+        mixer_freq = 0
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, mixer_freq)
+        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, False, mixer_freq)
         self.set_all_int(cfg)
 
 class AbsPFBReadout(SocIp, AbsReadout):
@@ -208,10 +208,10 @@ class AbsPFBReadout(SocIp, AbsReadout):
         ro_pars = {'freq': f,
                 'gen_ch': gen_ch
                 }
-        mixer_freq = None
+        mixer_freq = 0
         if gen_ch is not None and self.soc.gens[gen_ch].HAS_MIXER:
             mixer_freq = self.soc.gens[gen_ch].get_mixer_freq()
-        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, mixer_freq)
+        self.soc.calc_ro_freq(self.cfg, ro_pars, cfg, False, mixer_freq)
         cfg['pfb_port'] = out_ch
         if self.HAS_OUTSEL:
             self.set_out(sel)

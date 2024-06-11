@@ -717,7 +717,7 @@ class QickConfig():
             raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
         return ro_regs
 
-    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, mixer_freq):
+    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq):
         """Calculate the readout frequency and registers.
         """
         gen_ch = ro_pars['gen_ch']
@@ -725,7 +725,8 @@ class QickConfig():
         # now do frequency stuff
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
-            if mixer_freq is not None:
+            if not absolute_freqs:
+                # if RO freqs are defined relative to the matched generator's mixer freq, add the mixer freq
                 ro_regs['f_rounded'] += mixer_freq
         else:
             # round to RO frequency
@@ -872,6 +873,8 @@ class AbsQickProgram:
 
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
+    # frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
+    ABSOLUTE_FREQS = False
 
     def __init__(self, soccfg):
         """
@@ -1089,10 +1092,10 @@ class AbsQickProgram:
                 if cfg['gen_ch'] is not None and cfg['gen_ch'] in self.gen_chs and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
                     mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                 else:
-                    mixer_freq = None
+                    mixer_freq = 0
                 # add frequency
                 ro_regs = cfg['ro_config']
-                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, mixer_freq)
+                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq)
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, don't write the settings yet
                     ro_regs['pfb_port'] = rocfg['pfb_port']
@@ -1150,6 +1153,8 @@ class AbsQickProgram:
             Mixer frequency (in MHz)
         mux_freqs : list of float, optional
             Tone frequencies for the muxed generator (in MHz).
+            For tProc v1 programs these should be given as offsets relative to the digital mixer frequency.
+            For tProc v2 they should be given as absolute frequencies.
             Positive and negative values are allowed.
         mux_gains : list of float, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
@@ -1181,7 +1186,11 @@ class AbsQickProgram:
                 mixer_freq = cfg['mixer_freq']['rounded']
             else:
                 mixer_freq = 0
-            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch, mixer_freq)
+            if self.ABSOLUTE_FREQS:
+                mux_dds = [f-mixer_freq for f in mux_freqs]
+            else:
+                mux_dds = mux_freqs
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_dds, mux_gains, mux_phases, ro_ch, mixer_freq)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
@@ -1688,7 +1697,7 @@ class AcquireMixin:
         ch : int
             readout channel (index in 'readouts' list)
         chcfg : dict
-            readout config from program
+            readout config from program, may be None for tProc-configured readouts
 
         Returns
         -------
@@ -1703,7 +1712,7 @@ class AcquireMixin:
         # and a channelizer offset, which is at DC (before downconversion) for even-numbered channels and at fs_ch/2 for odd-numbered channels
         # we can always subtract out the output offset
         # if the channelizer offset is at DC after downconversion, we can subtract it; otherwise it's a noise source
-        if 'pfb_ch' in chcfg:
+        if chcfg is not None and 'pfb_ch' in chcfg:
             fs_int = 2**rocfg['b_dds']
             if chcfg['f_int'] == (chcfg['pfb_ch']%2)*(fs_int//2):
                 offset *= 2
@@ -1727,7 +1736,7 @@ class AcquireMixin:
             if length_norm:
                 avg /= ro['length']
                 if remove_offset:
-                    avg -= self._ro_offset(ch, ro['ro_config'])
+                    avg -= self._ro_offset(ch, ro.get('ro_config'))
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
@@ -1961,7 +1970,8 @@ class AcquireMixin:
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
             d_avg = dec_buf[ii]/soft_avgs
             if remove_offset:
-                d_avg -= self._ro_offset(ch, ro['ro_config'])
+                print(ro)
+                d_avg -= self._ro_offset(ch, ro.get('ro_config'))
             if total_count == 1 and onetrig:
                 # simple case: data is 1D (one rep and one shot), just average over rounds
                 result.append(d_avg)
