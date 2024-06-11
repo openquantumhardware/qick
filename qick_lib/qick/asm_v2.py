@@ -232,6 +232,7 @@ class Waveform(Mapping, SimpleClass):
 
 class QickPulse(SimpleClass):
     """A pulse is mostly just a list of waveforms.
+    It also contains some metadata to allow the rounded/swept values of the original pulse parameters to be extracted.
     You will not normally instantiate this class yourself.
     Use QickProgramV2.add_pulse() instead.
 
@@ -244,10 +245,19 @@ class QickPulse(SimpleClass):
         Used to calculate pulse lengths.
     """
     _fields = ['waveforms']
-    def __init__(self, waveforms: list[Waveform], ch_mgr: 'AbsRegisterManager'=None, par_map=None):
-        self.waveforms = waveforms
+    #def __init__(self, waveforms: list[Waveform], ch_mgr: 'AbsRegisterManager'=None, par_map=None):
+    def __init__(self, ch_mgr: 'AbsRegisterManager'=None):
+        #self.waveforms = waveforms
+        #self.par_map = par_map
         self.ch_mgr = ch_mgr
-        self.par_map = par_map
+        self.waveforms = []
+        self.par_map = {}
+
+    def add_wave(self, waveform):
+        self.waveforms.append(waveform)
+
+    def add_param(self, parname, idx, scale):
+        self.par_map[parname] = (idx, scale)
 
     def get_length(self):
         if self.ch_mgr is None:
@@ -615,16 +625,14 @@ class AbsRegisterManager(ABC):
         """
         # check the final param set for validity
         self.check_params(kwargs)
-        waves, par_map = self.params2pulse(kwargs)
-
-        self.prog.pulses[name] = QickPulse(waves, self, par_map)
+        self.prog.pulses[name] = self.params2pulse(kwargs)
 
     @abstractmethod
     def check_params(self, params) -> None:
         ...
 
     @abstractmethod
-    def params2pulse(self, params) -> Tuple[list[Waveform], dict[str, int]]:
+    def params2pulse(self, params) -> QickPulse:
         ...
 
     def cfg2reg(self, outsel, mode, stdysel, phrst):
@@ -755,9 +763,10 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
-        par_map = {}
-        par_map['freq'] = (0, 1/self.prog.reg2freq(r=1, gen_ch=self.ch))
-        par_map['phase'] = (0, 1/self.prog.reg2deg(r=1, gen_ch=self.ch))
+        pulse = QickPulse(self)
+        pulse.add_param('freq', 0, 1/self.prog.reg2freq(r=1, gen_ch=self.ch))
+        pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=self.ch))
+
         w = {}
         w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
@@ -773,14 +782,14 @@ class StandardGenManager(AbsGenManager):
             # this is the gain that will be used for the ramps
             # because the flat segment will be scaled by flat_scale, we need this to be an even multiple of the flat_scale denominator
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', quantize=flat_scale.denominator, trunc=True)
-            par_map['gain'] = (0, self.chcfg['maxv'])
+            pulse.add_param('gain', 0, self.chcfg['maxv'])
         elif par['style']=='const':
             # it's not strictly necessary to apply maxv_scale here, but if we don't the amplitudes for different styles will be extra confusing?
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv']*self.chcfg['maxv_scale'], parname='gain', trunc=True)
-            par_map['gain'] = (0, (self.chcfg['maxv']*self.chcfg['maxv_scale']))
+            pulse.add_param('gain', 0, (self.chcfg['maxv']*self.chcfg['maxv_scale']))
         else:
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', trunc=True)
-            par_map['gain'] = (0, self.chcfg['maxv'])
+            pulse_add_param('gain', 0, self.chcfg['maxv'])
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -789,18 +798,18 @@ class StandardGenManager(AbsGenManager):
 
         waves = []
         if par['style']=='const':
-            par_map['length'] = (0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
+            pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
             w.update({k:par.get(k) for k in ['mode', 'stdysel', 'phrst']})
             w['outsel'] = 'dds'
             w['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
-            waves.append(self.params2wave(**w))
+            pulse.add_wave(self.params2wave(**w))
         elif par['style']=='arb':
             w.update({k:par.get(k) for k in ['mode', 'outsel', 'stdysel', 'phrst']})
             w['env'] = env_addr
             w['lenreg'] = env_length
-            waves.append(self.params2wave(**w))
+            pulse.add_wave(self.params2wave(**w))
         elif par['style']=='flat_top':
-            par_map['length'] = (1, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
+            pulse.add_param('length', 1, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
             w.update({k:par.get(k) for k in ['stdysel']})
             w['mode'] = 'oneshot'
             if env_length % 2 != 0:
@@ -819,15 +828,15 @@ class StandardGenManager(AbsGenManager):
             w3['env'] = env_addr + (env_length+1)//2
             # only the first segment should have phrst
             w1['phrst'] = par.get('phrst')
-            waves.append(self.params2wave(**w1))
-            waves.append(self.params2wave(**w2))
-            waves.append(self.params2wave(**w3))
+            pulse.add_wave(self.params2wave(**w1))
+            pulse.add_wave(self.params2wave(**w2))
+            pulse.add_wave(self.params2wave(**w3))
 
             if self.chcfg['type'] == 'axis_sg_int4_v1':
                 # workaround for FIR bug: we play a zero-gain min-length DDS pulse after the ramp-down, which brings the FIR to zero
-                waves.append(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
+                pulse.add_wave(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
 
-        return waves, par_map
+        return pulse
 
 class MultiplexedGenManager(AbsGenManager):
     """Manager for the muxed signal generators.
@@ -846,7 +855,8 @@ class MultiplexedGenManager(AbsGenManager):
         return wavereg
 
     def params2pulse(self, par):
-        par_map = {'length': (0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))}
+        pulse = QickPulse(self)
+        pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
         lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
 
         tones = self.prog.gen_chs[self.ch]['mux_tones']
@@ -855,7 +865,8 @@ class MultiplexedGenManager(AbsGenManager):
             if maskch not in range(len(tones)):
                 raise RuntimeError("mask includes tone %d, but only %d tones are declared" % (maskch, len(tones)))
             maskreg |= (1 << maskch)
-        return [self.params2wave(lenreg=lenreg, maskreg=maskreg)], par_map
+        pulse.add_wave(self.params2wave(lenreg=lenreg, maskreg=maskreg))
+        return pulse
 
 class ReadoutManager(AbsRegisterManager):
     """Manages the envelope and pulse information for a signal generator channel.
@@ -889,10 +900,12 @@ class ReadoutManager(AbsRegisterManager):
         par : dict
             Pulse parameters
         """
+        pulse = QickPulse(self)
         par_map = {}
-        par_map['freq'] = (0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
-        par_map['length'] = (0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
-        par_map['phase'] = (0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
+        pulse.add_param('freq', 0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
+        pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
+        pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
+
         # convert the requested freq, frequency-matching to the generator if specified
         # freqreg may be an int or a QickSweepRaw
         freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=par['freq'], gen_ch=par.get('gen_ch'))
@@ -931,7 +944,8 @@ class ReadoutManager(AbsRegisterManager):
         confpars = {k:par.get(k) for k in ['outsel', 'mode', 'phrst']}
         confpars['stdysel'] = None
         confreg = self.cfg2reg(**confpars)
-        return [Waveform(freqreg, phasereg, 0, 0, lenreg, confreg)], par_map
+        pulse.add_wave(Waveform(freqreg, phasereg, 0, 0, lenreg, confreg))
+        return pulse
 
 class QickProgramV2(AbsQickProgram):
     """Base class for all tProc v2 programs.
@@ -953,6 +967,9 @@ class QickProgramV2(AbsQickProgram):
 
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = True
+    # frequencies are always absolute, even if there's a digital mixer invovled
+    # TODO: flip this switch to True
+    ABSOLUTE_FREQS = False
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
