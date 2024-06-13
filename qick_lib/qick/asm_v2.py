@@ -245,10 +245,7 @@ class QickPulse(SimpleClass):
         Used to calculate pulse lengths.
     """
     _fields = ['waveforms']
-    #def __init__(self, waveforms: list[Waveform], ch_mgr: 'AbsRegisterManager'=None, par_map=None):
     def __init__(self, ch_mgr: 'AbsRegisterManager'=None):
-        #self.waveforms = waveforms
-        #self.par_map = par_map
         self.ch_mgr = ch_mgr
         self.waveforms = []
         self.par_map = {}
@@ -265,6 +262,11 @@ class QickPulse(SimpleClass):
             return 0
         else:
             return sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
+
+    def get_param(self, parname):
+        index, scale = self.par_map[parname]
+        waveform = self.waveforms[index]
+        return getattr(waveform, parname)/scale
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
@@ -1287,9 +1289,7 @@ class QickProgramV2(AbsQickProgram):
         if parname=='total_length':
             param = pulse.get_length()
         else:
-            index, scale = pulse.par_map[parname]
-            waveform = pulse.waveforms[index]
-            param = getattr(waveform, parname)/scale
+            param = pulse.get_param(parname)
 
         if as_array and isinstance(param, QickSweep):
             allpoints = None
