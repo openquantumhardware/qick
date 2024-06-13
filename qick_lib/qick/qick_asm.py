@@ -1468,6 +1468,23 @@ class AbsQickProgram:
             raise RuntimeError("must specify gen_ch or ro_ch!")
 
     def get_max_timestamp(self, gens=True, ros=True, gen_t0=None):
+        """Calculate the max timestamp among the specified channels.
+
+        Parameters
+        ----------
+        gens: bool
+            Include generator end-of-pulse timestamps.
+        ros: bool
+            Include readout end-of-readout timestamps.
+        gen_t0: list of float
+            Generator time offsets, see QickProgram.sync_all().
+
+        Returns
+        -------
+        float or None
+            max timestamp, or None if no channels were specified.
+        """
+
         timestamps = []
         if gens:
             if gen_t0 is None:
@@ -1477,6 +1494,8 @@ class AbsQickProgram:
                 gen_t0_copy = np.copy(gen_t0)
                 timestamps += list(np.maximum(gen_ts_copy - gen_t0_copy, 0))
         if ros: timestamps += list(self._ro_ts)
+        if not timestamps:
+            return None
         return max(timestamps)
 
 class AcquireMixin:

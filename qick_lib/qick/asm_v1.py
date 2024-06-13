@@ -933,11 +933,12 @@ class QickProgram(AbsQickProgram):
 
 
     def sync_all(self, t=0, gen_t0=None):
-        """Aligns and syncs all channels with additional time t.
-        Accounts for both generator pulses and readout windows.
+        """Sets the tProc reference time to the point where all generator pulses and readout windows are complete, plus additional time t.
         This does not pause the tProc. gen_t0 is an optional list of
         additional delays for each individual generator channel, e.g. when 
         the channels are on different tiles so they don't natively sync.
+
+        This does nothing if the firmware has no generators or readouts.
 
         Parameters
         ----------
@@ -948,6 +949,8 @@ class QickProgram(AbsQickProgram):
         """
         # subtract gen_t0 from the timestamps
         max_t = self.get_max_timestamp(gen_t0=gen_t0)
+        if max_t is None:
+            return
         if max_t + t > 0:
             self.synci(int(max_t + t))
             # reset all timestamps to 0 or gen_t0 (if defined)
@@ -958,15 +961,19 @@ class QickProgram(AbsQickProgram):
 
 
     def wait_all(self, t=0):
-        """Pause the tProc until all ADC readout windows are complete, plus additional time t.
-        This does not sync the tProc clock.
+        """Pause the tProc until all readout windows are complete, plus additional time t.
+        This does not increment the tProc reference time.
+
+        This does nothing if the firmware has no readouts.
 
         Parameters
         ----------
         t : int, optional
             The time offset in tProc cycles
         """
-        self.waiti(0, int(self.get_max_timestamp(gens=False, ros=True) + t))
+        max_t = self.get_max_timestamp(gens=False, ros=True)
+        if max_t is not None:
+            self.waiti(0, int(self.get_max_timestamp(gens=False, ros=True) + t))
 
     # should change behavior to only change bits that are specified
     def trigger(self, adcs=None, pins=None, ddr4=False, mr=False, adc_trig_offset=270, t=0, width=10, rp=0, r_out=16):

@@ -296,13 +296,18 @@ class Macro(SimpleNamespace):
         # helper method, to be used in preprocess()
         # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
         # return actual (rounded, stepped) time value
-        t_reg = prog.us2cycles(t)
-        if isinstance(t_reg, QickSweepRaw):
-            t_reg = prog.new_reg(sweep=t_reg)
-            t_reg.sweep.to_steps(prog.loop_dict)
-            t_rounded = prog.cycles2us(t_reg.sweep)
+        # if t is None (can happen with wait_auto/delay_auto), pass that through
+        if t is None:
+            t_reg = None
+            t_rounded = None
         else:
-            t_rounded = prog.cycles2us(t_reg)
+            t_reg = prog.us2cycles(t)
+            if isinstance(t_reg, QickSweepRaw):
+                t_reg = prog.new_reg(sweep=t_reg)
+                t_reg.sweep.to_steps(prog.loop_dict)
+                t_rounded = prog.cycles2us(t_reg.sweep)
+            else:
+                t_rounded = prog.cycles2us(t_reg)
         if not hasattr(self, "t_reg"):
             self.t_reg = {}
         self.t_reg[name] = t_reg
@@ -368,18 +373,27 @@ class Wait(Macro):
     def preprocess(self, prog):
         wait = self.t
         if self.auto:
-            wait += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+            if max_t is None:
+                wait = None
+            else:
+                wait += max_t
         if isinstance(wait, QickSweep):
             # TODO: maybe rounding up should be optional?
-            # TODO: track wait time in timestamps?
+            # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
+            # TODO: disable warning at end of shot?
             waitmax = wait.maxval()
             logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
             wait = waitmax
         wait_rounded = self.convert_time(prog, wait, "t")
+        # TODO: we could do something with this value
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
+        elif t_reg is None:
+            # if this was a wait_auto and we have no relevant channels, it should compile to nothing
+            return []
         else:
             return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
 
@@ -389,13 +403,20 @@ class Delay(Macro):
         delay = self.t
         if self.auto:
             # TODO: check for cases where auto doesn't work
-            delay += prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+            if max_t is None:
+                delay = None
+            else:
+                delay += max_t
         delay_rounded = self.convert_time(prog, delay, "t")
         prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
         t_reg = self.t_reg["t"]
         if isinstance(t_reg, QickRegister):
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
+        elif t_reg is None:
+            # if this was a delay_auto and we have no relevant channels, it should compile to nothing
+            return []
         else:
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
 
@@ -499,8 +520,8 @@ class Trigger(Macro):
             if isinstance(t_start, QickSweepRaw) or isinstance(t_end, QickSweepRaw):
                 raise RuntimeError("trig ports do not support sweeps for start time or duration")
             for outport in self.trigset:
-                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME':str(t_start)}, addr_inc=1))
-                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME':str(t_end)}, addr_inc=1))
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME': "@%d"%(t_start)}, addr_inc=1))
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME': "@%d"%(t_end)}, addr_inc=1))
         return insts
 
 class StartLoop(Macro):
@@ -1196,7 +1217,10 @@ class QickProgramV2(AbsQickProgram):
         elif ro_ch is not None:
             ch_mgr = self._ro_mgrs[ro_ch]
 
-        self.pulses[name] = QickPulse(waveforms)
+        pulse = QickPulse(ch_mgr)
+        for w in waveforms:
+            pulse.add_wave(w)
+        self.pulses[name] = pulse
 
     def add_pulse(self, ch, name, **kwargs):
         """Add a pulse to the program's pulse library.
