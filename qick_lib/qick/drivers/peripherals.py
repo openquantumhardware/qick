@@ -104,7 +104,7 @@ class QICK_Time_Tagger(SocIp):
         else:
             raise RuntimeError('Source Memeory error should be TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
        
-        if   (data_len==0):
+        if   (data_len<2):
             print('DATA_LEN>', data_len)
             return np.array([])
         else:
