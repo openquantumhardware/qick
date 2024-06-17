@@ -117,20 +117,52 @@ class QICK_Time_Tagger(SocIp):
             #print(len(self.buff_rd), data_len)
             return np.array(self.buff_rd[:data_len], copy=True)
     
+    def set_config(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty, cfg_invert):
+        """
+        QICK_Time_Tagger Configuration
+        cfg_filter : Filter ADC Inputs  > 0:No , 1:Yes
+        cfg_slope  : Compare with Slope > 0:No , 1:Yes
+        cfg_inter  : Number of bits for Interpolation (0 to 7)
+        smp_wr_qty : Number of group of 8 samples to store (1 to 32)
+        cfg_invert : Invert Input       > 0:No , 1:Yes
+        """
+
+        # Check for Parameters
+        if (cfg_slope > self.cfg['cmp_slope']):
+            print('error Slope Comparator not implemented')
+        if (cfg_inter > self.cfg['cmp_inter']):
+            print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
+        if (self.cfg['smp_store'] == 1):
+            if (smp_wr_qty == 0):
+                print('Minimum Sample Store is 1 ')
+                smp_wr_qty = 1
+            if (smp_wr_qty == 32):
+                smp_wr_qty = 0
+            if (smp_wr_qty > 32):
+                print('Maximum Sample Store is 32 ')
+                smp_wr_qty = 0
+        elif (smp_wr_qty > 1):
+                print('Sample Store is not Implemented')
+        self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32 +cfg_invert*1024
+
+    def get_config(self):
+        print('--- AXI Time Tagger CONFIG')
+        qtt_cfg_num = self.qtt_cfg
+        qtt_cfg_bin = '{:032b}'.format(qtt_cfg_num)
+        print( ' FILTER           : ' + str(qtt_cfg_bin[31])  )
+        print( ' SLOPE            : ' + str(qtt_cfg_bin[30])  )
+        print( ' INTERPOLATION    : ' + str(int(qtt_cfg_bin[27:30], 2) )  )
+        print( ' WRITE SAMPLE QTY : ' + str(int(qtt_cfg_bin[22:27], 2) )  )
+        print( ' INVERT INPUT     : ' + str(qtt_cfg_bin[21])  )
+        
+
     def disarm(self):
         self.qtt_ctrl    = 1+2* 0 
         
-    def arm(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty=0, cfg_invert=0):
-        # Check for Parameters
-        if (cfg_slope <= self.cfg['cmp_slope']):
-            if (cfg_inter <= self.cfg['cmp_inter']):
-                self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32 +cfg_invert*1024
-                self.qtt_ctrl    = 1+2* 1
-            else:
-                print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
-        else:
-            print('error Slope Comparator not implemented')
-    def pop_dt(self,value):
+
+    def arm(self):
+        self.qtt_ctrl    = 1+2* 1
+    def pop_dt(self):
         self.qtt_ctrl    = 1+2* 2
     def set_threshold(self,value):
         self.axi_dt1     = value
@@ -138,8 +170,8 @@ class QICK_Time_Tagger(SocIp):
     def set_dead_time(self,value):
         self.axi_dt1     = value
         self.qtt_ctrl    = 1+2* 5
-    def reset(self,value):
-        self.qtt_cfg     = 7
+    def reset(self):
+        self.qtt_cfg     = 0
         self.qtt_ctrl    = 1
 
 
