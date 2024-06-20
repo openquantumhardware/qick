@@ -2,13 +2,14 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024_5_20
+//  Date           : 2024_6_20
 //  Version        : 2
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  Board Communication Peripheral
 //////////////////////////////////////////////////////////////////////////////
 
 module axi_qick_com # (
+   parameter SYNC            = 0 ,
    parameter DEBUG           = 0
 )(
 // Core and AXI CLK & RST
@@ -76,6 +77,10 @@ wire [ 7:0] QCOM_CTRL ;
 wire [ 3:0] QCOM_CFG ;
 wire [31:0] RAXI_DT1 ;
 
+wire             sync_s        ;
+reg              qproc_start_s ;
+
+
 qick_cmd #(
    .OP_DW  ( 4 ),
    .DT_QTY ( 1 )
@@ -101,7 +106,7 @@ qick_com QCOM (
    .t_clk_i        ( t_clk          ),
    .t_rst_ni       ( t_aresetn      ),
    .qcom_cfg_i     ( QCOM_CFG[3:0]  ),
-   .pulse_i        ( sync_i         ),
+   .pulse_i        ( sync_s         ),
    .cmd_req_i      ( cmd_req        ),
    .cmd_ack_o      ( cmd_ack        ),
    .cmd_op_i       ( cmd_op         ),
@@ -111,7 +116,7 @@ qick_com QCOM (
    .qcom_dt2_o     ( qcom_dt2_o     ),
    .qcom_vld_o     ( qcom_vld_o     ),
    .qcom_flag_o    ( qcom_flag_o    ),
-   .qproc_start_o  ( qproc_start_o  ),
+   .qproc_start_o  ( qproc_start_s  ),
    .pmod_i         ( pmod_i         ),
    .pmod_o         ( pmod_o         ),
    .qcom_tx_dt_do  ( qcom_tx_dt_ds  ),
@@ -159,10 +164,23 @@ axi_slv_qcom QCOM_xREG (
    .QCOM_DEBUG  ( xreg_debug         ) );
 
 
+
+///////////////////////////////////////////////////////////////////////////////
+// SYNC OPTION
+///////////////////////////////////////////////////////////////////////////////
+generate
+   if (SYNC == 0) begin : SYNC_NO
+      assign sync_s        = 0 ;
+      assign qproc_start_o = 0 ;
+   end else if   (SYNC == 1) begin : SYNC_YES
+      assign sync_s        = sync_i ;
+      assign qproc_start_o = qproc_start_s ;
+   end
+endgenerate
 ///////////////////////////////////////////////////////////////////////////////
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-
+   
 generate
    if (DEBUG == 0) begin : DEBUG_NO
       assign xreg_tx_dt  = '{default:'0} ;
