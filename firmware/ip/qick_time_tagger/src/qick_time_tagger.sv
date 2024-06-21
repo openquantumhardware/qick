@@ -2,7 +2,7 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024-5-31
+//  Date           : 2024-6-21
 //  Version        : 1
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -50,6 +50,7 @@ module qick_time_tagger # (
 ///// DATA PROC
    output wire [31:0]               tag_dt_o             ,
    output wire                      tag_vld_o            ,
+   output wire                      trig_o               ,
 ///// DATA OUT   
    output wire [TAG_FIFO_AW-1:0]    proc_qty_o           ,
    output wire [TAG_FIFO_AW-1:0]    dma_qty_o   [4]      ,
@@ -309,6 +310,7 @@ generate
     end
 endgenerate
 
+
 // STATUS
 ///////////////////////////////////////////////////////////////////////////////
 assign qtt_reg_status_o[7:0]   = time_trig_st[7:0];
@@ -344,6 +346,6 @@ end
 
 assign tag_dt_o  = tag_dt_r;
 assign tag_vld_o = tadg_vld;
-
+assign trig_o    = trig_event;
 
 endmodule

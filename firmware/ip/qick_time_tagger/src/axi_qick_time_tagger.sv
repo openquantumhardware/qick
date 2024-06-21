@@ -31,6 +31,7 @@ module axi_qick_time_tagger # (
    input  wire                      ps_aresetn     ,
 // EXTERNAL INTERFACE
    input  wire                      arm_i          ,
+   output wire                      trig_o         ,
 // PROCESSOR INTERFACE
    input  wire                      qtag_en_i      ,
    input  wire  [ 4:0]              qtag_op_i      ,
@@ -181,6 +182,7 @@ qick_time_tagger # (
 //PROC
    .tag_dt_o            ( tag_dt )  ,
    .tag_vld_o           ( qtt_tag_vld  ) ,
+   .trig_o              ( trig_o  ) ,
 //DATA
    .proc_qty_o          ( proc_qty  )  ,   
    .dma_qty_o           ( dma_qty )  ,
