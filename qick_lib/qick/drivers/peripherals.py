@@ -5,6 +5,7 @@ Drivers for qick_processor Peripherals.
 from pynq.buffer import allocate
 import numpy as np
 from qick import SocIp
+import re
 
 class QICK_Time_Tagger(SocIp):
     """
@@ -61,17 +62,36 @@ class QICK_Time_Tagger(SocIp):
         self.dma = axi_dma
         maxlen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
         self.buff_rd = allocate(shape=(maxlen, 1), dtype=np.int32)
+
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+        self.qtt_adc = ['Not Connected', 'Not Connected', 'Not Connected', 'Not Connected']
+        for iADC in range(4):
+            try:
+                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 's%d_axis_adc%d' % (iADC, iADC))
+                if (port == 'M_AXIS'): 
+                    ((block, port),) = soc.metadata.trace_sig(block, 'S_AXIS')
+                adc     = re.findall(r'\d+', port)[0]
+                self.qtt_adc[iADC] = soc._describe_adc(adc)
+            except: # skip disconnected ADC Ports
+                continue
+                
     def __str__(self):
         lines = []
         lines.append('---------------------------------------------')
         lines.append(' QICK Time Tagger INFO ')
         lines.append('---------------------------------------------')
+        lines.append("Connections:")
+        lines.append(" ADC0 : %s" % (self.qtt_adc[0]) )
+        lines.append(" ADC1 : %s" % (self.qtt_adc[1]) )
+        lines.append(" ADC2 : %s" % (self.qtt_adc[2]) )
+        lines.append(" ADC3 : %s" % (self.qtt_adc[3]) )
         lines.append("Configuration:")
         for param in ['adc_qty','tag_mem_size', 'cmp_slope','cmp_inter','arm_store','arm_mem_size', 'smp_store','smp_mem_size']:
-            lines.append("%-14s: %d" % (param, self.cfg[param]) )
+            lines.append(" %-14s: %d" % (param, self.cfg[param]) )
         lines.append("----------\n")
         return "\n".join(lines)
-
+    
     def read_mem(self,mem_sel:str, length=-1):
         """
         Read tProc Selected memory using DMA
