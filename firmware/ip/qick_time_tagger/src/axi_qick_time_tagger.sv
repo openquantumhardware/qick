@@ -2,7 +2,7 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024_5_31
+//  Date           : 2024_6_21
 //  Version        : 3
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  Time Tagger
@@ -300,7 +300,7 @@ assign adc3_s_axis_tready_o = 1'b1;
 
 assign qtag_rdy_o   = 1;
 assign qtag_dt1_o   = tag_dt;
-assign qtag_dt2_o   = axi_reg_SMP_QTY;
+assign qtag_dt2_o   = axi_reg_TAG0_QTY;
 assign qtag_vld_o   = qtt_tag_vld;
 assign qtag_flag_o  = 0;
 
