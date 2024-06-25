@@ -657,8 +657,9 @@ class QickConfig():
             cfg['setval'] = rounded_f
         return cfg
 
-    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch, mixer_freq):
+    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch, absolute_freqs, mixer_freq):
         """Calculate the register values to program into a multiplexed generator.
+        mixer_freq will have been rounded appropriately in declare_gen, and will be 0 if there's no mixer
         """
         gencfg = self['gens'][gen_ch]
         round_dicts = [gencfg]
@@ -671,8 +672,17 @@ class QickConfig():
         tones = []
         for i, freq in enumerate(freqs):
             tone = {}
-            f_rounded = self.roundfreq(freq, round_dicts)
+            if absolute_freqs:
+                f_dds = freq - mixer_freq
+            else:
+                f_dds = freq
+            f_rounded = self.roundfreq(f_dds, round_dicts)
+
+            # freq_rounded should follow absolute_freqs
             tone['freq_rounded'] = f_rounded
+            if absolute_freqs:
+                tone['freq_rounded'] += mixer_freq
+
             if gencfg['interpolation']!=1 and abs(f_rounded) > gencfg['f_dds']/2:
                 fs = gencfg['fs']
                 # if the requested DDS frequency is out of range, check if there's a Nyquist image of the desired output freq that is reachable
@@ -725,9 +735,19 @@ class QickConfig():
         # now do frequency stuff
         if gen_ch is not None: # calculate the frequency that will be applied to the generator
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
-            if not absolute_freqs:
-                # if RO freqs are defined relative to the matched generator's mixer freq, add the mixer freq
-                ro_regs['f_rounded'] += mixer_freq
+            # the gen freq will be the sum of rounded mixer freq and rounded DDS freq
+            # if no mixer, just round the freq
+            # elif relative, round the freq and add the mixer
+            # else, subtract the mixer, round, and add
+            # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
+            # but we round here anyway - TODO: we could warn if it's not rounded
+            mixer_rounded = self.roundfreq(mixer_freq, [rocfg])
+            if absolute_freqs:
+                f_dds = ro_pars['freq'] - mixer_rounded
+            else:
+                f_dds = ro_pars['freq']
+            ro_regs['f_rounded'] = self.roundfreq(f_dds, [self['gens'][gen_ch], rocfg])
+            ro_regs['f_rounded'] += mixer_rounded
         else:
             # round to RO frequency
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
@@ -869,7 +889,8 @@ class AbsQickProgram:
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
                       'reg2freq', 'reg2freq_adc',
                       'cycles2us', 'us2cycles',
-                      'deg2reg', 'reg2deg']
+                      'deg2reg', 'reg2deg',
+                      'roundfreq']
 
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
@@ -1186,11 +1207,7 @@ class AbsQickProgram:
                 mixer_freq = cfg['mixer_freq']['rounded']
             else:
                 mixer_freq = 0
-            if self.ABSOLUTE_FREQS:
-                mux_dds = [f-mixer_freq for f in mux_freqs]
-            else:
-                mux_dds = mux_freqs
-            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_dds, mux_gains, mux_phases, ro_ch, mixer_freq)
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch, self.ABSOLUTE_FREQS, mixer_freq)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
@@ -1989,7 +2006,6 @@ class AcquireMixin:
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
             d_avg = dec_buf[ii]/soft_avgs
             if remove_offset:
-                print(ro)
                 d_avg -= self._ro_offset(ch, ro.get('ro_config'))
             if total_count == 1 and onetrig:
                 # simple case: data is 1D (one rep and one shot), just average over rounds

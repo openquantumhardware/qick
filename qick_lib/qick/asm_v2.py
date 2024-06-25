@@ -253,8 +253,8 @@ class QickPulse(SimpleClass):
     def add_wave(self, waveform):
         self.waveforms.append(waveform)
 
-    def add_param(self, parname, idx, scale):
-        self.par_map[parname] = (idx, scale)
+    def add_param(self, parname, idx, scale, offset=0):
+        self.par_map[parname] = (idx, scale, offset)
 
     def get_length(self):
         if self.ch_mgr is None:
@@ -264,9 +264,9 @@ class QickPulse(SimpleClass):
             return sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
 
     def get_param(self, parname):
-        index, scale = self.par_map[parname]
+        index, scale, offset = self.par_map[parname]
         waveform = self.waveforms[index]
-        return getattr(waveform, parname)/scale
+        return getattr(waveform, parname)/scale + offset
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
@@ -787,11 +787,19 @@ class StandardGenManager(AbsGenManager):
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
         pulse = QickPulse(self)
-        pulse.add_param('freq', 0, 1/self.prog.reg2freq(r=1, gen_ch=self.ch))
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=self.ch))
 
         w = {}
-        w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=par['freq'], ro_ch=par.get('ro_ch'))
+        if self.prog.ABSOLUTE_FREQS and self.chcfg['has_mixer']:
+            mixer_freq = self.prog.gen_chs[self.ch]['mixer_freq']['rounded']
+            f_dds = par['freq'] - mixer_freq
+            f_offset = mixer_freq
+        else:
+            f_dds = par['freq']
+            f_offset = 0
+        w['freqreg'] = self.prog.freq2reg(gen_ch=self.ch, f=f_dds, ro_ch=par.get('ro_ch'))
+        pulse.add_param('freq', 0, 1/self.prog.reg2freq(r=1, gen_ch=self.ch), offset=f_offset)
+
         w['phasereg'] = self.prog.deg2reg(gen_ch=self.ch, deg=par['phase'])
 
         # gains should be rounded towards zero to avoid overflow
@@ -931,13 +939,22 @@ class ReadoutManager(AbsRegisterManager):
 
         # convert the requested freq, frequency-matching to the generator if specified
         # freqreg may be an int or a QickSweepRaw
-        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=par['freq'], gen_ch=par.get('gen_ch'))
         # if the matching generator has a mixer, that frequency needs to be added to this one
         # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
         # the relevant quantization step is still going to be the readout+generator step
         if 'gen_ch' in par and 'mixer_freq' in self.prog.gen_chs[par['gen_ch']]:
-            # this will always be an integer
-            freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded'])
+            # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
+            # but we round here anyway - TODO: we could warn if it's not rounded
+            mixer_freq = self.prog.gen_chs[par['gen_ch']]['mixer_freq']['rounded']
+            mixer_freq = self.prog.roundfreq(mixer_freq, [self.chcfg])
+        else:
+            mixer_freq = 0
+        if self.prog.ABSOLUTE_FREQS:
+            f_dds = par['freq'] - mixer_freq
+        else:
+            f_dds = par['freq']
+        freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
+        freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
 
         """
         freq = self.prog.soccfg.adcfreq(f=par['freq'], ro_ch=self.ch, gen_ch=par.get('gen_ch'))
@@ -992,7 +1009,7 @@ class QickProgramV2(AbsQickProgram):
     USER_DURATIONS = True
     # frequencies are always absolute, even if there's a digital mixer invovled
     # TODO: flip this switch to True
-    ABSOLUTE_FREQS = False
+    ABSOLUTE_FREQS = True
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
