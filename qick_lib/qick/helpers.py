@@ -92,7 +92,7 @@ def gauss(mu=0, si=25, length=100, maxv=30000):
     :rtype: array
     """
     x = np.arange(0, length)
-    y = maxv * np.exp(-(x-mu)**2/si**2)
+    y = maxv * np.exp(-(x-mu)**2/(2*si**2))
     return y
 
 

@@ -733,7 +733,7 @@ class QickConfig():
         gen_ch = ro_pars['gen_ch']
 
         # now do frequency stuff
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+        if gen_ch is not None: # if the generator has a mixer, we will need to round the mixer and DDS frequencies separately
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
             # the gen freq will be the sum of rounded mixer freq and rounded DDS freq
             # if no mixer, just round the freq
@@ -896,6 +896,8 @@ class AbsQickProgram:
     USER_DURATIONS = False
     # frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
     ABSOLUTE_FREQS = False
+    # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
+    GAUSS_BUG = False
 
     def __init__(self, soccfg):
         """
@@ -1336,6 +1338,9 @@ class AbsQickProgram:
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
+        if self.GAUSS_BUG:
+            sigma /= np.sqrt(2.0)
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1381,6 +1386,9 @@ class AbsQickProgram:
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
         f_fabric = gencfg['f_fabric']
+
+        if self.GAUSS_BUG:
+            sigma /= np.sqrt(2.0)
 
         delta /= samps_per_clk*f_fabric
 

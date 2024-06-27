@@ -820,7 +820,7 @@ class StandardGenManager(AbsGenManager):
             pulse.add_param('gain', 0, (self.chcfg['maxv']*self.chcfg['maxv_scale']))
         else:
             w['gainreg'] = to_int(par['gain'], self.chcfg['maxv'], parname='gain', trunc=True)
-            pulse_add_param('gain', 0, self.chcfg['maxv'])
+            pulse.add_param('gain', 0, self.chcfg['maxv'])
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
@@ -1008,7 +1008,6 @@ class QickProgramV2(AbsQickProgram):
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = True
     # frequencies are always absolute, even if there's a digital mixer invovled
-    # TODO: flip this switch to True
     ABSOLUTE_FREQS = True
 
     def __init__(self, soccfg):

@@ -560,6 +560,9 @@ class QickProgram(AbsQickProgram):
                 'axis_sg_mux4_v3': MultiplexedGenManager,
                 'axis_sg_mux8_v1': MultiplexedGenManager}
 
+    # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
+    GAUSS_BUG = True
+
     def __init__(self, soccfg):
         """
         Constructor method
