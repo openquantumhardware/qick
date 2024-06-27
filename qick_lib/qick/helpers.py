@@ -117,9 +117,9 @@ def DRAG(mu, si, length, maxv, delta, alpha):
     :rtype: array, array
     """
     x = np.arange(0, length)
-    gaus = maxv * np.exp(-(x-mu)**2/si**2)
+    gaus = maxv * np.exp(-(x-mu)**2/(2*si**2))
     # derivative of the gaussian
-    dgaus = -(x-mu)/(si**2)*gaus
+    dgaus = -(x-mu)/(2*si**2)*gaus
     idata = gaus
     qdata = -1 * alpha * dgaus / delta
     return idata, qdata
