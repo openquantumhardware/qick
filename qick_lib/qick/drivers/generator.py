@@ -415,7 +415,11 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         ro_ch : int, optional
             readout channel for frequency-matching
         """
-        tones = self.soc.calc_muxgen_regs(self.ch, freqs, gains, phases, ro_ch)
+        if self.HAS_MIXER:
+            mixer_freq = self.get_mixer_freq()
+        else:
+            mixer_freq = 0
+        tones = self.soc.calc_muxgen_regs(self.ch, freqs, gains, phases, ro_ch, False, mixer_freq)
         self.set_all_int(tones)
 
 class AxisSgMux4V1(AbsPulsedSignalGen):

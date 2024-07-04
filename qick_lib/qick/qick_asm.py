@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from tqdm.auto import tqdm
 
 from qick import obtain, get_version
-from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array
+from .helpers import to_int, cosine, gauss, triang, DRAG, decode_array, nqz, nyquist_image
 
 logger = logging.getLogger(__name__)
 
@@ -358,6 +358,8 @@ class QickConfig():
         #if gencfg['type'] in ['axis_sg_int4_v1', 'axis_sg_mux4_v1', 'axis_sg_mux4_v2']:
         if gencfg['interpolation'] != 1:
             # because of the interpolation filter, there is no output power in the higher nyquist zones
+            # TODO: what matters here is not the RF-DAC interpolation, but the internal generator interpolation
+            # (but they are the same for all current generators)
             if f > gencfg['f_dds']/2 or f < -gencfg['f_dds']/2:
                 raise RuntimeError("requested frequency %f is outside of [-range/2, range/2]"%(f))
         return self.freq2int(f, gencfg, rocfg) % 2**gencfg['b_dds']
@@ -655,10 +657,14 @@ class QickConfig():
             cfg['setval'] = rounded_f
         return cfg
 
-    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch):
+    def calc_muxgen_regs(self, gen_ch, freqs, gains, phases, ro_ch, absolute_freqs, mixer_freq):
         """Calculate the register values to program into a multiplexed generator.
+        mixer_freq will have been rounded appropriately in declare_gen, and will be 0 if there's no mixer
         """
         gencfg = self['gens'][gen_ch]
+        round_dicts = [gencfg]
+        if ro_ch is not None:
+            round_dicts.append(self['readouts'][ro_ch])
         if gains is not None and len(gains) != len(freqs):
             raise RuntimeError("lengths of freqs and gains lists do not match")
         if phases is not None and len(phases) != len(freqs):
@@ -666,8 +672,28 @@ class QickConfig():
         tones = []
         for i, freq in enumerate(freqs):
             tone = {}
-            tone['freq_int'] = self.freq2reg(freq, gen_ch=gen_ch, ro_ch=ro_ch)
-            tone['freq_rounded'] = self.reg2freq(tone['freq_int'], gen_ch=gen_ch)
+            if absolute_freqs:
+                f_dds = freq - mixer_freq
+            else:
+                f_dds = freq
+            f_rounded = self.roundfreq(f_dds, round_dicts)
+
+            # freq_rounded should follow absolute_freqs
+            tone['freq_rounded'] = f_rounded
+            if absolute_freqs:
+                tone['freq_rounded'] += mixer_freq
+
+            if gencfg['interpolation']!=1 and abs(f_rounded) > gencfg['f_dds']/2:
+                fs = gencfg['fs']
+                # if the requested DDS frequency is out of range, check if there's a Nyquist image of the desired output freq that is reachable
+                # generally this will be the image in the same Nyquist zone as the mixer frequency
+                f_output = f_rounded+mixer_freq
+                f_image = nyquist_image(f_output, fs, nqz(mixer_freq, fs)) - mixer_freq
+                # if the image is reachable, use that
+                # otherwise, change nothing (and let freq2reg raise an error)
+                if abs(f_image) <= gencfg['f_dds']:
+                    f_rounded = f_image
+            tone['freq_int'] = self.freq2reg(f_rounded, gen_ch=gen_ch)
             if gencfg['has_gain']:
                 gain = 1.0 if gains is None else gains[i]
                 tone['gain_int'] = int(np.round(gain * gencfg['maxv']))
@@ -701,16 +727,27 @@ class QickConfig():
             raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
         return ro_regs
 
-    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, mixer_freq):
+    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq):
         """Calculate the readout frequency and registers.
         """
         gen_ch = ro_pars['gen_ch']
 
         # now do frequency stuff
-        if gen_ch is not None: # calculate the frequency that will be applied to the generator
+        if gen_ch is not None: # if the generator has a mixer, we will need to round the mixer and DDS frequencies separately
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [self['gens'][gen_ch], rocfg])
-            if mixer_freq is not None:
-                ro_regs['f_rounded'] += mixer_freq
+            # the gen freq will be the sum of rounded mixer freq and rounded DDS freq
+            # if no mixer, just round the freq
+            # elif relative, round the freq and add the mixer
+            # else, subtract the mixer, round, and add
+            # the mixer_freq should already be rounded to a valid RO freq (by specifying ro_ch in declare_gen)
+            # but we round here anyway - TODO: we could warn if it's not rounded
+            mixer_rounded = self.roundfreq(mixer_freq, [rocfg])
+            if absolute_freqs:
+                f_dds = ro_pars['freq'] - mixer_rounded
+            else:
+                f_dds = ro_pars['freq']
+            ro_regs['f_rounded'] = self.roundfreq(f_dds, [self['gens'][gen_ch], rocfg])
+            ro_regs['f_rounded'] += mixer_rounded
         else:
             # round to RO frequency
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
@@ -852,10 +889,15 @@ class AbsQickProgram:
     soccfg_methods = ['freq2reg', 'freq2reg_adc',
                       'reg2freq', 'reg2freq_adc',
                       'cycles2us', 'us2cycles',
-                      'deg2reg', 'reg2deg']
+                      'deg2reg', 'reg2deg',
+                      'roundfreq']
 
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
+    # frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
+    ABSOLUTE_FREQS = False
+    # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
+    GAUSS_BUG = False
 
     def __init__(self, soccfg):
         """
@@ -1073,10 +1115,10 @@ class AbsQickProgram:
                 if cfg['gen_ch'] is not None and cfg['gen_ch'] in self.gen_chs and 'mixer_freq' in self.gen_chs[cfg['gen_ch']]:
                     mixer_freq = self.gen_chs[cfg['gen_ch']]['mixer_freq']['rounded']
                 else:
-                    mixer_freq = None
+                    mixer_freq = 0
                 # add frequency
                 ro_regs = cfg['ro_config']
-                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, mixer_freq)
+                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq)
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, don't write the settings yet
                     ro_regs['pfb_port'] = rocfg['pfb_port']
@@ -1134,6 +1176,8 @@ class AbsQickProgram:
             Mixer frequency (in MHz)
         mux_freqs : list of float, optional
             Tone frequencies for the muxed generator (in MHz).
+            For tProc v1 programs these should be given as offsets relative to the digital mixer frequency.
+            For tProc v2 they should be given as absolute frequencies.
             Positive and negative values are allowed.
         mux_gains : list of float, optional
             Tone amplitudes for the muxed generator (in range -1 to 1).
@@ -1161,7 +1205,11 @@ class AbsQickProgram:
                 logger.warning("generator %d doesn't support gain config, but mux_gains was defined" % (ch))
             if mux_phases is not None and not gencfg['has_phase']:
                 logger.warning("generator %d doesn't support phase config, but mux_phases was defined" % (ch))
-            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch)
+            if gencfg['has_mixer']:
+                mixer_freq = cfg['mixer_freq']['rounded']
+            else:
+                mixer_freq = 0
+            cfg['mux_tones'] = self.soccfg.calc_muxgen_regs(ch, mux_freqs, mux_gains, mux_phases, ro_ch, self.ABSOLUTE_FREQS, mixer_freq)
         else:
             if any([x is not None for x in [mux_freqs, mux_gains, mux_phases]]):
                 logger.warning("generator %d is not multiplexed, but mux parameters were defined" % (ch))
@@ -1290,6 +1338,9 @@ class AbsQickProgram:
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
 
+        if self.GAUSS_BUG:
+            sigma /= np.sqrt(2.0)
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1335,6 +1386,9 @@ class AbsQickProgram:
         if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
         samps_per_clk = gencfg['samps_per_clk']
         f_fabric = gencfg['f_fabric']
+
+        if self.GAUSS_BUG:
+            sigma /= np.sqrt(2.0)
 
         delta /= samps_per_clk*f_fabric
 
@@ -1439,6 +1493,23 @@ class AbsQickProgram:
             raise RuntimeError("must specify gen_ch or ro_ch!")
 
     def get_max_timestamp(self, gens=True, ros=True, gen_t0=None):
+        """Calculate the max timestamp among the specified channels.
+
+        Parameters
+        ----------
+        gens: bool
+            Include generator end-of-pulse timestamps.
+        ros: bool
+            Include readout end-of-readout timestamps.
+        gen_t0: list of float
+            Generator time offsets, see QickProgram.sync_all().
+
+        Returns
+        -------
+        float or None
+            max timestamp, or None if no channels were specified.
+        """
+
         timestamps = []
         if gens:
             if gen_t0 is None:
@@ -1448,6 +1519,8 @@ class AbsQickProgram:
                 gen_t0_copy = np.copy(gen_t0)
                 timestamps += list(np.maximum(gen_ts_copy - gen_t0_copy, 0))
         if ros: timestamps += list(self._ro_ts)
+        if not timestamps:
+            return None
         return max(timestamps)
 
 class AcquireMixin:
@@ -1668,7 +1741,7 @@ class AcquireMixin:
         ch : int
             readout channel (index in 'readouts' list)
         chcfg : dict
-            readout config from program
+            readout config from program, may be None for tProc-configured readouts
 
         Returns
         -------
@@ -1683,7 +1756,7 @@ class AcquireMixin:
         # and a channelizer offset, which is at DC (before downconversion) for even-numbered channels and at fs_ch/2 for odd-numbered channels
         # we can always subtract out the output offset
         # if the channelizer offset is at DC after downconversion, we can subtract it; otherwise it's a noise source
-        if 'pfb_ch' in chcfg:
+        if chcfg is not None and 'pfb_ch' in chcfg:
             fs_int = 2**rocfg['b_dds']
             if chcfg['f_int'] == (chcfg['pfb_ch']%2)*(fs_int//2):
                 offset *= 2
@@ -1707,7 +1780,7 @@ class AcquireMixin:
             if length_norm:
                 avg /= ro['length']
                 if remove_offset:
-                    avg -= self._ro_offset(ch, ro['ro_config'])
+                    avg -= self._ro_offset(ch, ro.get('ro_config'))
             # the reads_per_shot axis should be the first one
             avg_d.append(np.moveaxis(avg, -2, 0))
 
@@ -1941,7 +2014,7 @@ class AcquireMixin:
         for ii, (ch, ro) in enumerate(self.ro_chs.items()):
             d_avg = dec_buf[ii]/soft_avgs
             if remove_offset:
-                d_avg -= self._ro_offset(ch, ro['ro_config'])
+                d_avg -= self._ro_offset(ch, ro.get('ro_config'))
             if total_count == 1 and onetrig:
                 # simple case: data is 1D (one rep and one shot), just average over rounds
                 result.append(d_avg)
