@@ -130,7 +130,7 @@ RFDC ADC settings:
 connect: RFDC -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" checked)
 
 ### mux readout (`axis_pfb_readout_v3`) on 216:
-Same RFDC settings and connectivity as v2; this readout does not currently support dual-ADC systems (ZCU111, RFSoC4x2)
+Same RFDC settings and connectivity as v2; this readout always expects interleaved input, and for dual-ADC systems (ZCU111, RFSoC4x2) you need to use an axis combiner and `axis_reorder_iq_v1`
 
 BRAM: 8 tiles
 
@@ -210,6 +210,27 @@ BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile for decimated at ty
 
 buffer settings: NM is samples per fabric clock, use 8; B is bits per sample, use 32; N is buffer size, up to you (buffer size will be `NM*2^N` samples)
 BRAM: 8 tiles for typical N=10
+
+### resonator emulator (`axis_pfba_pr_4x256_v1`, `axis_kidsim_v3`, `axis_pfbs_pr_4x256_v1`):
+
+RFDC ADC settings:
+* Digital Output Data: I/Q
+* Decimation Mode: 2x
+* Samples per AXI4-Stream Cycle: 8
+* Mixer Type: Coarse
+* Mixer Mode: Real->I/Q
+* Frequency: -Fs/4
+
+kidsim L=8
+
+RFDC DAC settings:
+* Interpolation Mode: 2x
+* Samples per AXI4-Stream Cycle: 8
+* Datapath Mode: DUC 0 to Fs/2
+* Mixer Type: Coarse
+* Mixer Mode: I/Q->Real
+* Frequency: Fs/4
+
 
 ### tProc v1 (`axis_tproc64x32_x8`):
 
