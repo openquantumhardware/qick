@@ -462,7 +462,7 @@ class Axis_QICK_Proc(SocIp):
             chtype = {'m':'wport', 's':'input'}[words[0][0]]
             return int(words[0][1:]), chtype
         else:
-            chtype = {'trig':'trig', 'port':'dport'}[words[0]]
+            chtype = {'trig':'tport', 'port':'dport'}[words[0]]
             return int(words[1]), chtype
 
                     

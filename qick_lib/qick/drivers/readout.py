@@ -5,6 +5,31 @@ from pynq.buffer import allocate
 import numpy as np
 from qick import DummyIp, SocIp
 
+def _trace_trigger(soc, start_block):
+    """Helper function for finding the tProc port that triggers a buffer.
+    """
+    # which tProc output bit triggers this buffer?
+    ((block, port),) = soc.metadata.trace_sig(start_block, 'trigger')
+    blocktype = soc.metadata.mod2type(block)
+    if blocktype=='qick_vec2bit' or 'vect2bits' in blocktype:
+        # vect2bits/qick_vec2bit port names are of the form 'dout14'
+        trigger_bit = int(port[4:])
+
+        # which tProc output port triggers this buffer?
+        # three possibilities:
+        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
+        # tproc v2 data port -> vect2bits -> buffer
+        # tproc v3 trigger port -> buffer
+        ((block, port),) = soc.metadata.trace_sig(block, 'din')
+        if soc.metadata.mod2type(block) == "axis_set_reg":
+            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
+        # ask the tproc to translate this port name to a channel number
+        trigger_port, trigger_type = getattr(soc, block).port2ch(port)
+    else:
+        trigger_bit = 0
+        trigger_port, trigger_type = getattr(soc, block).port2ch(port)
+    return trigger_type, trigger_port, trigger_bit
+
 class AbsReadout(DummyIp):
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 1
@@ -573,20 +598,7 @@ class AxisAvgBuffer(SocIp):
                 "switch_avg and switch_buf port numbers do not match:", self.fullpath)
         self.switch_ch = switch_avg_ch
 
-        # which tProc output bit triggers this buffer?
-        ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
-        # vect2bits/qick_vec2bit port names are of the form 'dout14'
-        self.cfg['trigger_bit'] = int(port[4:])
-
-        # which tProc output port triggers this buffer?
-        # two possibilities:
-        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
-        # tproc v2 data port -> vect2bits -> buffer
-        ((block, port),) = soc.metadata.trace_sig(block, 'din')
-        if soc.metadata.mod2type(block) == "axis_set_reg":
-            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
-        # ask the tproc to translate this port name to a channel number
-        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self.fullpath)
 
         # which tProc input port does this buffer drive?
         try:
@@ -868,7 +880,10 @@ class MrBufferEt(SocIp):
             # Back trace all slaves.
             for iIn in range(NUM_SI_param):
                 inname = "S%02d_AXIS" % (iIn)
-                ro_block, port, blocktype = soc.metadata.trace_back(sw_block, inname, ["axis_readout_v2"])
+                trace_result = soc.metadata.trace_back(sw_block, inname, ["axis_readout_v2"])
+                # skip switch inputs that aren't connected to anything
+                if trace_result is None: continue
+                ro_block, port, blocktype = trace_result
 
                 # trace the decimated output forward to find the avg_buf driven by this readout
                 block, port, blocktype = soc.metadata.trace_forward(ro_block, 'm1_axis', ["axis_avg_buffer"])
@@ -884,20 +899,7 @@ class MrBufferEt(SocIp):
             self.cfg['readouts'].append(block)
 
 
-        # which tProc output bit triggers this buffer?
-        ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
-        # vect2bits/qick_vec2bit port names are of the form 'dout14'
-        self.cfg['trigger_bit'] = int(port[4:])
-
-        # which tProc output port triggers this buffer?
-        # two possibilities:
-        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
-        # tproc v2 data port -> vect2bits -> buffer
-        ((block, port),) = soc.metadata.trace_sig(block, 'din')
-        if soc.metadata.mod2type(block) == "axis_set_reg":
-            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
-        # ask the tproc to translate this port name to a channel number
-        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self.fullpath)
 
     def route(self, ch):
         # Route switch to channel.
@@ -1019,7 +1021,10 @@ class AxisBufferDdrV1(SocIp):
             # Back trace all slaves.
             for iIn in range(NUM_SI_param):
                 inname = "S%02d_AXIS" % (iIn)
-                ro_block, port, blocktype = soc.metadata.trace_back(sw_block, inname, ro_types)
+                trace_result = soc.metadata.trace_back(sw_block, inname, ro_types)
+                # skip switch inputs that aren't connected to anything
+                if trace_result is None: continue
+                ro_block, port, blocktype = trace_result
 
                 # trace forward to find the avg_buf driven by this readout
                 block, port, blocktype = soc.metadata.trace_forward(ro_block, port, ["axis_avg_buffer"])
@@ -1034,20 +1039,7 @@ class AxisBufferDdrV1(SocIp):
             self.buf2switch[block] = 0
             self.cfg['readouts'].append(block)
 
-        # which tProc output bit triggers this buffer?
-        ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'trigger')
-        # vect2bits/qick_vec2bit port names are of the form 'dout14'
-        self.cfg['trigger_bit'] = int(port[4:])
-
-        # which tProc output port triggers this buffer?
-        # two possibilities:
-        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
-        # tproc v2 data port -> vect2bits -> buffer
-        ((block, port),) = soc.metadata.trace_sig(block, 'din')
-        if soc.metadata.mod2type(block) == "axis_set_reg":
-            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
-        # ask the tproc to translate this port name to a channel number
-        self.cfg['trigger_port'], self.cfg['trigger_type'] = getattr(soc, block).port2ch(port)
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self.fullpath)
 
     def rstop(self):
         self.rstart_reg = 0
