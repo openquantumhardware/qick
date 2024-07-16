@@ -122,10 +122,10 @@ class QICK_Time_Tagger(SocIp):
             data_len = length if (length != -1) else self.smp_qty
             self.dma_cfg     = 5+16* data_len
         else:
-            raise RuntimeError('Source Memeory error should be TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
+            raise RuntimeError('Source Memory error. Optionas are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
        
-        if   (data_len<2):
-            print('DATA_LEN>', data_len)
+        if   (data_len==0):
+            print('No Data to read in ', mem_sel)
             return np.array([])
         else:
             #Strat DMA Transfer
@@ -146,7 +146,6 @@ class QICK_Time_Tagger(SocIp):
         smp_wr_qty : Number of group of 8 samples to store (1 to 32)
         cfg_invert : Invert Input       > 0:No , 1:Yes
         """
-
         # Check for Parameters
         if (cfg_slope > self.cfg['cmp_slope']):
             print('error Slope Comparator not implemented')
@@ -178,8 +177,6 @@ class QICK_Time_Tagger(SocIp):
 
     def disarm(self):
         self.qtt_ctrl    = 1+2* 0 
-        
-
     def arm(self):
         self.qtt_ctrl    = 1+2* 1
     def pop_dt(self):
@@ -192,7 +189,7 @@ class QICK_Time_Tagger(SocIp):
         self.qtt_ctrl    = 1+2* 5
     def reset(self):
         self.qtt_cfg     = 0
-        self.qtt_ctrl    = 1
+        self.qtt_ctrl    = 7
 
 
 
