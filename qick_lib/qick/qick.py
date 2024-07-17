@@ -281,6 +281,9 @@ class QickSoc(Overlay, QickConfig):
         self['board'] = os.environ["BOARD"]
         self['sw_version'] = get_version()
 
+        # a space to dump any additional lines of config text which you want to print in the QickConfig
+        self['extra_description'] = []
+
         if not no_rf:
             # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
             self.list_rf_blocks(

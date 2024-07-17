@@ -94,9 +94,8 @@ class QickConfig():
         tproc = self['tprocs'][0]
 
         lines = []
-        lines.append("\n\tBoard: " + self['board'])
-        lines.append("\n\tSoftware version: " + self['sw_version'])
-        lines.append("\tFirmware timestamp: " + self['fw_timestamp'])
+        lines.append("QICK running on %s, software version %s"%(self['board'], self['sw_version']))
+        lines.append("\nFirmware configuration (built %s):"%(self['fw_timestamp']))
         if 'refclk_freq' in self._cfg:
             lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
                 tproc['f_time'], self['refclk_freq']))
@@ -165,7 +164,9 @@ class QickConfig():
             #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
             #    buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
-        return "\nQICK configuration:\n"+"\n".join(lines)
+        lines.extend(self['extra_description'])
+
+        return "\n".join(lines)
 
     def get_cfg(self):
         """Return the QICK configuration dictionary.
