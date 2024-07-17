@@ -1110,7 +1110,20 @@ class QickProgramV2(AbsQickProgram):
         if self.waves:
             return np.stack([w.compile() for w in self.waves])
         else:
-            return np.zeros((0,8), dtype=np.int32)
+            return None
+
+    def compile_datamem(self):
+        """Generate the data that should be written to data memory before running the program.
+        For basic QICK programs no data needs to be written, and this method returns no values.
+        If you need to write data, you should override this method.
+
+        Returns
+        -------
+        ndarray of int32 or None
+            data to write
+        """
+        d_mem = None
+        return d_mem
 
     def compile(self):
         self._make_asm()
@@ -1121,6 +1134,7 @@ class QickProgramV2(AbsQickProgram):
         self.binprog = {}
         self.binprog['pmem'] = self._compile_prog()
         self.binprog['wmem'] = self._compile_waves()
+        self.binprog['dmem'] = self.compile_datamem()
 
     def _make_asm(self):
         # convert the high-level program definition (macros and pulses) to low-level (ASM and waveform list)

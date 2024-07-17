@@ -834,7 +834,10 @@ class QickSoc(Overlay, QickConfig):
             self.tproc.load_bin_program(obtain(binprog))
         elif self.TPROC_VERSION == 2:
             self.tproc.Load_PMEM(binprog['pmem'])
-            self.tproc.load_mem(3, binprog['wmem'])
+            if binprog['wmem'] is not None:
+                self.tproc.load_mem(3, binprog['wmem'])
+            if binprog['dmem'] is not None:
+                self.tproc.load_mem(2, binprog['dmem'])
 
     def start_src(self, src):
         """
