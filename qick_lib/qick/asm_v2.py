@@ -630,6 +630,12 @@ class AddReg(Macro):
     def expand(self, prog):
         return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + %s'%(self.reg, self.reg2)}, addr_inc=1)]
 
+class DerefDmem(Macro):
+    # use a register to index into the data memory, and copy the dmem value into another register
+    # reg, idx
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD': 'REG_WR', 'DST': self.reg, 'SRC': 'dmem', 'ADDR': 'r%d'%(prog.get_reg(self.idx).addr)}, addr_inc=1)]
+
 class Read(Macro):
     # ro_ch
     def expand(self, prog):
