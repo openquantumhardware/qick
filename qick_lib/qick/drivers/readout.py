@@ -134,10 +134,7 @@ class AxisReadoutV2(SocIp, AbsReadout):
         # what RFDC port drives this readout?
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter"])
         # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
+        self.adc = port[1:3]
 
     def update(self):
         """
@@ -211,10 +208,7 @@ class AbsPFBReadout(SocIp, AbsReadout):
             ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
 
         # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
+        self.adc = port[1:3]
 
     def configure(self, rf):
         super().configure(rf)
@@ -459,10 +453,7 @@ class AxisReadoutV3(AbsReadout):
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
 
         # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
+        self.adc = port[1:3]
 
         """
         # what buffer does this readout drive?
@@ -507,10 +498,7 @@ class AxisDynReadoutV1(AbsReadout):
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
 
         # port names are of the form 'm02_axis' where the block number is always even
-        iTile, iBlock = [int(x) for x in port[1:3]]
-        if soc.hs_adc:
-            iBlock //= 2
-        self.adc = "%d%d" % (iTile, iBlock)
+        self.adc = port[1:3]
 
 class AxisAvgBuffer(SocIp):
     """
