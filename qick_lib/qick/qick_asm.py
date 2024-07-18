@@ -1674,7 +1674,7 @@ class AcquireMixin:
         n_ro = len(self.ro_chs)
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int32) for nreads in self.reads_per_shot]
+        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
