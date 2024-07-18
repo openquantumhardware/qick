@@ -506,6 +506,7 @@ class Trigger(Macro):
                 self.trigset.add(portnum)
 
     def expand(self, prog):
+        #TODO: if the width is fixed, we could do register math instead of having two registers
         insts = []
         if self.outdict:
             insts.append(self.set_timereg(prog, "t_start"))
@@ -517,11 +518,20 @@ class Trigger(Macro):
         if self.trigset:
             t_start = self.t_reg["t_start"]
             t_end = self.t_reg["t_end"]
-            if isinstance(t_start, QickSweepRaw) or isinstance(t_end, QickSweepRaw):
-                raise RuntimeError("trig ports do not support sweeps for start time or duration")
-            for outport in self.trigset:
-                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME': "@%d"%(t_start)}, addr_inc=1))
-                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME': "@%d"%(t_end)}, addr_inc=1))
+            if isinstance(t_start, QickRegister):
+                insts.append(self.set_timereg(prog, "t_start"))
+                for outport in self.trigset:
+                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport)}, addr_inc=1))
+            else:
+                for outport in self.trigset:
+                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME': "@%d"%(t_start)}, addr_inc=1))
+            if isinstance(t_end, QickRegister):
+                insts.append(self.set_timereg(prog, "t_end"))
+                for outport in self.trigset:
+                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
+            else:
+                for outport in self.trigset:
+                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME': "@%d"%(t_end)}, addr_inc=1))
         return insts
 
 class StartLoop(Macro):
