@@ -1836,7 +1836,7 @@ class AcquireMixin:
             shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
-    def get_time_axis(self, ro_index):
+    def get_time_axis(self, ro_index, length_only=False):
         """Get an array usable as the time axis for plotting decimated data.
 
         Parameters
@@ -1844,14 +1844,20 @@ class AcquireMixin:
         ro_index : int
             Index of the readout channel in this program.
             The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
+        length_only : bool
+            Just return the number of decimated points.
+            Useful for normalizing raw data.
 
         Returns
         -------
-        ndarray of float
+        ndarray of float, or int
             An array starting at 0 and spaced by the time (in us) per decimated sample.
+            If length_only=True, an int is returned.
         """
         ch, ro = list(self.ro_chs.items())[ro_index]
-        return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
+        n = ro['length']
+        if length_only: return n
+        else: return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(n))
 
     def get_time_axis_ddr4(self, ro_ch, data):
         """Get an array usable as the time axis for plotting DDR4 data.
