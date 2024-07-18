@@ -72,11 +72,11 @@ class QickConfig():
         tile, block = [int(c) for c in adcname]
         if self['board']=='ZCU111':
             rfbtype = "DC" if tile > 1 else "AC"
-            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
+            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
         elif self['board']=='ZCU216':
             label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
         elif self['board']=='RFSoC4x2':
-            label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adcname]
+            label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
 
     def description(self):
