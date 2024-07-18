@@ -321,6 +321,15 @@ class Macro(SimpleNamespace):
         else:
             return SetReg(reg='s14', val=t_reg)
 
+    def inc_timereg(self, prog, name):
+        # helper method, to be used in expand()
+        t_reg = self.t_reg[name]
+        if isinstance(t_reg, QickRegister):
+            #return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
+            return AddReg(reg='s14', reg2='r%d'%(t_reg.addr))
+        else:
+            return IncReg(reg='s14', val=t_reg)
+
 class AsmInst(Macro):
     def translate(self, prog):
         logger.debug("adding ASM %s, addr_inc=%d" % (self.inst, self.addr_inc))
@@ -474,7 +483,7 @@ class Trigger(Macro):
 
         #treg = self.us2cycles(t)
         self.convert_time(prog, self.t, "t_start")
-        self.convert_time(prog, self.t+self.width, "t_end")
+        self.convert_time(prog, self.width, "t_width")
 
         special_ros = []
         if self.ddr4: special_ros.append(prog.soccfg['ddr4_buf'])
@@ -492,10 +501,11 @@ class Trigger(Macro):
             else:
                 self.trigset.add(rocfg['trigger_port'])
             ts = prog.get_timestamp(ro_ch=ro)
-            if self.t < ts: logger.warning("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
-            ro_length = prog.ro_chs[ro]['length']
-            ro_length /= prog.soccfg['readouts'][ro]['f_output']
-            prog.set_timestamp(self.t + ro_length, ro_ch=ro)
+            if self.t is not None:
+                if self.t < ts: logger.warning("Readout time %d appears to conflict with previous readout ending at %f?"%(self.t, ts))
+                ro_length = prog.ro_chs[ro]['length']
+                ro_length /= prog.soccfg['readouts'][ro]['f_output']
+                prog.set_timestamp(self.t + ro_length, ro_ch=ro)
             # update trigger count for this readout
             prog.ro_chs[ro]['trigs'] += 1
         for pin in self.pins:
@@ -506,16 +516,26 @@ class Trigger(Macro):
                 self.trigset.add(portnum)
 
     def expand(self, prog):
-        #TODO: if the width is fixed, we could do register math instead of having two registers
         insts = []
-        if self.outdict:
+        if self.t is not None:
             insts.append(self.set_timereg(prog, "t_start"))
+        if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)}, addr_inc=1))
-            insts.append(self.set_timereg(prog, "t_end"))
+        if self.trigset:
+            for outport in self.trigset:
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport)}, addr_inc=1))
+        insts.append(self.inc_timereg(prog, "t_width"))
+        if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'}, addr_inc=1))
         if self.trigset:
+            for outport in self.trigset:
+                insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
+        """
+        if self.trigset:
+            insts.append(self.set_timereg(prog, "t_start"))
+
             t_start = self.t_reg["t_start"]
             t_end = self.t_reg["t_end"]
             if isinstance(t_start, QickRegister):
@@ -526,12 +546,13 @@ class Trigger(Macro):
                 for outport in self.trigset:
                     insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME': "@%d"%(t_start)}, addr_inc=1))
             if isinstance(t_end, QickRegister):
-                insts.append(self.set_timereg(prog, "t_end"))
+                insts.append(self.inc_timereg(prog, "t_width"))
                 for outport in self.trigset:
                     insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
             else:
                 for outport in self.trigset:
                     insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME': "@%d"%(t_end)}, addr_inc=1))
+        """
         return insts
 
 class StartLoop(Macro):
@@ -598,9 +619,16 @@ class SetReg(Macro):
         return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "#%d"%(self.val)}, addr_inc=1)]
 
 class IncReg(Macro):
+    # increment a register by a literal
     # reg, val
     def expand(self, prog):
         return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + #%d'%(self.reg, self.val)}, addr_inc=1)]
+
+class AddReg(Macro):
+    # increment a register by a register
+    # reg, reg2
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + %s'%(self.reg, self.reg2)}, addr_inc=1)]
 
 class Read(Macro):
     # ro_ch
@@ -1661,8 +1689,10 @@ class QickProgramV2(AbsQickProgram):
             readout channels to trigger (index in 'readouts' list)
         pins : list of int
             output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float or QickSweep
+        t : float, QickSweep, or None
             time (us)
+            if None, the current value of the time register (s14) will be used
+            in this case, the channel timestamps will not be updated
         width : float or QickSweep
             pulse width (us), default of 10 cycles of the tProc timing clock
         ddr4 : bool
