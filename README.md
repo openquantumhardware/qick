@@ -76,4 +76,3 @@ The QICK source code is licensed under the MIT license, which you can find in th
 The [QICK logo](graphics/logoQICK.svg) was designed by Dr. Christie Chiu.
 
 You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE file are satisfied.
-
