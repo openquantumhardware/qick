@@ -132,7 +132,7 @@ class RFDC(xrfdc.RFdc):
         if not force and f == self.get_mixer_freq(dacname):
             return
 
-        tile, channel = [int(a) for a in dacname]
+        tile, channel = self.daccfg[dacname]['index']
         # Make a copy of mixer settings.
         dac_mixer = self.dac_tiles[tile].blocks[channel].MixerSettings
         new_mixcfg = dac_mixer.copy()
@@ -156,7 +156,7 @@ class RFDC(xrfdc.RFdc):
         try:
             return self.mixer_dict[dacname]
         except KeyError:
-            tile, channel = [int(a) for a in dacname]
+            tile, channel = self.daccfg[dacname]['index']
             self.mixer_dict[dacname] = self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
             return self.mixer_dict[dacname]
 
@@ -181,12 +181,13 @@ class RFDC(xrfdc.RFdc):
             raise RuntimeError("Nyquist zone must be 1 or 2")
         if blocktype not in ['dac','adc']:
             raise RuntimeError("Block type must be adc or dac")
-        tile, channel = [int(a) for a in blockname]
         if not force and self.get_nyquist(blockname, blocktype) == nqz:
             return
         if blocktype=='dac':
+            tile, channel = self.daccfg[blockname]['index']
             self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
         else:
+            tile, channel = self.adccfg[blockname]['index']
             self.adc_tiles[tile].blocks[channel].NyquistZone = nqz
         self.nqz_dict[blocktype][blockname] = nqz
 
@@ -211,10 +212,11 @@ class RFDC(xrfdc.RFdc):
         try:
             return self.nqz_dict[blocktype][blockname]
         except KeyError:
-            tile, channel = [int(a) for a in blockname]
             if blocktype=='dac':
+                tile, channel = self.daccfg[blockname]['index']
                 self.nqz_dict[blocktype][blockname] = self.dac_tiles[tile].blocks[channel].NyquistZone
             else:
+                tile, channel = self.adccfg[blockname]['index']
                 self.nqz_dict[blocktype][blockname] = self.adc_tiles[tile].blocks[channel].NyquistZone
             return self.nqz_dict[blocktype][blockname]
 
@@ -280,6 +282,9 @@ class QickSoc(Overlay, QickConfig):
 
         self['board'] = os.environ["BOARD"]
         self['sw_version'] = get_version()
+
+        # a space to dump any additional lines of config text which you want to print in the QickConfig
+        self['extra_description'] = []
 
         if not no_rf:
             # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
@@ -491,7 +496,8 @@ class QickSoc(Overlay, QickConfig):
                                        'fs_div': fs_div,
                                        'fs_mult': fs_mult,
                                        'f_fabric': f_fabric,
-                                       'interpolation': interpolation}
+                                       'interpolation': interpolation,
+                                       'index' : [iTile, iBlock]}
 
         for iTile in range(4):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
@@ -508,12 +514,17 @@ class QickSoc(Overlay, QickConfig):
             fs_mult = fbdiv
             fs = float(rf_config['C_ADC%d_Sampling_Rate' % (iTile)])*1000
             for iBlock in range(4):
+                # for dual-ADC FPGAs, each channel is two blocks
+                # so just look at the even blocks
                 if self.hs_adc:
-                    if iBlock >= 2 or rf_config['C_ADC_Slice%d%d_Enable' % (iTile, 2*iBlock)] != 'true':
+                    if iBlock%2 != 0:
                         continue
+                    # we need to record how to index into the adc_tiles structure, which does not skip odd numbers
+                    block = iBlock//2
                 else:
-                    if rf_config['C_ADC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
-                        continue
+                    block = iBlock
+                if rf_config['C_ADC_Slice%d%d_Enable' % (iTile, iBlock)] != 'true':
+                    continue
                 # define a 2-digit "name" that we'll use to refer to this channel
                 chname = "%d%d" % (iTile, iBlock)
                 decimation = int(rf_config['C_ADC_Decimation_Mode%d%d' % (iTile, iBlock)])
@@ -521,7 +532,8 @@ class QickSoc(Overlay, QickConfig):
                                        'fs_div': fs_div,
                                        'fs_mult': fs_mult,
                                        'f_fabric': f_fabric,
-                                       'decimation': decimation}
+                                       'decimation': decimation,
+                                       'index': [iTile, block]}
 
         def get_common_freq(freqs):
             """
@@ -831,7 +843,10 @@ class QickSoc(Overlay, QickConfig):
             self.tproc.load_bin_program(obtain(binprog))
         elif self.TPROC_VERSION == 2:
             self.tproc.Load_PMEM(binprog['pmem'])
-            self.tproc.load_mem(3, binprog['wmem'])
+            if binprog['wmem'] is not None:
+                self.tproc.load_mem(3, binprog['wmem'])
+            if binprog['dmem'] is not None:
+                self.tproc.load_mem(2, binprog['dmem'])
 
     def start_src(self, src):
         """

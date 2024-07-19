@@ -72,11 +72,11 @@ class QickConfig():
         tile, block = [int(c) for c in adcname]
         if self['board']=='ZCU111':
             rfbtype = "DC" if tile > 1 else "AC"
-            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block, rfbtype, (tile%2)*2 + block)
+            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
         elif self['board']=='ZCU216':
             label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
         elif self['board']=='RFSoC4x2':
-            label = {'00': 'ADC_D', '01': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adcname]
+            label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '21': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
 
     def description(self):
@@ -94,9 +94,8 @@ class QickConfig():
         tproc = self['tprocs'][0]
 
         lines = []
-        lines.append("\n\tBoard: " + self['board'])
-        lines.append("\n\tSoftware version: " + self['sw_version'])
-        lines.append("\tFirmware timestamp: " + self['fw_timestamp'])
+        lines.append("QICK running on %s, software version %s"%(self['board'], self['sw_version']))
+        lines.append("\nFirmware configuration (built %s):"%(self['fw_timestamp']))
         if 'refclk_freq' in self._cfg:
             lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
                 tproc['f_time'], self['refclk_freq']))
@@ -165,7 +164,9 @@ class QickConfig():
             #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
             #    buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
-        return "\nQICK configuration:\n"+"\n".join(lines)
+        lines.extend(self['extra_description'])
+
+        return "\n".join(lines)
 
     def get_cfg(self):
         """Return the QICK configuration dictionary.
@@ -1835,7 +1836,7 @@ class AcquireMixin:
             shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
-    def get_time_axis(self, ro_index):
+    def get_time_axis(self, ro_index, length_only=False):
         """Get an array usable as the time axis for plotting decimated data.
 
         Parameters
@@ -1843,14 +1844,20 @@ class AcquireMixin:
         ro_index : int
             Index of the readout channel in this program.
             The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
+        length_only : bool
+            Just return the number of decimated points.
+            Useful for normalizing raw data.
 
         Returns
         -------
-        ndarray of float
+        ndarray of float, or int
             An array starting at 0 and spaced by the time (in us) per decimated sample.
+            If length_only=True, an int is returned.
         """
         ch, ro = list(self.ro_chs.items())[ro_index]
-        return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(ro['length']))
+        n = ro['length']
+        if length_only: return n
+        else: return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(n))
 
     def get_time_axis_ddr4(self, ro_ch, data):
         """Get an array usable as the time axis for plotting DDR4 data.

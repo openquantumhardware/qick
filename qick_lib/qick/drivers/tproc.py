@@ -462,7 +462,7 @@ class Axis_QICK_Proc(SocIp):
             chtype = {'m':'wport', 's':'input'}[words[0][0]]
             return int(words[0][1:]), chtype
         else:
-            chtype = {'trig':'trig', 'port':'dport'}[words[0]]
+            chtype = {'trig':'tport', 'port':'dport'}[words[0]]
             return int(words[1]), chtype
 
                     
@@ -559,21 +559,21 @@ class Axis_QICK_Proc(SocIp):
         self.tproc_cfg         &= ~63
         return val
             
-        def single_write(self, mem_sel, addr=0, data=0):
-            """
-            Writes the bottom 32 bits of one sample of tProc memory using AXI access
-            Do not use! This seems to crash the DMA. Use the DMA instead.
-            
-            :param addr: writing address
-            :type addr: int
-            :param data: value to be written
-            :type data: int
-            """
-            # Write data.
-            self.mem_addr = i
-            self.tproc_cfg = 0x13 + (mem_sel << 2)
-            self.mem_dt_i = data
-            self.tproc_cfg         &= ~63
+    def single_write(self, mem_sel, addr=0, data=0):
+        """
+        Writes the bottom 32 bits of one sample of tProc memory using AXI access
+        Do not use! This seems to crash the DMA. Use the DMA instead.
+
+        :param addr: writing address
+        :type addr: int
+        :param data: value to be written
+        :type data: int
+        """
+        # Write data.
+        self.mem_addr = i
+        self.tproc_cfg = 0x13 + (mem_sel << 2)
+        self.mem_dt_i = data
+        self.tproc_cfg         &= ~63
 
     def load_mem(self,mem_sel, buff_in, addr=0):
         """

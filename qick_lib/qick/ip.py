@@ -173,6 +173,7 @@ class QickMetadata:
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
         Raise an error if none of the requested IP types is found.
+        Return None if we run into an unconnected input port.
 
         Parameters
         ----------
@@ -192,30 +193,28 @@ class QickMetadata:
         str
             The IP type we found.
         """
-        block = start_block
-        port = start_port
-        ((block, port),) = self.trace_bus(block, port)
+        next_block = start_block
+        next_port = start_port
         while True:
-            blocktype = self.mod2type(block)
-            if blocktype in goal_types:
-                return (block, port, blocktype)
-            elif blocktype == "axis_clock_converter":
-                ((block, port),) = self.trace_bus(block, 'S_AXIS')
-            elif blocktype == "axis_dwidth_converter":
-                ((block, port),) = self.trace_bus(block, 'S_AXIS')
-            elif blocktype == "axis_cdcsync_v1":
+            trace_result = self.trace_bus(next_block, next_port)
+            # if we hit an unconnected port, return False
+            if len(trace_result)==0:
+                return None
+            ((next_block, port),) = trace_result
+            next_type = self.mod2type(next_block)
+            if next_type in goal_types:
+                return (next_block, port, next_type)
+            elif next_type in ["axis_clock_converter", "axis_dwidth_converter", "axis_register_slice", "axis_broadcaster"]:
+                next_port = 'S_AXIS'
+            elif next_type == "axis_cdcsync_v1":
                 # port name is of the form 'm4_axis' - follow corresponding input 's4_axis'
-                ((block, port),) = self.trace_bus(block, "s"+port[1:])
-            elif blocktype == "sg_translator":
-                ((block, port),) = self.trace_bus(block, "s_tproc_axis")
-            elif blocktype == "axis_resampler_2x1_v1":
-                ((block, port),) = self.trace_bus(block, 's_axis')
-            elif blocktype == "axis_register_slice":
-                ((block, port),) = self.trace_bus(block, 'S_AXIS')
-            elif blocktype == "axis_broadcaster":
-                ((block, port),) = self.trace_bus(block, 'S_AXIS')
+                next_port = 's'+port[1:]
+            elif next_type == "sg_translator":
+                next_port = 's_tproc_axis'
+            elif next_type == "axis_resampler_2x1_v1":
+                next_port = 's_axis'
             else:
-                raise RuntimeError("failed to trace back from %s - unrecognized IP block %s" % (start_block, block))
+                raise RuntimeError("failed to trace back from %s - unrecognized IP block %s" % (start_block, next_block))
 
     def trace_forward(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus forwards from a given block and port.
@@ -240,8 +239,6 @@ class QickMetadata:
         str
             The IP type we found.
         """
-        block = start_block
-        port = start_port
         to_check = [(start_block, start_port)]
         found = []
         dead_ends = []
