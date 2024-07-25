@@ -18,7 +18,6 @@ class AxisSignalGenV3(SocIp):
     # * 1 : enable writes.
     #
     bindto = ['user.org:user:axis_signal_gen_v3:1.0']
-    REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
 
     # Generics
     N = 12
@@ -29,6 +28,7 @@ class AxisSignalGenV3(SocIp):
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
+        self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
 
     def config(self, axi_dma, dds_mr_switch, axis_switch, channel, name, **kwargs):
         # Default registers.
@@ -88,16 +88,6 @@ class AxisSignalGenV3Ctrl(SocIp):
     # Signal Generator V3 Control registers.
     # ADDR_REG
     bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0']
-    REGISTERS = {
-        'freq': 0,
-        'phase': 1,
-        'addr': 2,
-        'gain': 3,
-        'nsamp': 4,
-        'outsel': 5,
-        'mode': 6,
-        'stdysel': 7,
-        'we': 8}
 
     # Generics of Signal Generator.
     N = 10
@@ -110,6 +100,16 @@ class AxisSignalGenV3Ctrl(SocIp):
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
+        self.REGISTERS = {
+            'freq': 0,
+            'phase': 1,
+            'addr': 2,
+            'gain': 3,
+            'nsamp': 4,
+            'outsel': 5,
+            'mode': 6,
+            'stdysel': 7,
+            'we': 8}
 
         # Default registers.
         self.freq = 0
@@ -186,20 +186,20 @@ class AxisSignalGenV6Ctrl(SocIp):
     # * 0 : disable.
     # * 1 : enable.
     bindto = ['user.org:user:axis_signal_gen_v6_ctrl:1.0']
-    REGISTERS = {
-        'freq_reg'      : 0,
-        'phase_reg'     : 1,
-        'addr_reg'      : 2,
-        'gain_reg'      : 3,
-        'nsamp_reg'     : 4,
-        'outsel_reg'    : 5,
-        'mode_reg'      : 6,
-        'stdysel_reg'   : 7,
-        'phrst_reg'     : 8,
-        'we_reg'        : 9}
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
+        self.REGISTERS = {
+            'freq_reg'      : 0,
+            'phase_reg'     : 1,
+            'addr_reg'      : 2,
+            'gain_reg'      : 3,
+            'nsamp_reg'     : 4,
+            'outsel_reg'    : 5,
+            'mode_reg'      : 6,
+            'stdysel_reg'   : 7,
+            'phrst_reg'     : 8,
+            'we_reg'        : 9}
 
         # Default registers.
         self.we_reg = 0
@@ -260,13 +260,13 @@ class AxisDdsMrSwitch(SocIp):
     # * 1 : imaginary part.
     #
     bindto = ['user.org:user:axis_dds_mr_switch:1.0']
-    REGISTERS = {'dds_real_imag': 0}
 
     def __init__(self, description, **kwargs):
         """
         Constructor method
         """
         super().__init__(description)
+        self.REGISTERS = {'dds_real_imag': 0}
 
         # Default registers.
         # dds_real_imag = 0  : take real part.
