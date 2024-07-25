@@ -2,9 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_5_10
+//  Date        : 2024_7_25
+//  Revision    : 21
 //  Version     : 3
-//  Revision    : 20
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -383,7 +383,7 @@ def get_src_type (src : str) -> str:
 
 def check_lit(lit_str : str) -> bool:
     r = False
-    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)', lit_str)
+    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)', lit_str)
     extr_lit = lit.group(0) if lit else ''
     if (extr_lit == lit_str):
         r = True
@@ -392,7 +392,7 @@ def check_lit(lit_str : str) -> bool:
 def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
     DataImm = ''
     LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
-    if (LIT):
+    if ( LIT and check_lit(lit)):
         LIT = LIT[0]
         try: 
             if (LIT[0]): ## is Signed
@@ -416,7 +416,7 @@ def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
         except:
             DataImm = ''
     else:
-        Logger.error("get_imm_dt", 'Data Format incorrect' )
+        Logger.error("get_imm_dt", 'Data Format incorrect '+ lit )
     if  (DataImm) : 
         if (lit_val) :
             return 0, int(literal)
@@ -540,13 +540,13 @@ class Assembler():
             assembler += f"{command['LABEL'] } "     if ('LABEL'    in command) else ''
             assembler += f"-if({command['IF']}) "    if ('IF'       in command) else ''
             assembler += f"-wr({command['WR']}) "    if ('WR'       in command) else ''
-            assembler += f"#{command['LIT']} "       if ('LIT'      in command) else ''
+            assembler += f"{command['LIT']} "       if ('LIT'      in command) else ''
             assembler += f"-op({command['OP']}) "    if ('OP'       in command) else ''
             assembler += "-uf "      if ('UF' in command and command['UF']=='1') else ''
             assembler += "-ww "                       if ('WW'       in command) else ''
             assembler += f"-wp({command['WP']}) "    if ('WP'       in command) else ''
             assembler += f"p{command['PORT']} "      if ('PORT'     in command) else ''
-            assembler += f"@{command['TIME']} "      if ('TIME'       in command) else ''
+            assembler += f"{command['TIME']} "      if ('TIME'       in command) else ''
 
 
             assembler += f"{command['NUM']} "        if ('NUM'       in command) else ''
@@ -1391,6 +1391,8 @@ class Instruction():
                             DataImm   = '_0000000000000000'
                     else:
                         error = Logger.error('Parameter.SRC', '1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+                else:
+                    error = Logger.error('Parameter.SRC', '1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
 
             elif (len(cmd_op)==3 ) :
                 #print('LEN 3 >',cmd_op)
@@ -1408,22 +1410,21 @@ class Instruction():
                     if   (src_type[0]=='R'): ## REG OP REG
                         df             = '01'
                         error, rsD1    = get_reg_addr(cmd_op[2], 'src_data')
-                        ## Literal for Second Data Task -wr(rd imm)
-                        if ('LIT' in command):
-                                error, DataImm = get_imm_dt (command['LIT'], 16)
-                        else:
-                            DataImm = '_0000000000000000'
                     elif (src_type[0]=='N'): ## is Number
-                        if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
-                            error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
-                            if (lit_val > 15): 
-                                error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
-                        df             = '10'
                         error, DataImm = get_imm_dt (cmd_op[2], 24)
                         if (error): 
                             error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
-                        
-                        DataImm  = '_'+DataImm 
+                        else:
+                            if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
+                                error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
+                                if (error == 0 ): 
+                                    if (lit_val > 15): 
+                                        error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
+                                else:
+                                    error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
+                        if (error == 0 ): 
+                            df             = '10'
+                            DataImm  = '_'+DataImm 
 
                 ## CHECK FOR OPERATION
                 if (error==0):
@@ -1673,8 +1674,10 @@ class Instruction():
             if ('TIME' in current ):
                 TI='1'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
-                DATA = '_____' + TIME 
-                #DATA = '______' +integer2bin(current['TIME'], 32)
+                if (error): 
+                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                else:
+                    DATA = '_____' + TIME 
             CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
             CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
         else:
@@ -1843,7 +1846,11 @@ class Instruction():
                 TO = '1'
                 DF = '11'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
-                DATA = '_____'+ TIME 
+                if (error): 
+                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                else:
+                    DATA = '_____' + TIME 
+
                 #DATA = '______'+ integer2bin(current['TIME'], 32)
                 CFG = SO+TO+'____00000'
                 RD = '0000000'
