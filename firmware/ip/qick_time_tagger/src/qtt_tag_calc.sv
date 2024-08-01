@@ -16,6 +16,7 @@ module qtt_tag_calc # (
    input  wire [7:0]                cmp_inh_i            , // Inhibit Clock Pulses
    input  wire [SMP_CK*SMP_DW-1:0]  dt_i           ,
    output wire                      trig_o         ,
+   output wire                      cmp_o          ,
    output wire                      tag_vld_o      ,
    output wire [31:0]               tag_dt_o       ,
    output wire [7:0]                debug_do
@@ -253,6 +254,6 @@ assign tag_dt_o = ( cfg_inter_i ) == 3'b000 ?  { trig_time_ck_r[28:0], trig_time
                                                { trig_time_ck_r[21:0], trig_time_adc_r, trig_time_inter_s[6:0] } ; // Interpolation of 7 bit
 assign  tag_vld_o    = arm_i & x_inter_end;
 assign  trig_o       = trigger_cmp; 
-
+assign  cmp_o        = trigger_cmp_s; 
 
 endmodule

@@ -24,13 +24,14 @@ module tag_gen # (
    input  wire                      en_i              ,
    input  wire [SMP_CK*SMP_DW-1:0]  adc_dt_i [ADC_QTY],
    output wire                      trig_o   ,
+   output wire                      cmp_o   ,
    output wire [ADC_QTY-1:0]        tag_vld_o         ,
    output wire [31:0]               tag_dt_o [ADC_QTY]
 );
 
 // Signal Declaration
 //////////////////////////////////////////////////////////////////////////
-wire [ADC_QTY-1:0]        trig_s ;
+wire [ADC_QTY-1:0]        trig_s, cmp_s ;
 
 genvar ind;
 generate
@@ -53,6 +54,7 @@ generate
          .cmp_inh_i     ( cmp_inh_i    ),
          .dt_i          ( adc_dt_i [ind]),
          .trig_o        ( trig_s   [ind]),
+         .cmp_o         ( cmp_s   [ind]),
          .tag_vld_o     ( tag_vld_o[ind]),
          .tag_dt_o      ( tag_dt_o [ind]),
         .debug_do       (              )
@@ -61,6 +63,7 @@ generate
 endgenerate
 
 assign trig_o = trig_s[0];
+assign cmp_o  = cmp_s[0];
 
 endmodule
 

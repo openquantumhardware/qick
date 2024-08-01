@@ -43,6 +43,7 @@ wire [3:0] lp_cnt_p1 ; // Last FIFO REQ Pulse
 reg lp_cnt_en        ; // Last FIFO REQ Pulse
 
 
+assign len_dma_one   = (dma_len_i == 1)  ;
 assign len_cnt_last  = (len_cnt_p1 == dma_len_i)  ;
 assign last_rd_addr  =  len_cnt_last & m_axis_tvalid_o ;
 
@@ -71,7 +72,9 @@ always_comb begin
       ST_IDLE: begin
          dma_rd_ack     = 1'b0;
          len_cnt_rst   = 1'b1; 
-         if (dma_req_i) dma_rd_st_nxt = ST_TXING;
+         if (dma_req_i) 
+            if (len_dma_one)  dma_rd_st_nxt = ST_LAST;
+            else              dma_rd_st_nxt = ST_TXING;
       end
       ST_TXING : begin
          dt_bf    = pop_ack_i & !m_axis_tready_i ;
@@ -106,7 +109,6 @@ always_ff @ (posedge clk_i, negedge rst_ni) begin
    else begin 
       if ( len_cnt_rst ) 
          len_cnt  <= 1;
-      //else if ( len_cnt_en  ) 
       else if ( m_axis_tvalid_o  )
          len_cnt  <= len_cnt_p1;
    end

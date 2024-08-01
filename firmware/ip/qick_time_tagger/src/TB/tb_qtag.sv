@@ -13,18 +13,18 @@ import axi_mst_0_pkg::*;
 `define T_C_CLK         3 // 1.66 // Half Clock Period for Simulation
 `define T_ADC_CLK       2 // 1.66 // Half Clock Period for Simulation
 
-`define ADC_QTY       4 
+`define ADC_QTY       1 
 `define DMA_RD        1 
-`define PROC_RD       1 
-`define CMP_SLOPE     1 
+`define PROC_RD       0 
+`define CMP_SLOPE     0 
 `define CMP_INTER     4 
 `define ARM_STORE     1  
 `define SMP_STORE     1 
-`define TAG_FIFO_AW   5  
-`define ARM_FIFO_AW   5 
-`define SMP_FIFO_AW   8  
+`define TAG_FIFO_AW   19  
+`define ARM_FIFO_AW   5
+`define SMP_FIFO_AW   15  
 `define SMP_DW        16  
-`define SMP_CK        12 
+`define SMP_CK        8 
 `define DEBUG         1  
 
 module tb_qick_time_tagger();
@@ -232,17 +232,32 @@ initial begin
    CMD_SET_THR();
    WRITE_AXI( AXI_DT1 ,  50);
    CMD_SET_DEAD_TIME();
+
    CMD_RST();
    FILTER   = 1;
    SLOPE    = 0;
    INTER    = 4;
-   SMP_NUM  = 4;
+   SMP_NUM  = 6;
    WRITE_AXI( QTT_CFG  , 1* FILTER+ 2* SLOPE + 4*INTER + 32* SMP_NUM); // NO FILTER  
+
    CMD_ARM();
    AMP = 24;
    SIM_SINE();
+   SIM_SINE();
    CMD_DISARM();
-   CMD_DMA_RD();
+   WRITE_AXI( DMA_CFG ,   16*3);
+   WRITE_AXI( QTT_CTRL ,  32);
+   @ (posedge dma_m_axis_tlast_o);
+   WRITE_AXI( DMA_CFG ,   16*2);
+   WRITE_AXI( QTT_CTRL ,  32);
+   @ (posedge dma_m_axis_tlast_o);
+   WRITE_AXI( DMA_CFG ,   16*1);
+   WRITE_AXI( QTT_CTRL ,  32);
+   @ (posedge dma_m_axis_tlast_o);
+
+
+   //CMD_DMA_RD();
+
    CMD_SMP_RD ();
    #10000;
    
@@ -259,9 +274,15 @@ initial begin
    end
    SIM_RANDOM();
    CMD_DISARM();
-   CMD_DMA_RD();
+   WRITE_AXI( DMA_CFG ,  0+16*1);
+   WRITE_AXI( QTT_CTRL ,  32);
    #10000;
-
+   WRITE_AXI( DMA_CFG ,  0+16*2);
+   WRITE_AXI( QTT_CTRL ,  32);
+   #10000;
+   WRITE_AXI( DMA_CFG ,  0+16*3);
+   WRITE_AXI( QTT_CTRL ,  32);
+   #10000;
 
 //Micro POP
    @ (posedge c_clk); #0.1;
@@ -338,13 +359,18 @@ endtask
 task CMD_RST ();
    WRITE_AXI( QTT_CTRL ,  1 + 2 * 7);
 endtask
+
 task CMD_DMA_RD ();
-   WRITE_AXI( DMA_CFG ,  0+16*2);
+   WRITE_AXI( DMA_CFG ,   16*5);
    WRITE_AXI( QTT_CTRL ,  32);
+   @ (posedge dma_m_axis_tlast_o);
 endtask
+
 task CMD_SMP_RD ();
    WRITE_AXI( DMA_CFG ,  5+16*SMP_NUM*`SMP_CK*4);
    WRITE_AXI( QTT_CTRL ,  32);
+   @ (posedge dma_m_axis_tlast_o);
+
 endtask
 
 
@@ -352,7 +378,8 @@ integer AMP;
 integer i;
 
 task SIM_SINE(); begin
-   for (t=0; t<400; t=t+1) begin
+//50t per sinewave
+   for (t=0; t<84000; t=t+1) begin
       @ (posedge adc_clk); #0.1;
       for (i=0; i<`SMP_CK; i=i+1) begin
          x[i] = ( (`SMP_CK*t) + i ) / (`SMP_CK*100.0) * (44.0 / 7.0);

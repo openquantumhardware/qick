@@ -51,6 +51,8 @@ module qick_time_tagger # (
    output wire [31:0]               tag_dt_o             ,
    output wire                      tag_vld_o            ,
    output wire                      trig_o               ,
+   output wire                      cmp_o                ,
+   
 ///// DATA OUT   
    output wire [TAG_FIFO_AW-1:0]    proc_qty_o           ,
    output wire [TAG_FIFO_AW-1:0]    dma_qty_o   [4]      ,
@@ -93,7 +95,7 @@ sync_reg # (
 
 // Control State Machine
 //////////////////////////////////////////////////////////////////////////
-typedef enum { ST_IDLE, ST_ARMED } TYPE_TRIG_ST;
+typedef enum { ST_RST, ST_IDLE, ST_ARMED } TYPE_TRIG_ST;
 (* fsm_encoding = "one_hot" *) TYPE_TRIG_ST time_trig_st;
 TYPE_TRIG_ST time_trig_st_nxt;
 
@@ -102,13 +104,20 @@ always_ff @ (posedge adc_clk_i, negedge adc_rst_ni) begin
    else                 time_trig_st  <= time_trig_st_nxt;
 end
 
-reg inhibit, tag_gen_en;
+reg inhibit, tag_gen_en, qtt_rst;
+;
 always_comb begin
    time_trig_st_nxt  = time_trig_st;
    tag_gen_en        = 1'b0;
+   qtt_rst     = 1'b0;
    case (time_trig_st)
+      ST_RST: begin
+         qtt_rst = 1'b1;
+         if ( !qtt_rst_req_i ) time_trig_st_nxt = ST_IDLE;
+      end
       ST_IDLE: begin
-         if (arm_s) time_trig_st_nxt = ST_ARMED;
+         if      ( qtt_rst_req_i )  time_trig_st_nxt = ST_RST;
+         else if ( arm_s )          time_trig_st_nxt = ST_ARMED;         
       end
       ST_ARMED: begin
          tag_gen_en        = 1'b1;
@@ -117,7 +126,6 @@ always_comb begin
       end
    endcase
 end
-
 
 // Time Counter 
 //////////////////////////////////////////////////////////////////////////
@@ -128,8 +136,6 @@ always_ff @(posedge adc_clk_i) begin
       if (tag_gen_en) time_cnt <= time_cnt + 1'b1;
       else            time_cnt <= 0;
 end
-
-
 
 assign tag_mem_sel = (dma_mem_sel_i[2] == 1'b0);
 assign arm_mem_sel = (dma_mem_sel_i    == 3'b100);
@@ -174,6 +180,7 @@ tag_gen  #(
    .en_i             ( tag_gen_en      ),
    .adc_dt_i         ( adc_dt_i        ),
    .trig_o           ( trig_event      ),
+   .cmp_o            ( cmp_s ) ,   
    .tag_vld_o        ( tag_vld_s       ),
    .tag_dt_o         ( tag_dt_s        )
 );
@@ -192,7 +199,7 @@ tag_mem # (
    .qtt_pop_req_i  ( qtt_pop_req_i     ),
    .qtt_pop_ack_o  ( qtt_pop_ack       ),
    .qtt_rst_req_i  ( qtt_rst_req_i     ),
-   .qtt_rst_ack_o  ( qtt_rst_ack_o     ),
+   .qtt_rst_ack_o  (      ),
    .tag_wr_i       ( tag_vld_s         ), 
    .tag_dt_i       ( tag_dt_s          ), 
    .dma_qty_o      ( dma_qty_o         ),
@@ -344,8 +351,12 @@ always_ff @(posedge ps_clk_i) begin
    else if ( qtt_pop_ack )    tag_dt_r <= tag_fifo_dt;
 end
 
+assign    qtt_rst_ack_o = qtt_rst;
+
+
 assign tag_dt_o  = tag_dt_r;
 assign tag_vld_o = tadg_vld;
 assign trig_o    = trig_event;
+assign cmp_o     = cmp_s;
 
 endmodule

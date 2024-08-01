@@ -2,8 +2,8 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024_6_21
-//  Version        : 3
+//  Date           : 2024_7_24
+//  Version        : 13
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  Time Tagger
 //////////////////////////////////////////////////////////////////////////////
@@ -32,6 +32,7 @@ module axi_qick_time_tagger # (
 // EXTERNAL INTERFACE
    input  wire                      arm_i          ,
    output wire                      trig_o         ,
+   output wire                      cmp_o         ,
 // PROCESSOR INTERFACE
    input  wire                      qtag_en_i      ,
    input  wire  [ 4:0]              qtag_op_i      ,
@@ -183,6 +184,7 @@ qick_time_tagger # (
    .tag_dt_o            ( tag_dt )  ,
    .tag_vld_o           ( qtt_tag_vld  ) ,
    .trig_o              ( trig_o  ) ,
+   .cmp_o              ( cmp_o  ) ,
 //DATA
    .proc_qty_o          ( proc_qty  )  ,   
    .dma_qty_o           ( dma_qty )  ,
