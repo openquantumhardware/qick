@@ -2,9 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_7_25
-//  Revision    : 21
+//  Date        : 2024_8_1
 //  Version     : 3
+//  Revision    : 22
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -314,14 +314,6 @@ def check_name(name_str : str) -> bool:
         Logger.error('CHECK_NAME', 'Name Error')
             
 
-def check_num(num_str : str) -> bool:
-    r = False
-    num     = re.search('^(\d+)', num_str)
-    extr_num = num.group(0) if num else ''
-    if (extr_num == num_str):
-        r = True
-    return r
-
 def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     """
         receives an integer in str format and returns their bits as a string.
@@ -378,8 +370,16 @@ def get_src_type (src : str) -> str:
             else:            
                 src_type = 'XX'
     else:
-        error = Logger.error('get_src_type', 'Source Data not Recognized' )
+        error = Logger.error('get_src_type', 'Source Data not Recognized '+src )
     return error, src_type
+
+def check_num(num_str : str) -> bool:
+    r = False
+    num     = re.search('^(\d+)', num_str)
+    extr_num = num.group(0) if num else ''
+    if (extr_num == num_str):
+        r = True
+    return r
 
 def check_lit(lit_str : str) -> bool:
     r = False
@@ -703,12 +703,22 @@ class Assembler():
                             if (len(directive_params) == 3):
                                 C_name    = directive_params[1]
                                 C_val    = directive_params[2]
-                                error, lit_val = get_imm_dt (C_val, 32, 1)
-                                if (error):
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                if (check_name(C_name)):
+                                    if C_name in Alias_List:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
+                                    elif C_name in label_dict:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
+                                    else:
+    
+                                        error, lit_val = get_imm_dt (C_val, 32, 1)
+                                        if (error):
+                                            error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                        else:
+                                            Alias_List.update({ C_name : C_val } )        
+                                            Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
                                 else:
-                                    Alias_List.update({ C_name : C_val } )        
-                                    Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
+
                             else:
                                 error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST Parameters error in line ' + str(line_number) )
     
@@ -968,6 +978,7 @@ class Assembler():
                                         error = Logger.error('COMMAND_RECOGNITION', 'Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
                                 else:
                                     error = Logger.error("COMMAND_RECOGNITION", "[>3] Parameter Error in line " + str(line_number) )
+                                    
                             ###############################################################################
                             ## ONLY ONE SOURCE / DEST
                             elif ( len(CMD_DEST_SOURCE) == 3) :
@@ -979,7 +990,7 @@ class Assembler():
                                        command_info['SRC'] = CMD_DEST_SOURCE[2]        
                                 elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
                                     if ( int(command_info['PORT'])  > 3):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port port number is p3 in line " + str(line_number))
+                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port MAX port number is p3 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -1410,6 +1421,11 @@ class Instruction():
                     if   (src_type[0]=='R'): ## REG OP REG
                         df             = '01'
                         error, rsD1    = get_reg_addr(cmd_op[2], 'src_data')
+                        ## Literal for Second Data Task -wr(rd imm)
+                        if ('LIT' in command):
+                                error, DataImm = get_imm_dt (command['LIT'], 16)
+                        else:
+                            DataImm = '_0000000000000000'
                     elif (src_type[0]=='N'): ## is Number
                         error, DataImm = get_imm_dt (cmd_op[2], 24)
                         if (error): 
@@ -1498,6 +1514,7 @@ class Instruction():
                 if (param_op[1][3]) != '+': ## is R_Reg
                     error = Logger.error('Parameter.MEM_ADDR', 'Address Operand should be < + >.')    
         else:
+            print(ADDR_CMD)
             error = Logger.error('Parameter.MEM_ADDR', 'Address format error, should be Data Register(r) or Literal(&)')
         return error, rsA0, rsA1, AI
 
