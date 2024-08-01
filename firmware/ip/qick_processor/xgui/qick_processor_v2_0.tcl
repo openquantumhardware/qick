@@ -3,7 +3,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_5, Revision 20 ( Use Assembler Revision 20 )}
+  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_8, Revision 21 ( Use Assembler Version 3 )}
   ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]

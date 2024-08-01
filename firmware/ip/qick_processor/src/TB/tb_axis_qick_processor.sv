@@ -37,7 +37,7 @@ import axi_mst_0_pkg::*;
 `define TIME_READ        1
 `define FIFO_DEPTH       9
 `define PMEM_AW          8 
-`define DMEM_AW          4 
+`define DMEM_AW          10 
 `define WMEM_AW          4 
 `define REG_AW           4 
 `define IN_PORT_QTY      2
@@ -206,13 +206,13 @@ parameter REG_TPROC_CFG       = 1  * 4 ;
 parameter REG_MEM_ADDR        = 2  * 4 ;
 parameter REG_MEM_LEN         = 3  * 4 ;
 parameter REG_MEM_DT_I        = 4  * 4 ;
-parameter REG_TPROC_W_DT1     = 5  * 4 ;
-parameter REG_TPROC_W_DT2     = 6  * 4 ;
+parameter REG_AXI_W_DT1       = 5  * 4 ;
+parameter REG_AXI_W_DT2       = 6  * 4 ;
 parameter REG_CORE_CFG        = 7 * 4 ;
-parameter REG_READ_SEL        = 8 * 4 ;
+parameter REG_AXI_DT_SRC      = 8 * 4 ;
 parameter REG_MEM_DT_O        = 10  * 4 ;
-parameter REG_TPROC_R_DT1     = 11  * 4 ;
-parameter REG_TPROC_R_DT2     = 12  * 4 ;
+parameter REG_AXI_R_DT1       = 11  * 4 ;
+parameter REG_AXI_R_DT2       = 12  * 4 ;
 parameter REG_TIME_USR        = 13  * 4 ;
 parameter REG_TPROC_STATUS    = 14  * 4 ;
 parameter REG_TPROC_DEBUG     = 15  * 4 ;
@@ -507,7 +507,6 @@ initial begin
    offset_dt_i    = 0 ;
    periph_vld_i   = 1'b0;
 
-
    m_dma_axis_tready_i = 1'b1; 
    max_value   = 0;
    #10;
@@ -532,31 +531,25 @@ initial begin
    // WRITE_AXI( REG_TPROC_CFG , 1024); //ENABLE IO ENABLE NET
    // TEST_STATES();
 
+   WRITE_AXI( REG_CORE_CFG , 2); //LFSR CHange when READ
+
+
+   //#100;
+   //@ (posedge t_clk); #0.1;
+//   proc_start_i   = 1'b1;
+//   @ (posedge t_clk); #0.1;
+//   proc_start_i   = 1'b0;
+
    WRITE_AXI( REG_TPROC_CFG, 1024); //ENABLE EXTERNAL CONTROL
 
-   TEST_STATES();
-
-
-   #100;
-   @ (posedge t_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge t_clk); #0.1;
-   proc_start_i   = 1'b0;
-
-
+   
    #100;
    @ (posedge c_clk); #0.1;
    proc_start_i   = 1'b1;
    @ (posedge c_clk); #0.1;
    proc_start_i   = 1'b0;
 
-   #100;
-   @ (posedge t_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge t_clk); #0.1;
-   proc_start_i   = 1'b0;
-
-
+ 
    WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
    WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
    WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG

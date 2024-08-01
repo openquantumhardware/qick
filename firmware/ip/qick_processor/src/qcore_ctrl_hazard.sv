@@ -33,6 +33,7 @@ Possible Sources are >
 -G) time_usr
 -H) s_addr
 -I) Flags ( -if() )
+-J) Random Number
 
 */
 //////////////////////////////////////////////////////////////////////////////
@@ -88,6 +89,7 @@ module qcore_ctrl_hazard (
 reg         stall_id_w   ; // Give time to update R_WAVE 
 reg         stall_id_f   ; // Give time to update FLAG
 reg         stall_id_j   ; // Give time to update S_ADDR when JUMP
+reg         stall_id_rand     ; // Gives time to update rand number
 
 reg         stall_rd_core_rdt ; // Gives time to update core_r_dt after Peripheral or S_CTRL
 reg         stall_rd_port     ; // Gives time to update PORT_L & PORT_H after DPORT_RD 
@@ -105,9 +107,10 @@ reg [31:0]  reg_D_nxt [2] ;
 reg [ 1:0]  fwd_A_X1, fwd_A_X2 ;
 reg [31:0]  reg_A_nxt [2] ;
 
-reg [1:0] rfrom_core_r, rfrom_port_r, rfrom_status_r, rfrom_stime_r;  
+reg [1:0] rfrom_rand_r, rfrom_core_r, rfrom_port_r, rfrom_status_r, rfrom_stime_r;  
 
 
+assign rfrom_rand       = |rfrom_rand_r    ; // READ FROM CORE_R_DT(s6, s7)
 assign rfrom_core_rdt   = |rfrom_core_r    ; // READ FROM CORE_R_DT(s6, s7)
 assign rfrom_port       = |rfrom_port_r    ; // READ FROM IN_PORT  (s8, s9))
 assign rfrom_status     = |rfrom_status_r  ; // READ FROM STATUS   (s10)
@@ -123,6 +126,8 @@ assign wto_qp  = rd_periph_use | x1_periph_use | x2_periph_use;
 assign wto_s_cfg = (rd_reg_i.addr == 7'b0000010) | (x1_reg_i.addr == 7'b0000010) | (x2_reg_i.addr == 7'b0000010) | (wr_reg_i.addr == 7'b0000010) ;
 // SFR S_ADDR IS BEING UPDATED
 assign wto_s_addr = (rd_reg_i.addr == 7'b00_01111) | (x1_reg_i.addr == 7'b00_01111) | (x2_reg_i.addr == 7'b00_01111) ;
+// SFR S_RAND RAND IS BEING UPDATED
+assign wto_s_rand = (rd_reg_i.addr == 7'b00_00001) | (x1_reg_i.addr == 7'b00_00001) | (x2_reg_i.addr == 7'b00_00001) ;
 
 
 // (A and B) READ dreg, sreg, wreg or DMEM
@@ -133,8 +138,9 @@ generate
    for (ind_D=0; ind_D <2 ; ind_D=ind_D+1) begin
       // Check for read
       always_comb begin
-         rfrom_status_r[ind_D] = (rs_D_addr_i[ind_D][6:0] == 7'b00_01010) ; //sfr(10) _00_001010
-         rfrom_stime_r[ind_D]  = (rs_D_addr_i[ind_D][6:0] == 7'b00_01011) ; //sfr(11) _00_001011
+         rfrom_rand_r[ind_D]   = (rs_D_addr_i[ind_D][6:0] == 7'b00_00001) ; //sfr(s1) _00_000001 
+         rfrom_status_r[ind_D] = (rs_D_addr_i[ind_D][6:0] == 7'b00_01010) ; //sfr(s10) _00_001010
+         rfrom_stime_r[ind_D]  = (rs_D_addr_i[ind_D][6:0] == 7'b00_01011) ; //sfr(s11) _00_001011
          rfrom_core_r[ind_D]   = (rs_D_addr_i[ind_D][6:1] == 6'b00_0011) ; //sfr _00_ Address 6 or 7
          rfrom_port_r[ind_D]   = (rs_D_addr_i[ind_D][6:1] == 6'b00_0100) ; //sfr _00_ Address 8 or 9
       end
@@ -267,7 +273,15 @@ always_comb begin
    end
 end
 
-
+// (J) RAND Used  
+///////////////////////////////////////////////////////////////////////////////
+// 12) RAND Read after READ >>>  STALL 
+// 13) RAND Read after WRITE >>>  STALL 
+always_comb begin
+   stall_id_rand    = 1'b0    ;
+   if (wto_s_rand | rfrom_rand )
+         stall_id_rand    = 1'b1    ; 
+end
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
@@ -289,7 +303,7 @@ always_ff @ (posedge clk_i, negedge rst_ni)
    
 assign reg_A_dt_o    = reg_A;
 assign reg_D_dt_o    = reg_D;
-assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w  ;
-assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  | stall_rd_stime | stall_rd_status | stall_rd_port | stall_rd_core_rdt;
+assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w  | stall_id_rand;
+assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  | stall_rd_stime | stall_rd_status | stall_rd_port | stall_rd_core_rdt ;
 
 endmodule
