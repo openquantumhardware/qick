@@ -523,6 +523,7 @@ sync_reg # (.DW ( 2 ) ) sync_flag_ps_c (
 
 assign int_flag_set   = (int_flag_pen & core_usr_operation[0]);
 assign int_flag_clr   = (int_flag_pen & core_usr_operation[1]);
+assign int_flag_inv   = (int_flag_pen & core_usr_operation[2]);
 
 // Flag
 ///////////////////////////////////////////////////////////////////////////////
@@ -536,6 +537,7 @@ always_ff @(posedge c_clk_i) begin
       else if  ( axi_flag_clr )  axi_flag_r  <= 0 ; // CLEAR EXTERNAL FLAG
       if       ( int_flag_set )  int_flag_r  <= 1 ; // SET   INTERNAL FLAG
       else if  ( int_flag_clr )  int_flag_r  <= 0 ; // CLEAR INTERNAL FLAG
+      else if  ( int_flag_inv )  int_flag_r  <= ~int_flag_r ; // Flip INTERNAL FLAG
    end
 end
 

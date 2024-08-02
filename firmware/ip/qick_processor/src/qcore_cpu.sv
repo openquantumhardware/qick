@@ -299,9 +299,9 @@ always_comb begin
       3'b010: id_cond_ok =  alu_fS_r    ; //LT - S 
       3'b011: id_cond_ok = ~alu_fZ_r    ; //NZ -not(Z)
       3'b100: id_cond_ok = ~alu_fS_r    ; //NS -not(S)
-      3'b101: id_cond_ok =  flag_i  ; // External Flag
-      3'b110: id_cond_ok = ~flag_i  ; // NOT External Flag
-      3'b111: id_cond_ok =  0       ; // RFU
+      3'b101: id_cond_ok =  flag_i      ; // External Flag
+      3'b110: id_cond_ok = ~flag_i      ; // NOT External Flag
+      3'b111: id_cond_ok =  0           ; // RFU
    endcase
    id_cond_used      = id_type_cfg | id_type_wra | id_type_wrd | id_type_wmd | id_type_br | id_type_int_ctrl | id_type_ext_ctrl ; // Conditional Instruction
    id_flag_used      = id_cond_used & |id_COND                                        ; // Condition should be checked
