@@ -1738,7 +1738,7 @@ class AveragerProgramV2(AcquireProgramV2):
         The QICK firmware configuration dictionary.
     cfg : dict
         Your program configuration dictionary.
-        There are no required entries, this is for your use and can be accessed as self.cfg in your initialize() and body().
+        There are no required entries, this is for your use and can be accessed as self.cfg in your _initialize() and _body().
     reps : int
         Number of iterations in the "reps" loop.
     final_delay : float
@@ -1804,23 +1804,29 @@ class AveragerProgramV2(AcquireProgramV2):
         """
         self.loops.append((name, count))
 
-    def initialize(self, cfg):
+    @abstractmethod
+    def _initialize(self, cfg):
         """Do inital setup of your program and the QICK.
         This is where you should put any ASM commands (register operations, setup pulses) that need to be played before the shot loops begin.
         It's also conventional to put program declarations here (though because these are executed by Python and not the tProc it doesn't really matter, they just need to be executed).
-        """
-        pass
 
-    def body(self, cfg):
+        User code should not call this method; it's called by make_program().
+        """
+        ...
+
+    @abstractmethod
+    def _body(self, cfg):
         """Play a shot.
         This is where you should put pulses and readout triggers.
+
+        User code should not call this method; it's called by make_program().
         """
-        pass
+        ...
 
     def make_program(self):
         # play the initialization
         self.set_ext_counter(addr=self.COUNTER_ADDR)
-        self.initialize(self.cfg)
+        self._initialize(self.cfg)
         if self.initial_delay is not None:
             self.delay_auto(self.initial_delay)
 
@@ -1828,7 +1834,7 @@ class AveragerProgramV2(AcquireProgramV2):
             self.open_loop(count, name=name)
 
         # play the shot
-        self.body(self.cfg)
+        self._body(self.cfg)
         if self.final_wait is not None:
             self.wait_auto(self.final_wait)
         if self.final_delay is not None:

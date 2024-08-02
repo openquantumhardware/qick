@@ -865,7 +865,7 @@ class DummyIp:
         """
         self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
 
-class AbsQickProgram:
+class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
     QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
 
