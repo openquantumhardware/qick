@@ -1948,7 +1948,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
         """Acquire data using the decimating readout.
 
         Parameters
