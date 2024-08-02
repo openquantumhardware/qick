@@ -2,9 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_8_1
+//  Date        : 2024_8_2
 //  Version     : 3
-//  Revision    : 22
+//  Revision    : 23
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -1941,8 +1941,10 @@ class Instruction():
                 OPERATION = '_0001'
             elif (current['C_OP'] == 'clr'):
                 OPERATION = '_0010'
+            elif (current['C_OP'] == 'inv'):
+                OPERATION = '_0100'
             else:
-                error = Logger.error('Instruction.CTRL', 'Posible Operations for FLAG command are (set, clr)' )
+                error = Logger.error('Instruction.CTRL', 'Posible Operations for FLAG command are (set, clr, inv)' )
         ######### DIVISION
         elif (current ['CMD'] == 'DIV'):
             CTRL_ADDR  = '011'
