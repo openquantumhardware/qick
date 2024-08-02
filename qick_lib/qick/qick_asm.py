@@ -893,12 +893,14 @@ class AbsQickProgram:
                       'deg2reg', 'reg2deg',
                       'roundfreq']
 
-    # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
+    # if true, duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
-    # frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
+    # if true, frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
     ABSOLUTE_FREQS = False
-    # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
+    # if true, Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
     GAUSS_BUG = False
+    # if true, downconversion frequencies are sign-flipped, so they are subtracted from the signal instead of added
+    DOWNCONVERSION_SUBTRACT = False
 
     def __init__(self, soccfg):
         """
@@ -1090,7 +1092,8 @@ class AbsQickProgram:
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
-            cfg['freq'] = freq
+            if self.DOWNCONVERSION_SUBTRACT: cfg['freq'] = -freq
+            else:                            cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
             cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
         else: # readout is controlled by tProc

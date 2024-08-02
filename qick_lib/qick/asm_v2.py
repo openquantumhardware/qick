@@ -138,15 +138,17 @@ class QickSweepRaw(SimpleClass):
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __mul__(self, a):
-        # multiplying a QickSweepRaw by a Fraction yields a QickSweepRaw
-        # used when scaling parameters (e.g. flat_top segment gain)
+        # multiplying a QickSweepRaw by a int or Fraction yields a QickSweepRaw
+        # used when scaling parameters (e.g. flat_top segment gain) or flipping the sign of downconversion freqs
         # this will only happen before steps have been defined
-        if not isinstance(a, Fraction):
-            raise RuntimeError("QickSweepRaw can only be multiplied by Fraction")
         if self.steps is not None:
             raise RuntimeError("QickSweepRaw can only be multiplied before steps have been defined")
-        if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
-            raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        if isinstance(a, Fraction):
+            if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
+                raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        elif isinstance(a, int): pass
+        else:
+            raise RuntimeError("QickSweepRaw can only be multiplied by int or Fraction")
         spans = {k:int(v*a) for k,v in self.spans.items()}
         return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
     def __mod__(self, a):
@@ -977,7 +979,6 @@ class ReadoutManager(AbsRegisterManager):
         """
         pulse = QickPulse(self)
         par_map = {}
-        pulse.add_param('freq', 0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
 
@@ -999,6 +1000,11 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq']
         freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
+        if self.prog.DOWNCONVERSION_SUBTRACT:
+            freqreg *= -1
+            pulse.add_param('freq', 0, -1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
+        else:
+            pulse.add_param('freq', 0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
 
         """
         freq = self.prog.soccfg.adcfreq(f=par['freq'], ro_ch=self.ch, gen_ch=par.get('gen_ch'))
@@ -1053,6 +1059,8 @@ class QickProgramV2(AbsQickProgram):
     USER_DURATIONS = True
     # frequencies are always absolute, even if there's a digital mixer invovled
     ABSOLUTE_FREQS = True
+    # downconversion frequencies are negative
+    DOWNCONVERSION_SUBTRACT = True
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
