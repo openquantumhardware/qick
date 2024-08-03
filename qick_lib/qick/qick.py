@@ -739,6 +739,8 @@ class QickSoc(Overlay, QickConfig):
         :param addr: address to start data at
         :type addr: int
         """
+        # we may have converted to list for pyro compatiblity, so convert back to ndarray
+        data = np.array(data, dtype=np.int16)
         return self.gens[ch].load(xin=data, addr=addr)
 
     def set_nyquist(self, ch, nqz, force=False):
