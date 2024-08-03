@@ -138,15 +138,17 @@ class QickSweepRaw(SimpleClass):
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __mul__(self, a):
-        # multiplying a QickSweepRaw by a Fraction yields a QickSweepRaw
-        # used when scaling parameters (e.g. flat_top segment gain)
+        # multiplying a QickSweepRaw by a int or Fraction yields a QickSweepRaw
+        # used when scaling parameters (e.g. flat_top segment gain) or flipping the sign of downconversion freqs
         # this will only happen before steps have been defined
-        if not isinstance(a, Fraction):
-            raise RuntimeError("QickSweepRaw can only be multiplied by Fraction")
         if self.steps is not None:
             raise RuntimeError("QickSweepRaw can only be multiplied before steps have been defined")
-        if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
-            raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        if isinstance(a, Fraction):
+            if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
+                raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
+        elif isinstance(a, int): pass
+        else:
+            raise RuntimeError("QickSweepRaw can only be multiplied by int or Fraction")
         spans = {k:int(v*a) for k,v in self.spans.items()}
         return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
     def __mod__(self, a):
@@ -977,7 +979,6 @@ class ReadoutManager(AbsRegisterManager):
         """
         pulse = QickPulse(self)
         par_map = {}
-        pulse.add_param('freq', 0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
 
@@ -999,6 +1000,11 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq']
         freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
+        if self.prog.FLIP_DOWNCONVERSION:
+            freqreg *= -1
+            pulse.add_param('freq', 0, -1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
+        else:
+            pulse.add_param('freq', 0, 1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
 
         """
         freq = self.prog.soccfg.adcfreq(f=par['freq'], ro_ch=self.ch, gen_ch=par.get('gen_ch'))
@@ -1053,6 +1059,8 @@ class QickProgramV2(AbsQickProgram):
     USER_DURATIONS = True
     # frequencies are always absolute, even if there's a digital mixer invovled
     ABSOLUTE_FREQS = True
+    # downconversion frequencies are negative
+    FLIP_DOWNCONVERSION = True
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
@@ -1152,7 +1160,7 @@ class QickProgramV2(AbsQickProgram):
 
     def _compile_waves(self):
         if self.waves:
-            return np.stack([w.compile() for w in self.waves])
+            return [w.compile().tolist() for w in self.waves]
         else:
             return None
 
@@ -1730,7 +1738,7 @@ class AveragerProgramV2(AcquireProgramV2):
         The QICK firmware configuration dictionary.
     cfg : dict
         Your program configuration dictionary.
-        There are no required entries, this is for your use and can be accessed as self.cfg in your initialize() and body().
+        There are no required entries, this is for your use and can be accessed as self.cfg in your _initialize() and _body().
     reps : int
         Number of iterations in the "reps" loop.
     final_delay : float
@@ -1748,15 +1756,21 @@ class AveragerProgramV2(AcquireProgramV2):
         This should allow enough time for the tProcessor to execute your initialization commands.
         The default of 1 us is usually sufficient.
         A value of None will disable this behavior (and you should insert appropriate delay/delay_auto statements in your initialization).
+    reps_innermost : bool
+        If true, the "reps" loop will be the innermost loop (sweep once and take N shots at each step).
+        Time-varying behavior will tend to appear as wiggles/jumps.
+        If false, reps will be outermost (sweep N times and take 1 shot at each step).
+        Time-varying behavior will tend to be averaged out.
     """
 
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, cfg=None):
+    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, reps_innermost=False, cfg=None):
         self.cfg = {} if cfg is None else cfg.copy()
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
         self.initial_delay = initial_delay
+        self.reps_innermost = reps_innermost
         super().__init__(soccfg)
 
         # fill the program
@@ -1794,25 +1808,34 @@ class AveragerProgramV2(AcquireProgramV2):
         count : int
             Number of iterations for this loop.
         """
-        self.loops.append((name, count))
+        if self.reps_innermost:
+            self.loops.insert(len(self.loops)-1, (name, count))
+        else:
+            self.loops.append((name, count))
 
-    def initialize(self, cfg):
+    @abstractmethod
+    def _initialize(self, cfg):
         """Do inital setup of your program and the QICK.
         This is where you should put any ASM commands (register operations, setup pulses) that need to be played before the shot loops begin.
         It's also conventional to put program declarations here (though because these are executed by Python and not the tProc it doesn't really matter, they just need to be executed).
-        """
-        pass
 
-    def body(self, cfg):
+        User code should not call this method; it's called by make_program().
+        """
+        ...
+
+    @abstractmethod
+    def _body(self, cfg):
         """Play a shot.
         This is where you should put pulses and readout triggers.
+
+        User code should not call this method; it's called by make_program().
         """
-        pass
+        ...
 
     def make_program(self):
         # play the initialization
         self.set_ext_counter(addr=self.COUNTER_ADDR)
-        self.initialize(self.cfg)
+        self._initialize(self.cfg)
         if self.initial_delay is not None:
             self.delay_auto(self.initial_delay)
 
@@ -1820,7 +1843,7 @@ class AveragerProgramV2(AcquireProgramV2):
             self.open_loop(count, name=name)
 
         # play the shot
-        self.body(self.cfg)
+        self._body(self.cfg)
         if self.final_wait is not None:
             self.wait_auto(self.final_wait)
         if self.final_delay is not None:

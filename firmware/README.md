@@ -213,13 +213,15 @@ BRAM: 8 tiles for typical N=10
 
 ### resonator emulator (`axis_pfba_pr_4x256_v1`, `axis_kidsim_v3`, `axis_pfbs_pr_4x256_v1`):
 
-RFDC ADC settings:
+RFDC ADC settings on 216:
 * Digital Output Data: I/Q
 * Decimation Mode: 2x
 * Samples per AXI4-Stream Cycle: 8
 * Mixer Type: Coarse
 * Mixer Mode: Real->I/Q
 * Frequency: -Fs/4
+
+on 4x2/111, 4 samples per cycle; between RFDC and analysis chain need a combiner then reorder IQ (B=16 L=4)
 
 kidsim L=8
 

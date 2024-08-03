@@ -287,7 +287,11 @@ class QickConfig():
             rounded frequency (MHz)
         """
         fstep = self.calc_fstep(dicts)
-        return np.round(f/fstep) * fstep
+        rounded = np.round(f/fstep) * fstep
+        # for pyro compatibility, cast scalars to Python float
+        if isinstance(rounded, np.ScalarType):
+            rounded = float(rounded)
+        return rounded
 
     def freq2int(self, f, thisch, otherch=None):
         """Converts frequency in MHz to integer value suitable for writing to a register.
@@ -728,7 +732,7 @@ class QickConfig():
             raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
         return ro_regs
 
-    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq):
+    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq, flip_freq=False):
         """Calculate the readout frequency and registers.
         """
         gen_ch = ro_pars['gen_ch']
@@ -752,6 +756,7 @@ class QickConfig():
         else:
             # round to RO frequency
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
+        if flip_freq: ro_regs['f_rounded'] *= -1
 
         # calculate the freq register(s)
         if 'pfb_nout' in rocfg:
@@ -760,6 +765,7 @@ class QickConfig():
         else:
             # for regular readout, this is easy
             ro_regs['f_int'] = self.freq2int(ro_regs['f_rounded'], rocfg)
+        if flip_freq: ro_regs['f_rounded'] *= -1
 
     def _calc_pfbro_freq(self, rocfg, ro_regs):
         """Calculate the PFB settings to configure a muxed readout.
@@ -865,7 +871,7 @@ class DummyIp:
         """
         self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
 
-class AbsQickProgram:
+class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
     QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
 
@@ -893,12 +899,14 @@ class AbsQickProgram:
                       'deg2reg', 'reg2deg',
                       'roundfreq']
 
-    # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
+    # if true, duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
-    # frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
+    # if true, frequencies in declare_gen, declare_ro are absolute output freqs (as opposed to being relative to the generator's mixer or the freq-matched generator's mixer)
     ABSOLUTE_FREQS = False
-    # Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
+    # if true, Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
     GAUSS_BUG = False
+    # if true, downconversion frequencies are sign-flipped, so they are subtracted from the signal instead of added
+    FLIP_DOWNCONVERSION = False
 
     def __init__(self, soccfg):
         """
@@ -1119,7 +1127,7 @@ class AbsQickProgram:
                     mixer_freq = 0
                 # add frequency
                 ro_regs = cfg['ro_config']
-                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq)
+                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq, self.FLIP_DOWNCONVERSION)
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, don't write the settings yet
                     ro_regs['pfb_port'] = rocfg['pfb_port']
@@ -1457,10 +1465,13 @@ class AbsQickProgram:
             Qick object
 
         """
+        # for pyro compatibility, convert numpy arrays to Python lists
         for iCh, pulses in enumerate(self.envelopes):
             for name, pulse in pulses['envs'].items():
+                data = pulse['data']
+                assert data.dtype==np.int16
                 soc.load_pulse_data(iCh,
-                        data=pulse['data'],
+                        data=data.tolist(),
                         addr=pulse['addr'])
 
     def reset_timestamps(self, gen_t0=None):
@@ -1945,7 +1956,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
         """Acquire data using the decimating readout.
 
         Parameters
