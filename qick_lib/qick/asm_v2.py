@@ -1000,7 +1000,7 @@ class ReadoutManager(AbsRegisterManager):
             f_dds = par['freq']
         freqreg = self.prog.freq2reg_adc(ro_ch=self.ch, f=f_dds, gen_ch=par.get('gen_ch'))
         freqreg += self.prog.freq2reg_adc(ro_ch=self.ch, f=mixer_freq)
-        if self.prog.DOWNCONVERSION_SUBTRACT:
+        if self.prog.FLIP_DOWNCONVERSION:
             freqreg *= -1
             pulse.add_param('freq', 0, -1/self.prog.reg2freq_adc(r=1, ro_ch=self.ch))
         else:
@@ -1060,7 +1060,7 @@ class QickProgramV2(AbsQickProgram):
     # frequencies are always absolute, even if there's a digital mixer invovled
     ABSOLUTE_FREQS = True
     # downconversion frequencies are negative
-    DOWNCONVERSION_SUBTRACT = True
+    FLIP_DOWNCONVERSION = True
 
     def __init__(self, soccfg):
         super().__init__(soccfg)

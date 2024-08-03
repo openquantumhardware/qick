@@ -732,7 +732,7 @@ class QickConfig():
             raise RuntimeError("phase parameter was specified for readout %d, which doesn't support this parameter" % (ch))
         return ro_regs
 
-    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq):
+    def calc_ro_freq(self, rocfg, ro_pars, ro_regs, absolute_freqs, mixer_freq, flip_freq=False):
         """Calculate the readout frequency and registers.
         """
         gen_ch = ro_pars['gen_ch']
@@ -756,6 +756,7 @@ class QickConfig():
         else:
             # round to RO frequency
             ro_regs['f_rounded'] = self.roundfreq(ro_pars['freq'], [rocfg])
+        if flip_freq: ro_regs['f_rounded'] *= -1
 
         # calculate the freq register(s)
         if 'pfb_nout' in rocfg:
@@ -764,6 +765,7 @@ class QickConfig():
         else:
             # for regular readout, this is easy
             ro_regs['f_int'] = self.freq2int(ro_regs['f_rounded'], rocfg)
+        if flip_freq: ro_regs['f_rounded'] *= -1
 
     def _calc_pfbro_freq(self, rocfg, ro_regs):
         """Calculate the PFB settings to configure a muxed readout.
@@ -904,7 +906,7 @@ class AbsQickProgram(ABC):
     # if true, Gaussian and DRAG definitions use incorrect original definition, which gives a pulse that is too narrow by sqrt(2)
     GAUSS_BUG = False
     # if true, downconversion frequencies are sign-flipped, so they are subtracted from the signal instead of added
-    DOWNCONVERSION_SUBTRACT = False
+    FLIP_DOWNCONVERSION = False
 
     def __init__(self, soccfg):
         """
@@ -1096,8 +1098,7 @@ class AbsQickProgram(ABC):
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
-            if self.DOWNCONVERSION_SUBTRACT: cfg['freq'] = -freq
-            else:                            cfg['freq'] = freq
+            cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
             cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
         else: # readout is controlled by tProc
@@ -1126,7 +1127,7 @@ class AbsQickProgram(ABC):
                     mixer_freq = 0
                 # add frequency
                 ro_regs = cfg['ro_config']
-                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq)
+                self.soccfg.calc_ro_freq(rocfg, cfg, ro_regs, self.ABSOLUTE_FREQS, mixer_freq, self.FLIP_DOWNCONVERSION)
                 if 'pfb_port' in rocfg:
                     # if this is a muxed readout, don't write the settings yet
                     ro_regs['pfb_port'] = rocfg['pfb_port']
