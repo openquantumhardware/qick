@@ -287,7 +287,11 @@ class QickConfig():
             rounded frequency (MHz)
         """
         fstep = self.calc_fstep(dicts)
-        return np.round(f/fstep) * fstep
+        rounded = np.round(f/fstep) * fstep
+        # for pyro compatibility, cast scalars to Python float
+        if isinstance(rounded, np.ScalarType):
+            rounded = float(rounded)
+        return rounded
 
     def freq2int(self, f, thisch, otherch=None):
         """Converts frequency in MHz to integer value suitable for writing to a register.
@@ -1460,10 +1464,13 @@ class AbsQickProgram(ABC):
             Qick object
 
         """
+        # for pyro compatibility, convert numpy arrays to Python lists
         for iCh, pulses in enumerate(self.envelopes):
             for name, pulse in pulses['envs'].items():
+                data = pulse['data']
+                assert data.dtype==np.int16
                 soc.load_pulse_data(iCh,
-                        data=pulse['data'],
+                        data=data.tolist(),
                         addr=pulse['addr'])
 
     def reset_timestamps(self, gen_t0=None):

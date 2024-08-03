@@ -1160,7 +1160,7 @@ class QickProgramV2(AbsQickProgram):
 
     def _compile_waves(self):
         if self.waves:
-            return np.stack([w.compile() for w in self.waves])
+            return [w.compile().tolist() for w in self.waves]
         else:
             return None
 
