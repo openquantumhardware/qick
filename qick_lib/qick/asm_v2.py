@@ -1756,15 +1756,21 @@ class AveragerProgramV2(AcquireProgramV2):
         This should allow enough time for the tProcessor to execute your initialization commands.
         The default of 1 us is usually sufficient.
         A value of None will disable this behavior (and you should insert appropriate delay/delay_auto statements in your initialization).
+    reps_innermost : bool
+        If true, the "reps" loop will be the innermost loop (sweep once and take N shots at each step).
+        Time-varying behavior will tend to appear as wiggles/jumps.
+        If false, reps will be outermost (sweep N times and take 1 shot at each step).
+        Time-varying behavior will tend to be averaged out.
     """
 
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, cfg=None):
+    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, reps_innermost=False, cfg=None):
         self.cfg = {} if cfg is None else cfg.copy()
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
         self.initial_delay = initial_delay
+        self.reps_innermost = reps_innermost
         super().__init__(soccfg)
 
         # fill the program
@@ -1802,7 +1808,10 @@ class AveragerProgramV2(AcquireProgramV2):
         count : int
             Number of iterations for this loop.
         """
-        self.loops.append((name, count))
+        if self.reps_innermost:
+            self.loops.insert(len(self.loops)-1, (name, count))
+        else:
+            self.loops.append((name, count))
 
     @abstractmethod
     def _initialize(self, cfg):
