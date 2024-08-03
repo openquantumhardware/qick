@@ -187,7 +187,7 @@ class ReadoutManager(AbsRegisterManager):
         outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
         mode_reg = {"oneshot": 0, "periodic": 1}[mode]
         mc = phrst*0b01000+mode_reg*0b00100+outsel_reg
-        return mc << 16 | np.uint16(length)
+        return mc << 16 | int(np.uint16(length))
 
 
 class AbsGenManager(AbsRegisterManager):
@@ -268,7 +268,7 @@ class AbsGenManager(AbsRegisterManager):
         mode_reg = {"oneshot": 0, "periodic": 1}[mode]
         outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
         mc = phrst*0b10000+stdysel_reg*0b01000+mode_reg*0b00100+outsel_reg
-        return mc << 16 | np.uint16(length)
+        return mc << 16 | int(np.uint16(length))
 
 class FullSpeedGenManager(AbsGenManager):
     """Manager for the full-speed (non-interpolated, non-muxed) signal generators.

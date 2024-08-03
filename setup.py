@@ -154,9 +154,9 @@ setup(
     # If you're not installing this on a Zynq, you won't be able to use qick.py (hardware interface)
     # but qick_asm.py, averager_program.py, and the notebooks should still work.
     # All current PYNQ OS versions use NumPy 1.xx, which is pickle-incompatible with NumPy 2.0.
-    # You therefore shouldn't use the QICK library on a PC running NumPy 2.0.
+    # We may therefore lose compatibility with the QICK library on a PC running NumPy 2.0.
     install_requires=[
-        "numpy<2.0",
+        "numpy",
         "pynq>=2.6;platform_machine=='aarch64' or platform_machine=='armv7l'",
         "tqdm", # Optional
     ],
