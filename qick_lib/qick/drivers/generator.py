@@ -458,10 +458,24 @@ class AxisSgMux8V1(AbsMuxSignalGen):
     """
     AxisSgMux8V1
 
-    AXIS Signal Generator with 8 muxed outputs.
+    AXIS Signal Generator with 8 muxed outputs, fullspeed (no DAC mixer).
     """
     bindto = ['user.org:user:axis_sg_mux8_v1:1.0']
     HAS_MIXER = False
+    B_DDS = 32
+    N_TONES = 8
+    HAS_GAIN = True
+    HAS_PHASE = True
+    B_PHASE = 32
+
+class AxisSgMixMux8V1(AbsMuxSignalGen):
+    """
+    AxisSgMux8V1
+
+    AXIS Signal Generator with 8 muxed outputs, using DAC mixer.
+    """
+    bindto = ['user.org:user:axis_sg_mixmux8_v1:1.0']
+    HAS_MIXER = True
     B_DDS = 32
     N_TONES = 8
     HAS_GAIN = True

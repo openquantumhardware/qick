@@ -413,7 +413,7 @@ class AxisPFBReadoutV4(AxisPFBReadoutV3):
     # Number of outputs.
     NOUT = 8
 
-class AxisReadoutV3(AbsReadout):
+class AbsDynReadout(AbsReadout):
     """tProc-controlled readout block.
     This isn't a PYNQ driver, since the block has no registers for PYNQ control.
     We still need this class to represent the block and its connectivity.
@@ -422,13 +422,43 @@ class AxisReadoutV3(AbsReadout):
     B_DDS = 32
     B_PHASE = 32
 
+    # Output mode selection is supported.
+    HAS_OUTSEL = True
+
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+
+        self.soc = soc
+
+        # what tProc output port controls this readout?
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's0_axis', ["axis_tproc64x32_x8", "qick_processor", "axis_tmux_v1"])
+
+        if blocktype == "axis_tmux_v1":
+            # which tmux port drives this generator?
+            # port names are of the form 'm2_axis'
+            self.cfg['tmux_ch'] = int(port.split('_')[0][1:])
+            ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
+
+        # ask the tproc to translate this port name to a channel number
+        self.cfg['tproc_ctrl'],_ = getattr(soc, block).port2ch(port)
+
+        # what RFDC port drives this readout?
+        block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
+
+        # port names are of the form 'm02_axis' where the block number is always even
+        self.adc = port[1:3]
+
+        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
+
+class AxisReadoutV3(AbsDynReadout):
+    """tProc-controlled readout block.
+    This isn't a PYNQ driver, since the block has no registers for PYNQ control.
+    We still need this class to represent the block and its connectivity.
+    """
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 4
 
     IQ_OFFSET = -0.5
-
-    # Output mode selection is supported.
-    HAS_OUTSEL = True
 
     def __init__(self, fullpath):
         super().__init__("axis_readout_v3", fullpath)
@@ -438,67 +468,18 @@ class AxisReadoutV3(AbsReadout):
         # there is a 2x1 resampler between the RFDC and readout, which doubles the effective fabric frequency.
         self.cfg['f_fabric'] *= 2
 
-    def configure_connections(self, soc):
-        super().configure_connections(soc)
-
-        self.soc = soc
-
-        # what tProc output port controls this readout?
-        block, port, _ = soc.metadata.trace_back(self['fullpath'], 's0_axis', ["axis_tproc64x32_x8", "qick_processor"])
-
-        # ask the tproc to translate this port name to a channel number
-        self.cfg['tproc_ctrl'],_ = getattr(soc, block).port2ch(port)
-
-        # what RFDC port drives this readout?
-        block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
-
-        # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
-
-        """
-        # what buffer does this readout drive?
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 'm_axis')
-        self.buffer = getattr(soc, block)
-        """
-
-        #print("%s: ADC tile %s block %s, buffer %s"%(self.fullpath, *self.adc, self.buffer.fullpath))
-
-class AxisDynReadoutV1(AbsReadout):
+class AxisDynReadoutV1(AbsDynReadout):
     """tProc-controlled readout block.
     This isn't a PYNQ driver, since the block has no registers for PYNQ control.
     We still need this class to represent the block and its connectivity.
     """
-    # Bits of DDS.
-    B_DDS = 32
-    B_PHASE = 32
-
     # Downsampling ratio (RFDC samples per decimated readout sample)
     DOWNSAMPLING = 8
 
     IQ_OFFSET = 0.0
 
-    # Output mode selection is supported.
-    HAS_OUTSEL = True
-
     def __init__(self, fullpath):
         super().__init__("axis_dyn_readout_v1", fullpath)
-
-    def configure_connections(self, soc):
-        super().configure_connections(soc)
-
-        self.soc = soc
-
-        # what tProc output port controls this readout?
-        block, port, _ = soc.metadata.trace_back(self['fullpath'], 's0_axis', ["axis_tproc64x32_x8", "qick_processor"])
-
-        # ask the tproc to translate this port name to a channel number
-        self.cfg['tproc_ctrl'],_ = getattr(soc, block).port2ch(port)
-
-        # what RFDC port drives this readout?
-        block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
-
-        # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
 
 class AxisAvgBuffer(SocIp):
     """
