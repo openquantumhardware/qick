@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from fractions import Fraction
+import copy
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
@@ -1167,7 +1168,9 @@ class QickProgramV2(AbsQickProgram):
         self._make_binprog()
 
     def _compile_prog(self):
-        _, p_mem = Assembler.list2bin(self.prog_list, self.labels)
+        # the assembler modifies some of the command dicts, so do a copy first
+        plist_copy = copy.deepcopy(self.prog_list)
+        _, p_mem = Assembler.list2bin(plist_copy, self.labels)
         return p_mem
 
     def _compile_waves(self):
