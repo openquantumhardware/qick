@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import NamedTuple, Union, List, Dict, Tuple
 from abc import ABC, abstractmethod
 from fractions import Fraction
+import copy
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
@@ -678,8 +679,10 @@ class AbsRegisterManager(ABC):
         # the name of this block (for messages)
         self.ch_name = ch_name
         # the following will be set by subclass:
-        # the tProc output channel controlled by this manager
+        # the tProc output channel that connects to this block
         self.tproc_ch = None
+        # if a tProc mux is used, the mux channel that connects to this block
+        self.tmux_ch = None
         # the clock frequency to use for converting time units
         self.f_clk = None
 
@@ -749,7 +752,11 @@ class AbsRegisterManager(ABC):
         outsel_reg = {"product": 0, "dds": 1, "input": 2, "zero": 3}[outsel]
         mode_reg = {"oneshot": 0, "periodic": 1}[mode]
         stdysel_reg = {"last": 0, "zero": 1}[stdysel]
-        return phrst*0b010000 + stdysel_reg*0b01000 + mode_reg*0b00100 + outsel_reg
+
+        cfgreg = phrst*0b010000 + stdysel_reg*0b01000 + mode_reg*0b00100 + outsel_reg
+        if self.tmux_ch is not None:
+            cfgreg += (self.tmux_ch << 8)
+        return cfgreg
 
 class AbsGenManager(AbsRegisterManager):
     """Manages the envelope and pulse information for a signal generator channel.
@@ -762,6 +769,7 @@ class AbsGenManager(AbsRegisterManager):
         chcfg = prog.soccfg['gens'][gen_ch]
         super().__init__(prog, chcfg, "generator %d"%(gen_ch))
         self.tproc_ch = chcfg['tproc_ch']
+        self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_fabric']
         self.samps_per_clk = self.chcfg['samps_per_clk']
 
@@ -922,13 +930,16 @@ class MultiplexedGenManager(AbsGenManager):
     PARAMS_OPTIONAL = {'const': []}
 
     def params2wave(self, maskreg, lenreg):
+        cfgreg = maskreg
+        if self.tmux_ch is not None:
+            cfgreg += (self.tmux_ch << 8)
         if isinstance(lenreg, QickSweepRaw):
             if lenreg.maxval() >= 2**32 or lenreg.minval() < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         else:
             if lenreg >= 2**32 or lenreg < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
-        wavereg = Waveform(freq=0, phase=0, env=0, gain=0, length=lenreg, conf=maskreg)
+        wavereg = Waveform(freq=0, phase=0, env=0, gain=0, length=lenreg, conf=cfgreg)
         return wavereg
 
     def params2pulse(self, par):
@@ -956,6 +967,7 @@ class ReadoutManager(AbsRegisterManager):
         chcfg = prog.soccfg['readouts'][self.ch]
         super().__init__(prog, chcfg, "readout %d"%(self.ch))
         self.tproc_ch = chcfg['tproc_ctrl']
+        self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_output']
 
     def check_params(self, params):
@@ -1053,6 +1065,7 @@ class QickProgramV2(AbsQickProgram):
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
                 'axis_sg_mux8_v1': MultiplexedGenManager,
+                'axis_sg_mixmux8_v1': MultiplexedGenManager,
                 }
 
     # duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
@@ -1155,7 +1168,9 @@ class QickProgramV2(AbsQickProgram):
         self._make_binprog()
 
     def _compile_prog(self):
-        _, p_mem = Assembler.list2bin(self.prog_list, self.labels)
+        # the assembler modifies some of the command dicts, so do a copy first
+        plist_copy = copy.deepcopy(self.prog_list)
+        _, p_mem = Assembler.list2bin(plist_copy, self.labels)
         return p_mem
 
     def _compile_waves(self):
