@@ -836,7 +836,7 @@ class StandardGenManager(AbsGenManager):
         par : dict
             Pulse parameters
         """
-        phrst_gens = ['axis_signal_gen_v6', 'axis_sg_int4_v1']
+        phrst_gens = ['axis_signal_gen_v6', 'axis_sg_int4_v1', 'axis_sg_int4_v2']
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
@@ -917,7 +917,7 @@ class StandardGenManager(AbsGenManager):
             pulse.add_wave(self.params2wave(**w2))
             pulse.add_wave(self.params2wave(**w3))
 
-            if self.chcfg['type'] == 'axis_sg_int4_v1':
+            if self.chcfg['type'] in ['axis_sg_int4_v1', 'axis_sg_int4_v2']:
                 # workaround for FIR bug: we play a zero-gain min-length DDS pulse after the ramp-down, which brings the FIR to zero
                 pulse.add_wave(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
 
@@ -1061,6 +1061,7 @@ class QickProgramV2(AbsQickProgram):
                 'axis_signal_gen_v5': StandardGenManager,
                 'axis_signal_gen_v6': StandardGenManager,
                 'axis_sg_int4_v1': StandardGenManager,
+                'axis_sg_int4_v2': StandardGenManager,
                 'axis_sg_mux4_v1': MultiplexedGenManager,
                 'axis_sg_mux4_v2': MultiplexedGenManager,
                 'axis_sg_mux4_v3': MultiplexedGenManager,
