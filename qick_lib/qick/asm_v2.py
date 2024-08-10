@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class QickSpan(NamedTuple):
     """Defines a sweep axis.
     A QickSpan equals 0 at the start of the specified loop, and the specified "span" value at the end of the loop.
-    You may sum QickSpan objects and floats to build a multi-dimensional QickSweep.
+    You may sum QickSpan objects and floats to build a multi-dimensional QickSweepV2.
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ class QickSpan(NamedTuple):
     def _to_sweep(self):
         # convert to sweep
         # helper for math ops and to_int()
-        return QickSweep(0, {self.loop:self.span})
+        return QickSweepV2(0, {self.loop:self.span})
     def to_int(self, scale, quantize, parname, trunc=False):
         # this will get called if you use a single QickSpan as a parameter
         return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname, trunc=trunc)
@@ -45,7 +45,7 @@ class QickSpan(NamedTuple):
         return QickSpan(loop=self.loop, span=-self.span)
 
 # user units, multi-dimension
-class QickSweep(NamedTuple):
+class QickSweepV2(NamedTuple):
     start: float
     spans: dict
     def to_int(self, scale, quantize, parname, trunc=False):
@@ -55,7 +55,7 @@ class QickSweep(NamedTuple):
     def __add__(self, a):
         newstart = self.start
         newspans = self.spans.copy()
-        if isinstance(a, QickSweep):
+        if isinstance(a, QickSweepV2):
             newstart += a.start
             for loop, r in a.spans.items():
                 newspans[loop] = newspans.get(loop, 0) + r
@@ -63,11 +63,11 @@ class QickSweep(NamedTuple):
             newspans[a.loop] = newspans.get(a.loop, 0) + a.span
         else:
             newstart += a
-        return QickSweep(newstart, newspans)
+        return QickSweepV2(newstart, newspans)
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickSweep(-self.start, {k:-v for k,v in self.spans.items()})
+        return QickSweepV2(-self.start, {k:-v for k,v in self.spans.items()})
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
@@ -88,7 +88,7 @@ class QickSweep(NamedTuple):
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
-    """Convenience shortcut for a one-dimensional QickSweep.
+    """Convenience shortcut for a one-dimensional QickSweepV2.
 
     Parameters
     ----------
@@ -157,14 +157,14 @@ class QickSweepRaw(SimpleClass):
         # do nothing - mod will be applied when compiling the Waveform
         return self
     def __truediv__(self, a):
-        # dividing a QickSweepRaw by a number yields a QickSweep
+        # dividing a QickSweepRaw by a number yields a QickSweepV2
         # this is used to convert duration to us (for updating timestamps)
         # or generally to convert sweeps back to user units (for getting sweep points)
         # this will only happen after steps have been defined
         if self.steps is None:
             raise RuntimeError("QickSweepRaw can only be divided after steps have been defined")
         spans = {k:v['span']/a for k,v in self.steps.items()}
-        return QickSweep(self.start/a, spans)
+        return QickSweepV2(self.start/a, spans)
     def __iadd__(self, a):
         # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
         self.start += a
@@ -273,7 +273,7 @@ class QickPulse(SimpleClass):
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
-    def __init__(self, name: str=None, addr: int=None, sweep: QickSweep=None):
+    def __init__(self, name: str=None, addr: int=None, sweep: QickSweepV2=None):
         self.name = name
         self.addr = addr
         self.sweep = sweep
@@ -390,7 +390,7 @@ class Wait(Macro):
                 wait = None
             else:
                 wait += max_t
-        if isinstance(wait, QickSweep):
+        if isinstance(wait, QickSweepV2):
             # TODO: maybe rounding up should be optional?
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
             # TODO: disable warning at end of shot?
@@ -1365,9 +1365,9 @@ class QickProgramV2(AbsQickProgram):
             readout channel (index in 'readouts' list)
         name : str
             name of the config
-        freq : float or QickSweep
+        freq : float or QickSweepV2
             Frequency (MHz)
-        phase : float or QickSweep
+        phase : float or QickSweepV2
             Phase (degrees)
         phrst : int
             If 1, it resets the DDS phase. The default is 0.
@@ -1375,14 +1375,14 @@ class QickProgramV2(AbsQickProgram):
             Selects whether the output is "oneshot" (the default) or "periodic."
         outsel : str
             Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
-        length : float or QickSweep
+        length : float or QickSweepV2
             The duration (us) of the config pulse. The default is the shortest possible length.
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
 
     def get_pulse_param(self, pulsename, parname, as_array=False):
         """Get the fully rounded value of a pulse parameter, in the same units that are used to specify the parameter in add_pulse().
-        By default, a swept parameter will be returned as a QickSweep.
+        By default, a swept parameter will be returned as a QickSweepV2.
         If instead you ask for an array, the array will have a dimension for each loop where the parameter is swept.
         The dimensions will be ordered by the loop order.
 
@@ -1396,11 +1396,11 @@ class QickProgramV2(AbsQickProgram):
         parname : str
             Name of the parameter
         as_array : bool
-            If the parameter is swept, return an array instead of a QickSweep
+            If the parameter is swept, return an array instead of a QickSweepV2
 
         Returns
         -------
-        float, QickSweep, or array
+        float, QickSweepV2, or array
             Parameter value
         """
         # if the parameter is swept, it's not fully defined until the loop macros have been processed
@@ -1413,7 +1413,7 @@ class QickProgramV2(AbsQickProgram):
         else:
             param = pulse.get_param(parname)
 
-        if as_array and isinstance(param, QickSweep):
+        if as_array and isinstance(param, QickSweepV2):
             allpoints = None
             for name, n in self.loop_dict.items():
                 if name in param.spans:
@@ -1691,7 +1691,7 @@ class QickProgramV2(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             pulse name (as used in add_pulse())
-        t : float, QickSweep, or "auto"
+        t : float, QickSweepV2, or "auto"
             time (us), or the end of the last pulse on this generator
         """
         self.add_macro(Pulse(ch=ch, name=name, t=t))
@@ -1705,7 +1705,7 @@ class QickProgramV2(AbsQickProgram):
             readout channel (index in 'readouts' list)
         name : str
             config name (as used in add_readoutconfig())
-        t : float or QickSweep
+        t : float or QickSweepV2
             time (us)
         """
         self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
@@ -1719,11 +1719,11 @@ class QickProgramV2(AbsQickProgram):
             readout channels to trigger (index in 'readouts' list)
         pins : list of int
             output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float, QickSweep, or None
+        t : float, QickSweepV2, or None
             time (us)
             if None, the current value of the time register (s14) will be used
             in this case, the channel timestamps will not be updated
-        width : float or QickSweep
+        width : float or QickSweepV2
             pulse width (us), default of 10 cycles of the tProc timing clock
         ddr4 : bool
             trigger the DDR4 buffer
