@@ -669,6 +669,280 @@ class CondJump(Macro):
         insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
         return insts
 
+class AsmV2:
+    """A list of tProc v2 assembly instructions.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.macro_list = []
+
+        # pass through any init arguments
+        super().__init__(*args, **kwargs)
+
+    # start of ASM code
+    def add_macro(self, macro):
+        """Add a macro to the program's macro list.
+
+        Parameters
+        ----------
+        macro : Macro
+            macro to be added
+        """
+        self.macro_list.append(macro)
+
+    def asm_inst(self, inst, addr_inc=1):
+        """Add a macro-wrapped ASM instruction to the program's macro list.
+        If you are mixing ASM and macros (you probably are), this is what you want to use.
+
+        Parameters
+        ----------
+        inst : dict
+            ASM instruction in dictionary format
+        addr_inc : int
+            number of machine-code words this instruction will occupy. Only used for WAIT.
+        """
+        self.add_macro(AsmInst(inst=inst, addr_inc=addr_inc))
+
+    # low-level macros
+
+    def label(self, label):
+        """Apply the specified label to the next instruction.
+        If the next instruction is a macro that expands to multiple ASM instructions, the label goes on the first ASM instruction.
+        That's what you want.
+
+        Parameters
+        ----------
+        label : str
+            label to be applied
+        """
+        self.add_macro(Label(label=label))
+
+    def nop(self):
+        """Do a NOP instruction.
+        This is a no-op - it doesn't do anything except waste a tProcessor cycle.
+        """
+        self.asm_inst({'CMD': 'NOP'})
+
+    def end(self):
+        """Do an END instruction, which will end execution.
+        This is implemented as an infinite loop (the v2 doesn't really have an "end" state).
+        """
+        self.add_macro(End())
+
+    def set_ext_counter(self, addr=1, val=0):
+        """Set one of the externally readable registers.
+        This is usually used to initialize the shot counter.
+
+        Parameters
+        ----------
+        addr : int
+            register number, 1 or 2
+        val : int
+            value to write (signed 32-bit)
+        """
+        # initialize the data counter
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_macro(SetReg(reg=reg, val=val))
+
+    def inc_ext_counter(self, addr=1, val=1):
+        """Increment one of the externally readable registers.
+        This is usually used to increment the shot counter.
+
+        Parameters
+        ----------
+        addr : int
+            register number, 1 or 2
+        val : int
+            value to add (signed 32-bit)
+        """
+        # increment the data counter
+        reg = {1:'s12', 2:'s13'}[addr]
+        self.add_macro(IncReg(reg=reg, val=val))
+
+    # feedback and branching
+    def read(self, ro_ch):
+        """Read an accumulated I/Q value from one of the tProc inputs.
+        The readout must have already pushed the value into the input, otherwise you will get a stale value.
+        The value you read gets stored in two special registers (s8/s9, aka port_l/port_h or I/Q) until you are ready to use it.
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        """
+        self.add_macro(Read(ro_ch=ro_ch))
+
+    def cond_jump(self, label, reg1, test, op=None, val2=None, reg2=None):
+        """Do a conditional jump (do a test, then jump if the test passes).
+        A test is done by executing an operation on two operands and testing the resulting value.
+        If val2 and reg2 are both None, the test will just use reg1, no operation.
+
+        Parameters
+        ----------
+        label : str
+            the label to jump to
+        reg1 : str
+            the name of the register for operand 1
+        test: str
+            the name of the test: 1/0 (always/never), Z/NZ (==0/!=0), S/NS (<0/>=0), F/NF (external flag)
+        op : str
+            the name of the operation: +, -, AND (bitwise AND, &), or ASR (shift-right, >>)
+        val2 : int
+            24-bit signed value for operand 2
+        reg2 : int
+            the name of the register for operand 2
+        """
+        self.add_macro(CondJump(label=label, reg1=reg1, op=op, test=test, val2=val2, reg2=reg2))
+
+    def read_and_jump(self, ro_ch, component, threshold, test, label):
+        """Read an input I/Q value and jump based on a threshold.
+        This just combines read() and cond_jump().
+        As noted in read(), you must be sure your readout has already completed.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        component : str
+            I or Q
+        threshold : int
+            24-bit signed value
+        test: str
+            ">=" or "<"
+        label : str
+            the label to jump to
+        """
+        test = {'>=':'NS', '<':'S'}[test]
+        reg = {'I':'s8', 'Q':'s9'}[component]
+        self.read(ro_ch)
+        self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
+
+    # control statements
+    def open_loop(self, n, name=None):
+        """Start a loop.
+        This will use a register.
+        If you're using AveragerProgramV2, you should use add_loop() instead.
+
+        Parameters
+        ----------
+        n : int
+            number of iterations
+        name : str
+            number of iterations
+        """
+        self.add_macro(StartLoop(n=n, name=name))
+
+    def close_loop(self):
+        """End whatever loop you're in.
+        This will increment whatever sweeps are tied to this loop.
+        """
+        self.add_macro(EndLoop())
+
+    # timeline management
+
+    def wait(self, t):
+        """Pause tProc execution until the time reaches the specified value, relative to the reference time.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        """
+        self.add_macro(Wait(t=t, auto=False))
+
+    def delay(self, t):
+        """Increment the reference time.
+        This will have the effect of delaying all timed instructions executed after this one.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        """
+        self.add_macro(Delay(t=t, auto=False))
+
+    def delay_auto(self, t=0, gens=True, ros=True):
+        """Set the reference time to the end of the last pulse/readout, plus the specified value.
+        You can select whether this accounts for pulses, readout windows, or both.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        gens : bool
+            check the ends of generator pulses
+        ros : bool
+            check the ends of readout windows
+        """
+        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros))
+
+    def wait_auto(self, t=0, gens=False, ros=True):
+        """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
+        You can select whether this accounts for pulses, readout windows, or both.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        gens : bool
+            check the ends of generator pulses
+        ros : bool
+            check the ends of readout windows
+        """
+        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros))
+
+    # pulses and triggers
+
+    def pulse(self, ch, name, t=0):
+        """Play a pulse.
+
+        Parameters
+        ----------
+        ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            pulse name (as used in add_pulse())
+        t : float, QickSweepV2, or "auto"
+            time (us), or the end of the last pulse on this generator
+        """
+        self.add_macro(Pulse(ch=ch, name=name, t=t))
+
+    def send_readoutconfig(self, ch, name, t=0):
+        """Send a previously defined readout config to a readout.
+
+        Parameters
+        ----------
+        ch : int
+            readout channel (index in 'readouts' list)
+        name : str
+            config name (as used in add_readoutconfig())
+        t : float or QickSweepV2
+            time (us)
+        """
+        self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
+
+    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
+        """Pulse readout triggers and output pins.
+
+        Parameters
+        ----------
+        ros : list of int
+            readout channels to trigger (index in 'readouts' list)
+        pins : list of int
+            output pins to trigger (index in output pins list in QickCOnfig printout)
+        t : float, QickSweepV2, or None
+            time (us)
+            if None, the current value of the time register (s14) will be used
+            in this case, the channel timestamps will not be updated
+        width : float or QickSweepV2
+            pulse width (us), default of 10 cycles of the tProc timing clock
+        ddr4 : bool
+            trigger the DDR4 buffer
+        mr : bool
+            trigger the MR buffer
+        """
+        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr))
+
+
 class AbsRegisterManager(ABC):
     """Generic class for managing registers that will be written to a tProc-controlled block (signal generator or readout).
     """
@@ -1049,7 +1323,7 @@ class ReadoutManager(AbsRegisterManager):
         pulse.add_wave(Waveform(freqreg, phasereg, 0, 0, lenreg, confreg))
         return pulse
 
-class QickProgramV2(AbsQickProgram):
+class QickProgramV2(AsmV2, AbsQickProgram):
     """Base class for all tProc v2 programs.
 
     Parameters
@@ -1459,7 +1733,7 @@ class QickProgramV2(AbsQickProgram):
         self.reg_dict[name] = reg
 
         return reg
-    
+
     def get_reg(self, name, lazy_init=False):
         """Get a previously defined register object.
         For internal use; not recommended for user code at this time.
@@ -1467,270 +1741,6 @@ class QickProgramV2(AbsQickProgram):
         if lazy_init and name not in self.reg_dict:
             self.new_reg(name=name)
         return self.reg_dict[name]
-
-    # start of ASM code
-    def add_macro(self, macro):
-        """Add a macro to the program's macro list.
-
-        Parameters
-        ----------
-        macro : Macro
-            macro to be added
-        """
-        self.macro_list.append(macro)
-
-    def asm_inst(self, inst, addr_inc=1):
-        """Add a macro-wrapped ASM instruction to the program's macro list.
-        If you are mixing ASM and macros (you probably are), this is what you want to use.
-
-        Parameters
-        ----------
-        inst : dict
-            ASM instruction in dictionary format
-        addr_inc : int
-            number of machine-code words this instruction will occupy. Only used for WAIT.
-        """
-        self.add_macro(AsmInst(inst=inst, addr_inc=addr_inc))
-
-
-    # low-level macros
-
-    def label(self, label):
-        """Apply the specified label to the next instruction.
-        If the next instruction is a macro that expands to multiple ASM instructions, the label goes on the first ASM instruction.
-        That's what you want.
-
-        Parameters
-        ----------
-        label : str
-            label to be applied
-        """
-        self.add_macro(Label(label=label))
-
-    def nop(self):
-        """Do a NOP instruction.
-        This is a no-op - it doesn't do anything except waste a tProcessor cycle.
-        """
-        self.asm_inst({'CMD': 'NOP'})
-
-    def end(self):
-        """Do an END instruction, which will end execution.
-        This is implemented as an infinite loop (the v2 doesn't really have an "end" state).
-        """
-        self.add_macro(End())
-
-    def set_ext_counter(self, addr=1, val=0):
-        """Set one of the externally readable registers.
-        This is usually used to initialize the shot counter.
-
-        Parameters
-        ----------
-        addr : int
-            register number, 1 or 2
-        val : int
-            value to write (signed 32-bit)
-        """
-        # initialize the data counter
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.add_macro(SetReg(reg=reg, val=val))
-
-    def inc_ext_counter(self, addr=1, val=1):
-        """Increment one of the externally readable registers.
-        This is usually used to increment the shot counter.
-
-        Parameters
-        ----------
-        addr : int
-            register number, 1 or 2
-        val : int
-            value to add (signed 32-bit)
-        """
-        # increment the data counter
-        reg = {1:'s12', 2:'s13'}[addr]
-        self.add_macro(IncReg(reg=reg, val=val))
-
-    # feedback and branching
-    def read(self, ro_ch):
-        """Read an accumulated I/Q value from one of the tProc inputs.
-        The readout must have already pushed the value into the input, otherwise you will get a stale value.
-        The value you read gets stored in two special registers (s8/s9, aka port_l/port_h or I/Q) until you are ready to use it.
-        Parameters
-        ----------
-        ro_ch : int
-            readout channel (index in 'readouts' list)
-        """
-        self.add_macro(Read(ro_ch=ro_ch))
-
-    def cond_jump(self, label, reg1, test, op=None, val2=None, reg2=None):
-        """Do a conditional jump (do a test, then jump if the test passes).
-        A test is done by executing an operation on two operands and testing the resulting value.
-        If val2 and reg2 are both None, the test will just use reg1, no operation.
-        
-        Parameters
-        ----------
-        label : str
-            the label to jump to
-        reg1 : str
-            the name of the register for operand 1
-        test: str
-            the name of the test: 1/0 (always/never), Z/NZ (==0/!=0), S/NS (<0/>=0), F/NF (external flag)
-        op : str
-            the name of the operation: +, -, AND (bitwise AND, &), or ASR (shift-right, >>)
-        val2 : int
-            24-bit signed value for operand 2
-        reg2 : int
-            the name of the register for operand 2
-        """
-        self.add_macro(CondJump(label=label, reg1=reg1, op=op, test=test, val2=val2, reg2=reg2))
-
-    def read_and_jump(self, ro_ch, component, threshold, test, label):
-        """Read an input I/Q value and jump based on a threshold.
-        This just combines read() and cond_jump().
-        As noted in read(), you must be sure your readout has already completed.
-        
-        Parameters
-        ----------
-        ro_ch : int
-            readout channel (index in 'readouts' list)
-        component : str
-            I or Q
-        threshold : int
-            24-bit signed value
-        test: str
-            ">=" or "<"
-        label : str
-            the label to jump to
-        """
-        test = {'>=':'NS', '<':'S'}[test]
-        reg = {'I':'s8', 'Q':'s9'}[component]
-        self.read(ro_ch)
-        self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
-
-    # control statements
-    def open_loop(self, n, name=None):
-        """Start a loop.
-        This will use a register.
-        If you're using AveragerProgramV2, you should use add_loop() instead.
-
-        Parameters
-        ----------
-        n : int
-            number of iterations
-        name : str
-            number of iterations
-        """
-        self.add_macro(StartLoop(n=n, name=name))
-    
-    def close_loop(self):
-        """End whatever loop you're in.
-        This will increment whatever sweeps are tied to this loop.
-        """
-        self.add_macro(EndLoop())
-
-    # timeline management
-
-    def wait(self, t):
-        """Pause tProc execution until the time reaches the specified value, relative to the reference time.
-
-        Parameters
-        ----------
-        t : float
-            time (us)
-        """
-        self.add_macro(Wait(t=t, auto=False))
-
-    def delay(self, t):
-        """Increment the reference time.
-        This will have the effect of delaying all timed instructions executed after this one.
-
-        Parameters
-        ----------
-        t : float
-            time (us)
-        """
-        self.add_macro(Delay(t=t, auto=False))
-
-    def delay_auto(self, t=0, gens=True, ros=True):
-        """Set the reference time to the end of the last pulse/readout, plus the specified value.
-        You can select whether this accounts for pulses, readout windows, or both.
-
-        Parameters
-        ----------
-        t : float
-            time (us)
-        gens : bool
-            check the ends of generator pulses
-        ros : bool
-            check the ends of readout windows
-        """
-        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros))
-
-    def wait_auto(self, t=0, gens=False, ros=True):
-        """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
-        You can select whether this accounts for pulses, readout windows, or both.
-
-        Parameters
-        ----------
-        t : float
-            time (us)
-        gens : bool
-            check the ends of generator pulses
-        ros : bool
-            check the ends of readout windows
-        """
-        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros))
-
-    # pulses and triggers
-
-    def pulse(self, ch, name, t=0):
-        """Play a pulse.
-
-        Parameters
-        ----------
-        ch : int
-            generator channel (index in 'gens' list)
-        name : str
-            pulse name (as used in add_pulse())
-        t : float, QickSweepV2, or "auto"
-            time (us), or the end of the last pulse on this generator
-        """
-        self.add_macro(Pulse(ch=ch, name=name, t=t))
-
-    def send_readoutconfig(self, ch, name, t=0):
-        """Send a previously defined readout config to a readout.
-
-        Parameters
-        ----------
-        ch : int
-            readout channel (index in 'readouts' list)
-        name : str
-            config name (as used in add_readoutconfig())
-        t : float or QickSweepV2
-            time (us)
-        """
-        self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
-
-    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
-        """Pulse readout triggers and output pins.
-
-        Parameters
-        ----------
-        ros : list of int
-            readout channels to trigger (index in 'readouts' list)
-        pins : list of int
-            output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float, QickSweepV2, or None
-            time (us)
-            if None, the current value of the time register (s14) will be used
-            in this case, the channel timestamps will not be updated
-        width : float or QickSweepV2
-            pulse width (us), default of 10 cycles of the tProc timing clock
-        ddr4 : bool
-            trigger the DDR4 buffer
-        mr : bool
-            trigger the MR buffer
-        """
-        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr))
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
