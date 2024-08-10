@@ -671,9 +671,11 @@ class CondJump(Macro):
 
 class AsmV2:
     """A list of tProc v2 assembly instructions.
+    You can think of this as a code snippet that you can insert in a program.
     """
 
     def __init__(self, *args, **kwargs):
+        # this also gets reset in _init_declarations, but that's OK
         self.macro_list = []
 
         # pass through any init arguments
@@ -689,6 +691,17 @@ class AsmV2:
             macro to be added
         """
         self.macro_list.append(macro)
+
+    def extend_macros(self, asm):
+        """Append all the given instructions onto this list of instructions.
+        Named by analogy to Python list.extend().
+
+        Parameters
+        ----------
+        asm : AsmV2
+            instruction list to append
+        """
+        self.macro_list.extend(asm.macro_list)
 
     def asm_inst(self, inst, addr_inc=1):
         """Add a macro-wrapped ASM instruction to the program's macro list.
@@ -1397,6 +1410,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         super()._init_declarations()
 
         # high-level macros
+        # this also gets reset in AsmV2.__init__(), but that's OK
         self.macro_list = []
 
         # generator managers handle a gen's envelopes and add_pulse logic
@@ -1751,8 +1765,8 @@ class AcquireProgramV2(AcquireMixin, QickProgramV2):
 
 class AveragerProgramV2(AcquireProgramV2):
     """Use this as a base class to build looping programs.
-    You are responsible for writing initialize() and body().
-    The content of your body() - a "shot" - will be run inside nested loops, where the outermost loop is run "reps" times, and you can add loop levels with add_loop().
+    You are responsible for writing _initialize() and _body(); you may optionally write a _cleanup().
+    The content of your _body() - a "shot" - will be run inside nested loops, where the outermost loop is run "reps" times, and you can add loop levels with add_loop().
     The returned data will be averaged over the "reps" axis.
 
     This is similar to the NDAveragerProgram from tProc v1.
@@ -1784,19 +1798,25 @@ class AveragerProgramV2(AcquireProgramV2):
         A value of None will disable this behavior (and you should insert appropriate delay/delay_auto statements in your initialization).
     reps_innermost : bool
         If true, the "reps" loop will be the innermost loop (sweep once and take N shots at each step).
-        Time-varying behavior will tend to appear as wiggles/jumps.
+        Time-varying fluctuations will tend to appear as wiggles/jumps.
         If false, reps will be outermost (sweep N times and take 1 shot at each step).
-        Time-varying behavior will tend to be averaged out.
+        Time-varying fluctuations will tend to be averaged out.
+    before_reps : AsmV2
+        Instructions to execute before the contents of the "reps" loop.
+    after_reps : AsmV2
+        Instructions to execute after the contents of the "reps" loop.
     """
 
     COUNTER_ADDR = 1
-    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, reps_innermost=False, cfg=None):
+    def __init__(self, soccfg, reps, final_delay, final_wait=0, initial_delay=1.0, reps_innermost=False, before_reps=None, after_reps=None, cfg=None):
         self.cfg = {} if cfg is None else cfg.copy()
         self.reps = reps
         self.final_delay = final_delay
         self.final_wait = final_wait
         self.initial_delay = initial_delay
         self.reps_innermost = reps_innermost
+        self.before_reps = before_reps
+        self.after_reps = after_reps
         super().__init__(soccfg)
 
         # fill the program
@@ -1811,7 +1831,7 @@ class AveragerProgramV2(AcquireProgramV2):
         self._init_declarations()
 
         # prepare the loop list
-        self.loops = [("reps", self.reps)]
+        self.loops = [("reps", self.reps, self.before_reps, self.after_reps)]
 
         # make_program() should add all the declarations and macros
         self.make_program()
@@ -1822,9 +1842,12 @@ class AveragerProgramV2(AcquireProgramV2):
         # use the loop list to set up the data shape
         self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
 
-    def add_loop(self, name, count):
+    def add_loop(self, name, count, exec_before=None, exec_after=None):
         """Add a loop level to the program.
         The first level added will be the outermost loop (after the reps loop).
+
+        exec_before and exec_after allow you to specify instructions that should execute at this loop level (inside this loop, before or after the contents of the loop).
+        This might be useful for configuring readouts or triggering external equipment.
 
         Parameters
         ----------
@@ -1833,11 +1856,16 @@ class AveragerProgramV2(AcquireProgramV2):
             This should match the name used in your sweeps.
         count : int
             Number of iterations for this loop.
+        exec_before : AsmV2
+            Instructions to execute before the contents of this loop.
+        exec_after : AsmV2
+            Instructions to execute after the contents of this loop.
         """
+        theloop = (name, count, exec_before, exec_after)
         if self.reps_innermost:
-            self.loops.insert(len(self.loops)-1, (name, count))
+            self.loops.insert(len(self.loops)-1, theloop)
         else:
-            self.loops.append((name, count))
+            self.loops.append(theloop)
 
     @abstractmethod
     def _initialize(self, cfg):
@@ -1847,7 +1875,7 @@ class AveragerProgramV2(AcquireProgramV2):
 
         User code should not call this method; it's called by make_program().
         """
-        ...
+        pass
 
     @abstractmethod
     def _body(self, cfg):
@@ -1856,7 +1884,16 @@ class AveragerProgramV2(AcquireProgramV2):
 
         User code should not call this method; it's called by make_program().
         """
-        ...
+        pass
+
+    def _cleanup(self, cfg):
+        """Do any cleanup for your program.
+        Instructions you put here will execute after all loops are complete.
+        This might be used to send trigger pulses to external equipment or turn off periodic pulses.
+
+        Overriding this method is optional, and most measurements don't use this.
+        """
+        pass
 
     def make_program(self):
         # play the initialization
@@ -1865,8 +1902,9 @@ class AveragerProgramV2(AcquireProgramV2):
         if self.initial_delay is not None:
             self.delay_auto(self.initial_delay)
 
-        for name, count in self.loops:
+        for name, count, before, after in self.loops:
             self.open_loop(count, name=name)
+            if before is not None: self.extend_macros(before)
 
         # play the shot
         self._body(self.cfg)
@@ -1877,7 +1915,10 @@ class AveragerProgramV2(AcquireProgramV2):
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
 
         # close the loops - order doesn't matter
-        for name, count in self.loops:
+        for name, count, before, after in self.loops:
+            if after is not None: self.extend_macros(after)
             self.close_loop()
+
+        self._cleanup(self.cfg)
 
         self.end()
