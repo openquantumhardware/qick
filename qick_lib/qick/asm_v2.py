@@ -1329,6 +1329,8 @@ class QickProgramV2(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             name of the pulse
+        ro_ch : int or None, optional
+            Readout channel to frequency-match to. For a muxed generator, pass this argument to declare_gen() instead.
         style : str
             Pulse style ("const", "arb", "flat_top")
         freq : int
