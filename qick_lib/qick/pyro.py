@@ -88,7 +88,7 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
     print("starting daemon")
     daemon.requestLoop() # this will run forever until interrupted
 
-def make_proxy(ns_host, ns_port='8888', proxy_name='myqick'):
+def make_proxy(ns_host, ns_port=8888, proxy_name='myqick'):
     """Connects to a QickSoc proxy server.
 
     Parameters
