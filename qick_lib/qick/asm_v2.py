@@ -1890,8 +1890,9 @@ class AveragerProgramV2(AcquireProgramV2):
         """Do any cleanup for your program.
         Instructions you put here will execute after all loops are complete.
         This might be used to send trigger pulses to external equipment or turn off periodic pulses.
-
         Overriding this method is optional, and most measurements don't use this.
+
+        User code should not call this method; it's called by make_program().
         """
         pass
 
