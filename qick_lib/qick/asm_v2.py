@@ -2,10 +2,10 @@ from __future__ import annotations
 import logging
 import numpy as np
 import textwrap
-from collections import namedtuple, OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from types import SimpleNamespace
-from typing import NamedTuple, Union, List, Dict, Tuple
+from typing import Callable, NamedTuple, Union, Dict
 from abc import ABC, abstractmethod
 from fractions import Fraction
 import copy
@@ -45,33 +45,101 @@ class QickSpan(NamedTuple):
         return QickSpan(loop=self.loop, span=-self.span)
 
 # user units, multi-dimension
-class QickSweep(NamedTuple):
-    start: float
-    spans: dict
+class QickSweep:
+    def __init__(self, start: float, spans: dict):
+        self.start = start
+        self.spans = spans
+
+        # these get assigned when to_int is called and are used by get_actual_values
+        self.sweep_raw: QickSweepRaw | None = None
+        self.scale_raw: float | int | None = None
+
+        # these get assigned when a mathematical operation is performed on this QickSweep
+        self.derived_sweep: QickSweep | None = None
+        self.conversion_from_derived_sweep: Callable | None = None
+
     def to_int(self, scale, quantize, parname, trunc=False):
         start = to_int(self.start, scale, quantize=quantize, parname=parname, trunc=trunc)
         spans = {k: to_int(v, scale, quantize=quantize, parname=parname, trunc=trunc) for k,v in self.spans.items()}
-        return QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
+        self.sweep_raw = QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
+        self.scale_raw = scale
+        return self.sweep_raw
+
+    def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
+        """Calculate the actual sweep points after rounding to ASM units.
+
+        Parameters
+        ----------
+        loop_counts : dict[str, int]
+            Number of iterations for each loop, outermost first.
+
+        Returns
+        -------
+        values : np.ndarray
+            Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweep.
+        """
+        if self.sweep_raw is not None:
+            self.sweep_raw.to_steps(loop_counts)
+            values_raw = np.array([self.sweep_raw.start])
+            for loop in loop_counts:
+                if loop in self.sweep_raw.steps:
+                    step_raw = self.sweep_raw.steps[loop]["step"]
+                    span_raw = self.sweep_raw.steps[loop]["span"]
+                    values_raw = np.add.outer(values_raw, np.arange(0, span_raw + 1, step_raw))
+                else:
+                    values_raw = values_raw[..., np.newaxis]
+            assert self.scale_raw is not None
+            return values_raw[0, ...] / self.scale_raw
+
+        if self.derived_sweep is not None:
+            assert self.conversion_from_derived_sweep is not None
+            return self.conversion_from_derived_sweep(
+                self.derived_sweep.get_actual_values(loop_counts)
+            )
+
+        raise RuntimeError("to_int has not been called on this QickSweep")
+
     def __add__(self, a):
-        newstart = self.start
-        newspans = self.spans.copy()
         if isinstance(a, QickSweep):
-            newstart += a.start
+            new_start = self.start + a.start
+            new_spans = self.spans.copy()
             for loop, r in a.spans.items():
-                newspans[loop] = newspans.get(loop, 0) + r
-        elif isinstance(a, QickSpan):
-            newspans[a.loop] = newspans.get(a.loop, 0) + a.span
-        else:
-            newstart += a
-        return QickSweep(newstart, newspans)
+                new_spans[loop] = new_spans.get(loop, 0) + r
+            return QickSweep(new_start, new_spans)
+        if isinstance(a, QickSpan):
+            new_spans = self.spans.copy()
+            new_spans[a.loop] = new_spans.get(a.loop, 0) + a.span
+            return QickSweep(self.start, new_spans)
+        if isinstance(a, (int, float)):
+            new_start = self.start + a
+            self.derived_sweep = QickSweep(new_start, self.spans)
+            self.conversion_from_derived_sweep = lambda x: x - a
+            return self.derived_sweep
+        return NotImplemented
     def __radd__(self, a):
         return self+a
     def __neg__(self):
-        return QickSweep(-self.start, {k:-v for k,v in self.spans.items()})
+        new_start = -self.start
+        new_spans = {k: -v for k, v in self.spans.items()}
+        self.derived_sweep = QickSweep(new_start, new_spans)
+        self.conversion_from_derived_sweep = lambda x: -x
+        return self.derived_sweep
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
         return (-self) + a
+    def __mul__(self, a):
+        if isinstance(a, (int, float)):
+            new_start = self.start * a
+            new_spans = {k: v * a for k, v in self.spans.items()}
+            self.derived_sweep = QickSweep(new_start, new_spans)
+            self.conversion_from_derived_sweep = lambda x: x / a
+            return self.derived_sweep
+        return NotImplemented
+    def __rmul__(self, a):
+        return self * a
+    def __truediv__(self, a):
+        return self * (1 / a)
     def minval(self):
         spanmin = min([min(r, 0) for r in self.spans.values()])
         return self.start + spanmin
@@ -1329,6 +1397,8 @@ class QickProgramV2(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             name of the pulse
+        ro_ch : int or None, optional
+            Readout channel to frequency-match to. For a muxed generator, pass this argument to declare_gen() instead.
         style : str
             Pulse style ("const", "arb", "flat_top")
         freq : int
