@@ -46,6 +46,40 @@ class QickSpan(NamedTuple):
 
 # user units, multi-dimension
 class QickSweepV2:
+    """Defines a multi-dimensional sweep for use in pulses or times.
+    This class isn't usually instantiated by user code:
+    if you want to make a sweep, it's easier to use QickSweep1D or <start_val>+QickSpan+QickSpan....
+
+    The lifecycle of the various sweep classes:
+
+    User code builds a QickSweepV2 from scalars, QickSpans, and QickSweepV2s.
+
+    When the pulse or timed instruction is defined, the QickSweepV2 might get additional scalar operations (mostly, if it's a readout freq for an RO that's freq-matched with a mixer generator).
+    (are there cases where delay_auto values might get added to sweeps?)
+    Then it gets converted to a QickSweepRaw by to_int.
+    The QickSweepRaw may be scaled by int or Fraction multiplication, or offset by an int, to get other QickSweepRaws (e.g. to convert from flat-top to ramp gain, to apply mixer freq to a freq-matched RO freq).
+    The "quantize" parameter ensures that the scaled QickSweepRaws will get stepped in the same way.
+
+    When the loop dims are known, the QickSweepRaw gets divided into steps by to_steps.
+    The same QickSweepRaw may be used for multiple Waveforms.
+
+    QickSweepRaw gets converted back to QickSweepV2 to get user units by float division.
+    This is used to get pulse durations; the resulting QickSweepV2 may get operated on and get used for an auto time.
+    It is also used by get_pulse_params, but we will probably use get_actual_values instead?
+
+    get_actual_values works as follows:
+
+    derived_sweep and conversion_from_derived_sweep are updated whenever a new QickSweepV2 is created by scalar operation.
+    Note that if the same QickSweepV2 is used in two places, the derived_sweep pointer gets overwritten.
+    Pulse and timed-instruction parameters are copied at use, so get_pulse_param and get_time_param are safe.
+    Code that calls get_actual_values directly on a QickSweepV2 relies on the step sizes being the same everywhere a sweep is used.
+
+    sweep_raw and scale_raw are set by to_int.
+    Normally the QickSweepRaw created by to_int is then stepped.
+
+    When get_actual_values is called on the pulse parameter, it recurses through the derived_sweep pointers until it finds the QickSweepV2 that got converted by to_int.
+    Then sweep_raw is used to get the rounded+stepped QickSweepRaw.
+    """
     def __init__(self, start: float, spans: dict):
         self.start = start
         self.spans = spans
@@ -59,6 +93,10 @@ class QickSweepV2:
         self.conversion_from_derived_sweep: Callable | None = None
 
     def to_int(self, scale, quantize, parname, trunc=False):
+        # this check catches the situation where a sweep might get used in two different places and confuse get_actual_values
+        # this shouldn't happen, because we copy the pulse and timed-instruction parameters
+        if self.sweep_raw is not None:
+            logger.warn("the same QickSweepV2 is being converted to QickSweepRaw twice")
         start = to_int(self.start, scale, quantize=quantize, parname=parname, trunc=trunc)
         spans = {k: to_int(v, scale, quantize=quantize, parname=parname, trunc=trunc) for k,v in self.spans.items()}
         self.sweep_raw = QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
@@ -79,13 +117,19 @@ class QickSweepV2:
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
         """
         if self.sweep_raw is not None:
-            self.sweep_raw.to_steps(loop_counts)
+            if self.sweep_raw.steps is None:
+                logger.info("to_steps was never called on this QickSweepRaw")
+                self.sweep_raw.to_steps(loop_counts)
             values_raw = np.array([self.sweep_raw.start])
             for loop in loop_counts:
                 if loop in self.sweep_raw.steps:
                     step_raw = self.sweep_raw.steps[loop]["step"]
                     span_raw = self.sweep_raw.steps[loop]["span"]
-                    values_raw = np.add.outer(values_raw, np.arange(0, span_raw + 1, step_raw))
+                    values_raw = np.add.outer(values_raw, np.linspace(0, span_raw, loop_counts[loop]))
+                    #if span_raw==0:
+                    #    values_raw = np.add.outer(values_raw, np.zeros(loop_counts[loop]))
+                    #else:
+                    #    values_raw = np.add.outer(values_raw, np.arange(0, span_raw + 1, step_raw))
                 else:
                     values_raw = values_raw[..., np.newaxis]
             assert self.scale_raw is not None
@@ -97,8 +141,12 @@ class QickSweepV2:
                 self.derived_sweep.get_actual_values(loop_counts)
             )
 
-        raise RuntimeError("to_int has not been called on this QickSweepV2")
+        raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
 
+    def __copy__(self):
+        self.derived_sweep = QickSweepV2(self.start, self.spans.copy())
+        self.conversion_from_derived_sweep = lambda x: x
+        return self.derived_sweep
     def __add__(self, a):
         if isinstance(a, QickSweepV2):
             new_start = self.start + a.start
@@ -118,12 +166,6 @@ class QickSweepV2:
         return NotImplemented
     def __radd__(self, a):
         return self+a
-    def __neg__(self):
-        new_start = -self.start
-        new_spans = {k: -v for k, v in self.spans.items()}
-        self.derived_sweep = QickSweepV2(new_start, new_spans)
-        self.conversion_from_derived_sweep = lambda x: -x
-        return self.derived_sweep
     def __sub__(self, a):
         return self + (-a)
     def __rsub__(self, a):
@@ -136,6 +178,8 @@ class QickSweepV2:
             self.conversion_from_derived_sweep = lambda x: x / a
             return self.derived_sweep
         return NotImplemented
+    def __neg__(self):
+        return self * -1
     def __rmul__(self, a):
         return self * a
     def __truediv__(self, a):
@@ -192,6 +236,8 @@ class QickSweepRaw(SimpleClass):
         self.steps = None
 
     def to_steps(self, loops):
+        if self.steps is not None:
+            logger.warn("to_steps is getting called twice on this QickSweepRaw")
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
@@ -206,6 +252,10 @@ class QickSweepRaw(SimpleClass):
                     raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
+    def __copy__(self):
+        newsweep = QickSweepRaw(self.par, self.start, self.spans, self.quantize)
+        newsweep.steps = self.steps
+        return newsweep
     def __mul__(self, a):
         # multiplying a QickSweepRaw by a int or Fraction yields a QickSweepRaw
         # used when scaling parameters (e.g. flat_top segment gain) or flipping the sign of downconversion freqs
@@ -320,6 +370,7 @@ class QickPulse(SimpleClass):
         self.ch_mgr = ch_mgr
         self.waveforms = []
         self.par_map = {}
+        self.pars2 = {}
 
     def add_wave(self, waveform):
         self.waveforms.append(waveform)
@@ -363,11 +414,27 @@ class Macro(SimpleNamespace):
         # allocate registers and stuff?
         pass
 
+class TimedMacro(Macro):
+    """Timed instructions have parameters corresponding to times or durations.
+
+    Add additional methods used for handling these time parameters.
+    """
+    def __init__(self, *args, **kwargs):
+        # pass through any init arguments
+        super().__init__(*args, **kwargs)
+        self.t_params = {}
+        self.t_regs = {}
+
     def convert_time(self, prog, t, name):
         # helper method, to be used in preprocess()
         # if the time value is swept, we need to allocate a register and initialize it at the beginning of the program
         # return actual (rounded, stepped) time value
         # if t is None (can happen with wait_auto/delay_auto), pass that through
+
+        # store a copy of the original parameter
+        t = copy.copy(t)
+        self.t_params[name] = t
+
         if t is None:
             t_reg = None
             t_rounded = None
@@ -379,14 +446,12 @@ class Macro(SimpleNamespace):
                 t_rounded = prog.cycles2us(t_reg.sweep)
             else:
                 t_rounded = prog.cycles2us(t_reg)
-        if not hasattr(self, "t_reg"):
-            self.t_reg = {}
-        self.t_reg[name] = t_reg
+        self.t_regs[name] = t_reg
         return t_rounded
 
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
-        t_reg = self.t_reg[name]
+        t_reg = self.t_regs[name]
         if isinstance(t_reg, QickRegister):
             return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
         else:
@@ -394,7 +459,7 @@ class Macro(SimpleNamespace):
 
     def inc_timereg(self, prog, name):
         # helper method, to be used in expand()
-        t_reg = self.t_reg[name]
+        t_reg = self.t_regs[name]
         if isinstance(t_reg, QickRegister):
             #return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
             return AddReg(reg='s14', reg2='r%d'%(t_reg.addr))
@@ -448,7 +513,7 @@ class IncrementWave(Macro):
 
         return insts
 
-class Wait(Macro):
+class Wait(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         wait = self.t
@@ -468,7 +533,7 @@ class Wait(Macro):
         wait_rounded = self.convert_time(prog, wait, "t")
         # TODO: we could do something with this value
     def expand(self, prog):
-        t_reg = self.t_reg["t"]
+        t_reg = self.t_regs["t"]
         if isinstance(t_reg, QickRegister):
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
         elif t_reg is None:
@@ -477,7 +542,7 @@ class Wait(Macro):
         else:
             return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
 
-class Delay(Macro):
+class Delay(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         delay = self.t
@@ -491,7 +556,7 @@ class Delay(Macro):
         delay_rounded = self.convert_time(prog, delay, "t")
         prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
-        t_reg = self.t_reg["t"]
+        t_reg = self.t_regs["t"]
         if isinstance(t_reg, QickRegister):
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
         elif t_reg is None:
@@ -500,7 +565,7 @@ class Delay(Macro):
         else:
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
 
-class Pulse(Macro):
+class Pulse(TimedMacro):
     # ch, name, t
     def preprocess(self, prog):
         pulse_length = prog.pulses[self.name].get_length() # in us
@@ -527,7 +592,7 @@ class Pulse(Macro):
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
-class ConfigReadout(Macro):
+class ConfigReadout(TimedMacro):
     # ch, name, t
     def preprocess(self, prog):
         t = self.t
@@ -543,7 +608,7 @@ class ConfigReadout(Macro):
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
-class Trigger(Macro):
+class Trigger(TimedMacro):
     # ros, pins, t, width, ddr4, mr
     def preprocess(self, prog):
         if self.width is None: self.width = prog.cycles2us(10)
@@ -607,8 +672,8 @@ class Trigger(Macro):
         if self.trigset:
             insts.append(self.set_timereg(prog, "t_start"))
 
-            t_start = self.t_reg["t_start"]
-            t_end = self.t_reg["t_end"]
+            t_start = self.t_regs["t_start"]
+            t_end = self.t_regs["t_end"]
             if isinstance(t_start, QickRegister):
                 insts.append(self.set_timereg(prog, "t_start"))
                 for outport in self.trigset:
@@ -1195,7 +1260,10 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
+        # store copies of the original parameters
+        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
+        pulse.pars2 = par
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=self.ch))
 
         w = {}
@@ -1256,15 +1324,17 @@ class StandardGenManager(AbsGenManager):
                 logger.warning("Envelope length %d is an odd number of fabric cycles.\n"
                 "The middle cycle of the envelope will not be used.\n"
                 "If this is a problem, you could use the even_length parameter for your envelope."%(env_length))
-            w1 = w.copy()
+            # we want to make sure the original QickSweepRaw created from each pulse parameter ends up in exactly one waveform
+            # so the parameters of the later segments are copies, except for the flat length
+            w1 = w
             w1['env'] = env_addr
             w1['outsel'] = 'product'
             w1['lenreg'] = env_length//2
-            w2 = w.copy()
+            w2 = {k:copy.copy(v) for k,v in w.items()}
             w2['outsel'] = 'dds'
             w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
             w2['gainreg'] = w2['gainreg'] * flat_scale
-            w3 = w1.copy()
+            w3 = {k:copy.copy(v) for k,v in w1.items()}
             w3['env'] = env_addr + (env_length+1)//2
             # only the first segment should have phrst
             w1['phrst'] = par.get('phrst')
@@ -1298,7 +1368,10 @@ class MultiplexedGenManager(AbsGenManager):
         return wavereg
 
     def params2pulse(self, par):
+        # store copies of the original parameters
+        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
+        pulse.pars2 = par
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
         lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
 
@@ -1344,7 +1417,10 @@ class ReadoutManager(AbsRegisterManager):
         par : dict
             Pulse parameters
         """
+        # store copies of the original parameters
+        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
+        pulse.pars2 = par
         par_map = {}
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
@@ -1770,6 +1846,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             param = pulse.get_length()
         else:
             param = pulse.get_param(parname)
+            #param = pulse.pars2[parname]
 
         if as_array and isinstance(param, QickSweepV2):
             allpoints = None
