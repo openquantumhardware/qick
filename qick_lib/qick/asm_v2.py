@@ -103,6 +103,25 @@ class QickSweepV2:
         self.scale_raw = scale
         return self.sweep_raw
 
+    def get_rounded(self) -> QickSweepV2:
+        """Calculate the sweep values after rounding to ASM units.
+        """
+        if self.sweep_raw is not None:
+            # TODO: should this just throw an error?
+            if self.sweep_raw.steps is None:
+                logger.info("to_steps was never called on this QickSweepRaw")
+                self.sweep_raw.to_steps(loop_counts)
+            assert self.scale_raw is not None
+            return self.sweep_raw/self.scale_raw
+
+        if self.derived_sweep is not None:
+            assert self.conversion_from_derived_sweep is not None
+            return self.conversion_from_derived_sweep(
+                self.derived_sweep.get_rounded()
+            )
+
+        raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
+
     def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
         """Calculate the actual sweep points after rounding to ASM units.
 
@@ -116,32 +135,15 @@ class QickSweepV2:
         values : np.ndarray
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
         """
-        if self.sweep_raw is not None:
-            if self.sweep_raw.steps is None:
-                logger.info("to_steps was never called on this QickSweepRaw")
-                self.sweep_raw.to_steps(loop_counts)
-            values_raw = np.array([self.sweep_raw.start])
-            for loop in loop_counts:
-                if loop in self.sweep_raw.steps:
-                    step_raw = self.sweep_raw.steps[loop]["step"]
-                    span_raw = self.sweep_raw.steps[loop]["span"]
-                    values_raw = np.add.outer(values_raw, np.linspace(0, span_raw, loop_counts[loop]))
-                    #if span_raw==0:
-                    #    values_raw = np.add.outer(values_raw, np.zeros(loop_counts[loop]))
-                    #else:
-                    #    values_raw = np.add.outer(values_raw, np.arange(0, span_raw + 1, step_raw))
-                else:
-                    values_raw = values_raw[..., np.newaxis]
-            assert self.scale_raw is not None
-            return values_raw[0, ...] / self.scale_raw
-
-        if self.derived_sweep is not None:
-            assert self.conversion_from_derived_sweep is not None
-            return self.conversion_from_derived_sweep(
-                self.derived_sweep.get_actual_values(loop_counts)
-            )
-
-        raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
+        rounded_sweep = self.get_rounded()
+        values = np.array([rounded_sweep.start])
+        for loop in loop_counts:
+            if loop in rounded_sweep.spans:
+                span = rounded_sweep.spans[loop]
+                values = np.add.outer(values, np.linspace(0, span, loop_counts[loop]))
+            else:
+                values = values[..., np.newaxis]
+        return values
 
     def __copy__(self):
         self.derived_sweep = QickSweepV2(self.start, self.spans.copy())
