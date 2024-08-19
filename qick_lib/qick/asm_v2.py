@@ -57,7 +57,7 @@ class QickSweepV2:
     When the pulse or timed instruction is defined, the QickSweepV2 might get additional scalar operations (mostly, if it's a readout freq for an RO that's freq-matched with a mixer generator).
     (are there cases where delay_auto values might get added to sweeps?)
     Then it gets converted to a QickSweepRaw by to_int.
-    The QickSweepRaw may be scaled by int or Fraction multiplication, or offset by an int, to get other QickSweepRaws (e.g. to convert from flat-top to ramp gain, to apply mixer freq to a freq-matched RO freq).
+    The QickSweepRaw may be scaled by int or Fraction multiplication, or offset by an int, e.g. to convert from flat-top to ramp gain, to apply mixer freq to a freq-matched RO freq. These are in-place operations.
     The "quantize" parameter ensures that the scaled QickSweepRaws will get stepped in the same way.
 
     When the loop dims are known, the QickSweepRaw gets divided into steps by to_steps.
@@ -103,21 +103,33 @@ class QickSweepV2:
         self.scale_raw = scale
         return self.sweep_raw
 
-    def get_rounded(self) -> QickSweepV2:
+    def get_rounded(self, loop_counts: dict[str, int]=None) -> QickSweepV2:
         """Calculate the sweep values after rounding to ASM units.
+        loop_counts parameter is optional and will be used to compute steps if they have not already been computed.
+
+        Parameters
+        ----------
+        loop_counts : dict[str, int]
+            Number of iterations for each loop, outermost first.
         """
         if self.sweep_raw is not None:
-            # TODO: should this just throw an error?
             if self.sweep_raw.steps is None:
                 logger.info("to_steps was never called on this QickSweepRaw")
                 self.sweep_raw.to_steps(loop_counts)
             assert self.scale_raw is not None
-            return self.sweep_raw/self.scale_raw
+            # convert QickSweepRaw to QickSweepV2
+            rounded_sweep = self.sweep_raw/1.0
+            # undo the offset+scale that got applied to the QickSweepRaw
+            rounded_sweep -= self.sweep_raw.offset
+            rounded_sweep /= self.sweep_raw.scale
+            # undo the scale that got applied by to_int
+            rounded_sweep /= self.scale_raw
+            return rounded_sweep
 
         if self.derived_sweep is not None:
             assert self.conversion_from_derived_sweep is not None
             return self.conversion_from_derived_sweep(
-                self.derived_sweep.get_rounded()
+                self.derived_sweep.get_rounded(loop_counts)
             )
 
         raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
@@ -135,7 +147,7 @@ class QickSweepV2:
         values : np.ndarray
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
         """
-        rounded_sweep = self.get_rounded()
+        rounded_sweep = self.get_rounded(loop_counts)
         values = np.array([rounded_sweep.start])
         for loop in loop_counts:
             if loop in rounded_sweep.spans:
@@ -237,6 +249,9 @@ class QickSweepRaw(SimpleClass):
         # dict of sweep steps for each loop, computed by to_steps() after the loop lengths are known
         self.steps = None
 
+        self.scale = 1
+        self.offset = 0
+
     def to_steps(self, loops):
         if self.steps is not None:
             logger.warn("to_steps is getting called twice on this QickSweepRaw")
@@ -255,10 +270,10 @@ class QickSweepRaw(SimpleClass):
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def __copy__(self):
-        newsweep = QickSweepRaw(self.par, self.start, self.spans, self.quantize)
-        newsweep.steps = self.steps
+        newsweep = QickSweepRaw(self.par, self.start, copy.copy(self.spans), self.quantize)
+        newsweep.steps = copy.copy(self.steps)
         return newsweep
-    def __mul__(self, a):
+    def __imul__(self, a):
         # multiplying a QickSweepRaw by a int or Fraction yields a QickSweepRaw
         # used when scaling parameters (e.g. flat_top segment gain) or flipping the sign of downconversion freqs
         # this will only happen before steps have been defined
@@ -270,8 +285,20 @@ class QickSweepRaw(SimpleClass):
         elif isinstance(a, int): pass
         else:
             raise RuntimeError("QickSweepRaw can only be multiplied by int or Fraction")
-        spans = {k:int(v*a) for k,v in self.spans.items()}
-        return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
+        self.start = int(self.start*a)
+        self.quantize = int(self.quantize*a)
+        for k,v in self.spans.items():
+            self.spans[k] = int(v*a)
+        self.scale *= a
+        self.offset *= a
+        #spans = {k:int(v*a) for k,v in self.spans.items()}
+        #return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
+        return self
+    def __iadd__(self, a):
+        # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
+        self.start += a
+        self.offset += a
+        return self
     def __mod__(self, a):
         # used in freq2reg etc.
         # do nothing - mod will be applied when compiling the Waveform
@@ -285,10 +312,6 @@ class QickSweepRaw(SimpleClass):
             raise RuntimeError("QickSweepRaw can only be divided after steps have been defined")
         spans = {k:v['span']/a for k,v in self.steps.items()}
         return QickSweepV2(self.start/a, spans)
-    def __iadd__(self, a):
-        # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
-        self.start += a
-        return self
     def minval(self):
         # used to check for out-of-range values
         spanmin = min([min(r, 0) for r in self.spans.values()])
@@ -1329,13 +1352,13 @@ class StandardGenManager(AbsGenManager):
             # we want to make sure the original QickSweepRaw created from each pulse parameter ends up in exactly one waveform
             # so the parameters of the later segments are copies, except for the flat length
             w1 = w
+            w2 = {k:copy.copy(v) for k,v in w.items()}
             w1['env'] = env_addr
             w1['outsel'] = 'product'
             w1['lenreg'] = env_length//2
-            w2 = {k:copy.copy(v) for k,v in w.items()}
             w2['outsel'] = 'dds'
             w2['lenreg'] = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
-            w2['gainreg'] = w2['gainreg'] * flat_scale
+            w2['gainreg'] *= flat_scale
             w3 = {k:copy.copy(v) for k,v in w1.items()}
             w3['env'] = env_addr + (env_length+1)//2
             # only the first segment should have phrst
@@ -1847,8 +1870,13 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         if parname=='total_length':
             param = pulse.get_length()
         else:
-            param = pulse.get_param(parname)
-            #param = pulse.pars2[parname]
+            param = pulse.pars2[parname]
+            if isinstance(param, QickSweepV2):
+                # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
+                param = param.get_rounded()
+            else:
+                # TODO: for now, we still need get_param for scalars
+                param = pulse.get_param(parname)
 
         if as_array and isinstance(param, QickSweepV2):
             allpoints = None
