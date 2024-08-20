@@ -65,7 +65,7 @@ class QickSweepV2:
 
     QickSweepRaw gets converted back to QickSweepV2 to get user units by float division.
     This is used to get pulse durations; the resulting QickSweepV2 may get operated on and get used for an auto time.
-    It is also used by get_pulse_params, but we will probably use get_actual_values instead?
+    It is also used by get_pulse_param, but we will probably use get_actual_values instead?
 
     get_actual_values works as follows:
 
@@ -199,11 +199,13 @@ class QickSweepV2:
     def __truediv__(self, a):
         return self * (1 / a)
     def minval(self):
-        spanmin = min([min(r, 0) for r in self.spans.values()])
-        return self.start + spanmin
+        val = self.start
+        if self.spans: val += min([min(r, 0) for r in self.spans.values()])
+        return val
     def maxval(self):
-        spanmax = max([max(r, 0) for r in self.spans.values()])
-        return self.start + spanmax
+        val = self.start
+        if self.spans: val += max([max(r, 0) for r in self.spans.values()])
+        return val
     def __gt__(self, a):
         # used when comparing timestamps, or range-checking before converting to raw
         # compares a to the min possible value of the sweep
@@ -314,11 +316,15 @@ class QickSweepRaw(SimpleClass):
         return QickSweepV2(self.start/a, spans)
     def minval(self):
         # used to check for out-of-range values
-        spanmin = min([min(r, 0) for r in self.spans.values()])
-        return self.start + spanmin
+        val = self.start
+        if self.spans:
+            val += min([min(r, 0) for r in self.spans.values()])
+        return val
     def maxval(self):
-        spanmax = max([max(r, 0) for r in self.spans.values()])
-        return self.start + spanmax
+        val = self.start
+        if self.spans:
+            val += max([max(r, 0) for r in self.spans.values()])
+        return val
 
 class Waveform(Mapping, SimpleClass):
     widths = [4, 4, 3, 4, 4, 2]
@@ -1140,12 +1146,12 @@ class AbsRegisterManager(ABC):
         kwargs : dict
             Parameter values
         """
-        # check the final param set for validity
-        self.check_params(kwargs)
-        self.prog.pulses[name] = self.params2pulse(kwargs)
+        # check the final param set for validity, and convert param types as needed
+        pulse_params = self.check_params(kwargs)
+        self.prog.pulses[name] = self.params2pulse(pulse_params)
 
     @abstractmethod
-    def check_params(self, params) -> None:
+    def check_params(self, params) -> dict:
         ...
 
     @abstractmethod
@@ -1208,6 +1214,7 @@ class AbsGenManager(AbsRegisterManager):
     """
     PARAMS_REQUIRED = {}
     PARAMS_OPTIONAL = {}
+    PARAMS_NUMERIC = []
 
     def __init__(self, prog, gen_ch):
         self.ch = gen_ch
@@ -1229,11 +1236,25 @@ class AbsGenManager(AbsRegisterManager):
         ----------
         params : dict
             Parameter values
+
+        Returns
+        -------
+        dict
+            Parameter dictionary to be stored with the pulse.
+            Scalar numeric parameters are converted to QickSweepV2, sweeps are copied.
         """
         style = params['style']
         required = set(self.PARAMS_REQUIRED[style])
         allowed = required | set(self.PARAMS_OPTIONAL[style])
         check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
+
+        pulse_params = {}
+        for k,v in params.items():
+            if k in self.PARAMS_NUMERIC and not isinstance(v, QickSweepV2):
+                pulse_params[k] = QickSweepV2(start=v, spans={})
+            else:
+                pulse_params[k] = copy.copy(v)
+        return pulse_params
 
 class StandardGenManager(AbsGenManager):
     """Manager for the full-speed and interpolated signal generators.
@@ -1244,6 +1265,7 @@ class StandardGenManager(AbsGenManager):
     PARAMS_OPTIONAL = {'const': ['ro_ch', 'phrst', 'stdysel', 'mode'],
             'arb': ['ro_ch', 'phrst', 'stdysel', 'mode', 'outsel'],
             'flat_top': ['ro_ch', 'phrst', 'stdysel']}
+    PARAMS_NUMERIC = ['freq', 'phase', 'gain', 'length']
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
@@ -1285,8 +1307,6 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
-        # store copies of the original parameters
-        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
         pulse.pars2 = par
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=self.ch))
@@ -1378,6 +1398,7 @@ class MultiplexedGenManager(AbsGenManager):
     """
     PARAMS_REQUIRED = {'const': ['style', 'mask', 'length']}
     PARAMS_OPTIONAL = {'const': []}
+    PARAMS_NUMERIC = ['length']
 
     def params2wave(self, maskreg, lenreg):
         cfgreg = maskreg
@@ -1393,8 +1414,6 @@ class MultiplexedGenManager(AbsGenManager):
         return wavereg
 
     def params2pulse(self, par):
-        # store copies of the original parameters
-        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
         pulse.pars2 = par
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, gen_ch=self.ch))
@@ -1414,6 +1433,7 @@ class ReadoutManager(AbsRegisterManager):
     """
     PARAMS_REQUIRED = ['freq']
     PARAMS_OPTIONAL = ['length', 'phase', 'phrst', 'mode', 'outsel', 'gen_ch']
+    PARAMS_NUMERIC = ['freq', 'length', 'phase']
 
     def __init__(self, prog, ro_ch):
         self.ch = ro_ch
@@ -1434,6 +1454,14 @@ class ReadoutManager(AbsRegisterManager):
         """
         check_keys(params.keys(), self.PARAMS_REQUIRED, self.PARAMS_OPTIONAL)
 
+        pulse_params = {}
+        for k,v in params.items():
+            if k in self.PARAMS_NUMERIC and not isinstance(v, QickSweepV2):
+                pulse_params[k] = QickSweepV2(start=v, spans={})
+            else:
+                pulse_params[k] = copy.copy(v)
+        return pulse_params
+
     def params2pulse(self, par):
         """Write whichever pulse registers are fully determined by the defined parameters.
 
@@ -1442,11 +1470,8 @@ class ReadoutManager(AbsRegisterManager):
         par : dict
             Pulse parameters
         """
-        # store copies of the original parameters
-        par = {k:copy.copy(v) for k,v in par.items()}
         pulse = QickPulse(self)
         pulse.pars2 = par
-        par_map = {}
         pulse.add_param('length', 0, 1/self.prog.cycles2us(cycles=1, ro_ch=self.ch))
         pulse.add_param('phase', 0, 1/self.prog.reg2deg(r=1, gen_ch=None, ro_ch=self.ch))
 
@@ -1870,23 +1895,21 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         if parname=='total_length':
             param = pulse.get_length()
         else:
+            # this should always be a QickSweepV2
             param = pulse.pars2[parname]
-            if isinstance(param, QickSweepV2):
-                # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
-                param = param.get_rounded()
-            else:
-                # TODO: for now, we still need get_param for scalars
-                param = pulse.get_param(parname)
+            # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
+            param = param.get_rounded()
+
+        # if the parameter's not really swept, we just return the scalar
+        if isinstance(param, QickSweepV2) and not param.spans:
+            return param.start
 
         if as_array and isinstance(param, QickSweepV2):
-            allpoints = None
+            allpoints = param.start
             for name, n in self.loop_dict.items():
                 if name in param.spans:
                     points = np.linspace(0, param.spans[name], n)
-                    if allpoints is None:
-                        allpoints = points + param.start
-                    else:
-                        allpoints = np.add.outer(allpoints, points)
+                    allpoints = np.add.outer(allpoints, points)
             return allpoints
         else:
             return param
