@@ -80,7 +80,7 @@ class QickSweepV2:
     When get_actual_values is called on the pulse parameter, it recurses through the derived_sweep pointers until it finds the QickSweepV2 that got converted by to_int.
     Then sweep_raw is used to get the rounded+stepped QickSweepRaw.
     """
-    def __init__(self, start: float, spans: dict):
+    def __init__(self, start: float, spans: dict={}):
         self.start = start
         self.spans = spans
 
@@ -91,6 +91,14 @@ class QickSweepV2:
         # these get assigned when a mathematical operation is performed on this QickSweepV2
         self.derived_sweep: QickSweepV2 | None = None
         self.conversion_from_derived_sweep: Callable | None = None
+
+    def is_sweep(self):
+        return bool(self.spans)
+
+    def __float__(self):
+        if self.is_sweep():
+            raise RuntimeError("tried to cast a swept QickSweepV2 to float, which is not safe")
+        return self.start
 
     def to_int(self, scale, quantize, parname, trunc=False):
         # this check catches the situation where a sweep might get used in two different places and confuse get_actual_values
@@ -254,6 +262,14 @@ class QickSweepRaw(SimpleClass):
         self.scale = 1
         self.offset = 0
 
+    def is_sweep(self):
+        return bool(self.spans)
+
+    def __int__(self):
+        if self.is_sweep():
+            raise RuntimeError("tried to cast a swept QickSweepRaw to int, which is not safe")
+        return self.start
+
     def to_steps(self, loops):
         if self.steps is not None:
             logger.warn("to_steps is getting called twice on this QickSweepRaw")
@@ -400,17 +416,25 @@ class QickPulse(SimpleClass):
     def __init__(self, params, ch_mgr: 'AbsRegisterManager'=None):
         self.params = params
         self.ch_mgr = ch_mgr
+        if ch_mgr is None:
+            self.numeric_params = []
+        else:
+            self.numeric_params = list(params.keys() & ch_mgr.PARAMS_NUMERIC) + ['total_length']
         self.waveforms = []
 
     def add_wave(self, waveform):
         self.waveforms.append(waveform)
 
     def get_length(self):
+        # always returns a QickSweepV2
         if self.ch_mgr is None:
             logger.warning("no channel manager defined for this pulse, get_length() will return 0")
-            return 0
+            length = 0
         else:
-            return sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
+            length = sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
+        if not isinstance(length, QickSweepV2):
+            length = QickSweepV2(start=length, spans={})
+        return length
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
@@ -434,6 +458,7 @@ class Macro(SimpleNamespace):
 
     def preprocess(self, prog):
         # allocate registers and stuff?
+        # this runs after loop_dict is filled and waveform sweeps are stepped
         pass
 
 class TimedMacro(Macro):
@@ -453,23 +478,35 @@ class TimedMacro(Macro):
         # return actual (rounded, stepped) time value
         # if t is None (can happen with wait_auto/delay_auto), pass that through
 
-        # store a copy of the original parameter
-        t = copy.copy(t)
-        self.t_params[name] = t
-
         if t is None:
             t_reg = None
             t_rounded = None
         else:
-            t_reg = prog.us2cycles(t)
-            if isinstance(t_reg, QickSweepRaw):
-                t_reg = prog.new_reg(sweep=t_reg)
-                t_reg.sweep.to_steps(prog.loop_dict)
-                t_rounded = prog.cycles2us(t_reg.sweep)
+            # if t is a sweep, store a copy
+            if isinstance(t, QickSweepV2):
+                t = copy.copy(t)
+            # if t is scalar, convert to sweep
             else:
-                t_rounded = prog.cycles2us(t_reg)
+                t = QickSweepV2(start=t, spans={})
+
+            t_reg = prog.us2cycles(t)
+            t_reg.to_steps(prog.loop_dict)
+            if t_reg.is_sweep():
+                t_reg = prog.new_reg(sweep=t_reg)
+            else:
+                t_reg = int(t_reg)
+            t_rounded = t.get_rounded()
+        self.t_params[name] = t
         self.t_regs[name] = t_reg
         return t_rounded
+
+    def list_time_params(self):
+        return list(self.t_params.keys())
+
+    def get_time_param(self, name):
+        if name not in self.t_params:
+            raise RuntimeError("invalid parameter name; use list_time_params() to get the list of valid names for this instruction")
+        return self.t_params[name].get_rounded()
 
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
@@ -640,8 +677,8 @@ class Trigger(TimedMacro):
         self.trigset = set()
 
         #treg = self.us2cycles(t)
-        self.convert_time(prog, self.t, "t_start")
-        self.convert_time(prog, self.width, "t_width")
+        self.convert_time(prog, self.t, "t")
+        self.convert_time(prog, self.width, "width")
 
         special_ros = []
         if self.ddr4: special_ros.append(prog.soccfg['ddr4_buf'])
@@ -676,14 +713,14 @@ class Trigger(TimedMacro):
     def expand(self, prog):
         insts = []
         if self.t is not None:
-            insts.append(self.set_timereg(prog, "t_start"))
+            insts.append(self.set_timereg(prog, "t"))
         if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)}, addr_inc=1))
         if self.trigset:
             for outport in self.trigset:
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport)}, addr_inc=1))
-        insts.append(self.inc_timereg(prog, "t_width"))
+        insts.append(self.inc_timereg(prog, "width"))
         if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'}, addr_inc=1))
@@ -1007,7 +1044,7 @@ class AsmV2:
 
     # timeline management
 
-    def wait(self, t):
+    def wait(self, t, tag=None):
         """Pause tProc execution until the time reaches the specified value, relative to the reference time.
 
         Parameters
@@ -1015,9 +1052,9 @@ class AsmV2:
         t : float
             time (us)
         """
-        self.add_macro(Wait(t=t, auto=False))
+        self.add_macro(Wait(t=t, auto=False, tag=tag))
 
-    def delay(self, t):
+    def delay(self, t, tag=None):
         """Increment the reference time.
         This will have the effect of delaying all timed instructions executed after this one.
 
@@ -1026,9 +1063,9 @@ class AsmV2:
         t : float
             time (us)
         """
-        self.add_macro(Delay(t=t, auto=False))
+        self.add_macro(Delay(t=t, auto=False, tag=tag))
 
-    def delay_auto(self, t=0, gens=True, ros=True):
+    def delay_auto(self, t=0, gens=True, ros=True, tag=None):
         """Set the reference time to the end of the last pulse/readout, plus the specified value.
         You can select whether this accounts for pulses, readout windows, or both.
 
@@ -1041,9 +1078,9 @@ class AsmV2:
         ros : bool
             check the ends of readout windows
         """
-        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros))
+        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
-    def wait_auto(self, t=0, gens=False, ros=True):
+    def wait_auto(self, t=0, gens=False, ros=True, tag=None):
         """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
         You can select whether this accounts for pulses, readout windows, or both.
 
@@ -1056,11 +1093,11 @@ class AsmV2:
         ros : bool
             check the ends of readout windows
         """
-        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros))
+        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
     # pulses and triggers
 
-    def pulse(self, ch, name, t=0):
+    def pulse(self, ch, name, t=0, tag=None):
         """Play a pulse.
 
         Parameters
@@ -1072,9 +1109,9 @@ class AsmV2:
         t : float, QickSweepV2, or "auto"
             time (us), or the end of the last pulse on this generator
         """
-        self.add_macro(Pulse(ch=ch, name=name, t=t))
+        self.add_macro(Pulse(ch=ch, name=name, t=t, tag=tag))
 
-    def send_readoutconfig(self, ch, name, t=0):
+    def send_readoutconfig(self, ch, name, t=0, tag=None):
         """Send a previously defined readout config to a readout.
 
         Parameters
@@ -1086,9 +1123,9 @@ class AsmV2:
         t : float or QickSweepV2
             time (us)
         """
-        self.add_macro(ConfigReadout(ch=ch, name=name, t=t))
+        self.add_macro(ConfigReadout(ch=ch, name=name, t=t, tag=tag))
 
-    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False):
+    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False, tag=None):
         """Pulse readout triggers and output pins.
 
         Parameters
@@ -1108,7 +1145,7 @@ class AsmV2:
         mr : bool
             trigger the MR buffer
         """
-        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr))
+        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
 
 
 class AbsRegisterManager(ABC):
@@ -1142,7 +1179,7 @@ class AbsRegisterManager(ABC):
         self.prog.pulses[name] = self.params2pulse(pulse_params)
 
     @abstractmethod
-    def check_params(self, params) -> dict:
+    def check_params(self, params) -> tuple[dict, list]:
         ...
 
     @abstractmethod
@@ -1597,6 +1634,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # high-level program structure
 
         self.reg_dict = {}  # lookup dict for registers defined
+        self.time_dict = {} # lookup dict for timed instructions with tags
 
         self.loop_dict = OrderedDict()
         self.loop_stack = []
@@ -1694,6 +1732,10 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             w.fill_steps(self.loop_dict)
         for i, macro in enumerate(self.macro_list):
             macro.preprocess(self)
+            if isinstance(macro, TimedMacro) and macro.tag is not None:
+                if macro.tag in self.time_dict:
+                    raise RuntimeError("two instructions have the same tag %s"%(macro.tag))
+                self.time_dict[macro.tag] = macro
         # initialize sweep registers
         for reg in self.reg_dict.values():
             if reg.sweep is not None:
@@ -1838,6 +1880,25 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
 
+    def _format_sweep(self, param, as_array):
+        # if the parameter's not really swept, we just return the scalar
+        if not param.is_sweep():
+            return float(param)
+
+        if as_array:
+            allpoints = param.start
+            for name, n in self.loop_dict.items():
+                if name in param.spans:
+                    points = np.linspace(0, param.spans[name], n)
+                    allpoints = np.add.outer(allpoints, points)
+            return allpoints
+        else:
+            return param
+
+    def list_pulse_params(self, pulsename):
+        pulse = self.pulses[pulsename]
+        return pulse.numeric_params
+
     def get_pulse_param(self, pulsename, parname, as_array=False):
         """Get the fully rounded value of a pulse parameter, in the same units that are used to specify the parameter in add_pulse().
         By default, a swept parameter will be returned as a QickSweepV2.
@@ -1866,26 +1927,27 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             raise RuntimeError("get_pulse_param() can only be called on a program after it's been compiled")
 
         pulse = self.pulses[pulsename]
+        if parname not in pulse.numeric_params:
+            raise RuntimeError("invalid parameter name; use list_pulse_params() to get the list of valid names for this pulse")
         if parname=='total_length':
+            # this should always be a QickSweepV2, and it should already be rounded
             param = pulse.get_length()
         else:
             # this should always be a QickSweepV2
             # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
             param = pulse.params[parname].get_rounded()
 
-        # if the parameter's not really swept, we just return the scalar
-        if isinstance(param, QickSweepV2) and not param.spans:
-            return param.start
+        return self._format_sweep(param, as_array)
 
-        if as_array and isinstance(param, QickSweepV2):
-            allpoints = param.start
-            for name, n in self.loop_dict.items():
-                if name in param.spans:
-                    points = np.linspace(0, param.spans[name], n)
-                    allpoints = np.add.outer(allpoints, points)
-            return allpoints
-        else:
-            return param
+    def list_time_params(self, tag):
+        inst = self.time_dict[tag]
+        return inst.list_time_params()
+
+    def get_time_param(self, tag, parname, as_array=False):
+        #TODO docstring here, and for all timed instructions
+        inst = self.time_dict[tag]
+        param = inst.get_time_param(parname)
+        return self._format_sweep(param, as_array)
 
     # register management
 
