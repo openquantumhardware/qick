@@ -122,14 +122,12 @@ class QickSweepV2:
         """
         if self.sweep_raw is not None:
             if self.sweep_raw.steps is None:
+                # this shouldn't happen as part of get_pulse_param/get_time_param, because those only operate on converted+stepped QickSweepV2
                 logger.info("to_steps was never called on this QickSweepRaw")
                 self.sweep_raw.to_steps(loop_counts)
             assert self.scale_raw is not None
             # convert QickSweepRaw to QickSweepV2
-            rounded_sweep = self.sweep_raw/1.0
-            # undo the offset+scale that got applied to the QickSweepRaw
-            rounded_sweep -= self.sweep_raw.offset
-            rounded_sweep /= self.sweep_raw.scale
+            rounded_sweep = self.sweep_raw.to_rounded()
             # undo the scale that got applied by to_int
             rounded_sweep /= self.scale_raw
             return rounded_sweep
@@ -141,6 +139,34 @@ class QickSweepV2:
             )
 
         raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
+
+    def to_array(self, loop_counts, all_loops=False):
+        """Calculate the sweep points.
+        This calculation is based on the span values in the sweep.
+        If you call this on a QickSweepV2 that you defined, the result will differ from the actual sweep points due to rounding.
+        If you want exact actual values, use get_actual_values() or call this on an already-rounded QickSweepV2 (like one returned by get_pulse_param()/get_time_param().
+
+        Parameters
+        ----------
+        loop_counts : dict[str, int]
+            Number of iterations for each loop, outermost first.
+        all_loops : bool
+            If a loop in loop_counts doesn't increment this QickSweepV2, include it in the output array as a dimension of size 1.
+
+        Returns
+        -------
+        values : np.ndarray
+            Each dimension corresponds to a loop in loop_counts.
+        """
+        values = self.start
+        for name, count in loop_counts.items():
+            if name in self.spans:
+                span = self.spans[name]
+                steps = np.linspace(0, span, count)
+                values = np.add.outer(values, steps)
+            elif all_loops:
+                values = values[..., np_newaxis]
+        return values
 
     def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
         """Calculate the actual sweep points after rounding to ASM units.
@@ -156,14 +182,7 @@ class QickSweepV2:
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
         """
         rounded_sweep = self.get_rounded(loop_counts)
-        values = np.array([rounded_sweep.start])
-        for loop in loop_counts:
-            if loop in rounded_sweep.spans:
-                span = rounded_sweep.spans[loop]
-                values = np.add.outer(values, np.linspace(0, span, loop_counts[loop]))
-            else:
-                values = values[..., np.newaxis]
-        return values
+        return self.to_array(loop_counts, all_loops=True)
 
     def __copy__(self):
         self.derived_sweep = QickSweepV2(self.start, self.spans.copy())
@@ -286,6 +305,17 @@ class QickSweepRaw(SimpleClass):
                 if stepsize==0:
                     raise RuntimeError("requested sweep step is smaller than the available resolution: span=%d, steps=%d"%(r, nSteps-1))
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
+
+    def to_rounded(self):
+        """Reverse the conversion from QickSweepV2 to QickSweepRaw.
+        This is used by QickSweepV2.get_rounded().
+        """
+        # convert to QickSweepV2
+        rounded_sweep = self/1.0
+        # undo the offset+scale that got applied
+        rounded_sweep -= self.offset
+        rounded_sweep /= self.scale
+        return rounded_sweep
 
     def __copy__(self):
         newsweep = QickSweepRaw(self.par, self.start, copy.copy(self.spans), self.quantize)
@@ -1051,6 +1081,8 @@ class AsmV2:
         ----------
         t : float
             time (us)
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Wait(t=t, auto=False, tag=tag))
 
@@ -1062,6 +1094,8 @@ class AsmV2:
         ----------
         t : float
             time (us)
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Delay(t=t, auto=False, tag=tag))
 
@@ -1077,6 +1111,8 @@ class AsmV2:
             check the ends of generator pulses
         ros : bool
             check the ends of readout windows
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
@@ -1092,6 +1128,8 @@ class AsmV2:
             check the ends of generator pulses
         ros : bool
             check the ends of readout windows
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
@@ -1108,6 +1146,8 @@ class AsmV2:
             pulse name (as used in add_pulse())
         t : float, QickSweepV2, or "auto"
             time (us), or the end of the last pulse on this generator
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Pulse(ch=ch, name=name, t=t, tag=tag))
 
@@ -1122,6 +1162,8 @@ class AsmV2:
             config name (as used in add_readoutconfig())
         t : float or QickSweepV2
             time (us)
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(ConfigReadout(ch=ch, name=name, t=t, tag=tag))
 
@@ -1144,6 +1186,8 @@ class AsmV2:
             trigger the DDR4 buffer
         mr : bool
             trigger the MR buffer
+        tag: str
+            arbitrary name for use with get_time_param()
         """
         self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
 
@@ -1880,22 +1924,14 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
 
-    def _format_sweep(self, param, as_array):
-        # if the parameter's not really swept, we just return the scalar
-        if not param.is_sweep():
-            return float(param)
-
-        if as_array:
-            allpoints = param.start
-            for name, n in self.loop_dict.items():
-                if name in param.spans:
-                    points = np.linspace(0, param.spans[name], n)
-                    allpoints = np.add.outer(allpoints, points)
-            return allpoints
-        else:
-            return param
-
     def list_pulse_params(self, pulsename):
+        """Get the list of parameters you can look up for a given pulse with get_pulse_param().
+
+        Returns
+        -------
+        list of str
+            Parameter names
+        """
         pulse = self.pulses[pulsename]
         return pulse.numeric_params
 
@@ -1937,17 +1973,53 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
             param = pulse.params[parname].get_rounded()
 
-        return self._format_sweep(param, as_array)
+        # if the parameter's not really swept, we just return the scalar
+        if as_array: return param.to_array(self.loop_dict)
+        elif param.is_sweep(): return param
+        else: return float(param)
 
     def list_time_params(self, tag):
+        """Get the list of parameters you can look up for a given timed instruction with get_time_param().
+
+        Returns
+        -------
+        list of str
+            Parameter names
+        """
         inst = self.time_dict[tag]
         return inst.list_time_params()
 
     def get_time_param(self, tag, parname, as_array=False):
-        #TODO docstring here, and for all timed instructions
+        """Get the fully rounded value of a time parameter of a timed instruction, in microseconds.
+        You must have supplied a "tag" for the timed instruction.
+
+        By default, a swept parameter will be returned as a QickSweepV2.
+        If instead you ask for an array, the array will have a dimension for each loop where the parameter is swept.
+        The dimensions will be ordered by the loop order.
+
+        The rounded value is only available after the program has been compiled (or run).
+        So you can't call this method from inside your program definition.
+
+        Parameters
+        ----------
+        tag : str
+            Tag for the timed instruction.
+        parname : str
+            Name of the parameter
+        as_array : bool
+            If the parameter is swept, return an array instead of a QickSweepV2
+
+        Returns
+        -------
+        float, QickSweepV2, or array
+            Parameter value
+        """
         inst = self.time_dict[tag]
         param = inst.get_time_param(parname)
-        return self._format_sweep(param, as_array)
+        # if the parameter's not really swept, we just return the scalar
+        if as_array: return param.to_array(self.loop_dict)
+        elif param.is_sweep(): return param
+        else: return float(param)
 
     # register management
 
