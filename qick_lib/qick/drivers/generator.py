@@ -298,6 +298,38 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
         # Table is interpolated. Length is given only by parameter N.
         self.MAX_LENGTH = 2**self.N
 
+class AxisSgInt4V2(AbsArbSignalGen, AbsPulsedSignalGen):
+    """
+    AxisSgInt4V2
+
+    Same as AxisSgInt4V1, but 32-bit frequency and phase resolution.
+    """
+    bindto = ['user.org:user:axis_sg_int4_v2:1.0']
+    HAS_MIXER = True
+    FS_INTERPOLATION = 4
+    MAXV_SCALE = 0.9
+    B_DDS = 32
+    B_PHASE = 32
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        # Generics
+        self.N = int(description['parameters']['N'])
+        self.NDDS = 4  # Fixed by design, not accesible.
+
+        super().__init__(description)
+
+        self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
+
+        # Default registers.
+        self.start_addr_reg = 0
+        self.we_reg = 0
+
+        # Maximum number of samples
+        # Table is interpolated. Length is given only by parameter N.
+        self.MAX_LENGTH = 2**self.N
 
 class AbsMuxSignalGen(AbsPulsedSignalGen):
     """
