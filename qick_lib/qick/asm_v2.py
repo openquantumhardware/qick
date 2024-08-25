@@ -17,74 +17,75 @@ from .helpers import to_int, check_bytes, check_keys
 logger = logging.getLogger(__name__)
 
 # user units, multi-dimension
-class QickSweepV2:
-    """Defines a multi-dimensional sweep for use in pulses or times.
+class QickParam:
+    """Defines a parameter for use in pulses or times.
+    This may be a floating-point scalar or a multi-dimensional sweep.
     This class isn't usually instantiated by user code:
     if you want to make a sweep, it's easier to use QickSweep1D or <start_val>+QickSpan+QickSpan....
 
     The lifecycle of the various sweep classes:
 
-    User code builds a QickSweepV2 from scalars, QickSpans, and QickSweepV2s.
+    User code builds a QickParam from scalars, QickSpans, and QickParams.
 
-    When the pulse or timed instruction is defined, the QickSweepV2 might get additional scalar operations (mostly, if it's a readout freq for an RO that's freq-matched with a mixer generator).
+    When the pulse or timed instruction is defined, the QickParam might get additional scalar operations (mostly, if it's a readout freq for an RO that's freq-matched with a mixer generator).
     (are there cases where delay_auto values might get added to sweeps?)
-    Then it gets converted to a QickSweepRaw by to_int.
-    The QickSweepRaw may be scaled by int or Fraction multiplication, or offset by an int, e.g. to convert from flat-top to ramp gain, to apply mixer freq to a freq-matched RO freq. These are in-place operations.
-    The "quantize" parameter ensures that the scaled QickSweepRaws will get stepped in the same way.
+    Then it gets converted to a QickRawParam by to_int.
+    The QickRawParam may be scaled by int or Fraction multiplication, or offset by an int, e.g. to convert from flat-top to ramp gain, to apply mixer freq to a freq-matched RO freq. These are in-place operations.
+    The "quantize" parameter ensures that the scaled QickRawParams will get stepped in the same way.
 
-    When the loop dims are known, the QickSweepRaw gets divided into steps by to_steps.
-    The same QickSweepRaw may be used for multiple Waveforms.
+    When the loop dims are known, the QickRawParam gets divided into steps by to_steps.
+    The same QickRawParam may be used for multiple Waveforms.
 
-    QickSweepRaw gets converted back to QickSweepV2 to get user units by float division.
-    This is used to get pulse durations; the resulting QickSweepV2 may get operated on and get used for an auto time.
+    QickRawParam gets converted back to QickParam to get user units by float division.
+    This is used to get pulse durations; the resulting QickParam may get operated on and get used for an auto time.
     It is also used by get_pulse_param, but we will probably use get_actual_values instead?
 
     get_actual_values works as follows:
 
-    derived_sweep and conversion_from_derived_sweep are updated whenever a new QickSweepV2 is created by scalar operation.
-    Note that if the same QickSweepV2 is used in two places, the derived_sweep pointer gets overwritten.
+    derived_param and conversion_from_derived_param are updated whenever a new QickParam is created by scalar operation.
+    Note that if the same QickParam is used in two places, the derived_param pointer gets overwritten.
     Pulse and timed-instruction parameters are copied at use, so get_pulse_param and get_time_param are safe.
-    Code that calls get_actual_values directly on a QickSweepV2 relies on the step sizes being the same everywhere a sweep is used.
+    Code that calls get_actual_values directly on a QickParam relies on the step sizes being the same everywhere a sweep is used.
 
-    sweep_raw and scale_raw are set by to_int.
-    Normally the QickSweepRaw created by to_int is then stepped.
+    raw_param and raw_scale are set by to_int.
+    Normally the QickRawParam created by to_int is then stepped.
 
-    When get_actual_values is called on the pulse parameter, it recurses through the derived_sweep pointers until it finds the QickSweepV2 that got converted by to_int.
-    Then sweep_raw is used to get the rounded+stepped QickSweepRaw.
+    When get_actual_values is called on the pulse parameter, it recurses through the derived_param pointers until it finds the QickParam that got converted by to_int.
+    Then raw_param is used to get the rounded+stepped QickRawParam.
     """
     def __init__(self, start: float, spans: dict={}):
         self.start = start
         self.spans = spans
 
         # these get assigned when to_int is called and are used by get_actual_values
-        self.sweep_raw: QickSweepRaw | None = None
-        self.scale_raw: float | int | None = None
+        self.raw_param: QickRawParam | None = None
+        self.raw_scale: float | int | None = None
 
-        # these get assigned when a mathematical operation is performed on this QickSweepV2
-        self.derived_sweep: QickSweepV2 | None = None
-        self.conversion_from_derived_sweep: Callable | None = None
+        # these get assigned when a mathematical operation is performed on this QickParam
+        self.derived_param: QickParam | None = None
+        self.conversion_from_derived_param: Callable | None = None
 
     def is_sweep(self):
         return bool(self.spans)
 
     def __float__(self):
         if self.is_sweep():
-            raise RuntimeError("tried to cast a swept QickSweepV2 to float, which is not safe")
+            raise RuntimeError("tried to cast a swept QickParam to float, which is not safe")
         return self.start
 
     def to_int(self, scale, quantize, parname, trunc=False):
-        # this check catches the situation where a sweep might get used in two different places and confuse get_actual_values
+        # this check catches the situation where a QickParam might get used in two different places and confuse get_actual_values
         # this shouldn't happen, because we copy the pulse and timed-instruction parameters
-        if self.sweep_raw is not None:
-            logger.warn("the same QickSweepV2 is being converted to QickSweepRaw twice")
+        if self.raw_param is not None:
+            logger.warn("the same QickParam is being converted to QickRawParam twice")
         start = to_int(self.start, scale, quantize=quantize, parname=parname, trunc=trunc)
         spans = {k: to_int(v, scale, quantize=quantize, parname=parname, trunc=trunc) for k,v in self.spans.items()}
-        self.sweep_raw = QickSweepRaw(par=parname, start=start, spans=spans, quantize=quantize)
-        self.scale_raw = scale
-        return self.sweep_raw
+        self.raw_param = QickRawParam(par=parname, start=start, spans=spans, quantize=quantize)
+        self.raw_scale = scale
+        return self.raw_param
 
-    def get_rounded(self, loop_counts: dict[str, int]=None) -> QickSweepV2:
-        """Calculate the sweep values after rounding to ASM units.
+    def get_rounded(self, loop_counts: dict[str, int]=None) -> QickParam:
+        """Calculate the param values after rounding to ASM units.
         loop_counts parameter is optional and will be used to compute steps if they have not already been computed.
 
         Parameters
@@ -92,38 +93,38 @@ class QickSweepV2:
         loop_counts : dict[str, int]
             Number of iterations for each loop, outermost first.
         """
-        if self.sweep_raw is not None:
-            if self.sweep_raw.steps is None:
-                # this shouldn't happen as part of get_pulse_param/get_time_param, because those only operate on converted+stepped QickSweepV2
-                logger.info("to_steps was never called on this QickSweepRaw")
-                self.sweep_raw.to_steps(loop_counts)
-            assert self.scale_raw is not None
-            # convert QickSweepRaw to QickSweepV2
-            rounded_sweep = self.sweep_raw.to_rounded()
+        if self.raw_param is not None:
+            if self.raw_param.steps is None:
+                # this shouldn't happen as part of get_pulse_param/get_time_param, because those only operate on converted+stepped QickParam
+                logger.info("to_steps was never called on this QickRawParam")
+                self.raw_param.to_steps(loop_counts)
+            assert self.raw_scale is not None
+            # convert QickRawParam to QickParam
+            rounded_param = self.raw_param.to_rounded()
             # undo the scale that got applied by to_int
-            rounded_sweep /= self.scale_raw
-            return rounded_sweep
+            rounded_param /= self.raw_scale
+            return rounded_param
 
-        if self.derived_sweep is not None:
-            assert self.conversion_from_derived_sweep is not None
-            return self.conversion_from_derived_sweep(
-                self.derived_sweep.get_rounded(loop_counts)
+        if self.derived_param is not None:
+            assert self.conversion_from_derived_param is not None
+            return self.conversion_from_derived_param(
+                self.derived_param.get_rounded(loop_counts)
             )
 
-        raise RuntimeError("to_int has not been called on this QickSweepV2 or its descendants")
+        raise RuntimeError("to_int has not been called on this QickParam or its descendants")
 
     def to_array(self, loop_counts, all_loops=False):
         """Calculate the sweep points.
         This calculation is based on the span values in the sweep.
-        If you call this on a QickSweepV2 that you defined, the result will differ from the actual sweep points due to rounding.
-        If you want exact actual values, use get_actual_values() or call this on an already-rounded QickSweepV2 (like one returned by get_pulse_param()/get_time_param().
+        If you call this on a QickParam that you defined, the result will differ from the actual sweep points due to rounding.
+        If you want exact actual values, use get_actual_values() or call this on an already-rounded QickParam (like one returned by get_pulse_param()/get_time_param().
 
         Parameters
         ----------
         loop_counts : dict[str, int]
             Number of iterations for each loop, outermost first.
         all_loops : bool
-            If a loop in loop_counts doesn't increment this QickSweepV2, include it in the output array as a dimension of size 1.
+            If a loop in loop_counts doesn't increment this QickParam, include it in the output array as a dimension of size 1.
 
         Returns
         -------
@@ -151,27 +152,27 @@ class QickSweepV2:
         Returns
         -------
         values : np.ndarray
-            Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
+            Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickParam.
         """
-        rounded_sweep = self.get_rounded(loop_counts)
-        return rounded_sweep.to_array(loop_counts, all_loops=True)
+        rounded_param = self.get_rounded(loop_counts)
+        return rounded_param.to_array(loop_counts, all_loops=True)
 
     def __copy__(self):
-        self.derived_sweep = QickSweepV2(self.start, self.spans.copy())
-        self.conversion_from_derived_sweep = lambda x: x
-        return self.derived_sweep
+        self.derived_param = QickParam(self.start, self.spans.copy())
+        self.conversion_from_derived_param = lambda x: x
+        return self.derived_param
     def __add__(self, a):
-        if isinstance(a, QickSweepV2):
+        if isinstance(a, QickParam):
             new_start = self.start + a.start
             new_spans = self.spans.copy()
             for loop, r in a.spans.items():
                 new_spans[loop] = new_spans.get(loop, 0) + r
-            return QickSweepV2(new_start, new_spans)
+            return QickParam(new_start, new_spans)
         if isinstance(a, np.ScalarType):
             new_start = self.start + a
-            self.derived_sweep = QickSweepV2(new_start, self.spans)
-            self.conversion_from_derived_sweep = lambda x: x - a
-            return self.derived_sweep
+            self.derived_param = QickParam(new_start, self.spans)
+            self.conversion_from_derived_param = lambda x: x - a
+            return self.derived_param
         return NotImplemented
     def __radd__(self, a):
         return self+a
@@ -183,9 +184,9 @@ class QickSweepV2:
         if isinstance(a, (int, float)):
             new_start = self.start * a
             new_spans = {k: v * a for k, v in self.spans.items()}
-            self.derived_sweep = QickSweepV2(new_start, new_spans)
-            self.conversion_from_derived_sweep = lambda x: x / a
-            return self.derived_sweep
+            self.derived_param = QickParam(new_start, new_spans)
+            self.conversion_from_derived_param = lambda x: x / a
+            return self.derived_param
         return NotImplemented
     def __neg__(self):
         return self * -1
@@ -211,7 +212,7 @@ class QickSweepV2:
 
 # user units, single dimension
 def QickSweep1D(loop, start, end):
-    """Convenience shortcut for a one-dimensional QickSweepV2.
+    """Convenience shortcut for a one-dimensional QickParam.
 
     Parameters
     ----------
@@ -222,12 +223,12 @@ def QickSweep1D(loop, start, end):
     end : float
         The desired value at the end of the loop.
     """
-    return QickSweepV2(start, {loop: end-start})
+    return QickParam(start, {loop: end-start})
 
 def QickSpan(loop, span):
-    """Convenience shortcut for building multi-dimensional QickSweepV2s.
+    """Convenience shortcut for building multi-dimensional QickParams.
     A QickSpan equals 0 at the start of the specified loop, and the specified "span" value at the end of the loop.
-    You may sum QickSpans and floats to build a multi-dimensional QickSweepV2.
+    You may sum QickSpans and floats to build a multi-dimensional QickParam.
 
     Parameters
     ----------
@@ -236,7 +237,7 @@ def QickSpan(loop, span):
     span : float
         The desired value at the end of the loop. Can be positive or negative.
     """
-    return QickSweepV2(0.0, {loop: span})
+    return QickParam(0.0, {loop: span})
 
 class SimpleClass:
     # if you print this class, it will print the attributes listed in self._fields
@@ -246,7 +247,7 @@ class SimpleClass:
         return "{}({})".format(type(self).__name__, ", ".join(items))
 
 # ASM units, multi-dimension
-class QickSweepRaw(SimpleClass):
+class QickRawParam(SimpleClass):
     _fields = ['par', 'start', 'spans', 'quantize', 'steps']
     def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1):
         # identifies the parameter being swept, so EndLoop can apply the sweep
@@ -268,12 +269,12 @@ class QickSweepRaw(SimpleClass):
 
     def __int__(self):
         if self.is_sweep():
-            raise RuntimeError("tried to cast a swept QickSweepRaw to int, which is not safe")
+            raise RuntimeError("tried to cast a swept QickRawParam to int, which is not safe")
         return self.start
 
     def to_steps(self, loops):
         if self.steps is not None:
-            logger.warn("to_steps is getting called twice on this QickSweepRaw")
+            logger.warn("to_steps is getting called twice on this QickRawParam")
         self.steps = {}
         for loop, r in self.spans.items():
             nSteps = loops[loop]
@@ -289,32 +290,32 @@ class QickSweepRaw(SimpleClass):
             self.steps[loop] = {"step":stepsize, "span":stepsize*(nSteps-1)}
 
     def to_rounded(self):
-        """Reverse the conversion from QickSweepV2 to QickSweepRaw.
-        This is used by QickSweepV2.get_rounded().
+        """Reverse the conversion from QickParam to QickRawParam.
+        This is used by QickParam.get_rounded().
         """
-        # convert to QickSweepV2
-        rounded_sweep = self/1.0
+        # convert to QickParam
+        rounded_param = self/1.0
         # undo the offset+scale that got applied
-        rounded_sweep -= self.offset
-        rounded_sweep /= self.scale
-        return rounded_sweep
+        rounded_param -= self.offset
+        rounded_param /= self.scale
+        return rounded_param
 
     def __copy__(self):
-        newsweep = QickSweepRaw(self.par, self.start, copy.copy(self.spans), self.quantize)
-        newsweep.steps = copy.copy(self.steps)
-        return newsweep
+        newparam = QickRawParam(self.par, self.start, copy.copy(self.spans), self.quantize)
+        newparam.steps = copy.copy(self.steps)
+        return newparam
     def __imul__(self, a):
-        # multiplying a QickSweepRaw by a int or Fraction yields a QickSweepRaw
+        # multiplying a QickRawParam by a int or Fraction yields a QickRawParam
         # used when scaling parameters (e.g. flat_top segment gain) or flipping the sign of downconversion freqs
         # this will only happen before steps have been defined
         if self.steps is not None:
-            raise RuntimeError("QickSweepRaw can only be multiplied before steps have been defined")
+            raise RuntimeError("QickRawParam can only be multiplied before steps have been defined")
         if isinstance(a, Fraction):
             if not all([x%a.denominator==0 for x in [self.start, self.quantize] + list(self.spans.values())]):
                 raise RuntimeError("cannot multiply %s evenly by %d"%(str(self), a))
         elif isinstance(a, int): pass
         else:
-            raise RuntimeError("QickSweepRaw can only be multiplied by int or Fraction")
+            raise RuntimeError("QickRawParam can only be multiplied by int or Fraction")
         self.start = int(self.start*a)
         self.quantize = int(self.quantize*a)
         for k,v in self.spans.items():
@@ -322,10 +323,10 @@ class QickSweepRaw(SimpleClass):
         self.scale *= a
         self.offset *= a
         #spans = {k:int(v*a) for k,v in self.spans.items()}
-        #return QickSweepRaw(self.par, int(self.start*a), spans, int(self.quantize*a))
+        #return QickRawParam(self.par, int(self.start*a), spans, int(self.quantize*a))
         return self
     def __iadd__(self, a):
-        # used when adding a scalar value to a sweep (when ReadoutManager adds a mixer freq to a readout freq)
+        # used when adding a scalar value to a param (when ReadoutManager adds a mixer freq to a readout freq)
         self.start += a
         self.offset += a
         return self
@@ -334,14 +335,14 @@ class QickSweepRaw(SimpleClass):
         # do nothing - mod will be applied when compiling the Waveform
         return self
     def __truediv__(self, a):
-        # dividing a QickSweepRaw by a number yields a QickSweepV2
+        # dividing a QickRawParam by a number yields a QickParam
         # this is used to convert duration to us (for updating timestamps)
-        # or generally to convert sweeps back to user units (for getting sweep points)
+        # or generally to convert raw params back to user units (for getting rounded values)
         # this will only happen after steps have been defined
         if self.steps is None:
-            raise RuntimeError("QickSweepRaw can only be divided after steps have been defined")
+            raise RuntimeError("QickRawParam can only be divided after steps have been defined")
         spans = {k:v['span']/a for k,v in self.steps.items()}
-        return QickSweepV2(self.start/a, spans)
+        return QickParam(self.start/a, spans)
     def minval(self):
         # used to check for out-of-range values
         val = self.start
@@ -357,7 +358,7 @@ class QickSweepRaw(SimpleClass):
 class Waveform(Mapping, SimpleClass):
     widths = [4, 4, 3, 4, 4, 2]
     _fields = ['name', 'freq', 'phase', 'env', 'gain', 'length', 'conf']
-    def __init__(self, freq: Union[int, QickSweepRaw], phase: Union[int, QickSweepRaw], env: int, gain: Union[int, QickSweepRaw], length: Union[int, QickSweepRaw], conf: int, name: str=None):
+    def __init__(self, freq: Union[int, QickRawParam], phase: Union[int, QickRawParam], env: int, gain: Union[int, QickRawParam], length: Union[int, QickRawParam], conf: int, name: str=None):
         self.freq = freq
         self.phase = phase
         self.env = env
@@ -371,7 +372,7 @@ class Waveform(Mapping, SimpleClass):
         # use the field ordering, skipping the name
         params = [getattr(self, f) for f in self._fields[1:]]
         # if a parameter is swept, the start value is what we write to the wave memory
-        startvals = [x.start if isinstance(x, QickSweepRaw) else x for x in params]
+        startvals = [x.start if isinstance(x, QickRawParam) else x for x in params]
         # convert to bytes to get a 168-bit word (this is what actually ends up in the wave memory)
         # we truncate each parameter to its correct length using mod
         # some generator parameter lengths are smaller than the waveform parameter length:
@@ -384,7 +385,7 @@ class Waveform(Mapping, SimpleClass):
         # pack into a numpy array
         return np.frombuffer(paddedbytes, dtype=np.int32)
     def sweeps(self):
-        return [r for r in [self.freq, self.phase, self.gain, self.length] if isinstance(r, QickSweepRaw)]
+        return [r for r in [self.freq, self.phase, self.gain, self.length] if isinstance(r, QickRawParam)]
     def fill_steps(self, loops):
         for sweep in self.sweeps():
             sweep.to_steps(loops)
@@ -393,7 +394,7 @@ class Waveform(Mapping, SimpleClass):
         return len(self._fields)
     def __getitem__(self, k):
         v = getattr(self, k)
-        if isinstance(v, QickSweepRaw):
+        if isinstance(v, QickRawParam):
             return v.start
         else:
             return v
@@ -406,7 +407,7 @@ class Waveform(Mapping, SimpleClass):
         d = OrderedDict()
         for k in self._fields:
             d[k] = getattr(self, k)
-            if isinstance(d[k], QickSweepRaw):
+            if isinstance(d[k], QickRawParam):
                 d[k] = d[k].start
         return d
 
@@ -438,19 +439,19 @@ class QickPulse(SimpleClass):
         self.waveforms.append(waveform)
 
     def get_length(self):
-        # always returns a QickSweepV2
+        # always returns a QickParam
         if self.ch_mgr is None:
             logger.warning("no channel manager defined for this pulse, get_length() will return 0")
             length = 0
         else:
             length = sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
-        if not isinstance(length, QickSweepV2):
-            length = QickSweepV2(start=length, spans={})
+        if not isinstance(length, QickParam):
+            length = QickParam(start=length, spans={})
         return length
 
 class QickRegister(SimpleClass):
     _fields = ['name', 'addr', 'sweep']
-    def __init__(self, name: str=None, addr: int=None, sweep: QickSweepV2=None):
+    def __init__(self, name: str=None, addr: int=None, sweep: QickParam=None):
         self.name = name
         self.addr = addr
         self.sweep = sweep
@@ -494,12 +495,12 @@ class TimedMacro(Macro):
             t_reg = None
             t_rounded = None
         else:
-            # if t is a sweep, store a copy
-            if isinstance(t, QickSweepV2):
+            # if t is a QickParam, store a copy
+            if isinstance(t, QickParam):
                 t = copy.copy(t)
-            # if t is scalar, convert to sweep
+            # if t is scalar, convert to QickParam
             else:
-                t = QickSweepV2(start=t, spans={})
+                t = QickParam(start=t, spans={})
 
             t_reg = prog.us2cycles(t)
             t_reg.to_steps(prog.loop_dict)
@@ -594,7 +595,7 @@ class Wait(TimedMacro):
                 wait = None
             else:
                 wait += max_t
-        if isinstance(wait, QickSweepV2):
+        if isinstance(wait, QickParam):
             # TODO: maybe rounding up should be optional?
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
             # TODO: disable warning at end of shot?
@@ -1126,7 +1127,7 @@ class AsmV2:
             generator channel (index in 'gens' list)
         name : str
             pulse name (as used in add_pulse())
-        t : float, QickSweepV2, or "auto"
+        t : float, QickParam, or "auto"
             time (us), or the end of the last pulse on this generator
         tag: str
             arbitrary name for use with get_time_param()
@@ -1142,7 +1143,7 @@ class AsmV2:
             readout channel (index in 'readouts' list)
         name : str
             config name (as used in add_readoutconfig())
-        t : float or QickSweepV2
+        t : float or QickParam
             time (us)
         tag: str
             arbitrary name for use with get_time_param()
@@ -1158,11 +1159,11 @@ class AsmV2:
             readout channels to trigger (index in 'readouts' list)
         pins : list of int
             output pins to trigger (index in output pins list in QickCOnfig printout)
-        t : float, QickSweepV2, or None
+        t : float, QickParam, or None
             time (us)
             if None, the current value of the time register (s14) will be used
             in this case, the channel timestamps will not be updated
-        width : float or QickSweepV2
+        width : float or QickParam
             pulse width (us), default of 10 cycles of the tProc timing clock
         ddr4 : bool
             trigger the DDR4 buffer
@@ -1295,7 +1296,7 @@ class AbsGenManager(AbsRegisterManager):
         -------
         dict
             Parameter dictionary to be stored with the pulse.
-            Scalar numeric parameters are converted to QickSweepV2, sweeps are copied.
+            Scalar numeric parameters are converted to QickParam, QickParams are copied.
         """
         style = params['style']
         required = set(self.PARAMS_REQUIRED[style])
@@ -1304,8 +1305,8 @@ class AbsGenManager(AbsRegisterManager):
 
         pulse_params = {}
         for k,v in params.items():
-            if k in self.PARAMS_NUMERIC and not isinstance(v, QickSweepV2):
-                pulse_params[k] = QickSweepV2(start=v, spans={})
+            if k in self.PARAMS_NUMERIC and not isinstance(v, QickParam):
+                pulse_params[k] = QickParam(start=v, spans={})
             else:
                 pulse_params[k] = copy.copy(v)
         return pulse_params
@@ -1323,7 +1324,7 @@ class StandardGenManager(AbsGenManager):
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
-        if isinstance(lenreg, QickSweepRaw):
+        if isinstance(lenreg, QickRawParam):
             if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         else:
@@ -1415,7 +1416,7 @@ class StandardGenManager(AbsGenManager):
                 logger.warning("Envelope length %d is an odd number of fabric cycles.\n"
                 "The middle cycle of the envelope will not be used.\n"
                 "If this is a problem, you could use the even_length parameter for your envelope."%(env_length))
-            # we want to make sure the original QickSweepRaw created from each pulse parameter ends up in exactly one waveform
+            # we want to make sure the original QickRawParam created from each pulse parameter ends up in exactly one waveform
             # so the parameters of the later segments are copies, except for the flat length
             w1 = w
             w2 = {k:copy.copy(v) for k,v in w.items()}
@@ -1450,7 +1451,7 @@ class MultiplexedGenManager(AbsGenManager):
         cfgreg = maskreg
         if self.tmux_ch is not None:
             cfgreg += (self.tmux_ch << 8)
-        if isinstance(lenreg, QickSweepRaw):
+        if isinstance(lenreg, QickRawParam):
             if lenreg.maxval() >= 2**32 or lenreg.minval() < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 32 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         else:
@@ -1500,8 +1501,8 @@ class ReadoutManager(AbsRegisterManager):
 
         pulse_params = {}
         for k,v in params.items():
-            if k in self.PARAMS_NUMERIC and not isinstance(v, QickSweepV2):
-                pulse_params[k] = QickSweepV2(start=v, spans={})
+            if k in self.PARAMS_NUMERIC and not isinstance(v, QickParam):
+                pulse_params[k] = QickParam(start=v, spans={})
             else:
                 pulse_params[k] = copy.copy(v)
         return pulse_params
@@ -1517,7 +1518,7 @@ class ReadoutManager(AbsRegisterManager):
         pulse = QickPulse(par, self)
 
         # convert the requested freq, frequency-matching to the generator if specified
-        # freqreg may be an int or a QickSweepRaw
+        # freqreg may be an int or a QickRawParam
         # if the matching generator has a mixer, that frequency needs to be added to this one
         # it should already be rounded to the readout and mixer frequency steps, so no additional rounding is needed
         # the relevant quantization step is still going to be the readout+generator step
@@ -1554,7 +1555,7 @@ class ReadoutManager(AbsRegisterManager):
             lenreg = self.prog.us2cycles(ro_ch=self.ch, us=par['length'])
         else:
             lenreg = 3
-        if isinstance(lenreg, QickSweepRaw):
+        if isinstance(lenreg, QickRawParam):
             if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
                 raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
         else:
@@ -1622,7 +1623,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # 
         # user commands can add macros and/or waveforms+pulses to the program
         # macros are user commands
-        # preprocessing: allocate registers, convert sweeps from physical units to ASM values, define the timeline
+        # preprocessing: allocate registers, convert params from physical units to ASM values, define the timeline
         # preprocessing allows us to initialize registers at the start of the program
         # expanding/translating: convert macros to lower-level macros and then to ASM
 
@@ -1891,9 +1892,9 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             readout channel (index in 'readouts' list)
         name : str
             name of the config
-        freq : float or QickSweepV2
+        freq : float or QickParam
             Frequency (MHz)
-        phase : float or QickSweepV2
+        phase : float or QickParam
             Phase (degrees)
         phrst : int
             If 1, it resets the DDS phase. The default is 0.
@@ -1901,7 +1902,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             Selects whether the output is "oneshot" (the default) or "periodic."
         outsel : str
             Selects the output source. The input is real, the output is complex. If "product" (the default), the output is the product of input and DDS. If "dds", the output is the DDS only. If "input", the output is from the input. If "zero", the output is always zero.
-        length : float or QickSweepV2
+        length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
         """
         self._ro_mgrs[ch].add_pulse(name, kwargs)
@@ -1919,7 +1920,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     def get_pulse_param(self, pulsename, parname, as_array=False):
         """Get the fully rounded value of a pulse parameter, in the same units that are used to specify the parameter in add_pulse().
-        By default, a swept parameter will be returned as a QickSweepV2.
+        By default, a swept parameter will be returned as a QickParam.
         If instead you ask for an array, the array will have a dimension for each loop where the parameter is swept.
         The dimensions will be ordered by the loop order.
 
@@ -1933,11 +1934,11 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         parname : str
             Name of the parameter
         as_array : bool
-            If the parameter is swept, return an array instead of a QickSweepV2
+            If the parameter is swept, return an array instead of a QickParam
 
         Returns
         -------
-        float, QickSweepV2, or array
+        float, QickParam, or array
             Parameter value
         """
         # if the parameter is swept, it's not fully defined until the loop macros have been processed
@@ -1948,10 +1949,10 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         if parname not in pulse.numeric_params:
             raise RuntimeError("invalid parameter name; use list_pulse_params() to get the list of valid names for this pulse")
         if parname=='total_length':
-            # this should always be a QickSweepV2, and it should already be rounded
+            # this should always be a QickParam, and it should already be rounded
             param = pulse.get_length()
         else:
-            # this should always be a QickSweepV2
+            # this should always be a QickParam
             # steps should already be defined, so we can get the rounded sweep without supplying a loop dict
             param = pulse.params[parname].get_rounded()
 
@@ -1975,7 +1976,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         """Get the fully rounded value of a time parameter of a timed instruction, in microseconds.
         You must have supplied a "tag" for the timed instruction.
 
-        By default, a swept parameter will be returned as a QickSweepV2.
+        By default, a swept parameter will be returned as a QickParam.
         If instead you ask for an array, the array will have a dimension for each loop where the parameter is swept.
         The dimensions will be ordered by the loop order.
 
@@ -1989,11 +1990,11 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         parname : str
             Name of the parameter
         as_array : bool
-            If the parameter is swept, return an array instead of a QickSweepV2
+            If the parameter is swept, return an array instead of a QickParam
 
         Returns
         -------
-        float, QickSweepV2, or array
+        float, QickParam, or array
             Parameter value
         """
         inst = self.time_dict[tag]
@@ -2005,7 +2006,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     # register management
 
-    def new_reg(self, addr: int = None, name: str = None, sweep: QickSweepRaw = None):
+    def new_reg(self, addr: int = None, name: str = None, sweep: QickRawParam = None):
         """Declare a new data register.
         For internal use; not recommended for user code at this time.
 
