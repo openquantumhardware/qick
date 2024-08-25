@@ -16,34 +16,6 @@ from .helpers import to_int, check_bytes, check_keys
 
 logger = logging.getLogger(__name__)
 
-class QickSpan(NamedTuple):
-    """Defines a sweep axis.
-    A QickSpan equals 0 at the start of the specified loop, and the specified "span" value at the end of the loop.
-    You may sum QickSpan objects and floats to build a multi-dimensional QickSweepV2.
-
-    Parameters
-    ----------
-    loop : str
-        The name of the loop to use for the sweep.
-    span : float
-        The desired value at the end of the loop. Can be positive or negative.
-    """
-    loop: str
-    span: float
-    def _to_sweep(self):
-        # convert to sweep
-        # helper for math ops and to_int()
-        return QickSweepV2(0, {self.loop:self.span})
-    def to_int(self, scale, quantize, parname, trunc=False):
-        # this will get called if you use a single QickSpan as a parameter
-        return to_int(self._to_sweep(), scale, quantize=quantize, parname=parname, trunc=trunc)
-    def __add__(self, a):
-        return self._to_sweep() + a
-    def __radd__(self, a):
-        return self+a
-    def __neg__(self):
-        return QickSpan(loop=self.loop, span=-self.span)
-
 # user units, multi-dimension
 class QickSweepV2:
     """Defines a multi-dimensional sweep for use in pulses or times.
@@ -165,7 +137,7 @@ class QickSweepV2:
                 steps = np.linspace(0, span, count)
                 values = np.add.outer(values, steps)
             elif all_loops:
-                values = values[..., np_newaxis]
+                values = np.add.outer(values, 0)
         return values
 
     def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
@@ -182,7 +154,7 @@ class QickSweepV2:
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickSweepV2.
         """
         rounded_sweep = self.get_rounded(loop_counts)
-        return self.to_array(loop_counts, all_loops=True)
+        return rounded_sweep.to_array(loop_counts, all_loops=True)
 
     def __copy__(self):
         self.derived_sweep = QickSweepV2(self.start, self.spans.copy())
@@ -195,11 +167,7 @@ class QickSweepV2:
             for loop, r in a.spans.items():
                 new_spans[loop] = new_spans.get(loop, 0) + r
             return QickSweepV2(new_start, new_spans)
-        if isinstance(a, QickSpan):
-            new_spans = self.spans.copy()
-            new_spans[a.loop] = new_spans.get(a.loop, 0) + a.span
-            return QickSweepV2(self.start, new_spans)
-        if isinstance(a, (int, float)):
+        if isinstance(a, np.ScalarType):
             new_start = self.start + a
             self.derived_sweep = QickSweepV2(new_start, self.spans)
             self.conversion_from_derived_sweep = lambda x: x - a
@@ -254,7 +222,21 @@ def QickSweep1D(loop, start, end):
     end : float
         The desired value at the end of the loop.
     """
-    return start + QickSpan(loop, end-start)
+    return QickSweepV2(start, {loop: end-start})
+
+def QickSpan(loop, span):
+    """Convenience shortcut for building multi-dimensional QickSweepV2s.
+    A QickSpan equals 0 at the start of the specified loop, and the specified "span" value at the end of the loop.
+    You may sum QickSpans and floats to build a multi-dimensional QickSweepV2.
+
+    Parameters
+    ----------
+    loop : str
+        The name of the loop to use for the sweep.
+    span : float
+        The desired value at the end of the loop. Can be positive or negative.
+    """
+    return QickSweepV2(0.0, {loop: span})
 
 class SimpleClass:
     # if you print this class, it will print the attributes listed in self._fields
