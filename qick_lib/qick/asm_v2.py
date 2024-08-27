@@ -138,7 +138,7 @@ class QickParam:
                 steps = np.linspace(0, span, count)
                 values = np.add.outer(values, steps)
             elif all_loops:
-                values = np.add.outer(values, 0)
+                values = np.add.outer(values, [0])
         return values
 
     def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
