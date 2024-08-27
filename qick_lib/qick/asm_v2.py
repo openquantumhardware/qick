@@ -9,6 +9,7 @@ from typing import Callable, NamedTuple, Union, Dict
 from abc import ABC, abstractmethod
 from fractions import Fraction
 import copy
+from numbers import Number, Integral
 
 from .tprocv2_assembler import Assembler
 from .qick_asm import AbsQickProgram, AcquireMixin
@@ -168,7 +169,7 @@ class QickParam:
             for loop, r in a.spans.items():
                 new_spans[loop] = new_spans.get(loop, 0) + r
             return QickParam(new_start, new_spans)
-        if isinstance(a, np.ScalarType):
+        if isinstance(a, Number):
             new_start = self.start + a
             self.derived_param = QickParam(new_start, self.spans)
             self.conversion_from_derived_param = lambda x: x - a
@@ -449,12 +450,25 @@ class QickPulse(SimpleClass):
             length = QickParam(start=length, spans={})
         return length
 
+# possible arguments:
+# int
+# QickRawParam
+# * scalar
+# * sweep
+# str
+# * allocated register name
+# * special register name
+# "register name" can be "user-defined name" or full address
+# "full address" = "register type" + "register address"
+# full address also sometimes reffered to as "ASM address"
 class QickRegister(SimpleClass):
-    _fields = ['name', 'addr', 'sweep']
-    def __init__(self, name: str=None, addr: int=None, sweep: QickParam=None):
-        self.name = name
+    _fields = ['addr', 'init']
+    def __init__(self, addr: int, init: QickParam=None):
         self.addr = addr
-        self.sweep = sweep
+        self.init = init
+
+    def full_addr(self):
+        return 'r%d'%(self.addr)
 
 class Macro(SimpleNamespace):
     def translate(self, prog):
@@ -505,10 +519,15 @@ class TimedMacro(Macro):
             t_reg = prog.us2cycles(t)
             t_reg.to_steps(prog.loop_dict)
             if t_reg.is_sweep():
-                t_reg = prog.new_reg(sweep=t_reg)
+                # allocate a register and initialize with the swept value
+                # TODO: pick a meaningful register name?
+                t_reg = prog.add_reg(init=t_reg)
             else:
+                # this is just an int literal
                 t_reg = int(t_reg)
             t_rounded = t.get_rounded()
+        # t_params gets a QickParam, for later reference
+        # t_regs gets an int or a register name, for use in ASM
         self.t_params[name] = t
         self.t_regs[name] = t_reg
         return t_rounded
@@ -524,19 +543,12 @@ class TimedMacro(Macro):
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
         t_reg = self.t_regs[name]
-        if isinstance(t_reg, QickRegister):
-            return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
-        else:
-            return SetReg(reg='s14', val=t_reg)
+        return SetReg(dst='s14', src=t_reg)
 
     def inc_timereg(self, prog, name):
         # helper method, to be used in expand()
         t_reg = self.t_regs[name]
-        if isinstance(t_reg, QickRegister):
-            #return AsmInst(inst={'CMD':"REG_WR", 'DST':'s14' ,'SRC':'op' ,'OP':f'r{t_reg.addr}'}, addr_inc=1)
-            return AddReg(reg='s14', reg2='r%d'%(t_reg.addr))
-        else:
-            return IncReg(reg='s14', val=t_reg)
+        return IncReg(dst='s14', src=t_reg)
 
 class AsmInst(Macro):
     def translate(self, prog):
@@ -563,6 +575,7 @@ class WriteWave(Macro):
         return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
 
 class IncrementWave(Macro):
+    # par, step
     def expand(self, prog):
         insts = []
 
@@ -575,27 +588,30 @@ class IncrementWave(Macro):
 
         # immediate arguments to operations must be 24-bit
         if check_bytes(self.step, 3):
-            insts.append(IncReg(reg=f'w{iPar}', val=self.step))
+            insts.append(IncReg(dst=f'w{iPar}', src=self.step))
         else:
             # constrain the value to signed 32-bit
             steptrunc = np.int64(self.step).astype(np.int32)
-            tmpreg = prog.get_reg("scratch", lazy_init=True)
-            insts.append(SetReg(reg=f'r{tmpreg.addr}', val=steptrunc))
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} r{tmpreg.addr}'}, addr_inc=1))
+            tmpreg = prog._get_reg("scratch", lazy_init=True)
+            insts.append(SetReg(dst=tmpreg, src=steptrunc))
+            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'w{iPar}','SRC':'op','OP':f'w{iPar} {op} {tmpreg}'}, addr_inc=1))
 
         return insts
 
 class Wait(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
+    # t is float or QickParam
     def preprocess(self, prog):
         wait = self.t
+        if isinstance(wait, Number):
+            wait = QickParam(wait)
         if self.auto:
             max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            if max_t is None:
+            if max_t is None: # no relevant channels
                 wait = None
             else:
                 wait += max_t
-        if isinstance(wait, QickParam):
+        if wait.is_sweep():
             # TODO: maybe rounding up should be optional?
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
             # TODO: disable warning at end of shot?
@@ -606,22 +622,24 @@ class Wait(TimedMacro):
         # TODO: we could do something with this value
     def expand(self, prog):
         t_reg = self.t_regs["t"]
-        if isinstance(t_reg, QickRegister):
-            raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
-        elif t_reg is None:
+        if t_reg is None:
             # if this was a wait_auto and we have no relevant channels, it should compile to nothing
             return []
-        else:
+        elif isinstance(t_reg, int):
             return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
+        else:
+            raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
 
 class Delay(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
     def preprocess(self, prog):
         delay = self.t
+        if isinstance(delay, Number):
+            delay = QickParam(delay)
         if self.auto:
             # TODO: check for cases where auto doesn't work
             max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            if max_t is None:
+            if max_t is None: # no relevant channels
                 delay = None
             else:
                 delay += max_t
@@ -629,13 +647,13 @@ class Delay(TimedMacro):
         prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
         t_reg = self.t_regs["t"]
-        if isinstance(t_reg, QickRegister):
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':f'r{t_reg.addr}'}, addr_inc=1)]
-        elif t_reg is None:
+        if t_reg is None:
             # if this was a delay_auto and we have no relevant channels, it should compile to nothing
             return []
-        else:
+        elif isinstance(t_reg, int):
             return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
+        else:
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':prog._get_reg(t_reg)}, addr_inc=1)]
 
 class Pulse(TimedMacro):
     # ch, name, t
@@ -768,15 +786,18 @@ class StartLoop(Macro):
         insts = []
         prog.loop_stack.append(self.name)
         # initialize the loop counter to zero and set the loop label
-        insts.append(SetReg(reg='r%d'%(self.reg.addr), val=self.n))
-        insts.append(Label(label=self.name.upper()))
+        insts.append(SetReg(dst=self.reg, src=self.n))
+        label = self.name.upper()
+        insts.append(Label(label=label))
         return insts
 
 class EndLoop(Macro):
     def expand(self, prog):
         insts = []
 
+        # the loop we're closing is the one at the top of the loop stack
         lname = prog.loop_stack.pop()
+        label = lname.upper()
 
         # check for wave sweeps
         wave_sweeps = []
@@ -793,8 +814,8 @@ class EndLoop(Macro):
         reg_sweeps = []
         for reg in prog.reg_dict.values():
             # skip zero sweeps
-            if reg.sweep is not None and lname in reg.sweep.spans and reg.sweep.steps[lname]['step']!=0:
-                reg_sweeps.append((reg, reg.sweep.steps[lname]))
+            if isinstance(reg.init, QickRawParam) and lname in reg.init.spans and reg.init.steps[lname]['step']!=0:
+                reg_sweeps.append((reg, reg.init.steps[lname]))
 
         # increment waves and registers
         for wname, spans_to_apply in wave_sweeps:
@@ -803,12 +824,12 @@ class EndLoop(Macro):
                 insts.append(IncrementWave(par=par, step=steps['step']))
             insts.append(WriteWave(name=wname))
         for reg, steps in reg_sweeps:
-            insts.append(IncReg(reg=f'r{reg.addr}', val=steps['step']))
+            insts.append(IncReg(dst=reg.full_addr(), src=steps['step']))
 
         # increment and test the loop counter
-        lreg = prog.reg_dict[lname]
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':f'r{lreg.addr}', 'SRC':'op', 'OP':f'r{lreg.addr} - #1', 'UF':'1'}, addr_inc=1))
-        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':lname.upper(), 'IF':'NZ'}, addr_inc=1))
+        reg = prog.reg_dict[lname].full_addr()
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':reg, 'SRC':'op', 'OP':f'{reg} - #1', 'UF':'1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ'}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
         for wname, spans_to_apply in wave_sweeps:
@@ -817,32 +838,40 @@ class EndLoop(Macro):
                 insts.append(IncrementWave(par=par, step=-steps['step']-steps['span']))
             insts.append(WriteWave(name=wname))
         for reg, steps in reg_sweeps:
-            insts.append(IncReg(reg=f'r{reg.addr}', val=-steps['step']-steps['span']))
+            insts.append(IncReg(dst=f'r{reg.addr}', src=-steps['step']-steps['span']))
 
         return insts
 
 class SetReg(Macro):
-    # reg, val
+    # set a register to a literal or register
+    # dst, src
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'imm','LIT': "#%d"%(self.val)}, addr_inc=1)]
+        dst = prog._get_reg(self.dst)
+        if isinstance(self.src, Integral):
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'imm', 'LIT': "#%d"%(self.src)}, addr_inc=1)]
+        if isinstance(self.src, str):
+            src = prog._get_reg(self.src)
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': src}, addr_inc=1)]
+        raise RuntimeError(f"invalid src: {self.src}")
 
 class IncReg(Macro):
-    # increment a register by a literal
-    # reg, val
+    # increment a register by a literal or register
+    # dst, src
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + #%d'%(self.reg, self.val)}, addr_inc=1)]
-
-class AddReg(Macro):
-    # increment a register by a register
-    # reg, reg2
-    def expand(self, prog):
-        return [AsmInst(inst={'CMD':"REG_WR", 'DST':self.reg,'SRC':'op','OP': '%s + %s'%(self.reg, self.reg2)}, addr_inc=1)]
+        dst = prog._get_reg(self.dst)
+        if isinstance(self.src, Integral):
+            src = '#%d'%(self.src)
+        elif isinstance(self.src, str):
+            src = prog._get_reg(self.src)
+        else:
+            raise RuntimeError(f"invalid src: {self.src}")
+        return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': '%s + %s'%(dst, src)}, addr_inc=1)]
 
 class DerefDmem(Macro):
     # use a register to index into the data memory, and copy the dmem value into another register
     # reg, idx
     def expand(self, prog):
-        return [AsmInst(inst={'CMD': 'REG_WR', 'DST': self.reg, 'SRC': 'dmem', 'ADDR': 'r%d'%(prog.get_reg(self.idx).addr)}, addr_inc=1)]
+        return [AsmInst(inst={'CMD': 'REG_WR', 'DST': self.reg, 'SRC': 'dmem', 'ADDR': prog._get_reg(self.idx)}, addr_inc=1)]
 
 class Read(Macro):
     # ro_ch
@@ -960,7 +989,7 @@ class AsmV2:
         """
         # initialize the data counter
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_macro(SetReg(reg=reg, val=val))
+        self.add_macro(SetReg(dst=reg, src=val))
 
     def inc_ext_counter(self, addr=1, val=1):
         """Increment one of the externally readable registers.
@@ -975,7 +1004,7 @@ class AsmV2:
         """
         # increment the data counter
         reg = {1:'s12', 2:'s13'}[addr]
-        self.add_macro(IncReg(reg=reg, val=val))
+        self.add_macro(IncReg(dst=reg, src=val))
 
     # feedback and branching
     def read(self, ro_ch):
@@ -1753,7 +1782,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             if isinstance(macro, StartLoop):
                 if macro.name is None: macro.name = f"loop_{len(self.loop_dict)}"
                 self.loop_dict[macro.name] = macro.n
-                macro.reg = self.new_reg(name=macro.name)
+                macro.reg = self.add_reg(name=macro.name)
         # compute step sizes for sweeps
         for w in self.waves:
             w.fill_steps(self.loop_dict)
@@ -1765,8 +1794,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 self.time_dict[macro.tag] = macro
         # initialize sweep registers
         for reg in self.reg_dict.values():
-            if reg.sweep is not None:
-                self._add_asm({'CMD':'REG_WR', 'DST':f'r{reg.addr}','SRC':'imm','LIT':f'#{reg.sweep.start}'})
+            if reg.init is not None:
+                self._add_asm({'CMD':'REG_WR', 'DST':reg.full_addr(),'SRC':'imm','LIT':f'#{reg.init.start}'})
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
@@ -2006,14 +2035,25 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     # register management
 
-    def new_reg(self, addr: int = None, name: str = None, sweep: QickRawParam = None):
+    def add_reg(self, name: str = None, addr: int = None, init: QickRawParam = None):
         """Declare a new data register.
         For internal use; not recommended for user code at this time.
 
-        :param addr: address of the new register. If None, the function will automatically try to find the next
-            available address.
-        :param name: name of the new register. Optional.
-        :return: QickRegister
+        Parameters
+        ----------
+        name : str
+            Requested register name, must be unused.
+            If None, a name will be chosen for you and returned.
+        addr : int
+            Requested register address, must be unused.
+            If None, an address will be chosen for you.
+        init : QickRawParam
+            Initial value.
+
+        Returns
+        -------
+        str
+            Register name
         """
         assigned_addrs = set([v.addr for v in self.reg_dict.values()])
         if addr is None:
@@ -2021,30 +2061,58 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             while addr in assigned_addrs:
                 addr += 1
             if addr >= self.soccfg['tprocs'][0]['dreg_qty']:
-                raise RuntimeError(f"data registers are full.")
+                raise RuntimeError(f"all data registers are assigned.")
         else:
             if addr < 0 or addr >= self.soccfg['tprocs'][0]['dreg_qty']:
                 raise ValueError(f"register address must be smaller than {self.soccfg['tprocs'][0]['dreg_qty']}")
             if addr in assigned_addrs:
                 raise ValueError(f"register at address {addr} is already occupied.")
+        reg = QickRegister(addr=addr, init=init)
 
         if name is None:
-            name = f"reg_{addr}"
+            name = reg.full_addr()
         if name in self.reg_dict.keys():
             raise NameError(f"register name '{name}' already exists")
+        elif self._is_reg(name, user_regs=False) and name != reg.full_addr():
+            # if the requested name is a register address, the name must be the same as the address
+            raise ValueError(f"requested name {name} is reserved for use as a register address")
 
-        reg = QickRegister(addr=addr, name=name, sweep=sweep)
         self.reg_dict[name] = reg
+        return name
 
-        return reg
-
-    def get_reg(self, name, lazy_init=False):
-        """Get a previously defined register object.
+    def _get_reg(self, name, lazy_init=False):
+        """Get the full ASM address of a previously defined register.
         For internal use; not recommended for user code at this time.
+
+        Parameters
+        ----------
+        name : str
+            Register name, can be a user-defined name or an ASM address.
+        lazy_init : bool
+            If there's no register with the specified name, allocate a new data register with that name.
         """
+        if self._is_reg(name, user_regs=False):
+            return name
         if lazy_init and name not in self.reg_dict:
-            self.new_reg(name=name)
-        return self.reg_dict[name]
+            self.add_reg(name=name)
+        return self.reg_dict[name].full_addr()
+
+    def _is_reg(self, name: str, user_regs: bool=True):
+        if user_regs and name in self.reg_dict:
+            return True
+        try:
+            addr = int(name[1:])
+            if addr<0: return False
+            if name[0]=='s': # special register
+                return addr<16
+            elif name[0]=='w': # waveform register
+                return addr<6
+            elif name[0]=='r': # data register
+                return addr<self.soccfg['tprocs'][0]['dreg_qty']
+            else:
+                return False
+        except ValueError:
+            return False
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
