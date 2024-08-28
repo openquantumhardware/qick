@@ -489,6 +489,178 @@ class Macro(SimpleNamespace):
         # this runs after loop_dict is filled and waveform sweeps are stepped
         pass
 
+class AsmInst(Macro):
+    def translate(self, prog):
+        logger.debug("adding ASM %s, addr_inc=%d" % (self.inst, self.addr_inc))
+        prog._add_asm(self.inst.copy(), self.addr_inc)
+
+class Label(Macro):
+    def translate(self, prog):
+        logger.debug("adding label %s" % (self.label))
+        prog._add_label(self.label)
+
+class End(Macro):
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
+
+# register operations
+
+class LoadWave(Macro):
+    # name
+    def expand(self, prog):
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'}, addr_inc=1)]
+
+class WriteWave(Macro):
+    # name
+    def expand(self, prog):
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
+
+class SetReg(Macro):
+    # set a register to a literal or register
+    # dst, src
+    def expand(self, prog):
+        dst = prog._get_reg(self.dst)
+        if isinstance(self.src, Integral):
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'imm', 'LIT': "#%d"%(self.src)}, addr_inc=1)]
+        if isinstance(self.src, str):
+            src = prog._get_reg(self.src)
+            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': src}, addr_inc=1)]
+        raise RuntimeError(f"invalid src: {self.src}")
+
+class IncReg(Macro):
+    # increment a register by a literal or register
+    # dst, src
+    def expand(self, prog):
+        insts = []
+        dst = prog._get_reg(self.dst)
+        if isinstance(self.src, Integral):
+            # immediate arguments to operations must be 24-bit
+            if check_bytes(self.src, 3):
+                src = '#%d'%(self.src)
+            else:
+                # constrain the value to signed 32-bit
+                trunc = np.int64(self.src).astype(np.int32)
+                prog.add_reg("scratch", allow_reuse=True)
+                insts.append(SetReg(dst="scratch", src=trunc))
+                src = prog._get_reg("scratch")
+        elif isinstance(self.src, str):
+            src = prog._get_reg(self.src)
+        else:
+            raise RuntimeError(f"invalid src: {self.src}")
+        insts.append(AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': '%s + %s'%(dst, src)}, addr_inc=1))
+        return insts
+
+class DerefDmem(Macro):
+    # use a register to index into the data memory, and copy the dmem value into another register
+    # dst, idx
+    def expand(self, prog):
+        dst = prog._get_reg(self.dst)
+        addr = prog._get_reg(self.idx)
+        return [AsmInst(inst={'CMD': 'REG_WR', 'DST': dst, 'SRC': 'dmem', 'ADDR': addr}, addr_inc=1)]
+
+#feedback and branching
+
+class Read(Macro):
+    # ro_ch
+    def expand(self, prog):
+        tproc_input = prog.soccfg['readouts'][self.ro_ch]['tproc_ch']
+        return [AsmInst(inst={'CMD':"DPORT_RD", 'DST':str(tproc_input)}, addr_inc=1)]
+
+class CondJump(Macro):
+    # reg1, val2, reg2, op, test, label
+    def expand(self, prog):
+        insts = []
+        nvals = sum([x is None for x in [self.val2, self.reg2]])
+        arg1 = prog._get_reg(self.reg1)
+        if nvals > 1:
+            raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
+                               %(self.val2, self.reg2))
+        elif nvals==1:
+            if self.op is None:
+                raise RuntimeError("a second operand was supplied, but no operation")
+            op = {'+': '+',
+                  '-': '-',
+                  '>>': 'ASR',
+                  '&': 'AND'}[self.op]
+            arg2 = prog._get_reg(self.reg2) if self.val2 is None else '#%d'%(self.val2)
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': " ".join([arg1, op, arg2]), 'UF': '1'}, addr_inc=1))
+        else:
+            if self.op is not None:
+                raise RuntimeError("an operation was supplied, but no second operand")
+            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': arg1, 'UF': '1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
+        return insts
+
+# loops
+
+class OpenLoop(Macro):
+    # name, reg, n
+    def preprocess(self, prog):
+        # allocate a register with the same name
+        prog.add_reg(name=self.name)
+
+    def expand(self, prog):
+        insts = []
+        prog.loop_stack.append(self.name)
+        # initialize the loop counter to zero and set the loop label
+        insts.append(SetReg(dst=self.name, src=self.n))
+        label = self.name.upper()
+        insts.append(Label(label=label))
+        return insts
+
+class CloseLoop(Macro):
+    def expand(self, prog):
+        insts = []
+
+        # the loop we're closing is the one at the top of the loop stack
+        lname = prog.loop_stack.pop()
+        label = lname.upper()
+
+        # check for wave sweeps
+        wave_sweeps = []
+        for wave in prog.waves:
+            spans_to_apply = []
+            for sweep in wave.sweeps():
+                # skip zero sweeps
+                if lname in sweep.steps and sweep.steps[lname]['step']!=0:
+                    spans_to_apply.append((sweep.par, sweep.steps[lname]))
+            if spans_to_apply:
+                wave_sweeps.append((wave.name, spans_to_apply))
+
+        # check for register sweeps
+        reg_sweeps = []
+        for reg in prog.reg_dict.values():
+            # skip zero sweeps
+            if isinstance(reg.init, QickRawParam) and lname in reg.init.spans and reg.init.steps[lname]['step']!=0:
+                reg_sweeps.append((reg, reg.init.steps[lname]))
+
+        # increment waves and registers
+        for wname, spans_to_apply in wave_sweeps:
+            insts.append(LoadWave(name=wname))
+            for par, steps in spans_to_apply:
+                insts.append(IncReg(dst="w_"+par, src=steps['step']))
+            insts.append(WriteWave(name=wname))
+        for reg, steps in reg_sweeps:
+            insts.append(IncReg(dst=reg.full_addr(), src=steps['step']))
+
+        # increment and test the loop counter
+        reg = prog.reg_dict[lname].full_addr()
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':reg, 'SRC':'op', 'OP':f'{reg} - #1', 'UF':'1'}, addr_inc=1))
+        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ'}, addr_inc=1))
+
+        # if we swept a parameter, we should restore it to its original value
+        for wname, spans_to_apply in wave_sweeps:
+            insts.append(LoadWave(name=wname))
+            for par, steps in spans_to_apply:
+                insts.append(IncReg(dst="w_"+par, src=-steps['step']-steps['span']))
+            insts.append(WriteWave(name=wname))
+        for reg, steps in reg_sweeps:
+            insts.append(IncReg(dst=reg.full_addr(), src=-steps['step']-steps['span']))
+
+        return insts
+
 class TimedMacro(Macro):
     """Timed instructions have parameters corresponding to times or durations.
 
@@ -551,29 +723,32 @@ class TimedMacro(Macro):
         t_reg = self.t_regs[name]
         return IncReg(dst='s_out_time', src=t_reg)
 
-class AsmInst(Macro):
-    def translate(self, prog):
-        logger.debug("adding ASM %s, addr_inc=%d" % (self.inst, self.addr_inc))
-        prog._add_asm(self.inst.copy(), self.addr_inc)
+# timeline management
 
-class Label(Macro):
-    def translate(self, prog):
-        logger.debug("adding label %s" % (self.label))
-        prog._add_label(self.label)
-
-class End(Macro):
+class Delay(TimedMacro):
+    # t, auto, gens, ros (last two only defined if auto=True)
+    def preprocess(self, prog):
+        delay = self.t
+        if isinstance(delay, Number):
+            delay = QickParam(delay)
+        if self.auto:
+            # TODO: check for cases where auto doesn't work
+            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
+            if max_t is None: # no relevant channels
+                delay = None
+            else:
+                delay += max_t
+        delay_rounded = self.convert_time(prog, delay, "t")
+        prog.decrement_timestamps(delay_rounded)
     def expand(self, prog):
-        return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
-
-class LoadWave(Macro):
-    def expand(self, prog):
-        addr = prog.wave2idx[self.name]
-        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'}, addr_inc=1)]
-
-class WriteWave(Macro):
-    def expand(self, prog):
-        addr = prog.wave2idx[self.name]
-        return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
+        t_reg = self.t_regs["t"]
+        if t_reg is None:
+            # if this was a delay_auto and we have no relevant channels, it should compile to nothing
+            return []
+        elif isinstance(t_reg, int):
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
+        else:
+            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':prog._get_reg(t_reg)}, addr_inc=1)]
 
 class Wait(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
@@ -607,30 +782,7 @@ class Wait(TimedMacro):
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
 
-class Delay(TimedMacro):
-    # t, auto, gens, ros (last two only defined if auto=True)
-    def preprocess(self, prog):
-        delay = self.t
-        if isinstance(delay, Number):
-            delay = QickParam(delay)
-        if self.auto:
-            # TODO: check for cases where auto doesn't work
-            max_t = prog.get_max_timestamp(gens=self.gens, ros=self.ros)
-            if max_t is None: # no relevant channels
-                delay = None
-            else:
-                delay += max_t
-        delay_rounded = self.convert_time(prog, delay, "t")
-        prog.decrement_timestamps(delay_rounded)
-    def expand(self, prog):
-        t_reg = self.t_regs["t"]
-        if t_reg is None:
-            # if this was a delay_auto and we have no relevant channels, it should compile to nothing
-            return []
-        elif isinstance(t_reg, int):
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'LIT':f'#{t_reg}'}, addr_inc=1)]
-        else:
-            return [AsmInst(inst={'CMD':'TIME', 'C_OP':'inc_ref', 'R1':prog._get_reg(t_reg)}, addr_inc=1)]
+# pulses and triggers
 
 class Pulse(TimedMacro):
     # ch, name, t
@@ -758,146 +910,6 @@ class Trigger(TimedMacro):
         """
         return insts
 
-class OpenLoop(Macro):
-    # name, reg, n
-    def preprocess(self, prog):
-        # allocate a register with the same name
-        prog.add_reg(name=self.name)
-
-    def expand(self, prog):
-        insts = []
-        prog.loop_stack.append(self.name)
-        # initialize the loop counter to zero and set the loop label
-        insts.append(SetReg(dst=self.name, src=self.n))
-        label = self.name.upper()
-        insts.append(Label(label=label))
-        return insts
-
-class CloseLoop(Macro):
-    def expand(self, prog):
-        insts = []
-
-        # the loop we're closing is the one at the top of the loop stack
-        lname = prog.loop_stack.pop()
-        label = lname.upper()
-
-        # check for wave sweeps
-        wave_sweeps = []
-        for wave in prog.waves:
-            spans_to_apply = []
-            for sweep in wave.sweeps():
-                # skip zero sweeps
-                if lname in sweep.steps and sweep.steps[lname]['step']!=0:
-                    spans_to_apply.append((sweep.par, sweep.steps[lname]))
-            if spans_to_apply:
-                wave_sweeps.append((wave.name, spans_to_apply))
-
-        # check for register sweeps
-        reg_sweeps = []
-        for reg in prog.reg_dict.values():
-            # skip zero sweeps
-            if isinstance(reg.init, QickRawParam) and lname in reg.init.spans and reg.init.steps[lname]['step']!=0:
-                reg_sweeps.append((reg, reg.init.steps[lname]))
-
-        # increment waves and registers
-        for wname, spans_to_apply in wave_sweeps:
-            insts.append(LoadWave(name=wname))
-            for par, steps in spans_to_apply:
-                insts.append(IncReg(dst="w_"+par, src=steps['step']))
-            insts.append(WriteWave(name=wname))
-        for reg, steps in reg_sweeps:
-            insts.append(IncReg(dst=reg.full_addr(), src=steps['step']))
-
-        # increment and test the loop counter
-        reg = prog.reg_dict[lname].full_addr()
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':reg, 'SRC':'op', 'OP':f'{reg} - #1', 'UF':'1'}, addr_inc=1))
-        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ'}, addr_inc=1))
-
-        # if we swept a parameter, we should restore it to its original value
-        for wname, spans_to_apply in wave_sweeps:
-            insts.append(LoadWave(name=wname))
-            for par, steps in spans_to_apply:
-                insts.append(IncReg(dst="w_"+par, src=-steps['step']-steps['span']))
-            insts.append(WriteWave(name=wname))
-        for reg, steps in reg_sweeps:
-            insts.append(IncReg(dst=reg.full_addr(), src=-steps['step']-steps['span']))
-
-        return insts
-
-class SetReg(Macro):
-    # set a register to a literal or register
-    # dst, src
-    def expand(self, prog):
-        dst = prog._get_reg(self.dst)
-        if isinstance(self.src, Integral):
-            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'imm', 'LIT': "#%d"%(self.src)}, addr_inc=1)]
-        if isinstance(self.src, str):
-            src = prog._get_reg(self.src)
-            return [AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': src}, addr_inc=1)]
-        raise RuntimeError(f"invalid src: {self.src}")
-
-class IncReg(Macro):
-    # increment a register by a literal or register
-    # dst, src
-    def expand(self, prog):
-        insts = []
-        dst = prog._get_reg(self.dst)
-        if isinstance(self.src, Integral):
-            # immediate arguments to operations must be 24-bit
-            if check_bytes(self.src, 3):
-                src = '#%d'%(self.src)
-            else:
-                # constrain the value to signed 32-bit
-                trunc = np.int64(self.src).astype(np.int32)
-                prog.add_reg("scratch", allow_reuse=True)
-                insts.append(SetReg(dst="scratch", src=trunc))
-                src = prog._get_reg("scratch")
-        elif isinstance(self.src, str):
-            src = prog._get_reg(self.src)
-        else:
-            raise RuntimeError(f"invalid src: {self.src}")
-        insts.append(AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': '%s + %s'%(dst, src)}, addr_inc=1))
-        return insts
-
-class DerefDmem(Macro):
-    # use a register to index into the data memory, and copy the dmem value into another register
-    # dst, idx
-    def expand(self, prog):
-        dst = prog._get_reg(self.dst)
-        addr = prog._get_reg(self.idx)
-        return [AsmInst(inst={'CMD': 'REG_WR', 'DST': dst, 'SRC': 'dmem', 'ADDR': addr}, addr_inc=1)]
-
-class Read(Macro):
-    # ro_ch
-    def expand(self, prog):
-        tproc_input = prog.soccfg['readouts'][self.ro_ch]['tproc_ch']
-        return [AsmInst(inst={'CMD':"DPORT_RD", 'DST':str(tproc_input)}, addr_inc=1)]
-
-class CondJump(Macro):
-    # reg1, val2, reg2, op, test, label
-    def expand(self, prog):
-        insts = []
-        nvals = sum([x is None for x in [self.val2, self.reg2]])
-        arg1 = prog._get_reg(self.reg1)
-        if nvals > 1:
-            raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
-                               %(self.val2, self.reg2))
-        elif nvals==1:
-            if self.op is None:
-                raise RuntimeError("a second operand was supplied, but no operation")
-            op = {'+': '+',
-                  '-': '-',
-                  '>>': 'ASR',
-                  '&': 'AND'}[self.op]
-            arg2 = prog._get_reg(self.reg2) if self.val2 is None else '#%d'%(self.val2)
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': " ".join([arg1, op, arg2]), 'UF': '1'}, addr_inc=1))
-        else:
-            if self.op is not None:
-                raise RuntimeError("an operation was supplied, but no second operand")
-            insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': arg1, 'UF': '1'}, addr_inc=1))
-        insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
-        return insts
-
 class AsmV2:
     """A list of tProc v2 assembly instructions.
     You can think of this as a code snippet that you can insert in a program.
@@ -1002,6 +1014,7 @@ class AsmV2:
         self.add_macro(IncReg(dst=reg, src=val))
 
     # feedback and branching
+
     def read(self, ro_ch):
         """Read an accumulated I/Q value from one of the tProc inputs.
         The readout must have already pushed the value into the input, otherwise you will get a stale value.
@@ -1058,7 +1071,8 @@ class AsmV2:
         self.read(ro_ch)
         self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
 
-    # control statements
+    # loops
+
     def open_loop(self, n, name=None):
         """Start a loop.
         This will use a register.
