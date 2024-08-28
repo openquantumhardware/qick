@@ -591,9 +591,9 @@ class Wait(TimedMacro):
         if wait.is_sweep():
             # TODO: maybe rounding up should be optional?
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
-            # TODO: disable warning at end of shot?
             waitmax = wait.maxval()
-            logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
+            if not self.no_warn:
+                logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
             wait = waitmax
         wait_rounded = self.convert_time(prog, wait, "t")
         # TODO: we could do something with this value
@@ -758,7 +758,7 @@ class Trigger(TimedMacro):
         """
         return insts
 
-class StartLoop(Macro):
+class OpenLoop(Macro):
     # name, reg, n
     def preprocess(self, prog):
         # allocate a register with the same name
@@ -773,7 +773,7 @@ class StartLoop(Macro):
         insts.append(Label(label=label))
         return insts
 
-class EndLoop(Macro):
+class CloseLoop(Macro):
     def expand(self, prog):
         insts = []
 
@@ -1071,27 +1071,15 @@ class AsmV2:
         name : str
             number of iterations
         """
-        self.add_macro(StartLoop(n=n, name=name))
+        self.add_macro(OpenLoop(n=n, name=name))
 
     def close_loop(self):
         """End whatever loop you're in.
         This will increment whatever sweeps are tied to this loop.
         """
-        self.add_macro(EndLoop())
+        self.add_macro(CloseLoop())
 
     # timeline management
-
-    def wait(self, t, tag=None):
-        """Pause tProc execution until the time reaches the specified value, relative to the reference time.
-
-        Parameters
-        ----------
-        t : float
-            time (us)
-        tag: str
-            arbitrary name for use with get_time_param()
-        """
-        self.add_macro(Wait(t=t, auto=False, tag=tag))
 
     def delay(self, t, tag=None):
         """Increment the reference time.
@@ -1123,7 +1111,19 @@ class AsmV2:
         """
         self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
-    def wait_auto(self, t=0, gens=False, ros=True, tag=None):
+    def wait(self, t, tag=None):
+        """Pause tProc execution until the time reaches the specified value, relative to the reference time.
+
+        Parameters
+        ----------
+        t : float
+            time (us)
+        tag: str
+            arbitrary name for use with get_time_param()
+        """
+        self.add_macro(Wait(t=t, auto=False, tag=tag, no_warn=False))
+
+    def wait_auto(self, t=0, gens=False, ros=True, tag=None, no_warn=False):
         """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
         You can select whether this accounts for pulses, readout windows, or both.
 
@@ -1137,8 +1137,10 @@ class AsmV2:
             check the ends of readout windows
         tag: str
             arbitrary name for use with get_time_param()
+        no_warn : bool
+            don't warn if the "auto" logic results in a swept wait which gets rounded up to a scalar
         """
-        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag))
+        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag, no_warn=no_warn))
 
     # pulses and triggers
 
@@ -1800,7 +1802,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         for macro in self.macro_list:
             # get the loop names and counts and fill the loop dict
             # this needs to be done first, to convert sweeps to steps
-            if isinstance(macro, StartLoop):
+            if isinstance(macro, OpenLoop):
                 if macro.name in self.loop_dict:
                     raise RuntimeError("loop name %s is already used"%(macro.name))
                 self.loop_dict[macro.name] = macro.n
@@ -2065,7 +2067,6 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     def add_reg(self, name: str = None, addr: int = None, init: QickRawParam = None, allow_reuse: bool = False):
         """Declare a new data register.
-        For internal use; not recommended for user code at this time.
 
         Parameters
         ----------
@@ -2076,7 +2077,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             Requested register address, must be unused.
             If None, an address will be chosen for you.
         init : QickRawParam
-            Initial value.
+            Initial value, to be swept in loops.
+            This is used for swept times, and is not recommended for user code.
         allow_reuse : bool
             Allow reusing the same name.
             This is usually used for scratch registers that get used briefly.
@@ -2124,7 +2126,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     def _get_reg(self, name):
         """Get the full ASM address of a previously defined register.
-        For internal use; not recommended for user code at this time.
+        For internal use.
 
         Parameters
         ----------
@@ -2308,7 +2310,7 @@ class AveragerProgramV2(AcquireProgramV2):
         # play the shot
         self._body(self.cfg)
         if self.final_wait is not None:
-            self.wait_auto(self.final_wait)
+            self.wait_auto(self.final_wait, no_warn=True)
         if self.final_delay is not None:
             self.delay_auto(self.final_delay)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
