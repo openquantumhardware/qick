@@ -427,28 +427,60 @@ class QickPulse(SimpleClass):
         Used to calculate pulse lengths.
     """
     _fields = ['waveforms']
-    def __init__(self, params, ch_mgr: 'AbsRegisterManager'=None):
-        self.params = params
+
+    SPECIAL_WAVEFORMS = {
+            "dummy": Waveform(freq=0, phase=0, env=0, gain=0, length=3, conf=0, name="dummy"),
+            "phrst": Waveform(freq=0, phase=0, env=0, gain=0, length=3, conf=0b010000, name="phrst"),
+            }
+
+    def __init__(self, prog: 'QickProgramV2', ch_mgr: 'AbsRegisterManager', params: dict={}):
+        self.prog = prog
         self.ch_mgr = ch_mgr
         if ch_mgr is None:
             self.numeric_params = []
         else:
             self.numeric_params = list(params.keys() & ch_mgr.PARAMS_NUMERIC) + ['total_length']
+        self.params = params
         self.waveforms = []
 
     def add_wave(self, waveform):
+        """Add a Waveform or a waveform name to this pulse.
+        """
         self.waveforms.append(waveform)
+        if not isinstance(waveform, Waveform):
+            # if we're adding a waveform by name, it must already be registered in the program
+            # if it's one of the predefined "special" waveforms, we can register it now
+            if waveform in self.prog.wave2idx:
+                pass
+            elif waveform in self.SPECIAL_WAVEFORMS:
+                self.prog._register_wave(self.SPECIAL_WAVEFORMS[waveform], waveform)
+            else:
+                raise RuntimeError("add_wave argument {waveform} is neither a Waveform nor a waveform name")
 
     def get_length(self):
         # always returns a QickParam
+        length = QickParam(start=0)
         if self.ch_mgr is None:
             logger.warning("no channel manager defined for this pulse, get_length() will return 0")
-            length = 0
         else:
-            length = sum([w.length/self.ch_mgr.f_clk for w in self.waveforms]) # in us
-        if not isinstance(length, QickParam):
-            length = QickParam(start=length, spans={})
+            for w in self.waveforms:
+                if isinstance(w, Waveform):
+                    wave = w
+                else:
+                    wave = self.prog._get_wave(w)
+                length += wave.length/self.ch_mgr.f_clk # convert to us
         return length
+
+    def get_wavenames(self, exclude_special=False):
+        names = []
+        for w in self.waveforms:
+            if isinstance(w, Waveform):
+                names.append(w.name)
+            else:
+                if exclude_special and w in self.SPECIAL_WAVEFORMS:
+                    continue
+                names.append(w)
+        return names
 
 # possible arguments:
 # int
@@ -806,8 +838,8 @@ class Pulse(TimedMacro):
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['gens'][self.ch]['tproc_ch']
         insts.append(self.set_timereg(prog, "t"))
-        for wave in pulse.waveforms:
-            idx = prog.wave2idx[wave.name]
+        for wave in pulse.get_wavenames():
+            idx = prog.wave2idx[wave]
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
@@ -822,8 +854,8 @@ class ConfigReadout(TimedMacro):
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['readouts'][self.ch]['tproc_ctrl']
         insts.append(self.set_timereg(prog, "t"))
-        for wave in pulse.waveforms:
-            idx = prog.wave2idx[wave.name]
+        for wave in pulse.get_wavenames():
+            idx = prog.wave2idx[wave]
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
@@ -1232,7 +1264,7 @@ class AbsRegisterManager(ABC):
         # the clock frequency to use for converting time units
         self.f_clk = None
 
-    def add_pulse(self, name, kwargs):
+    def make_pulse(self, kwargs):
         """Set pulse parameters.
         This is called by QickProgramV2.add_pulse().
 
@@ -1243,7 +1275,7 @@ class AbsRegisterManager(ABC):
         """
         # check the final param set for validity, and convert param types as needed
         pulse_params = self.check_params(kwargs)
-        self.prog.pulses[name] = self.params2pulse(pulse_params)
+        return self.params2pulse(pulse_params)
 
     @abstractmethod
     def check_params(self, params) -> tuple[dict, list]:
@@ -1402,7 +1434,7 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
-        pulse = QickPulse(par, self)
+        pulse = QickPulse(self.prog, self, par)
 
         w = {}
         if self.prog.ABSOLUTE_FREQS and self.chcfg['has_mixer']:
@@ -1476,7 +1508,7 @@ class StandardGenManager(AbsGenManager):
 
             if self.chcfg['type'] in ['axis_sg_int4_v1', 'axis_sg_int4_v2']:
                 # workaround for FIR bug: we play a zero-gain min-length DDS pulse after the ramp-down, which brings the FIR to zero
-                pulse.add_wave(self.params2wave(freqreg=0, phasereg=0, gainreg=0, lenreg=3))
+                pulse.add_wave("dummy")
 
         return pulse
 
@@ -1501,7 +1533,7 @@ class MultiplexedGenManager(AbsGenManager):
         return wavereg
 
     def params2pulse(self, par):
-        pulse = QickPulse(par, self)
+        pulse = QickPulse(self.prog, self, par)
         lenreg = self.prog.us2cycles(gen_ch=self.ch, us=par['length'])
 
         tones = self.prog.gen_chs[self.ch]['mux_tones']
@@ -1555,7 +1587,7 @@ class ReadoutManager(AbsRegisterManager):
         par : dict
             Pulse parameters
         """
-        pulse = QickPulse(par, self)
+        pulse = QickPulse(self.prog, self, par)
 
         # convert the requested freq, frequency-matching to the generator if specified
         # freqreg may be an int or a QickRawParam
@@ -1718,6 +1750,10 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # pulses are software constructs, each is a set of 1 or more waveforms
         self.pulses = {}
 
+        # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
+        self.waves = []
+        self.wave2idx = {}
+
     def _init_instructions(self):
         # initialize the low-level objects that get filled by macro expansion
 
@@ -1731,10 +1767,6 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         self.loop_dict = OrderedDict()
         self.loop_stack = []
-
-        # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
-        self.waves = []
-        self.wave2idx = {}
 
         # low-level ASM management
 
@@ -1796,22 +1828,6 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         # reset the low-level program objects
         self._init_instructions()
-
-        # fill wave list
-        for iPulse, (pulsename, pulse) in enumerate(self.pulses.items()):
-            # register the pulse and waves with the program
-            for iWave, wave in enumerate(pulse.waveforms):
-                if len(pulse.waveforms)==1:
-                    wavename = pulsename
-                else:
-                    wavename = "%s_w%d" % (pulsename, iWave)
-                while wavename in self.wave2idx:
-                    newname = wavename + "_"
-                    logger.warning("wavename %s already used, using %s instead" % (wavename, newname))
-                    wavename = newname
-                self.waves.append(wave)
-                self.wave2idx[wavename] = len(self.waves)-1
-                wave.name = wavename
 
         for macro in self.macro_list:
             # get the loop names and counts and fill the loop dict
@@ -1889,8 +1905,36 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
     # waves+pulses
 
+    def _register_wave(self, wave, wavename):
+        if wavename in self.wave2idx:
+            raise RuntimeError("waveform name %s is already used"%(wavename))
+        self.waves.append(wave)
+        self.wave2idx[wavename] = len(self.waves)-1
+        wave.name = wavename
+
+    def _register_pulse(self, pulse, pulsename):
+        if pulsename in self.pulses:
+            raise RuntimeError("pulse name %s is already used"%(pulsename))
+        self.pulses[pulsename] = pulse
+        i = 0
+        for wave in pulse.waveforms:
+            # if this is a waveform name, the waveform itself is already registered and we can skip it
+            if not isinstance(wave, Waveform):
+                continue
+            while True:
+                wavename = "%s_w%d" % (pulsename, i)
+                if wavename not in self.wave2idx:
+                    self._register_wave(wave, wavename)
+                    break
+                i += 1
+
+    def _get_wave(self, wavename):
+        return self.waves[self.wave2idx[wavename]]
+
     def add_raw_pulse(self, name, waveforms, gen_ch=None, ro_ch=None):
-        """Add a pulse defined as a list of raw waveform objects.
+        """Add a pulse defined as a list of waveforms.
+        The waveforms can be defined as raw Waveform objects, or names of waveforms that are already defined in the program.
+
         This is usually only useful for testing and debugging.
         If you need the pulse length to be defined (e.g. if playing this pulse on a generator), you must specify one of gen_ch and ro_ch.
 
@@ -1898,7 +1942,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         ----------
         name : str
             name of the pulse
-        waveforms : list of Waveform
+        waveforms : list of Waveform or str
             waveforms that will be concatenated for this pulse
         gen_ch : int
             generator channel (index in 'gens' list)
@@ -1913,10 +1957,10 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         elif ro_ch is not None:
             ch_mgr = self._ro_mgrs[ro_ch]
 
-        pulse = QickPulse({}, ch_mgr)
+        pulse = QickPulse(self, ch_mgr)
         for w in waveforms:
             pulse.add_wave(w)
-        self.pulses[name] = pulse
+        self._register_pulse(pulse, name)
 
     def add_pulse(self, ch, name, **kwargs):
         """Add a pulse to the program's pulse library.
@@ -1953,7 +1997,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         mask : list of int
             for a muxed signal generator, the list of tones to enable for this pulse
         """
-        self._gen_mgrs[ch].add_pulse(name, kwargs)
+        pulse = self._gen_mgrs[ch].make_pulse(kwargs)
+        self._register_pulse(pulse, name)
 
     def add_readoutconfig(self, ch, name, **kwargs):
         """Add a readout config to the program's pulse library.
@@ -1978,10 +2023,34 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         length : float or QickParam
             The duration (us) of the config pulse. The default is the shortest possible length.
         """
-        self._ro_mgrs[ch].add_pulse(name, kwargs)
+        pulse = self._ro_mgrs[ch].make_pulse(kwargs)
+        self._register_pulse(pulse, name)
+
+    def list_pulse_waveforms(self, pulsename, exclude_special=True):
+        """Get the names of the waveforms in a given pulse.
+        This is normally useful if you need to loop over them in your program, for example to change some parameter.
+
+        Parameters
+        ----------
+        pulsename : str
+            Name of the pulse
+        exclude_special : bool
+            Exclude the "dummy" and "phrst" waveforms (which have no parameters you'd want to manipulate) from the list
+
+        Returns
+        -------
+        list of str
+            Waveform names
+        """
+        return self.pulses[pulsename].get_wavenames(exclude_special=exclude_special)
 
     def list_pulse_params(self, pulsename):
         """Get the list of parameters you can look up for a given pulse with get_pulse_param().
+
+        Parameters
+        ----------
+        pulsename : str
+            Name of the pulse
 
         Returns
         -------

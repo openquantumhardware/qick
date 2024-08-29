@@ -15,6 +15,7 @@ from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig
 from .asm_v1 import QickProgram
+from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
@@ -859,6 +860,7 @@ class QickSoc(Overlay, QickConfig):
         """
         if self.TPROC_VERSION == 1:
             self.tproc.start_src(src)
+        # TODO: not implemented for tproc v2
 
     def start_tproc(self):
         """
@@ -933,16 +935,25 @@ class QickSoc(Overlay, QickConfig):
         Reset the tProc and run a minimal tProc program that drives all signal generators with 0's.
         Useful for stopping any periodic or stdysel="last" outputs that may have been driven by a previous program.
         """
-        prog = QickProgram(self)
-        for gen in self.gens:
-            if isinstance(gen, AbsArbSignalGen):
-                prog.set_pulse_registers(ch=gen.ch, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
-                prog.pulse(ch=gen.ch,t=0)
-        prog.end()
+        # list channel numbers for all generators capable of playing arbitrary envelopes
+        # (what we actually care about is whether they can play periodic pulses, but it's the same set of gens)
+        gen_chs = [i for i, gen in enumerate(self.gens) if isinstance(gen, AbsArbSignalGen)]
+
+        if self.TPROC_VERSION == 1:
+            prog = QickProgram(self)
+            for gen in gen_chs:
+                prog.set_pulse_registers(ch=gen, style="const", mode="oneshot", freq=0, phase=0, gain=0, length=3)
+                prog.pulse(ch=gen,t=0)
+            prog.end()
+        elif self.TPROC_VERSION == 2:
+            prog = QickProgramV2(soccfg)
+            prog.add_raw_pulse("dummypulse", ["dummy"], gen_ch=gen_chs[0])
+            for gen in gen_chs:
+                prog.pulse(ch=gen, name="dummypulse", t=0)
+            prog.end()
+        self.tproc.reset()
         # this should always run with internal trigger
-        prog.config_all(self, reset=True)
-        self.start_src("internal")
-        self.start_tproc()
+        prog.run(self, start_src="internal")
 
     def start_readout(self, total_shots, counter_addr=1, ch_list=None, reads_per_shot=1, stride=None):
         """
