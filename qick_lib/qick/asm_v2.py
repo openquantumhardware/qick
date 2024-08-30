@@ -662,7 +662,7 @@ class OpenLoop(Macro):
         prog.loop_stack.append(self.name)
         # initialize the loop counter to zero and set the loop label
         insts.append(WriteReg(dst=self.name, src=self.n))
-        label = self.name.upper()
+        label = self.name
         insts.append(Label(label=label))
         return insts
 
@@ -672,7 +672,7 @@ class CloseLoop(Macro):
 
         # the loop we're closing is the one at the top of the loop stack
         lname = prog.loop_stack.pop()
-        label = lname.upper()
+        label = lname
 
         # check for wave sweeps
         wave_sweeps = []
@@ -1038,6 +1038,23 @@ class AsmV2:
         This is implemented as an infinite loop (the v2 doesn't really have an "end" state).
         """
         self.add_macro(End())
+
+    def jump(self, label):
+        """Do a JUMP instruction, jumping to the location of the specified label.
+        """
+        self.asm_inst({'CMD': 'JUMP', 'LABEL': label})
+
+    def call(self, label):
+        """Do a CALL instruction, storing the current program counter and jumping to the location of the specified label.
+        The next RET instruction will cause the program to jump back to the CALL.
+        This is used to call subroutines, where a subroutine is defined as a block of code starting with a label and ending with a RET.
+        """
+        self.asm_inst({'CMD': 'CALL', 'LABEL': label})
+
+    def ret(self):
+        """Do a RET instruction, returning from a CALL.
+        """
+        self.asm_inst({'CMD': 'RET'})
 
     def set_ext_counter(self, addr=1, val=0):
         """Set one of the externally readable registers.
@@ -2414,6 +2431,9 @@ class AveragerProgramV2(AcquireProgramV2):
         # prepare the loop list
         self.loops = [("reps", self.reps, self.before_reps, self.after_reps)]
 
+        # prepare the subroutine dict
+        self.subroutines = {}
+
         # make_program() should add all the declarations and macros
         self.make_program()
 
@@ -2447,6 +2467,11 @@ class AveragerProgramV2(AcquireProgramV2):
             self.loops.insert(len(self.loops)-1, theloop)
         else:
             self.loops.append(theloop)
+
+    def add_subroutine(self, name, asm):
+        if name in self.subroutines:
+            raise RuntimeError("subroutine %s is already defined"%(name))
+        self.subroutines[name] = asm
 
     @abstractmethod
     def _initialize(self, cfg):
@@ -2504,3 +2529,9 @@ class AveragerProgramV2(AcquireProgramV2):
         self._cleanup(self.cfg)
 
         self.end()
+
+        # subroutines go after the main program
+        for name, asm in self.subroutines.items():
+            self.label(name)
+            self.extend_macros(asm)
+            self.ret()
