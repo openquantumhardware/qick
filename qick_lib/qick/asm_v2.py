@@ -537,19 +537,7 @@ class End(Macro):
 
 # register operations
 
-class LoadWave(Macro):
-    # name
-    def expand(self, prog):
-        addr = prog.wave2idx[self.name]
-        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'}, addr_inc=1)]
-
-class WriteWave(Macro):
-    # name
-    def expand(self, prog):
-        addr = prog.wave2idx[self.name]
-        return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
-
-class SetReg(Macro):
+class WriteReg(Macro):
     # set a register to a literal or register
     # dst, src
     def expand(self, prog):
@@ -575,7 +563,7 @@ class IncReg(Macro):
                 # constrain the value to signed 32-bit
                 trunc = np.int64(self.src).astype(np.int32)
                 prog.add_reg("scratch", allow_reuse=True)
-                insts.append(SetReg(dst="scratch", src=trunc))
+                insts.append(WriteReg(dst="scratch", src=trunc))
                 src = prog._get_reg("scratch")
         elif isinstance(self.src, str):
             src = prog._get_reg(self.src)
@@ -584,39 +572,75 @@ class IncReg(Macro):
         insts.append(AsmInst(inst={'CMD':"REG_WR", 'DST': dst, 'SRC':'op', 'OP': '%s + %s'%(dst, src)}, addr_inc=1))
         return insts
 
-class DerefDmem(Macro):
-    # use a register to index into the data memory, and copy the dmem value into another register
-    # dst, idx
+class ReadWmem(Macro):
+    # name
+    def expand(self, prog):
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'r_wave', 'SRC':'wmem', 'ADDR':f'&{addr}'}, addr_inc=1)]
+
+class WriteWmem(Macro):
+    # name
+    def expand(self, prog):
+        addr = prog.wave2idx[self.name]
+        return [AsmInst(inst={'CMD':'WMEM_WR', 'DST':f'&{addr}'}, addr_inc=1)]
+
+class ReadDmem(Macro):
+    # copy a dmem value into a register, using an int literal or register for the dmem address
+    # dst, addr
     def expand(self, prog):
         dst = prog._get_reg(self.dst)
-        addr = prog._get_reg(self.idx)
+        if isinstance(self.addr, Integral):
+            addr = '&%d'%(self.addr)
+        elif isinstance(self.addr, str):
+            addr = '&%s'%(prog._get_reg(self.addr))
+        else:
+            raise RuntimeError(f"invalid addr: {self.addr}")
         return [AsmInst(inst={'CMD': 'REG_WR', 'DST': dst, 'SRC': 'dmem', 'ADDR': addr}, addr_inc=1)]
+
+class WriteDmem(Macro):
+    # write an int literal or register into dmem, using an int literal or register for the dmem index
+    # addr, src
+    def expand(self, prog):
+        if isinstance(self.addr, Integral):
+            dst = '[&%d]'%(self.addr)
+        elif isinstance(self.addr, str):
+            dst = '[&%s]'%(prog._get_reg(self.addr))
+        else:
+            raise RuntimeError(f"invalid addr: {self.addr}")
+
+        if isinstance(self.src, Integral):
+            return [AsmInst(inst={'CMD':"DMEM_WR", 'DST': dst, 'SRC':'imm', 'LIT': "#%d"%(self.src)}, addr_inc=1)]
+        if isinstance(self.src, str):
+            src = prog._get_reg(self.src)
+            return [AsmInst(inst={'CMD':"DMEM_WR", 'DST': dst, 'SRC':'op', 'OP': src}, addr_inc=1)]
+        raise RuntimeError(f"invalid src: {self.src}")
 
 #feedback and branching
 
-class Read(Macro):
+class ReadInput(Macro):
     # ro_ch
     def expand(self, prog):
         tproc_input = prog.soccfg['readouts'][self.ro_ch]['tproc_ch']
         return [AsmInst(inst={'CMD':"DPORT_RD", 'DST':str(tproc_input)}, addr_inc=1)]
 
 class CondJump(Macro):
-    # reg1, val2, reg2, op, test, label
+    # arg1, arg2, op, test, label
     def expand(self, prog):
         insts = []
-        nvals = sum([x is None for x in [self.val2, self.reg2]])
-        arg1 = prog._get_reg(self.reg1)
-        if nvals > 1:
-            raise RuntimeError("second operand must be reg or literal value, but you have provided both val2=%s, reg2=%s"
-                               %(self.val2, self.reg2))
-        elif nvals==1:
+        arg1 = prog._get_reg(self.arg1)
+        if self.arg2 is not None:
             if self.op is None:
                 raise RuntimeError("a second operand was supplied, but no operation")
             op = {'+': '+',
                   '-': '-',
                   '>>': 'ASR',
                   '&': 'AND'}[self.op]
-            arg2 = prog._get_reg(self.reg2) if self.val2 is None else '#%d'%(self.val2)
+            if isinstance(self.arg2, Integral):
+                arg2 = '#%d'%(self.arg2)
+            elif isinstance(self.arg2, str):
+                arg2 = prog._get_reg(self.arg2)
+            else:
+                raise RuntimeError(f"invalid arg2: {self.arg2}")
             insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': " ".join([arg1, op, arg2]), 'UF': '1'}, addr_inc=1))
         else:
             if self.op is not None:
@@ -637,7 +661,7 @@ class OpenLoop(Macro):
         insts = []
         prog.loop_stack.append(self.name)
         # initialize the loop counter to zero and set the loop label
-        insts.append(SetReg(dst=self.name, src=self.n))
+        insts.append(WriteReg(dst=self.name, src=self.n))
         label = self.name.upper()
         insts.append(Label(label=label))
         return insts
@@ -670,10 +694,10 @@ class CloseLoop(Macro):
 
         # increment waves and registers
         for wname, spans_to_apply in wave_sweeps:
-            insts.append(LoadWave(name=wname))
+            insts.append(ReadWmem(name=wname))
             for par, steps in spans_to_apply:
                 insts.append(IncReg(dst="w_"+par, src=steps['step']))
-            insts.append(WriteWave(name=wname))
+            insts.append(WriteWmem(name=wname))
         for reg, steps in reg_sweeps:
             insts.append(IncReg(dst=reg.full_addr(), src=steps['step']))
 
@@ -684,10 +708,10 @@ class CloseLoop(Macro):
 
         # if we swept a parameter, we should restore it to its original value
         for wname, spans_to_apply in wave_sweeps:
-            insts.append(LoadWave(name=wname))
+            insts.append(ReadWmem(name=wname))
             for par, steps in spans_to_apply:
                 insts.append(IncReg(dst="w_"+par, src=-steps['step']-steps['span']))
-            insts.append(WriteWave(name=wname))
+            insts.append(WriteWmem(name=wname))
         for reg, steps in reg_sweeps:
             insts.append(IncReg(dst=reg.full_addr(), src=-steps['step']-steps['span']))
 
@@ -748,7 +772,7 @@ class TimedMacro(Macro):
     def set_timereg(self, prog, name):
         # helper method, to be used in expand()
         t_reg = self.t_regs[name]
-        return SetReg(dst='s_out_time', src=t_reg)
+        return WriteReg(dst='s_out_time', src=t_reg)
 
     def inc_timereg(self, prog, name):
         # helper method, to be used in expand()
@@ -1028,7 +1052,7 @@ class AsmV2:
         """
         # initialize the data counter
         reg = {1:'s_core_w1', 2:'s_core_w2'}[addr]
-        self.add_macro(SetReg(dst=reg, src=val))
+        self.write_reg(dst=reg, src=val)
 
     def inc_ext_counter(self, addr=1, val=1):
         """Increment one of the externally readable registers.
@@ -1043,11 +1067,87 @@ class AsmV2:
         """
         # increment the data counter
         reg = {1:'s_core_w1', 2:'s_core_w2'}[addr]
-        self.add_macro(IncReg(dst=reg, src=val))
+        self.inc_reg(dst=reg, src=val)
+
+    # register operations
+
+    def write_reg(self, dst, src):
+        """Write to a register.
+
+        Parameters
+        ----------
+        dst : str
+            Name of destination register
+        src : int or str
+            Literal value, or name of source register
+        """
+        self.add_macro(WriteReg(dst=dst, src=src))
+
+    def inc_reg(self, dst, src):
+        """Increment a register.
+
+        Parameters
+        ----------
+        dst : str
+            Name of destination register
+        src : int or str
+            Literal value, or name of source register
+        """
+        self.add_macro(IncReg(dst=dst, src=src))
+
+    def read_wmem(self, name):
+        """Copy a waveform from waveform memory to waveform registers.
+        This is usually used in combination with write_wmem() to make changes to a waveform.
+        You will usually get the waveform name using QickProgramV2.list_pulse_waveforms().
+
+        Parameters
+        ----------
+        name : str
+            Waveform name
+        """
+        self.add_macro(ReadWmem(name=name))
+
+    def write_wmem(self, name):
+        """Copy a waveform from waveform registers to waveform memory.
+        This is usually used in combination with read_wmem() to make changes to a waveform.
+        You will usually get the waveform name using QickProgramV2.list_pulse_waveforms().
+
+        Parameters
+        ----------
+        name : str
+            Waveform name
+        """
+        self.add_macro(WriteWmem(name=name))
+
+    def read_dmem(self, dst, addr):
+        """Copy a number from data memory to a register.
+        The memory address can be specified as an int or a register.
+
+        Parameters
+        ----------
+        dst : str
+            Name of destination register
+        addr : int or str
+            Literal address, or name of register
+        """
+        self.add_macro(ReadDmem(dst=dst, addr=addr))
+
+    def write_dmem(self, addr, src):
+        """Copy a number into data memory.
+        Both the value and the memory address can be specified as an int or a register.
+
+        Parameters
+        ----------
+        addr : int or str
+            Literal address, or name of register
+        src : int str
+            Literal value, or name of source register
+        """
+        self.add_macro(WriteDmem(addr=addr, src=src))
 
     # feedback and branching
 
-    def read(self, ro_ch):
+    def read_input(self, ro_ch):
         """Read an accumulated I/Q value from one of the tProc inputs.
         The readout must have already pushed the value into the input, otherwise you will get a stale value.
         The value you read gets stored in two special registers (s_port_l/s_port_h or I/Q) until you are ready to use it.
@@ -1056,9 +1156,9 @@ class AsmV2:
         ro_ch : int
             readout channel (index in 'readouts' list)
         """
-        self.add_macro(Read(ro_ch=ro_ch))
+        self.add_macro(ReadInput(ro_ch=ro_ch))
 
-    def cond_jump(self, label, reg1, test, op=None, val2=None, reg2=None):
+    def cond_jump(self, label, arg1, test, op=None, arg2=None):
         """Do a conditional jump (do a test, then jump if the test passes).
         A test is done by executing an operation on two operands and testing the resulting value.
         If val2 and reg2 are both None, the test will just use reg1, no operation.
@@ -1067,23 +1167,21 @@ class AsmV2:
         ----------
         label : str
             the label to jump to
-        reg1 : str
+        arg1 : str
             the name of the register for operand 1
         test: str
             the name of the test: 1/0 (always/never), Z/NZ (==0/!=0), S/NS (<0/>=0), F/NF (external flag)
         op : str
             the name of the operation: +, -, AND (bitwise AND, &), or ASR (shift-right, >>)
-        val2 : int
-            24-bit signed value for operand 2
-        reg2 : int
-            the name of the register for operand 2
+        arg2 : int or str
+            24-bit signed value or register name for operand 2
         """
-        self.add_macro(CondJump(label=label, reg1=reg1, op=op, test=test, val2=val2, reg2=reg2))
+        self.add_macro(CondJump(label=label, arg1=arg1, test=test, op=op, arg2=arg2))
 
     def read_and_jump(self, ro_ch, component, threshold, test, label):
         """Read an input I/Q value and jump based on a threshold.
-        This just combines read() and cond_jump().
-        As noted in read(), you must be sure your readout has already completed.
+        This just combines read_input() and cond_jump().
+        As noted in read_input(), you must be sure your readout has already completed.
 
         Parameters
         ----------
@@ -1091,8 +1189,8 @@ class AsmV2:
             readout channel (index in 'readouts' list)
         component : str
             I or Q
-        threshold : int
-            24-bit signed value
+        threshold : int or str
+            24-bit signed value or register name
         test: str
             ">=" or "<"
         label : str
@@ -1100,8 +1198,8 @@ class AsmV2:
         """
         test = {'>=':'NS', '<':'S'}[test]
         reg = {'I':'s_port_l', 'Q':'s_port_h'}[component]
-        self.read(ro_ch)
-        self.cond_jump(label=label, reg1=reg, op='-', test=test, val2=threshold)
+        self.read_input(ro_ch)
+        self.cond_jump(label=label, arg1=reg, op='-', test=test, arg2=threshold)
 
     # loops
 
@@ -1838,7 +1936,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 self.loop_dict[macro.name] = macro.n
             # fill the dict for looking up tagged instructions
             # this could be done at any time
-            if isinstance(macro, TimedMacro) and macro.tag is not None:
+            if isinstance(macro, TimedMacro) and hasattr(macro, "tag") and macro.tag is not None:
                 if macro.tag in self.time_dict:
                     raise RuntimeError("two instructions have the same tag %s"%(macro.tag))
                 self.time_dict[macro.tag] = macro
@@ -1853,7 +1951,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # initialize sweep registers
         for k,v in self.reg_dict.items():
             if v.init is not None:
-                SetReg(dst=k, src=v.init.start).translate(self)
+                WriteReg(dst=k, src=v.init.start).translate(self)
         for i, macro in enumerate(self.macro_list):
             macro.translate(self)
 
