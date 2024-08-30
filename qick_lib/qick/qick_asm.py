@@ -1001,7 +1001,7 @@ class AbsQickProgram(ABC):
             for name, env in envdict['envs'].items():
                 env['data'] = decode_array(env['data'])
 
-    def config_all(self, soc, load_pulses=True, reset=False):
+    def config_all(self, soc, load_pulses=True, reset=False, load_mem=True):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
@@ -1035,7 +1035,7 @@ class AbsQickProgram(ABC):
         self.config_readouts(soc)
 
         # Load the program into the tProc
-        soc.load_bin_program(self.binprog)
+        soc.load_bin_program(self.binprog, load_mem=load_mem)
 
     def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
@@ -1675,7 +1675,8 @@ class AcquireMixin:
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
-        self.config_all(soc, load_pulses=load_pulses)
+        # don't load memories now, we'll do that later
+        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -1703,6 +1704,9 @@ class AcquireMixin:
         for ir in tqdm(range(soft_avgs), disable=hiderounds):
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+            # Reload data memory.
+            soc.reload_mem()
 
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
@@ -1921,7 +1925,8 @@ class AcquireMixin:
         progress: bool
             if true, displays progress bar
         """
-        self.config_all(soc, load_pulses=load_pulses)
+        # don't load memories now, we'll do that later
+        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
@@ -1944,6 +1949,9 @@ class AcquireMixin:
         for ii in tqdm(range(rounds), disable=hiderounds):
             # make sure count variable is reset to 0
             soc.set_tproc_counter(addr=self.counter_addr, val=0)
+
+            # Reload data memory.
+            soc.reload_mem()
 
             # run the assembly program
             # if start_src="external", you must pulse the trigger input once for every round
@@ -1982,7 +1990,8 @@ class AcquireMixin:
             multi-rep or multi-read: (n_reps*n_reads, length, 2)
             multi-rep and multi-read: (n_reps, n_reads, length, 2)
         """
-        self.config_all(soc, load_pulses=load_pulses)
+        # don't load memories now, we'll do that later
+        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
@@ -2008,6 +2017,9 @@ class AcquireMixin:
 
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+            # Reload data memory.
+            soc.reload_mem()
 
             # make sure count variable is reset to 0
             soc.set_tproc_counter(addr=self.counter_addr, val=0)

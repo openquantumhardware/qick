@@ -161,7 +161,7 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-    def load_bin_program(self, binprog):
+    def load_bin_program(self, binprog, load_mem):
         """
         Write the program to the tProc program memory.
         """
@@ -395,6 +395,9 @@ class Axis_QICK_Proc(SocIp):
         #Compatible with previous Version
         self.DMEM_N = int(description['parameters']['DMEM_AW']) 
    
+        # the currently loaded program - cached here to make it easy to reload the memories
+        self.binprog = None
+
     # Configure this driver with links to its memory and DMA.
     def configure(self, axi_dma):
         # dma
@@ -670,6 +673,23 @@ class Axis_QICK_Proc(SocIp):
                 self.logger.info('Program Loaded OK')
             else:
                 self.logger.error('Error Loading Program')
+
+    def reload_mem(self):
+        """Reload the waveform and data memory from the most recently written program.
+        This undoes any changes made by running the program.
+        """
+        if self.binprog['wmem'] is not None:
+            self.load_mem(3, self.binprog['wmem'])
+        if self.binprog['dmem'] is not None:
+            self.load_mem(2, self.binprog['dmem'])
+
+    def load_bin_program(self, binprog, load_mem):
+        """
+        Write the program to the tProc program memory.
+        """
+        self.binprog = binprog
+        self.Load_PMEM(self.binprog['pmem'])
+        if load_mem: self.reload_mem()
 
     def print_axi_regs(self):
         print('---------------------------------------------')

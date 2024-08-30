@@ -838,18 +838,23 @@ class QickSoc(Overlay, QickConfig):
         self.iqs[ch].set_mixer_freq(f)
         self.iqs[ch].set_iq(i, q)
 
-    def load_bin_program(self, binprog):
+    def load_bin_program(self, binprog, load_mem=True):
+        """Write the program to the tProc program memory.
+
+        Parameters
+        ----------
+        binprog : array or dict
+            compiled program (format depends on tProc version)
+        load_mem : bool
+            write waveform and data memory now (can do this later with reload_mem())
         """
-        Write the program to the tProc program memory.
+        self.tproc.load_bin_program(obtain(binprog), load_mem=load_mem)
+
+    def reload_mem(self):
+        """Reload the waveform and data memory, overwriting any changes made by running the program.
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.load_bin_program(obtain(binprog))
-        elif self.TPROC_VERSION == 2:
-            self.tproc.Load_PMEM(binprog['pmem'])
-            if binprog['wmem'] is not None:
-                self.tproc.load_mem(3, binprog['wmem'])
-            if binprog['dmem'] is not None:
-                self.tproc.load_mem(2, binprog['dmem'])
+        if self.TPROC_VERSION == 2:
+            self.tproc.reload_mem()
 
     def start_src(self, src):
         """
@@ -894,6 +899,8 @@ class QickSoc(Overlay, QickConfig):
     def set_tproc_counter(self, addr, val):
         """
         Initialize the tProc shot counter.
+        For tProc v2. this does nothing (the counter is typically initialized by the program).
+
         Parameters
         ----------
         addr : int
