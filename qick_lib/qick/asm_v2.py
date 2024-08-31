@@ -979,7 +979,7 @@ class AsmV2:
         super().__init__(*args, **kwargs)
 
     # start of ASM code
-    def add_macro(self, macro):
+    def append_macro(self, macro):
         """Add a macro to the program's macro list.
 
         Parameters
@@ -1011,7 +1011,7 @@ class AsmV2:
         addr_inc : int
             number of machine-code words this instruction will occupy. Only used for WAIT.
         """
-        self.add_macro(AsmInst(inst=inst, addr_inc=addr_inc))
+        self.append_macro(AsmInst(inst=inst, addr_inc=addr_inc))
 
     # low-level macros
 
@@ -1025,7 +1025,7 @@ class AsmV2:
         label : str
             label to be applied
         """
-        self.add_macro(Label(label=label))
+        self.append_macro(Label(label=label))
 
     def nop(self):
         """Do a NOP instruction.
@@ -1037,7 +1037,7 @@ class AsmV2:
         """Do an END instruction, which will end execution.
         This is implemented as an infinite loop (the v2 doesn't really have an "end" state).
         """
-        self.add_macro(End())
+        self.append_macro(End())
 
     def jump(self, label):
         """Do a JUMP instruction, jumping to the location of the specified label.
@@ -1098,7 +1098,7 @@ class AsmV2:
         src : int or str
             Literal value, or name of source register
         """
-        self.add_macro(WriteReg(dst=dst, src=src))
+        self.append_macro(WriteReg(dst=dst, src=src))
 
     def inc_reg(self, dst, src):
         """Increment a register.
@@ -1110,7 +1110,7 @@ class AsmV2:
         src : int or str
             Literal value, or name of source register
         """
-        self.add_macro(IncReg(dst=dst, src=src))
+        self.append_macro(IncReg(dst=dst, src=src))
 
     def read_wmem(self, name):
         """Copy a waveform from waveform memory to waveform registers.
@@ -1122,7 +1122,7 @@ class AsmV2:
         name : str
             Waveform name
         """
-        self.add_macro(ReadWmem(name=name))
+        self.append_macro(ReadWmem(name=name))
 
     def write_wmem(self, name):
         """Copy a waveform from waveform registers to waveform memory.
@@ -1134,7 +1134,7 @@ class AsmV2:
         name : str
             Waveform name
         """
-        self.add_macro(WriteWmem(name=name))
+        self.append_macro(WriteWmem(name=name))
 
     def read_dmem(self, dst, addr):
         """Copy a number from data memory to a register.
@@ -1147,7 +1147,7 @@ class AsmV2:
         addr : int or str
             Literal address, or name of register
         """
-        self.add_macro(ReadDmem(dst=dst, addr=addr))
+        self.append_macro(ReadDmem(dst=dst, addr=addr))
 
     def write_dmem(self, addr, src):
         """Copy a number into data memory.
@@ -1160,7 +1160,7 @@ class AsmV2:
         src : int str
             Literal value, or name of source register
         """
-        self.add_macro(WriteDmem(addr=addr, src=src))
+        self.append_macro(WriteDmem(addr=addr, src=src))
 
     # feedback and branching
 
@@ -1173,7 +1173,7 @@ class AsmV2:
         ro_ch : int
             readout channel (index in 'readouts' list)
         """
-        self.add_macro(ReadInput(ro_ch=ro_ch))
+        self.append_macro(ReadInput(ro_ch=ro_ch))
 
     def cond_jump(self, label, arg1, test, op=None, arg2=None):
         """Do a conditional jump (do a test, then jump if the test passes).
@@ -1193,7 +1193,7 @@ class AsmV2:
         arg2 : int or str
             24-bit signed value or register name for operand 2
         """
-        self.add_macro(CondJump(label=label, arg1=arg1, test=test, op=op, arg2=arg2))
+        self.append_macro(CondJump(label=label, arg1=arg1, test=test, op=op, arg2=arg2))
 
     def read_and_jump(self, ro_ch, component, threshold, test, label):
         """Read an input I/Q value and jump based on a threshold.
@@ -1232,13 +1232,13 @@ class AsmV2:
         name : str
             number of iterations
         """
-        self.add_macro(OpenLoop(n=n, name=name))
+        self.append_macro(OpenLoop(n=n, name=name))
 
     def close_loop(self):
         """End whatever loop you're in.
         This will increment whatever sweeps are tied to this loop.
         """
-        self.add_macro(CloseLoop())
+        self.append_macro(CloseLoop())
 
     # timeline management
 
@@ -1253,7 +1253,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(Delay(t=t, auto=False, tag=tag))
+        self.append_macro(Delay(t=t, auto=False, tag=tag))
 
     def delay_auto(self, t=0, gens=True, ros=True, tag=None):
         """Set the reference time to the end of the last pulse/readout, plus the specified value.
@@ -1270,7 +1270,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(Delay(t=t, auto=True, gens=gens, ros=ros, tag=tag))
+        self.append_macro(Delay(t=t, auto=True, gens=gens, ros=ros, tag=tag))
 
     def wait(self, t, tag=None):
         """Pause tProc execution until the time reaches the specified value, relative to the reference time.
@@ -1282,7 +1282,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(Wait(t=t, auto=False, tag=tag, no_warn=False))
+        self.append_macro(Wait(t=t, auto=False, tag=tag, no_warn=False))
 
     def wait_auto(self, t=0, gens=False, ros=True, tag=None, no_warn=False):
         """Pause tProc execution until the time reaches the specified value, relative to the end of the last pulse/readout.
@@ -1301,7 +1301,7 @@ class AsmV2:
         no_warn : bool
             don't warn if the "auto" logic results in a swept wait which gets rounded up to a scalar
         """
-        self.add_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag, no_warn=no_warn))
+        self.append_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag, no_warn=no_warn))
 
     # pulses and triggers
 
@@ -1319,7 +1319,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(Pulse(ch=ch, name=name, t=t, tag=tag))
+        self.append_macro(Pulse(ch=ch, name=name, t=t, tag=tag))
 
     def send_readoutconfig(self, ch, name, t=0, tag=None):
         """Send a previously defined readout config to a readout.
@@ -1335,7 +1335,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(ConfigReadout(ch=ch, name=name, t=t, tag=tag))
+        self.append_macro(ConfigReadout(ch=ch, name=name, t=t, tag=tag))
 
     def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False, tag=None):
         """Pulse readout triggers and output pins.
@@ -1359,7 +1359,7 @@ class AsmV2:
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.add_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
+        self.append_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
 
 
 class AbsRegisterManager(ABC):
