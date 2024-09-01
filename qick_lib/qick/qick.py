@@ -856,6 +856,24 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 2:
             self.tproc.reload_mem()
 
+    def load_mem(self, buff, mem_sel='dmem', addr=0):
+        if self.TPROC_VERSION == 1:
+            if mem_sel=='dmem':
+                self.tproc.load_dmem(buff, addr)
+            else:
+                raise RuntimeError("invalid mem_sel: %s"%(mem_sel))
+        elif self.TPROC_VERSION == 2:
+            self.tproc.load_mem(mem_sel, buff, addr)
+
+    def read_mem(self, length, mem_sel='dmem', addr=0):
+        if self.TPROC_VERSION == 1:
+            if mem_sel=='dmem':
+                return self.tproc.read_dmem(addr, length)
+            else:
+                raise RuntimeError("invalid mem_sel: %s"%(mem_sel))
+        elif self.TPROC_VERSION == 2:
+            return self.tproc.read_mem(mem_sel, length, addr)
+
     def start_src(self, src):
         """
         Sets the start source of tProc
