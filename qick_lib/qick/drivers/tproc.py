@@ -161,7 +161,7 @@ class AxisTProc64x32_x8(SocIp):
         # we only write the high half of each program word, the low half doesn't matter
         np.copyto(self.mem.mmio.array[1::2],np.uint32(0x3F000000))
 
-    def load_bin_program(self, binprog):
+    def load_bin_program(self, binprog, load_mem):
         """
         Write the program to the tProc program memory.
         """
@@ -395,6 +395,9 @@ class Axis_QICK_Proc(SocIp):
         #Compatible with previous Version
         self.DMEM_N = int(description['parameters']['DMEM_AW']) 
    
+        # the currently loaded program - cached here to make it easy to reload the memories
+        self.binprog = None
+
     # Configure this driver with links to its memory and DMA.
     def configure(self, axi_dma):
         # dma
@@ -575,19 +578,23 @@ class Axis_QICK_Proc(SocIp):
         self.mem_dt_i = data
         self.tproc_cfg         &= ~63
 
-    def load_mem(self,mem_sel, buff_in, addr=0):
+    def load_mem(self, mem_sel, buff_in, addr=0):
         """
         Writes tProc Selected memory using DMA
 
         Parameters
         ----------
-        mem_sel : int
-            PMEM=1, DMEM=2, WMEM=3
+        mem_sel : str
+            "pmem", "dmem", "wmem"
         buff_in : array
             Data to be loaded
+            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         addr : int
             Starting write address
         """
+        if mem_sel not in ['pmem', 'dmem', 'wmem']:
+            raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
+
         # Length.
         length = len(buff_in)
         # Configure Memory arbiter. (Write MEM)
@@ -595,81 +602,93 @@ class Axis_QICK_Proc(SocIp):
         self.mem_len         = length
 
         # Copy buffer.
-        np.copyto(self.buff_wr[:length], buff_in)
-        #Start operation
-        self.tproc_cfg         &= ~63
-        if (mem_sel==1):       # WRITE PMEM
-            self.tproc_cfg     |= 7
-        elif (mem_sel==2):     # WRITE DMEM
-            self.tproc_cfg     |= 11
-        elif (mem_sel==3):     # WRITE WMEM
-            self.tproc_cfg     |= 15
+        if mem_sel=='dmem':
+            np.copyto(self.buff_wr[:length, 0], buff_in)
         else:
-            raise RuntimeError('Destination Memeory error should be  PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
+            np.copyto(self.buff_wr[:length], buff_in)
+
+        #Start operation
+        self.tproc_cfg       &= ~63
+        self.tproc_cfg       |= {'pmem': 7, 'dmem': 11, 'wmem': 15}[mem_sel]
 
         # DMA data.
-        self.logger.debug('DMA write 1')
         self.dma.sendchannel.transfer(self.buff_wr, nbytes=int(length*32))
-        self.logger.debug('DMA write 2')
         self.dma.sendchannel.wait()
-        self.logger.debug('DMA write 3')
         
         # End Operation
-        self.tproc_cfg         &= ~63
+        self.tproc_cfg       &= ~63
 
-    def read_mem(self,mem_sel, addr=0, length=100):
+    def read_mem(self, mem_sel, length, addr=0):
         """
         Read tProc Selected memory using DMA
 
         Parameters
         ----------
-        mem_sel : int
-            PMEM=1, DMEM=2, WMEM=3
-        addr : int
-            Starting read address
+        mem_sel : str
+            "pmem", "dmem", "wmem"
         length : int
             Number of words to read
+        addr : int
+            Starting read address
+
+        Returns
+        -------
+        array
+            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         """
-    # Configure Memory arbiter. (Read DMEM)
+        if mem_sel not in ['pmem', 'dmem', 'wmem']:
+            raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
+
+        # Configure Memory arbiter. (Read DMEM)
         self.mem_addr        = addr
         self.mem_len         = length
 
         #Start operation
-        self.tproc_cfg         &= ~63
-        if (mem_sel==1):       # READ PMEM
-            self.tproc_cfg     |= 5
-        elif (mem_sel==2):     # READ DMEM
-            self.tproc_cfg     |= 9
-        elif (mem_sel==3):     # READ WMEM
-            self.tproc_cfg     |= 13
-        else:
-            raise RuntimeError('Source Memeory error should be PMEM=1, DMEM=2, WMEM=3 current Value : %d' % (mem_sel))
+        self.tproc_cfg       &= ~63
+        self.tproc_cfg       |= {'pmem': 5, 'dmem': 9, 'wmem': 13}[mem_sel]
 
         # DMA data.
-        self.logger.debug('DMA read 1')
         self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(length*32))
-        self.logger.debug('DMA read 2')
         self.dma.recvchannel.wait()
-        self.logger.debug('DMA read 3')
         
         # End Operation
         self.tproc_cfg         &= ~63
 
         # truncate, copy, convert PynqBuffer to ndarray
-        return np.array(self.buff_rd[:length], copy=True)
+        if mem_sel=='dmem':
+            return np.array(self.buff_rd[:length, 0], copy=True)
+        else:
+            return np.array(self.buff_rd[:length], copy=True)
 
     def Load_PMEM(self, p_mem, check=True):
         length = len(p_mem)
 
         self.logger.info('Loading Program in PMEM')
-        self.load_mem(1, p_mem)
+        self.load_mem('pmem', p_mem)
 
         if check:
-            readback = self.read_mem(1, length=length)
+            readback = self.read_mem('pmem', length=length)
             if ( (np.max(readback - p_mem) )  == 0):
                 self.logger.info('Program Loaded OK')
             else:
                 self.logger.error('Error Loading Program')
+
+    def reload_mem(self):
+        """Reload the waveform and data memory from the most recently written program.
+        This undoes any changes made by running the program.
+        """
+        if self.binprog['wmem'] is not None:
+            self.load_mem('wmem', self.binprog['wmem'])
+        if self.binprog['dmem'] is not None:
+            self.load_mem('dmem', self.binprog['dmem'])
+
+    def load_bin_program(self, binprog, load_mem):
+        """
+        Write the program to the tProc program memory.
+        """
+        self.binprog = binprog
+        self.Load_PMEM(self.binprog['pmem'])
+        if load_mem: self.reload_mem()
 
     def print_axi_regs(self):
         print('---------------------------------------------')
