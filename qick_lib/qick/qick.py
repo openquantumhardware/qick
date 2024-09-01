@@ -857,6 +857,21 @@ class QickSoc(Overlay, QickConfig):
             self.tproc.reload_mem()
 
     def load_mem(self, buff, mem_sel='dmem', addr=0):
+        """
+        Write a block of the selected tProc memory.
+        For tProc v1 only the data memory ("dmem") is valid.
+        For tProc v2 the program, data, and waveform memory are all accessible.
+
+        Parameters
+        ----------
+        buff_in : array
+            Data to be loaded
+            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
+        mem_sel : str
+            "pmem", "dmem", "wmem"
+        addr : int
+            Starting write address
+        """
         if self.TPROC_VERSION == 1:
             if mem_sel=='dmem':
                 self.tproc.load_dmem(buff, addr)
@@ -866,6 +881,25 @@ class QickSoc(Overlay, QickConfig):
             self.tproc.load_mem(mem_sel, buff, addr)
 
     def read_mem(self, length, mem_sel='dmem', addr=0):
+        """
+        Read a block of the selected tProc memory.
+        For tProc v1 only the data memory ("dmem") is valid.
+        For tProc v2 the program, data, and waveform memory are all accessible.
+
+        Parameters
+        ----------
+        length : int
+            Number of words to read
+        mem_sel : str
+            "pmem", "dmem", "wmem"
+        addr : int
+            Starting read address
+
+        Returns
+        -------
+        array
+            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
+        """
         if self.TPROC_VERSION == 1:
             if mem_sel=='dmem':
                 return self.tproc.read_dmem(addr, length)

@@ -494,7 +494,11 @@ class QickPulse(SimpleClass):
 # "full address" = "register type" + "register address"
 # full address also sometimes referred to as "ASM address"
 # register alias: things like "s_time"
-class QickRegister(SimpleClass):
+class QickRegisterV2(SimpleClass):
+    """A user-allocated data register, possibly with an initial (swept) value.
+
+    This is for internal use; user code should not use this class.
+    """
     _fields = ['addr', 'init']
     def __init__(self, addr: int, init: QickParam=None):
         self.addr = addr
@@ -943,27 +947,6 @@ class Trigger(TimedMacro):
         if self.trigset:
             for outport in self.trigset:
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
-        """
-        if self.trigset:
-            insts.append(self.set_timereg(prog, "t_start"))
-
-            t_start = self.t_regs["t_start"]
-            t_end = self.t_regs["t_end"]
-            if isinstance(t_start, QickRegister):
-                insts.append(self.set_timereg(prog, "t_start"))
-                for outport in self.trigset:
-                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport)}, addr_inc=1))
-            else:
-                for outport in self.trigset:
-                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport), 'TIME': "@%d"%(t_start)}, addr_inc=1))
-            if isinstance(t_end, QickRegister):
-                insts.append(self.inc_timereg(prog, "t_width"))
-                for outport in self.trigset:
-                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
-            else:
-                for outport in self.trigset:
-                    insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport), 'TIME': "@%d"%(t_end)}, addr_inc=1))
-        """
         return insts
 
 class AsmV2:
@@ -1869,6 +1852,9 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         self.waves = []
         self.wave2idx = {}
 
+        # allocated registers
+        self.reg_dict = {}
+
     def _init_instructions(self):
         # initialize the low-level objects that get filled by macro expansion
 
@@ -1877,7 +1863,6 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         # high-level program structure
 
-        self.reg_dict = {}  # lookup dict for registers defined
         self.time_dict = {} # lookup dict for timed instructions with tags
 
         self.loop_dict = OrderedDict()
@@ -2307,7 +2292,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 raise ValueError(f"register address must be smaller than {self.soccfg['tprocs'][0]['dreg_qty']}")
             if addr in assigned_addrs:
                 raise ValueError(f"register at address {addr} is already occupied.")
-        reg = QickRegister(addr=addr, init=init)
+        reg = QickRegisterV2(addr=addr, init=init)
 
         if name is None:
             name = reg.full_addr()
