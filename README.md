@@ -12,9 +12,21 @@ It consists of:
 * The `qick` Python package
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
-* [More examples and tutorial](https://github.com/openquantumhardware/QCE2023_public/tree/main) from IEEE Quantum Week 2023. 
+
+Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
+* [IEEE Quantum Week 2023](https://github.com/openquantumhardware/QCE2023_public)
+* [US QIS Summer School 2024](https://github.com/openquantumhardware/QIS_SummerSchool_2024)
 
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
+
+Announcements
+-------------
+
+The QICK group at Fermilab is currently hiring two engineering positions, where the primary focus will be firmware development for QICK.
+* [Staff Engineer II](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Staff-Engineer-II_R_007999)
+* [Senior Engineer](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Senior-Engineer_R_007996)
+
+We will be presenting a tutorial at IEEE Quantum Week 2024: https://qce.quantum.ieee.org/2024/program/tutorials-abstracts/#tut21
 
 Download and Installation
 -------------------------
@@ -68,7 +80,7 @@ All contributions are expected to be consistent with [PEP 8 -- Style Guide for P
 
 We welcome comments, bug reports, and feature requests via GitHub Issues.
 
-You can chat with us in the #qick channel on the [Unitary Fund Discord](http://discord.unitary.fund/), where we also have [weekly office hours](https://www.addevent.com/event/lw18055508).
+Find us on the [Unitary Fund Discord](http://discord.unitary.fund/): chat with us in the #qick channel or the [weekly office hours](https://www.addevent.com/event/lw18055508).
 
 License
 -------
