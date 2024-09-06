@@ -1794,7 +1794,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
-        ASM_REVISION = 20
+        ASM_REVISION = 21
         if self.tproccfg['type']!='qick_processor':
             raise RuntimeError("tProc v2 programs can only be run on a tProc v2 firmware")
         if self.tproccfg['revision']!=ASM_REVISION:

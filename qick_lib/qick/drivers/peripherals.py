@@ -5,6 +5,7 @@ Drivers for qick_processor Peripherals.
 from pynq.buffer import allocate
 import numpy as np
 from qick import SocIp
+import re
 
 class QICK_Time_Tagger(SocIp):
     """
@@ -12,14 +13,13 @@ class QICK_Time_Tagger(SocIp):
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0']
 
-    dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
 
     def __init__(self, description):
         """
         Constructor method
         """
         super().__init__(description)
-
+        
         self.REGISTERS = {
             'qtt_ctrl'     :0 ,
             'qtt_cfg'      :1 ,
@@ -37,7 +37,7 @@ class QICK_Time_Tagger(SocIp):
             'qtt_status'   :14,
             'qtt_debug'    :15,
         }
-
+        
         # Parameters
         self.cfg['tag_mem_size'] = pow( 2, int(description['parameters']['TAG_FIFO_AW']) )
         self.cfg['arm_mem_size'] = pow( 2, int(description['parameters']['ARM_FIFO_AW']) )
@@ -53,24 +53,45 @@ class QICK_Time_Tagger(SocIp):
         self.dma_cfg  = 0 + 16* 1
         self.axi_dt1  = 0
 
-    # Configure this driver with links to its memory and DMA.
+        # Used Values
+        self.dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
+
+        # Configure this driver with links to its memory and DMA.
     def configure(self, axi_dma):
         # dma
         self.dma = axi_dma
         maxlen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
-        print(maxlen)
         self.buff_rd = allocate(shape=(maxlen, 1), dtype=np.int32)
+
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+        self.qtt_adc = ['Not Connected', 'Not Connected', 'Not Connected', 'Not Connected']
+        for iADC in range(4):
+            try:
+                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 's%d_axis_adc%d' % (iADC, iADC))
+                if (port == 'M_AXIS'): 
+                    ((block, port),) = soc.metadata.trace_sig(block, 'S_AXIS')
+                adc     = re.findall(r'\d+', port)[0]
+                self.qtt_adc[iADC] = soc._describe_adc(adc)
+            except: # skip disconnected ADC Ports
+                continue
+                
     def __str__(self):
         lines = []
         lines.append('---------------------------------------------')
         lines.append(' QICK Time Tagger INFO ')
         lines.append('---------------------------------------------')
+        lines.append("Connections:")
+        lines.append(" ADC0 : %s" % (self.qtt_adc[0]) )
+        lines.append(" ADC1 : %s" % (self.qtt_adc[1]) )
+        lines.append(" ADC2 : %s" % (self.qtt_adc[2]) )
+        lines.append(" ADC3 : %s" % (self.qtt_adc[3]) )
         lines.append("Configuration:")
         for param in ['adc_qty','tag_mem_size', 'cmp_slope','cmp_inter','arm_store','arm_mem_size', 'smp_store','smp_mem_size']:
-            lines.append("%-14s: %d" % (param, self.cfg[param]) )
+            lines.append(" %-14s: %d" % (param, self.cfg[param]) )
         lines.append("----------\n")
         return "\n".join(lines)
-
+    
     def read_mem(self,mem_sel:str, length=-1):
         """
         Read tProc Selected memory using DMA
@@ -101,11 +122,11 @@ class QICK_Time_Tagger(SocIp):
             data_len = length if (length != -1) else self.smp_qty
             self.dma_cfg     = 5+16* data_len
         else:
-            raise RuntimeError('Source Memeory error should be TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
+            raise RuntimeError('Source Memory error. Optionas are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
        
         if   (data_len==0):
-            print('DATA_LEN>', data_len)
-            return []
+            print('No Data to read in ', mem_sel)
+            return np.array([])
         else:
             #Strat DMA Transfer
             self.qtt_ctrl     = 32
@@ -116,20 +137,49 @@ class QICK_Time_Tagger(SocIp):
             #print(len(self.buff_rd), data_len)
             return np.array(self.buff_rd[:data_len], copy=True)
     
+    def set_config(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty, cfg_invert):
+        """
+        QICK_Time_Tagger Configuration
+        cfg_filter : Filter ADC Inputs  > 0:No , 1:Yes
+        cfg_slope  : Compare with Slope > 0:No , 1:Yes
+        cfg_inter  : Number of bits for Interpolation (0 to 7)
+        smp_wr_qty : Number of group of 8 samples to store (1 to 32)
+        cfg_invert : Invert Input       > 0:No , 1:Yes
+        """
+        # Check for Parameters
+        if (cfg_slope > self.cfg['cmp_slope']):
+            print('error Slope Comparator not implemented')
+        if (cfg_inter > self.cfg['cmp_inter']):
+            print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
+        if (self.cfg['smp_store'] == 1):
+            if (smp_wr_qty == 0):
+                print('Minimum Sample Store is 1 ')
+                smp_wr_qty = 1
+            if (smp_wr_qty == 32):
+                smp_wr_qty = 0
+            if (smp_wr_qty > 32):
+                print('Maximum Sample Store is 32 ')
+                smp_wr_qty = 0
+        elif (smp_wr_qty > 1):
+                print('Sample Store is not Implemented')
+        self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32 +cfg_invert*1024
+
+    def get_config(self):
+        print('--- AXI Time Tagger CONFIG')
+        qtt_cfg_num = self.qtt_cfg
+        qtt_cfg_bin = '{:032b}'.format(qtt_cfg_num)
+        print( ' FILTER           : ' + str(qtt_cfg_bin[31])  )
+        print( ' SLOPE            : ' + str(qtt_cfg_bin[30])  )
+        print( ' INTERPOLATION    : ' + str(int(qtt_cfg_bin[27:30], 2) )  )
+        print( ' WRITE SAMPLE QTY : ' + str(int(qtt_cfg_bin[22:27], 2) )  )
+        print( ' INVERT INPUT     : ' + str(qtt_cfg_bin[21])  )
+        
+
     def disarm(self):
         self.qtt_ctrl    = 1+2* 0 
-        
-    def arm(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty=1):
-        # Check for Parameters
-        if (cfg_slope <= self.cfg['cmp_slope']):
-            if (cfg_inter <= self.cfg['cmp_inter']):
-                self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32
-                self.qtt_ctrl    = 1+2* 1
-            else:
-                print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
-        else:
-            print('error Slope Comparator not implemented')
-    def pop_dt(self,value):
+    def arm(self):
+        self.qtt_ctrl    = 1+2* 1
+    def pop_dt(self):
         self.qtt_ctrl    = 1+2* 2
     def set_threshold(self,value):
         self.axi_dt1     = value
@@ -137,9 +187,9 @@ class QICK_Time_Tagger(SocIp):
     def set_dead_time(self,value):
         self.axi_dt1     = value
         self.qtt_ctrl    = 1+2* 5
-    def reset(self,value):
-        self.qtt_cfg     = 7
-        self.qtt_ctrl    = 1
+    def reset(self):
+        self.qtt_cfg     = 0
+        self.qtt_ctrl    = 7
 
 
 
@@ -237,9 +287,9 @@ class QICK_Com(SocIp):
             'tx_dt'    :13,
             'rx_dt'    :14,
             'debug'    :15
-        }
+        }    
 
-        # Initial Values 
+    # Initial Values 
         self.qcom_ctrl = 0
         self.qcom_cfg  = 10
         self.raxi_dt1  = 0
@@ -343,6 +393,25 @@ class QICK_Net(SocIp):
     """
     bindto = ['Fermi:user:qick_network:1.0']
 
+    REGISTERS = {
+        'tnet_ctrl'     :0 ,
+        'tnet_cfg'      :1 ,
+        'tnet_addr'     :2 ,
+        'tnet_len'      :3 ,
+        'raxi_dt1'      :4 ,
+        'raxi_dt2'      :5 ,
+        'raxi_dt3'      :6 ,
+        'nn_id'         :7 ,
+        'rtd'           :8,
+        'tnet_w_dt1'    :9,
+        'tnet_w_dt2'    :10,
+        'rx_status'     :11,
+        'tx_status'     :12,
+        'status'        :13,
+        'debug'         :14,
+        'hist'          :15
+    }
+
     main_list = ['M_NOT_READY','M_IDLE','M_LOC_CMD','M_NET_CMD','M_WRESP','M_WACK','M_NET_RESP','M_NET_ANSW','M_CMD_EXEC','M_ERROR']
     task_list = ['T_NOT_READY','T_IDLE','T_LOC_CMD','T_LOC_WSYNC','T_LOC_SEND','T_LOC_WnREQ','T_NET_CMD', 'T_NET_SEND']
     cmd_list = [ 'NOT_READY','IDLE','L_GNET','L_SNET','L_SYNC1','L_UPDT_OFF','L_SET_DT','L_GET_DT','L_RST_TIME','L_START',\
@@ -358,24 +427,6 @@ class QICK_Net(SocIp):
         """
         super().__init__(description)
 
-        self.REGISTERS = {
-            'tnet_ctrl'     :0 ,
-            'tnet_cfg'      :1 ,
-            'tnet_addr'     :2 ,
-            'tnet_len'      :3 ,
-            'raxi_dt1'      :4 ,
-            'raxi_dt2'      :5 ,
-            'raxi_dt3'      :6 ,
-            'nn_id'         :7 ,
-            'rtd'           :8,
-            'tnet_w_dt1'    :9,
-            'tnet_w_dt2'    :10,
-            'rx_status'     :11,
-            'tx_status'     :12,
-            'status'        :13,
-            'debug'         :14,
-            'hist'          :15
-        }
        
         # Initial Values 
         self.tnet_ctrl = 0

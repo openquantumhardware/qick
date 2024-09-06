@@ -2,9 +2,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_5_10
+//  Date        : 2024_8_2
 //  Version     : 3
-//  Revision    : 20
+//  Revision    : 23
 ///////////////////////////////////////////////////////////////////////////////
 Description: Assembler for Qick Processor
 -Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
@@ -314,14 +314,6 @@ def check_name(name_str : str) -> bool:
         Logger.error('CHECK_NAME', 'Name Error')
             
 
-def check_num(num_str : str) -> bool:
-    r = False
-    num     = re.search('^(\d+)', num_str)
-    extr_num = num.group(0) if num else ''
-    if (extr_num == num_str):
-        r = True
-    return r
-
 def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     """
         receives an integer in str format and returns their bits as a string.
@@ -378,12 +370,20 @@ def get_src_type (src : str) -> str:
             else:            
                 src_type = 'XX'
     else:
-        error = Logger.error('get_src_type', 'Source Data not Recognized' )
+        error = Logger.error('get_src_type', 'Source Data not Recognized '+src )
     return error, src_type
+
+def check_num(num_str : str) -> bool:
+    r = False
+    num     = re.search('^(\d+)', num_str)
+    extr_num = num.group(0) if num else ''
+    if (extr_num == num_str):
+        r = True
+    return r
 
 def check_lit(lit_str : str) -> bool:
     r = False
-    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)', lit_str)
+    lit     = re.search('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)', lit_str)
     extr_lit = lit.group(0) if lit else ''
     if (extr_lit == lit_str):
         r = True
@@ -392,7 +392,7 @@ def check_lit(lit_str : str) -> bool:
 def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
     DataImm = ''
     LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
-    if (LIT):
+    if ( LIT and check_lit(lit)):
         LIT = LIT[0]
         try: 
             if (LIT[0]): ## is Signed
@@ -416,7 +416,7 @@ def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
         except:
             DataImm = ''
     else:
-        Logger.error("get_imm_dt", 'Data Format incorrect' )
+        Logger.error("get_imm_dt", 'Data Format incorrect '+ lit )
     if  (DataImm) : 
         if (lit_val) :
             return 0, int(literal)
@@ -540,13 +540,13 @@ class Assembler():
             assembler += f"{command['LABEL'] } "     if ('LABEL'    in command) else ''
             assembler += f"-if({command['IF']}) "    if ('IF'       in command) else ''
             assembler += f"-wr({command['WR']}) "    if ('WR'       in command) else ''
-            assembler += f"#{command['LIT']} "       if ('LIT'      in command) else ''
+            assembler += f"{command['LIT']} "       if ('LIT'      in command) else ''
             assembler += f"-op({command['OP']}) "    if ('OP'       in command) else ''
             assembler += "-uf "      if ('UF' in command and command['UF']=='1') else ''
             assembler += "-ww "                       if ('WW'       in command) else ''
             assembler += f"-wp({command['WP']}) "    if ('WP'       in command) else ''
             assembler += f"p{command['PORT']} "      if ('PORT'     in command) else ''
-            assembler += f"@{command['TIME']} "      if ('TIME'       in command) else ''
+            assembler += f"{command['TIME']} "      if ('TIME'       in command) else ''
 
 
             assembler += f"{command['NUM']} "        if ('NUM'       in command) else ''
@@ -703,12 +703,22 @@ class Assembler():
                             if (len(directive_params) == 3):
                                 C_name    = directive_params[1]
                                 C_val    = directive_params[2]
-                                error, lit_val = get_imm_dt (C_val, 32, 1)
-                                if (error):
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                if (check_name(C_name)):
+                                    if C_name in Alias_List:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
+                                    elif C_name in label_dict:
+                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
+                                    else:
+    
+                                        error, lit_val = get_imm_dt (C_val, 32, 1)
+                                        if (error):
+                                            error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                        else:
+                                            Alias_List.update({ C_name : C_val } )        
+                                            Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
                                 else:
-                                    Alias_List.update({ C_name : C_val } )        
-                                    Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
+                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
+
                             else:
                                 error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST Parameters error in line ' + str(line_number) )
     
@@ -968,6 +978,7 @@ class Assembler():
                                         error = Logger.error('COMMAND_RECOGNITION', 'Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
                                 else:
                                     error = Logger.error("COMMAND_RECOGNITION", "[>3] Parameter Error in line " + str(line_number) )
+                                    
                             ###############################################################################
                             ## ONLY ONE SOURCE / DEST
                             elif ( len(CMD_DEST_SOURCE) == 3) :
@@ -979,7 +990,7 @@ class Assembler():
                                        command_info['SRC'] = CMD_DEST_SOURCE[2]        
                                 elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
                                     if ( int(command_info['PORT'])  > 3):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port port number is p3 in line " + str(line_number))
+                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port MAX port number is p3 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -1391,6 +1402,8 @@ class Instruction():
                             DataImm   = '_0000000000000000'
                     else:
                         error = Logger.error('Parameter.SRC', '1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+                else:
+                    error = Logger.error('Parameter.SRC', '1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
 
             elif (len(cmd_op)==3 ) :
                 #print('LEN 3 >',cmd_op)
@@ -1414,16 +1427,20 @@ class Instruction():
                         else:
                             DataImm = '_0000000000000000'
                     elif (src_type[0]=='N'): ## is Number
-                        if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
-                            error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
-                            if (lit_val > 15): 
-                                error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
-                        df             = '10'
                         error, DataImm = get_imm_dt (cmd_op[2], 24)
                         if (error): 
                             error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
-                        
-                        DataImm  = '_'+DataImm 
+                        else:
+                            if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
+                                error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
+                                if (error == 0 ): 
+                                    if (lit_val > 15): 
+                                        error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
+                                else:
+                                    error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
+                        if (error == 0 ): 
+                            df             = '10'
+                            DataImm  = '_'+DataImm 
 
                 ## CHECK FOR OPERATION
                 if (error==0):
@@ -1497,6 +1514,7 @@ class Instruction():
                 if (param_op[1][3]) != '+': ## is R_Reg
                     error = Logger.error('Parameter.MEM_ADDR', 'Address Operand should be < + >.')    
         else:
+            print(ADDR_CMD)
             error = Logger.error('Parameter.MEM_ADDR', 'Address format error, should be Data Register(r) or Literal(&)')
         return error, rsA0, rsA1, AI
 
@@ -1673,8 +1691,10 @@ class Instruction():
             if ('TIME' in current ):
                 TI='1'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
-                DATA = '_____' + TIME 
-                #DATA = '______' +integer2bin(current['TIME'], 32)
+                if (error): 
+                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                else:
+                    DATA = '_____' + TIME 
             CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
             CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
         else:
@@ -1843,7 +1863,11 @@ class Instruction():
                 TO = '1'
                 DF = '11'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
-                DATA = '_____'+ TIME 
+                if (error): 
+                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                else:
+                    DATA = '_____' + TIME 
+
                 #DATA = '______'+ integer2bin(current['TIME'], 32)
                 CFG = SO+TO+'____00000'
                 RD = '0000000'
@@ -1917,8 +1941,10 @@ class Instruction():
                 OPERATION = '_0001'
             elif (current['C_OP'] == 'clr'):
                 OPERATION = '_0010'
+            elif (current['C_OP'] == 'inv'):
+                OPERATION = '_0100'
             else:
-                error = Logger.error('Instruction.CTRL', 'Posible Operations for FLAG command are (set, clr)' )
+                error = Logger.error('Instruction.CTRL', 'Posible Operations for FLAG command are (set, clr, inv)' )
         ######### DIVISION
         elif (current ['CMD'] == 'DIV'):
             CTRL_ADDR  = '011'
