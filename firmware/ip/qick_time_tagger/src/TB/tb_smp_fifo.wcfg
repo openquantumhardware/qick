@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_smp_mem_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb_smp_mem" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="166.666 ns"></ZoomStartTime>
+      <ZoomEndTime time="1,166.667 ns"></ZoomEndTime>
+      <Cursor1Time time="1,000.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="193"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="27" />
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/adc_clk_i">
+      <obj_property name="ElementShortName">adc_clk_i</obj_property>
+      <obj_property name="ObjectShortName">adc_clk_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/dma_pop_i">
+      <obj_property name="ElementShortName">dma_pop_i</obj_property>
+      <obj_property name="ObjectShortName">dma_pop_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/smp_wr_st">
+      <obj_property name="ElementShortName">smp_wr_st[31:0]</obj_property>
+      <obj_property name="ObjectShortName">smp_wr_st[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/smp_wr_cnt">
+      <obj_property name="ElementShortName">smp_wr_cnt[7:0]</obj_property>
+      <obj_property name="ObjectShortName">smp_wr_cnt[7:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/tag_wr_i">
+      <obj_property name="ElementShortName">tag_wr_i</obj_property>
+      <obj_property name="ObjectShortName">tag_wr_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/adc_dt_i">
+      <obj_property name="ElementShortName">adc_dt_i[127:0]</obj_property>
+      <obj_property name="ObjectShortName">adc_dt_i[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/smp_wr_dt">
+      <obj_property name="ElementShortName">smp_wr_dt[127:0]</obj_property>
+      <obj_property name="ObjectShortName">smp_wr_dt[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/WR_SMP_FIFO/data_i">
+      <obj_property name="ElementShortName">data_i[127:0]</obj_property>
+      <obj_property name="ObjectShortName">data_i[127:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/WR_SMP_FIFO/push_i">
+      <obj_property name="ElementShortName">push_i</obj_property>
+      <obj_property name="ObjectShortName">push_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/mem">
+      <obj_property name="ElementShortName">mem[0:255][15:0]</obj_property>
+      <obj_property name="ObjectShortName">mem[0:255][15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/smp_empty_o">
+      <obj_property name="ElementShortName">smp_empty_o</obj_property>
+      <obj_property name="ObjectShortName">smp_empty_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/smp_full_o">
+      <obj_property name="ElementShortName">smp_full_o</obj_property>
+      <obj_property name="ObjectShortName">smp_full_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/wr_push">
+      <obj_property name="ElementShortName">wr_push</obj_property>
+      <obj_property name="ObjectShortName">wr_push</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/we_a_i">
+      <obj_property name="ElementShortName">we_a_i</obj_property>
+      <obj_property name="ObjectShortName">we_a_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/dt_a_i">
+      <obj_property name="ElementShortName">dt_a_i[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dt_a_i[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/dma_clk_i">
+      <obj_property name="ElementShortName">dma_clk_i</obj_property>
+      <obj_property name="ObjectShortName">dma_clk_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/dma_pop_o">
+      <obj_property name="ElementShortName">dma_pop_o</obj_property>
+      <obj_property name="ObjectShortName">dma_pop_o</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/dma_dt_o">
+      <obj_property name="ElementShortName">dma_dt_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">dma_dt_o[31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/dma_qty_o">
+      <obj_property name="ElementShortName">dma_qty_o[7:0]</obj_property>
+      <obj_property name="ObjectShortName">dma_qty_o[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/dma_fifo_rd/m_axis_tdata_o">
+      <obj_property name="ElementShortName">m_axis_tdata_o[15:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tdata_o[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/dma_fifo_rd/m_axis_tlast_o">
+      <obj_property name="ElementShortName">m_axis_tlast_o</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tlast_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/dma_fifo_rd/m_axis_tvalid_o">
+      <obj_property name="ElementShortName">m_axis_tvalid_o</obj_property>
+      <obj_property name="ObjectShortName">m_axis_tvalid_o</obj_property>
+      <obj_property name="CustomSignalColor">#0000FF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/addr_a_i">
+      <obj_property name="ElementShortName">addr_a_i[7:0]</obj_property>
+      <obj_property name="ObjectShortName">addr_a_i[7:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/we_a_i">
+      <obj_property name="ElementShortName">we_a_i</obj_property>
+      <obj_property name="ObjectShortName">we_a_i</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/dt_a_i">
+      <obj_property name="ElementShortName">dt_a_i[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dt_a_i[15:0]</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/addr_b_i">
+      <obj_property name="ElementShortName">addr_b_i[7:0]</obj_property>
+      <obj_property name="ObjectShortName">addr_b_i[7:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_smp_mem/SMP_MEM/SMP_FIFO_DC/SMP_FIFO/dt_b_o">
+      <obj_property name="ElementShortName">dt_b_o[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dt_b_o[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>

@@ -1,0 +1,2 @@
+# This file is automatically written.  Do not modify.
+proc gen_USERPARAMETER_OUT_QTY_ENABLEMENT {IN_DW } {expr $IN_DW > 1}
