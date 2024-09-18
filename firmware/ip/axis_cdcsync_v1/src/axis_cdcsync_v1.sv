@@ -43,6 +43,38 @@ module axis_cdcsync_v1
 		input	wire			s7_axis_tvalid	,
 		input	wire	[B-1:0]	s7_axis_tdata	,
 
+		output	wire			s8_axis_tready	,
+		input	wire			s8_axis_tvalid	,
+		input	wire	[B-1:0]	s8_axis_tdata	,
+
+		output	wire			s9_axis_tready	,
+		input	wire			s9_axis_tvalid	,
+		input	wire	[B-1:0]	s9_axis_tdata	,
+
+		output	wire			s10_axis_tready	,
+		input	wire			s10_axis_tvalid	,
+		input	wire	[B-1:0]	s10_axis_tdata	,
+
+		output	wire			s11_axis_tready	,
+		input	wire			s11_axis_tvalid	,
+		input	wire	[B-1:0]	s11_axis_tdata	,
+
+		output	wire			s12_axis_tready	,
+		input	wire			s12_axis_tvalid	,
+		input	wire	[B-1:0]	s12_axis_tdata	,
+
+		output	wire			s13_axis_tready	,
+		input	wire			s13_axis_tvalid	,
+		input	wire	[B-1:0]	s13_axis_tdata	,
+
+		output	wire			s14_axis_tready	,
+		input	wire			s14_axis_tvalid	,
+		input	wire	[B-1:0]	s14_axis_tdata	,
+
+		output	wire			s15_axis_tready	,
+		input	wire			s15_axis_tvalid	,
+		input	wire	[B-1:0]	s15_axis_tdata	,
+
 		// M_AXIS for output data.
 		input	wire			m_axis_aresetn	,
 		input	wire			m_axis_aclk		,
@@ -77,7 +109,39 @@ module axis_cdcsync_v1
 
 		input	wire 			m7_axis_tready	,
 		output	wire			m7_axis_tvalid	,
-		output	wire	[B-1:0]	m7_axis_tdata
+		output	wire	[B-1:0]	m7_axis_tdata   ,
+
+		input	wire 			m8_axis_tready	,
+		output	wire			m8_axis_tvalid	,
+		output	wire	[B-1:0]	m8_axis_tdata	,		
+
+		input	wire 			m9_axis_tready	,
+		output	wire			m9_axis_tvalid	,
+		output	wire	[B-1:0]	m9_axis_tdata	,		
+
+		input	wire 			m10_axis_tready	,
+		output	wire			m10_axis_tvalid	,
+		output	wire	[B-1:0]	m10_axis_tdata	,		
+
+		input	wire 			m11_axis_tready	,
+		output	wire			m11_axis_tvalid	,
+		output	wire	[B-1:0]	m11_axis_tdata	,		
+
+		input	wire 			m12_axis_tready	,
+		output	wire			m12_axis_tvalid	,
+		output	wire	[B-1:0]	m12_axis_tdata	,		
+
+		input	wire 			m13_axis_tready	,
+		output	wire			m13_axis_tvalid	,
+		output	wire	[B-1:0]	m13_axis_tdata	,		
+
+		input	wire 			m14_axis_tready	,
+		output	wire			m14_axis_tvalid	,
+		output	wire	[B-1:0]	m14_axis_tdata	,		
+
+		input	wire 			m15_axis_tready	,
+		output	wire			m15_axis_tvalid	,
+		output	wire	[B-1:0]	m15_axis_tdata	
 	);
 
 /**********************/
@@ -129,6 +193,38 @@ cdcsync
 		.s7_axis_tvalid	(s7_axis_tvalid	),
 		.s7_axis_tdata	(s7_axis_tdata	),
 
+		.s8_axis_tready	(s8_axis_tready	),
+		.s8_axis_tvalid	(s8_axis_tvalid	),
+		.s8_axis_tdata	(s8_axis_tdata	),
+
+		.s9_axis_tready	(s9_axis_tready	),
+		.s9_axis_tvalid	(s9_axis_tvalid	),
+		.s9_axis_tdata	(s9_axis_tdata	),
+
+		.s10_axis_tready  (s10_axis_tready	),
+		.s10_axis_tvalid  (s10_axis_tvalid	),
+		.s10_axis_tdata	  (s10_axis_tdata	),
+
+		.s11_axis_tready  (s11_axis_tready	),
+		.s11_axis_tvalid  (s11_axis_tvalid	),
+		.s11_axis_tdata	  (s11_axis_tdata	),
+
+		.s12_axis_tready  (s12_axis_tready	),
+		.s12_axis_tvalid  (s12_axis_tvalid	),
+		.s12_axis_tdata	  (s12_axis_tdata	),
+
+		.s13_axis_tready  (s13_axis_tready	),
+		.s13_axis_tvalid  (s13_axis_tvalid	),
+		.s13_axis_tdata	  (s13_axis_tdata	),
+
+		.s14_axis_tready  (s14_axis_tready	),
+		.s14_axis_tvalid  (s14_axis_tvalid	),
+		.s14_axis_tdata	  (s14_axis_tdata	),
+
+		.s15_axis_tready  (s15_axis_tready	),
+		.s15_axis_tvalid  (s15_axis_tvalid	),
+		.s15_axis_tdata	  (s15_axis_tdata	),
+
 		// M_AXIS for output data.
 		.m_axis_aresetn	(m_axis_aresetn	),
 		.m_axis_aclk	(m_axis_aclk	),
@@ -163,7 +259,39 @@ cdcsync
 
 		.m7_axis_tready	(m7_axis_tready	),
 		.m7_axis_tvalid	(m7_axis_tvalid	),
-		.m7_axis_tdata	(m7_axis_tdata	)
+		.m7_axis_tdata	(m7_axis_tdata	),
+
+		.m8_axis_tready	(m8_axis_tready	),
+		.m8_axis_tvalid	(m8_axis_tvalid	),
+		.m8_axis_tdata	(m8_axis_tdata	),
+
+		.m9_axis_tready	(m9_axis_tready	),
+		.m9_axis_tvalid	(m9_axis_tvalid	),
+		.m9_axis_tdata	(m9_axis_tdata	),
+
+		.m10_axis_tready  (m10_axis_tready	),
+		.m10_axis_tvalid  (m10_axis_tvalid	),
+		.m10_axis_tdata	  (m10_axis_tdata	),
+
+		.m11_axis_tready  (m11_axis_tready	),
+		.m11_axis_tvalid  (m11_axis_tvalid	),
+		.m11_axis_tdata	  (m11_axis_tdata	),
+
+		.m12_axis_tready  (m12_axis_tready	),
+		.m12_axis_tvalid  (m12_axis_tvalid	),
+		.m12_axis_tdata	  (m12_axis_tdata	),
+
+		.m13_axis_tready  (m13_axis_tready	),
+		.m13_axis_tvalid  (m13_axis_tvalid	),
+		.m13_axis_tdata	  (m13_axis_tdata	),
+
+		.m14_axis_tready  (m14_axis_tready	),
+		.m14_axis_tvalid  (m14_axis_tvalid	),
+		.m14_axis_tdata	  (m14_axis_tdata	),
+
+		.m15_axis_tready  (m15_axis_tready	),
+		.m15_axis_tvalid  (m15_axis_tvalid	),
+		.m15_axis_tdata	  (m15_axis_tdata	)
 	);
 
 endmodule

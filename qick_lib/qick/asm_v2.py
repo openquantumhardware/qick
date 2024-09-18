@@ -911,6 +911,8 @@ class Trigger(TimedMacro):
 
         for ro in self.ros:
             rocfg = prog.soccfg['readouts'][ro]
+            if ro not in prog.ro_chs:
+                raise RuntimeError("RO channel %d is triggered but never declared"%(ro))
             if rocfg['trigger_type'] == 'dport':
                 self.outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])
             else:

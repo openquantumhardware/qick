@@ -844,6 +844,25 @@ class QickConfig():
                 if np.abs(cfg1['f_folded'] - cfg2['pfb_center']) < rocfg['f_dds']/2:
                     logger.warning("The readout at %.3f MHz may see some crosstalk from the tone at %.3f MHz." % (cfg2['f_rounded'], cfg1['f_rounded']))
 
+    def get_maxv(self, gen_ch):
+        """Convenience method for looking up a generator's maximum allowed envelope value.
+        The absolute value of the idata/qdata should not exceed this.
+        Typically you will want to normalize your envelope's maximum range to this value.
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+
+        Returns
+        -------
+        int
+            max allowed value
+        """
+        gencfg = self['gens'][gen_ch]
+        return int(np.floor(gencfg['maxv']*gencfg['maxv_scale']))
+
+
 class DummyIp:
     """Stores the configuration constants for a firmware IP block.
     """
@@ -1306,7 +1325,7 @@ class AbsQickProgram(ABC):
             This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
         # convert to integer number of fabric clocks
@@ -1344,7 +1363,7 @@ class AbsQickProgram(ABC):
             This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
         if self.GAUSS_BUG:
@@ -1392,7 +1411,7 @@ class AbsQickProgram(ABC):
             This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
         f_fabric = gencfg['f_fabric']
 
@@ -1440,7 +1459,7 @@ class AbsQickProgram(ABC):
             This is useful for flat_top pulses, where the envelope gets split into two halves.
         """
         gencfg = self.soccfg['gens'][ch]
-        if maxv is None: maxv = gencfg['maxv']*gencfg['maxv_scale']
+        if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
         # convert to integer number of fabric clocks

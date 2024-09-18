@@ -43,6 +43,38 @@ module cdcsync
 		input	wire			s7_axis_tvalid	,
 		input	wire	[B-1:0]	s7_axis_tdata	,
 
+		output	wire			s8_axis_tready	,
+		input	wire			s8_axis_tvalid	,
+		input	wire	[B-1:0]	s8_axis_tdata	,
+
+		output	wire			s9_axis_tready	,
+		input	wire			s9_axis_tvalid	,
+		input	wire	[B-1:0]	s9_axis_tdata	,
+
+		output	wire			s10_axis_tready	,
+		input	wire			s10_axis_tvalid	,
+		input	wire	[B-1:0]	s10_axis_tdata	,
+
+		output	wire			s11_axis_tready	,
+		input	wire			s11_axis_tvalid	,
+		input	wire	[B-1:0]	s11_axis_tdata	,
+
+		output	wire			s12_axis_tready	,
+		input	wire			s12_axis_tvalid	,
+		input	wire	[B-1:0]	s12_axis_tdata	,
+
+		output	wire			s13_axis_tready	,
+		input	wire			s13_axis_tvalid	,
+		input	wire	[B-1:0]	s13_axis_tdata	,
+
+		output	wire			s14_axis_tready	,
+		input	wire			s14_axis_tvalid	,
+		input	wire	[B-1:0]	s14_axis_tdata	,
+
+		output	wire			s15_axis_tready	,
+		input	wire			s15_axis_tvalid	,
+		input	wire	[B-1:0]	s15_axis_tdata	,
+
 		// M_AXIS for output data.
 		input	wire			m_axis_aresetn	,
 		input	wire			m_axis_aclk		,
@@ -77,7 +109,39 @@ module cdcsync
 
 		input	wire 			m7_axis_tready	,
 		output	wire			m7_axis_tvalid	,
-		output	wire	[B-1:0]	m7_axis_tdata
+		output	wire	[B-1:0]	m7_axis_tdata   ,
+
+		input	wire 			m8_axis_tready	,
+		output	wire			m8_axis_tvalid	,
+		output	wire	[B-1:0]	m8_axis_tdata	,		
+
+		input	wire 			m9_axis_tready	,
+		output	wire			m9_axis_tvalid	,
+		output	wire	[B-1:0]	m9_axis_tdata	,		
+
+		input	wire 			m10_axis_tready	,
+		output	wire			m10_axis_tvalid	,
+		output	wire	[B-1:0]	m10_axis_tdata	,		
+
+		input	wire 			m11_axis_tready	,
+		output	wire			m11_axis_tvalid	,
+		output	wire	[B-1:0]	m11_axis_tdata	,		
+
+		input	wire 			m12_axis_tready	,
+		output	wire			m12_axis_tvalid	,
+		output	wire	[B-1:0]	m12_axis_tdata	,		
+
+		input	wire 			m13_axis_tready	,
+		output	wire			m13_axis_tvalid	,
+		output	wire	[B-1:0]	m13_axis_tdata	,		
+
+		input	wire 			m14_axis_tready	,
+		output	wire			m14_axis_tvalid	,
+		output	wire	[B-1:0]	m14_axis_tdata	,		
+
+		input	wire 			m15_axis_tready	,
+		output	wire			m15_axis_tvalid	,
+		output	wire	[B-1:0]	m15_axis_tdata	
 	);
 
 /********************/
@@ -88,14 +152,14 @@ localparam	BD = B + 1;
 localparam	BT = N*BD;
 
 // Input data to vector.
-wire	[B-1:0]		din_data_v	[8]	;
-wire	[7:0]		din_valid_v		;
-wire	[7:0]		din_ready_v		;
+wire	[B-1:0]		din_data_v	[16]	;
+wire	[15:0]		din_valid_v		;
+wire	[15:0]		din_ready_v		;
 
 // Output vector to data.
-wire	[B-1:0]		dout_data_v	[8]	;
-wire	[7:0]		dout_valid_v	;
-wire	[7:0]		dout_ready_v	;
+wire	[B-1:0]		dout_data_v	[16]	;
+wire	[15:0]		dout_valid_v	;
+wire	[15:0]		dout_ready_v	;
 
 wire 				fifo_wr_en		;
 wire	[BT-1:0]	fifo_din		;
@@ -108,32 +172,56 @@ wire				fifo_empty		;
 /**********************/
 
 // Input data to vector.
-assign din_data_v	[0] = s0_axis_tdata		;
-assign din_data_v	[1] = s1_axis_tdata		;
-assign din_data_v	[2] = s2_axis_tdata		;
-assign din_data_v	[3] = s3_axis_tdata		;
-assign din_data_v	[4] = s4_axis_tdata		;
-assign din_data_v	[5] = s5_axis_tdata		;
-assign din_data_v	[6] = s6_axis_tdata		;
-assign din_data_v	[7] = s7_axis_tdata		;
+assign din_data_v	[0]  = s0_axis_tdata		;
+assign din_data_v	[1]  = s1_axis_tdata		;
+assign din_data_v	[2]  = s2_axis_tdata		;
+assign din_data_v	[3]  = s3_axis_tdata		;
+assign din_data_v	[4]  = s4_axis_tdata		;
+assign din_data_v	[5]  = s5_axis_tdata		;
+assign din_data_v	[6]  = s6_axis_tdata		;
+assign din_data_v	[7]  = s7_axis_tdata		;
+assign din_data_v	[8]  = s8_axis_tdata		;
+assign din_data_v	[9]  = s9_axis_tdata		;
+assign din_data_v	[10] = s10_axis_tdata		;
+assign din_data_v	[11] = s11_axis_tdata		;
+assign din_data_v	[12] = s12_axis_tdata		;
+assign din_data_v	[13] = s13_axis_tdata		;
+assign din_data_v	[14] = s14_axis_tdata		;
+assign din_data_v	[15] = s15_axis_tdata		;
 
-assign din_valid_v	[0] = s0_axis_tvalid	;
-assign din_valid_v	[1] = s1_axis_tvalid	;
-assign din_valid_v	[2] = s2_axis_tvalid	;
-assign din_valid_v	[3] = s3_axis_tvalid	;
-assign din_valid_v	[4] = s4_axis_tvalid	;
-assign din_valid_v	[5] = s5_axis_tvalid	;
-assign din_valid_v	[6] = s6_axis_tvalid	;
-assign din_valid_v	[7] = s7_axis_tvalid	;
+assign din_valid_v	[0]  = s0_axis_tvalid	;
+assign din_valid_v	[1]  = s1_axis_tvalid	;
+assign din_valid_v	[2]  = s2_axis_tvalid	;
+assign din_valid_v	[3]  = s3_axis_tvalid	;
+assign din_valid_v	[4]  = s4_axis_tvalid	;
+assign din_valid_v	[5]  = s5_axis_tvalid	;
+assign din_valid_v	[6]  = s6_axis_tvalid	;
+assign din_valid_v	[7]  = s7_axis_tvalid	;
+assign din_valid_v	[8]  = s8_axis_tvalid	;
+assign din_valid_v	[9]  = s9_axis_tvalid	;
+assign din_valid_v	[10] = s10_axis_tvalid	;
+assign din_valid_v	[11] = s11_axis_tvalid	;
+assign din_valid_v	[12] = s12_axis_tvalid	;
+assign din_valid_v	[13] = s13_axis_tvalid	;
+assign din_valid_v	[14] = s14_axis_tvalid	;
+assign din_valid_v	[15] = s15_axis_tvalid	;
 
-assign din_ready_v	[0] = m0_axis_tready	;
-assign din_ready_v	[1] = m1_axis_tready	;
-assign din_ready_v	[2] = m2_axis_tready	;
-assign din_ready_v	[3] = m3_axis_tready	;
-assign din_ready_v	[4] = m4_axis_tready	;
-assign din_ready_v	[5] = m5_axis_tready	;
-assign din_ready_v	[6] = m6_axis_tready	;
-assign din_ready_v	[7] = m7_axis_tready	;
+assign din_ready_v	[0]  = m0_axis_tready	;
+assign din_ready_v	[1]  = m1_axis_tready	;
+assign din_ready_v	[2]  = m2_axis_tready	;
+assign din_ready_v	[3]  = m3_axis_tready	;
+assign din_ready_v	[4]  = m4_axis_tready	;
+assign din_ready_v	[5]  = m5_axis_tready	;
+assign din_ready_v	[6]  = m6_axis_tready	;
+assign din_ready_v	[7]  = m7_axis_tready	;
+assign din_ready_v	[8]  = m8_axis_tready	;
+assign din_ready_v	[9]  = m9_axis_tready	;
+assign din_ready_v	[10] = m10_axis_tready	;
+assign din_ready_v	[11] = m11_axis_tready	;
+assign din_ready_v	[12] = m12_axis_tready	;
+assign din_ready_v	[13] = m13_axis_tready	;
+assign din_ready_v	[14] = m14_axis_tready	;
+assign din_ready_v	[15] = m15_axis_tready	;
 
 // Output vector to data.
 assign m0_axis_tdata	= dout_data_v	[0] ;
@@ -144,6 +232,14 @@ assign m4_axis_tdata	= dout_data_v	[4] ;
 assign m5_axis_tdata	= dout_data_v	[5] ;
 assign m6_axis_tdata	= dout_data_v	[6] ;
 assign m7_axis_tdata	= dout_data_v	[7] ;
+assign m8_axis_tdata	= dout_data_v	[8] ;
+assign m9_axis_tdata	= dout_data_v	[9] ;
+assign m10_axis_tdata	= dout_data_v	[10] ;
+assign m11_axis_tdata	= dout_data_v	[11] ;
+assign m12_axis_tdata	= dout_data_v	[12] ;
+assign m13_axis_tdata	= dout_data_v	[13] ;
+assign m14_axis_tdata	= dout_data_v	[14] ;
+assign m15_axis_tdata	= dout_data_v	[15] ;
 
 assign m0_axis_tvalid	= dout_valid_v	[0] & ~fifo_empty;
 assign m1_axis_tvalid	= dout_valid_v	[1] & ~fifo_empty;
@@ -153,6 +249,14 @@ assign m4_axis_tvalid	= dout_valid_v	[4] & ~fifo_empty;
 assign m5_axis_tvalid	= dout_valid_v	[5] & ~fifo_empty;
 assign m6_axis_tvalid	= dout_valid_v	[6] & ~fifo_empty;
 assign m7_axis_tvalid	= dout_valid_v	[7] & ~fifo_empty;
+assign m8_axis_tvalid	= dout_valid_v	[8] & ~fifo_empty;
+assign m9_axis_tvalid	= dout_valid_v	[9] & ~fifo_empty;
+assign m10_axis_tvalid	= dout_valid_v	[10] & ~fifo_empty;
+assign m11_axis_tvalid	= dout_valid_v	[11] & ~fifo_empty;
+assign m12_axis_tvalid	= dout_valid_v	[12] & ~fifo_empty;
+assign m13_axis_tvalid	= dout_valid_v	[13] & ~fifo_empty;
+assign m14_axis_tvalid	= dout_valid_v	[14] & ~fifo_empty;
+assign m15_axis_tvalid	= dout_valid_v	[15] & ~fifo_empty;
 
 assign s0_axis_tready	= dout_ready_v	[0];
 assign s1_axis_tready	= dout_ready_v	[1];
@@ -162,6 +266,14 @@ assign s4_axis_tready	= dout_ready_v	[4];
 assign s5_axis_tready	= dout_ready_v	[5];
 assign s6_axis_tready	= dout_ready_v	[6];
 assign s7_axis_tready	= dout_ready_v	[7];
+assign s8_axis_tready	= dout_ready_v	[8];
+assign s9_axis_tready	= dout_ready_v	[9];
+assign s10_axis_tready	= dout_ready_v	[10];
+assign s11_axis_tready	= dout_ready_v	[11];
+assign s12_axis_tready	= dout_ready_v	[12];
+assign s13_axis_tready	= dout_ready_v	[13];
+assign s14_axis_tready	= dout_ready_v	[14];
+assign s15_axis_tready	= dout_ready_v	[15];
 
 genvar i;
 generate
@@ -218,7 +330,7 @@ xpm_cdc_array_single
       .INIT_SYNC_FF(0),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
       .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
       .SRC_INPUT_REG(1),  // DECIMAL; 0=do not register input, 1=register input
-      .WIDTH(8)           // DECIMAL; range: 1-1024
+      .WIDTH(16)           // DECIMAL; range: 1-1024
    )
    xpm_cdc_array_single_i (
       .dest_out(dout_ready_v), // WIDTH-bit output: src_in synchronized to the destination clock domain. This
