@@ -2289,34 +2289,24 @@ class RFQickSoc216V1(RFQickSoc):
         """
 
         # GPIO for Board Selection.
-        if 'brd_sel_gpio' in self.ip_dict.keys():
-            self.board_sel = BoardSelection(self.brd_sel_gpio)
+        if hasattr(self, 'rfb_control'):
+            self.board_sel = BoardSelection(self.rfb_control.brd_sel_gpio)
+            self.attn_spi = self.rfb_control.attn_spi
+            self.filter_spi = self.rfb_control.filter_spi
+            self.bias_spi = self.rfb_control.bias_spi
+            self.bias_gpio = self.rfb_control.bias_gpio
         else:
-            raise RuntimeError("%s: brd_sel_gpio for board selection logic not found." % self.__class__.__name__) 
+            self.board_sel = BoardSelection(self.brd_sel_gpio)
 
         # SPI used for Attenuators.
-        if 'attn_spi' in self.ip_dict.keys():
-            self.attn_spi.config(lsb="lsb")
-        else:
-            raise RuntimeError("%s: attn_spi for attenuator control not found." % self.__class__.__name__) 
+        self.attn_spi.config(lsb="lsb")
 
         # SPI used for Filter.
-        if 'filter_spi' in self.ip_dict.keys():
-            self.filter_spi.config(lsb="msb")
-        else:
-            raise RuntimeError("%s: filter_spi for filter control not found." % self.__class__.__name__) 
+        self.filter_spi.config(lsb="msb")
 
         # SPI used for BIAS.
-        if 'bias_spi' in self.ip_dict.keys():
-            self.bias_spi.config(lsb="msb", cpha="invert")
-        else:
-            raise RuntimeError("%s: bias_spi for bias DACs control not found." % self.__class__.__name__) 
+        self.bias_spi.config(lsb="msb", cpha="invert")
 
-        if 'bias_gpio' in self.ip_dict.keys():
-            pass
-        else:
-            raise RuntimeError("%s: bias_gpio for bias DACs control not found." % self.__class__.__name__) 
-        
         # DAC BIAS.
         self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
 
