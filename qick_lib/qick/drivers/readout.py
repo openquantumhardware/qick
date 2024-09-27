@@ -24,10 +24,10 @@ def _trace_trigger(soc, start_block):
         if soc.metadata.mod2type(block) == "axis_set_reg":
             ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
         # ask the tproc to translate this port name to a channel number
-        trigger_port, trigger_type = getattr(soc, block).port2ch(port)
+        trigger_port, trigger_type = soc._get_block(block).port2ch(port)
     else:
         trigger_bit = 0
-        trigger_port, trigger_type = getattr(soc, block).port2ch(port)
+        trigger_port, trigger_type = soc._get_block(block).port2ch(port)
     return trigger_type, trigger_port, trigger_bit
 
 RO_TYPES = ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4", "axis_dyn_readout_v1"]
@@ -440,7 +440,7 @@ class AbsDynReadout(AbsReadout):
             ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
 
         # ask the tproc to translate this port name to a channel number
-        self.cfg['tproc_ctrl'],_ = getattr(soc, block).port2ch(port)
+        self.cfg['tproc_ctrl'],_ = soc._get_block(block).port2ch(port)
 
         # what RFDC port drives this readout?
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
@@ -584,7 +584,7 @@ class AxisAvgBuffer(SocIp):
             self.readout = AxisDynReadoutV1(block)
             self.readout.configure_connections(soc)
         else:
-            self.readout = getattr(soc, block)
+            self.readout = soc._get_block(block)
             if isinstance(self.readout, AbsPFBReadout):
                 #if blocktype in ["axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4"]:
                 # port names are of the form 'm1_axis'
@@ -593,19 +593,19 @@ class AxisAvgBuffer(SocIp):
 
         # which switch_avg port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm0_axis')
-        self.switch_avg = getattr(soc, block)
+        self.switch_avg = soc._get_block(block)
         # port names are of the form 'S01_AXIS'
         switch_avg_ch = int(port.split('_')[0][1:], 10)
         ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.dma_avg = getattr(soc, block)
+        self.dma_avg = soc._get_block(block)
 
         # which switch_buf port does this buffer drive?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm1_axis')
-        self.switch_buf = getattr(soc, block)
+        self.switch_buf = soc._get_block(block)
         # port names are of the form 'S01_AXIS'
         switch_buf_ch = int(port.split('_')[0][1:], 10)
         ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.dma_buf = getattr(soc, block)
+        self.dma_buf = soc._get_block(block)
 
         if switch_avg_ch != switch_buf_ch:
             raise RuntimeError(
@@ -618,7 +618,7 @@ class AxisAvgBuffer(SocIp):
         try:
             block, port, _ = soc.metadata.trace_forward(self['fullpath'], 'm2_axis', ["axis_tproc64x32_x8", "qick_processor"])
             # ask the tproc to translate this port name to a channel number
-            self.cfg['tproc_ch'], _ = getattr(soc, block).port2ch(port)
+            self.cfg['tproc_ch'], _ = soc._get_block(block).port2ch(port)
         except:
             # this buffer doesn't feed back into the tProc
             self.cfg['tproc_ch'] = -1
@@ -875,7 +875,7 @@ class MrBufferEt(SocIp):
         self.soc = soc
 
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm00_axis')
-        self.dma = getattr(soc, block)
+        self.dma = soc._get_block(block)
 
         # readout, fullspeed output -> clock converter (optional) -> many-to-one switch -> MR buffer
         # readout, decimated output -> broadcaster (optional, for DDR) -> avg_buf
@@ -887,7 +887,7 @@ class MrBufferEt(SocIp):
         # get the MR switch
         if blocktype == "axis_switch":
             sw_block = block
-            self.switch = getattr(soc, sw_block)
+            self.switch = soc._get_block(sw_block)
 
             # Number of slave interfaces.
             NUM_SI_param = int(soc.metadata.get_param(sw_block, 'NUM_SI'))
@@ -1012,7 +1012,7 @@ class AxisBufferDdrV1(SocIp):
         ((block,port),) = soc.metadata.trace_bus(self.fullpath, 'm_axi')
         # jump through the smartconnect
         ((block,port),) = soc.metadata.trace_bus(block, 'M00_AXI')
-        self.ddr4_mem = getattr(soc, block)
+        self.ddr4_mem = soc._get_block(block)
         self.ddr4_array = self.ddr4_mem.mmio.array.view('uint32')
         self.cfg['maxlen'] = self.ddr4_array.shape[0]
 
@@ -1026,7 +1026,7 @@ class AxisBufferDdrV1(SocIp):
         # get the DDR switch
         if blocktype == "axis_switch":
             sw_block = block
-            self.switch = getattr(soc, sw_block)
+            self.switch = soc._get_block(sw_block)
 
             # Number of slave interfaces.
             NUM_SI_param = int(soc.metadata.get_param(sw_block, 'NUM_SI'))
