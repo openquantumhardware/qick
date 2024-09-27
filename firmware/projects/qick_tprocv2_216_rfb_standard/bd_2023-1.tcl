@@ -1256,11 +1256,14 @@ proc create_root_design { parentCell } {
   # Create instance: qick_processor_0, and set properties
   set qick_processor_0 [ create_bd_cell -type ip -vlnv Fermi:user:qick_processor:2.0 qick_processor_0 ]
   set_property -dict [list \
-    CONFIG.DEBUG {1} \
-    CONFIG.DMEM_AW {12} \
+    CONFIG.ARITH {1} \
+    CONFIG.DEBUG {0} \
+    CONFIG.DIVIDER {1} \
+    CONFIG.DMEM_AW {14} \
     CONFIG.EXT_FLAG {0} \
     CONFIG.IN_PORT_QTY {8} \
     CONFIG.IO_CTRL {1} \
+    CONFIG.LFSR {1} \
     CONFIG.OUT_DPORT_DW {8} \
     CONFIG.OUT_DPORT_QTY {1} \
     CONFIG.OUT_TRIG_QTY {18} \

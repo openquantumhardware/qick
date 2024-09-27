@@ -431,8 +431,10 @@ proc create_root_design { parentCell } {
     CONFIG.DEBUG {0} \
     CONFIG.DIVIDER {1} \
     CONFIG.DMEM_AW {14} \
+    CONFIG.EXT_FLAG {0} \
     CONFIG.IN_PORT_QTY {2} \
     CONFIG.IO_CTRL {1} \
+    CONFIG.LFSR {1} \
     CONFIG.OUT_DPORT_DW {8} \
     CONFIG.OUT_DPORT_QTY {1} \
     CONFIG.OUT_TRIG_QTY {12} \
