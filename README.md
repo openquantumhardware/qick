@@ -16,6 +16,7 @@ It consists of:
 Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
 * [IEEE Quantum Week 2023](https://github.com/openquantumhardware/QCE2023_public)
 * [US QIS Summer School 2024](https://github.com/openquantumhardware/QIS_SummerSchool_2024)
+* [IEEE Quantum Week 2024](https://github.com/openquantumhardware/QCE2024)
 
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
@@ -25,8 +26,6 @@ Announcements
 The QICK group at Fermilab is currently hiring two engineering positions, where the primary focus will be firmware development for QICK.
 * [Staff Engineer II](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Staff-Engineer-II_R_007999)
 * [Senior Engineer](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Senior-Engineer_R_007996)
-
-We will be presenting a tutorial at IEEE Quantum Week 2024: https://qce.quantum.ieee.org/2024/program/tutorials-abstracts/#tut21
 
 Download and Installation
 -------------------------
