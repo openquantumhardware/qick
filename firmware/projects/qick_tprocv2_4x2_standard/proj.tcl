@@ -13,23 +13,25 @@ set _xil_proj_name_ "top"
 set orig_proj_dir "[file normalize "$origin_dir/"]"
 
 # Create project
-create_project ${_xil_proj_name_} ./${_xil_proj_name_} -part xczu49dr-ffvf1760-2-e
+create_project ${_xil_proj_name_} ./${_xil_proj_name_} -part xczu48dr-ffvg1517-2-e
 
 # Set the directory path for the new project
 set proj_dir [get_property directory [current_project]]
 
 # Set project properties
 set obj [current_project]
-set_property -name "board_part" -value "xilinx.com:zcu216:part0:2.0" -objects $obj
+set_property -name "board_part_repo_paths" -value "[file normalize "$origin_dir/../../board_files"]" -objects $obj
+set_property -name "board_part" -value "realdigital.org:rfsoc4x2:part0:1.0" -objects $obj
 set_property -name "default_lib" -value "xil_defaultlib" -objects $obj
 set_property -name "enable_vhdl_2008" -value "1" -objects $obj
 set_property -name "ip_cache_permissions" -value "read write" -objects $obj
 set_property -name "ip_output_repo" -value "$proj_dir/${_xil_proj_name_}.cache/ip" -objects $obj
 set_property -name "mem.enable_memory_map_generation" -value "1" -objects $obj
-set_property -name "platform.board_id" -value "zcu216" -objects $obj
+set_property -name "platform.board_id" -value "rfsoc4x2" -objects $obj
 set_property -name "sim.central_dir" -value "$proj_dir/${_xil_proj_name_}.ip_user_files" -objects $obj
 set_property -name "sim.ip.auto_export_scripts" -value "1" -objects $obj
 set_property -name "simulator_language" -value "Mixed" -objects $obj
+set_property -name "xpm_libraries" -value "XPM_CDC XPM_FIFO XPM_MEMORY" -objects $obj
 
 # Set IP repository paths
 set obj [get_filesets sources_1]
@@ -64,7 +66,6 @@ source $file
 
 # Set sources_1 fileset object
 set obj [get_filesets sources_1]
-
 # Create HDL Wrapper.
 make_wrapper -files [get_files d_1.bd] -top
 

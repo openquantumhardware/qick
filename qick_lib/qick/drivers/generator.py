@@ -107,11 +107,11 @@ class AbsArbSignalGen(AbsSignalGen):
 
         # what switch port drives this generator?
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
-        self.switch = getattr(soc, block)
+        self.switch = soc._get_block(block)
         # port names are of the form 'M01_AXIS'
         self.switch_ch = int(port.split('_')[0][1:])
         ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-        self.dma = getattr(soc, block)
+        self.dma = soc._get_block(block)
 
     # Load waveforms.
     def load(self, xin, addr=0):
@@ -205,7 +205,7 @@ class AbsPulsedSignalGen(AbsSignalGen):
             ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
 
         # ask the tproc to translate this port name to a channel number
-        self.cfg['tproc_ch'],_ = getattr(soc, block).port2ch(port)
+        self.cfg['tproc_ch'],_ = soc._get_block(block).port2ch(port)
 
 class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """

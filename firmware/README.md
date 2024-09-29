@@ -250,7 +250,7 @@ need a DMA:
 * read enabled, 1 channel, width 256, burst 2
 * write enabled, 1 channel, width 256, burst 16
 
-BRAM: 1 tile for trigger port FIFO, roughly 3 tiles per wave output (33 for 11 outputs, 20 for 7 outputs), 2/1/5 tiles for P/D/W memories with AW=10/10/8
+BRAM: 1 tile per trigger output, 3 tiles per wave output, 8/4/5 tiles for P/D/W memories with AW=12/12/10
 
 ## Expanding the program memory (tProc v1)
 

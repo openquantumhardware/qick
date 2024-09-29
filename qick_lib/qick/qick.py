@@ -334,6 +334,16 @@ class QickSoc(Overlay, QickConfig):
     def streamer(self):
         return self._streamer
 
+    def _get_block(self, fullpath):
+        """Return the IP block specified by its full path.
+        """
+        #return getattr(self, fullpath.replace('/','_'))
+        block = self
+        # recurse into hierarchies, if present
+        for x in fullpath.split('/'):
+            block = getattr(block, x)
+        return block
+
     def map_signal_paths(self):
         """
         Make lists of signal generator, readout, and buffer blocks in the firmware.

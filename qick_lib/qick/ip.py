@@ -87,9 +87,12 @@ class QickMetadata:
 
         self.timestamp = self.xml.get('TIMESTAMP')
 
+    def get_systemgraph_block(self, blockname):
+        return self.systemgraph.blocks[blockname.replace('/','_')]
+
     def trace_sig(self, blockname, portname):
         if self.systemgraph is not None:
-            dests = self.systemgraph.blocks[blockname].ports[portname].destinations()
+            dests = self.get_systemgraph_block(blockname).ports[portname].destinations()
             result = []
             for port, block in dests.items():
                 blockname = block.parent().name
@@ -124,7 +127,7 @@ class QickMetadata:
         if netname == '__NOC__':
             return []
         # get the list of other ports on this net, discard the port we started at and ILA ports
-        return [x.split('/') for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
+        return [x.rsplit('/', maxsplit=1) for x in parser.nets[netname] if x != fullport and 'system_ila_' not in x]
 
     def get_fclk(self, blockname, portname):
         """
@@ -164,7 +167,7 @@ class QickMetadata:
 
     def mod2type(self, blockname):
         if self.systemgraph is not None:
-            return self.systemgraph.blocks[blockname].vlnv.name
+            return self.get_systemgraph_block(blockname).vlnv.name
         return self.busparser.mod2type[blockname]
 
     def mod2rev(self, blockname):
