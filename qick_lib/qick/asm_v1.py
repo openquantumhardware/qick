@@ -1480,7 +1480,10 @@ class QickRegister:
         elif self.reg_type == "adc_freq":
             return self.prog.freq2reg_adc(val, self.ro_ch, self.gen_ch)
         else:
-            return np.int32(val)
+            # register values are 32-bit but we will be packing this into a 64-bit program word
+            # so cast to int32, and then back to Python int
+            # this avoids type promotion issues on NumPy 2.0
+            return int(np.int32(val))
 
     def reg2val(self, reg):
         """
