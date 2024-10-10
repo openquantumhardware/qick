@@ -351,9 +351,12 @@ class QickSoc(Overlay, QickConfig):
         Fill the config dictionary with parameters of the DAC and ADC channels.
         """
         # Use the HWH parser to trace connectivity and deduce the channel numbering.
+        # Some blocks (e.g. DDR4) are inside hierarchies.
+        # We access these through the hierarchy (e.g. self.ddr4.axis_buffer_ddr_v1_0)
+        # but list them using ip_dict, which has all blocks, even those inside hierarchies
         for key, val in self.ip_dict.items():
             if hasattr(val['driver'], 'configure_connections'):
-                getattr(self, key).configure_connections(self)
+                self._get_block(val['fullpath']).configure_connections(self)
 
         # Signal generators (anything driven by the tProc)
         self.gens = []
@@ -412,7 +415,10 @@ class QickSoc(Overlay, QickConfig):
 
         # Find the DDR4 controller and buffer, if present.
         try:
-            self.ddr4_buf = self.axis_buffer_ddr_v1_0
+            if hasattr(self, 'ddr4'):
+                self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
+            else:
+                self.ddr4_buf = self.axis_buffer_ddr_v1_0
             self['ddr4_buf'] = self.ddr4_buf.cfg
         except:
             pass
