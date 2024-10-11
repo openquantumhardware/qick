@@ -706,7 +706,9 @@ class QickSoc(Overlay, QickConfig):
         buf = self.avg_bufs[ch]
         buf.readout.set_all_int(ro_regs)
 
-    def config_avg(self, ch, address=0, length=1, enable=True):
+    def config_avg(
+        self, ch, address=0, length=1, enable=True,
+        edge_counting=False, high_threshold=1000, low_threshold=0):
         """Configure and optionally enable accumulation buffer
         :param ch: Channel to configure
         :type ch: int
@@ -718,7 +720,9 @@ class QickSoc(Overlay, QickConfig):
         :type enable: bool
         """
         avg_buf = self.avg_bufs[ch]
-        avg_buf.config_avg(address, length)
+        avg_buf.config_avg(
+            address, length,
+            edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
         if enable:
             avg_buf.enable_avg()
 

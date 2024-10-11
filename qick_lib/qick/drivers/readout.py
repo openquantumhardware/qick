@@ -529,7 +529,7 @@ class AxisAvgBuffer(SocIp):
     :param channel: readout channel selection
     :type channel: int
     """
-    bindto = ['user.org:user:axis_avg_buffer:1.0']
+    bindto = ['user.org:user:axis_avg_buffer:1.1']
 
     def __init__(self, description):
         """
@@ -553,7 +553,10 @@ class AxisAvgBuffer(SocIp):
                           'buf_len_reg': 8,
                           'buf_dr_start_reg': 9,
                           'buf_dr_addr_reg': 10,
-                          'buf_dr_len_reg': 11}
+                          'buf_dr_len_reg': 11,
+                          'avg_photon_mode_reg': 12,
+                          'avg_h_threshold_reg': 13,
+                          'avg_l_threshold_reg': 14}
 
         # Default registers.
         self.avg_start_reg = 0
@@ -568,6 +571,8 @@ class AxisAvgBuffer(SocIp):
         # Preallocate memory buffers for DMA transfers.
         self.avg_buff = allocate(shape=self['avg_maxlen'], dtype=np.int64)
         self.buf_buff = allocate(shape=self['buf_maxlen'], dtype=np.int32)
+
+        self.avg_photon_mode_reg = 0
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -661,7 +666,9 @@ class AxisAvgBuffer(SocIp):
         self.enable_avg()
         self.enable_buf()
 
-    def config_avg(self, address=0, length=100):
+    def config_avg(
+        self, address=0, length=100,
+        edge_counting=False, high_threshold=1000, low_threshold=0):
         """
         Configure average buffer data from average and buffering readout block
 
@@ -676,6 +683,10 @@ class AxisAvgBuffer(SocIp):
         # Set registers.
         self.avg_addr_reg = address
         self.avg_len_reg = length
+
+        self.avg_photon_mode_reg = edge_counting
+        self.avg_h_threshold_reg = high_threshold
+        self.avg_l_threshold_reg = low_threshold
 
     def transfer_avg(self, address=0, length=100):
         """
