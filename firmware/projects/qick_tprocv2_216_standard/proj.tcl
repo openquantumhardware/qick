@@ -74,10 +74,10 @@ set files [list \
 ]
 add_files -fileset $obj $files
 
-#set_property strategy "Flow_PerfOptimized_high" [get_runs synth_1]
-set_property strategy "Flow_AlternateRoutability" [get_runs synth_1]
+set_property strategy "Flow_PerfOptimized_high" [get_runs synth_1]
+#set_property strategy "Flow_AlternateRoutability" [get_runs synth_1]
 
 #set_property strategy "Performance_ExtraTimingOpt" [get_runs impl_1]
 #set_property strategy "Performance_Explore" [get_runs impl_1]
 #set_property strategy "Flow_RunPostRoutePhysOpt" [get_runs impl_1]
-set_property strategy "Performance_NetDelay_low" [get_runs impl_1]
+set_property strategy "Performance_NetDelay_high" [get_runs impl_1]
