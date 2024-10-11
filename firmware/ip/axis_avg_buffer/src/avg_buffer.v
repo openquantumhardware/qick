@@ -39,6 +39,9 @@ module avg_buffer (
 	AVG_START_REG		,
 	AVG_ADDR_REG		,
 	AVG_LEN_REG			,
+	AVG_PHOTON_MODE_REG ,
+	AVG_H_THRSH_REG     ,
+	AVG_L_THRSH_REG     ,
 	AVG_DR_START_REG	,
 	AVG_DR_ADDR_REG		,
 	AVG_DR_LEN_REG		,
@@ -92,6 +95,9 @@ output	[4*B-1:0]	m2_axis_tdata;
 input				AVG_START_REG;
 input	[N_AVG-1:0]	AVG_ADDR_REG;
 input	[31:0]		AVG_LEN_REG;
+input               AVG_PHOTON_MODE_REG;
+input   [B-1:0]     AVG_H_THRSH_REG;
+input   [B-1:0]     AVG_L_THRSH_REG;
 input				AVG_DR_START_REG;
 input	[N_AVG-1:0]	AVG_DR_ADDR_REG;
 input	[N_AVG-1:0]	AVG_DR_LEN_REG;
@@ -140,7 +146,6 @@ avg_top
 		.trigger_i		(trigger_resync		),
 
 		// Data input.
-		.din_valid_i	(s_axis_tvalid		),
 		.din_i			(s_axis_tdata		),
 
 		// Reset and clock for M_AXIS_*
@@ -164,7 +169,10 @@ avg_top
 		.AVG_LEN_REG	(AVG_LEN_REG		),
 		.DR_START_REG	(AVG_DR_START_REG	),
 		.DR_ADDR_REG	(AVG_DR_ADDR_REG	),
-		.DR_LEN_REG		(AVG_DR_LEN_REG		)
+		.DR_LEN_REG		(AVG_DR_LEN_REG		),
+		.AVG_PHOTON_MODE_REG (AVG_PHOTON_MODE_REG),
+		.AVG_H_THRSH_REG (AVG_H_THRSH_REG   ),
+		.AVG_L_THRSH_REG (AVG_L_THRSH_REG   )
 	);
 
 // Buffer block.
@@ -183,7 +191,6 @@ buffer_top
 		.trigger_i		(trigger_resync		),
 
 		// Data input.
-		.din_valid_i	(s_axis_tvalid		),
 		.din_i			(s_axis_tdata		),
 
 		// AXIS Master for output.

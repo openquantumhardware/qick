@@ -7,7 +7,6 @@ module avg_top (
 	trigger_i		,
 
 	// Data input.
-	din_valid_i		,
 	din_i			,
 
 	// Reset and clock for M_AXIS_*
@@ -31,7 +30,10 @@ module avg_top (
 	AVG_LEN_REG		,
 	DR_START_REG	,
 	DR_ADDR_REG		,
-	DR_LEN_REG
+	DR_LEN_REG      ,
+	AVG_PHOTON_MODE_REG ,
+	AVG_H_THRSH_REG     ,
+	AVG_L_THRSH_REG
 	);
 
 ////////////////
@@ -51,7 +53,6 @@ input				clk;
 
 input				trigger_i;
 
-input				din_valid_i;
 input	[2*B-1:0]	din_i;
 
 input				m_axis_aclk;
@@ -72,6 +73,9 @@ input	[31:0]		AVG_LEN_REG;
 input				DR_START_REG;
 input	[N-1:0]		DR_ADDR_REG;
 input	[N-1:0]		DR_LEN_REG;
+input               AVG_PHOTON_MODE_REG;
+input   [B-1:0]     AVG_H_THRSH_REG;
+input   [B-1:0]     AVG_L_THRSH_REG;
 
 //////////////////////
 // Internal signals //
@@ -122,25 +126,27 @@ avg
 	avg_i
 	(
 		// Reset and clock.
-		.rstn			(rstn					),
-		.clk			(clk					),
+		.rstn		(rstn					),
+		.clk		(clk					),
 
 		// Trigger input.
-		.trigger_i		(trigger_i				),
+		.trigger_i	(trigger_i				),
 
 		// Data input.
-		.din_valid_i	(din_valid_i			),
-		.din_i			(din_i					),
+		.din_i		(din_i					),
 
 		// Memory interface.
-		.mem_we_o		(mem_we_int				),
-		.mem_addr_o		(mem_addra_int			),
-		.mem_di_o		(mem_di_int				),
+		.mem_we_o	(mem_we_int				),
+		.mem_addr_o	(mem_addra_int			),
+		.mem_di_o	(mem_di_int				),
 
 		// Registers.
-		.START_REG		(AVG_START_REG_resync	),
-		.ADDR_REG		(AVG_ADDR_REG			),
-		.LEN_REG		(AVG_LEN_REG			)
+		.START_REG	(AVG_START_REG_resync	),
+		.ADDR_REG	(AVG_ADDR_REG			),
+		.LEN_REG	(AVG_LEN_REG			),
+		.PHOTON_MODE_REG (AVG_PHOTON_MODE_REG),
+		.H_THRSH_REG (AVG_H_THRSH_REG       ),
+		.L_THRSH_REG (AVG_L_THRSH_REG       )
 	);
 
 // Dual port BRAM.

@@ -7,7 +7,6 @@ module buffer_top (
 	trigger_i		,
 
 	// Data input.
-	din_valid_i		,
 	din_i			,
 
 	// AXIS Master for output.
@@ -44,7 +43,6 @@ input				clk;
 
 input				trigger_i;
 
-input				din_valid_i;
 input	[2*B-1:0]	din_i;
 
 input				m_axis_aclk;
@@ -108,25 +106,24 @@ buffer
 	buffer_i
 	(
 		// Reset and clock.
-		.rstn			(rstn					),
-		.clk			(clk					),
+		.rstn		(rstn					),
+		.clk		(clk					),
 
 		// Trigger input.
-		.trigger_i		(trigger_i				),
+		.trigger_i	(trigger_i				),
 
 		// Data input.
-		.din_valid_i	(din_valid_i			),
-		.din_i			(din_i					),
+		.din_i		(din_i					),
 
 		// Memory interface.
-		.mem_we_o		(mem_we_int				),
-		.mem_addr_o		(mem_addra_int			),
-		.mem_di_o		(mem_di_int				),
+		.mem_we_o	(mem_we_int				),
+		.mem_addr_o	(mem_addra_int			),
+		.mem_di_o	(mem_di_int				),
 
 		// Registers.
-		.START_REG		(BUF_START_REG_resync	),
-		.ADDR_REG		(BUF_ADDR_REG			),
-		.LEN_REG		(BUF_LEN_REG			)
+		.START_REG	(BUF_START_REG_resync	),
+		.ADDR_REG	(BUF_ADDR_REG			),
+		.LEN_REG	(BUF_LEN_REG			)
 	);
 
 // Dual port BRAM.
