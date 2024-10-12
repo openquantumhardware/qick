@@ -2065,7 +2065,8 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", progress=True, remove_offset=True,
+            edge_counting=False, high_threshold=1000, low_threshold=0):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2117,7 +2118,8 @@ class AcquireMixin:
             self.d_buf = []
 
             # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=True)
+            self.config_bufs(soc, enable_avg=True, enable_buf=True,
+                edge_counting=True, high_threshold=high_threshold, low_threshold=low_threshold)
 
             # Reload data memory.
             soc.reload_mem()

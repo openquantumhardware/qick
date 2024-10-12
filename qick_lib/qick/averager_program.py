@@ -151,7 +151,8 @@ class AveragerProgram(AcquireProgram):
 
         return results
 
-    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True,
+            edge_counting=False, high_threshold=1000, low_threshold=0):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -184,7 +185,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset)
+        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset, edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
