@@ -4,6 +4,11 @@ QICK: Quantum Instrumentation Controller Kit
 
 **This repository contains the source files for the documentation of the Quantum Instrumentation Controller Kit software, generated via Sphinx and available on ReadTheDocs.**
 
+To build the Sphinx documentation locally:
+```
+export READTHEDOCS=True
+make html
+```
 
 Documentation
 -------------
