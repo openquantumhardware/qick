@@ -90,8 +90,8 @@ reg			[N-1:0]		addr_r;
 reg			[31:0]		len_r;
 reg         [2*B-1:0]   din_r;
 reg                     photon_mode_r;
-reg         [B-1:0]     h_thrsh_r;
-reg         [B-1:0]     l_thrsh_r;
+reg  signed [B-1:0]     h_thrsh_r;
+reg  signed [B-1:0]     l_thrsh_r;
 
 // Input data.
 wire signed	[B-1:0]		din_ii, din_qq;
@@ -109,8 +109,8 @@ reg         [4*B-1:0]	out_result_r;
 // Architecture //
 //////////////////
 
-assign din_ii	= din_i[B-1:0];
-assign din_qq	= din_i[2*B-1:B];
+assign din_ii	= $signed(din_i[B-1:0]);
+assign din_qq	= $signed(din_i[2*B-1:B]);
 
 // Registers.
 always @(posedge clk) begin
@@ -187,8 +187,8 @@ always @(posedge clk) begin
 			addr_r	<= ADDR_REG;
 			len_r	<= LEN_REG;
 			photon_mode_r <= PHOTON_MODE_REG;
-			h_thrsh_r <= H_THRSH_REG;
-			l_thrsh_r <= L_THRSH_REG;
+			h_thrsh_r <= $signed(H_THRSH_REG);
+			l_thrsh_r <= $signed(L_THRSH_REG);
 		end
 		else if ( write_mem_state == 1'b1 ) begin
 			addr_r	<= addr_r + 1;
@@ -199,6 +199,8 @@ always @(posedge clk) begin
 			acc_i	   <= 0;
 			acc_q	   <= 0;
 			acc_photon <= 0;
+			high_state <= 1'b0;
+			high_state_reg <= 1'b0;
 		end
 		else if ( avg_state == 1'b1 ) begin
 			// Accumulator counter.
@@ -217,8 +219,6 @@ always @(posedge clk) begin
 			high_state <= 1'b1;
 		else if ( din_ii < l_thrsh_r )
 			high_state <= 1'b0;
-		else
-			high_state <= high_state;
 		
 		// Quantized outputs.
 		if ( qout_state == 1'b1 ) begin
