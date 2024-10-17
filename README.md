@@ -9,7 +9,8 @@ The QICK is a kit of firmware and software to use the Xilinx RFSoC to control qu
 
 It consists of:
 * Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards. We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
-* The `qick` Python package
+* The `qick` Python package, which includes the interface to the firmware and an API for writing QICK programs
+* [Documentation](https://qick-docs.readthedocs.io/) of the firmware and software
 * [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
 * [Jupyter notebook examples](qick_demos) demonstrating usage
 
@@ -20,15 +21,7 @@ Other examples and tutorials (compatibility with the current QICK software is no
 
 Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
-Announcements
--------------
-
-The QICK group at Fermilab is currently hiring two engineering positions, where the primary focus will be firmware development for QICK.
-* [Staff Engineer II](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Staff-Engineer-II_R_007999)
-* [Senior Engineer](https://fermilab.wd5.myworkdayjobs.com/en-US/FermilabCareers/job/Senior-Engineer_R_007996)
-
-Download and Installation
--------------------------
+## Download and installation
 
 Follow the quick start guide located [here](quick_start) to set up your board, install `qick` on your board, and run a Jupyter notebook example.
 
@@ -38,8 +31,7 @@ If you would like to save the instrument configuration for every measurement usi
 
 If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in [QICK-DAWG](https://github.com/sandialabs/qick-dawg) which extends QICK with pulses and measurement programs specific to that application.
 
-Documentation
--------------
+## Documentation and support
 
 The API documentation for QICK is available at: https://qick-docs.readthedocs.io/
 
@@ -48,8 +40,9 @@ The first demos explain important features of the QICK system and walk you throu
 The later demos provide examples of useful measurements you might make with the QICK.
 We recommend that new users read and understand all of the demos.
 
-Updates
--------
+See [SUPPORT.md](.github/SUPPORT.md) for ways to get help from developers and the community.
+
+## Updates
 
 Frequent updates to the QICK firmware and software are made as pull requests.
 Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
@@ -70,8 +63,7 @@ We guarantee the following for releases:
 
 We recommend that you "watch" this repository on GitHub to get automatic notifications of pull requests and releases.
 
-Contribute
-----------
+## Contribute
 
 You are welcome to contribute to QICK development by forking this repository and sending pull requests.
 
@@ -81,8 +73,8 @@ We welcome comments, bug reports, and feature requests via GitHub Issues.
 
 Find us on the [Unitary Fund Discord](http://discord.unitary.fund/): chat with us in the #qick channel or the [weekly office hours](https://www.addevent.com/event/lw18055508).
 
-License
--------
+## License
+
 The QICK source code is licensed under the MIT license, which you can find in the LICENSE file.
 The [QICK logo](graphics/logoQICK.svg) was designed by Dr. Christie Chiu.
 

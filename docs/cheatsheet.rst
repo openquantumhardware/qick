@@ -2,7 +2,7 @@ QICK software quick reference
 =================================================
 
 Quick reference
-###############
+---------------
 
 .. list-table::
    :widths: 50 50
@@ -56,12 +56,12 @@ Quick reference
      - not ``value``, ignores ``rSrc``
 
 tProcessor register information
-###############################
+-------------------------------
 
 The tproc contains 8 pages of 32 registers each, making 256 registers in total. Each register is 32 bits wide.
 
 Timing
-######
+------
 
 * Every generator contains a timed FIFO queue.
   There is only one master clock time `t_master`, which is shared by all timed queues.
@@ -103,7 +103,7 @@ Timing
 
 
 Signal generator options
-########################
+------------------------
 
 Use ``stdysel`` to select what value is output continuously by the signal generator after the generation of a pulse.
 
