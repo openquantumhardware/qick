@@ -107,8 +107,7 @@ class AveragerProgram(AcquireProgram):
 
         return avg_d
 
-    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True,
-            edge_counting=False, high_threshold=1000, low_threshold=0):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
