@@ -2038,6 +2038,7 @@ class AcquireMixin:
 
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
             # Reload data memory.
             soc.reload_mem()
 
