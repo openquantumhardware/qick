@@ -107,50 +107,6 @@ class AveragerProgram(AcquireProgram):
 
         return avg_d
 
-
-    def acquire_counted(
-        self, soc, threshold=None, angle=None,
-        readouts_per_experiment=None, save_experiments=None,
-        load_pulses=True, start_src="internal", progress=False,
-        remove_offset=True,
-        high_threshold=1000, low_threshold=0):
-        """
-        This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
-        config requirements:
-        "reps" = number of repetitions;
-
-        :param soc: Qick object
-        :type soc: Qick object
-        :param threshold: threshold
-        :type threshold: int
-        :param angle: rotation angle
-        :type angle: list
-        :param readouts_per_experiment: readouts per experiment
-        :type readouts_per_experiment: int
-        :param save_experiments: saved readouts (by default, save all readouts)
-        :type save_experiments: list
-        :param load_pulses: If true, loads pulses into the tProc
-        :type load_pulses: bool
-        :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        :type start_src: string
-        :param progress: If true, displays progress bar
-        :type progress: bool
-        :returns:
-            - expt_pts (:py:class:`list`) - list of experiment points
-            - avg_di (:py:class:`list`) - list of lists of averaged accumulated I data for ADCs 0 and 1
-            - avg_dq (:py:class:`list`) - list of lists of averaged accumulated Q data for ADCs 0 and 1
-        """
-        if readouts_per_experiment is not None:
-            self.set_reads_per_shot(readouts_per_experiment)
-
-        results = super().acquire_counted(
-            soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses,
-            start_src=start_src, threshold=threshold, angle=angle,
-            progress=progress, remove_offset=remove_offset,
-            high_threshold=high_threshold, low_threshold=low_threshold)
-
-        return results
-
     def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True,
             edge_counting=False, high_threshold=1000, low_threshold=0):
         """

@@ -726,7 +726,8 @@ class QickSoc(Overlay, QickConfig):
         if enable:
             avg_buf.enable_avg()
 
-    def config_buf(self, ch, address=0, length=1, enable=True):
+    def config_buf(self, ch, address=0, length=1, enable=True,
+            edge_counting=False, high_threshold=1000, low_threshold=0):
         """Configure and optionally enable decimation buffer
         :param ch: Channel to configure
         :type ch: int

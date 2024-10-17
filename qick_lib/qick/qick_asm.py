@@ -1081,7 +1081,9 @@ class AbsQickProgram(ABC):
         # if start_src="external", it won't actually start until it sees a pulse
         soc.start_tproc()
 
-    def declare_readout(self, ch, length, freq=None, phase=0, sel='product', gen_ch=None):
+    def declare_readout(
+        self, ch, length, freq=None, phase=0, sel='product', gen_ch=None,
+        edge_counting=False, high_threshold=1000, low_threshold=200):
         """Add a channel to the program's list of readouts.
         Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
@@ -1099,6 +1101,12 @@ class AbsQickProgram(ABC):
             output select ('product', 'dds', 'input')
         gen_ch : int
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+        edge_counting : bool
+            Sets edge counting mode on or off
+        high_threshold : int
+            Sets the edge counting threshold level to go below to trigger a single count
+        low_threshold : int 
+            Sets the edge counting threshold level to go below to reset the trigger for next count
         """
         ro_cfg = self.soccfg['readouts'][ch]
         # the number of triggers per shot will be filled in later, by trigger() or set_read_per_shot()
@@ -1120,6 +1128,16 @@ class AbsQickProgram(ABC):
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
             cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
+
+            # Edge counting mode
+            cfg['edge_counting'] = edge_counting
+            cfg['high_threshold'] = high_threshold
+            cfg['low_threshold'] = low_threshold
+            if edge_counting:
+                assert sel == 'input', 'For counting mode, sel must be "input"'
+                assert freq == 0, 'For counting mode, freq must be "0"'
+                # does gen channel matter for this?
+
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
                 raise RuntimeError("this is a tProc-configured readout - freq/phase/sel parameters are set using tProc instructions")
@@ -1164,9 +1182,7 @@ class AbsQickProgram(ABC):
                 raise RuntimeError("all declared readouts on a muxed readout must have the same 'sel' setting, you have %s" % (sels))
             soc.config_mux_readout(pfbpath, pfb_regs, sels[0])
 
-    def config_bufs(
-        self, soc, enable_avg=True, enable_buf=True,
-        edge_counting=False, high_threshold=1000, low_threshold=0):
+    def config_bufs(self, soc, enable_avg=True, enable_buf=True):
         """Configure the readout buffers specified in this program.
         This is usually called as part of an acquire() method.
 
@@ -1183,7 +1199,9 @@ class AbsQickProgram(ABC):
             if enable_avg:
                 soc.config_avg(
                     ch, address=0, length=cfg['length'], enable=True,
-                    edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
+                    edge_counting=cfg['edge_counting'], 
+                    high_threshold=cfg['high_threshold'],
+                    low_threshold=cfg['low_threshold'])
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
@@ -1752,104 +1770,6 @@ class AcquireMixin:
 
         return self.d_buf
 
-    def acquire_counted(
-        self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None,
-        angle=None, progress=True, remove_offset=True,
-        high_threshold=1000, low_threshold=0):
-        """Acquire data using the accumulated readout.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            Qick object
-        soft_avgs : int
-            number of times to rerun the program, averaging results in software (aka "rounds")
-        load_pulses : bool
-            if True, load pulse envelopes
-        start_src: str
-            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        threshold : float or list of float
-            The threshold(s) to apply to the I values after rotation.
-            Length-normalized units (same units as the output of acquire()).
-            If scalar, the same threshold will be applied to all readout channels.
-            A list must have length equal to the number of declared readout channels.
-        angle : float or list of float
-            The angle to rotate the I/Q values by before applying the threshold.
-            Units of radians.
-            If scalar, the same angle will be applied to all readout channels.
-            A list must have length equal to the number of declared readout channels.
-        progress: bool
-            if true, displays progress bar
-        remove_offset: bool
-            Some readouts (muxed and tProc-configured) introduce a small fixed offset to the I and Q values of every decimated sample.
-            This subtracts that offset, if any, before returning the averaged IQ values or rotating to apply software thresholding.
-
-        Returns
-        -------
-        ndarray
-            averaged IQ values (float)
-            divided by the length of the RO window, and averaged over reps and rounds
-            if threshold is defined, the I values will be the fraction of points over threshold
-            dimensions for a simple averaging program: (n_ch, n_reads, 2)
-            dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
-        """
-        # don't load memories now, we'll do that later
-        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
-
-        if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
-            raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
-
-        n_ro = len(self.ro_chs)
-
-        total_count = functools.reduce(operator.mul, self.loop_dims)
-        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
-        self.stats = []
-
-        # select which tqdm progress bar to show
-        hiderounds = True
-        hidereps = True
-        if progress:
-            if soft_avgs>1:
-                hiderounds = False
-            else:
-                hidereps = False
-
-        # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
-        avg_d = None
-        for ir in tqdm(range(soft_avgs), disable=hiderounds):
-            # Configure and enable buffer capture.
-            self.config_bufs(
-                soc, enable_avg=True, enable_buf=False,
-                edge_counting=True, high_threshold=high_threshold, low_threshold=low_threshold)
-
-            # Reload data memory.
-            soc.reload_mem()
-
-            count = 0
-            with tqdm(total=total_count, disable=hidereps) as pbar:
-                soc.start_readout(total_count, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_shot=self.reads_per_shot)
-                while count<total_count:
-                    new_data = obtain(soc.poll_data())
-                    for new_points, (d, s) in new_data:
-                        for ii, nreads in enumerate(self.reads_per_shot):
-                            #print(count, new_points, nreads, d[ii].shape, total_count)
-                            if new_points*nreads != d[ii].shape[0]:
-                                logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
-                            if count+new_points > total_count:
-                                logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
-                            # use reshape to view the d_buf array in a shape that matches the raw data
-                            self.d_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
-                        count += new_points
-                        self.stats.append(s)
-                        pbar.update(new_points)
-    
-        return self.d_buf
-
-
     def _ro_offset(self, ch, chcfg):
         """Computes the IQ offset expected from this readout.
 
@@ -2118,9 +2038,7 @@ class AcquireMixin:
             self.d_buf = []
 
             # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=True,
-                edge_counting=True, high_threshold=high_threshold, low_threshold=low_threshold)
-
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
             # Reload data memory.
             soc.reload_mem()
 
