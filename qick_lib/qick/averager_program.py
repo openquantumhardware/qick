@@ -140,7 +140,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset, edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
+        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
