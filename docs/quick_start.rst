@@ -2,7 +2,7 @@ QICK quick-start guide
 ======================
 
 **Have questions? Contact us through any of the channels listed
-on `the main README <https://github.com/openquantumhardware/qick/blob/main/README.md>`.**
+on `the main README <https://github.com/openquantumhardware/qick/blob/main/README.md>`_.**
 
 This guide will show you how to set up QICK after configuring your
 computer and RFSoC board on a local area network (LAN). By the end of
