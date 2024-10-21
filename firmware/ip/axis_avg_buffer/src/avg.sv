@@ -10,6 +10,7 @@ module avg (
 	trigger_i	,
 
 	// Data input.
+	din_valid_i	,
 	din_i		,
 
 	// Memory interface.
@@ -43,6 +44,7 @@ input				clk;
 
 input				trigger_i;
 
+input				din_valid_i;
 input	[2*B-1:0]	din_i;
 
 output				mem_we_o;
@@ -88,7 +90,6 @@ reg			[31:0]		cnt;
 // Registers.
 reg			[N-1:0]		addr_r;
 reg			[31:0]		len_r;
-reg         [2*B-1:0]   din_r;
 reg                     photon_mode_r;
 reg  signed [B-1:0]     h_thrsh_r;
 reg  signed [B-1:0]     l_thrsh_r;
@@ -101,7 +102,6 @@ reg	signed 	[2*B-1:0]	acc_i, acc_q;
 reg         [4*B-1:0]	acc_photon;
 
 // Quantized outputs.
-reg	signed	[2*B-1:0]	out_i_r, out_q_r;
 reg         [4*B-1:0]	out_result_r;
 
 
@@ -109,8 +109,8 @@ reg         [4*B-1:0]	out_result_r;
 // Architecture //
 //////////////////
 
-assign din_ii	= $signed(din_i[B-1:0]);
-assign din_qq	= $signed(din_i[2*B-1:B]);
+assign din_ii	= din_i[B-1:0];
+assign din_qq	= din_i[2*B-1:B];
 
 // Registers.
 always @(posedge clk) begin
@@ -124,7 +124,6 @@ always @(posedge clk) begin
 		// Registers.
 		addr_r	<= 0;
 		len_r	<= 0;
-		din_r   <= 0;
 		photon_mode_r <= 1'b0;
 		h_thrsh_r <= 0;
 		l_thrsh_r <= 0;
@@ -137,8 +136,6 @@ always @(posedge clk) begin
 		acc_photon <= 0;
 		
 		// Quantized outputs.
-		out_i_r	<= 0;
-		out_q_r	<= 0;
 		out_result_r <= 0;
 
 	end
@@ -159,7 +156,7 @@ always @(posedge clk) begin
 					state <= AVG_ST;
 
 			AVG_ST:
-				if ( cnt == len_r-1 )
+				if ( cnt == len_r-1 && din_valid_i == 1'b1 )
 					state <= QOUT_ST;
 
 			QOUT_ST:
@@ -177,18 +174,21 @@ always @(posedge clk) begin
 		endcase
 
 		// Counter.
-		if ( avg_state == 1'b1 )
-			cnt	<= cnt + 1;
-		else
+		if ( avg_state == 1'b1 ) begin
+			if ( din_valid_i == 1'b1)
+				cnt	<= cnt + 1;
+		end
+		else begin
 			cnt <= 0;
+		end
 
 		// Registers.
 		if ( start_state == 1'b1 ) begin
 			addr_r	<= ADDR_REG;
 			len_r	<= LEN_REG;
 			photon_mode_r <= PHOTON_MODE_REG;
-			h_thrsh_r <= $signed(H_THRSH_REG);
-			l_thrsh_r <= $signed(L_THRSH_REG);
+			h_thrsh_r <= H_THRSH_REG;
+			l_thrsh_r <= L_THRSH_REG;
 		end
 		else if ( write_mem_state == 1'b1 ) begin
 			addr_r	<= addr_r + 1;
@@ -202,7 +202,7 @@ always @(posedge clk) begin
 			high_state <= 1'b0;
 			high_state_reg <= 1'b0;
 		end
-		else if ( avg_state == 1'b1 ) begin
+		else if ( avg_state == 1'b1 && din_valid_i == 1'b1 ) begin
 			// Accumulator counter.
 			if ( photon_mode_r == 1'b0 ) begin
 				acc_i	<= acc_i + din_ii;
@@ -264,7 +264,7 @@ end
 // Assign outputs.
 assign mem_we_o		= write_mem_state;
 assign mem_addr_o	= addr_r;
-assign mem_di_o		= out_result_r; //{out_q_r,out_i_r};
+assign mem_di_o		= out_result_r;
 
 endmodule
 

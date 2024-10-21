@@ -146,6 +146,7 @@ avg_top
 		.trigger_i		(trigger_resync		),
 
 		// Data input.
+		.din_valid_i	(s_axis_tvalid		),
 		.din_i			(s_axis_tdata		),
 
 		// Reset and clock for M_AXIS_*
@@ -191,6 +192,7 @@ buffer_top
 		.trigger_i		(trigger_resync		),
 
 		// Data input.
+		.din_valid_i	(s_axis_tvalid		),
 		.din_i			(s_axis_tdata		),
 
 		// AXIS Master for output.

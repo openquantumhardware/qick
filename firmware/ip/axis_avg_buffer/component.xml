@@ -303,6 +303,10 @@
           <spirit:name>ASSOCIATED_RESET</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXI_ACLK.ASSOCIATED_RESET">s_axi_aresetn</spirit:value>
         </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>FREQ_HZ</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXI_ACLK.FREQ_HZ"/>
+        </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
     <spirit:busInterface>
@@ -351,6 +355,10 @@
           <spirit:name>ASSOCIATED_RESET</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXIS_ACLK.ASSOCIATED_RESET">s_axis_aresetn</spirit:value>
         </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>FREQ_HZ</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.S_AXIS_ACLK.FREQ_HZ"/>
+        </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
     <spirit:busInterface>
@@ -398,6 +406,10 @@
         <spirit:parameter>
           <spirit:name>ASSOCIATED_BUSIF</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.M_AXIS_ACLK.ASSOCIATED_BUSIF">m0_axis:m1_axis:m2_axis</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>FREQ_HZ</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.M_AXIS_ACLK.FREQ_HZ"/>
         </spirit:parameter>
       </spirit:parameters>
     </spirit:busInterface>
@@ -482,7 +494,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>46ab5641</spirit:value>
+            <spirit:value>b65c638f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -498,7 +510,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>46ab5641</spirit:value>
+            <spirit:value>b65c638f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -512,7 +524,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>330b59e5</spirit:value>
+            <spirit:value>be680c07</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1326,12 +1338,12 @@
       <spirit:file>
         <spirit:name>xgui/axis_avg_buffer_v1_1.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_330b59e5</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_be680c07</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>AXIS Average + Buffer block with external trigger.</spirit:description>
+  <spirit:description>AXIS Average + Buffer block with external trigger and edge-counting mode.</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>N_AVG</spirit:name>
@@ -1384,11 +1396,11 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Average + Buffer</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>2</xilinx:coreRevision>
+      <xilinx:coreRevision>4</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axis_avg_buffer:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2023-11-30T19:05:34Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2024-10-18T21:56:37Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@6e6d4e17_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@255f9cf0_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
@@ -1481,10 +1493,10 @@
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2020.2</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="df0fc110"/>
+      <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="1283db7f"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="d74e69d8"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="3452945b"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="ebdcf4d4"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="7d5b03ef"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="7f0cdd7e"/>
