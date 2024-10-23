@@ -2,9 +2,9 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 2024-8-2
-//  Version        : 3 
-//  Revision       : 21 (Use Assembler Version 3 Rev-23)
+//  Date           : 2024-10-2
+//  Version        : 4
+//  Revision       : 22 (Use Assembler Version 3 Rev-23)
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  tProc_v2
 /* Description: 
@@ -18,8 +18,11 @@ module axis_qick_processor # (
    parameter DUAL_CORE      =  0 , // 0-Single Core  1-Dual core
    parameter GEN_SYNC       =  0 , // Generate Sync Signal
    parameter IO_CTRL        =  0 , // 0-No IO control 1-Add proc_strat and Proc Stop IN
-   parameter DEBUG          =  1, // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
-   parameter TNET           =  0 , // QNET Interfrace 0-No 1-Yes
+   parameter TIME_CTRL      =  0 , // 0-No NET control 1-Add proc_strat and Proc Stop IN
+   parameter CORE_CTRL      =  0 , // 0-No NET control 1-Add proc_strat and Proc Stop IN
+   parameter OUT_TIME       =  0 , // 
+   parameter DEBUG          =  1 , // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
+   parameter QNET           =  0 , // QNET Interfrace 0-No 1-Yes
    parameter QCOM           =  0 , // QCOM Interfrace 0-No 1-Yes
    parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-ONE 2-Two
    parameter LFSR           =  1 , // LFSR 0-No 1-Yes 
@@ -27,10 +30,10 @@ module axis_qick_processor # (
    parameter ARITH          =  0 , // Arith 0-No 1-Yes 
    parameter EXT_FLAG       =  0 , // External Flag Input 0-No 1-Yes
    parameter TIME_READ      =  1 , // Time in sreg and AXI-Reg 0-No 1-Yes
-   parameter FIFO_DEPTH     =  9, // 9 Bits in Dispatcher FIFOs address
-   parameter PMEM_AW        =  8, // Bits in Program Memory address
-   parameter DMEM_AW        =  8, // Bits in Data Memory address
-   parameter WMEM_AW        =  8, // Bits in WaveParam Memory address
+   parameter FIFO_DEPTH     =  9 , // 9 Bits in Dispatcher FIFOs address
+   parameter PMEM_AW        =  8 , // Bits in Program Memory address
+   parameter DMEM_AW        =  8 , // Bits in Data Memory address
+   parameter WMEM_AW        =  8 , // Bits in WaveParam Memory address
    parameter REG_AW         =  4 , // Bits to address DREG
    parameter IN_PORT_QTY    =  1 , // Number of Input Ports
    parameter OUT_TRIG_QTY   =  2 , // Number of Output Trigger  Ports
@@ -38,6 +41,7 @@ module axis_qick_processor # (
    parameter OUT_DPORT_DW   =  4 , // BitSize of Output Data Ports
    parameter OUT_WPORT_QTY  =  1 ,  // Number of Output Wave Ports
    parameter CALL_DEPTH     =  255 // Nested Functions
+
 )(
 // Core, Time and AXI CLK & RST.
    input  wire                t_clk_i        ,
@@ -290,12 +294,12 @@ wire                 port_trig_so     [32] ;
 wire [OUT_DPORT_DW-1:0]  port_tdata_so     [4] ;
 wire                     port_tvalid_so    [4] ;
 
-wire [167:0]         m_axis_tdata_s [16] ;
-wire                 m_axis_tvalid_s[16] ; 
-wire                 m_axis_tready_s[16] ;
+wire [167:0]        m_axis_tdata_s [16] ;
+wire                m_axis_tvalid_s[16] ; 
+wire                m_axis_tready_s[16] ;
 
 wire [31:0] periph_a_dt, periph_b_dt, periph_c_dt, periph_d_dt ;
-wire [4:0] periph_op, periph_addr ;
+wire [ 4:0] periph_op, periph_addr ;
 
 ///// AXI LITE PORT /////
 ///////////////////////////////////////////////////////////////////////////////
@@ -340,23 +344,51 @@ always_comb begin
    port_tdata_si[13]  <= s13_axis_tdata ;
    port_tdata_si[14]  <= s14_axis_tdata ;
    port_tdata_si[15]  <= s15_axis_tdata ;
-   port_tvalid_si[0]   <= s0_axis_tvalid ;
-   port_tvalid_si[1]   <= s1_axis_tvalid ;
-   port_tvalid_si[2]   <= s2_axis_tvalid ;
-   port_tvalid_si[3]   <= s3_axis_tvalid ;
-   port_tvalid_si[4]   <= s4_axis_tvalid ;
-   port_tvalid_si[5]   <= s5_axis_tvalid ;
-   port_tvalid_si[6]   <= s6_axis_tvalid ;
-   port_tvalid_si[7]   <= s7_axis_tvalid ;
-   port_tvalid_si[8]   <= s8_axis_tvalid ;
-   port_tvalid_si[9]   <= s9_axis_tvalid ;
-   port_tvalid_si[10]  <= s10_axis_tvalid ;
-   port_tvalid_si[11]  <= s11_axis_tvalid ;
-   port_tvalid_si[12]  <= s12_axis_tvalid ;
-   port_tvalid_si[13]  <= s13_axis_tvalid ;
-   port_tvalid_si[14]  <= s14_axis_tvalid ;
-   port_tvalid_si[15]  <= s15_axis_tvalid ;
+   port_tvalid_si[0]  <= s0_axis_tvalid ;
+   port_tvalid_si[1]  <= s1_axis_tvalid ;
+   port_tvalid_si[2]  <= s2_axis_tvalid ;
+   port_tvalid_si[3]  <= s3_axis_tvalid ;
+   port_tvalid_si[4]  <= s4_axis_tvalid ;
+   port_tvalid_si[5]  <= s5_axis_tvalid ;
+   port_tvalid_si[6]  <= s6_axis_tvalid ;
+   port_tvalid_si[7]  <= s7_axis_tvalid ;
+   port_tvalid_si[8]  <= s8_axis_tvalid ;
+   port_tvalid_si[9]  <= s9_axis_tvalid ;
+   port_tvalid_si[10] <= s10_axis_tvalid ;
+   port_tvalid_si[11] <= s11_axis_tvalid ;
+   port_tvalid_si[12] <= s12_axis_tvalid ;
+   port_tvalid_si[13] <= s13_axis_tvalid ;
+   port_tvalid_si[14] <= s14_axis_tvalid ;
+   port_tvalid_si[15] <= s15_axis_tvalid ;
 end
+
+
+reg  proc_start_cdc, proc_start_r, proc_start_r2;
+reg  proc_stop_cdc , proc_stop_r , proc_stop_r2;
+
+
+// Syncronice to C_CLK
+always_ff @(posedge c_clk_i) 
+   if (!c_resetn) begin
+      proc_start_cdc  <= 0 ;
+      proc_start_r    <= 0 ;
+      proc_start_r2   <= 0 ;
+      proc_stop_cdc   <= 0 ;
+      proc_stop_r     <= 0 ;
+      proc_stop_r2    <= 0 ;
+   end else begin 
+      proc_start_cdc  <= proc_start_i    ;
+      proc_start_r    <= proc_start_cdc  ;
+      proc_start_r2   <= proc_start_r  ;
+      proc_stop_cdc   <= proc_stop_i     ;
+      proc_stop_r     <= proc_stop_cdc     ;
+      proc_stop_r2    <= proc_stop_r     ;
+   end
+
+// The C_TPROC_CTRL is only ONE clock.
+assign proc_start_t01   = proc_start_r & ~proc_start_r2 ;
+assign proc_stop_t01    = proc_stop_r  & ~proc_stop_r2 ;
+
 
 qick_processor# (
    .DEBUG          ( DEBUG          ),
@@ -384,8 +416,8 @@ qick_processor# (
    .ps_rst_ni           ( ps_resetn             ) ,
 // CTRL 
    .ext_flag_i          ( ext_flag_i            ) ,
-   .proc_start_i        ( proc_start_i          ) ,
-   .proc_stop_i         ( proc_stop_i           ) ,
+   .proc_start_i        ( proc_start_t0         ) ,
+   .proc_stop_i         ( proc_stop_t01         ) ,
    .core_start_i        ( core_start_i          ) ,
    .core_stop_i         ( core_stop_i           ) ,
    .time_rst_i          ( time_rst_i            ) ,
@@ -449,11 +481,11 @@ qick_processor# (
    .c_core_do           ( c_core_do             ) 
 );
 
+
+
 // OUTPUT ASSIGNMENT
 ///////////////////////////////////////////////////////////////////////////////
 
-   
-   
 ///// QNET_DT
 assign qnet_op_o    = periph_op ; 
 assign qnet_a_dt_o  = periph_a_dt ;  
@@ -477,8 +509,6 @@ assign qp2_a_dt_o = periph_a_dt ;
 assign qp2_b_dt_o = periph_b_dt ;  
 assign qp2_c_dt_o = periph_c_dt ;  
 assign qp2_d_dt_o = periph_d_dt ;  
- 
-
 
 ///// TRIGGER PORTS
 genvar ind_t;
@@ -523,7 +553,6 @@ assign trig_29_o = port_trig_so[29] ;
 assign trig_30_o = port_trig_so[30] ;
 assign trig_31_o = port_trig_so[31] ;
 
-  
 ///// DATA OUT PORTS
 genvar ind;
 generate
@@ -602,18 +631,18 @@ assign m8_axis_tdata      = m_axis_tdata_s [8]  ;
 assign m8_axis_tvalid     = m_axis_tvalid_s[8]  ;
 assign m9_axis_tdata      = m_axis_tdata_s [9]  ;
 assign m9_axis_tvalid     = m_axis_tvalid_s[9]  ;
-assign m10_axis_tdata     = m_axis_tdata_s [10]  ;
-assign m10_axis_tvalid    = m_axis_tvalid_s[10]  ;
-assign m11_axis_tdata     = m_axis_tdata_s [11]  ;
-assign m11_axis_tvalid    = m_axis_tvalid_s[11]  ;
-assign m12_axis_tdata     = m_axis_tdata_s [12]  ;
-assign m12_axis_tvalid    = m_axis_tvalid_s[12]  ;
-assign m13_axis_tdata     = m_axis_tdata_s [13]  ;
-assign m13_axis_tvalid    = m_axis_tvalid_s[13]  ;
-assign m14_axis_tdata     = m_axis_tdata_s [14]  ;
-assign m14_axis_tvalid    = m_axis_tvalid_s[14]  ;
-assign m15_axis_tdata     = m_axis_tdata_s [15]  ;
-assign m15_axis_tvalid    = m_axis_tvalid_s[15]  ;
+assign m10_axis_tdata     = m_axis_tdata_s [10] ;
+assign m10_axis_tvalid    = m_axis_tvalid_s[10] ;
+assign m11_axis_tdata     = m_axis_tdata_s [11] ;
+assign m11_axis_tvalid    = m_axis_tvalid_s[11] ;
+assign m12_axis_tdata     = m_axis_tdata_s [12] ;
+assign m12_axis_tvalid    = m_axis_tvalid_s[12] ;
+assign m13_axis_tdata     = m_axis_tdata_s [13] ;
+assign m13_axis_tvalid    = m_axis_tvalid_s[13] ;
+assign m14_axis_tdata     = m_axis_tdata_s [14] ;
+assign m14_axis_tvalid    = m_axis_tvalid_s[14] ;
+assign m15_axis_tdata     = m_axis_tdata_s [15] ;
+assign m15_axis_tvalid    = m_axis_tvalid_s[15] ;
 
 
 generate

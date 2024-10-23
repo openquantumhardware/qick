@@ -2,8 +2,8 @@
 //  FERMI RESEARCH LAB
 ///////////////////////////////////////////////////////////////////////////////
 //  Author         : Martin Di Federico
-//  Date           : 1-2024
-//  Version        : 3
+//  Date           : 10-2024
+//  Version        : 4
 ///////////////////////////////////////////////////////////////////////////////
 //  QICK PROCESSOR :  tProc_v2
 /* Description: 
@@ -177,223 +177,43 @@ wire [31:0]    core_ds ;
 // CONTROL Signals
 ///////////////////////////////////////////////////////////////////////////////
 
-/// IO CTRL 
-assign proc_start_io  = proc_start_i & xreg_TPROC_CFG[10] ;
-assign proc_stop_io   = proc_stop_i  & xreg_TPROC_CFG[10] ;
-/// PYTHON
-assign time_rst_stop_p = xreg_TPROC_CTRL[6] ; //T_RST | START | P_RST
-assign time_rst_run_p  = proc_start_io | xreg_TPROC_CTRL[0] | xreg_TPROC_CTRL[2] ; // START | T_RST 
-assign time_update_p   = xreg_TPROC_CTRL[1]  ;
-assign time_stop_p     = proc_stop_io | xreg_TPROC_CTRL[3] | xreg_TPROC_CTRL[9] ; // STOP  | P_FREEZE
-assign time_run_p      = xreg_TPROC_CTRL[7] | xreg_TPROC_CTRL[8] ; // RUN   | P_PAUSE
-assign time_step_p     = xreg_TPROC_CTRL[10] | xreg_TPROC_CTRL[12] ;
-assign core_rst_run_p  = proc_start_io | xreg_TPROC_CTRL[2] | xreg_TPROC_CTRL[4]  ; // START | C_START
-assign core_rst_stop_p = xreg_TPROC_CTRL[6]  ; // P_RST
-assign core_rst_prev_p = xreg_TPROC_CTRL[0]  ; // T_RST
-assign core_run_p      = xreg_TPROC_CTRL[7] | xreg_TPROC_CTRL[9]  ; // RUN | P_FREEZE
-assign core_stop_p     = proc_stop_io | xreg_TPROC_CTRL[3] | xreg_TPROC_CTRL[5] | xreg_TPROC_CTRL[8]  ; // STOP | C_STOP | P_PAUSE
-assign core_step_p     = xreg_TPROC_CTRL[10] | xreg_TPROC_CTRL[11] ;
-/// CORE
-assign time_rst_core   = ( int_time_pen & core_usr_operation[0]) ;
-assign time_updt_core  = ( int_time_pen & core_usr_operation[1]) ;
-assign time_ref_set    = ( int_time_pen & core_usr_operation[2]) ;
-assign time_ref_inc    = ( int_time_pen & core_usr_operation[3]) ;
-/// NET CTRL
-assign time_rst_net   = time_rst_i   & ~xreg_TPROC_CFG[9] ;
-assign time_init_net  = time_init_i  & ~xreg_TPROC_CFG[9] ;
-assign time_updt_net  = time_updt_i  & ~xreg_TPROC_CFG[9] ;
-assign core_start_net = core_start_i & ~xreg_TPROC_CFG[9] ;
-assign core_stop_net  = core_stop_i  & ~xreg_TPROC_CFG[9] ;
-
-assign c_time_rst_run = time_rst_run_p | time_rst_core  ;
-assign c_time_updt    = time_update_p  | time_updt_core ;
-
+qproc_ctrl QPROC_CTRL(
+   .t_clk_i         ( t_clk_i            ),
+   .t_rst_ni        ( t_rst_ni           ),
+   .c_clk_i         ( c_clk_i            ),
+   .c_rst_ni        ( c_rst_ni           ),
+   .ps_clk_i        ( ps_clk_i           ),
+   .ps_rst_ni       ( ps_rst_ni          ),
+   .proc_start_i    ( proc_start_i       ),
+   .proc_stop_i     ( proc_stop_i        ),
+   .core_start_i    ( core_start_i       ),
+   .core_stop_i     ( core_stop_i        ),
+   .time_rst_i      ( time_rst_i         ),
+   .time_updt_i     ( time_updt_i        ),
+   .time_updt_dt_i  ( time_updt_dt_i     ),
+   .int_time_en     ( int_time_pen       ),
+   .int_time_cmd    ( core_usr_operation ),
+   .int_time_dt     ( core_usr_b_dt      ),
+   .xreg_TPROC_CTRL ( xreg_TPROC_CTRL    ),
+   .xreg_TPROC_CFG  ( xreg_TPROC_CFG     ),
+   .xreg_TPROC_W_DT ( xreg_TPROC_W_DT[0] ),
+   .all_fifo_full_i ( all_fifo_full      ),
+   .core_rst_o      ( core_rst           ),
+   .core_en_o       ( core_en_s          ),
+   .time_rst_o      ( time_rst           ),
+   .time_en_o       ( time_en            ),
+   .time_abs_o      ( time_abs_o         ),
+   .c_time_ref_o    ( c_time_ref_o       ),
+   .time_st_do      ( time_st_ds),
+   .core_st_do      ( core_st_ds),
+   .t_debug_do      ( ctrl_t_ds),
+   .c_debug_do      ( ctrl_c_ds)
+);
+wire [2:0] time_st_ds, core_st_ds;
+wire [6:0] ctrl_t_ds, ctrl_c_ds;
 
 assign fifo_ok    = ~(some_fifo_full)  | xreg_TPROC_CFG[11] ;  // With 1 in TPROC_CFG[11] Continue
-
-///////////////////////////////////////////////////////////////////////////////
-// CORE CONTROL
-///////////////////////////////////////////////////////////////////////////////
-
-// C_CLK DOMAIN Synchronization
-///////////////////////////////////////////////////////////////////////////////
-sync_reg # (.DW ( 7 ) ) sync_ctrl_ps_c (
-   .dt_i      ( {core_rst_prev_p, t_core_rst_prev_net, core_rst_run_p, core_rst_stop_p, core_run_p, core_stop_p, core_step_p}  ) ,
-   .clk_i     ( c_clk_i   ) ,
-   .rst_ni    ( c_rst_ni  ) ,
-   .dt_o      ( {c_core_rst_prev_p, c_core_rst_prev_net, c_core_rst_run, c_core_rst_stop, c_core_run, c_core_stop, c_core_step}  ) );
-
-// Store Time_Update_Data from PROCESSOR or PYTHON in offset_dt_r
-reg [31:0] offset_dt_r;
-always_ff @(posedge c_clk_i)
-   if (!c_rst_ni) begin
-      offset_dt_r     <= 0;
-   end else begin
-      if      ( time_updt_core ) offset_dt_r  <= core_usr_b_dt      ; // Update from CORE
-      else if ( time_update_p  ) offset_dt_r  <= xreg_TPROC_W_DT[0] ; // Update from PYTHON
-   end
-
-assign ctrl_c_rst_stop = c_core_rst_stop  ;
-assign ctrl_c_rst_run  = core_start_net | c_core_rst_run ;
-assign ctrl_c_rst_prev = c_core_rst_prev_p | c_core_rst_prev_net;
-assign ctrl_c_stop     = core_stop_net | c_core_stop  ;
-assign ctrl_c_run      = c_core_run;
-assign ctrl_c_step     = c_core_step ;
-
-
-// Core Control State Machine
-///////////////////////////////////////////////////////////////////////////////
-reg c_core_en, core_rst;
-enum {C_RST_STOP=0, C_RST_STOP_WAIT=1, C_RST_RUN=2, C_RST_RUN_WAIT=3, C_STOP=4, C_RUN=5, C_STEP=6, C_END_STEP=7} core_st_nxt, core_st;
-
-assign core_en = c_core_en  & fifo_ok; 
-
-// Sequential Stante Machine
-always_ff @(posedge c_clk_i)
-   if (!c_rst_ni)   core_st  <= C_RST_STOP;
-   else             core_st  <= core_st_nxt;
-
-// State change and Out
-always_comb begin
-   c_core_en      = 0;
-   core_rst       = 0;
-   core_st_nxt = core_st;
-   //COMMON TRANSITIONS
-   if       ( ctrl_c_stop    )  core_st_nxt = C_STOP;
-   else if  ( ctrl_c_run     )  core_st_nxt = C_RUN;
-   else if  ( ctrl_c_rst_run )  core_st_nxt = C_RST_RUN;
-   else if  ( ctrl_c_rst_stop)  core_st_nxt = C_RST_STOP;
-   else if  ( ctrl_c_step    )  core_st_nxt = C_STEP;
-   //State Transitions and Out
-   case (core_st)
-      C_RST_RUN : begin
-         core_rst = 1;            
-         if (~ctrl_c_rst_prev & all_fifo_full) core_st_nxt = C_RST_RUN_WAIT; //Keep RST until ACK
-      end
-      C_RST_RUN_WAIT :  
-         if (!all_fifo_full) core_st_nxt = C_RUN;
-      C_RST_STOP : begin
-         core_rst = 1;            
-         if (all_fifo_full) core_st_nxt = C_RST_STOP_WAIT;
-      end
-      C_RST_STOP_WAIT : 
-         if (!all_fifo_full) core_st_nxt = C_STOP;
-      C_RUN: begin
-         c_core_en = 1;
-         if ( ctrl_c_rst_prev )  core_st_nxt = C_RST_RUN;
-      end
-      C_STOP: begin
-         if ( ctrl_c_rst_prev ) core_st_nxt = C_RST_STOP;
-        end
-      C_STEP: begin
-         c_core_en = 1;
-         core_st_nxt = C_END_STEP;
-      end
-      C_END_STEP: begin
-         if  (!ctrl_c_step)  core_st_nxt = C_STOP;
-      end
-   endcase
-end
-
-///////////////////////////////////////////////////////////////////////////////
-// TIME CONTROL
-///////////////////////////////////////////////////////////////////////////////
-
-// T_CLK DOMAIN Synchronization
-///////////////////////////////////////////////////////////////////////////////
-sync_reg # (.DW ( 7 ) ) sync_ctrl_ps_t (
-   .dt_i      ( {core_rst, time_rst_stop_p, c_time_rst_run, c_time_updt, time_stop_p, time_run_p, time_step_p} ) ,
-   .clk_i     ( t_clk_i   ) ,
-   .rst_ni    ( t_rst_ni  ) ,
-   .dt_o      ( {core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step }  ) );
-
-
-always_ff @(posedge t_clk_i)
-   if (!t_rst_ni) begin
-      t_core_rst_prev_net  <= 1'b0 ; // NET Request to RESET the Processor
-      time_updt_dt         <= 32'd0; // Store Time_Update_Data from offset_dt_r(CORE, PYTHON) OR time_updt_dt_i (NET)
-   end else begin 
-      if ( t_time_update ) 
-         time_updt_dt <= offset_dt_r;
-      else
-         time_updt_dt <= time_updt_dt_i;
-      if      ( time_rst_net   )  t_core_rst_prev_net   <= 1'b1;
-      else if ( core_rst_ack   )  t_core_rst_prev_net   <= 1'b0;
-   end
-
-assign ctrl_t_rst_stop  = t_time_rst_stop ;
-assign ctrl_t_rst_run   = time_rst_net  | t_time_rst_run ;
-assign ctrl_t_init      = time_init_net ;
-assign ctrl_t_updt      = time_updt_net | t_time_update ;
-assign ctrl_t_run       = t_time_run ;
-assign ctrl_t_stop      = t_time_stop;
-assign ctrl_t_step      = t_time_step ;
-
-// Time Control State Machine
-///////////////////////////////////////////////////////////////////////////////
-enum {T_RST_STOP=0, T_RST_RUN=1, T_UPDT=2,  T_INIT=3, T_RUN=4, T_STOP=5, T_STEP=6} time_st_nxt, time_st;
-// Sequential Stante Machine
-always_ff @(posedge t_clk_i)
-   if (!t_rst_ni)   time_st  <= T_RST_STOP;
-   else             time_st  <= time_st_nxt;
-// State change and Out
-reg time_rst, time_updt, time_en, time_init ;
-always_comb begin
-   time_en     = 0;
-   time_rst    = 0;
-   time_init   = 0;
-   time_updt   = 0;
-   time_st_nxt = time_st;
-   //COMMON TRANSITIONS
-   if       ( ctrl_t_rst_stop ) time_st_nxt = T_RST_STOP  ;
-   if       ( ctrl_t_rst_run  ) time_st_nxt = T_RST_RUN  ;
-   else if  ( ctrl_t_init     ) time_st_nxt = T_INIT ;
-   else if  ( ctrl_t_updt     ) time_st_nxt = T_UPDT ;
-   else if  ( ctrl_t_run      ) time_st_nxt = T_RUN ;
-   else if  ( ctrl_t_stop     ) time_st_nxt = T_STOP ;
-   else if  ( ctrl_t_step     ) time_st_nxt = T_STEP ;
-   case (time_st)
-      T_RST_STOP : begin
-         time_en = 1;
-         time_rst = 1;
-         time_st_nxt = T_STOP ;
-      end
-      T_RST_RUN : begin
-         time_en = 1;
-         time_rst = 1;
-         time_st_nxt = T_RUN ;
-      end
-      T_INIT : begin
-         time_en = 1;
-         time_init = 1;
-         time_st_nxt = T_RUN ;
-      end
-      T_UPDT : begin
-         time_en = 1;
-         time_updt = 1;
-         time_st_nxt = T_RUN ;
-      end
-      T_RUN: begin
-         time_en = 1;
-      end
-      T_STEP: begin
-         time_en = 1;
-         time_st_nxt = T_STOP ;
-      end
-   endcase
-end
-
-
-// Time REF
-///////////////////////////////////////////////////////////////////////////////
-always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
-   if (!c_rst_ni)            c_time_ref_dt    <= '{default:'0} ;
-   else if  (core_rst)       c_time_ref_dt    <= '{default:'0} ;
-   else if  (time_ref_set )  c_time_ref_dt    <=  {16'd0, core_usr_b_dt} ;
-   else if  (time_ref_inc )  c_time_ref_dt    <=  c_time_ref_dt + {16'd0, core_usr_b_dt} ;
-end
-
-
+assign core_en = core_en_s  & fifo_ok;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processor STATUS 
@@ -502,7 +322,7 @@ end
 // FLAG
 ///////////////////////////////////////////////////////////////////////////////
 
-// EXTERNAL Flag Control
+// EXTERNAL Flag
 ///////////////////////////////////////////////////////////////////////////////
 sync_reg # (.DW ( 1 ) ) sync_flag_ext_c (
    .dt_i      ( ext_flag_i ) ,
@@ -510,23 +330,16 @@ sync_reg # (.DW ( 1 ) ) sync_flag_ext_c (
    .rst_ni    ( c_rst_ni   ) ,
    .dt_o      ( ext_flag_r ) );
 
-assign flag_set_p      = xreg_TPROC_CTRL[13] ;
-assign flag_clr_p      = xreg_TPROC_CTRL[14] ;
 
-// AXI Flag Control
+// INTERNAL Flag
 ///////////////////////////////////////////////////////////////////////////////
-sync_reg # (.DW ( 2 ) ) sync_flag_ps_c (
-   .dt_i      ( {flag_set_p, flag_clr_p}  ) ,
-   .clk_i     ( c_clk_i   ) ,
-   .rst_ni    ( c_rst_ni  ) ,
-   .dt_o      ( {axi_flag_set, axi_flag_clr} ) );
 
+assign axi_flag_set   = xreg_TPROC_CTRL[13] ;
+assign axi_flag_clr   = xreg_TPROC_CTRL[14] ;
 assign int_flag_set   = (int_flag_pen & core_usr_operation[0]);
 assign int_flag_clr   = (int_flag_pen & core_usr_operation[1]);
 assign int_flag_inv   = (int_flag_pen & core_usr_operation[2]);
 
-// Flag
-///////////////////////////////////////////////////////////////////////////////
 reg axi_flag_r, int_flag_r ;
 always_ff @(posedge c_clk_i) begin
    if (core_rst) begin
@@ -556,7 +369,7 @@ qproc_inport_reg # (
    .c_clear       ( port_clr      ) ,
    .port_tvalid_i ( port_tvalid_i ) ,
    .port_tdata_i  ( port_tdata_i  ) ,
-   .port_tnew_o   ( port_dt_new      ) ,
+   .port_tnew_o   ( port_dt_new    ) ,
    .port_tdata_o  ( in_port_dt_r  ) );
 
 // MEM CONTROL
@@ -1034,8 +847,8 @@ generate
       assign axi_status_ds[19:16]   = { flag_c0, qp1_flag_i, qcom_flag_i, qnet_flag_i };
       assign axi_status_ds[15:13]   = { ext_flag_r, axi_flag_r, int_flag_r };
       assign axi_status_ds[12: 8]   = { core0_src_flg[2:0], core0_src_dt[1:0]};
-      assign axi_status_ds[ 7: 4]   = { time_en , time_st[2:0] };
-      assign axi_status_ds[ 3: 0]   = { core_en , core_st[2:0]};
+      assign axi_status_ds[ 7: 4]   = { time_en , time_st_ds[2:0] };
+      assign axi_status_ds[ 3: 0]   = { core_en , core_st_ds[2:0]};
 
       assign axi_port_ds[31:28]   = dport_di; 
       assign axi_port_ds[27]      = port_trig_o[0] ;
@@ -1090,8 +903,8 @@ generate
       assign t_debug_do[31:16]   = t_fifo_ds;
       assign t_debug_do[15:12]   = 4'd0;
       assign t_debug_do[11:10]   = { time_rst, time_en };
-      assign t_debug_do[ 9: 3]   = { ctrl_t_updt, ctrl_t_init, ctrl_t_step, ctrl_t_stop, ctrl_t_run, ctrl_t_rst_run, ctrl_t_rst_stop }  ;
-      assign t_debug_do[ 2: 0]   = { time_st[2:0] };
+      assign t_debug_do[ 9: 3]   = ctrl_t_ds;
+      assign t_debug_do[ 2: 0]   = { time_st_ds[2:0] };
 
       assign t_fifo_do           = fifo_dt_ds ;
 
@@ -1101,9 +914,9 @@ generate
       assign c_debug_do[31:16]   = c_fifo_ds;
       assign c_debug_do[15:13]   = { some_fifo_full, all_fifo_full } ;
       assign c_debug_do[13:12]   = { 2'd0 } ;
-      assign c_debug_do[11: 9]   = { core_rst, core_en, c_core_en } ;
-      assign c_debug_do[ 8: 3]   = { ctrl_c_rst_prev, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
-      assign c_debug_do[ 2: 0]   = { core_st[2:0] };
+      assign c_debug_do[11: 10]   = { core_rst, core_en } ;
+      assign c_debug_do[ 9: 3]    = ctrl_c_ds;
+      assign c_debug_do[ 2: 0]   = { core_st_ds[2:0] };
 
       assign c_time_ref_do       = c_time_ref_dt ;
 
@@ -1117,8 +930,11 @@ generate
       assign c_proc_do[10: 8]    = core0_src_dt[2:0] ;
       assign c_proc_do[ 7: 2]    = { int_flag_r, axi_flag_r, int_flag_clr, int_flag_set, axi_flag_clr, axi_flag_set } ;
       assign c_proc_do[ 1: 0]    = { time_ref_inc, time_ref_set } ;
-
       assign c_core_do           = core_ds ;
+
+      assign time_ref_set    = ( int_time_pen & core_usr_operation[2]) ;
+      assign time_ref_inc    = ( int_time_pen & core_usr_operation[3]) ;
+      
    end else begin
          // DEBUG OUT
       assign ps_debug_do         = 0 ;

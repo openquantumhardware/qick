@@ -3,7 +3,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor 2024_8, Revision 21 ( Use Assembler Version 3 )}
+  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor Revision 22 - 2024_10, ( Use Assembler Version v3 rev23 )}
   ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]
@@ -18,20 +18,39 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "WMEM_AW" -parent ${Memory_Configuration}
 
   #Adding Group
-  set IN_Port_Configuration [ipgui::add_group $IPINST -name "IN Port Configuration" -parent ${Process} -display_name {IN Configuration}]
-  ipgui::add_param $IPINST -name "IN_PORT_QTY" -parent ${IN_Port_Configuration}
-  ipgui::add_param $IPINST -name "EXT_FLAG" -parent ${IN_Port_Configuration} -widget checkBox
-  set IO_CTRL [ipgui::add_param $IPINST -name "IO_CTRL" -parent ${IN_Port_Configuration} -widget checkBox]
-  set_property tooltip {External Inputs Qick Control Pins} ${IO_CTRL}
+  set IN_Port_Configuration [ipgui::add_group $IPINST -name "IN Port Configuration" -parent ${Process} -display_name {IN Configuration} -layout horizontal]
+  #Adding Group
+  set QICK_PORTS [ipgui::add_group $IPINST -name "QICK PORTS" -parent ${IN_Port_Configuration}]
+  set_property tooltip {G_PORTS} ${QICK_PORTS}
+  ipgui::add_param $IPINST -name "IN_PORT_QTY" -parent ${QICK_PORTS}
+  ipgui::add_param $IPINST -name "EXT_FLAG" -parent ${QICK_PORTS} -widget checkBox
 
   #Adding Group
-  set OUT_Port_Configuration [ipgui::add_group $IPINST -name "OUT Port Configuration" -parent ${Process} -display_name {OUT Configuration}]
+  set QICK_CONTROL [ipgui::add_group $IPINST -name "QICK CONTROL" -parent ${IN_Port_Configuration}]
+  set_property tooltip {GCTRL} ${QICK_CONTROL}
+  set IO_CTRL [ipgui::add_param $IPINST -name "IO_CTRL" -parent ${QICK_CONTROL} -widget checkBox]
+  set_property tooltip {External Inputs Qick Control Pins} ${IO_CTRL}
+  ipgui::add_param $IPINST -name "TIME_CTRL" -parent ${QICK_CONTROL} -widget checkBox
+  ipgui::add_param $IPINST -name "CORE_CTRL" -parent ${QICK_CONTROL} -widget checkBox
+
+
+  #Adding Group
+  set OUT_Port_Configuration [ipgui::add_group $IPINST -name "OUT Port Configuration" -parent ${Process} -display_name {OUT Configuration} -layout horizontal]
   set_property tooltip {OUT Configuration} ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_TRIG_QTY" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_DPORT_QTY" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${OUT_Port_Configuration}
-  ipgui::add_param $IPINST -name "GEN_SYNC" -parent ${OUT_Port_Configuration} -widget checkBox
+  #Adding Group
+  set GROUP1 [ipgui::add_group $IPINST -name "GROUP1" -parent ${OUT_Port_Configuration} -display_name {QICK PORTS}]
+  set_property tooltip {G_PORTS} ${GROUP1}
+  ipgui::add_param $IPINST -name "OUT_TRIG_QTY" -parent ${GROUP1}
+  ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${GROUP1}
+  ipgui::add_param $IPINST -name "OUT_DPORT_QTY" -parent ${GROUP1}
+  ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${GROUP1}
+
+  #Adding Group
+  set GROUP [ipgui::add_group $IPINST -name "GROUP" -parent ${OUT_Port_Configuration} -display_name {QICK SIGNALS}]
+  set_property tooltip {G_SIGNALS} ${GROUP}
+  ipgui::add_param $IPINST -name "OUT_TIME" -parent ${GROUP} -widget checkBox
+  ipgui::add_param $IPINST -name "GEN_SYNC" -parent ${GROUP} -widget checkBox
+
 
   #Adding Group
   set Options [ipgui::add_group $IPINST -name "Options" -parent ${Process} -display_name {Internal Peripherals} -layout horizontal]
@@ -44,8 +63,8 @@ proc init_gui { IPINST } {
 
   #Adding Group
   set External_Peripherals [ipgui::add_group $IPINST -name "External Peripherals" -parent ${Process} -display_name {External Peripherals Interfaces}]
+  ipgui::add_param $IPINST -name "QNET" -parent ${External_Peripherals} -widget checkBox
   ipgui::add_param $IPINST -name "QCOM" -parent ${External_Peripherals} -widget checkBox
-  ipgui::add_param $IPINST -name "TNET" -parent ${External_Peripherals} -widget checkBox
   ipgui::add_param $IPINST -name "CUSTOM_PERIPH" -parent ${External_Peripherals} -widget comboBox
 
 
@@ -72,6 +91,15 @@ proc update_PARAM_VALUE.CALL_DEPTH { PARAM_VALUE.CALL_DEPTH } {
 
 proc validate_PARAM_VALUE.CALL_DEPTH { PARAM_VALUE.CALL_DEPTH } {
 	# Procedure called to validate CALL_DEPTH
+	return true
+}
+
+proc update_PARAM_VALUE.CORE_CTRL { PARAM_VALUE.CORE_CTRL } {
+	# Procedure called to update CORE_CTRL when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.CORE_CTRL { PARAM_VALUE.CORE_CTRL } {
+	# Procedure called to validate CORE_CTRL
 	return true
 }
 
@@ -192,6 +220,15 @@ proc validate_PARAM_VALUE.OUT_DPORT_QTY { PARAM_VALUE.OUT_DPORT_QTY } {
 	return true
 }
 
+proc update_PARAM_VALUE.OUT_TIME { PARAM_VALUE.OUT_TIME } {
+	# Procedure called to update OUT_TIME when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.OUT_TIME { PARAM_VALUE.OUT_TIME } {
+	# Procedure called to validate OUT_TIME
+	return true
+}
+
 proc update_PARAM_VALUE.OUT_TRIG_QTY { PARAM_VALUE.OUT_TRIG_QTY } {
 	# Procedure called to update OUT_TRIG_QTY when any of the dependent parameters in the arguments change
 }
@@ -228,6 +265,15 @@ proc validate_PARAM_VALUE.QCOM { PARAM_VALUE.QCOM } {
 	return true
 }
 
+proc update_PARAM_VALUE.QNET { PARAM_VALUE.QNET } {
+	# Procedure called to update QNET when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.QNET { PARAM_VALUE.QNET } {
+	# Procedure called to validate QNET
+	return true
+}
+
 proc update_PARAM_VALUE.REG_AW { PARAM_VALUE.REG_AW } {
 	# Procedure called to update REG_AW when any of the dependent parameters in the arguments change
 }
@@ -237,21 +283,21 @@ proc validate_PARAM_VALUE.REG_AW { PARAM_VALUE.REG_AW } {
 	return true
 }
 
+proc update_PARAM_VALUE.TIME_CTRL { PARAM_VALUE.TIME_CTRL } {
+	# Procedure called to update TIME_CTRL when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.TIME_CTRL { PARAM_VALUE.TIME_CTRL } {
+	# Procedure called to validate TIME_CTRL
+	return true
+}
+
 proc update_PARAM_VALUE.TIME_READ { PARAM_VALUE.TIME_READ } {
 	# Procedure called to update TIME_READ when any of the dependent parameters in the arguments change
 }
 
 proc validate_PARAM_VALUE.TIME_READ { PARAM_VALUE.TIME_READ } {
 	# Procedure called to validate TIME_READ
-	return true
-}
-
-proc update_PARAM_VALUE.TNET { PARAM_VALUE.TNET } {
-	# Procedure called to update TNET when any of the dependent parameters in the arguments change
-}
-
-proc validate_PARAM_VALUE.TNET { PARAM_VALUE.TNET } {
-	# Procedure called to validate TNET
 	return true
 }
 
@@ -335,11 +381,6 @@ proc update_MODELPARAM_VALUE.DEBUG { MODELPARAM_VALUE.DEBUG PARAM_VALUE.DEBUG } 
 	set_property value [get_property value ${PARAM_VALUE.DEBUG}] ${MODELPARAM_VALUE.DEBUG}
 }
 
-proc update_MODELPARAM_VALUE.TNET { MODELPARAM_VALUE.TNET PARAM_VALUE.TNET } {
-	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
-	set_property value [get_property value ${PARAM_VALUE.TNET}] ${MODELPARAM_VALUE.TNET}
-}
-
 proc update_MODELPARAM_VALUE.CUSTOM_PERIPH { MODELPARAM_VALUE.CUSTOM_PERIPH PARAM_VALUE.CUSTOM_PERIPH } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.CUSTOM_PERIPH}] ${MODELPARAM_VALUE.CUSTOM_PERIPH}
@@ -373,6 +414,26 @@ proc update_MODELPARAM_VALUE.QCOM { MODELPARAM_VALUE.QCOM PARAM_VALUE.QCOM } {
 proc update_MODELPARAM_VALUE.CALL_DEPTH { MODELPARAM_VALUE.CALL_DEPTH PARAM_VALUE.CALL_DEPTH } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.CALL_DEPTH}] ${MODELPARAM_VALUE.CALL_DEPTH}
+}
+
+proc update_MODELPARAM_VALUE.OUT_TIME { MODELPARAM_VALUE.OUT_TIME PARAM_VALUE.OUT_TIME } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.OUT_TIME}] ${MODELPARAM_VALUE.OUT_TIME}
+}
+
+proc update_MODELPARAM_VALUE.QNET { MODELPARAM_VALUE.QNET PARAM_VALUE.QNET } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.QNET}] ${MODELPARAM_VALUE.QNET}
+}
+
+proc update_MODELPARAM_VALUE.TIME_CTRL { MODELPARAM_VALUE.TIME_CTRL PARAM_VALUE.TIME_CTRL } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.TIME_CTRL}] ${MODELPARAM_VALUE.TIME_CTRL}
+}
+
+proc update_MODELPARAM_VALUE.CORE_CTRL { MODELPARAM_VALUE.CORE_CTRL PARAM_VALUE.CORE_CTRL } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.CORE_CTRL}] ${MODELPARAM_VALUE.CORE_CTRL}
 }
 
 proc update_MODELPARAM_VALUE.GEN_SYNC { MODELPARAM_VALUE.GEN_SYNC PARAM_VALUE.GEN_SYNC } {
