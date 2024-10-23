@@ -163,18 +163,31 @@ class QickParam:
         self.conversion_from_derived_param = lambda x: x
         return self.derived_param
     def __add__(self, a):
-        if isinstance(a, QickParam):
-            new_start = self.start + a.start
-            new_spans = self.spans.copy()
-            for loop, r in a.spans.items():
-                new_spans[loop] = new_spans.get(loop, 0) + r
-            return QickParam(new_start, new_spans)
         if isinstance(a, Number):
-            new_start = self.start + a
-            self.derived_param = QickParam(new_start, self.spans)
-            self.conversion_from_derived_param = lambda x: x - a
-            return self.derived_param
-        return NotImplemented
+            param = self
+            scalar = a
+        elif isinstance(a, QickParam):
+            if len(a.spans) == 0:  # `a` is actually a scalar
+                param = self
+                scalar = a.start
+            elif len(self.spans) == 0:  # `self` is actually a scalar
+                param = a
+                scalar = self.start
+            else:  # both `a` and `self` are sweeps
+                new_start = self.start + a.start
+                new_spans = self.spans.copy()
+                for loop, r in a.spans.items():
+                    new_spans[loop] = new_spans.get(loop, 0) + r
+                return QickParam(new_start, new_spans)
+        else:  # `a` is neither a scalar nor a QickParam
+            return NotImplemented
+
+        # add the scalar to the QickParam
+        new_start = param.start + scalar
+        param.derived_param = QickParam(new_start, param.spans)
+        param.conversion_from_derived_param = lambda x: x - scalar
+        return param.derived_param
+
     def __radd__(self, a):
         return self+a
     def __sub__(self, a):
