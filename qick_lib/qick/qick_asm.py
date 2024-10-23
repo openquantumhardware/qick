@@ -1083,7 +1083,7 @@ class AbsQickProgram(ABC):
 
     def declare_readout(
         self, ch, length, freq=None, phase=0, sel='product', gen_ch=None,
-        edge_counting=False, high_threshold=1000, low_threshold=200):
+        edge_counting=False, high_threshold=None, low_threshold=None):
         """Add a channel to the program's list of readouts.
         Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
@@ -1104,7 +1104,7 @@ class AbsQickProgram(ABC):
         edge_counting : bool
             Sets edge counting mode on or off
         high_threshold : int
-            Sets the edge counting threshold level to go below to trigger a single count
+            Sets the edge counting threshold level to go above to trigger a single count
         low_threshold : int
             Sets the edge counting threshold level to go below to reset the trigger for next count
         """
@@ -1134,9 +1134,10 @@ class AbsQickProgram(ABC):
             cfg['high_threshold'] = high_threshold
             cfg['low_threshold'] = low_threshold
             if edge_counting:
+                assert ro_cfg['has_edge_counter'] == True, 'edge_counting was requested for readout channel %d, but that channel has no edge counter'%(ch)
+                assert high_threshold is not None, 'For counting mode, high_threshold must be set'
+                assert low_threshold is not None, 'For counting mode, low_threshold must be set'
                 assert sel == 'input', 'For counting mode, sel must be "input"'
-                assert freq == 0, 'For counting mode, freq must be "0"'
-                # does gen channel matter for this?
 
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:

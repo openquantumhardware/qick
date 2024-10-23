@@ -378,7 +378,7 @@ class QickSoc(Overlay, QickConfig):
                 self.iqs.append(getattr(self, key))
             elif issubclass(val['driver'], AbsReadout):
                 self.readouts.append(getattr(self, key))
-            elif val['driver'] == AxisAvgBuffer:
+            elif issubclass(val['driver'], AxisAvgBuffer):
                 self.avg_bufs.append(getattr(self, key))
 
         # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
@@ -720,9 +720,12 @@ class QickSoc(Overlay, QickConfig):
         :type enable: bool
         """
         avg_buf = self.avg_bufs[ch]
-        avg_buf.config_avg(
-            address, length,
-            edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
+        if avg_buf['has_edge_counter']:
+            avg_buf.config_avg(
+                address, length,
+                edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
+        else:
+            avg_buf.config_avg(address, length)
         if enable:
             avg_buf.enable_avg()
 
