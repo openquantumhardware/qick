@@ -105,7 +105,26 @@ class AveragerProgram(AcquireProgram):
 
         avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress, remove_offset=remove_offset)
 
-        return avg_d
+        # reformat the data into separate I and Q arrays
+        # save results to class in case you want to look at it later or for analysis
+        raw = [d.reshape((-1,2)) for d in self.get_raw()]
+        self.di_buf = [d[:,0] for d in raw]
+        self.dq_buf = [d[:,1] for d in raw]
+
+        n_ro = len(self.ro_chs)
+        if save_experiments is None:
+            avg_di = [d[:, 0] for d in avg_d]
+            avg_dq = [d[:, 1] for d in avg_d]
+        else:
+            avg_di = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
+            avg_dq = [np.zeros(len(save_experiments)) for ro in self.ro_chs]
+            for i_ch in range(n_ro):
+                for nn, ii in enumerate(save_experiments):
+                    avg_di[i_ch][nn] = avg_d[i_ch][ii, 0]
+                    avg_dq[i_ch][nn] = avg_d[i_ch][ii, 1]
+
+        return avg_di, avg_dq
+
 
     def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True):
         """

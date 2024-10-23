@@ -1105,7 +1105,7 @@ class AbsQickProgram(ABC):
             Sets edge counting mode on or off
         high_threshold : int
             Sets the edge counting threshold level to go below to trigger a single count
-        low_threshold : int 
+        low_threshold : int
             Sets the edge counting threshold level to go below to reset the trigger for next count
         """
         ro_cfg = self.soccfg['readouts'][ch]
@@ -1199,7 +1199,7 @@ class AbsQickProgram(ABC):
             if enable_avg:
                 soc.config_avg(
                     ch, address=0, length=cfg['length'], enable=True,
-                    edge_counting=cfg['edge_counting'], 
+                    edge_counting=cfg['edge_counting'],
                     high_threshold=cfg['high_threshold'],
                     low_threshold=cfg['low_threshold'])
             if enable_buf:
@@ -1768,7 +1768,27 @@ class AcquireMixin:
                         self.stats.append(s)
                         pbar.update(new_points)
 
-        return self.d_buf
+            # if we're thresholding, apply the threshold before averaging
+            if threshold is None:
+                d_reps = self.d_buf
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=True, remove_offset=remove_offset)
+            else:
+                d_reps = [np.zeros_like(d) for d in self.d_buf]
+                self.shots = self._apply_threshold(self.d_buf, threshold, angle, remove_offset=remove_offset)
+                for i, ch_shot in enumerate(self.shots):
+                    d_reps[i][...,0] = ch_shot
+                round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
+
+            # sum over rounds axis
+            if avg_d is None:
+                avg_d = round_d
+            else:
+                for ii, d in enumerate(round_d): avg_d[ii] += d
+
+        # divide total by rounds
+        for d in avg_d: d /= soft_avgs
+
+        return avg_d
 
     def _ro_offset(self, ch, chcfg):
         """Computes the IQ offset expected from this readout.
