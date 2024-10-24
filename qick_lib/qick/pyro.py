@@ -88,7 +88,7 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
     # register in the daemon all the objects we expose as properties of the QickSoc
     # we don't register them in the nameserver, since they are only meant to be accessed through the QickSoc proxy
     # https://pyro4.readthedocs.io/stable/servercode.html#autoproxying
-    # https://github.com/irmPyro4/blob/master/examples/autoproxy/server.py
+    # https://github.com/irmen/Pyro4/blob/master/examples/autoproxy/server.py
     for obj in soc.autoproxy:
         daemon.register(obj)
         print("registered member "+str(obj))
