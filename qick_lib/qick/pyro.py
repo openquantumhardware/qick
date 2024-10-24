@@ -87,8 +87,8 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
 
     # register in the daemon all the objects we expose as properties of the QickSoc
     # we don't register them in the nameserver, since they are only meant to be accessed through the QickSoc proxy
-    # https://pyro4.readthedocs.io/en/stable/servercode.html#autoproxying
-    # https://github.com/irmen/Pyro4/blob/master/examples/autoproxy/server.py
+    # https://pyro4.readthedocs.io/stable/servercode.html#autoproxying
+    # https://github.com/irmPyro4/blob/master/examples/autoproxy/server.py
     for obj in soc.autoproxy:
         daemon.register(obj)
         print("registered member "+str(obj))
@@ -130,7 +130,7 @@ def make_proxy(ns_host, ns_port=8888, proxy_name='myqick', remote_traceback=True
     soc = Pyro4.Proxy(ns.lookup(proxy_name))
     soccfg = QickConfig(soc.get_cfg())
 
-    # adapted from https://pyro4.readthedocs.io/en/stable/errors.html and https://stackoverflow.com/a/70433500
+    # adapted from https://pyro4.readthedocs.io/stable/errors.html and https://stackoverflow.com/a/70433500
     if remote_traceback:
         try:
             import IPython

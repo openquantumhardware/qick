@@ -52,7 +52,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 -->
 
 ## Flash the PYNQ operating system image onto your micro SD card
-* Your RFSoC board kit comes with a micro SD card. QICK requires an up-to-date PYNQ image (v2.6 through v3.0.1), so let's update the micro SD card with this version of the PYNQ image. The PYNQ documentation for this step is also good: https://pynq.readthedocs.io/en/latest/appendix/sdcard.html
+* Your RFSoC board kit comes with a micro SD card. QICK requires an up-to-date PYNQ image (v2.6 through v3.0.1), so let's update the micro SD card with this version of the PYNQ image. The PYNQ documentation for this step is also good: https://pynq.readthedocs.io/latest/appendix/sdcard.html
 * First, download the PYNQ image:
   * For ZCU111 and RFSoC4x2, v3.0.1 is the current recommended version: http://www.pynq.io/boards.html
   * For ZCU216, download the v2.7.0 version from the link in https://github.com/sarafs1926/ZCU216-PYNQ/issues/1.
@@ -157,7 +157,7 @@ netmask 255.255.255.0
 
 #### For a point-to-point Ethernet connection
 * Connect your Ethernet cable from your computer to the RFSoC Ethernet port.
-* Configure your computer's Ethernet port with a static IP in the 192.168.2.xxx range, similar to below (see also https://pynq.readthedocs.io/en/latest/appendix/assign_a_static_ip.html):
+* Configure your computer's Ethernet port with a static IP in the 192.168.2.xxx range, similar to below (see also https://pynq.readthedocs.io/latest/appendix/assign_a_static_ip.html):
 
 <p align="center">
  <img src="quick-start-guide-pics/static_ip.png" alt="Setting a static IP in Windows">
@@ -170,7 +170,7 @@ Use a router (e.g. a Cisco RV160 VPN Router which is available for purchase at w
 
 * Connect both your computer and the RFSoC to the router with Ethernet cables.
 * Unlike the point-to-point case, you won't set a static IP on your computer's Ethernet port; you'll leave it on its default configuration, where it will let the router auto-configure its address.
-* Log into your router via a web browser. In the case of the router used in this guide, doing so is straightforward and is explained here: https://www.cisco.com/c/dam/en/us/td/docs/routers/csbr/RV160/Quick_Start_Guide/EN/RV160_qsg_en.pdf
+* Log into your router via a web browser. In the case of the router used in this guide, doing so is straightforward and is explained here: https://www.cisco.com/c/dam/us/td/docs/routers/csbr/RV160/Quick_Start_Guide/EN/RV160_qsg_en.pdf
 * After powering up, look at the list of devices found by your router. You should see two devices; your PC and your RFSoC (id `pynq`). Take note of the IP address that was assigned to the RFSoC (in my case it was assigned the address `192.168.1.146`). You can now connect to the board at this address using Jupyter or SSH (see below).
 
 <p align="center">
