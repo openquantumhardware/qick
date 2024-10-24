@@ -41,7 +41,7 @@ setup(
     #
     # For a discussion on single-sourcing the version across setup.py and the
     # project code, see
-    # https://packaging.python.org/latest/single_source_version.html
+    # https://packaging.python.org/en/latest/single_source_version.html
     version=get_version("qick_lib/qick/VERSION"),  # Required
 
     # This is a one-line description or tagline of what your project does. This
@@ -147,7 +147,7 @@ setup(
     # installed, so they must be valid existing projects.
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
-    # https://packaging.python.org/latest/requirements.html
+    # https://packaging.python.org/en/latest/requirements.html
     # setup_requires=["numpy","cffi"],
 
     # Only install pynq on the supported architectures.
@@ -216,4 +216,3 @@ setup(
         'Tracker': 'https://github.com/openquantumhardware/qick/issues',
     },
 )
-
