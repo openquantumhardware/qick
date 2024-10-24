@@ -1,4 +1,4 @@
-# QICK quick-start guide
+# QICK quick-start guide 
 
 ***Have questions? Contact us through any of the channels listed on [the main README](../README.md).***
 
@@ -47,7 +47,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
     * The computer should have a utility for writing disk images to SD cards. We recommend the Win32DiskImager utility, which is an open-source tool for writing image files to disks. You will use this utility to flash the PYNQ OS image onto your micro-SD card.
       * You can download the Win32DiskImager utility here: https://sourceforge.net/projects/win32diskimager/
 <!--
-* A router (this guide used a standard Cisco RV160 VPN Router which is available for purchase at www.amazon.com). The router used in this guide has 4 LAN ports. For instance, in a typical qubit control setup you can connect one LAN port to your personal computer, a second LAN port to your ZCU111, and a third point to an Ethernet switch (for example the NETGEAR 24-Port Gigabit Ethernet Unmanaged Switch (JGS524) which is available for purchase at www.amazon.com). That Ethernet switch can place 24 more devices (such as external trigger sources, local oscillators, programmable attenuators or other lab equipment) on the router's subnet, making them accessible to your personal computer.
+* A router (this guide used a standard Cisco RV160 VPN Router which is available for purchase at www.amazon.com). The router used in this guide has 4 LAN ports. For instance, in a typical qubit control setup you can connect one LAN port to your personal computer, a second LAN port to your ZCU111, and a third point to an Ethernet switch (for example the NETGEAR 24-Port Gigabit Ethernet Unmanaged Switch (JGS524) which is available for purchase at www.amazon.com). That Ethernet switch can place 24 more devices (such as external trigger sources, local oscillators, programmable attenuators or other lab equipment) on the router's subnet, making them accessible to your personal computer. 
 * Two Ethernet cables that you will use to attach 1) your ZCU111 board and 2) your personal computer to the router.
 -->
 
@@ -62,14 +62,14 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
  <img src="quick-start-guide-pics/largeimagefile.PNG" alt="The PYNQ 2.6.0 image file">
 </p>
 
-* Plug your micro SD card into your computer. If you look in the Windows File Explorer you will see a new disk drive pop up, for example in my case it was the `E:\` drive. This is the drive associated with your micro SD card.
+* Plug your micro SD card into your computer. If you look in the Windows File Explorer you will see a new disk drive pop up, for example in my case it was the `E:\` drive. This is the drive associated with your micro SD card. 
 * Now, open the Win32DiskImager utility and configure 1) the image file to be your PYNQ image file and 2) the device to be the `E:\` drive, as in the below picture. Before clicking `Write`, double check that you are not flashing the image file to the wrong drive (e.g. your personal computer hard drive)!
 
 <p align="center">
  <img src="quick-start-guide-pics/writetoEdrive.PNG" alt="Writing the PYNQ 2.6.0 image onto the micro SD card">
 </p>
 
-* Click `Write`.
+* Click `Write`.  
 * After the write completes, now look in the Windows File Explorer to see what is now contained in the `E:\` drive. You can see several files that are used to boot the RFSoC. The contents of the `E:\` drive are lightweight and there is plenty more space on the disk (about 6.8 GB!). So we are now ready to load this micro SD card into the RFSoC board.
 
 <p align="center">
@@ -80,7 +80,7 @@ The RealDigital-produced RFSoC4x2 board is available directly from RealDigital: 
 ## Assemble and power on your RFSoC board
 
 * For the ZCU216 and ZCU111, assemble the board with daughterboard(s). The 4 mm hex wrench is used to tighten the jackscrew nuts under the frontend board screws, then the screwdriver is used to screw down the board. For both the frontend board and the ZCU216's CLK-104 board, be careful to align the high-density connector before screwing down the board. You may find these resources useful in addition to the kit documentation:
-  * For the ZCU216 board, the basic assembly section of this webpage: https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/246153525/RF+DC+Evaluation+Tool+for+ZCU216+board+-+Quick+start.
+  * For the ZCU216 board, the basic assembly section of this webpage: https://xilinx-wiki.atlassian.net/wiki/spaces/A/pages/246153525/RF+DC+Evaluation+Tool+for+ZCU216+board+-+Quick+start. 
   * For the ZCU111 board, this video guide: https://www.youtube.com/watch?v=4JfKlv8kWhs
 * Slide your micro SD card into its slot on the board.
 * Make sure the board is in SD card boot mode.
@@ -190,8 +190,8 @@ The Jupyter server and the Linux operating system have separate access credentia
 
 #### Over the network, via Jupyter
 
-* Now you are prepared to connect to your RFSoC. Before you clone the `qick` repository and copy it onto the RFSoC, let's see what is initially on the RFSoC's operating system (this was determined by the contents of the PYNQ image). To do so, simply enter the IP address assigned to the RFSoC into a web browser on your personal computer: `192.168.1.146`. The username and password for the ZCU111 are by default `xilinx` and `xilinx`, respectively. You can change those by entering `sudo` mode once you've logged into the RFSoC via SSH (you will log in via SSH in the next part of this guide).
-* You should see this default Jupyter notebook browser:
+* Now you are prepared to connect to your RFSoC. Before you clone the `qick` repository and copy it onto the RFSoC, let's see what is initially on the RFSoC's operating system (this was determined by the contents of the PYNQ image). To do so, simply enter the IP address assigned to the RFSoC into a web browser on your personal computer: `192.168.1.146`. The username and password for the ZCU111 are by default `xilinx` and `xilinx`, respectively. You can change those by entering `sudo` mode once you've logged into the RFSoC via SSH (you will log in via SSH in the next part of this guide).  
+* You should see this default Jupyter notebook browser: 
 
 <p align="center">
  <img src="quick-start-guide-pics/pynqstartup.PNG" alt="PYNQ startup">
@@ -257,16 +257,16 @@ In other words, this improves security and adds no inconvenience; **everyone sho
 The terminal output from these steps should look like this:
 ```
 xilinx@pynq:~$ su
-Password:
+Password: 
 root@pynq:/home/xilinx# passwd -l root
 passwd: password expiry information changed.
 root@pynq:/home/xilinx# exit
 exit
 xilinx@pynq:~$ su
-Password:
+Password: 
 su: Authentication failure
 xilinx@pynq:~$ sudo -s
-[sudo] password for xilinx:
+[sudo] password for xilinx: 
 root@pynq:/home/xilinx#
 ```
 
@@ -279,7 +279,7 @@ Changing the password doesn't add significant inconvenience.
 Choose the strength and style (random characters, random words, etc.) of the password based on what is natural to you and your lab group, how secure you need your RFSoC to be, and how dangerous the network environment is.
 You should store the password in a secure and resilient way; again this will depend on how your lab group operates, but could mean a lab notebook or a file on a secure shared disk.
 
-* Choose a new password and make a record of it.
+* Choose a new password and make a record of it. 
 * Log in via SSH using the `xilinx` username and that account's password (`xilinx`).
 * Run `passwd`; enter the current password (`xilinx` again) and then enter your desired password twice.
 * Disconnect and check that you can log in via SSH using the new password.
@@ -288,11 +288,11 @@ The terminal output from these steps should look like this:
 ```
 xilinx@pynq:~$ passwd
 Changing password for xilinx.
-Current password:
-New password:
-Retype new password:
+Current password: 
+New password: 
+Retype new password: 
 passwd: password updated successfully
-xilinx@pynq:~$
+xilinx@pynq:~$ 
 ```
 
 #### Restrict remote Jupyter access
@@ -324,9 +324,9 @@ To access Jupyter after making this change, you will need to use SSH port forwar
 
 ## Copy the QICK tools onto your RFSoC
 
-* Use Github Desktop to clone the `qick` repo onto your personal computer (Google around for resources if you are not sure how to do this).
+* Use Github Desktop to clone the `qick` repo onto your personal computer (Google around for resources if you are not sure how to do this). 
 <!--
-* Now, copy the `pscp.exe` into the same directory as your cloned `qick` repo, as below:
+* Now, copy the `pscp.exe` into the same directory as your cloned `qick` repo, as below: 
 
 <p align="center">
  <img src="quick-start-guide-pics/pscpfolderstructure.PNG" alt="Folder structure required for PSCP">
@@ -338,8 +338,8 @@ To access Jupyter after making this change, you will need to use SSH port forwar
  <img src="quick-start-guide-pics/pushingdatatotheboard.PNG" alt="Pushing data to the RFSoC with PSCP">
 </p>
 
-* This copied the `qick` repository into the `jupyter_notebooks` folder in the `/home/xilinx/` directory of the RFSoC.
-* Your Jupyter notebook browser has now updated to include the `qick` repository, as shown below:
+* This copied the `qick` repository into the `jupyter_notebooks` folder in the `/home/xilinx/` directory of the RFSoC. 
+* Your Jupyter notebook browser has now updated to include the `qick` repository, as shown below: 
 
 <p align="center">
  <img src="quick-start-guide-pics/jupyternotebook1.PNG" alt="Jupyter notebook main folder">
@@ -352,12 +352,12 @@ To access Jupyter after making this change, you will need to use SSH port forwar
 This will install the qick Python package.
 -->
 * Navigate to the `qick_demos` subfolder within the `qick` directory and run the Jupyter notebook `000_Install_qick_package.ipynb`. This will walk you through installing and testing the `qick` package.
-* Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSoC RF-DACs and looping back to the RFSoC RF-ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells.
+* Open `00_Send_receive_pulse.ipynb` (also in the `qick_demos` directory) and run the Jupyter notebook cells in order. You should see very similar output to that posted here: https://github.com/openquantumhardware/qick/blob/main/qick_demos/00_Send_receive_pulse.ipynb. You are seeing pulses being sent out of the RFSoC RF-DACs and looping back to the RFSoC RF-ADCs! In future tutorials you will learn the meaning of all the variables and parameters defined within the Jupyter notebook cells. 
 
 <!--
 ## Running a QICK program in loopback mode
 
-* You can also take the opportunity to check that you have flashed the correct PYNQ version:
+* You can also take the opportunity to check that you have flashed the correct PYNQ version: 
 
 <p align="center">
  <img src="quick-start-guide-pics/correctpynqversion.PNG" alt="The correct PYNQ version">
@@ -368,7 +368,7 @@ This will install the qick Python package.
 
 * Let's say that you have created a `quick_start_demo` directory with your work and you want a local copy of the entire directory (for example, you exported your data to `.png` plots that are within the `quick_start_demo` directory on the RFSoC, and you want to move those plots back to your personal computer). To do this, you do something analogous to when you copied the `qick` repository onto the RFSoC earlier in this guide:
 * Open the Command Prompt application in Windows and, after navigating to your local directory where you want the files to go, type in the following command (substituting the IP address that was assigned to your RFSoC):
-
+ 
 <p align="center">
  <img src="quick-start-guide-pics/pullingdataofftheboard.PNG" alt="Pulling data off the RFSoC with PSCP">
 </p>

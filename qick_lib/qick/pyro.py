@@ -92,7 +92,7 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
     for obj in soc.autoproxy:
         daemon.register(obj)
         print("registered member "+str(obj))
-
+                    
     print("starting daemon")
     daemon.requestLoop() # this will run forever until interrupted
 
