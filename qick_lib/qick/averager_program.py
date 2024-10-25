@@ -73,7 +73,7 @@ class AveragerProgram(AcquireProgram):
         p.end()
 
 
-    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=None, save_experiments=None, load_pulses=True, start_src="internal", progress=False, remove_offset=True):
+    def acquire(self, soc, readouts_per_experiment=None, save_experiments=None, **kwargs):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -103,7 +103,7 @@ class AveragerProgram(AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress, remove_offset=remove_offset)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -126,7 +126,7 @@ class AveragerProgram(AcquireProgram):
         return avg_di, avg_dq
 
 
-    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, readouts_per_experiment=None, **kwargs):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -159,7 +159,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset)
+        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, **kwargs)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
@@ -250,7 +250,7 @@ class RAveragerProgram(AcquireProgram):
         """
         return self.cfg["start"]+np.arange(self.cfg["expts"])*self.cfg["step"]
 
-    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=None, save_experiments=None, start_src="internal", progress=False, remove_offset=True):
+    def acquire(self, soc, readouts_per_experiment=None, save_experiments=None, **kwargs):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
@@ -280,7 +280,7 @@ class RAveragerProgram(AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress, remove_offset=remove_offset)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -529,8 +529,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
             sweep_pts.append(swp.get_sweep_pts())
         return sweep_pts
 
-    def acquire(self, soc, threshold: int = None, angle: List = None, load_pulses=True, readouts_per_experiment=None,
-                save_experiments: List = None, start_src: str = "internal", progress=False, remove_offset=True):
+    def acquire(self, soc, readouts_per_experiment=None, save_experiments: List = None, **kwargs):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code
         representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python,
@@ -558,11 +557,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses,
-                                              start_src=start_src, 
-                                              threshold=threshold, angle=angle,
-                                              progress=progress,
-                                              remove_offset=remove_offset)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis

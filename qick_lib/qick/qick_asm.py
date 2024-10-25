@@ -1590,7 +1590,7 @@ class AcquireMixin:
 
         # measurements from the most recent acquisition
         # raw I/Q data without normalizing to window length or averaging over reps
-        self.d_buf = None
+        self.acc_buf = None
         # shot-by-shot threshold classification
         self.shots = None
 
@@ -1667,7 +1667,7 @@ class AcquireMixin:
         list of ndarray
             Array of I/Q values for each readout channel.
         """
-        return self.d_buf
+        return self.acc_buf
 
     def get_shots(self):
         """Get the shot-by-shot threshold decisions.
@@ -1729,7 +1729,7 @@ class AcquireMixin:
         n_ro = len(self.ro_chs)
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
+        self.acc_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -1763,19 +1763,19 @@ class AcquireMixin:
                                 logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
                             if count+new_points > total_count:
                                 logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
-                            # use reshape to view the d_buf array in a shape that matches the raw data
-                            self.d_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
+                            # use reshape to view the acc_buf array in a shape that matches the raw data
+                            self.acc_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
 
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
-                d_reps = self.d_buf
+                d_reps = self.acc_buf
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=True, remove_offset=remove_offset)
             else:
-                d_reps = [np.zeros_like(d) for d in self.d_buf]
-                self.shots = self._apply_threshold(self.d_buf, threshold, angle, remove_offset=remove_offset)
+                d_reps = [np.zeros_like(d) for d in self.acc_buf]
+                self.shots = self._apply_threshold(self.acc_buf, threshold, angle, remove_offset=remove_offset)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
@@ -1844,13 +1844,13 @@ class AcquireMixin:
 
         return avg_d
 
-    def _apply_threshold(self, d_buf, threshold, angle, remove_offset):
+    def _apply_threshold(self, acc_buf, threshold, angle, remove_offset):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
         Parameters
         ----------
-        d_buf : list of ndarray
+        acc_buf : list of ndarray
             Raw IQ data
         threshold : float or list of float
             The threshold(s) to apply to the I values after rotation.
@@ -1885,7 +1885,7 @@ class AcquireMixin:
 
         shots = []
         for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
-            avg = d_buf[i_ch]/ro['length']
+            avg = acc_buf[i_ch]/ro['length']
             if remove_offset:
                 offset = self.soccfg['readouts'][ro_ch]['iq_offset']
                 avg -= offset
@@ -2055,7 +2055,7 @@ class AcquireMixin:
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
             # buffer for accumulated data (for convenience/debug)
-            self.d_buf = []
+            self.acc_buf = []
 
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
@@ -2077,7 +2077,7 @@ class AcquireMixin:
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 dec_buf[ii] += obtain(soc.get_decimated(ch=ch,
                                     address=0, length=ro['length']*ro['trigs']*total_count))
-                self.d_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
+                self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
 
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
