@@ -130,6 +130,8 @@ class QickConfig():
                 lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                          (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
+            lines.append("\t\t%s v%s (%s edge counter)" % (
+                readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']]))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], buflen))
             lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
@@ -889,6 +891,7 @@ class DummyIp:
             The overlay object, used to look up metadata and dereference driver names.
         """
         self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
+        self.cfg['version'] = soc.metadata.mod2version(self['fullpath'])
 
 class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
@@ -1122,26 +1125,25 @@ class AbsQickProgram(ABC):
         if cfg['length'] > 2**(31-15):
             logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
 
+        # Edge counting mode
+        cfg['edge_counting'] = edge_counting
+        cfg['high_threshold'] = high_threshold
+        cfg['low_threshold'] = low_threshold
+        if edge_counting:
+            if not ro_cfg['has_edge_counter']: raise RuntimeError('edge_counting was requested for readout channel %d, but that channel has no edge counter'%(ch))
+            if high_threshold is None: raise RuntimeError('edge_counting was requested for readout channel %d, but high_threshold was not set'%(ch))
+            if low_threshold is None: raise RuntimeError('edge_counting was requested for readout channel %d, but low_threshold was not set'%(ch))
+
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
             cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
-
-            # Edge counting mode
-            cfg['edge_counting'] = edge_counting
-            cfg['high_threshold'] = high_threshold
-            cfg['low_threshold'] = low_threshold
-            if edge_counting:
-                assert ro_cfg['has_edge_counter'] == True, 'edge_counting was requested for readout channel %d, but that channel has no edge counter'%(ch)
-                assert high_threshold is not None, 'For counting mode, high_threshold must be set'
-                assert low_threshold is not None, 'For counting mode, low_threshold must be set'
-                assert sel == 'input', 'For counting mode, sel must be "input"'
-
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
                 raise RuntimeError("this is a tProc-configured readout - freq/phase/sel parameters are set using tProc instructions")
+
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
