@@ -1829,7 +1829,7 @@ class AcquireMixin:
 
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
-        :param length_norm: normalize by readout window length (disable for thresholded values)
+        :param length_norm: normalize by readout window length (should use False if thresholding; this setting is ignored and False is used for readouts where edge-counting is enabled)
         :param remove_offset: if normalizing by length, also subtract the readout's IQ offset if any
         :return: averaged iq data after each round.
         """
@@ -1837,7 +1837,7 @@ class AcquireMixin:
         for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
-            if length_norm:
+            if length_norm and not ro['edge_counting']:
                 avg /= ro['length']
                 if remove_offset:
                     avg -= self._ro_offset(ch, ro.get('ro_config'))
