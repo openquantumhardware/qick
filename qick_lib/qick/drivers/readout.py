@@ -531,6 +531,8 @@ class AxisAvgBuffer(SocIp):
     """
     bindto = ['user.org:user:axis_avg_buffer:1.0']
 
+    EDGE_COUNTER = False
+
     def __init__(self, description):
         """
         Constructor method
@@ -564,6 +566,7 @@ class AxisAvgBuffer(SocIp):
         # Maximum number of samples
         self.cfg['avg_maxlen'] = 2**self.N_AVG
         self.cfg['buf_maxlen'] = 2**self.N_BUF
+        self.cfg['has_edge_counter'] = self.EDGE_COUNTER
 
         # Preallocate memory buffers for DMA transfers.
         self.avg_buff = allocate(shape=self['avg_maxlen'], dtype=np.int64)
@@ -823,6 +826,51 @@ class AxisAvgBuffer(SocIp):
         Disable raw buffer capture
         """
         self.buf_start_reg = 0
+
+
+class AxisAvgBufferV1pt1(AxisAvgBuffer):
+
+    bindto = ['user.org:user:axis_avg_buffer:1.1']
+
+    EDGE_COUNTER = True
+
+    def __init__(self, description):
+        super().__init__(description)
+
+        self.REGISTERS = {'avg_start_reg': 0,
+                          'avg_addr_reg': 1,
+                          'avg_len_reg': 2,
+                          'avg_dr_start_reg': 3,
+                          'avg_dr_addr_reg': 4,
+                          'avg_dr_len_reg': 5,
+                          'buf_start_reg': 6,
+                          'buf_addr_reg': 7,
+                          'buf_len_reg': 8,
+                          'buf_dr_start_reg': 9,
+                          'buf_dr_addr_reg': 10,
+                          'buf_dr_len_reg': 11,
+                          'avg_photon_mode_reg': 12,
+                          'avg_h_threshold_reg': 13,
+                          'avg_l_threshold_reg': 14}
+
+        self.avg_photon_mode_reg = 0
+
+    def config_avg(
+        self, address=0, length=100,
+        edge_counting=False, high_threshold=1000, low_threshold=0):
+        """
+        Configure average buffer data from average and buffering readout block
+
+        :param addr: Start address of first capture
+        :type addr: int
+        :param length: window size
+        :type length: int
+        """
+        super().config_avg(address=address, length=length)
+
+        self.avg_photon_mode_reg = edge_counting
+        self.avg_h_threshold_reg = high_threshold
+        self.avg_l_threshold_reg = low_threshold
 
 
 class MrBufferEt(SocIp):

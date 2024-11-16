@@ -212,8 +212,7 @@ setup(
     # what's used to render the link text on PyPI.
     project_urls={  # Optional
         'Source': 'https://github.com/openquantumhardware/qick',
-        'Documentation': 'https://qick-docs.readthedocs.io/en/latest/',
+        'Documentation': 'https://qick-docs.readthedocs.io/latest/',
         'Tracker': 'https://github.com/openquantumhardware/qick/issues',
     },
 )
-

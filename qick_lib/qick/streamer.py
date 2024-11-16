@@ -127,7 +127,7 @@ class DataStreamer():
                     if shots >= min(last_shots+stride, total_shots):
                         newshots = shots-last_shots
                         # buffer for each channel
-                        d_buf = [None for nreads in reads_per_count]
+                        acc_buf = [None for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
@@ -140,12 +140,12 @@ class DataStreamer():
 
                             addr = last_shots * reads_per_count[iCh] % self.soc.get_avg_max_length(ch)
                             data = self.soc.get_accumulated(ch=ch, address=addr, length=newpoints)
-                            d_buf[iCh] = data
+                            acc_buf[iCh] = data
 
                         last_shots += newshots
 
                         stats = (time.time()-t_start, shots, addr, newshots)
-                        self.data_queue.put((newshots, (d_buf, stats)))
+                        self.data_queue.put((newshots, (acc_buf, stats)))
                 #if last_count==total_count: print("streamer loop: normal completion")
 
             except Exception as e:

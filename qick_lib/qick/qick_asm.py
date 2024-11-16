@@ -130,6 +130,8 @@ class QickConfig():
                 lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
             lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                          (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
+            lines.append("\t\t%s v%s (%s edge counter)" % (
+                readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']]))
             lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
                 readout['avg_maxlen'], readout['buf_maxlen'], buflen))
             lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
@@ -889,6 +891,7 @@ class DummyIp:
             The overlay object, used to look up metadata and dereference driver names.
         """
         self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
+        self.cfg['version'] = soc.metadata.mod2version(self['fullpath'])
 
 class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
@@ -1081,7 +1084,9 @@ class AbsQickProgram(ABC):
         # if start_src="external", it won't actually start until it sees a pulse
         soc.start_tproc()
 
-    def declare_readout(self, ch, length, freq=None, phase=0, sel='product', gen_ch=None):
+    def declare_readout(
+        self, ch, length, freq=None, phase=0, sel='product', gen_ch=None,
+        edge_counting=False, high_threshold=None, low_threshold=None):
         """Add a channel to the program's list of readouts.
         Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
@@ -1099,6 +1104,12 @@ class AbsQickProgram(ABC):
             output select ('product', 'dds', 'input')
         gen_ch : int
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
+        edge_counting : bool
+            Sets edge counting mode on or off
+        high_threshold : int
+            Sets the edge counting threshold level to go above to trigger a single count
+        low_threshold : int
+            Sets the edge counting threshold level to go below to reset the trigger for next count
         """
         ro_cfg = self.soccfg['readouts'][ch]
         # the number of triggers per shot will be filled in later, by trigger() or set_read_per_shot()
@@ -1114,6 +1125,15 @@ class AbsQickProgram(ABC):
         if cfg['length'] > 2**(31-15):
             logger.warning(f'With the given readout length there is a possibility that the sum buffer will overflow giving invalid results.')
 
+        # Edge counting mode
+        cfg['edge_counting'] = edge_counting
+        cfg['high_threshold'] = high_threshold
+        cfg['low_threshold'] = low_threshold
+        if edge_counting:
+            if not ro_cfg['has_edge_counter']: raise RuntimeError('edge_counting was requested for readout channel %d, but that channel has no edge counter'%(ch))
+            if high_threshold is None: raise RuntimeError('edge_counting was requested for readout channel %d, but high_threshold was not set'%(ch))
+            if low_threshold is None: raise RuntimeError('edge_counting was requested for readout channel %d, but low_threshold was not set'%(ch))
+
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
                 raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
@@ -1123,6 +1143,7 @@ class AbsQickProgram(ABC):
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
                 raise RuntimeError("this is a tProc-configured readout - freq/phase/sel parameters are set using tProc instructions")
+
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -1179,7 +1200,11 @@ class AbsQickProgram(ABC):
         """
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
-                soc.config_avg(ch, address=0, length=cfg['length'], enable=True)
+                soc.config_avg(
+                    ch, address=0, length=cfg['length'], enable=True,
+                    edge_counting=cfg['edge_counting'],
+                    high_threshold=cfg['high_threshold'],
+                    low_threshold=cfg['low_threshold'])
             if enable_buf:
                 soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
 
@@ -1567,7 +1592,7 @@ class AcquireMixin:
 
         # measurements from the most recent acquisition
         # raw I/Q data without normalizing to window length or averaging over reps
-        self.d_buf = None
+        self.acc_buf = None
         # shot-by-shot threshold classification
         self.shots = None
 
@@ -1644,7 +1669,7 @@ class AcquireMixin:
         list of ndarray
             Array of I/Q values for each readout channel.
         """
-        return self.d_buf
+        return self.acc_buf
 
     def get_shots(self):
         """Get the shot-by-shot threshold decisions.
@@ -1706,7 +1731,7 @@ class AcquireMixin:
         n_ro = len(self.ro_chs)
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
-        self.d_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
+        self.acc_buf = [np.zeros((*self.loop_dims, nreads, 2), dtype=np.int64) for nreads in self.reads_per_shot]
         self.stats = []
 
         # select which tqdm progress bar to show
@@ -1740,19 +1765,19 @@ class AcquireMixin:
                                 logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
                             if count+new_points > total_count:
                                 logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
-                            # use reshape to view the d_buf array in a shape that matches the raw data
-                            self.d_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
+                            # use reshape to view the acc_buf array in a shape that matches the raw data
+                            self.acc_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
 
             # if we're thresholding, apply the threshold before averaging
             if threshold is None:
-                d_reps = self.d_buf
+                d_reps = self.acc_buf
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=True, remove_offset=remove_offset)
             else:
-                d_reps = [np.zeros_like(d) for d in self.d_buf]
-                self.shots = self._apply_threshold(self.d_buf, threshold, angle, remove_offset=remove_offset)
+                d_reps = [np.zeros_like(d) for d in self.acc_buf]
+                self.shots = self._apply_threshold(self.acc_buf, threshold, angle, remove_offset=remove_offset)
                 for i, ch_shot in enumerate(self.shots):
                     d_reps[i][...,0] = ch_shot
                 round_d = self._average_buf(d_reps, self.reads_per_shot, length_norm=False)
@@ -1804,7 +1829,7 @@ class AcquireMixin:
 
         :param d_reps: buffer data acquired in a round
         :param reads_per_shot: readouts per experiment
-        :param length_norm: normalize by readout window length (disable for thresholded values)
+        :param length_norm: normalize by readout window length (should use False if thresholding; this setting is ignored and False is used for readouts where edge-counting is enabled)
         :param remove_offset: if normalizing by length, also subtract the readout's IQ offset if any
         :return: averaged iq data after each round.
         """
@@ -1812,7 +1837,7 @@ class AcquireMixin:
         for i_ch, (ch, ro) in enumerate(self.ro_chs.items()):
             # average over the avg_level
             avg = d_reps[i_ch].sum(axis=self.avg_level) / self.loop_dims[self.avg_level]
-            if length_norm:
+            if length_norm and not ro['edge_counting']:
                 avg /= ro['length']
                 if remove_offset:
                     avg -= self._ro_offset(ch, ro.get('ro_config'))
@@ -1821,13 +1846,13 @@ class AcquireMixin:
 
         return avg_d
 
-    def _apply_threshold(self, d_buf, threshold, angle, remove_offset):
+    def _apply_threshold(self, acc_buf, threshold, angle, remove_offset):
         """
         This method converts the raw I/Q data to single shots according to the threshold and rotation angle
 
         Parameters
         ----------
-        d_buf : list of ndarray
+        acc_buf : list of ndarray
             Raw IQ data
         threshold : float or list of float
             The threshold(s) to apply to the I values after rotation.
@@ -1862,7 +1887,7 @@ class AcquireMixin:
 
         shots = []
         for i_ch, (ro_ch, ro) in enumerate(self.ro_chs.items()):
-            avg = d_buf[i_ch]/ro['length']
+            avg = acc_buf[i_ch]/ro['length']
             if remove_offset:
                 offset = self.soccfg['readouts'][ro_ch]['iq_offset']
                 avg -= offset
@@ -2032,7 +2057,7 @@ class AcquireMixin:
         # for each soft average, run and acquire decimated data
         for ii in tqdm(range(soft_avgs), disable=not progress):
             # buffer for accumulated data (for convenience/debug)
-            self.d_buf = []
+            self.acc_buf = []
 
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
@@ -2054,7 +2079,7 @@ class AcquireMixin:
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 dec_buf[ii] += obtain(soc.get_decimated(ch=ch,
                                     address=0, length=ro['length']*ro['trigs']*total_count))
-                self.d_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
+                self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
 
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
 
