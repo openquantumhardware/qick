@@ -1,8 +1,7 @@
 QICK quick-start guide
 ======================
 
-**Have questions? Contact us through any of the channels listed
-on `the main README <https://github.com/openquantumhardware/qick/blob/main/README.md>`_.**
+**Have questions? Contact us through any of the channels listed on** `the main README <https://github.com/openquantumhardware/qick/blob/main/README.md>`_ **.**
 
 This guide will show you how to set up QICK after configuring your
 computer and RFSoC board on a local area network (LAN). By the end of
@@ -591,9 +590,11 @@ this password.**
 Choose the strength and style (random characters, random words, etc.) of
 the password based on what is natural to you and your lab group, how
 secure you need your RFSoC to be, and how dangerous the network
-environment is. You should store the password in a secure and resilient
+environment is.
+A password manager or password generator can help with generating a high-quality password.
+You should store the password in a secure and resilient
 way; again this will depend on how your lab group operates, but could
-mean a lab notebook or a file on a secure shared disk.
+mean a lab notebook, a file on a secure shared disk, or a password manager.
 
 -  Choose a new password and make a record of it.
 -  Log in via SSH using the ``xilinx`` username and that account’s
