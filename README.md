@@ -5,25 +5,23 @@
 
 # QICK: Quantum Instrumentation Control Kit
 
-The QICK is a kit of firmware and software to use the Xilinx RFSoC to control quantum systems.
+QICK is an open-source qubit controller, consisting of firmware, software, and an optional frontend for use with Xilinx RFSoC development boards.
+The goal of the project is to provide a powerful, flexible, cost-effective, and easy-to-learn platform for control and readout of a diverse range of quantum systems.
+
+QICK supports the ZCU111, ZCU216, and RFSoC4x2 development boards.
+We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
 
 It consists of:
-* Firmware for the ZCU111, ZCU216, and RFSoC4x2 evaluation boards. We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
+* Firmware for the supported RFSoC boards, both compiled bitstreams and source for the designs and modules
 * The `qick` Python package, which includes the interface to the firmware and an API for writing QICK programs
+* [Jupyter notebooks](qick_demos) demonstrating usage
 * [Documentation](https://qick-docs.readthedocs.io/) of the firmware and software
-* [A quick start guide](quick_start) for setting up your board and running a Jupyter notebook example
-* [Jupyter notebook examples](qick_demos) demonstrating usage
 
-Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
-* [IEEE Quantum Week 2023](https://github.com/openquantumhardware/QCE2023_public)
-* [US QIS Summer School 2024](https://github.com/openquantumhardware/QIS_SummerSchool_2024)
-* [IEEE Quantum Week 2024](https://github.com/openquantumhardware/QCE2024)
+## Getting started
 
-Note: The firmware and software here is still very much a work in progress. This is an alpha release. We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
+Follow the [quick start guide](https://qick-docs.readthedocs.io/latest/quick_start.html) for setting up your board and running the example Jupyter notebooks.
 
-## Download and installation
-
-Follow the quick start guide located [here](quick_start) to set up your board, install `qick` on your board, and run a Jupyter notebook example.
+## Extensions to QICK
 
 If you want your board's state to persist between notebooks or scripts, you should install Pyro4 on your board and run QICK in a Pyro server: [Pyro demo](pyro4/00_nameserver.ipynb)
 
@@ -31,18 +29,14 @@ If you would like to save the instrument configuration for every measurement usi
 
 If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in [QICK-DAWG](https://github.com/sandialabs/qick-dawg) which extends QICK with pulses and measurement programs specific to that application.
 
-## Documentation and support
-
-The API documentation for QICK is available at: https://qick-docs.readthedocs.io/
-
-The [demo notebooks](qick_demos) are intended as a tutorial.
-The first demos explain important features of the QICK system and walk you through how to write working QICK programs.
-The later demos provide examples of useful measurements you might make with the QICK.
-We recommend that new users read and understand all of the demos.
+## Getting help
 
 See [SUPPORT.md](.github/SUPPORT.md) for ways to get help from developers and the community.
 
 ## Updates
+
+The QICK firmware and software is still very much a work in progress.
+We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
 Frequent updates to the QICK firmware and software are made as pull requests.
 Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
@@ -69,7 +63,7 @@ You are welcome to contribute to QICK development by forking this repository and
 
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
-We welcome comments, bug reports, and feature requests via GitHub Issues.
+We welcome bug reports and feature requests via GitHub Issues.
 
 Find us on the [Unitary Fund Discord](http://discord.unitary.fund/): chat with us in the #qick channel or the [weekly office hours](https://www.addevent.com/event/lw18055508).
 

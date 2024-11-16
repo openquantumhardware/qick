@@ -12,6 +12,8 @@
    cheatsheet
    firmware
 
+   contact
+
 Welcome to the QICK documentation!
 =================================================
 
@@ -36,19 +38,30 @@ Getting started with QICK
 
 * If you have an RFSoC board and you want to configure it as a QICK board, follow :doc:`our quick start guide </quick_start>`.
 
-* After you configure your board, you can test it with `our library of loopback demos <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_. You can also check out `our library of oscilloscope and loopback demos made for our tutorial at IEEE Quantum Week 2023 <https://github.com/openquantumhardware/QCE2023_public>`_.
+* After you configure your board, you can test it with `our demo notebooks <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_.
+  These are intended as a tutorial.
+  The first demos explain important features of the QICK system and walk you through how to write working QICK programs.
+  The later demos provide examples of useful measurements you might make with the QICK.
+  We recommend that new users read and understand all of the demos.
 
-Getting help
+More examples and resources
+---------------------------
+
+Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
+
+* `IEEE Quantum Week 2023 <https://github.com/openquantumhardware/QCE2023_public>`_
+* `US QIS Summer School 2024 <https://github.com/openquantumhardware/QIS_SummerSchool_2024>`_
+* `IEEE Quantum Week 2024 <https://github.com/openquantumhardware/QCE2024>`_
+
+Talk to us
 ------------
 
-* Chat with us in the #qick channel on the `Unitary Fund Discord <http://discord.unitary.fund/>`_.
+You can get in touch with the QICK core team and the user community through our :doc:`community contact channels </contact>`.
 
 QICK software
 -------------
 
-Source code: `qick/qick_lib <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_
-
-:doc:`API documentation </modules>`
+`Source code <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_ and :doc:`API documentation </modules>`
 
 :doc:`/cheatsheet`
 
@@ -58,12 +71,6 @@ QICK firmware
 Source code and instructions for compiling it yourself: `qick/firmware <https://github.com/openquantumhardware/qick/tree/main/firmware>`_
 
 :doc:`/firmware`
-
-You also may want to learn more about how the QICK tProcessor works.
-In this case, you can reference the `QICK assembly language documentation <https://github.com/openquantumhardware/qick/blob/main/firmware/tProcessor_64_and_Signal_Generator_V4.pdf>`_.
-Note that this documentation is not up to date with the current version of the QICK tProcessor.
-It is made available here as a learning tool for those interested in learning the principles of the tProcessor.
-Those who have more specific questions can contact us.
 
 QICK papers
 -------------
