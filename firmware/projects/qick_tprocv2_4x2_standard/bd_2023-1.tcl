@@ -125,7 +125,7 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_intc:4.1\
-user.org:user:axis_avg_buffer:1.0\
+user.org:user:axis_avg_buffer:1.1\
 user.org:user:axis_cdcsync_v1:1.0\
 user.org:user:axis_dyn_readout_v1:1.0\
 user.org:user:axis_register_slice_nb:1.0\
@@ -368,7 +368,7 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_0 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {14} \
@@ -376,7 +376,7 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_1 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {14} \

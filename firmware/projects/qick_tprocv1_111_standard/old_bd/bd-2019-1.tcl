@@ -135,7 +135,7 @@ xilinx.com:ip:axi_bram_ctrl:4.1\
 xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:smartconnect:1.0\
-user.org:user:axis_avg_buffer:1.0\
+user.org:user:axis_avg_buffer:1.1\
 xilinx.com:ip:axis_clock_converter:1.1\
 user.org:user:axis_constant:1.0\
 user.org:user:axis_readout_v2:1.0\
@@ -332,10 +332,10 @@ proc create_root_design { parentCell } {
  ] $axi_smc
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_0 ]
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_1 ]
 
   # Create instance: axis_clk_cnvrt_avg_0, and set properties
   set axis_clk_cnvrt_avg_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_clock_converter:1.1 axis_clk_cnvrt_avg_0 ]

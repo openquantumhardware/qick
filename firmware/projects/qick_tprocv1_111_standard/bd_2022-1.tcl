@@ -136,7 +136,7 @@ xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:axi_intc:4.1\
 xilinx.com:ip:smartconnect:1.0\
-user.org:user:axis_avg_buffer:1.0\
+user.org:user:axis_avg_buffer:1.1\
 xilinx.com:ip:axis_broadcaster:1.1\
 user.org:user:axis_buffer_ddr_v1:1.0\
 user.org:user:axis_cdcsync_v1:1.0\
@@ -376,13 +376,13 @@ proc create_root_design { parentCell } {
  ] $axi_smc_1
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_0 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
  ] $axis_avg_buffer_0
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.0 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_1 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
  ] $axis_avg_buffer_1
