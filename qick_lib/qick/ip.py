@@ -173,6 +173,9 @@ class QickMetadata:
     def mod2rev(self, blockname):
         return self.busparser.mod2rev[blockname]
 
+    def mod2version(self, blockname):
+        return self.busparser.mod2version[blockname]
+
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
         Raise an error if none of the requested IP types is found.
@@ -285,10 +288,12 @@ class BusParser:
         self.pins = {}
         self.mod2type = {}
         self.mod2rev = {}
+        self.mod2version = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
             self.mod2rev[fullpath] = int(module.get('COREREVISION'))
+            self.mod2version[fullpath] = module.get('HWVERSION')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')

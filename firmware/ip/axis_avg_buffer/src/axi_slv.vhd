@@ -46,6 +46,9 @@ entity axi_slv is
 		AVG_START_REG	: out std_logic;
 		AVG_ADDR_REG	: out std_logic_vector (31 downto 0);
 		AVG_LEN_REG		: out std_logic_vector (31 downto 0);
+		AVG_PHOTON_MODE_REG : out std_logic;
+		AVG_H_THRSH_REG : out std_logic_vector (31 downto 0);
+		AVG_L_THRSH_REG : out std_logic_vector (31 downto 0);
 		AVG_DR_START_REG: out std_logic;
 		AVG_DR_ADDR_REG	: out std_logic_vector (31 downto 0);
 		AVG_DR_LEN_REG	: out std_logic_vector (31 downto 0);
@@ -529,6 +532,9 @@ begin
 	BUF_DR_START_REG	<= slv_reg9(0);
 	BUF_DR_ADDR_REG		<= slv_reg10;
 	BUF_DR_LEN_REG		<= slv_reg11;
+	AVG_PHOTON_MODE_REG <= slv_reg12(0);
+	AVG_H_THRSH_REG     <= slv_reg13;
+	AVG_L_THRSH_REG     <= slv_reg14;
 
 end rtl;
 

@@ -31,7 +31,10 @@ module avg_top (
 	AVG_LEN_REG		,
 	DR_START_REG	,
 	DR_ADDR_REG		,
-	DR_LEN_REG
+	DR_LEN_REG      ,
+	AVG_PHOTON_MODE_REG ,
+	AVG_H_THRSH_REG     ,
+	AVG_L_THRSH_REG
 	);
 
 ////////////////
@@ -72,6 +75,9 @@ input	[31:0]		AVG_LEN_REG;
 input				DR_START_REG;
 input	[N-1:0]		DR_ADDR_REG;
 input	[N-1:0]		DR_LEN_REG;
+input               AVG_PHOTON_MODE_REG;
+input   [B-1:0]     AVG_H_THRSH_REG;
+input   [B-1:0]     AVG_L_THRSH_REG;
 
 //////////////////////
 // Internal signals //
@@ -140,7 +146,10 @@ avg
 		// Registers.
 		.START_REG		(AVG_START_REG_resync	),
 		.ADDR_REG		(AVG_ADDR_REG			),
-		.LEN_REG		(AVG_LEN_REG			)
+		.LEN_REG		(AVG_LEN_REG			),
+		.PHOTON_MODE_REG (AVG_PHOTON_MODE_REG),
+		.H_THRSH_REG (AVG_H_THRSH_REG       ),
+		.L_THRSH_REG (AVG_L_THRSH_REG       )
 	);
 
 // Dual port BRAM.
