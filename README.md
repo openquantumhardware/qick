@@ -15,23 +15,12 @@ It consists of:
 * Firmware for the supported RFSoC boards, both compiled bitstreams and source for the designs and modules
 * The `qick` Python package, which includes the interface to the firmware and an API for writing QICK programs
 * [Jupyter notebooks](qick_demos) demonstrating usage
-* [Documentation](https://qick-docs.readthedocs.io/) of the firmware and software
 
-## Getting started
-
-Follow the [quick start guide](https://qick-docs.readthedocs.io/latest/quick_start.html) for setting up your board and running the example Jupyter notebooks.
-
-## Extensions to QICK
-
-If you want your board's state to persist between notebooks or scripts, you should install Pyro4 on your board and run QICK in a Pyro server: [Pyro demo](pyro4/00_nameserver.ipynb)
-
-If you would like to save the instrument configuration for every measurement using [QCoDeS](https://microsoft.github.io/Qcodes/), you can also install [this QCoDeS driver](https://github.com/aalto-qcd/qcodes_qick).
-
-If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in [QICK-DAWG](https://github.com/sandialabs/qick-dawg) which extends QICK with pulses and measurement programs specific to that application.
-
-## Getting help
-
-See [SUPPORT.md](.github/SUPPORT.md) for ways to get help from developers and the community.
+See our [Read the Docs site](https://qick-docs.readthedocs.io/) for:
+* Documentation of the firmware and software
+* A quick-start guide for setting up your board and running the example Jupyter notebooks
+* Ways to communicate with QICK developers and the community
+* Extensions to QICK for added functionailty
 
 ## Updates
 
@@ -64,8 +53,6 @@ You are welcome to contribute to QICK development by forking this repository and
 All contributions are expected to be consistent with [PEP 8 -- Style Guide for Python Code](https://www.python.org/dev/peps/pep-0008/).
 
 We welcome bug reports and feature requests via GitHub Issues.
-
-Find us on the [Unitary Fund Discord](http://discord.unitary.fund/): chat with us in the #qick channel or the [weekly office hours](https://www.addevent.com/event/lw18055508).
 
 ## License
 

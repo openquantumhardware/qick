@@ -742,4 +742,12 @@ Copy data off of your RFSoC and onto your personal computer
 -  Now the ``quick_start_demo`` directory has been copied to your local
    directory.
 
+Next steps
+----------
+
+-  You should work through the demo notebooks in ``qick_demos`` to learn how QICK works and see some example programs for making measurements with QICK.
+-  It's recommended, but not essential, to set up Pyro4 to allow the firmware state to persist between notebooks or scripts.
+   The demo notebooks (and QICK in general) can be used with or without Pyro4.
+   See the `Pyro4 demo notebooks <https://github.com/openquantumhardware/qick/blob/main/pyro4/00_nameserver.ipynb>`_ for more information.
+
 **Hopefully this guide was a helpful introduction to QICK!**

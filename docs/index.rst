@@ -72,6 +72,15 @@ Source code and instructions for compiling it yourself: `qick/firmware <https://
 
 :doc:`/firmware`
 
+Extensions beyond the core software and firmware
+------------------------------------------------
+
+If you want your board's state to persist between notebooks or scripts, you should install Pyro4 on your board and run QICK in a Pyro server: see `our Pyro4 demo notebooks <https://github.com/openquantumhardware/qick/blob/main/pyro4/00_nameserver.ipynb>`_
+
+If you would like to save the instrument configuration for every measurement using `QCoDeS <https://microsoft.github.io/Qcodes/>`_, you can also install `this QCoDeS driver <https://github.com/aalto-qcd/qcodes_qick>`_.
+
+If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in `QICK-DAWG <https://github.com/sandialabs/qick-dawg>`_ which extends QICK with pulses and measurement programs specific to that application.
+
 QICK papers
 -------------
 
