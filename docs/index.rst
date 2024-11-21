@@ -9,7 +9,7 @@
 
    quick_start
    modules
-   cheatsheet
+   topics
    firmware
 
    contact
@@ -28,8 +28,7 @@ Welcome to the QICK documentation!
 The Quantum Instrumentation Control Kit (QICK for short) is a Xilinx RFSoC-based qubit controller which supports the direct synthesis of control and readout pulses.
 The QICK consists of a digital board hosting an RFSoC (RF System-on-Chip) FPGA, custom firmware and software, and an optional companion custom-designed analog front-end board.
 All of the schematics, firmware, and software are open-source and available on `Github <https://github.com/openquantumhardware/qick>`_.
-Our team primarily supports the ZCU111, ZCU216, and RFSoC4x2 evaluation boards.
-We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
+We fully support the ZCU111, ZCU216, and RFSoC4x2 evaluation boards, and generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
 
 Getting started with QICK
 -------------------------
@@ -63,7 +62,7 @@ QICK software
 
 `Source code <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_ and :doc:`API documentation </modules>`
 
-:doc:`/cheatsheet`
+:doc:`/topics`
 
 QICK firmware
 -------------

@@ -1,5 +1,5 @@
-QICK firmware
-=================================================
+Firmware
+========
 
 This system includes the following components:
 
