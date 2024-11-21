@@ -66,7 +66,7 @@ Timing
 * Every generator contains a timed FIFO queue.
   There is only one master clock time `t_master`, which is shared by all timed queues.
 
-  * Treat :meth:`~qick.qick_asm.QickProgram.trigger` as a generator channel, i.e. equivalent to :meth:`~qick.qick_asm.QickProgram.pulse` in terms of clocks.
+  * Treat :meth:`.QickProgram.trigger` as a generator channel, i.e. equivalent to :meth:`.QickProgram.pulse` in terms of clocks.
 
 * The tproc executes commands as soon as possible, meaning it has no concept of the master time (aside from wait commands, explained later).
   It only cares about what point it is at in your code.
@@ -91,14 +91,14 @@ Timing
 
   * ``waiti(t)`` is the generic form of wait, which pauses the tproc until the master clock time equals ``t_off + t``. Note ``waiti`` has a channel argument, but the channel argument does nothing!
 
-  * :meth:`~qick.qick_asm.QickProgram.wait_all` calculates the end of all readout pulses and waits until that time + ``t``.
+  * :meth:`.QickProgram.wait_all` calculates the end of all readout pulses and waits until that time + ``t``.
 
 * sync commands increment the master time offset (used by all gen channels).
   The effect is to push back the play time of subsequent commands by that increment.
 
   * ``sync_i(t)`` is the generic form of sync.
 
-  * The safer version :meth:`~qick.qick_asm.QickProgram.sync_all` calculates the end of the last pulse played + ``t``, and sets the master time offset to that value.
+  * The safer version :meth:`.QickProgram.sync_all` calculates the end of the last pulse played + ``t``, and sets the master time offset to that value.
 
 
 
