@@ -1,5 +1,5 @@
-QICK firmware
-=================================================
+Firmware
+========
 
 This system includes the following components:
 
@@ -18,8 +18,17 @@ The readout block is actually built around two IPs: readout and average + buffer
    :width: 100%
    :align: center
 
+The tProcessor
+--------------
+
+You also may want to learn more about how the QICK tProcessor works.
+In this case, you can reference the `QICK assembly language documentation <https://github.com/openquantumhardware/qick/blob/main/firmware/tProcessor_64_and_Signal_Generator_V4.pdf>`_.
+Note that this documentation is not up to date with the current version of the QICK tProcessor.
+It is made available here as a learning tool for those interested in learning the principles of the tProcessor.
+Those who have more specific questions can contact us.
+
 tProcessor channel assignment
-#############################
+-----------------------------
 
 tProcessor will be used to control the real-time operation of the experiment. Output channels (AXIS MASTER) of the tProcessor are assigned as follows:
 
@@ -32,22 +41,29 @@ tProcessor will be used to control the real-time operation of the experiment. Ou
 - Channel 6 : connected to Signal Generator V4, which drives DAC 229 CH2.
 - Channel 7 : connected to Signal Generator V4, which drives DAC 229 CH3.
 
+**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: DAC 229 channels 0 and 1 are high pass filtered by a 1 GHz high pass filter, so ensure that signals coming out of channels 4 and 5 are at least 1 GHz. Also, DAC 229 channels 2 and 3 are low pass filtered by a 1 GHz low pass filter, so ensure that signals coming out of channels 6 and 7 are less than 1 GHz. DAC 228 channels 0, 1 and 2 are not filtered by the XM500 daughter board.
+
 The updated version of the tProcessor has 4 input (AXIS SLAVE) channels, which can be used for feedback. These are 64-bit, and the updated ``read`` instruction can specify channel number and upper/lower 32-bits to be read and written into an internal register. See example below on how to use this new capability.
 
 * Channel 0 : connected to readout 0, which is driven by ADC 224 CH0
 * Channel 1 : connected to readout 1, which is driven by ADC 224 CH1
+
+**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: ADC 224 channels 0 and 1 are low pass filtered by a 1 GHz low pass filter, so ensure that the signal coming into your XM500 board is less than 1 GHz so that it can be read in properly. 
 
 Signal Generators are organized on the array ``soc.gens``, which is composed of 7 instances. Array index 0 is connected to tProcessor Channel 1, array index 1 is connected to tProcessor Channel 2, and so on. As way of example, let's assume the user needs to create a pulse on DAC 229 CH1 and DAC 229 CH3. These are connected to Channels 5, and 7 or the tProcessor, respectively. However, let's also assume that a gaussian envelope needs to be uploaded into the corresponding signal generator. ``soc.gens[3]`` drives DAC 229 CH1, and ``soc.gens[6]`` drives DAC 229 CH3.
 
 Similarly, average and buffer inputs blocks are organized on ``soc.avg_bufs`` array, which has two instances of the Average + Buffer block. The user can access them using index 0 and 1.
 
 Timing
-########
+------
 
 The clock frequency of the FPGA is 384 MHz. Therefore, each clock cycle has a period of 2.6 ns.
 
+The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed is ``384*8 MHz`` but then the signal is decimated by a factor of ``8`` (resolution ``~2.6 ns``). The minimum DAC pulse length is 16 samples but if you want shorter pulses than that you can pad that pulse with zeros.
+
+
 Firmware parameters
-###################
+-------------------
 
 * Pulse memory length: 65536 per channel x2 (I,Q), i.e., 128k total
 * Decimated ADC buffer length: 1024 samples per component (I,Q), 2k total

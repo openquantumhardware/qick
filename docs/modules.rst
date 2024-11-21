@@ -1,5 +1,5 @@
-QICK software library
-=====================
+Software API
+============
 
 .. autosummary::
    :toctree: _autosummary
