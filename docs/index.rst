@@ -9,7 +9,7 @@
 
    quick_start
    modules
-   topics
+   topics/index
    firmware
 
    contact
@@ -62,7 +62,7 @@ QICK software
 
 `Source code <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_ and :doc:`API documentation </modules>`
 
-:doc:`/topics`
+:doc:`/topics/index`
 
 QICK firmware
 -------------

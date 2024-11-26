@@ -49,6 +49,7 @@ extensions = [
     ## Include autosymmary
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
+    'sphinx.ext.extlinks',
 ]
 
 ## Include Python objects as they appear in source files
@@ -337,6 +338,10 @@ texinfo_documents = [
 intersphinx_mapping = {'python': ('https://docs.python.org/3.7', None),
         'pynq': ('https://pynq.readthedocs.io/en/v2.7.0', None)}
 
+extlinks = {'repofile': ('https://github.com/openquantumhardware/qick/blob/main/%s',
+                         '%s')}
+
+extlinks_detect_hardcoded_links = True
 
 def setup(app):
     app.add_css_file("custom.css" )
