@@ -343,5 +343,8 @@ extlinks = {'repofile': ('https://github.com/openquantumhardware/qick/blob/main/
 
 extlinks_detect_hardcoded_links = True
 
+linkcheck_ignore = [r'^https://blogs.keysight.com/', # gives 403 error
+                    ]
+
 def setup(app):
     app.add_css_file("custom.css" )
