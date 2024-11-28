@@ -278,14 +278,14 @@ class QickConfig():
 
         Parameters
         ----------
-        f : float or array
+        f : float or numpy.ndarray
             frequency (MHz)
         dicts : list of dict
             config dict for the channels
 
         Returns
         -------
-        float or array
+        float or numpy.ndarray
             rounded frequency (MHz)
         """
         fstep = self.calc_fstep(dicts)
@@ -1298,10 +1298,10 @@ class AbsQickProgram(ABC):
             generator channel (index in 'gens' list)
         name : str
             Name of the pulse
-        idata : array
-            I data Numpy array
-        qdata : array
-            Q data Numpy array
+        idata : numpy.ndarray
+            I data
+        qdata : numpy.ndarray
+            Q data
 
         """
         gencfg = self.soccfg['gens'][ch]
@@ -1505,7 +1505,7 @@ class AbsQickProgram(ABC):
 
         Parameters
         ----------
-        soc : Qick object
+        soc : QickSoc
             Qick object
 
         """
@@ -1666,7 +1666,7 @@ class AcquireMixin:
 
         Returns
         -------
-        list of ndarray
+        list of numpy.ndarray
             Array of I/Q values for each readout channel.
         """
         return self.acc_buf
@@ -1676,7 +1676,7 @@ class AcquireMixin:
 
         Returns
         -------
-        list of ndarray
+        list of numpy.ndarray
             Array of shots for each readout channel.
         """
         return self.shots
@@ -1712,7 +1712,7 @@ class AcquireMixin:
 
         Returns
         -------
-        ndarray
+        numpy.ndarray
             averaged IQ values (float)
             divided by the length of the RO window, and averaged over reps and rounds
             if threshold is defined, the I values will be the fraction of points over threshold
@@ -1852,7 +1852,7 @@ class AcquireMixin:
 
         Parameters
         ----------
-        acc_buf : list of ndarray
+        acc_buf : list of numpy.ndarray
             Raw IQ data
         threshold : float or list of float
             The threshold(s) to apply to the I values after rotation.
@@ -1869,7 +1869,7 @@ class AcquireMixin:
 
         Returns
         -------
-        list of ndarray
+        list of numpy.ndarray
             Single shot data
 
         """
@@ -1909,7 +1909,7 @@ class AcquireMixin:
 
         Returns
         -------
-        ndarray of float, or int
+        numpy.ndarray of float, or int
             An array starting at 0 and spaced by the time (in us) per decimated sample.
             If length_only=True, an int is returned.
         """
@@ -1925,12 +1925,12 @@ class AcquireMixin:
         ----------
         ro_ch : int
             readout channel (index in 'readouts' list)
-        data : ndarray
+        data : numpy.ndarray
             DDR4 data array, the returned array will have the same length.
 
         Returns
         -------
-        ndarray of float
+        numpy.ndarray of float
             An array starting at 0 and spaced by the time (in us) per decimated sample.
         """
         return self.soccfg.cycles2us(ro_ch=ro_ch, cycles=np.arange(data.shape[0]))
@@ -1942,12 +1942,12 @@ class AcquireMixin:
         ----------
         ro_ch : int
             readout channel (index in 'readouts' list)
-        data : ndarray
+        data : numpy.ndarray
             MR data array, the returned array will have the same length.
 
         Returns
         -------
-        ndarray of float
+        numpy.ndarray of float
             An array starting at 0 and spaced by the time (in us) per MR sample.
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
@@ -2028,7 +2028,7 @@ class AcquireMixin:
 
         Returns
         -------
-        list of ndarray
+        list of numpy.ndarray
             decimated values, averaged over rounds (float)
             dimensions for a single-rep, single-read program : (length, 2)
             multi-rep or multi-read: (n_reps*n_reads, length, 2)

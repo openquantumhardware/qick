@@ -701,10 +701,10 @@ class QickProgram(AbsQickProgram):
             generator channel (index in 'gens' list)
         name : str
             Name of the pulse
-        idata : array
-            I data Numpy array
-        qdata : array
-            Q data Numpy array
+        idata : numpy.ndarray
+            I data, 16-bit
+        qdata : numpy.ndarray
+            Q data, 16-bit
 
         """
         self.add_envelope(ch=ch, name=name, idata=idata, qdata=qdata)

@@ -186,7 +186,7 @@ class AxisTProc64x32_x8(SocIp):
         Sets the start source of tProc
 
         :param src: start source "internal" or "external"
-        :type src: string
+        :type src: str
         """
         # set internal-start register to "init"
         # otherwise we might start the tProc on a transition from external to internal start
@@ -586,7 +586,7 @@ class Axis_QICK_Proc(SocIp):
         ----------
         mem_sel : str
             "pmem", "dmem", "wmem"
-        buff_in : array
+        buff_in : numpy.ndarray
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         addr : int
@@ -633,7 +633,7 @@ class Axis_QICK_Proc(SocIp):
 
         Returns
         -------
-        array
+        numpy.ndarray
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:

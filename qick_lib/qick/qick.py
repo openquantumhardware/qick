@@ -644,7 +644,7 @@ class QickSoc(Overlay, QickConfig):
         :param length: Buffer transfer length
         :type length: int
         :return: List of I and Q decimated arrays
-        :rtype: list
+        :rtype: list of numpy.ndarray
         """
         if length is None:
             # this default will always cause a RuntimeError
@@ -759,7 +759,7 @@ class QickSoc(Overlay, QickConfig):
         :param ch: Channel
         :type ch: int
         :param data: array of (I, Q) values for pulse envelope
-        :type data: int16 array
+        :type data: numpy.ndarray of int16
         :param addr: address to start data at
         :type addr: int
         """
@@ -866,7 +866,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        binprog : array or dict
+        binprog : numpy.ndarray or dict
             compiled program (format depends on tProc version)
         load_mem : bool
             write waveform and data memory now (can do this later with reload_mem())
@@ -887,7 +887,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        buff_in : array
+        buff_in : numpy.ndarray of int
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         mem_sel : str
@@ -920,7 +920,7 @@ class QickSoc(Overlay, QickConfig):
 
         Returns
         -------
-        array
+        numpy.ndarray
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         """
         if self.TPROC_VERSION == 1:
@@ -936,7 +936,7 @@ class QickSoc(Overlay, QickConfig):
         Sets the start source of tProc
 
         :param src: start source "internal" or "external"
-        :type src: string
+        :type src: str
         """
         if self.TPROC_VERSION == 1:
             self.tproc.start_src(src)

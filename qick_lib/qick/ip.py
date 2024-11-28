@@ -114,9 +114,9 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: string
+        :type blockname: str
         :param portname: the port we want to trace
-        :type portname: string
+        :type portname: str
 
         :return: a list of [block, port] pairs, or just [port] for ports of the top-level design
         :rtype: list
@@ -135,9 +135,9 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: string
+        :type blockname: str
         :param portname: the port we want to trace
-        :type portname: string
+        :type portname: str
 
         :return: frequency in MHz
         :rtype: float
@@ -153,12 +153,12 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: string
+        :type blockname: str
         :param parname: the parameter of interest
-        :type parname: string
+        :type parname: str
 
         :return: parameter value
-        :rtype: string
+        :rtype: str
         """
         xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PARAMETERS/PARAMETER[@NAME='{1}']".format(
             blockname, parname)

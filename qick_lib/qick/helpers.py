@@ -10,12 +10,12 @@ from collections import OrderedDict
 def to_int(val, scale, quantize=1, parname=None, trunc=False):
     """Convert a parameter value from user units to ASM units.
     Normally this means converting from float to int.
-    For the v2 tProcessor this can also convert QickSweep to QickSweepRaw.
+    For the v2 tProcessor this can also convert QickParam to QickRawParam.
     To avoid overflow, values are rounded towards zero using np.trunc().
 
     Parameters
     ----------
-    val : float or QickSweep
+    val : float or QickParam
         parameter value or sweep range
     scale : float
         conversion factor
@@ -28,7 +28,7 @@ def to_int(val, scale, quantize=1, parname=None, trunc=False):
 
     Returns
     -------
-    int or QickSweepRaw
+    int or QickRawParam
         ASM value
     """
     if hasattr(val, 'to_int'):
@@ -69,7 +69,7 @@ def cosine(length=100, maxv=30000):
     :param maxv: Maximum amplitude of cosine flattop function
     :type maxv: float
     :return: Numpy array containing a cosine flattop function
-    :rtype: array
+    :rtype: numpy.ndarray
     """
     x = np.linspace(0,2*np.pi,length)
     y = maxv*(1-np.cos(x))/2
@@ -89,7 +89,7 @@ def gauss(mu=0, si=25, length=100, maxv=30000):
     :param maxv: Maximum amplitude of Gaussian
     :type maxv: float
     :return: Numpy array containing a Gaussian function
-    :rtype: array
+    :rtype: numpy.ndarray
     """
     x = np.arange(0, length)
     y = maxv * np.exp(-(x-mu)**2/(2*si**2))
@@ -114,7 +114,7 @@ def DRAG(mu, si, length, maxv, delta, alpha):
     :param alpha: alpha parameter of DRAG (order-1 scale factor)
     :type alpha: float
     :return: Numpy array with I and Q components of the DRAG pulse
-    :rtype: array, array
+    :rtype: numpy.ndarray, numpy.ndarray
     """
     x = np.arange(0, length)
     gaus = maxv * np.exp(-(x-mu)**2/(2*si**2))
@@ -134,7 +134,7 @@ def triang(length=100, maxv=30000):
     :param maxv: Maximum amplitude of triangle function
     :type maxv: float
     :return: Numpy array containing a triangle function
-    :rtype: array
+    :rtype: numpy.ndarray
     """
     y = np.zeros(length)
 
@@ -192,7 +192,7 @@ def json2progs(s):
 
     Parameters
     ----------
-    s : file-like object or string
+    s : file-like object or str
         A JSON file or JSON string.
 
     Returns
