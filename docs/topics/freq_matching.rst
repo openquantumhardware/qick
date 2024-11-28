@@ -6,8 +6,8 @@ If they are not, there will be a small difference between the upconversion and d
 
 There are two ways to ensure frequency matching:
 
-* When converting a frequency to an integer value (often with :meth:`QickConfig.freq2reg()` or :meth:`AbsQickProgram.declare_readout()`), specify not only the channel you are configuring, but the channel you want to be frequency-matched to.
-* Before doing any conversion, round the frequency to the closest frequency that is valid on both channels using :meth:`QickConfig.adcfreq()`.
+* When converting a frequency to an integer value (often with :meth:`.QickConfig.freq2reg()` or :meth:`.AbsQickProgram.declare_readout()`), specify not only the channel you are configuring, but the channel you want to be frequency-matched to.
+* Before doing any conversion, round the frequency to the closest frequency that is valid on both channels using :meth:`.QickConfig.adcfreq()`.
 
 Frequency-matching makes your frequency resolution worse, since the smallest possible frequency step is now the LCM of the two channels' frequency steps.
 Usually this doesn't matter - O(10 Hz) resolution is ample for most applications - but you can disable frequency-matching by specifying None as the other channel.
