@@ -11,7 +11,7 @@ class AveragerProgram(AcquireProgram):
     AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
     It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
-    :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
+    :param soccfg: This can be either a QickSoc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
     :type soccfg: QickConfig
     :param cfg: Configuration dictionary
     :type cfg: dict
@@ -80,7 +80,7 @@ class AveragerProgram(AcquireProgram):
         "reps" = number of repetitions;
 
         :param soc: Qick object
-        :type soc: Qick object
+        :type soc: QickSoc
         :param threshold: threshold
         :type threshold: int
         :param angle: rotation angle
@@ -92,7 +92,7 @@ class AveragerProgram(AcquireProgram):
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        :type start_src: string
+        :type start_src: str
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -144,13 +144,13 @@ class AveragerProgram(AcquireProgram):
         3D array with dimensions (reps, expts, 2, length), indices (rep, expt, I/Q, sample)
 
         :param soc: Qick object
-        :type soc: Qick object
+        :type soc: QickSoc
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param readouts_per_experiment: readouts per experiment (all will be saved)
         :type readouts_per_experiment: int
         :param start_src: "internal" (tProc starts immediately) or "external" (each soft_avg waits for an external trigger)
-        :type start_src: string
+        :type start_src: str
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -246,7 +246,7 @@ class RAveragerProgram(AcquireProgram):
         Method for calculating experiment points (for x-axis of plots) based on the config.
 
         :return: Numpy array of experiment points
-        :rtype: array
+        :rtype: numpy.ndarray
         """
         return self.cfg["start"]+np.arange(self.cfg["expts"])*self.cfg["step"]
 
@@ -257,7 +257,7 @@ class RAveragerProgram(AcquireProgram):
         "reps" = number of repetitions;
 
         :param soc: Qick object
-        :type soc: Qick object
+        :type soc: QickSoc
         :param threshold: threshold
         :type threshold: int
         :param angle: rotation angle
@@ -269,7 +269,7 @@ class RAveragerProgram(AcquireProgram):
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        :type start_src: string
+        :type start_src: str
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -319,7 +319,7 @@ class AbsQickSweep:
         self.label = label
         self.expts: int = None
 
-    def get_sweep_pts(self) -> Union[List, np.array]:
+    def get_sweep_pts(self) -> Union[List, np.ndarray]:
         """
         abstract method for getting the sweep values
         """

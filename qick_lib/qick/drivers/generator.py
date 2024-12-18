@@ -118,8 +118,8 @@ class AbsArbSignalGen(AbsSignalGen):
         """
         Load waveform into I,Q envelope
 
-        :param xin: array of (I, Q) values for pulse envelope
-        :type xin: int16 array
+        :param xin: array of 16-bit (I, Q) values for pulse envelope
+        :type xin: numpy.ndarray of int
         :param addr: starting address
         :type addr: int
         """

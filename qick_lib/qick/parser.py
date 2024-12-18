@@ -15,7 +15,7 @@ def parse_prog(file="prog.asm", outfmt="bin"):
     :param outfmt: Output format ("bin" or "hex")
     :type outfmt: str
     :return: Program in the new output format
-    :rtype: bin or hex
+    :rtype: dict[int,str]
     """
     # Output structure.
     outProg = {}
@@ -898,9 +898,9 @@ def load_program(soc, prog="prog.asm", fmt="asm"):
     :param soc: Qick to be programmed
     :type soc: QickSoc
     :param prog: program file name
-    :type prog: string
+    :type prog: str
     :param fmt: file format
-    :type fmt: string
+    :type fmt: str
     """
     # Binary file format.
     if fmt == "bin":

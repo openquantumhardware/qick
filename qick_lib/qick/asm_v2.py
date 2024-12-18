@@ -129,7 +129,7 @@ class QickParam:
 
         Returns
         -------
-        values : np.ndarray
+        values : numpy.ndarray
             Each dimension corresponds to a loop in loop_counts.
         """
         values = self.start
@@ -152,7 +152,7 @@ class QickParam:
 
         Returns
         -------
-        values : np.ndarray
+        values : numpy.ndarray
             Each dimension corresponds to a loop in loop_counts. The size of the dimension is 1 if the loop does not increment this QickParam.
         """
         rounded_param = self.get_rounded(loop_counts)
@@ -254,6 +254,9 @@ def QickSpan(loop, span):
     return QickParam(0.0, {loop: span})
 
 class SimpleClass:
+    """
+    """
+
     # if you print this class, it will print the attributes listed in self._fields
     def __repr__(self):
         # based on https://docs.python.org/3/library/types.html#types.SimpleNamespace
@@ -262,6 +265,9 @@ class SimpleClass:
 
 # ASM units, multi-dimension
 class QickRawParam(SimpleClass):
+    """
+    """
+
     _fields = ['par', 'start', 'spans', 'quantize', 'steps']
     def __init__(self, par: str, start: int, spans: Dict[str, int], quantize: int=1):
         # identifies the parameter being swept, so EndLoop can apply the sweep
@@ -1155,7 +1161,7 @@ class AsmV2:
         ----------
         addr : int or str
             Literal address, or name of register
-        src : int str
+        src : int or str
             Literal value, or name of source register
         """
         self.append_macro(WriteDmem(addr=addr, src=src))
@@ -1406,30 +1412,30 @@ class AbsRegisterManager(ABC):
         Parameters
         ----------
         outsel : str
-        Selects the output source. The output is complex. Tables define envelopes for I and Q.
-        The default is "product".
+            Selects the output source. The output is complex. Tables define envelopes for I and Q.
+            The default is "product".
 
-        * If "product", the output is the product of table and DDS.
+            * If "product", the output is the product of table and DDS.
 
-        * If "dds", the output is the DDS only.
+            * If "dds", the output is the DDS only.
 
-        * If "input", the output is from the table for the real part, and zeros for the imaginary part.
+            * If "input", the output is from the table for the real part, and zeros for the imaginary part.
 
-        * If "zero", the output is always zero.
+            * If "zero", the output is always zero.
 
         mode : str
-        Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
+            Selects whether the output is "oneshot" or "periodic". The default is "oneshot".
 
         stdysel : str
-        Selects what value is output continuously by the signal generator after the generation of a waveform.
-        The default is "zero".
+            Selects what value is output continuously by the signal generator after the generation of a waveform.
+            The default is "zero".
 
-        * If "last", it is the last calculated sample of the waveform.
+            * If "last", it is the last calculated sample of the waveform.
 
-        * If "zero", it is a zero value.
+            * If "zero", it is a zero value.
 
         phrst : int
-        If 1, it resets the phase coherent accumulator. The default is 0.
+            If 1, it resets the phase coherent accumulator. The default is 0.
 
         Returns
         -------
@@ -1921,7 +1927,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         Returns
         -------
-        ndarray of int32 or None
+        numpy.ndarray of int or None
             data to write
         """
         d_mem = None
@@ -2197,7 +2203,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         Returns
         -------
-        float, QickParam, or array
+        float, QickParam, or numpy.ndarray
             Parameter value
         """
         # if the parameter is swept, it's not fully defined until the loop macros have been processed
@@ -2253,7 +2259,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         Returns
         -------
-        float, QickParam, or array
+        float, QickParam or numpy.ndarray
             Parameter value
         """
         inst = self.time_dict[tag]

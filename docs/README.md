@@ -10,6 +10,10 @@ export READTHEDOCS=True
 make html
 ```
 
+If you want to build in nitpicky mode to generate warning for bad references, use `make html SPHINXOPTS='-n'`.
+
+To check validity of external links, use `make linkcheck`.
+
 Documentation
 -------------
 

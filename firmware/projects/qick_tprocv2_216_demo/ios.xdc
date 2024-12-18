@@ -32,3 +32,7 @@ set_property IOSTANDARD LVCMOS18 [get_ports PMOD1_1_LS]
 #set_property PACKAGE_PIN N16       [get_ports "PMOD1_7_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L1P_AD15P_88
 #set_property IOSTANDARD  LVCMOS18  [get_ports "PMOD1_7_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L1P_AD15P_88
 
+set_property PACKAGE_PIN G10       [get_ports CLK104_CLK_SPI_MUX_SEL_LS[0]] ;# Bank  89 VCCO - VCC1V8   - IO_L4N_AD8N_89
+set_property IOSTANDARD  LVCMOS18  [get_ports CLK104_CLK_SPI_MUX_SEL_LS[0]] ;# Bank  89 VCCO - VCC1V8   - IO_L4N_AD8N_89
+set_property PACKAGE_PIN H11       [get_ports CLK104_CLK_SPI_MUX_SEL_LS[1]] ;# Bank  89 VCCO - VCC1V8   - IO_L4P_AD8P_89
+set_property IOSTANDARD  LVCMOS18  [get_ports CLK104_CLK_SPI_MUX_SEL_LS[1]] ;# Bank  89 VCCO - VCC1V8   - IO_L4P_AD8P_89

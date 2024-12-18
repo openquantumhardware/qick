@@ -503,6 +503,9 @@ class spi(DefaultIP):
 # Parts are used in serial mode.
 # See schematics for Address/LE correspondance.
 class PE43705:
+    """
+    """
+
     address = 0
     nSteps = 2**7
     dbStep = 0.25
@@ -531,6 +534,8 @@ class PE43705:
 
 # GPIO chip MCP23S08.
 class MCP23S08:
+    """
+    """
     # Commands.
     cmd_wr = 0x40
     cmd_rd = 0x41
@@ -585,6 +590,8 @@ class MCP23S08:
 
 # LO Chip ADF4372.
 class ADF4372:
+    """
+    """
     # Reference input.
     f_REF_in = 122.88
 
@@ -732,6 +739,8 @@ class ADF4372:
 
 # BIAS DAC chip AD5781.
 class AD5781:
+    """
+    """
     # Commands.
     cmd_wr = 0x0
     cmd_rd = 0x1
@@ -799,6 +808,8 @@ class AD5781:
 
 # BIAS DAC chip DAC11001.
 class DAC11001:
+    """
+    """
     # Commands.
     cmd_wr = 0x0
     cmd_rd = 0x1
@@ -871,6 +882,8 @@ class DAC11001:
 
 # ADMV8818 Filter Chip.
 class ADMV8818:
+    """
+    """
     # Commands.
     cmd_wr = 0x00
     cmd_rd = 0x01
@@ -1016,6 +1029,8 @@ class ADMV8818:
 
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
 class attenuator:
+    """
+    """
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
@@ -1042,6 +1057,8 @@ class attenuator:
 
 # Filter class: This class instantiates spi and ADMV8818 to simplify access to the filter chip.
 class prog_filter:
+    """
+    """
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, cs_t=""):
@@ -1137,6 +1154,8 @@ class prog_filter:
 
 # Power, Switch and Fan.
 class SwitchControl:
+    """
+    """
     # Constructor.
     def __init__(self, spi_ip):
         self.spi = spi_ip
@@ -1165,6 +1184,8 @@ class SwitchControl:
             raise RuntimeError("invalid value:", val)
 
 class power_sw_fan:
+    """
+    """
 
     # Constructor.
     def __init__(self, spi_ip, ch_en, defaults=0xFF, dev_addr=0, cs_t=""):
@@ -1224,6 +1245,8 @@ class power_sw_fan:
 
 # LO Synthesis.
 class lo_synth:
+    """
+    """
 
     # Constructor.
     def __init__(self, spi_ip, nch=2, le=[0], en_l="low", cs_t=""):
@@ -1389,6 +1412,8 @@ class lo_synth:
 
 # Bias dac.
 class dac_bias:
+    """
+    """
 
     # Constructor.
     def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
@@ -1489,6 +1514,8 @@ class dac_bias:
 
 # Variable Gain Amp chip LMH6401.
 class LMH6401:
+    """
+    """
     # Commands.
     cmd_wr = 0x00
     cmd_rd = 0x80
@@ -1533,6 +1560,8 @@ class LMH6401:
 
 # Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
 class gain:
+    """
+    """
 
     # Number of bits of gain setting.
     B = 6
@@ -1575,6 +1604,8 @@ class gain:
 
 # Class to describe the ADC-RF channel chain.
 class adc_rf_ch():
+    """
+    """
     # Constructor.
     def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
@@ -1690,6 +1721,8 @@ class adc_rf_ch():
 
 # Class to describe the ADC-DC channel chain.
 class adc_dc_ch():
+    """
+    """
     # Constructor.
     def __init__(self, ch, switches, gain_spi, version=2):
         # Channel number.
@@ -1731,6 +1764,8 @@ class adc_dc_ch():
 
 # Class to describe the DAC channel chain.
 class dac_ch():
+    """
+    """
     # Constructor.
     def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
@@ -2078,7 +2113,7 @@ class RFQickSoc(QickSoc):
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
             Bandwidth.
-        ftype : string.
+        ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
         self.gens[gen_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
@@ -2095,12 +2130,15 @@ class RFQickSoc(QickSoc):
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
             Bandwidth.
-        ftype : string.
+        ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
         self.avg_bufs[ro_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
 
 class lo_synth_v2:
+    """
+    """
+
     def __init__(self, spi_ip, ch):
         # SPI.
         self.spi = spi_ip
