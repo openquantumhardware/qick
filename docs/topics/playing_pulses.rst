@@ -37,4 +37,5 @@ Firing the pulse
 
 :meth:`.QickProgram.pulse()` fires a pulse on the specified channel at the specified time, using whatever values are loaded in the registers.
 
-Often you will want to trigger the readout at the same time: :meth:`.QickProgram.measure()` is a wrapper around :meth:`.QickProgram.trigger()` and :meth:`.QickProgram.pulse()`, and that's what is used in this demo.
+Often you will want to trigger the readout at the same time: :meth:`.QickProgram.measure()` is a wrapper around :meth:`.QickProgram.trigger()` and :meth:`.QickProgram.pulse()`.
+But it's good to remember and understand the building blocks inside this wrapper.

@@ -336,7 +336,9 @@ texinfo_documents = [
 ## Add Python version number to the default address to corretcly reference
 ## the Python standard library
 intersphinx_mapping = {'python': ('https://docs.python.org/3.7', None),
-        'pynq': ('https://pynq.readthedocs.io/en/v2.7.0', None)}
+                       'pynq': ('https://pynq.readthedocs.io/en/v2.7.0', None),
+                       'numpy': ('https://numpy.org/doc/1.26', None),
+                       }
 
 extlinks = {'repofile': ('https://github.com/openquantumhardware/qick/blob/main/%s',
                          '%s')}

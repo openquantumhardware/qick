@@ -1,8 +1,5 @@
-Clocks and durations
-====================
-
 Time units
-----------
+==========
 
 Time durations are generally specified in units of clock cycles.
 The relevant clocks are the tProcessor clock and the fabric clocks of the generators and readouts.

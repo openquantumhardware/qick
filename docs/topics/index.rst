@@ -4,9 +4,9 @@ Specific topics
 .. toctree::
    :maxdepth: 1
 
-   timing
    asmv1_cheatsheet
-   gen_config
+   timing
    freq_matching
-   units
    playing_pulses
+   gen_config
+   units
