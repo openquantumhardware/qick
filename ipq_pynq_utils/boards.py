@@ -48,8 +48,8 @@ XRFDC_MTS_BAD_REF_TILE = 8192
 XRFDC_MTS_DAC = None
 XRFDC_MTS_ADC = None
 
-def read_datafile(s):
-    with open_text("ipq_pynq_utils.data", s) as f:
+def read_datafile(s, dirs=[]):
+    with open_text("ipq_pynq_utils."+".".join(["data"]+dirs), s) as f:
         return f.read()
 
 class RFTileConfig:
@@ -224,7 +224,7 @@ class ZCU208Board:
 
     def _parse_register_file(filename):
         try:
-            lines = read_datafile(f"clockFiles/{filename}").strip().split("\n")
+            lines = read_datafile(filename, dirs=["clockFiles"]).strip().split("\n")
         except:
             with open(filename, "r") as f:
                 lines = f.read().strip().split("\n")
