@@ -1602,6 +1602,16 @@ class gain:
             # Write value using spi.
             self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
+    def get_gain(self):
+        # Write command.
+        byte = self.lmh.reg_rd(reg="GAIN_REG")
+
+        # Write value using spi.
+        msg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+
+        db_a = int.from_bytes(msg, byteorder='big')
+        return self.Gmax - db_a
+
 # Class to describe the ADC-RF channel chain.
 class adc_rf_ch():
     """
@@ -1749,6 +1759,9 @@ class adc_dc_ch():
         self.gain.set_gain(db)
         if self.version==2:
             self.enable()
+
+    def get_gain_db(self):
+        return self.gain.get_gain()
 
     def enable(self):
         if self.version!=2:
