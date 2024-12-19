@@ -49,7 +49,7 @@ XRFDC_MTS_DAC = None
 XRFDC_MTS_ADC = None
 
 def read_datafile(s):
-    with open_text("ipq_pynq_utils", "data/" + s).open() as f:
+    with open_text("ipq_pynq_utils.data", s) as f:
         return f.read()
 
 class RFTileConfig:

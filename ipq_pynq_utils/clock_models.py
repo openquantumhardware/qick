@@ -200,7 +200,7 @@ class RegisterDevice:
         self.registers_by_addr = {}
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
 
-        with open_text("ipq_pynq_utils", definition).open() as f:
+        with open_text("ipq_pynq_utils.data", definition) as f:
             regmap = json.load(f)
 
         multi_regs = {}
@@ -343,7 +343,7 @@ CHDIV_TABLE = [
 class LMX2594(RegisterDevice):
 
     def __init__(self, f_osc):
-        RegisterDevice.__init__(self, 8, 16, "data/lmx2594_regmap.json")
+        RegisterDevice.__init__(self, 8, 16, "lmx2594_regmap.json")
 
         self.f_osc = f_osc
 
@@ -795,7 +795,7 @@ class LMK04828BOutputBranch:
 
 class LMK04828B(RegisterDevice):
     def __init__(self, clkin0_freq, clkin1_freq, clkin2_freq, vcxo_freq):
-        RegisterDevice.__init__(self, 13, 8, "data/lmk04828b_regmap.json")
+        RegisterDevice.__init__(self, 13, 8, "lmk04828b_regmap.json")
 
         self.clkin0_freq = clkin0_freq
         self.clkin1_freq = clkin1_freq
@@ -992,15 +992,15 @@ class CLK104:
         self.lmx_dac = LMX2594(245.76)
 
         if src is None:
-            with open_text("ipq_pynq_utils", "data/lmk04828b_regdump_defaults.txt").open() as f:
+            with open_text("ipq_pynq_utils.data", "lmk04828b_regdump_defaults.txt") as f:
                 self.lmk.init_from_file(f)
         else:
             self.lmk.init_from_file(src)
 
-        with open_text("ipq_pynq_utils", "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open_text("ipq_pynq_utils.data.clockFiles", "LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt") as f:
             self.lmx_adc.init_from_file(f)
 
-        with open_text("ipq_pynq_utils", "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open_text("ipq_pynq_utils.data.clockFiles", "LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt") as f:
             self.lmx_dac.init_from_file(f)
 
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
