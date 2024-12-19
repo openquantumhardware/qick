@@ -8,11 +8,7 @@ import numpy as np
 from . import utils
 import fractions
 
-# Import compat-lib for python versions older than 3.10
-if utils.python_version_lt("3.10.0"):
-    from importlib_resources import files
-else:
-    from importlib.resources import files
+from importlib.resources import open_text
 
 class EnumVal:
     def __init__(self, name, value, description):
@@ -204,7 +200,7 @@ class RegisterDevice:
         self.registers_by_addr = {}
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
 
-        with files("ipq_pynq_utils").joinpath(definition).open() as f:
+        with open_text("ipq_pynq_utils", definition).open() as f:
             regmap = json.load(f)
 
         multi_regs = {}
@@ -996,15 +992,15 @@ class CLK104:
         self.lmx_dac = LMX2594(245.76)
 
         if src is None:
-            with files("ipq_pynq_utils").joinpath("data/lmk04828b_regdump_defaults.txt").open() as f:
+            with open_text("ipq_pynq_utils", "data/lmk04828b_regdump_defaults.txt").open() as f:
                 self.lmk.init_from_file(f)
         else:
             self.lmk.init_from_file(src)
 
-        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open_text("ipq_pynq_utils", "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
             self.lmx_adc.init_from_file(f)
 
-        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open_text("ipq_pynq_utils", "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
             self.lmx_dac.init_from_file(f)
 
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])

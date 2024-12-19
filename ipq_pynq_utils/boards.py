@@ -11,11 +11,7 @@ except:
 from .clock_models import CLK104
 from . import utils
 
-# Import compat-lib for python versions older than 3.10
-if utils.python_version_lt("3.10.0"):
-    from importlib_resources import files
-else:
-    from importlib.resources import files
+from importlib.resources import open_text
 
 """
 Board utilities module. This module is responsible for performing board-specific
@@ -53,7 +49,7 @@ XRFDC_MTS_DAC = None
 XRFDC_MTS_ADC = None
 
 def read_datafile(s):
-    with files("ipq_pynq_utils").joinpath("data/" + s).open() as f:
+    with open_text("ipq_pynq_utils", "data/" + s).open() as f:
         return f.read()
 
 class RFTileConfig:
