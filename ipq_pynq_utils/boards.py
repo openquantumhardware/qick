@@ -9,7 +9,6 @@ except:
     pass
 
 from .clock_models import CLK104
-from . import utils
 
 from importlib.resources import open_text
 

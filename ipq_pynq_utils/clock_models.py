@@ -5,7 +5,6 @@ Implements different clock / PLL models for easy manipulation without vendor sof
 import json
 import re
 import numpy as np
-from . import utils
 import fractions
 
 from importlib.resources import open_text
