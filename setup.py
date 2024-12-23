@@ -1,7 +1,5 @@
 from distutils.core import setup
 
-dependencies = ["spidev>=3.5"]
-
 setup(name='ipq_pynq_utils',
       version='0.1.0',
       packages=['ipq_pynq_utils'],
@@ -11,9 +9,7 @@ setup(name='ipq_pynq_utils',
       url="https://github.com/kit-ipq/ipq-pynq-utils/",
       python_requires=">=3.6",
       include_package_data=True,
-      install_requires=[
-          "spidev>=3.5"
-        ],
+      install_requires=[],
       classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
