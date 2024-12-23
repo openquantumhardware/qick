@@ -1,4 +1,3 @@
-import spidev
 from fractions import Fraction
 
 try:
@@ -9,6 +8,7 @@ except:
     pass
 
 from .clock_models import CLK104
+from . import spidev
 
 from importlib.resources import open_text
 
