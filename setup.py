@@ -32,9 +32,6 @@ def python_version_lt(a):
 
 dependencies = ["spidev>=3.5"]
 
-if python_version_lt("3.10"):
-    dependencies.append("importlib_resources")
-
 setup(name='ipq_pynq_utils',
       version='0.1.0',
       packages=['ipq_pynq_utils'],
