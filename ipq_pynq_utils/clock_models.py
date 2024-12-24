@@ -385,7 +385,7 @@ class LMX2594(RegisterDevice):
 
         self.update()
 
-    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0):
+    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0, verbose=True):
         # We only support integer mode right now
         self.MASH_ORDER.value = modulator_order 
         self.MASH_RESET_N.set(self.MASH_RESET_N.ENABLED if modulator_order else self.MASH_RESET_N.RESET)
@@ -416,8 +416,9 @@ class LMX2594(RegisterDevice):
             raise RuntimeError("No possible integer solutions found!")
 
         solutions = []
-        print("  i |   f_vco  | DIV | MIN_N | DLY_SEL |   n  |   R  | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
-        print("----|----------|-----|-------|---------|------|------|-------|---------|----------|---------|------------")
+        if verbose:
+            print("  i |   f_vco  | DIV | MIN_N | DLY_SEL |   n  |   R  | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
+            print("----|----------|-----|-------|---------|------|------|-------|---------|----------|---------|------------")
 
         metric_min = np.inf
         metric_min_idx = None
@@ -454,13 +455,14 @@ class LMX2594(RegisterDevice):
 
             metric += delta_f*1e6
 
-            print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
+            if verbose:
+                print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
 
             solutions.append((i, div, f_vco, n, R, R_pre, dly_sel))
 
-        print()
+        if verbose: print()
         if solution is None:
-            print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
+            if verbose: print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
             solution = metric_min_idx
 
         chdiv_i,chdiv,f_vco,n,R,R_pre,dly_sel = solutions[solution]
