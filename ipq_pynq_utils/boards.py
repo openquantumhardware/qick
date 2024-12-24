@@ -10,7 +10,7 @@ except:
 from .clock_models import CLK104
 from . import spidev
 
-from importlib.resources import open_text
+import os
 
 """
 Board utilities module. This module is responsible for performing board-specific
@@ -48,7 +48,7 @@ XRFDC_MTS_DAC = None
 XRFDC_MTS_ADC = None
 
 def read_datafile(s, dirs=[]):
-    with open_text("ipq_pynq_utils."+".".join(["data"]+dirs), s) as f:
+    with open(os.path.join(os.path.dirname(__file__), 'data', *dirs, s)) as f:
         return f.read()
 
 class RFTileConfig:
