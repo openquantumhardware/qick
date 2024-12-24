@@ -385,7 +385,7 @@ class LMX2594(RegisterDevice):
 
         self.update()
 
-    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0, verbose=True):
+    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0, en_b=False, verbose=True):
         # We only support integer mode right now
         self.MASH_ORDER.value = modulator_order 
         self.MASH_RESET_N.set(self.MASH_RESET_N.ENABLED if modulator_order else self.MASH_RESET_N.RESET)
@@ -395,8 +395,12 @@ class LMX2594(RegisterDevice):
 
         self.OUTA_PWR.value = pwr
         self.OUTA_PD.set(self.OUTA_PD.NORMAL_OPERATION)
-        self.OUTB_PWR.value = 0
-        self.OUTB_PD.set(self.OUTB_PD.POWERDOWN)
+        if en_b:
+            self.OUTB_PWR.value = pwr
+            self.OUTB_PD.set(self.OUTB_PD.NORMAL_OPERATION)
+        else:
+            self.OUTB_PWR.value = 0
+            self.OUTB_PD.set(self.OUTB_PD.POWERDOWN)
 
         chdivs = []
         f_vco_min = 7500
