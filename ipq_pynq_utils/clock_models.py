@@ -6,8 +6,7 @@ import json
 import re
 import numpy as np
 import fractions
-
-from importlib.resources import open_text
+import os
 
 class EnumVal:
     def __init__(self, name, value, description):
@@ -199,7 +198,7 @@ class RegisterDevice:
         self.registers_by_addr = {}
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
 
-        with open_text("ipq_pynq_utils.data", definition) as f:
+        with open(os.path.join(os.path.dirname(__file__), 'data', definition)) as f:
             regmap = json.load(f)
 
         multi_regs = {}
@@ -991,15 +990,15 @@ class CLK104:
         self.lmx_dac = LMX2594(245.76)
 
         if src is None:
-            with open_text("ipq_pynq_utils.data", "lmk04828b_regdump_defaults.txt") as f:
+            with open(os.path.join(os.path.dirname(__file__), 'data/lmk04828b_regdump_defaults.txt')) as f:
                 self.lmk.init_from_file(f)
         else:
             self.lmk.init_from_file(src)
 
-        with open_text("ipq_pynq_utils.data.clockFiles", "LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt") as f:
+        with open(os.path.join(os.path.dirname(__file__), "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt")) as f:
             self.lmx_adc.init_from_file(f)
 
-        with open_text("ipq_pynq_utils.data.clockFiles", "LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt") as f:
+        with open(os.path.join(os.path.dirname(__file__), "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt")) as f:
             self.lmx_dac.init_from_file(f)
 
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
