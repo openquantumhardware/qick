@@ -1,0 +1,3063 @@
+[
+    {
+        "addr": 0,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "VCO_PHASE_SYNC",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 9,
+                "start": 9,
+                "name": "OUT_MUTE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 7,
+                "name": "FCAL_HPFD_ADJ",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 5,
+                "name": "FCAL_LPFD_ADJ",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 3,
+                "start": 3,
+                "name": "FCAL_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 2,
+                "name": "MUXOUT_LD_SEL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 1,
+                "name": "RESET",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "POWERDOWN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 9232
+            }
+        ]
+    },
+    {
+        "addr": 1,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "CAL_CLK_DIV",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2056
+            }
+        ]
+    },
+    {
+        "addr": 2,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1280
+            }
+        ]
+    },
+    {
+        "addr": 3,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1602
+            }
+        ]
+    },
+    {
+        "addr": 4,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 8,
+                "name": "ACAL_CMP_DLY",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 67
+            }
+        ]
+    },
+    {
+        "addr": 5,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 200
+            }
+        ]
+    },
+    {
+        "addr": 6,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 51202
+            }
+        ]
+    },
+    {
+        "addr": 7,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "OUT_FORCE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 178
+            }
+        ]
+    },
+    {
+        "addr": 8,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "VCO_DACISET_FORCE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 11,
+                "name": "VCO_CAPCTRL_FORCE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 8192
+            }
+        ]
+    },
+    {
+        "addr": 9,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 12,
+                "start": 12,
+                "name": "OSC_2X",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1540
+            }
+        ]
+    },
+    {
+        "addr": 10,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 7,
+                "name": "MULT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4184
+            }
+        ]
+    },
+    {
+        "addr": 11,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 4,
+                "name": "PLL_R",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 8
+            }
+        ]
+    },
+    {
+        "addr": 12,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 0,
+                "name": "PLL_R_PRE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 20480
+            }
+        ]
+    },
+    {
+        "addr": 13,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 16384
+            }
+        ]
+    },
+    {
+        "addr": 14,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 4,
+                "name": "CPG",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 7680
+            }
+        ]
+    },
+    {
+        "addr": 15,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1615
+            }
+        ]
+    },
+    {
+        "addr": 16,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "VCO_DACISET",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 17,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "VCO_DACISET_STRT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 18,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 100
+            }
+        ]
+    },
+    {
+        "addr": 19,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 0,
+                "name": "VCO_CAPCTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 9984
+            }
+        ]
+    },
+    {
+        "addr": 20,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 11,
+                "name": "VCO_SEL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 10,
+                "name": "VCO_SEL_FORCE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 49224
+            }
+        ]
+    },
+    {
+        "addr": 21,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1025
+            }
+        ]
+    },
+    {
+        "addr": 22,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 23,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 124
+            }
+        ]
+    },
+    {
+        "addr": 24,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1818
+            }
+        ]
+    },
+    {
+        "addr": 25,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 3115
+            }
+        ]
+    },
+    {
+        "addr": 26,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 3504
+            }
+        ]
+    },
+    {
+        "addr": 27,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2
+            }
+        ]
+    },
+    {
+        "addr": 28,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1160
+            }
+        ]
+    },
+    {
+        "addr": 29,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12684
+            }
+        ]
+    },
+    {
+        "addr": 30,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12684
+            }
+        ]
+    },
+    {
+        "addr": 31,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "CHDIV_DIV2",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1004
+            }
+        ]
+    },
+    {
+        "addr": 32,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 915
+            }
+        ]
+    },
+    {
+        "addr": 33,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 7713
+            }
+        ]
+    },
+    {
+        "addr": 34,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "PLL_N[18:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 35,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4
+            }
+        ]
+    },
+    {
+        "addr": 36,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_N",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 37,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "MASH_SEED_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 8,
+                "name": "PFD_DLY_SEL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4
+            }
+        ]
+    },
+    {
+        "addr": 38,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_DEN[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 39,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_DEN[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 40,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_SEED[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 41,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_SEED[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 42,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_NUM[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 43,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_NUM[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 44,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 8,
+                "name": "OUTA_PWR",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 7,
+                "name": "OUTB_PD",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 6,
+                "name": "OUTA_PD",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "MASH_RESET_N",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "MASH_ORDER",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 45,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 12,
+                "start": 11,
+                "name": "OUTA_MUX",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 9,
+                "name": "OUT_ISET",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "OUTB_PWR",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 49344
+            }
+        ]
+    },
+    {
+        "addr": 46,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "OUTB_MUX",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2044
+            }
+        ]
+    },
+    {
+        "addr": 47,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 768
+            }
+        ]
+    },
+    {
+        "addr": 48,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 768
+            }
+        ]
+    },
+    {
+        "addr": 49,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 16768
+            }
+        ]
+    },
+    {
+        "addr": 50,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 51,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 128
+            }
+        ]
+    },
+    {
+        "addr": 52,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2080
+            }
+        ]
+    },
+    {
+        "addr": 53,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 54,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 55,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 56,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 57,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 32
+            }
+        ]
+    },
+    {
+        "addr": 58,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "INPIN_IGNORE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "INPIN_HYST",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 12,
+                "name": "INPIN_LVL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 9,
+                "name": "INPIN_FMT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 59,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "LD_TYPE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 60,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "LD_DLY",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 61,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 168
+            }
+        ]
+    },
+    {
+        "addr": 62,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 802
+            }
+        ]
+    },
+    {
+        "addr": 63,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 64,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 5000
+            }
+        ]
+    },
+    {
+        "addr": 65,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 66,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 500
+            }
+        ]
+    },
+    {
+        "addr": 67,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 68,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1000
+            }
+        ]
+    },
+    {
+        "addr": 69,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_RST_COUNT[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 70,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_RST_COUNT[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 71,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 5,
+                "name": "SYSREF_DIV_PRE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "SYSREF_PULSE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 3,
+                "start": 3,
+                "name": "SYSREF_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 2,
+                "name": "SYSREF_REPEAT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 72,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 0,
+                "name": "SYSREF_DIV",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 73,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 6,
+                "name": "JESD_DAC2_CTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "JESD_DAC1_CTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 74,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 12,
+                "name": "SYSREF_PULSE_CNT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 6,
+                "name": "JESD_DAC4_CTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "JESD_DAC3_CTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 75,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 6,
+                "name": "CHDIV",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2048
+            }
+        ]
+    },
+    {
+        "addr": 76,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12
+            }
+        ]
+    },
+    {
+        "addr": 77,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 78,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 11,
+                "name": "RAMP_THRESH",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 9,
+                "start": 9,
+                "name": "QUICK_RECAL_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 1,
+                "name": "VCO_CAPCTRL_STRT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 79,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_THRESH[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 80,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_THRESH[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 81,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 82,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 83,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 84,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 85,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW[31:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 86,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 87,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 88,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 89,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 90,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 91,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 92,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 93,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 94,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 95,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 96,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP_BURST_EN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 2,
+                "name": "RAMP_BURST_COUNT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 97,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP0_RST",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 7,
+                "name": "RAMP_TRIGB",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 3,
+                "name": "RAMP_TRIGA",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP_BURST_TRIG",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2048
+            }
+        ]
+    },
+    {
+        "addr": 98,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 2,
+                "name": "RAMP0_INC[29:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP0_DLY",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 99,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP0_INC[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 100,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP0_LEN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 101,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 6,
+                "name": "RAMP1_DLY",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "RAMP1_RST",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP0_NEXT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP0_NEXT_TRIG",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 102,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 0,
+                "name": "RAMP1_INC[29:16]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 103,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP1_INC[15:0]",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 104,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP1_LEN",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 105,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 6,
+                "name": "RAMP_DLY_CNT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "RAMP_MANUAL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP1_NEXT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP1_NEXT_TRIG",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 106,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP_TRIG_CAL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "RAMP_SCALE_COUNT",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 107,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 108,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 109,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 110,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 9,
+                "name": "rb_LD_VTUNE",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 5,
+                "name": "rb_VCO_SEL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 111,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 0,
+                "name": "rb_VCO_CAPCTRL",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 112,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "rb_VCO_DACISET",
+                "description": "",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    }
+]

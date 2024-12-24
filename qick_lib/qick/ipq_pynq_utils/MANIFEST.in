@@ -1,0 +1,6 @@
+include LICENSE
+include README.md
+include ipq_pynq_utils/data/*.txt
+include ipq_pynq_utils/data/*.json
+include ipq_pynq_utils/data/*.h
+include ipq_pynq_utils/data/clockFiles/*.txt

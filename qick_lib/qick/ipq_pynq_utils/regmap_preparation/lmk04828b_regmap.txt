@@ -1,0 +1,725 @@
+0x000:
+        RESET (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SPI_3WIRE_DIS (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        0 (end:1|start:1|width:1)
+        0 (end:0|start:0|width:1)
+
+0x002:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        0 (end:1|start:1|width:1)
+        POWERDOWN (end:0|start:0|width:1)
+
+0x003:
+        ID_DEVICE_TYPE (end:7|start:0|width:8)
+
+0x004:
+        ID_PROD[15:8] (end:7|start:0|width:8)
+
+0x005:
+        ID_PROD[7:0] (end:7|start:0|width:8)
+
+0x006:
+        ID_MASKREV (end:7|start:0|width:8)
+
+0x00C:
+        ID_VNDR[15:8] (end:7|start:0|width:8)
+
+0x00D:
+        ID_VNDR[7:0] (end:7|start:0|width:8)
+
+0x100:
+        0 (end:7|start:7|width:1)
+        CLKout0_1_ODL (end:6|start:6|width:1)
+        CLKout0_1_IDL (end:5|start:5|width:1)
+        DCLKout0_DIV (end:4|start:0|width:5)
+
+0x101:
+        DCLKout0_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout0_DDLY_CNTL (end:3|start:0|width:4)
+
+0x103:
+        DCLKout0_ADLY (end:7|start:3|width:5)
+        DCLKout0_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout0_MUX (end:1|start:0|width:2)
+
+0x104:
+        0 (end:7|start:7|width:1)
+        DCLKout0_HS (end:6|start:6|width:1)
+        SDCLKout1_MUX (end:5|start:5|width:1)
+        SDCLKout1_DDLY (end:4|start:1|width:4)
+        SDCLKout1_HS (end:0|start:0|width:1)
+
+0x105:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout1_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout1_ADLY (end:3|start:0|width:4)
+
+0x106:
+        DCLKout0_DDLY_PD (end:7|start:7|width:1)
+        DCLKout0_HSg_PD (end:6|start:6|width:1)
+        DCLKout0_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout0_ADLY_PD (end:4|start:4|width:1)
+        CLKout0_1_PD (end:3|start:3|width:1)
+        SDCLKout1_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout1_PD (end:0|start:0|width:1)
+
+0x107:
+        SDCLKout1_POL (end:7|start:7|width:1)
+        CLKout1_FMT (end:6|start:4|width:3)
+        DCLKout0_POL (end:3|start:3|width:1)
+        CLKout0_FMT (end:2|start:0|width:3)
+
+0x108:
+        0 (end:7|start:7|width:1)
+        CLKout2_3_ODL (end:6|start:6|width:1)
+        CLKout2_3_IDL (end:5|start:5|width:1)
+        DCLKout2_DIV (end:4|start:0|width:5)
+
+0x109:
+        DCLKout2_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout2_DDLY_CNTL (end:3|start:0|width:4)
+
+0x10B:
+        DCLKout2_ADLY (end:7|start:3|width:5)
+        DCLKout2_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout2_MUX (end:1|start:0|width:2)
+
+0x10C:
+        0 (end:7|start:7|width:1)
+        DCLKout2_HS (end:6|start:6|width:1)
+        SDCLKout3_MUX (end:5|start:5|width:1)
+        SDCLKout3_DDLY (end:4|start:1|width:4)
+        SDCLKout3_HS (end:0|start:0|width:1)
+
+0x10D:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout3_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout3_ADLY (end:3|start:0|width:4)
+
+0x10E:
+        DCLKout2_DDLY_PD (end:7|start:7|width:1)
+        DCLKout2_HSg_PD (end:6|start:6|width:1)
+        DCLKout2_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout2_ADLY_PD (end:4|start:4|width:1)
+        CLKout2_3_PD (end:3|start:3|width:1)
+        SDCLKout3_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout3_PD (end:0|start:0|width:1)
+
+0x10F:
+        SDCLKout3_POL (end:7|start:7|width:1)
+        CLKout3_FMT (end:6|start:4|width:3)
+        DCLKout2_POL (end:3|start:3|width:1)
+        CLKout2_FMT (end:2|start:0|width:3)
+
+0x110:
+        0 (end:7|start:7|width:1)
+        CLKout4_5_ODL (end:6|start:6|width:1)
+        CLKout4_5_IDL (end:5|start:5|width:1)
+        DCLKout4_DIV (end:4|start:0|width:5)
+
+0x111:
+        DCLKout4_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout4_DDLY_CNTL (end:3|start:0|width:4)
+
+0x113:
+        DCLKout4_ADLY (end:7|start:3|width:5)
+        DCLKout4_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout4_MUX (end:1|start:0|width:2)
+
+0x114:
+        0 (end:7|start:7|width:1)
+        DCLKout4_HS (end:6|start:6|width:1)
+        SDCLKout5_MUX (end:5|start:5|width:1)
+        SDCLKout5_DDLY (end:4|start:1|width:4)
+        SDCLKout5_HS (end:0|start:0|width:1)
+
+0x115:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout5_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout5_ADLY (end:3|start:0|width:4)
+
+0x116:
+        DCLKout4_DDLY_PD (end:7|start:7|width:1)
+        DCLKout4_HSg_PD (end:6|start:6|width:1)
+        DCLKout4_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout4_ADLY_PD (end:4|start:4|width:1)
+        CLKout4_5_PD (end:3|start:3|width:1)
+        SDCLKout5_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout5_PD (end:0|start:0|width:1)
+
+0x117:
+        SDCLKout5_POL (end:7|start:7|width:1)
+        CLKout5_FMT (end:6|start:4|width:3)
+        DCLKout4_POL (end:3|start:3|width:1)
+        CLKout4_FMT (end:2|start:0|width:3)
+
+0x118:
+        0 (end:7|start:7|width:1)
+        CLKout6_7_ODL (end:6|start:6|width:1)
+        CLKout6_8_IDL (end:5|start:5|width:1)
+        DCLKout6_DIV (end:4|start:0|width:5)
+
+0x119:
+        DCLKout6_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout6_DDLY_CNTL (end:3|start:0|width:4)
+
+0x11B:
+        DCLKout6_ADLY (end:7|start:3|width:5)
+        DCLKout6_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout6_MUX (end:1|start:0|width:2)
+
+0x11C:
+        0 (end:7|start:7|width:1)
+        DCLKout6_HS (end:6|start:6|width:1)
+        SDCLKout7_MUX (end:5|start:5|width:1)
+        SDCLKout7_DDLY (end:4|start:1|width:4)
+        SDCLKout7_HS (end:0|start:0|width:1)
+
+0x11D:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout7_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout7_ADLY (end:3|start:0|width:4)
+
+0x11E:
+        DCLKout6_DDLY_PD (end:7|start:7|width:1)
+        DCLKout6_HSg_PD (end:6|start:6|width:1)
+        DCLKout6_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout6_ADLY_PD (end:4|start:4|width:1)
+        CLKout6_7_PD (end:3|start:3|width:1)
+        SDCLKout7_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout7_PD (end:0|start:0|width:1)
+
+0x11F:
+        SDCLKout7_POL (end:7|start:7|width:1)
+        CLKout7_FMT (end:6|start:4|width:3)
+        DCLKout6_POL (end:3|start:3|width:1)
+        CLKout6_FMT (end:2|start:0|width:3)
+
+0x120:
+        0 (end:7|start:7|width:1)
+        CLKout8_9_ODL (end:6|start:6|width:1)
+        CLKout8_9_IDL (end:5|start:5|width:1)
+        DCLKout8_DIV (end:4|start:0|width:5)
+
+0x121:
+        DCLKout8_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout8_DDLY_CNTL (end:3|start:0|width:4)
+
+0x123:
+        DCLKout8_ADLY (end:7|start:3|width:5)
+        DCLKout8_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout8_MUX (end:1|start:0|width:2)
+
+0x124:
+        0 (end:7|start:7|width:1)
+        DCLKout8_HS (end:6|start:6|width:1)
+        SDCLKout9_MUX (end:5|start:5|width:1)
+        SDCLKout9_DDLY (end:4|start:1|width:4)
+        SDCLKout9_HS (end:0|start:0|width:1)
+
+0x125:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout9_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout9_ADLY (end:3|start:0|width:4)
+
+0x126:
+        DCLKout8_DDLY_PD (end:7|start:7|width:1)
+        DCLKout8_HSg_PD (end:6|start:6|width:1)
+        DCLKout8_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout8_ADLY_PD (end:4|start:4|width:1)
+        CLKout8_9_PD (end:3|start:3|width:1)
+        SDCLKout9_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout9_PD (end:0|start:0|width:1)
+
+0x127:
+        SDCLKout9_POL (end:7|start:7|width:1)
+        CLKout9_FMT (end:6|start:4|width:3)
+        DCLKout8_POL (end:3|start:3|width:1)
+        CLKout8_FMT (end:2|start:0|width:3)
+
+0x128:
+        0 (end:7|start:7|width:1)
+        CLKout10_11_ODL (end:6|start:6|width:1)
+        CLKout10_11_IDL (end:5|start:5|width:1)
+        DCLKout10_DIV (end:4|start:0|width:5)
+
+0x129:
+        DCLKout10_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout10_DDLY_CNTL (end:3|start:0|width:4)
+
+0x12B:
+        DCLKout10_ADLY (end:7|start:3|width:5)
+        DCLKout10_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout10_MUX (end:1|start:0|width:2)
+
+0x12C:
+        0 (end:7|start:7|width:1)
+        DCLKout10_HS (end:6|start:6|width:1)
+        SDCLKout11_MUX (end:5|start:5|width:1)
+        SDCLKout11_DDLY (end:4|start:1|width:4)
+        SDCLKout11_HS (end:0|start:0|width:1)
+
+0x12D:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCKLout11_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout11_ADLY (end:3|start:0|width:4)
+
+0x12E:
+        DCLKout10_DDLY_PD (end:7|start:7|width:1)
+        DCLKout10_HSg_PD (end:6|start:6|width:1)
+        DLCLKout10_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout10_ADLY_PD (end:4|start:4|width:1)
+        CLKout10_11_PD (end:3|start:3|width:1)
+        SDCLKout11_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout11_PD (end:0|start:0|width:1)
+
+0x12F:
+        SDCLKout11_POL (end:7|start:7|width:1)
+        CLKout11_FMT (end:6|start:4|width:3)
+        DCLKout10_POL (end:3|start:3|width:1)
+        CLKout10_FMT (end:2|start:0|width:3)
+
+0x130:
+        0 (end:7|start:7|width:1)
+        CLKout12_13_ODL (end:6|start:6|width:1)
+        CLKout12_13_IDL (end:5|start:5|width:1)
+        DCLKout12_DIV (end:4|start:0|width:5)
+
+0x131:
+        DCLKout12_DDLY_CNTH (end:7|start:4|width:4)
+        DCLKout12_DDLY_CNTL (end:3|start:0|width:4)
+
+0x133:
+        DCLKout12_ADLY (end:7|start:3|width:5)
+        DCLKout12_ADLY_MUX (end:2|start:2|width:1)
+        DCLKout12_MUX (end:1|start:0|width:2)
+
+0x134:
+        0 (end:7|start:7|width:1)
+        DCLKout12_HS (end:6|start:6|width:1)
+        SDCLKout13_MUX (end:5|start:5|width:1)
+        SDCLKout13_DDLY (end:4|start:1|width:4)
+        SDCLKout13_HS (end:0|start:0|width:1)
+
+0x135:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SDCLKout13_ADLY_EN (end:4|start:4|width:1)
+        SDCLKout13_ADLY (end:3|start:0|width:4)
+
+0x136:
+        DCLKout12_DDLY_PD (end:7|start:7|width:1)
+        DCLKout12_HSg_PD (end:6|start:6|width:1)
+        DCLKout12_ADLYg_PD (end:5|start:5|width:1)
+        DCLKout12_ADLY_PD (end:4|start:4|width:1)
+        CLKout12_13_PD (end:3|start:3|width:1)
+        SDCLKout13_DIS_MODE (end:2|start:1|width:2)
+        SDCLKout13_PD (end:0|start:0|width:1)
+
+0x137:
+        SDCLKout13_POL (end:7|start:7|width:1)
+        CLKout13_FMT (end:6|start:4|width:3)
+        DCLKout12_POL (end:3|start:3|width:1)
+        CLKout12_FMT (end:2|start:0|width:3)
+
+0x138:
+        0 (end:7|start:7|width:1)
+        VCO_MUX (end:6|start:5|width:2)
+        OSCout_MUX (end:4|start:4|width:1)
+        OSCout_FMT (end:3|start:0|width:4)
+
+0x139:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        SYSREF_MUX (end:1|start:0|width:2)
+
+0x13A:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SYSREF_DIV[12:8] (end:4|start:0|width:5)
+
+0x13B:
+        SYSREF_DIV[7:0] (end:7|start:0|width:8)
+
+0x13C:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        SYSREF_DDLY[12:8] (end:4|start:0|width:5)
+
+0x13D:
+        SYSREF_DDLY[7:0] (end:7|start:0|width:8)
+
+0x13E:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        SYSREF_PULSE_CNT (end:1|start:0|width:2)
+
+0x13F:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        PLL2_NCLK_MUX (end:4|start:4|width:1)
+        PLL1_NCLK_MUX (end:3|start:3|width:1)
+        FB_MUX (end:2|start:1|width:2)
+        FB_MUX_EN (end:0|start:0|width:1)
+
+0x140:
+        PLL1_PD (end:7|start:7|width:1)
+        VCO_LDO_PD (end:6|start:6|width:1)
+        VCO_PD (end:5|start:5|width:1)
+        OSCin_PD (end:4|start:4|width:1)
+        SYSREF_GBL_PD (end:3|start:3|width:1)
+        SYSREF_PD (end:2|start:2|width:1)
+        SYSREF_DDLY_PD (end:1|start:1|width:1)
+        SYSREF_PLSR_PD (end:0|start:0|width:1)
+
+0x141:
+        DDLYd_SYSREF_EN (end:7|start:7|width:1)
+        DDLYd12_EN (end:6|start:6|width:1)
+        DDLYd10_EN (end:5|start:5|width:1)
+        DDLYd7_EN (end:4|start:4|width:1)
+        DDLYd6_EN (end:3|start:3|width:1)
+        DDLYd4_EN (end:2|start:2|width:1)
+        DDLYd2_EN (end:1|start:1|width:1)
+        DDLYd0_EN (end:0|start:0|width:1)
+
+0x142:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        DDLYd_STEP_CNT (end:4|start:0|width:5)
+
+0x143:
+        SYSREF_DDLY_CLR (end:7|start:7|width:1)
+        SYNC_1SHOT_EN (end:6|start:6|width:1)
+        SYNC_POL (end:5|start:5|width:1)
+        SYNC_EN (end:4|start:4|width:1)
+        SYNC_PLL2_DLD (end:3|start:3|width:1)
+        SYNC_PLL1_DLD (end:2|start:2|width:1)
+        SYNC_MODE (end:1|start:0|width:2)
+
+0x144:
+        SYNC_DISSYSREF (end:7|start:7|width:1)
+        SYNC_DIS12 (end:6|start:6|width:1)
+        SYNC_DIS10 (end:5|start:5|width:1)
+        SYNC_DIS8 (end:4|start:4|width:1)
+        SYNC_DIS6 (end:3|start:3|width:1)
+        SYNC_DIS4 (end:2|start:2|width:1)
+        SYNC_DIS2 (end:1|start:1|width:1)
+        SYNC_DIS0 (end:0|start:0|width:1)
+
+0x145:
+        0 (end:7|start:7|width:1)
+        1 (end:6|start:6|width:1)
+        1 (end:5|start:5|width:1)
+        1 (end:4|start:4|width:1)
+        1 (end:3|start:3|width:1)
+        1 (end:2|start:2|width:1)
+        1 (end:1|start:1|width:1)
+        1 (end:0|start:0|width:1)
+
+0x146:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        CLKin2_EN (end:5|start:5|width:1)
+        CLKin1_EN (end:4|start:4|width:1)
+        CLKin0_EN (end:3|start:3|width:1)
+        CLKin2_TYPE (end:2|start:2|width:1)
+        CLKin1_TYPE (end:1|start:1|width:1)
+        CLKin0_TYPE (end:0|start:0|width:1)
+
+0x147:
+        CLKin_SEL_POL (end:7|start:7|width:1)
+        CLKin_SEL_MODE (end:6|start:4|width:3)
+        CLKin1_OUT_MUX (end:3|start:2|width:2)
+        CLKin0_OUT_MUX (end:1|start:0|width:2)
+
+0x148:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        CLKin_SEL0_MUX (end:5|start:3|width:3)
+        CLKin_SEL0_TYPE (end:2|start:0|width:3)
+
+0x149:
+        0 (end:7|start:7|width:1)
+        SDIO_RDBK_TYPE (end:6|start:6|width:1)
+        CLKin_SEL1_MUX (end:5|start:3|width:3)
+        CLKin_SEL1_TYPE (end:2|start:0|width:3)
+
+0x14A:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        RESET_MUX (end:5|start:3|width:3)
+        RESET_TYPE (end:2|start:0|width:3)
+
+0x14B:
+        LOS_TIMEOUT (end:7|start:6|width:2)
+        LOS_EN (end:5|start:5|width:1)
+        TRACK_EN (end:4|start:4|width:1)
+        HOLDOVER_FORCE (end:3|start:3|width:1)
+        MAN_DAC_EN (end:2|start:2|width:1)
+        MAN_DAC[9:8] (end:1|start:0|width:2)
+
+0x14C:
+        MAN_DAC[7:0] (end:7|start:0|width:8)
+
+0x14D:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        DAC_TRIP_LOW (end:5|start:0|width:6)
+
+0x14E:
+        DAC_CLK_MULT (end:7|start:6|width:2)
+        DAC_TRIP_HIGH (end:5|start:0|width:6)
+
+0x14F:
+        DAC_CLK_CNTR (end:7|start:0|width:8)
+
+0x150:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        HOLDOVER_PLL1_DET (end:4|start:4|width:1)
+        HOLDOVER_LOS_DET (end:3|start:3|width:1)
+        HOLDOVER_VTUNE_DET (end:2|start:2|width:1)
+        HOLDOVER_HITLESS_SWITCH (end:1|start:1|width:1)
+        HOLDOVER_EN (end:0|start:0|width:1)
+
+0x151:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        HOLDOVER_DLD_CNT[13:8] (end:5|start:0|width:6)
+
+0x152:
+        HOLDOVER_DLD_CNT[7:0] (end:7|start:0|width:8)
+
+0x153:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        CLKin0_R[13:8] (end:5|start:0|width:6)
+
+0x154:
+        CLKin0_R[7:0] (end:7|start:0|width:8)
+
+0x155:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        CLKin1_R[13:8] (end:5|start:0|width:6)
+
+0x156:
+        CLKin1_R[7:0] (end:7|start:0|width:8)
+
+0x157:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        CLKin2_R[13:8] (end:5|start:0|width:6)
+
+0x158:
+        CLKin2_R[7:0] (end:7|start:0|width:8)
+
+0x159:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        PLL1_N[13:8] (end:5|start:0|width:6)
+
+0x15A:
+        PLL1_N[7:0] (end:7|start:0|width:8)
+
+0x15B:
+        PLL1_WND_SIZE (end:7|start:6|width:2)
+        PLL1_CP_TRI (end:5|start:5|width:1)
+        PLL1_CP_POL (end:4|start:4|width:1)
+        PLL1_CP_GAIN (end:3|start:0|width:4)
+
+0x15C:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        PLL1_DLD_CNT[13:8] (end:5|start:0|width:6)
+
+0x15D:
+        PLL1_DLD_CNT[7:0] (end:7|start:0|width:8)
+
+0x15E:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        PLL1_R_DLY (end:5|start:3|width:3)
+        PLL1_N_DLY (end:2|start:0|width:3)
+
+0x15F:
+        PLL1_LD_MUX (end:7|start:3|width:5)
+        PLL1_LD_TYPE (end:2|start:0|width:3)
+
+0x160:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        PLL2_R[11:8] (end:3|start:0|width:4)
+
+0x161:
+        PLL2_R[7:0] (end:7|start:0|width:8)
+
+0x162:
+        PLL2_P (end:7|start:5|width:3)
+        OSCin_FREQ (end:4|start:2|width:3)
+        PLL2_XTAL_EN (end:1|start:1|width:1)
+        PLL2_REF_2X_EN (end:0|start:0|width:1)
+
+0x163:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        PLL2_N_CAL[17:16] (end:1|start:0|width:2)
+
+0x164:
+        PLL2_N_CAL[15:8] (end:7|start:0|width:8)
+
+0x165:
+        PLL2_N_CAL[7:0] (end:7|start:0|width:8)
+
+0x166:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        PLL2_FCAL_DIS (end:2|start:2|width:1)
+        PLL2_N[17:16] (end:1|start:0|width:2)
+
+0x167:
+        PLL2_N[15:8] (end:7|start:0|width:8)
+
+0x168:
+        PLL2_N[7:0] (end:7|start:0|width:8)
+
+0x169:
+        0 (end:7|start:7|width:1)
+        PLL2_WND_SIZE (end:6|start:5|width:2)
+        PLL2_CP_GAIN (end:4|start:3|width:2)
+        PLL2_CP_POL (end:2|start:2|width:1)
+        PLL2_CP_TRI (end:1|start:1|width:1)
+        1 (end:0|start:0|width:1)
+
+0x16A:
+        0 (end:7|start:7|width:1)
+        SYSREF_REQ_EN (end:6|start:6|width:1)
+        PLL2_DLD_CNT[15:8] (end:5|start:0|width:6)
+
+0x16B:
+        PLL2_DLD_CNT[7:0] (end:7|start:0|width:8)
+
+0x16C:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        PLL2_LF_R4 (end:5|start:3|width:3)
+        PLL2_LF_R3 (end:2|start:0|width:3)
+
+0x16D:
+        PLL2_LF_C4 (end:7|start:4|width:4)
+        PLL2_LF_C3 (end:3|start:0|width:4)
+
+0x16E:
+        PLL2_LD_MUX (end:7|start:3|width:5)
+        PLL2_LD_TYPE (end:2|start:0|width:3)
+
+0x173:
+        0 (end:7|start:7|width:1)
+        PLL2_PRE_PD (end:6|start:6|width:1)
+        PLL2_PD (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        0 (end:2|start:2|width:1)
+        0 (end:1|start:1|width:1)
+        0 (end:0|start:0|width:1)
+
+0x17C:
+        OPT_REG_1 (end:7|start:0|width:8)
+
+0x17D:
+        OPT_REG_2 (end:7|start:0|width:8)
+
+0x182:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        RB_PLL1_LD_LOST (end:2|start:2|width:1)
+        RB_PLL1_LD (end:1|start:1|width:1)
+        CLR_PLL1_LD_LOST (end:0|start:0|width:1)
+
+0x183:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        0 (end:4|start:4|width:1)
+        0 (end:3|start:3|width:1)
+        RB_PLL2_LD_LOST (end:2|start:2|width:1)
+        RB_PLL2_LD (end:1|start:1|width:1)
+        CLR_PLL2_LD_LOST (end:0|start:0|width:1)
+
+0x184:
+        RB_DAC_VALUE[9:8] (end:7|start:6|width:2)
+        RB_CLKin2_SEL (end:5|start:5|width:1)
+        RB_CLKin1_SEL (end:4|start:4|width:1)
+        RB_CLKin0_SEL (end:3|start:3|width:1)
+        X (end:2|start:2|width:1)
+        RB_CLKin1_LOS (end:1|start:1|width:1)
+        RB_CLKin0_LOS (end:0|start:0|width:1)
+
+0x185:
+        RB_DAC_VALUE[7:0] (end:7|start:0|width:8)
+
+0x188:
+        0 (end:7|start:7|width:1)
+        0 (end:6|start:6|width:1)
+        0 (end:5|start:5|width:1)
+        RB_HOLDOVER (end:4|start:4|width:1)
+        X (end:3|start:3|width:1)
+        X (end:2|start:2|width:1)
+        X (end:1|start:1|width:1)
+        X (end:0|start:0|width:1)
+
+0x1FFD:
+        SPI_LOCK[23:16] (end:7|start:0|width:8)
+
+0x1FFE:
+        SPI_LOCK[15:8] (end:7|start:0|width:8)
+
+0x1FFF:
+        SPI_LOCK[7:0] (end:7|start:0|width:8)
