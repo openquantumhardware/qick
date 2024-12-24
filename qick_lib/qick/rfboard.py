@@ -6,7 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
-from qick.ipq_pynq_utils import clock_models
+from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
 
 class AxisSignalGenV3(SocIp):
@@ -2181,19 +2181,13 @@ class lo_synth_v2:
         data = bytes([addr + (1<<7), 0, 0])
         return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
-    def read_and_parse(self, addr):
-        regval = int.from_bytes(self.reg_rd(addr), byteorder="big")
-        reg = clock_models.Register(self.lmx.registers_by_addr[addr].regdef)
-        reg.parse(regval)
-        return reg
-
     def is_locked(self):
         status = self.get_param("rb_LD_VTUNE")
         #print(status.value_description)
-        return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
+        return status.value == status.LOCKED.value
 
-    def set_freq(self, f, pwr=50, osc_2x=False, reset=True, verbose=False):
-        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
+    def set_freq(self, f, pwr=50, reset=True, verbose=False):
+        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, verbose=verbose)
         if reset: self.reset()
         self.program()
         time.sleep(0.01)
@@ -2214,18 +2208,27 @@ class lo_synth_v2:
             if verbose: print("lock attempt %d failed"%(i+1))
         raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
 
+    def _find_registers(self, names):
+        """find the register addresses that contain a given set of parameters
+        """
+        addrs = set()
+        for k,v in self.lmx.registers_by_addr.items():
+            for name in names:
+                for x in v.fields:
+                    if x.name.startswith(name):
+                        addrs.add(k)
+        return addrs
+
     def set_param(self, name, val):
-        param = getattr(self.lmx, name)
-        param.value = val
-        if isinstance(param, clock_models.Field):
-            self.reg_wr(self.lmx.registers_by_addr[param.addr].get_raw())
-        else: # MultiRegister
-            for field in param.fields:
-                self.reg_wr(self.lmx.registers_by_addr[field.addr].get_raw())
+        getattr(self.lmx, name).value = val
+        for addr in self._find_registers([name]):
+            self.reg_wr(self.lmx.registers_by_addr[addr].get_raw())
 
     def get_param(self, name):
-        param = getattr(self.lmx, name)
-        return self.read_and_parse(param.addr).fields[param.index]
+        for addr in self._find_registers([name]):
+            res = self.reg_rd(addr)
+            self.lmx.registers_by_addr[addr].parse(int.from_bytes(res, byteorder='big'))
+        return getattr(self.lmx, name)
 
     def program(self):
         for regval in self.lmx.get_register_dump():
