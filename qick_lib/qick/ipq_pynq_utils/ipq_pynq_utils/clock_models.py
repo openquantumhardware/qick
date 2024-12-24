@@ -301,6 +301,18 @@ class RegisterDevice:
                     print(f"        ValDesc:     {field.value_description}")
                 print()
 
+    def find_addrs(self, names):
+        """find the register addresses needed to read/write a given set of parameters
+        """
+        addrs = set()
+        for k,v in self.registers_by_addr.items():
+            for name in names:
+                for x in v.fields:
+                    if x.name.startswith(name):
+                        addrs.add(k)
+        return addrs
+
+
 LMX2594_VCOs = [
         (1,  7500,  8600, 164, 12, 299, 240),
         (2,  8600,  9800, 165, 16, 356, 247),
