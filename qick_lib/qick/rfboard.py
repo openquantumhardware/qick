@@ -2208,24 +2208,13 @@ class lo_synth_v2:
             if verbose: print("lock attempt %d failed"%(i+1))
         raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
 
-    def _find_registers(self, names):
-        """find the register addresses that contain a given set of parameters
-        """
-        addrs = set()
-        for k,v in self.lmx.registers_by_addr.items():
-            for name in names:
-                for x in v.fields:
-                    if x.name.startswith(name):
-                        addrs.add(k)
-        return addrs
-
     def set_param(self, name, val):
         getattr(self.lmx, name).value = val
-        for addr in self._find_registers([name]):
+        for addr in self.lmx.find_addrs([name]):
             self.reg_wr(self.lmx.registers_by_addr[addr].get_raw())
 
     def get_param(self, name):
-        for addr in self._find_registers([name]):
+        for addr in self.lmx.find_addrs([name]):
             res = self.reg_rd(addr)
             self.lmx.registers_by_addr[addr].parse(int.from_bytes(res, byteorder='big'))
         return getattr(self.lmx, name)
