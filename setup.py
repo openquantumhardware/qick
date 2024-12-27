@@ -5,7 +5,7 @@ https://github.com/pypa/sampleproject
 """
 
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
@@ -134,7 +134,7 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=find_packages(where='qick_lib'),  # Required
+    packages=find_namespace_packages(where='qick_lib'),  # Required
 
     # Specify which Python versions you support. In contrast to the
     # 'Programming Language' classifiers above, 'pip install' will check this
@@ -177,7 +177,12 @@ setup(
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     package_data={  # Optional
-        'qick': ['*.bit', '*.hwh', 'VERSION', 'ipq_pynq_utils/*.json']
+        'qick': ['*.bit', '*.hwh', 'VERSION',
+                 'ipq_pynq_utils/ipq_pynq_utils/data/*.json',
+                 'ipq_pynq_utils/ipq_pynq_utils/data/*.txt',
+                 'ipq_pynq_utils/ipq_pynq_utils/data/*.h',
+                 'ipq_pynq_utils/ipq_pynq_utils/data/clockFiles/*.txt',
+                 ]
     },
     include_package_data=True,
 

@@ -5,10 +5,8 @@ Implements different clock / PLL models for easy manipulation without vendor sof
 import json
 import re
 import numpy as np
-#from . import utils
-import os
 import fractions
-from collections import defaultdict
+import os
 
 class EnumVal:
     def __init__(self, name, value, description):
@@ -100,14 +98,14 @@ class Field:
                 return "BAD ENUM VALUE"
         return self.value
 
-    def set(self, value):
-        if self.value_type == "enum":
-            if not isinstance(value, EnumVal):
-                raise RuntimeError("Expected enum value!")
-            else:
-                self.value = value.value
-        else:
-            self.value = value
+    # def set(self, value):
+    #     if self.valid_type == "enum":
+    #         if not isinstance(value, EnumVal):
+    #             raise RuntimeError("Expected enum value!")
+    #         else:
+    #             self.value = value.value
+    #     else:
+    #         self.value = value
 
     def get_raw(self):
         return self.mask & (self.value << self.start)
@@ -146,16 +144,13 @@ class Register:
         self.addr = obj["addr"]
         self.fields = []
         self.dw = dw 
-        self.regdef = obj
 
-        for field in self.regdef["fields"]:
+        for field in obj["fields"]:
             fieldtype = field["fieldtype"]
             if fieldtype == "constant":
                 self.fields.append(ConstantField(field))
             elif fieldtype == "normal":
-                newfield = Field(field)
-                newfield.index = len(self.fields)
-                self.fields.append(newfield)
+                self.fields.append(Field(field))
             else:
                 raise RuntimeError("Unsupported field type!")
 
@@ -203,8 +198,7 @@ class RegisterDevice:
         self.registers_by_addr = {}
         self.regname_pattern = re.compile(r"[A-Za-z0-9_]+\[(\d+):(\d+)\]")
 
-        defpath = os.path.join(os.path.dirname(__file__), definition)
-        with open(defpath) as f:
+        with open(os.path.join(os.path.dirname(__file__), 'data', definition)) as f:
             regmap = json.load(f)
 
         multi_regs = {}
@@ -215,7 +209,6 @@ class RegisterDevice:
             self.registers_by_addr[addr] = reg
 
             for field in reg.fields:
-                field.addr = addr
                 if isinstance(field, Field) and field.valid_type != "constant":
                     sanitized_name = field.name.replace("[", "_").replace("]", "").replace(":", "_")
                     if field.name.endswith("]"): # Multi-field
@@ -308,6 +301,18 @@ class RegisterDevice:
                     print(f"        ValDesc:     {field.value_description}")
                 print()
 
+    def find_addrs(self, names):
+        """find the register addresses needed to read/write a given set of parameters
+        """
+        addrs = set()
+        for k,v in self.registers_by_addr.items():
+            for name in names:
+                for x in v.fields:
+                    if x.name.startswith(name):
+                        addrs.add(k)
+        return addrs
+
+
 LMX2594_VCOs = [
         (1,  7500,  8600, 164, 12, 299, 240),
         (2,  8600,  9800, 165, 16, 356, 247),
@@ -355,39 +360,47 @@ class LMX2594(RegisterDevice):
         # Note that this isn't the complete range, but skips the readback registers
         self.register_addresses = list(range(109, -1, -1))
 
-    def get_multiplier_freqs(self):
+    def fractional_detune(self, f_off: float, den_max=4294967295):
         """
-        Enumerate all possible multiplier output frequencies.
+        Detune the output frequency of this PLL. The detuning will be implemented using
+        the fractional MASH modulator in the LMX2594, thus this feature is incompatible
+        with the operation of multi tile synchronization and the use of the external
+        PL clock. Use with caution!
+
+        f_off: Frequency offset, unit in MHz.
         """
-        f2conf = defaultdict(list)
-        # config tuple order is mult, osc_x, r_pre - we want this to be sortable
-        # we prefer smaller mult first, then smaller osc_x
-        # add no-multiplier configs (there are no limits on using r_pre in this mode, but you usually don't need it)
-        f2conf[self.f_osc].append((1,1,1))
-        f2conf[2*self.f_osc].append((1,2,1))
-        for osc_x in [1,2]:
-            if osc_x==2 and self.f_osc>200: # max input freq of doubler
-                continue
-            for mult in range(3,8):
-                # apply limits on the multiplier's input and output freqs
-                min_r_pre = int(np.ceil(max(1, self.f_osc*osc_x/70.0, self.f_osc*osc_x*mult/250.0)))
-                max_r_pre = int(np.floor(min(255, self.f_osc*osc_x/30.0, self.f_osc*osc_x*mult/180.0)))
-                for r_pre in range(min_r_pre, max_r_pre+1):
-                    mult_out = self.f_osc*(osc_x*mult/r_pre)
-                    f2conf[mult_out].append((mult, osc_x, r_pre))
 
-        f2conf = dict(sorted(f2conf.items()))
-        for freq in f2conf.keys():
-            f2conf[freq].sort()
-            #for conf in f2conf[freq]:
-            #    print(freq, conf)
-            f2conf[freq] = f2conf[freq][0]
-        return f2conf
+        assert self.MASH_ORDER.value > 0, "Cannot fractionally detune the VCO when MASH_ORDER is 0"
+        assert self.MASH_RESET_N.get() == self.MASH_RESET_N.ENABLED
 
-    def set_output_frequency(self, f_target, pwr=31, solution=None, en_b=False, osc_2x=False, verbose=True):
+        self.PLL_NUM.value = 0
+        self.PLL_DEN.value = 0
+        self.update()
+
+        if self.OUTA_MUX.get() == self.OUTA_MUX.CHANNEL_DIVIDER:
+            chdiv = CHDIV_TABLE[self.CHDIV.value][0]
+        else:
+            chdiv = 1
+
+        off = f_off * chdiv / self.f_pd
+
+        n_off = int(np.floor(off))
+        self.PLL_N.value = self.PLL_N.value + n_off
+
+        off -= n_off
+
+        frac = fractions.Fraction(off).limit_denominator()
+
+        self.PLL_NUM.value = frac.numerator
+        self.PLL_DEN.value = frac.denominator
+
+        self.update()
+
+    def set_output_frequency(self, f_target, pwr=31, solution=None, modulator_order=0, en_b=False, verbose=True):
         # We only support integer mode right now
-        self.MASH_ORDER.value = 0
-        self.MASH_RESET_N.set(self.MASH_RESET_N.RESET)
+        self.MASH_ORDER.value = modulator_order 
+        self.MASH_RESET_N.set(self.MASH_RESET_N.ENABLED if modulator_order else self.MASH_RESET_N.RESET)
+
         self.PLL_NUM.value = 0
         self.PLL_DEN.value = 0
 
@@ -403,8 +416,6 @@ class LMX2594(RegisterDevice):
         chdivs = []
         f_vco_min = 7500
 
-        mult = 1
-        osc_x = 2 if osc_2x else 1
         for i,(div,f_vco_max,f_out_min,f_out_max) in enumerate(CHDIV_TABLE):
             if not (f_out_min <= f_target <= f_out_max):
                 continue
@@ -421,15 +432,15 @@ class LMX2594(RegisterDevice):
 
         solutions = []
         if verbose:
-            print("  i |   f_vco  | DIV | DLY_SEL |   n  | osc_2x |   R  | mult | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
-            print("----|----------|-----|---------|------|--------|------|------|-------|---------|----------|---------|------------")
+            print("  i |   f_vco  | DIV | MIN_N | DLY_SEL |   n  |   R  | R_pre |  f_pfd  |   f_out  | Delta f |   Metric   ")
+            print("----|----------|-----|-------|---------|------|------|-------|---------|----------|---------|------------")
 
         metric_min = np.inf
         metric_min_idx = None
         for idx,(i,div,f_vco) in enumerate(chdivs):
             min_n,dly_sel = LMX2594.get_modulator_constraints(self.MASH_ORDER.value, f_vco)
 
-            ratio = fractions.Fraction(f_vco / (self.f_osc*osc_x)).limit_denominator(255)
+            ratio = fractions.Fraction(f_vco / self.f_osc).limit_denominator(255)
             n = ratio.numerator
             R = ratio.denominator
 
@@ -447,7 +458,7 @@ class LMX2594(RegisterDevice):
                 else:
                     raise RuntimeError("Failed to find solution, N limit can't be met!")
 
-            f_pd = self.f_osc * osc_x / (R * R_pre)
+            f_pd = self.f_osc / (R * R_pre)
 
             metric = R_pre * R * n * div
             if metric < metric_min:
@@ -460,23 +471,21 @@ class LMX2594(RegisterDevice):
             metric += delta_f*1e6
 
             if verbose:
-                print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {dly_sel:7d} | {n:4d} | {'  True' if osc_x==2 else ' False'} | {R:4d} | {mult:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
+                print(f" {idx:>2d} | {f_vco:8.2f} | {div:3d} | {min_n:5d} | {dly_sel:7d} | {n:4d} | {R:4d} | {R_pre:5d} | {f_pd:7.2f} | {f_out:8.2f} | {delta_f:7.2f} | {metric:6.4e}")
 
-            solutions.append((i, div, f_vco, dly_sel, n, osc_x, R, mult, R_pre))
+            solutions.append((i, div, f_vco, n, R, R_pre, dly_sel))
 
         if verbose: print()
         if solution is None:
             if verbose: print(f"Choosing solution {metric_min_idx} with minimal metric {metric_min}.")
             solution = metric_min_idx
 
-        chdiv_i,chdiv,f_vco,dly_sel,n,osc_x,R,mult,R_pre = solutions[solution]
+        chdiv_i,chdiv,f_vco,n,R,R_pre,dly_sel = solutions[solution]
 
         self.CHDIV.value = chdiv_i % 18
         self.PFD_DLY_SEL.value = dly_sel
         self.PLL_N.value = n
-        self.OSC_2X.value = osc_x - 1
         self.PLL_R_PRE.value = R_pre
-        self.MULT.value = mult
         self.PLL_R.value = R
 
         if chdiv_i == 18:
@@ -544,8 +553,8 @@ class LMX2594(RegisterDevice):
             for vco_id, f_min, f_max, c_min, c_max, a_min, a_max in LMX2594_VCOs:
                 if f_min <= self.f_vco <= f_max:
                     self.VCO_SEL.value = vco_id
-                    self.VCO_DACISET_STRT.value = round(c_min - (c_min - c_max) * (f_vco - f_min) / (f_max - f_min))
-                    self.VCO_CAPCTRL_STRT.value = round(a_min + (a_max - a_min) * (f_vco - f_min) / (f_max - f_min))
+                    self.VCO_DACISET_STRT.value = round(c_min - (c_min - c_max) * (self.f_vco - f_min) / (f_max - f_min))
+                    self.VCO_CAPCTRL_STRT.value = round(a_min + (a_max - a_min) * (self.f_vco - f_min) / (f_max - f_min))
                     break
 
                 if vco_id == 7:
@@ -570,7 +579,7 @@ class LMX2594(RegisterDevice):
                 self.VCO_CAPCTRL_FORCE.value = 1
 
     def get_modulator_constraints(mash_order, f_vco):
-        if mash_order == 0: # for now, it's always 0
+        if mash_order == 0:
             if f_vco <= 12500:
                 min_n = 28
                 dly_sel = 1
@@ -614,13 +623,10 @@ class LMX2594(RegisterDevice):
         return min_n, dly_sel
 
     def update(self):
-        """
-        Compute the output frequencies from the register values.
-        """
-        if self.OSC_2X.get() == self.OSC_2X.ENABLED:
-            f_in = 2 * self.f_osc
-        else:
+        if self.OSC_2X.get() == self.OSC_2X.DISABLED:
             f_in = self.f_osc
+        else:
+            f_in = 2 * self.f_osc
 
         f_in /= self.PLL_R_PRE.value
         f_in *= self.MULT.value
@@ -628,8 +634,13 @@ class LMX2594(RegisterDevice):
 
         self.f_pd = f_in
 
-        num = self.PLL_NUM.value
-        den = self.PLL_DEN.value
+        if self.MASH_ORDER.value > 0 and self.MASH_RESET_N.get() == self.MASH_RESET_N.ENABLED:
+            num = self.PLL_NUM.value
+            den = self.PLL_DEN.value
+        else:
+            num = 0
+            den = 0
+
         pll_n = self.PLL_N.value
 
         if den != 0 and num != 0:
@@ -800,7 +811,7 @@ class LMK04828BOutputBranch:
 
 class LMK04828B(RegisterDevice):
     def __init__(self, clkin0_freq, clkin1_freq, clkin2_freq, vcxo_freq):
-        RegisterDevice.__init__(self, 13, 8, "data/lmk04828b_regmap.json")
+        RegisterDevice.__init__(self, 13, 8, "lmk04828b_regmap.json")
 
         self.clkin0_freq = clkin0_freq
         self.clkin1_freq = clkin1_freq
@@ -817,8 +828,8 @@ class LMK04828B(RegisterDevice):
                                    315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327,
                                    328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340,
                                    341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353,
-                                   354, 355, 356, 357, 369, 370, 380, 381, 358, 359, 360, 361, 362,
-                                   363, 364, 365, 366, 371, 386, 387, 388, 389, 392, 393, 394, 395,
+                                   354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366,
+                                   369, 370, 371, 380, 381, 386, 387, 388, 389, 392, 393, 394, 395,
                                    8189, 8190, 8191]
 
         self.clock_branches = [LMK04828BOutputBranch(self, 2*i) for i in range(7)]
@@ -997,15 +1008,15 @@ class CLK104:
         self.lmx_dac = LMX2594(245.76)
 
         if src is None:
-            with files("ipq_pynq_utils").joinpath("data/lmk04828b_regdump_defaults.txt").open() as f:
+            with open(os.path.join(os.path.dirname(__file__), 'data/lmk04828b_regdump_defaults.txt')) as f:
                 self.lmk.init_from_file(f)
         else:
             self.lmk.init_from_file(src)
 
-        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open(os.path.join(os.path.dirname(__file__), "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt")) as f:
             self.lmx_adc.init_from_file(f)
 
-        with files("ipq_pynq_utils").joinpath("data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt").open() as f:
+        with open(os.path.join(os.path.dirname(__file__), "data/clockFiles/LMX2594_REF-245M76__OUT-9830M40_10172019_I.txt")) as f:
             self.lmx_dac.init_from_file(f)
 
         self.RF_PLL_ADC_REF = CLK104Output(self.lmk.clock_branches[0])
@@ -1015,6 +1026,11 @@ class CLK104:
         self.PL_CLK = CLK104Output(self.lmk.clock_branches[4])
         self.EXT_REF_OUT = CLK104Output(self.lmk.clock_branches[5])
         self.ADC_REFCLK = CLK104Output(self.lmk.clock_branches[6])
+
+    def update(self):
+        self.lmk.update()
+        self.lmx_adc.update()
+        self.lmx_dac.update()
 
     @property
     def PLL2_FREQ(self):

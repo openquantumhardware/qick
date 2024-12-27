@@ -1,0 +1,15 @@
+# Python
+__pycache__
+
+# Vim
+*~
+*swp
+
+# IPython
+.ipynb_checkpoints
+
+# Python setuptools
+dist/
+build/
+ipq_pynq_utils.egg-info
+
