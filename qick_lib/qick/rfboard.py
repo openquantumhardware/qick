@@ -498,40 +498,6 @@ class spi(DefaultIP):
 
         return data_r
 
-# Step Attenuator PE43705.
-# Range 0-31.75 dB.
-# Parts are used in serial mode.
-# See schematics for Address/LE correspondance.
-class PE43705:
-    """
-    """
-
-    address = 0
-    nSteps = 2**7
-    dbStep = 0.25
-    dbMinAtt = 0
-    dbMaxAtt = (nSteps-1)*dbStep
-
-    def __init__(self, address=0):
-        self.address = address
-
-    def db2step(self, db):
-        ret = -1
-
-        # Sanity check.
-        if db < self.dbMinAtt:
-            raise RuntimeError("attenuation value %f out of range" % (db))
-        elif db > self.dbMaxAtt:
-            raise RuntimeError("attenuation value %f out of range" % (db))
-        else:
-            ret = int(np.round(db/self.dbStep))
-
-        return ret
-
-    def db2reg(self, db):
-        # will get packed as (address << 8) | step
-        return bytes([self.db2step(db), self.address])
-
 # GPIO chip MCP23S08.
 class MCP23S08:
     """
@@ -1027,15 +993,18 @@ class ADMV8818:
             print("{}: section {} not found. Using bypass by default.".format(self.__class__.__name__, section))
             return 0
 
-# Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
-class attenuator:
+class AttenuatorPE43705:
     """
+    This class provides SPI access to the PE43705 step attenuator.
+    Range is 0-31.75 dB.
+    Parts are used in serial mode.
+    This device's SPI interface is write-only, no readback.
+    See schematics for Address/LE correspondance.
     """
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
-        # PE43705.
-        self.pe = PE43705(address=ch)
+        self.address = ch
 
         # SPI.
         self.spi = spi_ip
@@ -1047,10 +1016,26 @@ class attenuator:
         # Initialize with max attenuation.
         self.set_att(31.75)
 
+    def _db2step(self, db):
+        nSteps = 2**7
+        dbStep = 0.25
+        dbMinAtt = 0
+        dbMaxAtt = (nSteps-1)*dbStep
+
+        # Sanity check.
+        if db < dbMinAtt or db > dbMaxAtt:
+            raise RuntimeError("attenuation value %f out of range [%f, %f]" % (db, dbMinAtt, dbMaxAtt))
+
+        return int(np.round(db/dbStep))
+
+    def _db2reg(self, db):
+        # will get packed as (address << 8) | step
+        return bytes([self._db2step(db), self.address])
+
     # Set attenuation function.
     def set_att(self, db):
         # Register value.
-        reg = self.pe.db2reg(db)
+        reg = self._db2reg(db)
 
         # Write value using spi.
         self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
@@ -1634,7 +1619,7 @@ class adc_rf_ch():
             self.switches = switches
 
             # Attenuator.
-            self.attn = attenuator(attn_spi, ch, le=[0])
+            self.attn = AttenuatorPE43705(attn_spi, ch, le=[0])
 
             # Default to 30 dB attenuation.
             self.set_attn_db(30)
@@ -1654,7 +1639,7 @@ class adc_rf_ch():
 
                 # Attenuators. There is 1 per ADC Channel.
                 self.attn = []
-                self.attn.append(attenuator(attn_spi, ch=self.local_ch, nch=1, le=[0]))
+                self.attn.append(AttenuatorPE43705(attn_spi, ch=self.local_ch, nch=1, le=[0]))
                 if debug:
                     print("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
 
@@ -1797,8 +1782,8 @@ class dac_ch():
 
             # Attenuators.
             self.attn = []
-            self.attn.append(attenuator(attn_spi, ch, le=[1]))
-            self.attn.append(attenuator(attn_spi, ch, le=[2]))
+            self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[1]))
+            self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[2]))
 
             # Initialize in off state.
             self.disable()
@@ -1820,7 +1805,7 @@ class dac_ch():
                 self.attn = []
                 for i in range(2):
                     addr = 2*self.local_ch+i
-                    self.attn.append(attenuator(attn_spi, ch=addr, nch=1, le=[0]))
+                    self.attn.append(AttenuatorPE43705(attn_spi, ch=addr, nch=1, le=[0]))
                     if debug:
                         print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
 
