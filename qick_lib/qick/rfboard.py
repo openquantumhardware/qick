@@ -1501,10 +1501,17 @@ class dac_bias:
         else:
             self.write(reg="DAC_REG", val=val, debug=debug)
 
-# Variable Gain Amp chip LMH6401.
-class LMH6401:
+class GainLMH6401:
+    """Variable gain amp LMH6401.
     """
-    """
+
+    # Number of bits of gain setting.
+    B = 6
+
+    # Minimum/maximum gain.
+    Gmin = -6
+    Gmax = 26
+
     # Commands.
     cmd_wr = 0x00
     cmd_rd = 0x80
@@ -1516,54 +1523,8 @@ class LMH6401:
             'TGAIN_REG': 0x04,
             'TFREQ_REG': 0x05}
 
-    # Register/address mapping.
-    def reg2addr(self, reg="GAIN_REG"):
-        if reg in self.REGS:
-            return self.REGS[reg]
-        else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
-            return -1
-
-    # Data array: 2 bytes.
-    # byte[0] = rw/address.
-    # byte[1] = data.
-    def reg_rd(self, reg="GAIN_REG"):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # Read command.
-        cmd = self.cmd_rd | addr
-
-        # Dummy byte for clocking data out.
-        return bytes([cmd, 0])
-
-    def reg_wr(self, reg="GAIN_REG", val=0):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # Read command.
-        cmd = self.cmd_wr | addr
-
-        return bytes([cmd, val])
-
-# Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
-class gain:
-    """
-    """
-
-    # Number of bits of gain setting.
-    B = 6
-
-    # Minimum/maximum gain.
-    Gmin = -6
-    Gmax = 26
-
     # Constructor.
     def __init__(self, spi_ip, ch_en, cs_t=""):
-        # LMH6401.
-        self.lmh = LMH6401()
-
         # SPI.
         self.spi = spi_ip
 
@@ -1574,31 +1535,48 @@ class gain:
         # Initalize to min gain.
         self.set_gain(-6)
 
+    # Data array: 2 bytes.
+    # byte[0] = rw/address.
+    # byte[1] = data.
+    def read_reg(self, reg):
+        # Address.
+        addr = self.REGS[reg]
+
+        # Read command.
+        cmd = self.cmd_rd | addr
+        # Dummy byte for clocking data out.
+        msg = bytes([cmd, 0])
+
+        # Write value using spi.
+        res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
+
+        return int.from_bytes(res, byteorder='big')
+
+    def write_reg(self, reg, val):
+        # Address.
+        addr = self.REGS[reg]
+
+        # Read command.
+        cmd = self.cmd_wr | addr
+        msg = bytes([cmd, val])
+
+        # Write value using spi.
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
+
     # Set gain.
     def set_gain(self, db):
         # Sanity check.
-        if db < self.Gmin:
-            print("%s: gain %f out of limits." % (self.__class__.__name__, db))
-        elif db > self.Gmax:
-            print("%s: gain %f out of limits." % (self.__class__.__name__, db))
-        else:
-            # Convert gain to attenuation (register value).
-            db_a = int(np.round(self.Gmax - db))
+        if db < self.Gmin or db > self.Gmax:
+            raise RuntimeError("%s: gain %f out of limits [%f, %f]" % (self.__class__.__name__, db, self.Gmin, self.Gmax))
 
-            # Write command.
-            byte = self.lmh.reg_wr(reg="GAIN_REG", val=db_a)
+        # Convert gain to attenuation (register value).
+        db_a = int(np.round(self.Gmax - db))
 
-            # Write value using spi.
-            self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        # Write command.
+        self.write_reg(reg="GAIN_REG", val=db_a)
 
     def get_gain(self):
-        # Write command.
-        byte = self.lmh.reg_rd(reg="GAIN_REG")
-
-        # Write value using spi.
-        msg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-        db_a = int.from_bytes(msg, byteorder='big')
+        db_a = self.read_reg("GAIN_REG")
         return self.Gmax - db_a
 
 # Class to describe the ADC-RF channel chain.
@@ -1718,9 +1696,8 @@ class adc_rf_ch():
         # Turn off 5V power.
         self.switches["RF2IF5V_EN%d"%(self.ch)] = 0
 
-# Class to describe the ADC-DC channel chain.
 class adc_dc_ch():
-    """
+    """Class to describe the ADC-DC channel chain.
     """
     # Constructor.
     def __init__(self, ch, switches, gain_spi, version=2):
@@ -1738,13 +1715,13 @@ class adc_dc_ch():
             print("%s: channel %d not valid for ADC-DC type" %
                   (self.__class__.__name__, ch))
 
-        self.gain = gain(gain_spi, ch_en=ch)
+        self.gain = GainLMH6401(gain_spi, ch_en=ch)
 
         # Default to 0 dB gain.
         self.set_gain_db(0)
 
     # Set gain.
-    def set_gain_db(self, db=0):
+    def set_gain_db(self, db):
         self.gain.set_gain(db)
         if self.version==2:
             self.enable()
