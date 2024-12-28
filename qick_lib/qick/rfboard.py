@@ -1150,10 +1150,10 @@ class GpioMCP23S08:
         # Set value to hardware.
         self.write_reg("GPIO_REG", reg)
 
-# LO Chip ADF4372.
-class ADF4372:
+class LoSynthADF4372:
+    """LO Synthesis chip ADF4372
     """
-    """
+
     # Reference input.
     f_REF_in = 122.88
 
@@ -1226,89 +1226,8 @@ class ADF4372:
             'LD_PD_ADC_REG': 0x73,
             'LOCK_DETECT_REG': 0x7C}
 
-    def reg2addr(self, reg="CONFIG0_REG"):
-        if reg in self.REGS:
-            return self.REGS[reg]
-        else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
-            return -1
-
-    # Data array: 3 bytes.
-    # byte[0] = opcode/addr high.
-    # byte[1] = addr low.
-    # byte[2] = register value (dummy for read).
-    def reg_rd(self, reg="CONFIG0_REG"):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # Dummy byte for clocking data out.
-        return bytes([self.cmd_rd, addr, 0])
-
-    def reg_wr(self, reg="CONFIG0_REG", val=0):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        return bytes([self.cmd_wr, addr, val])
-
-    # Simple frequency setting function.
-    # FRAC2 = 0 not used.
-    # INT,FRAC1 sections are used.
-    # All frequencies are in MHz.
-    # Frequency must be in the range 4-8 GHz.
-    def set_freq(self, fin=6000):
-        # Structures for output.
-        regs = {}
-        regs['INT'] = {'FULL': 0, 'LOW': 0, 'HIGH': 0}
-        regs['FRAC1'] = {'FULL': 0, 'LOW': 0, 'MID': 0, 'HIGH': 0, 'MSB': 0}
-
-        # Sanity check.
-        if fin < 4000:
-            print("%s: input frequency %d below the limit" %
-                  (self.__class__.__name__, fin))
-            return -1
-        elif fin > 8000:
-            print("%s: input frequency %d above the limit" %
-                  (self.__class__.__name__, fin))
-            return -1
-
-        Ndiv = fin/self.f_REF_in
-
-        # Integer part.
-        int_ = int(np.floor(Ndiv))
-        int_low = int_ & 0xff
-        int_high = int_ >> 8
-
-        # Fractional part.
-        frac_ = Ndiv - int_
-        frac_ = int(np.floor(frac_*self.MOD1))
-        frac_low = frac_ & 0xff
-        frac_mid = (frac_ >> 8) & 0xff
-        frac_high = (frac_ >> 16) & 0xff
-        frac_msb = frac_ >> 24
-
-        # Write values into structure.
-        regs['INT']['FULL'] = int_
-        regs['INT']['LOW'] = int_low
-        regs['INT']['HIGH'] = int_high
-        regs['FRAC1']['FULL'] = frac_
-        regs['FRAC1']['LOW'] = frac_low
-        regs['FRAC1']['MID'] = frac_mid
-        regs['FRAC1']['HIGH'] = frac_high
-        regs['FRAC1']['MSB'] = frac_msb
-
-        return regs
-
-# LO Synthesis.
-class LoSynthADF4372:
-    """
-    """
-
     # Constructor.
     def __init__(self, spi_ip, nch=2, le=[0], en_l="low", cs_t=""):
-        # ADF4372.
-        self.adf = ADF4372()
-
         # SPI.
         self.spi = spi_ip
 
@@ -1422,49 +1341,76 @@ class LoSynthADF4372:
         # Write 0x28 to reg 0x10
         self.reg_wr("INT_LOW_REG", 0x28)
 
+    # Data array: 3 bytes.
+    # byte[0] = opcode/addr high.
+    # byte[1] = addr low.
+    # byte[2] = register value (dummy for read).
     def reg_rd(self, reg="CONFIG0_REG"):
-        # Byte array.
-        byte = self.adf.reg_rd(reg)
+        # Address.
+        addr = self.REGS[reg]
+
+        # Dummy byte for clocking data out.
+        msg = bytes([self.cmd_rd, addr, 0])
 
         # Execute read.
-        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        reg = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
         return reg
 
     def reg_wr(self, reg="CONFIG0_REG", val=0):
-        # Byte array.
-        byte = self.adf.reg_wr(reg, val)
+        # Address.
+        addr = self.REGS[reg]
+
+        msg = bytes([self.cmd_wr, addr, val])
 
         # Execute write.
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
+    # Simple frequency setting function.
+    # FRAC2 = 0 not used.
+    # INT,FRAC1 sections are used.
+    # All frequencies are in MHz.
+    # Frequency must be in the range 4-8 GHz.
     def set_freq(self, fin=6000):
-        # Get INT/FRAC register values.
-        regs = self.adf.set_freq(fin)
+        # Sanity check.
+        if fin < 4000 or fin > 8000:
+            raise RuntimeError("%s: input frequency %d out of range" %
+                  (self.__class__.__name__, fin))
 
-        # Check if it was successful.
-        if regs == -1:
-            a = 1
-        else:
-            # Write FRAC1 register.
-            # MSB
-            self.reg_wr('FRAC2_LOW_REG', regs['FRAC1']['MSB'])
+        Ndiv = fin/self.f_REF_in
 
-            # HIGH.
-            self.reg_wr('FRAC1_HIGH_REG', regs['FRAC1']['HIGH'])
+        # Integer part.
+        int_ = int(np.floor(Ndiv))
+        int_low = int_ & 0xff
+        int_high = int_ >> 8
 
-            # MID.
-            self.reg_wr('FRAC1_MID_REG', regs['FRAC1']['MID'])
+        # Fractional part.
+        frac_ = Ndiv - int_
+        frac_ = int(np.floor(frac_*self.MOD1))
+        frac_low = frac_ & 0xff
+        frac_mid = (frac_ >> 8) & 0xff
+        frac_high = (frac_ >> 16) & 0xff
+        frac_msb = frac_ >> 24
 
-            # LOW.
-            self.reg_wr('FRAC1_LOW_REG', regs['FRAC1']['LOW'])
+        # Write FRAC1 register.
+        # MSB
+        self.reg_wr('FRAC2_LOW_REG', frac_msb)
 
-            # Write INT register.
-            # HIGH.
-            self.reg_wr('INT_HIGH_REG', regs['INT']['HIGH'])
+        # HIGH.
+        self.reg_wr('FRAC1_HIGH_REG', frac_high)
 
-            # LOW
-            self.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
+        # MID.
+        self.reg_wr('FRAC1_MID_REG', frac_mid)
+
+        # LOW.
+        self.reg_wr('FRAC1_LOW_REG', frac_low)
+
+        # Write INT register.
+        # HIGH.
+        self.reg_wr('INT_HIGH_REG', int_high)
+
+        # LOW
+        self.reg_wr('INT_LOW_REG', int_low)
 
 class LoSynthLMX2594:
     """
