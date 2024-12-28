@@ -498,155 +498,6 @@ class spi(DefaultIP):
 
         return data_r
 
-# LO Chip ADF4372.
-class ADF4372:
-    """
-    """
-    # Reference input.
-    f_REF_in = 122.88
-
-    # Fixed 25-bit modulus.
-    MOD1 = 2**25
-
-    # Commands.
-    cmd_wr = 0x00
-    cmd_rd = 0x80
-
-    # Registers.
-    REGS = {'CONFIG0_REG': 0x00,
-            'CONFIG1_REG': 0x01,
-            'CHIP_REG': 0x03,
-            'PROD_ID0_REG': 0x04,
-            'PROD_ID1_REG': 0x05,
-            'PROD_REV_REG': 0x06,
-            'INT_LOW_REG': 0x10,
-            'INT_HIGH_REG': 0x11,
-            'CAL_PRE_REG': 0x12,
-            'FRAC1_LOW_REG': 0x14,
-            'FRAC1_MID_REG': 0x15,
-            'FRAC1_HIGH_REG': 0x16,
-            'FRAC2_LOW_REG': 0x17,  # NOTE: bit zero is the MSB of FRAC1.
-            'FRAC2_HIGH_REG': 0x18,
-            'MOD2_LOW_REG': 0x19,
-            'MOD2_HIGH_REG': 0x1A,  # NOTE: bi 6 is PHASE_ADJ.
-            'PHASE_LOW_REG': 0x1B,
-            'PHASE_MID_REG': 0x1C,
-            'PHASE_HIGH_REG': 0x1D,
-            'CONFIG2_REG': 0x1E,
-            'RCNT_REG': 0x1F,
-            'MUXOUT_REG': 0x20,
-            'REF_REG': 0x22,
-            'CONFIG3_REG': 0x23,
-            'RFDIV_REG': 0x24,
-            'RFOUT_REG': 0x25,
-            'BLEED0_REG': 0x26,
-            'BLEED1_REG': 0x27,
-            'LOCK_REG': 0x28,
-            'CONFIG4_REG': 0x2A,
-            'SD_REG': 0x2B,
-            'VCO_BIAS0_REG': 0x2C,
-            'VCO_BIAS1_REG': 0x2D,
-            'VCO_BIAS2_REG': 0x2E,
-            'VCO_BIAS3_REG': 0x2F,
-            'VCO_BAND_REG': 0x30,
-            'TIMEOUT_REG': 0x31,
-            'ADC_REG': 0x32,
-            'SYNTH_TIMEOUT_REG': 0x33,
-            'VCO_TIMEOUT_REG': 0x34,
-            'ADC_CLK_REG': 0x35,
-            'ICP_OFFSET_REG': 0x36,
-            'SI_BAND_REG': 0x37,
-            'SI_VCO_REG': 0x38,
-            'SI_VTUNE_REG': 0x39,
-            'ADC_OFFSET_REG': 0x3A,
-            'SD_RESET_REG': 0x3D,
-            'CP_TMODE_REG': 0x3E,
-            'CLK1_DIV_LOW_REG': 0x3F,
-            'CLK1_DIV_HIGH_REG': 0x40,
-            'CLK2_DIV_REG': 0x41,
-            'TRM_RESD0_REG': 0x47,
-            'TRM_RESD1_REG': 0x52,
-            'VCO_DATA_LOW_REG': 0x6E,
-            'VCO_DATA_HIGH_REG': 0x6F,
-            'BIAS_SEL_X2_REG': 0x70,
-            'BIAS_SEL_X4_REG': 0x71,
-            'AUXOUT_REG': 0x72,
-            'LD_PD_ADC_REG': 0x73,
-            'LOCK_DETECT_REG': 0x7C}
-
-    def reg2addr(self, reg="CONFIG0_REG"):
-        if reg in self.REGS:
-            return self.REGS[reg]
-        else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
-            return -1
-
-    # Data array: 3 bytes.
-    # byte[0] = opcode/addr high.
-    # byte[1] = addr low.
-    # byte[2] = register value (dummy for read).
-    def reg_rd(self, reg="CONFIG0_REG"):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # Dummy byte for clocking data out.
-        return bytes([self.cmd_rd, addr, 0])
-
-    def reg_wr(self, reg="CONFIG0_REG", val=0):
-        # Address.
-        addr = self.reg2addr(reg)
-
-        return bytes([self.cmd_wr, addr, val])
-
-    # Simple frequency setting function.
-    # FRAC2 = 0 not used.
-    # INT,FRAC1 sections are used.
-    # All frequencies are in MHz.
-    # Frequency must be in the range 4-8 GHz.
-    def set_freq(self, fin=6000):
-        # Structures for output.
-        regs = {}
-        regs['INT'] = {'FULL': 0, 'LOW': 0, 'HIGH': 0}
-        regs['FRAC1'] = {'FULL': 0, 'LOW': 0, 'MID': 0, 'HIGH': 0, 'MSB': 0}
-
-        # Sanity check.
-        if fin < 4000:
-            print("%s: input frequency %d below the limit" %
-                  (self.__class__.__name__, fin))
-            return -1
-        elif fin > 8000:
-            print("%s: input frequency %d above the limit" %
-                  (self.__class__.__name__, fin))
-            return -1
-
-        Ndiv = fin/self.f_REF_in
-
-        # Integer part.
-        int_ = int(np.floor(Ndiv))
-        int_low = int_ & 0xff
-        int_high = int_ >> 8
-
-        # Fractional part.
-        frac_ = Ndiv - int_
-        frac_ = int(np.floor(frac_*self.MOD1))
-        frac_low = frac_ & 0xff
-        frac_mid = (frac_ >> 8) & 0xff
-        frac_high = (frac_ >> 16) & 0xff
-        frac_msb = frac_ >> 24
-
-        # Write values into structure.
-        regs['INT']['FULL'] = int_
-        regs['INT']['LOW'] = int_low
-        regs['INT']['HIGH'] = int_high
-        regs['FRAC1']['FULL'] = frac_
-        regs['FRAC1']['LOW'] = frac_low
-        regs['FRAC1']['MID'] = frac_mid
-        regs['FRAC1']['HIGH'] = frac_high
-        regs['FRAC1']['MSB'] = frac_msb
-
-        return regs
-
 class BiasAD5781:
     """Bias DAC chip AD5781.
     """
@@ -826,6 +677,117 @@ class DAC11001:
         # Shift by two as 4 lower bits are not used.
         return int(Df) << 4
 
+# Bias dac.
+class dac_bias:
+    """
+    """
+
+    # Constructor.
+    def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
+        if fpga_board != 'ZCU216':
+            raise RuntimeError("only valid for ZCU216")
+        # SPI.
+        self.ch_en = ch_en
+        self.cs_t = cs_t
+        self.spi = spi_ip
+        self.spi.SPI_SSR = 0xff
+
+        # Version.
+        self.version = version
+
+        # Board.
+        self.fpga_board = fpga_board
+
+        if debug:
+            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
+
+        # GPIO.
+        self.gpio = gpio_ip.channel1
+
+        # DAC11001.
+        self.ad = DAC11001()
+
+        # Initialize control register.
+        self.write(reg="CONFIG1_REG", val=0x4e00)
+
+        # Initialize to 0 volts.
+        self.set_volt(0)
+
+        # Enable output switch.
+        self.gpio.write(1,0x1)
+
+    def read(self, reg="DAC_REG"):
+        # Read command.
+        data = self.ad.reg_rd(reg)
+        reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+        # Another read with dummy data to allow clocking register out.
+        data = bytes(4)
+        reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+        return int.from_bytes(reg[:3], byteorder='little')
+
+    def write(self, reg="DAC_REG", val=0, debug=False):
+        # Write command.
+        data = self.ad.reg_wr(reg, val)
+
+        if debug:
+            print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
+
+        self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def set_volt(self, volt=0, debug=False):
+        # Convert volts to register value.
+        val = self.ad.volt2reg(volt)
+
+        self.write(reg="DAC_DATA_REG", val=val, debug=debug)
+
+
+class AttenuatorPE43705:
+    """
+    This class provides SPI access to the PE43705 step attenuator.
+    Range is 0-31.75 dB.
+    Parts are used in serial mode.
+    This device's SPI interface is write-only, no readback.
+    See schematics for Address/LE correspondance.
+    """
+
+    # Constructor.
+    def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
+        self.address = ch
+
+        # SPI.
+        self.spi = spi_ip
+
+        # Lath-enable.
+        self.ch_en = self.spi.en_level(nch, le, en_l)
+        self.cs_t = cs_t
+
+        # Initialize with max attenuation.
+        self.set_att(31.75)
+
+    def _db2step(self, db):
+        nSteps = 2**7
+        dbStep = 0.25
+        dbMinAtt = 0
+        dbMaxAtt = (nSteps-1)*dbStep
+
+        # Sanity check.
+        if db < dbMinAtt or db > dbMaxAtt:
+            raise RuntimeError("attenuation value %f out of range [%f, %f]" % (db, dbMinAtt, dbMaxAtt))
+
+        return int(np.round(db/dbStep))
+
+    def _db2reg(self, db):
+        # will get packed as (address << 8) | step
+        return bytes([self._db2step(db), self.address])
+
+    # Set attenuation function.
+    def set_att(self, db):
+        # Register value.
+        reg = self._db2reg(db)
+
+        # Write value using spi.
+        self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
 
 # ADMV8818 Filter Chip.
 class ADMV8818:
@@ -974,55 +936,8 @@ class ADMV8818:
             print("{}: section {} not found. Using bypass by default.".format(self.__class__.__name__, section))
             return 0
 
-class AttenuatorPE43705:
-    """
-    This class provides SPI access to the PE43705 step attenuator.
-    Range is 0-31.75 dB.
-    Parts are used in serial mode.
-    This device's SPI interface is write-only, no readback.
-    See schematics for Address/LE correspondance.
-    """
-
-    # Constructor.
-    def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
-        self.address = ch
-
-        # SPI.
-        self.spi = spi_ip
-
-        # Lath-enable.
-        self.ch_en = self.spi.en_level(nch, le, en_l)
-        self.cs_t = cs_t
-
-        # Initialize with max attenuation.
-        self.set_att(31.75)
-
-    def _db2step(self, db):
-        nSteps = 2**7
-        dbStep = 0.25
-        dbMinAtt = 0
-        dbMaxAtt = (nSteps-1)*dbStep
-
-        # Sanity check.
-        if db < dbMinAtt or db > dbMaxAtt:
-            raise RuntimeError("attenuation value %f out of range [%f, %f]" % (db, dbMinAtt, dbMaxAtt))
-
-        return int(np.round(db/dbStep))
-
-    def _db2reg(self, db):
-        # will get packed as (address << 8) | step
-        return bytes([self._db2step(db), self.address])
-
-    # Set attenuation function.
-    def set_att(self, db):
-        # Register value.
-        reg = self._db2reg(db)
-
-        # Write value using spi.
-        self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
-
 # Filter class: This class instantiates spi and ADMV8818 to simplify access to the filter chip.
-class prog_filter:
+class FilterADMV8818:
     """
     """
 
@@ -1235,6 +1150,155 @@ class GpioMCP23S08:
         # Set value to hardware.
         self.write_reg("GPIO_REG", reg)
 
+# LO Chip ADF4372.
+class ADF4372:
+    """
+    """
+    # Reference input.
+    f_REF_in = 122.88
+
+    # Fixed 25-bit modulus.
+    MOD1 = 2**25
+
+    # Commands.
+    cmd_wr = 0x00
+    cmd_rd = 0x80
+
+    # Registers.
+    REGS = {'CONFIG0_REG': 0x00,
+            'CONFIG1_REG': 0x01,
+            'CHIP_REG': 0x03,
+            'PROD_ID0_REG': 0x04,
+            'PROD_ID1_REG': 0x05,
+            'PROD_REV_REG': 0x06,
+            'INT_LOW_REG': 0x10,
+            'INT_HIGH_REG': 0x11,
+            'CAL_PRE_REG': 0x12,
+            'FRAC1_LOW_REG': 0x14,
+            'FRAC1_MID_REG': 0x15,
+            'FRAC1_HIGH_REG': 0x16,
+            'FRAC2_LOW_REG': 0x17,  # NOTE: bit zero is the MSB of FRAC1.
+            'FRAC2_HIGH_REG': 0x18,
+            'MOD2_LOW_REG': 0x19,
+            'MOD2_HIGH_REG': 0x1A,  # NOTE: bi 6 is PHASE_ADJ.
+            'PHASE_LOW_REG': 0x1B,
+            'PHASE_MID_REG': 0x1C,
+            'PHASE_HIGH_REG': 0x1D,
+            'CONFIG2_REG': 0x1E,
+            'RCNT_REG': 0x1F,
+            'MUXOUT_REG': 0x20,
+            'REF_REG': 0x22,
+            'CONFIG3_REG': 0x23,
+            'RFDIV_REG': 0x24,
+            'RFOUT_REG': 0x25,
+            'BLEED0_REG': 0x26,
+            'BLEED1_REG': 0x27,
+            'LOCK_REG': 0x28,
+            'CONFIG4_REG': 0x2A,
+            'SD_REG': 0x2B,
+            'VCO_BIAS0_REG': 0x2C,
+            'VCO_BIAS1_REG': 0x2D,
+            'VCO_BIAS2_REG': 0x2E,
+            'VCO_BIAS3_REG': 0x2F,
+            'VCO_BAND_REG': 0x30,
+            'TIMEOUT_REG': 0x31,
+            'ADC_REG': 0x32,
+            'SYNTH_TIMEOUT_REG': 0x33,
+            'VCO_TIMEOUT_REG': 0x34,
+            'ADC_CLK_REG': 0x35,
+            'ICP_OFFSET_REG': 0x36,
+            'SI_BAND_REG': 0x37,
+            'SI_VCO_REG': 0x38,
+            'SI_VTUNE_REG': 0x39,
+            'ADC_OFFSET_REG': 0x3A,
+            'SD_RESET_REG': 0x3D,
+            'CP_TMODE_REG': 0x3E,
+            'CLK1_DIV_LOW_REG': 0x3F,
+            'CLK1_DIV_HIGH_REG': 0x40,
+            'CLK2_DIV_REG': 0x41,
+            'TRM_RESD0_REG': 0x47,
+            'TRM_RESD1_REG': 0x52,
+            'VCO_DATA_LOW_REG': 0x6E,
+            'VCO_DATA_HIGH_REG': 0x6F,
+            'BIAS_SEL_X2_REG': 0x70,
+            'BIAS_SEL_X4_REG': 0x71,
+            'AUXOUT_REG': 0x72,
+            'LD_PD_ADC_REG': 0x73,
+            'LOCK_DETECT_REG': 0x7C}
+
+    def reg2addr(self, reg="CONFIG0_REG"):
+        if reg in self.REGS:
+            return self.REGS[reg]
+        else:
+            print("%s: register %s not recognized." %
+                  (self.__class__.__name__, reg))
+            return -1
+
+    # Data array: 3 bytes.
+    # byte[0] = opcode/addr high.
+    # byte[1] = addr low.
+    # byte[2] = register value (dummy for read).
+    def reg_rd(self, reg="CONFIG0_REG"):
+        # Address.
+        addr = self.reg2addr(reg)
+
+        # Dummy byte for clocking data out.
+        return bytes([self.cmd_rd, addr, 0])
+
+    def reg_wr(self, reg="CONFIG0_REG", val=0):
+        # Address.
+        addr = self.reg2addr(reg)
+
+        return bytes([self.cmd_wr, addr, val])
+
+    # Simple frequency setting function.
+    # FRAC2 = 0 not used.
+    # INT,FRAC1 sections are used.
+    # All frequencies are in MHz.
+    # Frequency must be in the range 4-8 GHz.
+    def set_freq(self, fin=6000):
+        # Structures for output.
+        regs = {}
+        regs['INT'] = {'FULL': 0, 'LOW': 0, 'HIGH': 0}
+        regs['FRAC1'] = {'FULL': 0, 'LOW': 0, 'MID': 0, 'HIGH': 0, 'MSB': 0}
+
+        # Sanity check.
+        if fin < 4000:
+            print("%s: input frequency %d below the limit" %
+                  (self.__class__.__name__, fin))
+            return -1
+        elif fin > 8000:
+            print("%s: input frequency %d above the limit" %
+                  (self.__class__.__name__, fin))
+            return -1
+
+        Ndiv = fin/self.f_REF_in
+
+        # Integer part.
+        int_ = int(np.floor(Ndiv))
+        int_low = int_ & 0xff
+        int_high = int_ >> 8
+
+        # Fractional part.
+        frac_ = Ndiv - int_
+        frac_ = int(np.floor(frac_*self.MOD1))
+        frac_low = frac_ & 0xff
+        frac_mid = (frac_ >> 8) & 0xff
+        frac_high = (frac_ >> 16) & 0xff
+        frac_msb = frac_ >> 24
+
+        # Write values into structure.
+        regs['INT']['FULL'] = int_
+        regs['INT']['LOW'] = int_low
+        regs['INT']['HIGH'] = int_high
+        regs['FRAC1']['FULL'] = frac_
+        regs['FRAC1']['LOW'] = frac_low
+        regs['FRAC1']['MID'] = frac_mid
+        regs['FRAC1']['HIGH'] = frac_high
+        regs['FRAC1']['MSB'] = frac_msb
+
+        return regs
+
 # LO Synthesis.
 class LoSynthADF4372:
     """
@@ -1402,107 +1466,80 @@ class LoSynthADF4372:
             # LOW
             self.reg_wr('INT_LOW_REG', regs['INT']['LOW'])
 
-# Bias dac.
-class dac_bias:
+class LoSynthLMX2594:
     """
     """
 
-    # Constructor.
-    def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
+    def __init__(self, spi_ip, ch):
         # SPI.
-        self.ch_en = ch_en
-        self.cs_t = cs_t
         self.spi = spi_ip
+
+        # CS.
+        self.ch_en = self.spi.en_level(3, [ch], "low")
+        self.cs_t = ""
+        # All CS to high value.
         self.spi.SPI_SSR = 0xff
 
-        # Version.
-        self.version = version
+        self.lmx = clock_models.LMX2594(122.88)
+        self.reset()
 
-        # Board.
-        self.fpga_board = fpga_board
+    @property
+    def freq(self):
+        return self.lmx.f_outa
 
-        if debug:
-            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
+    def reset(self):
+        self.reg_wr(0x000002)
+        self.reg_wr(0x000000)
 
-        if self.fpga_board == 'ZCU111':
-            # AD5791.
-            self.ad = AD5781()
+    def reg_wr(self, regval):
+        data = regval.to_bytes(length=3, byteorder='big')
+        rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
-            # Initialize control register.
-            self.write(reg="CTRL_REG", val=0x312)
+    def reg_rd(self, addr):
+        data = bytes([addr + (1<<7), 0, 0])
+        return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
-            # Initialize to 0 volts.
-            self.set_volt(0)
+    def is_locked(self):
+        status = self.get_param("rb_LD_VTUNE")
+        #print(status.value_description)
+        return status.value == status.LOCKED.value
 
-        elif self.fpga_board == 'ZCU216':
-            if version == 1:
-                # GPIO.
-                self.gpio = gpio_ip.channel1
+    def set_freq(self, f, pwr=50, reset=True, verbose=False):
+        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, verbose=verbose)
+        if reset: self.reset()
+        self.program()
+        time.sleep(0.01)
+        self.calibrate(verbose=verbose)
 
-                # DAC11001.
-                self.ad = DAC11001()
+    def calibrate(self, timeout=1.0, n_attempts=5, verbose=False):
+        for i in range(n_attempts):
+            # you'd think FCAL_EN needs to be toggled, not just set to 1?
+            # but datasheet doesn't say so, and this seems to work
+            self.set_param("FCAL_EN", 1)
+            starttime = time.time()
+            while time.time()-starttime < timeout:
+                lock = self.is_locked()
+                if lock:
+                    if verbose: print("LO locked on attempt %d after %.2f sec"%(i+1, time.time()-starttime))
+                    return
+                time.sleep(0.01)
+            if verbose: print("lock attempt %d failed"%(i+1))
+        raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
 
-                # Initialize control register.
-                self.write(reg="CONFIG1_REG", val=0x4e00)
+    def set_param(self, name, val):
+        getattr(self.lmx, name).value = val
+        for addr in self.lmx.find_addrs([name]):
+            self.reg_wr(self.lmx.registers_by_addr[addr].get_raw())
 
-                # Initialize to 0 volts.
-                self.set_volt(0)
+    def get_param(self, name):
+        for addr in self.lmx.find_addrs([name]):
+            res = self.reg_rd(addr)
+            self.lmx.registers_by_addr[addr].parse(int.from_bytes(res, byteorder='big'))
+        return getattr(self.lmx, name)
 
-                # Enable output switch.
-                self.gpio.write(1,0x1)
-            else:
-                raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
-        else:
-            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
-
-
-    def read(self, reg="DAC_REG"):
-        if self.fpga_board == 'ZCU216' and self.version == 1:
-            # Read command.
-            data = self.ad.reg_rd(reg)
-            reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-
-            # Another read with dummy data to allow clocking register out.
-            data = bytes(4)
-            reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-            return int.from_bytes(reg[:3], byteorder='little')
-        else:
-            # Read command.
-            byte = self.ad.reg_rd(reg)
-            reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-            # Another read with dummy data to allow clocking register out.
-            byte = bytes(3)
-            reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-        return reg
-
-    def write(self, reg="DAC_REG", val=0, debug=False):
-        if self.fpga_board == 'ZCU216' and self.version == 1:
-            # Write command.
-            data = self.ad.reg_wr(reg, val)
-
-            if debug:
-                print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
-
-            self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-        else:
-            # Write command.
-            data = self.ad.reg_wr(reg, val)
-
-            if debug:
-                print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
-
-            self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-
-    def set_volt(self, volt=0, debug=False):
-        # Convert volts to register value.
-        val = self.ad.volt2reg(volt)
-
-        if self.fpga_board == 'ZCU216' and self.version == 1:
-            self.write(reg="DAC_DATA_REG", val=val, debug=debug)
-        else:
-            self.write(reg="DAC_REG", val=val, debug=debug)
+    def program(self):
+        for regval in self.lmx.get_register_dump():
+            self.reg_wr(regval)
 
 class GainLMH6401:
     """Variable gain amp LMH6401.
@@ -1629,7 +1666,7 @@ class adc_rf_ch():
                     print("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
 
                 # Filters. There is 1 per ADC Channel.
-                self.filter = prog_filter(filter_spi, ch=self.local_ch)
+                self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
                 if debug:
                     print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
 
@@ -1797,7 +1834,7 @@ class dac_ch():
                     print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
 
             # Filters. There is 1 per ADC Channel.
-            self.filter = prog_filter(filter_spi, ch=self.local_ch)
+            self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
             if debug:
                 print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
 
@@ -2102,81 +2139,6 @@ class RFQickSoc111V1(RFQickSoc):
         """
         for lo in self.lo:
             lo.set_freq(f)
-
-class LoSynthLMX2594:
-    """
-    """
-
-    def __init__(self, spi_ip, ch):
-        # SPI.
-        self.spi = spi_ip
-
-        # CS.
-        self.ch_en = self.spi.en_level(3, [ch], "low")
-        self.cs_t = ""
-        # All CS to high value.
-        self.spi.SPI_SSR = 0xff
-
-        self.lmx = clock_models.LMX2594(122.88)
-        self.reset()
-
-    @property
-    def freq(self):
-        return self.lmx.f_outa
-
-    def reset(self):
-        self.reg_wr(0x000002)
-        self.reg_wr(0x000000)
-
-    def reg_wr(self, regval):
-        data = regval.to_bytes(length=3, byteorder='big')
-        rec = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-
-    def reg_rd(self, addr):
-        data = bytes([addr + (1<<7), 0, 0])
-        return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-
-    def is_locked(self):
-        status = self.get_param("rb_LD_VTUNE")
-        #print(status.value_description)
-        return status.value == status.LOCKED.value
-
-    def set_freq(self, f, pwr=50, reset=True, verbose=False):
-        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, verbose=verbose)
-        if reset: self.reset()
-        self.program()
-        time.sleep(0.01)
-        self.calibrate(verbose=verbose)
-
-    def calibrate(self, timeout=1.0, n_attempts=5, verbose=False):
-        for i in range(n_attempts):
-            # you'd think FCAL_EN needs to be toggled, not just set to 1?
-            # but datasheet doesn't say so, and this seems to work
-            self.set_param("FCAL_EN", 1)
-            starttime = time.time()
-            while time.time()-starttime < timeout:
-                lock = self.is_locked()
-                if lock:
-                    if verbose: print("LO locked on attempt %d after %.2f sec"%(i+1, time.time()-starttime))
-                    return
-                time.sleep(0.01)
-            if verbose: print("lock attempt %d failed"%(i+1))
-        raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
-
-    def set_param(self, name, val):
-        getattr(self.lmx, name).value = val
-        for addr in self.lmx.find_addrs([name]):
-            self.reg_wr(self.lmx.registers_by_addr[addr].get_raw())
-
-    def get_param(self, name):
-        for addr in self.lmx.find_addrs([name]):
-            res = self.reg_rd(addr)
-            self.lmx.registers_by_addr[addr].parse(int.from_bytes(res, byteorder='big'))
-        return getattr(self.lmx, name)
-
-    def program(self):
-        for regval in self.lmx.get_register_dump():
-            self.reg_wr(regval)
 
 class RFQickSoc111V2(RFQickSoc111V1):
     def _init_switches(self, spi):
