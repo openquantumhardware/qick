@@ -498,62 +498,6 @@ class spi(DefaultIP):
 
         return data_r
 
-# GPIO chip MCP23S08.
-class MCP23S08:
-    """
-    """
-    # Commands.
-    cmd_wr = 0x40
-    cmd_rd = 0x41
-
-    # Registers.
-    REGS = {'IODIR_REG': 0x00,
-            'IPOL_REG': 0x01,
-            'GPINTEN_REG': 0x02,
-            'DEFVAL_REG': 0x03,
-            'INTCON_REG': 0x04,
-            'IOCON_REG': 0x05,
-            'GPPU_REG': 0x06,
-            'INTF_REG': 0x07,
-            'INTCAP_REG': 0x08,
-            'GPIO_REG': 0x09,
-            'OLAT_REG': 0x0A}
-
-    def __init__(self, dev_addr):
-        self.dev_addr = dev_addr
-
-    # Register/address mapping.
-    def reg2addr(self, reg="GPIO_REG"):
-        if reg in self.REGS:
-            return self.REGS[reg]
-        else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
-            return -1
-
-    # Data array: 3 bytes.
-    # byte[0] = opcode.
-    # byte[1] = register address.
-    # byte[2] = register value (dummy for read).
-    def reg_rd(self, reg="GPIO_REG"):
-        # Read command.
-        cmd = self.cmd_rd + 2*self.dev_addr
-
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # Dummy byte for clocking data out.
-        return bytes([cmd, addr, 0])
-
-    def reg_wr(self, reg="GPIO_REG", val=0):
-        # Write command.
-        cmd = self.cmd_wr + 2*self.dev_addr
-
-        # Address.
-        addr = self.reg2addr(reg)
-
-        return bytes([cmd, addr, val])
-
 # LO Chip ADF4372.
 class ADF4372:
     """
@@ -703,9 +647,8 @@ class ADF4372:
 
         return regs
 
-# BIAS DAC chip AD5781.
-class AD5781:
-    """
+class BiasAD5781:
+    """Bias DAC chip AD5781.
     """
     # Commands.
     cmd_wr = 0x0
@@ -724,8 +667,25 @@ class AD5781:
             'CLEAR_REG': 0x03,
             'SOFT_REG': 0x04}
 
+    # Constructor.
+    def __init__(self, spi_ip, ch_en, cs_t="", debug=False):
+        # SPI.
+        self.ch_en = ch_en
+        self.cs_t = cs_t
+        self.spi = spi_ip
+        self.spi.SPI_SSR = 0xff
+
+        if debug:
+            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
+
+        # Initialize control register.
+        self.write(reg="CTRL_REG", val=0x312)
+
+        # Initialize to 0 volts.
+        self.set_volt(0)
+
     # Register/address mapping.
-    def reg2addr(self, reg="DAC_REG"):
+    def _reg2addr(self, reg="DAC_REG"):
         if reg in self.REGS:
             return self.REGS[reg]
         else:
@@ -735,7 +695,7 @@ class AD5781:
 
     def reg_rd(self, reg="DAC_REG"):
         # Address.
-        addr = self.reg2addr(reg)
+        addr = self._reg2addr(reg)
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_rd << 3) | addr
@@ -749,7 +709,7 @@ class AD5781:
         byte = []
 
         # Address.
-        addr = self.reg2addr(reg)
+        addr = self._reg2addr(reg)
 
         # R/W bit +  address (upper 4 bits).
         cmd = (self.cmd_wr << 3) | addr
@@ -757,20 +717,41 @@ class AD5781:
         return cmd.to_bytes(length=3, byteorder='big')
 
     # Compute register value for voltage setting.
-    def volt2reg(self, volt=0):
-        if volt < self.VREFN:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        elif volt > self.VREFP:
-            print("%s: %d V out of range." % (self.__class__.__name__, volt))
-            return -1
-        else:
-            Df = (2**self.B - 1)*(volt - self.VREFN)/(self.VREFP - self.VREFN)
+    def _volt2reg(self, volt=0):
+        if volt < self.VREFN or volt > self.VREFP:
+            raise RuntimeError("%s: %d V out of range [%f, %f]" % (self.__class__.__name__, volt, self.VREFN, self.VREFP))
 
-            # Shift by two as 2 lower bits are not used.
-            Df = int(Df) << 2
+        Df = (2**self.B - 1)*(volt - self.VREFN)/(self.VREFP - self.VREFN)
 
-            return int(Df)
+        # Shift by two as 2 lower bits are not used.
+        Df = int(Df) << 2
+
+        return int(Df)
+
+    def read(self, reg="DAC_REG"):
+        # Read command.
+        byte = self.reg_rd(reg)
+        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+
+        # Another read with dummy data to allow clocking register out.
+        byte = bytes(3)
+        reg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+
+        return reg
+
+    def write(self, reg="DAC_REG", val=0, debug=False):
+        # Write command.
+        data = self.reg_wr(reg, val)
+
+        if debug:
+            print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
+
+        self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+
+    def set_volt(self, volt, debug=False):
+        # Convert volts to register value.
+        val = self._volt2reg(volt)
+        self.write(reg="DAC_REG", val=val, debug=debug)
 
 # BIAS DAC chip DAC11001.
 class DAC11001:
@@ -1155,27 +1136,40 @@ class SwitchControl:
             defaults <<= 1
             if output is not None:
                 netname, defaultval = output
+                if netname in self.net2port:
+                    raise RuntimeError("GPIO net %s is already defined")
                 self.net2port[netname] = (len(self.devs), iOutput)
                 defaults += defaultval
-        self.devs.append(power_sw_fan(self.spi, ch_en=ch_en, dev_addr=dev_addr, defaults=defaults))
+        self.devs.append(GpioMCP23S08(self.spi, ch_en=ch_en, dev_addr=dev_addr, defaults=defaults))
 
     def __setitem__(self, netname, val):
         iDev, iBit = self.net2port[netname]
-        if val == 1:
-            self.devs[iDev].bits_set(bits=[iBit])
-        elif val == 0:
-            self.devs[iDev].bits_reset(bits=[iBit])
-        else:
-            raise RuntimeError("invalid value:", val)
+        self.devs[iDev].bits_set(bits=[iBit], val=val)
 
-class power_sw_fan:
+class GpioMCP23S08:
+    """GPIO chip MCP23S08.
     """
-    """
+    # Commands.
+    cmd_wr = 0x40
+    cmd_rd = 0x41
+
+    # Registers.
+    REGS = {'IODIR_REG': 0x00,
+            'IPOL_REG': 0x01,
+            'GPINTEN_REG': 0x02,
+            'DEFVAL_REG': 0x03,
+            'INTCON_REG': 0x04,
+            'IOCON_REG': 0x05,
+            'GPPU_REG': 0x06,
+            'INTF_REG': 0x07,
+            'INTCAP_REG': 0x08,
+            'GPIO_REG': 0x09,
+            'OLAT_REG': 0x0A}
+
 
     # Constructor.
     def __init__(self, spi_ip, ch_en, defaults=0xFF, dev_addr=0, cs_t=""):
-        # MCP23S08.
-        self.mcp = MCP23S08(dev_addr=dev_addr)
+        self.dev_addr = dev_addr
 
         # SPI.
         self.spi = spi_ip
@@ -1188,45 +1182,55 @@ class power_sw_fan:
         self.spi.SPI_SSR = 0xff
 
         # Set all bits as outputs.
-        byte = self.mcp.reg_wr("IODIR_REG", 0x00)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        self.write_reg("IODIR_REG", 0x00)
 
         # Set default output values.
-        byte = self.mcp.reg_wr("GPIO_REG", defaults)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        self.write_reg("GPIO_REG", defaults)
+
+    # Data array: 3 bytes.
+    # byte[0] = opcode.
+    # byte[1] = register address.
+    # byte[2] = register value (dummy for read).
+    def read_reg(self, reg):
+        # Read command.
+        cmd = self.cmd_rd + 2*self.dev_addr
+
+        # Address.
+        addr = self.REGS[reg]
+
+        # Dummy byte for clocking data out.
+        msg = bytes([cmd, addr, 0])
+        res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
+
+        return int(res[2])
+
+    def write_reg(self, reg, val):
+        # Write command.
+        cmd = self.cmd_wr + 2*self.dev_addr
+
+        # Address.
+        addr = self.REGS[reg]
+
+        msg = bytes([cmd, addr, val])
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
     # Write bits.
-    def bits_set(self, bits=[0]):
-        val = 0
+    def bits_set(self, bits, val):
+        if val not in [0, 1]:
+            raise RuntimeError("invalid value:", val)
 
         # Read actual value.
-        byte = self.mcp.reg_rd("GPIO_REG")
-        vals = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-        val = int(vals[2])
+        reg = self.read_reg("GPIO_REG")
 
         # Set bits.
-        for i in range(len(bits)):
-            val |= (1 << bits[i])
+        for bit in bits:
+            if val == 1:
+                reg |= (1 << bit)
+            else:
+                reg &= ~(1 << bit)
 
         # Set value to hardware.
-        byte = self.mcp.reg_wr("GPIO_REG", val)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-    def bits_reset(self, bits=[0]):
-        val = 0xff
-
-        # Read actual value.
-        byte = self.mcp.reg_rd("GPIO_REG")
-        vals = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-        val = int(vals[2])
-
-        # Reset bits.
-        for i in range(len(bits)):
-            val &= ~(1 << bits[i])
-
-        # Set value to hardware.
-        byte = self.mcp.reg_wr("GPIO_REG", val)
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
+        self.write_reg("GPIO_REG", reg)
 
 # LO Synthesis.
 class lo_synth:
@@ -2008,7 +2012,7 @@ class RFQickSoc(QickSoc):
         self.lo = [lo_synth(self.lo_spi, le=[i]) for i in range(2)]
 
         # DAC BIAS.
-        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+        self.dac_bias = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
         self.adc_chains = [adc_rf_ch(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi, version=1) for ii in range(4,8)]
@@ -2247,7 +2251,7 @@ class RFQickSocV2(RFQickSoc):
         self.lo = [lo_synth_v2(self.lo_spi, i) for i in range(3)]
 
         # DAC BIAS.
-        self.dac_bias = [dac_bias(self.dac_bias_spi, ch_en=ii, fpga_board=self['board']) for ii in range(8)]
+        self.dac_bias = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
         self.adc_chains = [adc_rf_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
