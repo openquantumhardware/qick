@@ -1665,7 +1665,7 @@ class AdcRfChain216:
         
         return ret 
 
-class adc_dc_ch():
+class AdcDcChain111():
     """Class to describe the ADC-DC channel chain.
     """
     # Constructor.
@@ -1680,11 +1680,6 @@ class adc_dc_ch():
         self.powerdown = "RF2IF_PD%d"%(self.ch)
         if self.powerdown not in self.switches:
             self.powerdown = None
-
-        # Variable Gain Amplifier.
-        if ch < 4 or ch > 7:
-            print("%s: channel %d not valid for ADC-DC type" %
-                  (self.__class__.__name__, ch))
 
         self.gain = GainLMH6401(gain_spi, ch_en=ch)
 
@@ -1712,70 +1707,29 @@ class adc_dc_ch():
         # Power down.
         self.switches[self.powerdown] = 1
 
-# Class to describe the DAC channel chain.
-class dac_ch():
-    """
-    """
-    # Constructor.
-    def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
+class DacChain111:
+    def __init__(self, ch=0, switches=None, attn_spi=None):
         # Channel number.
         self.ch = ch
 
-        # FPGA Board.
-        self.fpga_board = fpga_board
+        # RF input and power switches.
+        self.switches = switches
 
-        # ZCU111 board.
-        if self.fpga_board == 'ZCU111':
-            # RF input and power switches.
-            self.switches = switches
+        # V2 RF board has powerdown control, V1 does not
+        self.dc_powerdown = "IF2RF_PD%d"%(self.ch)
+        if self.dc_powerdown not in self.switches:
+            self.dc_powerdown = None
 
-            # V2 RF board has powerdown control, V1 does not
-            self.dc_powerdown = "IF2RF_PD%d"%(self.ch)
-            if self.dc_powerdown not in self.switches:
-                self.dc_powerdown = None
+        # Attenuators.
+        self.attn = []
+        self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[1]))
+        self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[2]))
 
-            # Attenuators.
-            self.attn = []
-            self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[1]))
-            self.attn.append(AttenuatorPE43705(attn_spi, ch, le=[2]))
-
-            # Initialize in off state.
-            self.disable()
-        
-        # ZCU216 board.
-        elif self.fpga_board == 'ZCU216':
-            # Board selection.
-            self.rfboard_ch = rfboard_ch
-            self.brd_sel = rfboard_sel
-
-            # Channels are numbered from 0-15. Daughter cards have 4 channels each, with nubers going from 0-3.
-            self.local_ch = ch % 4
-
-            if debug:
-                print("{}: DAC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
-
-            # Attenuators. There are 2 per DAC Channel.
-            self.attn = []
-            for i in range(2):
-                addr = 2*self.local_ch+i
-                self.attn.append(AttenuatorPE43705(attn_spi, ch=addr, nch=1, le=[0]))
-                if debug:
-                    print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
-
-            # Filters. There is 1 per ADC Channel.
-            self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
-            if debug:
-                print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
-
-            # Initialize filter.
-            self.init_filter()
-        else:
-            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
+        # Initialize in off state.
+        self.disable()
 
     # Switch selection.
     def rfsw_sel(self, sel="RF"):
-        if self.fpga_board != 'ZCU111':
-            raise RuntimeError("only valid for ZCU111")
         if sel == "RF":
             # Set logic one.
             # Select RF output from switch.
@@ -1807,26 +1761,53 @@ class dac_ch():
 
     # Set attenuator.
     def set_attn_db(self, attn=0, db=0, debug=False):
-        # Enable daughter card.
-        if self.fpga_board == 'ZCU216':
-            # Board selection logic.    
-            self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+        self.attn[attn].set_att(db)
 
-        # Set attenuator.        
-        if attn < len(self.attn):
-            self.attn[attn].set_att(db)
-        else:
-            print("%s: attenuator %d not in chain." %
-                  (self.__class__.__name__, attn))
+    def set_rf(self, att1, att2):
+        self.rfsw_sel("RF")
+        self.set_attn_db(attn=0, db=att1)
+        self.set_attn_db(attn=1, db=att2)
 
-        # Disable daughter card.
-        if self.fpga_board == 'ZCU216':
-            # Board selection logic.    
-            self.brd_sel.disable()
+    def set_dc(self):
+        self.rfsw_sel("DC")
+
+    def disable(self):
+        self.rfsw_sel("OFF")
+        self.set_attn_db(attn=0, db=31.75)
+        self.set_attn_db(attn=1, db=31.75)
+
+class DacRfChain216:
+    def __init__(self, ch=0, attn_spi=None, filter_spi=None, rfboard_ch=0, rfboard_sel=None, debug=False):
+        # Channel number.
+        self.ch = ch
+
+        # Board selection.
+        self.rfboard_ch = rfboard_ch
+        self.brd_sel = rfboard_sel
+
+        # Channels are numbered from 0-15. Daughter cards have 4 channels each, with nubers going from 0-3.
+        self.local_ch = ch % 4
+
+        if debug:
+            print("{}: DAC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+
+        # Attenuators. There are 2 per DAC Channel.
+        self.attn = []
+        for i in range(2):
+            addr = 2*self.local_ch+i
+            self.attn.append(AttenuatorPE43705(attn_spi, ch=addr, nch=1, le=[0]))
+            if debug:
+                print("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
+
+        # Filters. There is 1 per ADC Channel.
+        self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
+        if debug:
+            print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+
+        # Initialize filter.
+        self.init_filter()
 
     def init_filter(self,debug=False):
-        if self.fpga_board != 'ZCU216':
-            raise RuntimeError("only valid for ZCU216")
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
@@ -1837,8 +1818,6 @@ class dac_ch():
         self.brd_sel.disable()
 
     def set_filter(self, fc=0, bw=None, ftype="lowpass", debug=False):
-        if self.fpga_board != 'ZCU216':
-            raise RuntimeError("only valid for ZCU216")
         # Enable this daughter card.
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
@@ -1849,8 +1828,6 @@ class dac_ch():
         self.brd_sel.disable()
 
     def read_filter(self, reg="", debug=False):
-        if self.fpga_board != 'ZCU216':
-            raise RuntimeError("only valid for ZCU216")
         if debug:
             print("{}: reading register {}".format(self.__class__.__name__, reg))
 
@@ -1865,24 +1842,23 @@ class dac_ch():
         
         return ret 
 
-    def set_rf(self, att1, att2):
-        if self.fpga_board == 'ZCU216':
-            # TODO: Check that this is a RF daughter card.
-            self.set_attn_db(attn=0, db=att1)
-            self.set_attn_db(attn=1, db=att2)
-        else:
-            self.rfsw_sel("RF")
-            self.set_attn_db(attn=0, db=att1)
-            self.set_attn_db(attn=1, db=att2)
+    # Set attenuator.
+    def set_attn_db(self, attn=0, db=0, debug=False):
+        # Enable daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
-    def set_dc(self):
-        if self.fpga_board != 'ZCU111':
-            raise RuntimeError("only valid for ZCU111")
-        self.rfsw_sel("DC")
+        # Set attenuator.
+        self.attn[attn].set_att(db)
+
+        # Disable daughter card.
+        self.brd_sel.disable()
+
+    def set_rf(self, att1, att2):
+        # TODO: Check that this is a RF daughter card.
+        self.set_attn_db(attn=0, db=att1)
+        self.set_attn_db(attn=1, db=att2)
 
     def disable(self):
-        if self.fpga_board == 'ZCU111':
-            self.rfsw_sel("OFF")
         self.set_attn_db(attn=0, db=31.75)
         self.set_attn_db(attn=1, db=31.75)
 
@@ -2039,10 +2015,10 @@ class RFQickSoc111V1(RFQickSoc):
         self.dac_bias = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
-        self.adc_chains = [AdcRfChain111(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+        self.adc_chains = [AdcRfChain111(ii, self.switches, self.attn_spi) for ii in range(4)] + [AdcDcChain111(ii, self.switches, self.psf_spi) for ii in range(4,8)]
 
         # DAC channels.
-        self.dac_chains = [dac_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(8)]
+        self.dac_chains = [DacChain111(ii, self.switches, self.attn_spi) for ii in range(8)]
 
         # LO Synthesizers.
         self._init_lo(self.lo_spi)
@@ -2181,7 +2157,7 @@ class RFQickSoc216V1(RFQickSoc):
         NCH = 4 # DAC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.dac_chains.append(dac_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+                self.dac_chains.append(DacRfChain216(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, rfboard_ch=rf_board, rfboard_sel=self.board_sel))
 
         # Link gens/readouts to the corresponding RF board channels.
         if not no_tproc:
