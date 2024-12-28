@@ -1565,79 +1565,70 @@ class GainLMH6401:
         db_a = self.read_reg("GAIN_REG")
         return self.Gmax - db_a
 
-# Class to describe the ADC-RF channel chain.
-class adc_rf_ch():
-    """
-    """
-    # Constructor.
-    def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
+class AdcRfChain111:
+    def __init__(self, ch=0, switches=None, attn_spi=None, debug=False):
         # Channel number.
         self.ch = ch
+        # Power switches.
+        self.switches = switches
 
-        # RF board version.
-        self.version = version
+        # Attenuator.
+        self.attn = AttenuatorPE43705(attn_spi, ch, le=[0])
 
-        # FPGA Board.
-        self.fpga_board = fpga_board
-
-        # ZCU111 board.
-        if self.fpga_board == 'ZCU111':
-
-            # Power switches.
-            self.switches = switches
-
-            # Attenuator.
-            self.attn = AttenuatorPE43705(attn_spi, ch, le=[0])
-
-            # Default to 30 dB attenuation.
-            self.set_attn_db(30)
-
-        # ZCU216 board.
-        elif self.fpga_board == 'ZCU216':
-            if version == 1:
-                # Board selection.
-                self.rfboard_ch = rfboard_ch
-                self.brd_sel = rfboard_sel
-
-                # Channels are numbered from 0-7. Daughter cards have 2 channels each, with nubers going from 0-1.
-                self.local_ch = ch % 2
-
-                if debug:
-                    print("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
-
-                # Attenuators. There is 1 per ADC Channel.
-                self.attn = []
-                self.attn.append(AttenuatorPE43705(attn_spi, ch=self.local_ch, nch=1, le=[0]))
-                if debug:
-                    print("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
-
-                # Filters. There is 1 per ADC Channel.
-                self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
-                if debug:
-                    print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
-
-                # Initialize filter.
-                self.init_filter()
-
-            else:
-                raise RuntimeError("%s: version %d not supported." % (self.__class__.__name, version))
-        else:
-            raise RuntimeError("%s: board %s not recognized." % (self.__class__.__name__, fpga_board))
+        # Default to 30 dB attenuation.
+        self.set_attn_db(30)
 
     # Set attenuator.
     def set_attn_db(self, db=0, debug=False):
-        if self.fpga_board == 'ZCU216' and self.version == 1:
-            # Enable this daughter card.
-            self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+        self.attn.set_att(db)
+        self.enable()
 
-            # Set attenuator.
-            self.attn[0].set_att(db)
+    def enable(self):
+        # Turn on 5V power.
+        self.switches["RF2IF5V_EN%d"%(self.ch)] = 1
 
-            # Disable all daughter cards.
-            self.brd_sel.disable()
-        else:
-            self.attn.set_att(db)
-            self.enable()
+    def disable(self):
+        # Turn off 5V power.
+        self.switches["RF2IF5V_EN%d"%(self.ch)] = 0
+
+class AdcRfChain216:
+    def __init__(self, ch=0, attn_spi=None, filter_spi=None, rfboard_ch=0, rfboard_sel=None, debug=False):
+        # Channel number.
+        self.ch = ch
+        # Board selection.
+        self.rfboard_ch = rfboard_ch
+        self.brd_sel = rfboard_sel
+
+        # Channels are numbered from 0-7. Daughter cards have 2 channels each, with nubers going from 0-1.
+        self.local_ch = ch % 2
+
+        if debug:
+            print("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+
+        # Attenuators. There is 1 per ADC Channel.
+        self.attn = []
+        self.attn.append(AttenuatorPE43705(attn_spi, ch=self.local_ch, nch=1, le=[0]))
+        if debug:
+            print("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
+
+        # Filters. There is 1 per ADC Channel.
+        self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
+        if debug:
+            print("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+
+        # Initialize filter.
+        self.init_filter()
+
+    # Set attenuator.
+    def set_attn_db(self, db=0, debug=False):
+        # Enable this daughter card.
+        self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
+
+        # Set attenuator.
+        self.attn[0].set_att(db)
+
+        # Disable all daughter cards.
+        self.brd_sel.disable()
 
     def init_filter(self,debug=False):
         # Enable this daughter card.
@@ -1673,14 +1664,6 @@ class adc_rf_ch():
         self.brd_sel.disable()
         
         return ret 
-
-    def enable(self):
-        # Turn on 5V power.
-        self.switches["RF2IF5V_EN%d"%(self.ch)] = 1
-
-    def disable(self):
-        # Turn off 5V power.
-        self.switches["RF2IF5V_EN%d"%(self.ch)] = 0
 
 class adc_dc_ch():
     """Class to describe the ADC-DC channel chain.
@@ -2056,7 +2039,7 @@ class RFQickSoc111V1(RFQickSoc):
         self.dac_bias = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
-        self.adc_chains = [adc_rf_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
+        self.adc_chains = [AdcRfChain111(ii, self.switches, self.attn_spi) for ii in range(4)] + [adc_dc_ch(ii, self.switches, self.psf_spi) for ii in range(4,8)]
 
         # DAC channels.
         self.dac_chains = [dac_ch(ii, self.switches, self.attn_spi, fpga_board=self['board']) for ii in range(8)]
@@ -2190,7 +2173,7 @@ class RFQickSoc216V1(RFQickSoc):
         NCH = 2 # ADC channels per daughter card.
         for rf_board in range(NRF):
             for ch in range(NCH):
-                self.adc_chains.append(adc_rf_ch(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, version=1, fpga_board=self['board'], rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
+                self.adc_chains.append(AdcRfChain216(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
         # DAC channels. DAC's daughter cards are the lower 4.
         self.dac_chains = []
