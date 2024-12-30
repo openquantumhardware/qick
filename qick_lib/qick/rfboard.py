@@ -604,9 +604,8 @@ class BiasAD5781:
         val = self._volt2reg(volt)
         self.write(reg="DAC_REG", val=val, debug=debug)
 
-# BIAS DAC chip DAC11001.
-class DAC11001:
-    """
+class BiasDAC11001:
+    """Bias DAC chip DAC11001.
     """
     # Commands.
     cmd_wr = 0x0
@@ -627,46 +626,26 @@ class DAC11001:
             'STATUS_REG'        : 0x05  ,
             'CONFIG2_REG'       : 0x06  }
 
-    # Register/address mapping.
-    def reg2addr(self, reg="DAC_DATA_REG"):
-        if reg in self.REGS:
-            return self.REGS[reg]
-        else:
-            print("%s: register %s not recognized." %
-                  (self.__class__.__name__, reg))
-            return -1
 
-    def reg_rd(self, reg="DAC_DATA_REG"):
-        data = 0
+    # Constructor.
+    def __init__(self, spi_ip, ch_en, cs_t="", debug=False):
+        # SPI.
+        self.ch_en = ch_en
+        self.cs_t = cs_t
+        self.spi = spi_ip
+        self.spi.SPI_SSR = 0xff
 
-        # Address.
-        addr = self.reg2addr(reg)
+        if debug:
+            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
 
-        # R/W bit (MSB) +  address (lower 7 bits).
-        cmd = (self.cmd_rd << 7) | addr
-        #data |= (cmd << 24)
-        data = bytes(3) + bytes([cmd])
+        # Initialize control register.
+        self.write_reg(reg="CONFIG1_REG", val=0x4e00)
 
-        return data
-
-    def reg_wr(self, reg="DAC_DATA_REG", val=0):
-        data = 0
-
-        # Address.
-        addr = self.reg2addr(reg)
-
-        # R/W bit (MSB) +  address (lower 7 bits).
-        cmd = (self.cmd_wr << 7) | addr
-        #data |= (cmd << 24)
-
-        # Value is 24 bits (lower 4 not used).
-        #data |= val
-        data = val.to_bytes(length=3, byteorder='little') + bytes([cmd])
-
-        return data
+        # Initialize to 0 volts.
+        self.set_volt(0)
 
     # Compute register value for voltage setting.
-    def volt2reg(self, volt=0):
+    def volt2reg(self, volt):
         Df = np.round(2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN))
         if (Df<0 or Df>2**self.B):
             raise RuntimeError("%f V out of range." % (volt))
@@ -677,69 +656,44 @@ class DAC11001:
         # Shift by two as 4 lower bits are not used.
         return int(Df) << 4
 
-# Bias dac.
-class dac_bias:
-    """
-    """
+    def read_reg(self, reg):
+        # Address.
+        addr = self.REGS[reg]
 
-    # Constructor.
-    def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
-        if fpga_board != 'ZCU216':
-            raise RuntimeError("only valid for ZCU216")
-        # SPI.
-        self.ch_en = ch_en
-        self.cs_t = cs_t
-        self.spi = spi_ip
-        self.spi.SPI_SSR = 0xff
+        # R/W bit (MSB) +  address (lower 7 bits).
+        cmd = (self.cmd_rd << 7) | addr
 
-        # Version.
-        self.version = version
-
-        # Board.
-        self.fpga_board = fpga_board
-
-        if debug:
-            print("{}: DAC Channel = {}.".format(self.__class__.__name__, self.ch_en))
-
-        # GPIO.
-        self.gpio = gpio_ip.channel1
-
-        # DAC11001.
-        self.ad = DAC11001()
-
-        # Initialize control register.
-        self.write(reg="CONFIG1_REG", val=0x4e00)
-
-        # Initialize to 0 volts.
-        self.set_volt(0)
-
-        # Enable output switch.
-        self.gpio.write(1,0x1)
-
-    def read(self, reg="DAC_REG"):
         # Read command.
-        data = self.ad.reg_rd(reg)
-        reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+        msg = bytes(3) + bytes([cmd])
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
         # Another read with dummy data to allow clocking register out.
-        data = bytes(4)
-        reg = self.spi.send_receive_m(data, self.ch_en, self.cs_t)
-        return int.from_bytes(reg[:3], byteorder='little')
+        msg = bytes(4)
+        res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-    def write(self, reg="DAC_REG", val=0, debug=False):
+        return int.from_bytes(res[:3], byteorder='little')
+
+    def write_reg(self, reg, val, debug=False):
+        # Address.
+        addr = self.REGS[reg]
+
+        # R/W bit (MSB) +  address (lower 7 bits).
+        cmd = (self.cmd_wr << 7) | addr
+
         # Write command.
-        data = self.ad.reg_wr(reg, val)
+        # Value is 24 bits (lower 4 not used).
+        msg = val.to_bytes(length=3, byteorder='little') + bytes([cmd])
 
         if debug:
             print("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
 
-        self.spi.send_receive_m(data, self.ch_en, self.cs_t)
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-    def set_volt(self, volt=0, debug=False):
+    def set_volt(self, volt, debug=False):
         # Convert volts to register value.
-        val = self.ad.volt2reg(volt)
+        val = self.volt2reg(volt)
 
-        self.write(reg="DAC_DATA_REG", val=val, debug=debug)
+        self.write_reg(reg="DAC_DATA_REG", val=val, debug=debug)
 
 
 class AttenuatorPE43705:
@@ -2137,13 +2091,15 @@ class RFQickSoc216V1(RFQickSoc):
         # SPI used for Filter.
         self.filter_spi.config(lsb="msb")
 
-        # SPI used for BIAS.
+        # SPI used for Bias.
         self.bias_spi.config(lsb="msb", cpha="invert")
 
-        # DAC BIAS.
-        self.dac_bias = [dac_bias(self.bias_spi, ch_en=ii, gpio_ip=self.bias_gpio, version=1, fpga_board=self['board']) for ii in range(8)]
+        # Bias channels.
+        self.dac_bias = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
+        self.rfb_enable_bias()
 
         # ADC channels. ADC's daughter cards are the upper 4.
+        # Each of the middle two tiles (225+226) maps to a pair of daughter cards.
         self.adc_chains = []
         NRF = 4 # Number of ADC daughter cards.
         NCH = 2 # ADC channels per daughter card.
@@ -2152,6 +2108,7 @@ class RFQickSoc216V1(RFQickSoc):
                 self.adc_chains.append(AdcRfChain216(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
 
         # DAC channels. DAC's daughter cards are the lower 4.
+        # Each DAC tile maps to a daughter card, in order.
         self.dac_chains = []
         NRF = 4 # Number of DAC daughter cards.
         NCH = 4 # DAC channels per daughter card.
@@ -2166,8 +2123,21 @@ class RFQickSoc216V1(RFQickSoc):
                 gen.rfb = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
                 tile, block = [int(a) for a in avg_buf.readout.adc]
-                #TODO: is tile-1 correct? not tile-2?
                 avg_buf.rfb = self.adc_chains[4*(tile-1) + block]
+
+    def rfb_enable_bias(self):
+        """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
+
+        This is normally run during board initialization, so you should not need to run it yourself.
+        """
+
+        self.bias_gpio.channel1.write(1, 0x1)
+
+    def rfb_disable_bias(self):
+        """Disable all eight main-board bias outputs (by turning off DAC_BIAS_SWEN).
+        """
+
+        self.bias_gpio.channel1.write(0, 0x1)
 
     def rfb_set_gen_filter(self, gen_ch, fc, bw=1, ftype='bandpass'):
         """Set the programmable Analog Filter of the chain.
