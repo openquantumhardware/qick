@@ -6,8 +6,10 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
+import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
+logger = logging.getLogger(__name__)
 
 class AxisSignalGenV3(SocIp):
     # AXIS Table Registers.
@@ -1789,6 +1791,41 @@ class DacRfChain216:
         self.set_attn_db(attn=0, db=31.75)
         self.set_attn_db(attn=1, db=31.75)
 
+class DaughterCard216:
+    NCH = None # channels per daughter card
+    CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
+    CHAIN_CLASS = None # signal chain class to instantiate for each channel
+    def __init__(self, card_num, rfb, switch_control):
+        self.card_num = card_num
+        self.rfb = rfb
+        self.switch_control = switch_control
+        self.chains = []
+        for card_ch in range(self.NCH):
+            global_ch = self.NCH*self.card_num + card_ch
+            if self.CHAIN_CLASS is not None:
+                self.chains.append(self.CHAIN_CLASS(ch=global_ch, attn_spi=rfb.attn_spi, filter_spi=rfb.filter_spi, rfboard_ch=self.CARDNUM_OFFSET+card_num, rfboard_sel=rfb.board_sel))
+            else:
+                # TODO: do something more useful
+                self.chains.append(global_ch)
+
+class DacRfCard216(DaughterCard216):
+    NCH = 4
+    CARDNUM_OFFSET = 0
+    CHAIN_CLASS = DacRfChain216
+
+class DacDcCard216(DaughterCard216):
+    NCH = 4
+    CARDNUM_OFFSET = 0
+
+class AdcRfCard216(DaughterCard216):
+    NCH = 2
+    CARDNUM_OFFSET = 4
+    CHAIN_CLASS = AdcRfChain216
+
+class AdcDcCard216(DaughterCard216):
+    NCH = 2
+    CARDNUM_OFFSET = 4
+
 class BoardSelection:
     """
     This class is used to enable one daughter card on the RF Board for the ZCU216, V1.
@@ -1828,12 +1865,13 @@ class RFQickSoc(QickSoc):
     def __init__(self, bitfile, clk_output=None, no_tproc=False, **kwargs):
         """
         A bitfile must always be provided, since the default bitstream will not work with the RF board.
-        By default, re-initialize the clocks every time.
-        This ensures that the LO output to the RF board is enabled.
 
-        If clk_output is None, the default setting for this RF board will be used (True for ZCU111, False for ZCU216)
+        The ZCU111 RF board takes its LO reference from the ZCU111 clock output.
+        So if clk_output is None, the clocks will be re-initialized every time.
+        This ensures that the LO output to the RF board is enabled.
         """
-        if clk_output is None: clk_output = self.HAS_LO
+        if clk_output is None and self.HAS_LO:
+            clk_output = True
         super().__init__(bitfile=bitfile, clk_output=clk_output, no_tproc=no_tproc, **kwargs)
 
         self.rfb_config(no_tproc)
@@ -2071,32 +2109,57 @@ class RFQickSoc216V1(RFQickSoc):
         self.dac_bias = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
         self.rfb_enable_bias()
 
-        # ADC channels. ADC's daughter cards are the upper 4.
-        # Each of the middle two tiles (225+226) maps to a pair of daughter cards.
-        self.adc_chains = []
-        NRF = 4 # Number of ADC daughter cards.
-        NCH = 2 # ADC channels per daughter card.
-        for rf_board in range(NRF):
-            for ch in range(NCH):
-                self.adc_chains.append(AdcRfChain216(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, rfboard_ch=NRF+rf_board, rfboard_sel=self.board_sel))
+        # DAC daughter cards are the lower 4.
+        self.dac_cards = []
+        for card_num in range(4):
+            self.board_sel.enable(board_id=card_num)
+            gpio = GpioMCP23S08(self.filter_spi, ch_en=4, dev_addr=0, iodir=0xf0)
+            card_id = gpio.read_reg("GPIO_REG") >> 4
+            logger.info("ADC card %d: ID %d"%(card_num, card_id))
+            if card_id == 1:
+                card = DacDcCard216(card_num, self, gpio)
+            elif card_id == 3:
+                card = DacRfCard216(card_num, self, gpio)
+            else:
+                card = None
+            self.dac_cards.append(card)
 
-        # DAC channels. DAC's daughter cards are the lower 4.
-        # Each DAC tile maps to a daughter card, in order.
-        self.dac_chains = []
-        NRF = 4 # Number of DAC daughter cards.
-        NCH = 4 # DAC channels per daughter card.
-        for rf_board in range(NRF):
-            for ch in range(NCH):
-                self.dac_chains.append(DacRfChain216(ch=NCH*rf_board+ch, attn_spi=self.attn_spi, filter_spi=self.filter_spi, rfboard_ch=rf_board, rfboard_sel=self.board_sel))
+        # ADC daughter cards are the upper 4.
+        self.adc_cards = []
+        for card_num in range(4):
+            self.board_sel.enable(board_id=card_num+4)
+            gpio = GpioMCP23S08(self.filter_spi, ch_en=2, dev_addr=0, iodir=0xf0)
+            card_id = gpio.read_reg("GPIO_REG") >> 4
+            logger.info("DAC card %d: ID %d"%(card_num, card_id))
+            if card_id == 0 or card_id == 15:
+                # TODO: SPI communication with DC-in card is not working
+                # for now, we assume that if we can't read the ID it's a DC-in!
+                card = AdcDcCard216(card_num, self, gpio)
+            elif card_id == 2:
+                card = AdcRfCard216(card_num, self, gpio)
+            else:
+                card = None
+            self.adc_cards.append(card)
 
         # Link gens/readouts to the corresponding RF board channels.
         if not no_tproc:
+            # Each DAC tile maps to a daughter card, in order.
             for gen in self.gens:
                 tile, block = [int(a) for a in gen.dac]
-                gen.rfb = self.dac_chains[4*tile + block]
+                card = self.dac_cards[tile]
+                if card is not None:
+                    gen.rfb = card.chains[block]
+                else:
+                    gen.rfb = None
+            # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
             for avg_buf in self.avg_bufs:
                 tile, block = [int(a) for a in avg_buf.readout.adc]
-                avg_buf.rfb = self.adc_chains[4*(tile-1) + block]
+                card = self.adc_cards[2*(tile-1) + block//2]
+                chain_num = block % 2
+                if card is not None:
+                    avg_buf.rfb = card.chains[chain_num]
+                else:
+                    avg_buf.rfb = None
 
     def rfb_enable_bias(self):
         """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
