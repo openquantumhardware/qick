@@ -6,6 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
+from contextlib import contextmanager
 import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
@@ -663,7 +664,7 @@ class BiasDAC11001:
         # Value is 24 bits (lower 4 not used).
         msg = val.to_bytes(length=3, byteorder='little') + bytes([cmd])
 
-        logger.debug("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, data))
+        logger.debug("{}: writing register {} with values {}.".format(self.__class__.__name__, reg, msg))
 
         self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
@@ -1341,7 +1342,6 @@ class LoSynthLMX2594:
 
     def is_locked(self):
         status = self.get_param("rb_LD_VTUNE")
-        #print(status.value_description)
         return status.value == status.LOCKED.value
 
     def set_freq(self, f, pwr=50, reset=True, verbose=False):
@@ -1510,50 +1510,31 @@ class AdcRfChain216:
         # Initialize filter.
         self.init_filter()
 
-    # Set attenuator.
     def set_attn_db(self, db=0):
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set attenuator.
-        self.attn[0].set_att(db)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set attenuator.
+            self.attn[0].set_att(db)
 
     def init_filter(self):
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Program ADI_SPI_CONFIG_A register to 0x3C.
-        self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Program ADI_SPI_CONFIG_A register to 0x3C.
+            self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C)
 
     def set_filter(self, fc=0, bw=None, ftype="lowpass"):
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set filter.
-        self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set filter.
+            self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
 
     def read_filter(self, reg=""):
         logger.debug("{}: reading register {}".format(self.__class__.__name__, reg))
 
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set filter.
-        ret = self.filter.reg_rd(reg=reg)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
-        
-        return ret 
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set filter.
+            return self.filter.read_reg(reg=reg)
 
 class AdcDcChain111():
     """Class to describe the ADC-DC channel chain.
@@ -1646,7 +1627,7 @@ class DacChain111:
             if self.dc_powerdown is not None:
                 self.switches[self.dc_powerdown] = 1
         else:
-            print("%s: selection %s not recoginzed." %
+            raise RuntimeError("%s: selection %s not recoginzed." %
                   (self.__class__.__name__, sel))
 
     # Set attenuator.
@@ -1696,48 +1677,30 @@ class DacRfChain216:
 
     def init_filter(self):
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Program ADI_SPI_CONFIG_A register to 0x3C.
-        self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Program ADI_SPI_CONFIG_A register to 0x3C.
+            self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C)
 
     def set_filter(self, fc=0, bw=None, ftype="lowpass"):
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set filter.
-        self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set filter.
+            self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
 
     def read_filter(self, reg=""):
         logger.debug("{}: reading register {}".format(self.__class__.__name__, reg))
 
         # Enable this daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set filter.
-        ret = self.filter.reg_rd(reg=reg)
-
-        # Disable all daughter cards.
-        self.brd_sel.disable()
-        
-        return ret 
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set filter.
+            return self.filter.read_reg(reg=reg)
 
     # Set attenuator.
     def set_attn_db(self, attn=0, db=0):
-        # Enable daughter card.
-        self.brd_sel.enable(board_id = self.rfboard_ch)
-
-        # Set attenuator.
-        self.attn[attn].set_att(db)
-
-        # Disable daughter card.
-        self.brd_sel.disable()
+        # Enable this daughter card.
+        with self.brd_sel.enable_context(self.rfboard_ch):
+            # Set attenuator.
+            self.attn[attn].set_att(db)
 
     def set_rf(self, att1, att2):
         # TODO: Check that this is a RF daughter card.
@@ -1811,6 +1774,16 @@ class BoardSelection:
     def disable(self):
         # E/D bit to 0.
         self.gpio.write(0, 0xf)
+
+    @contextmanager
+    def enable_context(self, board_id):
+        """Use with "with" to temporarily enable a card inside a code block.
+        """
+        try:
+            self.enable(board_id)
+            yield None
+        finally:
+            self.disable()
 
 class RFQickSoc(QickSoc):
     """
@@ -2071,7 +2044,7 @@ class RFQickSoc216V1(RFQickSoc):
             self.board_sel.enable(board_id=card_num)
             gpio = GpioMCP23S08(self.filter_spi, ch_en=4, dev_addr=0, iodir=0xf0)
             card_id = gpio.read_reg("GPIO_REG") >> 4
-            logger.info("ADC card %d: ID %d"%(card_num, card_id))
+            logger.debug("ADC card %d: ID %d"%(card_num, card_id))
             if card_id == 1:
                 card = DacDcCard216(card_num, self, gpio)
             elif card_id == 3:
@@ -2086,7 +2059,7 @@ class RFQickSoc216V1(RFQickSoc):
             self.board_sel.enable(board_id=card_num+4)
             gpio = GpioMCP23S08(self.filter_spi, ch_en=2, dev_addr=0, iodir=0xf0)
             card_id = gpio.read_reg("GPIO_REG") >> 4
-            logger.info("DAC card %d: ID %d"%(card_num, card_id))
+            logger.debug("DAC card %d: ID %d"%(card_num, card_id))
             if card_id == 0 or card_id == 15:
                 # TODO: SPI communication with DC-in card is not working
                 # for now, we assume that if we can't read the ID it's a DC-in!
