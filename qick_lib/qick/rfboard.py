@@ -743,9 +743,8 @@ class AttenuatorPE43705:
         # Write value using spi.
         self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
 
-# ADMV8818 Filter Chip.
-class ADMV8818:
-    """
+class FilterADMV8818:
+    """ADMV8818 filter chip.
     """
     # Commands.
     cmd_wr = 0x00
@@ -778,7 +777,18 @@ class ADMV8818:
     # Number of bits for band setting.
     B = 4
 
-    def __init__(self):
+    # Constructor.
+    def __init__(self, spi_ip, ch, cs_t=""):
+        # SPI.
+        self.spi = spi_ip
+
+        # Lath-enable.
+        self.ch_en = ch
+        self.cs_t = cs_t
+
+        # All CS to high value.
+        self.spi.SPI_SSR = 0xff
+
         # Initialize df for each band.
         for b in self.BANDS['LPF'].keys():
             span = self.BANDS['LPF'][b]['max'] - self.BANDS['LPF'][b]['min']  
@@ -791,39 +801,42 @@ class ADMV8818:
             self.BANDS['HPF'][b]['span'] = span
             self.BANDS['HPF'][b]['df']   = df
 
-    def cmd_wr(self, reg="CHIPTYPE", value=0, debug=False):
-        if reg in self.REGS.keys():
-            # Register addresss.
-            addr = self.REGS[reg]
+    def write_reg(self, reg, value, debug=False):
+        if debug:
+            print("{}: writing register {}".format(self.__class__.__name__, reg))
 
-            # Data.
-            byte = (addr & 0x7fff).to_bytes(length=2, byteorder='big') + value.to_bytes(length=1, byteorder='big')
+        # Register addresss.
+        addr = self.REGS[reg]
 
-            if debug:
-                for b in byte:
-                    print("{}: 0x{:02X}".format(self.__class__.__name__, b))
-        else:
-            raise RuntimeError("%s: register %s not found." %(self.__class__.__name__, reg))
+        # Data.
+        msg = (addr & 0x7fff).to_bytes(length=2, byteorder='big') + value.to_bytes(length=1, byteorder='big')
 
-        return byte
+        if debug:
+            for b in msg:
+                print("{}: 0x{:02X}".format(self.__class__.__name__, b))
 
-    def cmd_rd(self, reg="CHIPTYPE", debug=False):
-        if reg in self.REGS.keys():
-            # Register addresss.
-            addr = self.REGS[reg]
+        # Execute write.
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-            # Dummy.
-            byte = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(1)
+    def read_reg(self, reg, debug=False):
+        if debug:
+            print("{}: reading register {}".format(self.__class__.__name__, reg))
 
-            if debug:
-                for b in byte:
-                    print("{}: 0x{:02X}".format(self.__class__.__name__, b))
-        else:
-            raise RuntimeError("%s: register %s not found." %(self.__class__.__name__, reg))
+        # Register addresss.
+        addr = self.REGS[reg]
 
-        return byte
+        # Byte array.
+        msg = (0x8000 | (addr & 0x7fff)).to_bytes(length=2, byteorder='big') + bytes(1)
 
-    def freq2band(self, f=0, section="LPF", debug=False):
+        if debug:
+            for b in msg:
+                print("{}: 0x{:02X}".format(self.__class__.__name__, b))
+
+        # Send/receive.
+        res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
+        return int(res[2])
+
+    def _freq2band(self, f=0, section="LPF", debug=False):
         ret = None
 
         if section == "LPF":
@@ -851,7 +864,7 @@ class ADMV8818:
 
         return ret
 
-    def freq2bits(self, f=0, section="LPF", band="LPF1", debug=False):
+    def _freq2bits(self, f=0, section="LPF", band="LPF1", debug=False):
         ret = None
 
         if section == "LPF":
@@ -879,7 +892,7 @@ class ADMV8818:
 
         return ret
 
-    def band2switch(self, section="LPF", band="LPF1", debug=False):
+    def _band2switch(self, section="LPF", band="LPF1", debug=False):
         if section in self.BANDS.keys():
             if band in self.BANDS[section].keys():
                 return self.BANDS[section][band]['switch'] 
@@ -890,57 +903,14 @@ class ADMV8818:
             print("{}: section {} not found. Using bypass by default.".format(self.__class__.__name__, section))
             return 0
 
-# Filter class: This class instantiates spi and ADMV8818 to simplify access to the filter chip.
-class FilterADMV8818:
-    """
-    """
-
-    # Constructor.
-    def __init__(self, spi_ip, ch=0, cs_t=""):
-        # ADMV8818.
-        self.ic = ADMV8818()
-
-        # SPI.
-        self.spi = spi_ip
-
-        # Lath-enable.
-        self.ch_en = ch
-        self.cs_t = cs_t
-
-        # All CS to high value.
-        self.spi.SPI_SSR = 0xff
-
-    def reg_wr(self, reg="CHIPTYPE", value=0, debug=False):
-        if debug:
-            print("{}: writing register {}".format(self.__class__.__name__, reg))
-
-        # Byte array.
-        byte = self.ic.cmd_wr(reg=reg, value=value, debug=debug)
-
-        # Execute write.
-        self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-    def reg_rd(self, reg="CHIPTYPE", debug=False):
-        if debug:
-            print("{}: reading register {}".format(self.__class__.__name__, reg))
-
-        # Byte array.
-        byte = self.ic.cmd_rd(reg=reg, debug=debug)
-
-        # Send/receive.
-        ret = int.from_bytes(self.spi.send_receive_m(byte, self.ch_en, self.cs_t), byteorder="big")
-
-        # Execute write.
-        return ret & 0xff
-
-    def set_filter(self, fc=0, bw=None, ftype="lowpass", debug=False):
+    def set_filter(self, fc=0, bw=2.0, ftype="lowpass", debug=False):
         # Low-pass.
         if ftype == 'lowpass':
             if debug:
                 print("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
 
-            band_lpf = self.ic.freq2band(f=fc, section="LPF", debug=debug)
-            bits_lpf = self.ic.freq2bits(f=fc, section="LPF", band=band_lpf, debug=debug)
+            band_lpf = self._freq2band(f=fc, section="LPF", debug=debug)
+            bits_lpf = self._freq2bits(f=fc, section="LPF", band=band_lpf, debug=debug)
             band_hpf = 'bypass'
             bits_hpf = 0
 
@@ -950,22 +920,19 @@ class FilterADMV8818:
 
             band_lpf = 'bypass'
             bits_lpf = 0
-            band_hpf = self.ic.freq2band(f=fc, section="HPF", debug=debug)
-            bits_hpf = self.ic.freq2bits(f=fc, section="HPF", band=band_hpf, debug=debug)
+            band_hpf = self._freq2band(f=fc, section="HPF", debug=debug)
+            bits_hpf = self._freq2bits(f=fc, section="HPF", band=band_hpf, debug=debug)
 
         elif ftype == 'bandpass':
-            # Default bw is 2 GHz.
-            if bw is None:
-                bw = 2
             f1 = fc-bw/2
             f2 = fc+bw/2
             if debug:
                 print("{}: setting {} filter type, fc = {:.2f} GHz, bw = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc, bw))
 
-            band_lpf = self.ic.freq2band(f=f2, section="LPF", debug=debug)
-            bits_lpf = self.ic.freq2bits(f=f2, section="LPF", band=band_lpf, debug=debug)
-            band_hpf = self.ic.freq2band(f=f1, section="HPF", debug=debug)
-            bits_hpf = self.ic.freq2bits(f=f1, section="HPF", band=band_hpf, debug=debug)
+            band_lpf = self._freq2band(f=f2, section="LPF", debug=debug)
+            bits_lpf = self._freq2bits(f=f2, section="LPF", band=band_lpf, debug=debug)
+            band_hpf = self._freq2band(f=f1, section="HPF", debug=debug)
+            bits_hpf = self._freq2bits(f=f1, section="HPF", band=band_hpf, debug=debug)
 
         elif ftype == 'bypass':
             if debug:
@@ -980,12 +947,12 @@ class FilterADMV8818:
             raise Warning("%s: filter type %s not supported." % (self.__class__.__name__, ftype))
 
         # WR0_SW register.
-        value = 0xc0 + (self.ic.band2switch(section="HPF", band=band_hpf) << 3) + self.ic.band2switch(section="LPF", band=band_lpf)
-        self.reg_wr(reg="WR0_SW", value=value, debug=debug)
+        value = 0xc0 + (self._band2switch(section="HPF", band=band_hpf) << 3) + self._band2switch(section="LPF", band=band_lpf)
+        self.write_reg(reg="WR0_SW", value=value, debug=debug)
 
         # WR0_FILTER register.
         value = (bits_hpf << 4) + bits_lpf
-        self.reg_wr(reg="WR0_FILTER", value=value, debug=debug)
+        self.write_reg(reg="WR0_FILTER", value=value, debug=debug)
 
 # Power, Switch and Fan.
 class SwitchControl:
@@ -1595,7 +1562,7 @@ class AdcRfChain216:
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Program ADI_SPI_CONFIG_A register to 0x3C.
-        self.filter.reg_wr(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
+        self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
@@ -1772,7 +1739,7 @@ class DacRfChain216:
         self.brd_sel.enable(board_id = self.rfboard_ch, debug=debug)
 
         # Program ADI_SPI_CONFIG_A register to 0x3C.
-        self.filter.reg_wr(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
+        self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C, debug=debug)
 
         # Disable all daughter cards.
         self.brd_sel.disable()
