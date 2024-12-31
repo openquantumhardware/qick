@@ -997,7 +997,7 @@ class SwitchControl:
         self.devs = []
         self.net2port = {}
 
-    def add_MCP(self, ch_en, outputs, dev_addr=0):
+    def add_MCP(self, gpio, outputs):
         if len(outputs) != 8:
             raise RuntimeError("must define all 8 outputs from the MCP23S08 (use None for NC pins)")
         defaults = 0
@@ -1009,11 +1009,14 @@ class SwitchControl:
                     raise RuntimeError("GPIO net %s is already defined")
                 self.net2port[netname] = (len(self.devs), iOutput)
                 defaults += defaultval
-        self.devs.append(GpioMCP23S08(self.spi, ch_en=ch_en, dev_addr=dev_addr, defaults=defaults))
+
+        # Set default output values.
+        gpio.write_reg("GPIO_REG", defaults)
+        self.devs.append(gpio)
 
     def __setitem__(self, netname, val):
         iDev, iBit = self.net2port[netname]
-        self.devs[iDev].bits_set(bits=[iBit], val=val)
+        self.devs[iDev].set_bits(bits=[iBit], val=val)
 
     def __contains__(self, key):
         return key in self.net2port
@@ -1038,10 +1041,14 @@ class GpioMCP23S08:
             'GPIO_REG': 0x09,
             'OLAT_REG': 0x0A}
 
-
     # Constructor.
-    def __init__(self, spi_ip, ch_en, defaults=0xFF, dev_addr=0, cs_t=""):
+    def __init__(self, spi_ip, ch_en, dev_addr, iodir=0x00, cs_t=""):
+        # by default, all pins are outputs
+
         self.dev_addr = dev_addr
+
+        # list of output pins
+        self.outputs = [i for i in range(8) if (1<<i)&iodir==0]
 
         # SPI.
         self.spi = spi_ip
@@ -1054,10 +1061,7 @@ class GpioMCP23S08:
         self.spi.SPI_SSR = 0xff
 
         # Set all bits as outputs.
-        self.write_reg("IODIR_REG", 0x00)
-
-        # Set default output values.
-        self.write_reg("GPIO_REG", defaults)
+        self.write_reg("IODIR_REG", iodir)
 
     # Data array: 3 bytes.
     # byte[0] = opcode.
@@ -1087,7 +1091,7 @@ class GpioMCP23S08:
         self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
     # Write bits.
-    def bits_set(self, bits, val):
+    def set_bits(self, bits, val):
         if val not in [0, 1]:
             raise RuntimeError("invalid value:", val)
 
@@ -1096,6 +1100,8 @@ class GpioMCP23S08:
 
         # Set bits.
         for bit in bits:
+            if bit not in self.outputs:
+                raise RuntimeError("tried to set output %d, but only pins %s are configured as outputs"%(bit, self.outputs))
             if val == 1:
                 reg |= (1 << bit)
             else:
@@ -1931,14 +1937,14 @@ class RFQickSoc111V1(RFQickSoc):
     def _init_switches(self, spi):
         self.switches = SwitchControl(spi)
         # ADC power
-        self.switches.add_MCP(ch_en=0,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=0, dev_addr=0),
                 outputs=[("RF2IF5V_EN"+str(i), 0) for i in range(4)]
                 + [None]*4)
         # DAC power
-        self.switches.add_MCP(ch_en=1,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=1, dev_addr=0),
                 outputs=[("IF2RF5V_EN"+str(i), 0) for i in range(8)])
         # DAC RF/DC switch
-        self.switches.add_MCP(ch_en=2,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=2, dev_addr=0),
                 outputs=[("CH%d_PE42020_CTL"%(i), 1) for i in range(8)])
 
     def _init_lo(self, spi):
@@ -2003,17 +2009,17 @@ class RFQickSoc111V2(RFQickSoc111V1):
     def _init_switches(self, spi):
         self.switches = SwitchControl(spi)
         # ADC power/power-down
-        self.switches.add_MCP(ch_en=0, dev_addr=0,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=0, dev_addr=0),
                 outputs=[("RF2IF5V_EN"+str(i), 0) for i in range(4)]
                 + [("RF2IF_PD"+str(i), 1) for i in range(4, 8)])
         # DAC power-down
-        self.switches.add_MCP(ch_en=1, dev_addr=1,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=1, dev_addr=1),
                 outputs=[("IF2RF_PD"+str(i), 1) for i in range(8)])
         # DAC power
-        self.switches.add_MCP(ch_en=1, dev_addr=0,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=1, dev_addr=0),
                 outputs=[("IF2RF5V_EN"+str(i), 0) for i in range(8)])
         # DAC RF/DC switch
-        self.switches.add_MCP(ch_en=2, dev_addr=0,
+        self.switches.add_MCP(GpioMCP23S08(spi, ch_en=2, dev_addr=0),
                 outputs=[("CH%d_PE42020_CTL"%(i), 1) for i in range(8)])
 
     def _init_lo(self, spi):
