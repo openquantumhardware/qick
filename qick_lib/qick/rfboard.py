@@ -7,6 +7,7 @@ import xrfclk
 import numpy as np
 import time
 from contextlib import contextmanager
+from abc import ABC
 import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
@@ -933,8 +934,8 @@ class SwitchControl:
         self.net2port = {}
 
     def add_MCP(self, gpio, outputs):
-        if len(outputs) != 8:
-            raise RuntimeError("must define all 8 outputs from the MCP23S08 (use None for NC pins)")
+        if len(outputs) != len(gpio.outputs):
+            raise RuntimeError("must define all %d outputs from the MCP23S08 (use None for NC pins)"%(len(gpio.outputs)))
         defaults = 0
         for iOutput, output in enumerate(outputs):
             defaults <<= 1
@@ -1596,16 +1597,26 @@ class DacChain111:
         self.set_attn_db(attn=0, db=31.75)
         self.set_attn_db(attn=1, db=31.75)
 
-class FilterChain:
+class Chain216(ABC):
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        self.soc = soc
+        self.card = card
+        self.global_ch = global_ch
+        self.card_num = card_num
+        self.card_ch = card_ch
+        # TODO: log?
+        #logger.debug("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+
+class FilterChain(Chain216):
     def init_filter(self):
         # Enable this daughter card.
-        with self.brd_sel.enable_context(self.rfboard_ch):
+        with self.soc.board_sel.enable_context(self.card_num):
             # Program ADI_SPI_CONFIG_A register to 0x3C.
             self.filter.write_reg(reg="ADI_SPI_CONFIG_A", value=0x3C)
 
     def set_filter(self, fc=0, bw=None, ftype="lowpass"):
         # Enable this daughter card.
-        with self.brd_sel.enable_context(self.rfboard_ch):
+        with self.soc.board_sel.enable_context(self.card_num):
             # Set filter.
             self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
 
@@ -1613,34 +1624,24 @@ class FilterChain:
         logger.debug("{}: reading register {}".format(self.__class__.__name__, reg))
 
         # Enable this daughter card.
-        with self.brd_sel.enable_context(self.rfboard_ch):
+        with self.soc.board_sel.enable_context(self.card_num):
             # Set filter.
             return self.filter.read_reg(reg=reg)
 
 class DacRfChain216(FilterChain):
-    def __init__(self, ch=0, attn_spi=None, filter_spi=None, rfboard_ch=0, rfboard_sel=None):
-        # Channel number.
-        self.ch = ch
-
-        # Board selection.
-        self.rfboard_ch = rfboard_ch
-        self.brd_sel = rfboard_sel
-
-        # Channels are numbered from 0-15. Daughter cards have 4 channels each, with nubers going from 0-3.
-        self.local_ch = ch % 4
-
-        logger.debug("{}: DAC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
 
         # Attenuators. There are 2 per DAC Channel.
         self.attn = []
         for i in range(2):
-            addr = 2*self.local_ch+i
-            self.attn.append(AttenuatorPE43705(attn_spi, ch=addr, nch=1, le=[0]))
+            addr = 2*card_ch+i
+            self.attn.append(AttenuatorPE43705(soc.attn_spi, ch=addr, nch=1, le=[0]))
             logger.debug("{}: adding attenuator with address {}.".format(self.__class__.__name__, addr))
 
         # Filters. There is 1 per ADC Channel.
-        self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
-        logger.debug("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+        self.filter = FilterADMV8818(soc.filter_spi, ch=card_ch)
+        logger.debug("{}: adding filter with address {}.".format(self.__class__.__name__, card_ch))
 
         # Initialize filter.
         self.init_filter()
@@ -1648,7 +1649,7 @@ class DacRfChain216(FilterChain):
     # Set attenuator.
     def set_attn_db(self, attn=0, db=0):
         # Enable this daughter card.
-        with self.brd_sel.enable_context(self.rfboard_ch):
+        with self.soc.board_sel.enable_context(self.card_num):
             # Set attenuator.
             self.attn[attn].set_att(db)
 
@@ -1661,33 +1662,24 @@ class DacRfChain216(FilterChain):
         self.set_attn_db(attn=1, db=31.75)
 
 class AdcRfChain216(FilterChain):
-    def __init__(self, ch=0, attn_spi=None, filter_spi=None, rfboard_ch=0, rfboard_sel=None):
-        # Channel number.
-        self.ch = ch
-        # Board selection.
-        self.rfboard_ch = rfboard_ch
-        self.brd_sel = rfboard_sel
-
-        # Channels are numbered from 0-7. Daughter cards have 2 channels each, with nubers going from 0-1.
-        self.local_ch = ch % 2
-
-        logger.debug("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
 
         # Attenuators. There is 1 per ADC Channel.
         self.attn = []
-        self.attn.append(AttenuatorPE43705(attn_spi, ch=self.local_ch, nch=1, le=[0]))
-        logger.debug("{}: adding attenuator with address {}.".format(self.__class__.__name__, self.local_ch))
+        self.attn.append(AttenuatorPE43705(soc.attn_spi, ch=card_ch, nch=1, le=[0]))
+        logger.debug("{}: adding attenuator with address {}.".format(self.__class__.__name__, card_ch))
 
         # Filters. There is 1 per ADC Channel.
-        self.filter = FilterADMV8818(filter_spi, ch=self.local_ch)
-        logger.debug("{}: adding filter with address {}.".format(self.__class__.__name__, self.local_ch))
+        self.filter = FilterADMV8818(soc.filter_spi, ch=card_ch)
+        logger.debug("{}: adding filter with address {}.".format(self.__class__.__name__, card_ch))
 
         # Initialize filter.
         self.init_filter()
 
     def set_attn_db(self, db=0):
         # Enable this daughter card.
-        with self.brd_sel.enable_context(self.rfboard_ch):
+        with self.soc.board_sel.enable_context(self.card_num):
             # Set attenuator.
             self.attn[0].set_att(db)
 
@@ -1695,15 +1687,17 @@ class DaughterCard216:
     NCH = None # channels per daughter card
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
     CHAIN_CLASS = None # signal chain class to instantiate for each channel
-    def __init__(self, card_num, rfb, switch_control):
+    GPIO_OUTPUTS = [None]*4 # nets controlled by the daughter card's GPIO chip
+    def __init__(self, card_num, soc, gpio):
         self.card_num = card_num
-        self.rfb = rfb
-        self.switch_control = switch_control
+        self.soc = soc
+        self.switch_control = SwitchControl(self.soc.filter_spi)
+        self.switch_control.add_MCP(gpio, self.GPIO_OUTPUTS)
         self.chains = []
         for card_ch in range(self.NCH):
             global_ch = self.NCH*self.card_num + card_ch
             if self.CHAIN_CLASS is not None:
-                self.chains.append(self.CHAIN_CLASS(ch=global_ch, attn_spi=rfb.attn_spi, filter_spi=rfb.filter_spi, rfboard_ch=self.CARDNUM_OFFSET+card_num, rfboard_sel=rfb.board_sel))
+                self.chains.append(self.CHAIN_CLASS(soc=soc, card=self, global_ch=global_ch, card_num=self.CARDNUM_OFFSET+card_num, card_ch=card_ch))
             else:
                 # TODO: do something more useful
                 self.chains.append(global_ch)
@@ -1712,19 +1706,23 @@ class DacRfCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
     CHAIN_CLASS = DacRfChain216
+    GPIO_OUTPUTS = [("RFOUT5V0_EN%d"%(i), 0) for i in range(2)] + [None]*2
 
 class DacDcCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
+    GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(4)]
 
 class AdcRfCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
     CHAIN_CLASS = AdcRfChain216
+    GPIO_OUTPUTS = [("RFIN5V0CH%d_EN"%(i), 0) for i in range(2)] + [None]*2
 
 class AdcDcCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
+    GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
 
 class BoardSelection:
     """
