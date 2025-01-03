@@ -869,8 +869,9 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
         super().config_avg(address=address, length=length)
 
         self.avg_photon_mode_reg = edge_counting
-        self.avg_h_threshold_reg = high_threshold
-        self.avg_l_threshold_reg = low_threshold
+        if edge_counting:
+            self.avg_h_threshold_reg = high_threshold
+            self.avg_l_threshold_reg = low_threshold
 
 
 class MrBufferEt(SocIp):
