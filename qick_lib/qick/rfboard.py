@@ -564,7 +564,7 @@ class BiasAD5781:
         msg = bytes(3)
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-        return res
+        return int.from_bytes(res, byteorder='big')
 
     def write_reg(self, reg, val):
         # Address.
@@ -584,7 +584,7 @@ class BiasAD5781:
     def set_volt(self, volt):
         # Convert volts to register value.
         val = self._volt2reg(volt)
-        eelf.write_reg(reg="DAC_REG", val=val)
+        self.write_reg(reg="DAC_REG", val=val)
 
 class BiasDAC11001:
     """Bias DAC chip DAC11001.
@@ -1460,7 +1460,27 @@ class GainLMH6401:
         db_a = self.read_reg("GAIN_REG")
         return self.Gmax - db_a
 
-class AdcRfChain111:
+class AbsDacRfChain(ABC):
+    @abstractmethod
+    def enable_rf(self, att1, att2):
+        pass
+
+class AbsAdcRfChain(ABC):
+    @abstractmethod
+    def enable_rf(self, att):
+        pass
+
+class AbsDacDcChain(ABC):
+    @abstractmethod
+    def enable_dc(self):
+        pass
+
+class AbsAdcDcChain(ABC):
+    @abstractmethod
+    def enable_dc(self, gain):
+        pass
+
+class AdcRfChain111(AbsAdcRfChain):
     def __init__(self, ch=0, switches=None, attn_spi=None):
         # Channel number.
         self.ch = ch
@@ -1468,25 +1488,23 @@ class AdcRfChain111:
         self.switches = switches
 
         # Attenuator.
-        self.attn = AttenuatorPE43705(attn_spi, ch, le=[0])
-
-        # Default to 30 dB attenuation.
-        self.set_attn_db(30)
+        self.attn = [AttenuatorPE43705(attn_spi, ch, le=[0])]
 
     # Set attenuator.
-    def set_attn_db(self, db=0):
+    def set_attn_db(self, db):
         self.attn.set_att(db)
         self.enable()
 
-    def enable(self):
+    def enable_rf(self, att):
         # Turn on 5V power.
         self.switches["RF2IF5V_EN%d"%(self.ch)] = 1
+        self.attn[0].set_att(att)
 
     def disable(self):
         # Turn off 5V power.
         self.switches["RF2IF5V_EN%d"%(self.ch)] = 0
 
-class AdcDcChain111():
+class AdcDcChain111(AbsAdcDcChain):
     """Class to describe the ADC-DC channel chain.
     """
     # Constructor.
@@ -1505,30 +1523,25 @@ class AdcDcChain111():
         self.gain = GainLMH6401(gain_spi, ch_en=ch)
 
         # Default to 0 dB gain.
-        self.set_gain_db(0)
-
-    # Set gain.
-    def set_gain_db(self, db):
-        self.gain.set_gain(db)
-        if self.powerdown is not None:
-            self.enable()
+        self.gain.set_gain(0)
 
     def get_gain_db(self):
         return self.gain.get_gain()
 
-    def enable(self):
-        if self.powerdown is None:
-            raise RuntimeError("enable/disable only supported on ZCU111 V2, is this V1?")
-        # Power up.
-        self.switches[self.powerdown] = 0
+    def enable_dc(self, gain):
+        if self.powerdown is not None:
+            # Power up.
+            self.switches[self.powerdown] = 0
+        self.gain.set_gain(gain)
 
     def disable(self):
-        if self.powerdown is None:
+        if self.powerdown is not None:
+            # Power down.
+            self.switches[self.powerdown] = 1
+        else:
             raise RuntimeError("enable/disable only supported on ZCU111 V2, is this V1?")
-        # Power down.
-        self.switches[self.powerdown] = 1
 
-class DacChain111:
+class DacChain111(AbsDacRfChain, AbsDacDcChain):
     def __init__(self, ch=0, switches=None, attn_spi=None):
         # Channel number.
         self.ch = ch
@@ -1580,22 +1593,18 @@ class DacChain111:
             raise RuntimeError("%s: selection %s not recoginzed." %
                   (self.__class__.__name__, sel))
 
-    # Set attenuator.
-    def set_attn_db(self, attn=0, db=0):
-        self.attn[attn].set_att(db)
-
-    def set_rf(self, att1, att2):
+    def enable_rf(self, att1, att2):
         self.rfsw_sel("RF")
-        self.set_attn_db(attn=0, db=att1)
-        self.set_attn_db(attn=1, db=att2)
+        self.attn[0].set_att(att1)
+        self.attn[1].set_att(att2)
 
-    def set_dc(self):
+    def enable_dc(self):
         self.rfsw_sel("DC")
 
     def disable(self):
         self.rfsw_sel("OFF")
-        self.set_attn_db(attn=0, db=31.75)
-        self.set_attn_db(attn=1, db=31.75)
+        self.attn[0].set_att(31.75)
+        self.attn[1].set_att(31.75)
 
 class Chain216(ABC):
     def __init__(self, soc, card, global_ch, card_num, card_ch):
@@ -1606,26 +1615,6 @@ class Chain216(ABC):
         self.card_ch = card_ch
         # TODO: log?
         #logger.debug("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
-
-class AbsDacRfChain(ABC):
-    @abstractmethod
-    def enable_rf(self, att1, att2):
-        pass
-
-class AbsAdcRfChain(ABC):
-    @abstractmethod
-    def enable_rf(self, att):
-        pass
-
-class AbsDacDcChain(ABC):
-    @abstractmethod
-    def enable_dc(self, gain):
-        pass
-
-class AbsAdcDcChain(ABC):
-    @abstractmethod
-    def enable_dc(self):
-        pass
 
 class FilterChain(Chain216):
     def init_filter(self):
