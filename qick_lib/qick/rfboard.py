@@ -7,7 +7,7 @@ import xrfclk
 import numpy as np
 import time
 from contextlib import contextmanager
-from abc import ABC
+from abc import ABC, abstractmethod
 import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
@@ -1607,6 +1607,26 @@ class Chain216(ABC):
         # TODO: log?
         #logger.debug("{}: ADC Channel = {}, Daughter Card = {}, Daughter Card DAC channel {}.".format(self.__class__.__name__, self.ch, self.rfboard_ch, self.local_ch))
 
+class AbsDacRfChain(ABC):
+    @abstractmethod
+    def enable_rf(self, att1, att2):
+        pass
+
+class AbsAdcRfChain(ABC):
+    @abstractmethod
+    def enable_rf(self, att):
+        pass
+
+class AbsDacDcChain(ABC):
+    @abstractmethod
+    def enable_dc(self, gain):
+        pass
+
+class AbsAdcDcChain(ABC):
+    @abstractmethod
+    def enable_dc(self):
+        pass
+
 class FilterChain(Chain216):
     def init_filter(self):
         # Enable this daughter card.
@@ -1628,9 +1648,12 @@ class FilterChain(Chain216):
             # Set filter.
             return self.filter.read_reg(reg=reg)
 
-class DacRfChain216(FilterChain):
+class DacRfChain216(AbsDacRfChain, FilterChain):
     def __init__(self, soc, card, global_ch, card_num, card_ch):
         super().__init__(soc, card, global_ch, card_num, card_ch)
+
+        # there are two 5V power supplies for the four channels on this card
+        self.powerup = "RFOUT5V0_EN%d"%((card_ch + 1) % 2)
 
         # Attenuators. There are 2 per DAC Channel.
         self.attn = []
@@ -1646,24 +1669,25 @@ class DacRfChain216(FilterChain):
         # Initialize filter.
         self.init_filter()
 
-    # Set attenuator.
-    def set_attn_db(self, attn=0, db=0):
-        # Enable this daughter card.
+    def enable_rf(self, att1, att2):
         with self.soc.board_sel.enable_context(self.card_num):
-            # Set attenuator.
-            self.attn[attn].set_att(db)
-
-    def set_rf(self, att1, att2):
-        self.set_attn_db(attn=0, db=att1)
-        self.set_attn_db(attn=1, db=att2)
+            self.card.switch_control[self.powerup] = 1
+            self.attn[0].set_att(att1)
+            self.attn[1].set_att(att2)
 
     def disable(self):
-        self.set_attn_db(attn=0, db=31.75)
-        self.set_attn_db(attn=1, db=31.75)
+        """Because this daughter card doesn't have a per-channel power switch, we don't power it down.
+        """
+        # TODO: if needed, we can add methods to the daughter card class to toggle pairs of channels
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.attn[0].set_att(31.75)
+            self.attn[1].set_att(31.75)
 
-class AdcRfChain216(FilterChain):
+class AdcRfChain216(AbsAdcRfChain, FilterChain):
     def __init__(self, soc, card, global_ch, card_num, card_ch):
         super().__init__(soc, card, global_ch, card_num, card_ch)
+
+        self.powerup = "RFIN5V0CH%d_EN"%(card_ch)
 
         # Attenuators. There is 1 per ADC Channel.
         self.attn = []
@@ -1677,13 +1701,47 @@ class AdcRfChain216(FilterChain):
         # Initialize filter.
         self.init_filter()
 
-    def set_attn_db(self, db=0):
-        # Enable this daughter card.
+    def enable_rf(self, att):
         with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerup] = 1
             # Set attenuator.
-            self.attn[0].set_att(db)
+            self.attn[0].set_att(att)
 
-class DaughterCard216:
+    def disable(self):
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerup] = 0
+            self.attn[0].set_att(31.75)
+
+class DacDcChain216(AbsDacDcChain, Chain216):
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
+
+        self.powerdown = "PD%d"%(card_ch)
+
+    def enable_dc(self):
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerdown] = 0
+
+    def disable(self):
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerdown] = 1
+
+class AdcDcChain216(AbsAdcDcChain, Chain216):
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
+
+        self.powerdown = "PD%d"%(card_ch)
+
+    def enable_dc(self, gain):
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerdown] = 0
+            # TODO: set gain
+
+    def disable(self):
+        with self.soc.board_sel.enable_context(self.card_num):
+            self.card.switch_control[self.powerdown] = 1
+
+class DaughterCard216(ABC):
     NCH = None # channels per daughter card
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
     CHAIN_CLASS = None # signal chain class to instantiate for each channel
@@ -1702,15 +1760,24 @@ class DaughterCard216:
                 # TODO: do something more useful
                 self.chains.append(global_ch)
 
+    def disable_all(self):
+        for chain in self.chains:
+            chain.disable()
+
 class DacRfCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
     CHAIN_CLASS = DacRfChain216
     GPIO_OUTPUTS = [("RFOUT5V0_EN%d"%(i), 0) for i in range(2)] + [None]*2
 
+    def disable_all(self):
+        for i in range(2):
+            self.switch_control["RFIN5V0CH%d_EN"%(i)] = 0
+
 class DacDcCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
+    CHAIN_CLASS = DacDcChain216
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(4)]
 
 class AdcRfCard216(DaughterCard216):
@@ -1722,6 +1789,7 @@ class AdcRfCard216(DaughterCard216):
 class AdcDcCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
+    CHAIN_CLASS = AdcDcChain216
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
 
 class BoardSelection:
@@ -1795,7 +1863,10 @@ class RFQickSoc(QickSoc):
         att2 : float
             Attenuation for second stage (0-31.75 dB)
         """
-        self.gens[gen_ch].rfb.set_rf(att1, att2)
+        rfb_ch = self.gens[gen_ch].rfb
+        if not isinstance(rfb_ch, AbsDacRfChain):
+            raise RuntimeError("generator %d is not connected to an RF signal chain")
+        rfb_ch.enable_rf(att1, att2)
 
     def rfb_set_gen_dc(self, gen_ch):
         """Enable and configure an RF-board output channel for DC output.
@@ -1805,7 +1876,10 @@ class RFQickSoc(QickSoc):
         gen_ch : int
             DAC channel (index in 'gens' list)
         """
-        self.gens[gen_ch].rfb.set_dc()
+        rfb_ch = self.gens[gen_ch].rfb
+        if not isinstance(rfb_ch, AbsDacDcChain):
+            raise RuntimeError("generator %d is not connected to a DC signal chain")
+        rfb_ch.enable_dc()
 
     def rfb_set_ro_rf(self, ro_ch, att):
         """Enable and configure an RF-board RF input channel.
@@ -1818,7 +1892,10 @@ class RFQickSoc(QickSoc):
         att : float
             Attenuation (0 to 31.75 dB)
         """
-        self.avg_bufs[ro_ch].rfb.set_attn_db(att)
+        rfb_ch = self.avg_bufs[ro_ch].rfb
+        if not isinstance(rfb_ch, AbsAdcRfChain):
+            raise RuntimeError("readout %d is not connected to an RF signal chain")
+        rfb_ch.enable_rf(att)
 
     def rfb_set_ro_dc(self, ro_ch, gain):
         """Enable and configure an RF-board DC input channel.
@@ -1831,7 +1908,10 @@ class RFQickSoc(QickSoc):
         gain : float
             Gain (-6 to 26 dB)
         """
-        self.avg_bufs[ro_ch].rfb.set_gain_db(gain)
+        rfb_ch = self.avg_bufs[ro_ch].rfb
+        if not isinstance(rfb_ch, AbsAdcDcChain):
+            raise RuntimeError("readout %d is not connected to a DC signal chain")
+        rfb_ch.enable_dc(gain)
 
     def rfb_set_bias(self, bias_ch, v):
         """Set a voltage on an RF-board bias DAC.
