@@ -535,17 +535,21 @@ class BiasAD5781:
         # Initialize to 0 volts.
         self.set_volt(0)
 
+    def _reg2volt(self, reg):
+        reg >>= 2
+        return reg*(self.VREFP - self.VREFN)/(2**self.B - 1) + self.VREFN
+
     # Compute register value for voltage setting.
-    def _volt2reg(self, volt=0):
+    # Return register value and the corresponding (rounded) voltage.
+    def _volt2reg(self, volt):
         if volt < self.VREFN or volt > self.VREFP:
             raise RuntimeError("%s: %d V out of range [%f, %f]" % (self.__class__.__name__, volt, self.VREFN, self.VREFP))
 
         Df = (2**self.B - 1)*(volt - self.VREFN)/(self.VREFP - self.VREFN)
 
         # Shift by two as 2 lower bits are not used.
-        Df = int(Df) << 2
-
-        return int(Df)
+        reg = int(np.round(Df)) << 2
+        return reg, self._reg2volt(reg)
 
     def read_reg(self, reg):
         # Address.
@@ -564,7 +568,10 @@ class BiasAD5781:
         msg = bytes(3)
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-        return int.from_bytes(res, byteorder='big')
+        res = int.from_bytes(res, byteorder='big')
+        if (res >> 20) != addr:
+            logger.error("AD5781 readback failed: tried to read addr %d, got back 0x%x"%(addr, res>>20))
+        return res & 0x0fffff
 
     def write_reg(self, reg, val):
         # Address.
@@ -582,9 +589,16 @@ class BiasAD5781:
         self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
     def set_volt(self, volt):
-        # Convert volts to register value.
-        val = self._volt2reg(volt)
-        self.write_reg(reg="DAC_REG", val=val)
+        """Set the voltage, return the actual (rounded) value that was set.
+        """
+        regval, rounded = self._volt2reg(volt)
+        self.write_reg(reg="DAC_REG", val=regval)
+        return rounded
+
+    def get_volt(self):
+        """Read and return the voltage setpoint.
+        """
+        return self._reg2volt(self.read_reg("DAC_REG"))
 
 class BiasDAC11001:
     """Bias DAC chip DAC11001.
@@ -1903,7 +1917,7 @@ class RFQickSoc(QickSoc):
         rfb_ch.enable_dc(gain)
 
     def rfb_set_bias(self, bias_ch, v):
-        """Set a voltage on an RF-board bias DAC.
+        """Set a voltage on an RF-board bias output.
 
         Parameters
         ----------
@@ -1911,8 +1925,28 @@ class RFQickSoc(QickSoc):
             Channel number (0-7)
         v : float
             Voltage (-10 to 10 V)
+
+        Returns
+        -------
+        float
+            actual (rounded) value that was set
         """
-        self.dac_bias[bias_ch].set_volt(v)
+        return self.dac_bias[bias_ch].set_volt(v)
+
+    def rfb_get_bias(self, bias_ch):
+        """Read the voltage setpoint on an RF-board bias output.
+
+        Parameters
+        ----------
+        bias_ch : int
+            Channel number (0-7)
+
+        Returns
+        -------
+        float
+            setpoint, in volts
+        """
+        return self.dac_bias[bias_ch].get_volt()
 
 class RFQickSoc111V1(RFQickSoc):
     def _init_switches(self, spi):
