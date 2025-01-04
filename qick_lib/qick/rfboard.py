@@ -698,6 +698,10 @@ class AttenuatorPE43705:
     This device's SPI interface is write-only, no readback.
     See schematics for Address/LE correspondance.
     """
+    nSteps = 2**7
+    dbStep = 0.25
+    dbMinAtt = 0
+    dbMaxAtt = (nSteps-1)*dbStep
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
@@ -714,28 +718,23 @@ class AttenuatorPE43705:
         self.set_att(31.75)
 
     def _db2step(self, db):
-        nSteps = 2**7
-        dbStep = 0.25
-        dbMinAtt = 0
-        dbMaxAtt = (nSteps-1)*dbStep
-
         # Sanity check.
-        if db < dbMinAtt or db > dbMaxAtt:
-            raise RuntimeError("attenuation value %f out of range [%f, %f]" % (db, dbMinAtt, dbMaxAtt))
+        if db < self.dbMinAtt or db > self.dbMaxAtt:
+            raise RuntimeError("attenuation value %f out of range [%f, %f]" % (db, self.dbMinAtt, self.dbMaxAtt))
 
-        return int(np.round(db/dbStep))
-
-    def _db2reg(self, db):
-        # will get packed as (address << 8) | step
-        return bytes([self._db2step(db), self.address])
+        return int(np.round(db/self.dbStep))
 
     # Set attenuation function.
     def set_att(self, db):
         # Register value.
-        reg = self._db2reg(db)
+        reg = self._db2step(db)
+
+        msg = bytes([reg, self.address])
 
         # Write value using spi.
-        self.spi.send_receive_m(reg, self.ch_en, self.cs_t)
+        self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
+
+        return reg*self.dbStep
 
 class FilterADMV8818:
     """ADMV8818 filter chip.
@@ -1470,6 +1469,8 @@ class GainLMH6401:
         # Write command.
         self.write_reg(reg="GAIN_REG", val=db_a)
 
+        return self.Gmax - db_a
+
     def get_gain(self):
         db_a = self.read_reg("GAIN_REG")
         return self.Gmax - db_a
@@ -1494,8 +1495,12 @@ class AbsAdcDcChain(ABC):
     def enable_dc(self, gain):
         pass
 
+    @abstractmethod
+    def get_gain(self):
+        pass
+
 class AdcRfChain111(AbsAdcRfChain):
-    def __init__(self, ch=0, switches=None, attn_spi=None):
+    def __init__(self, ch, switches, attn_spi):
         # Channel number.
         self.ch = ch
         # Power switches.
@@ -1504,15 +1509,11 @@ class AdcRfChain111(AbsAdcRfChain):
         # Attenuator.
         self.attn = [AttenuatorPE43705(attn_spi, ch, le=[0])]
 
-    # Set attenuator.
-    def set_attn_db(self, db):
-        self.attn.set_att(db)
-        self.enable()
-
     def enable_rf(self, att):
         # Turn on 5V power.
         self.switches["RF2IF5V_EN%d"%(self.ch)] = 1
-        self.attn[0].set_att(att)
+        att = self.attn[0].set_att(att)
+        return att
 
     def disable(self):
         # Turn off 5V power.
@@ -1539,14 +1540,14 @@ class AdcDcChain111(AbsAdcDcChain):
         # Default to 0 dB gain.
         self.gain.set_gain(0)
 
-    def get_gain_db(self):
+    def get_gain(self):
         return self.gain.get_gain()
 
     def enable_dc(self, gain):
         if self.powerdown is not None:
             # Power up.
             self.switches[self.powerdown] = 0
-        self.gain.set_gain(gain)
+        return self.gain.set_gain(gain)
 
     def disable(self):
         if self.powerdown is not None:
@@ -1556,7 +1557,7 @@ class AdcDcChain111(AbsAdcDcChain):
             raise RuntimeError("enable/disable only supported on ZCU111 V2, is this V1?")
 
 class DacChain111(AbsDacRfChain, AbsDacDcChain):
-    def __init__(self, ch=0, switches=None, attn_spi=None):
+    def __init__(self, ch, switches, attn_spi):
         # Channel number.
         self.ch = ch
 
@@ -1609,8 +1610,9 @@ class DacChain111(AbsDacRfChain, AbsDacDcChain):
 
     def enable_rf(self, att1, att2):
         self.rfsw_sel("RF")
-        self.attn[0].set_att(att1)
-        self.attn[1].set_att(att2)
+        att1 = self.attn[0].set_att(att1)
+        att2 = self.attn[1].set_att(att2)
+        return att1, att2
 
     def enable_dc(self):
         self.rfsw_sel("DC")
@@ -1675,8 +1677,9 @@ class DacRfChain216(AbsDacRfChain, FilterChain):
     def enable_rf(self, att1, att2):
         with self.soc.board_sel.enable_context(self.card_num):
             self.card.switch_control[self.powerup] = 1
-            self.attn[0].set_att(att1)
-            self.attn[1].set_att(att2)
+            att1 = self.attn[0].set_att(att1)
+            att2 = self.attn[1].set_att(att2)
+        return att1, att2
 
     def disable(self):
         """Because this daughter card doesn't have a per-channel power switch, we don't power it down.
@@ -1708,7 +1711,8 @@ class AdcRfChain216(AbsAdcRfChain, FilterChain):
         with self.soc.board_sel.enable_context(self.card_num):
             self.card.switch_control[self.powerup] = 1
             # Set attenuator.
-            self.attn[0].set_att(att)
+            att = self.attn[0].set_att(att)
+        return att
 
     def disable(self):
         with self.soc.board_sel.enable_context(self.card_num):
@@ -1865,11 +1869,18 @@ class RFQickSoc(QickSoc):
             Attenuation for first stage (0-31.75 dB)
         att2 : float
             Attenuation for second stage (0-31.75 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) att1 value that was set
+        float
+            actual (rounded) att2 value that was set
         """
-        rfb_ch = self.gens[gen_ch].rfb
+        rfb_ch = self.gens[gen_ch].rfb_ch
         if not isinstance(rfb_ch, AbsDacRfChain):
             raise RuntimeError("generator %d is not connected to an RF signal chain")
-        rfb_ch.enable_rf(att1, att2)
+        return rfb_ch.enable_rf(att1, att2)
 
     def rfb_set_gen_dc(self, gen_ch):
         """Enable and configure an RF-board output channel for DC output.
@@ -1879,7 +1890,7 @@ class RFQickSoc(QickSoc):
         gen_ch : int
             DAC channel (index in 'gens' list)
         """
-        rfb_ch = self.gens[gen_ch].rfb
+        rfb_ch = self.gens[gen_ch].rfb_ch
         if not isinstance(rfb_ch, AbsDacDcChain):
             raise RuntimeError("generator %d is not connected to a DC signal chain")
         rfb_ch.enable_dc()
@@ -1894,11 +1905,16 @@ class RFQickSoc(QickSoc):
             ADC channel (index in 'avg_bufs' list)
         att : float
             Attenuation (0 to 31.75 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) value that was set
         """
-        rfb_ch = self.avg_bufs[ro_ch].rfb
+        rfb_ch = self.avg_bufs[ro_ch].rfb_ch
         if not isinstance(rfb_ch, AbsAdcRfChain):
             raise RuntimeError("readout %d is not connected to an RF signal chain")
-        rfb_ch.enable_rf(att)
+        return rfb_ch.enable_rf(att)
 
     def rfb_set_ro_dc(self, ro_ch, gain):
         """Enable and configure an RF-board DC input channel.
@@ -1910,11 +1926,16 @@ class RFQickSoc(QickSoc):
             ADC channel (index in 'readouts' list)
         gain : float
             Gain (-6 to 26 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) value that was set
         """
-        rfb_ch = self.avg_bufs[ro_ch].rfb
+        rfb_ch = self.avg_bufs[ro_ch].rfb_ch
         if not isinstance(rfb_ch, AbsAdcDcChain):
             raise RuntimeError("readout %d is not connected to a DC signal chain")
-        rfb_ch.enable_dc(gain)
+        return rfb_ch.enable_dc(gain)
 
     def rfb_set_bias(self, bias_ch, v):
         """Set a voltage on an RF-board bias output.
@@ -1931,7 +1952,7 @@ class RFQickSoc(QickSoc):
         float
             actual (rounded) value that was set
         """
-        return self.dac_bias[bias_ch].set_volt(v)
+        return self.biases[bias_ch].set_volt(v)
 
     def rfb_get_bias(self, bias_ch):
         """Read the voltage setpoint on an RF-board bias output.
@@ -1946,7 +1967,7 @@ class RFQickSoc(QickSoc):
         float
             setpoint, in volts
         """
-        return self.dac_bias[bias_ch].get_volt()
+        return self.biases[bias_ch].get_volt()
 
 class RFQickSoc111V1(RFQickSoc):
     def _init_switches(self, spi):
@@ -1987,7 +2008,7 @@ class RFQickSoc111V1(RFQickSoc):
         self._init_switches(self.psf_spi)
 
         # DAC BIAS.
-        self.dac_bias = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
+        self.biases = [BiasAD5781(self.dac_bias_spi, ch_en=ii) for ii in range(8)]
 
         # ADC channels.
         self.adc_chains = [AdcRfChain111(ii, self.switches, self.attn_spi) for ii in range(4)] + [AdcDcChain111(ii, self.switches, self.psf_spi) for ii in range(4,8)]
@@ -2002,10 +2023,10 @@ class RFQickSoc111V1(RFQickSoc):
             # Link gens/readouts to the corresponding RF board channels.
             for gen in self.gens:
                 tile, block = [int(a) for a in gen.dac]
-                gen.rfb = self.dac_chains[4*tile + block]
+                gen.rfb_ch = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
                 tile, block = [int(a) for a in avg_buf.readout.adc]
-                avg_buf.rfb = self.adc_chains[2*tile + block]
+                avg_buf.rfb_ch = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f):
         """Set both of the RF-board local oscillators to the same frequency.
@@ -2116,7 +2137,7 @@ class RFQickSoc216V1(RFQickSoc):
         self.bias_spi.config(lsb="msb", cpha="invert")
 
         # Bias channels.
-        self.dac_bias = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
+        self.biases = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
         self.rfb_enable_bias()
 
         # DAC daughter cards are the lower 4.
@@ -2158,18 +2179,18 @@ class RFQickSoc216V1(RFQickSoc):
                 tile, block = [int(a) for a in gen.dac]
                 card = self.dac_cards[tile]
                 if card is not None:
-                    gen.rfb = card.chains[block]
+                    gen.rfb_ch = card.chains[block]
                 else:
-                    gen.rfb = None
+                    gen.rfb_ch = None
             # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
             for avg_buf in self.avg_bufs:
                 tile, block = [int(a) for a in avg_buf.readout.adc]
                 card = self.adc_cards[2*(tile-1) + block//2]
                 chain_num = block % 2
                 if card is not None:
-                    avg_buf.rfb = card.chains[chain_num]
+                    avg_buf.rfb_ch = card.chains[chain_num]
                 else:
-                    avg_buf.rfb = None
+                    avg_buf.rfb_ch = None
 
     def rfb_enable_bias(self):
         """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
