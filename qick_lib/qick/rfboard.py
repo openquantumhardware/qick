@@ -540,7 +540,6 @@ class BiasAD5781:
         return reg*(self.VREFP - self.VREFN)/(2**self.B - 1) + self.VREFN
 
     # Compute register value for voltage setting.
-    # Return register value and the corresponding (rounded) voltage.
     def _volt2reg(self, volt):
         if volt < self.VREFN or volt > self.VREFP:
             raise RuntimeError("%s: %d V out of range [%f, %f]" % (self.__class__.__name__, volt, self.VREFN, self.VREFP))
@@ -548,8 +547,7 @@ class BiasAD5781:
         Df = (2**self.B - 1)*(volt - self.VREFN)/(self.VREFP - self.VREFN)
 
         # Shift by two as 2 lower bits are not used.
-        reg = int(np.round(Df)) << 2
-        return reg, self._reg2volt(reg)
+        return int(np.round(Df)) << 2
 
     def read_reg(self, reg):
         # Address.
@@ -593,7 +591,7 @@ class BiasAD5781:
         """
         regval, rounded = self._volt2reg(volt)
         self.write_reg(reg="DAC_REG", val=regval)
-        return rounded
+        return self._reg2volt(regval)
 
     def get_volt(self):
         """Read and return the voltage setpoint.
@@ -640,16 +638,20 @@ class BiasDAC11001:
         self.set_volt(0)
 
     # Compute register value for voltage setting.
-    def volt2reg(self, volt):
+    def _volt2reg(self, volt):
+        if volt < self.VREFN or volt > self.VREFP:
+            raise RuntimeError("%s: %d V out of range [%f, %f]" % (self.__class__.__name__, volt, self.VREFN, self.VREFP))
         Df = np.round(2**self.B*(volt - self.VREFN)/(self.VREFP - self.VREFN))
-        if (Df<0 or Df>2**self.B):
-            raise RuntimeError("%f V out of range." % (volt))
-        elif Df==2**self.B:
+        if Df==2**self.B:
             # special case: V=VREFP is actually not reachable, but that's annoying and nobody will mind if we round down by an LSB
             Df -= 1
 
         # Shift by two as 4 lower bits are not used.
         return int(Df) << 4
+
+    def _reg2volt(self, reg):
+        reg >>= 4
+        return reg*(self.VREFP - self.VREFN)/(2**self.B) + self.VREFN
 
     def read_reg(self, reg):
         # Address.
@@ -685,10 +687,15 @@ class BiasDAC11001:
 
     def set_volt(self, volt):
         # Convert volts to register value.
-        val = self.volt2reg(volt)
+        val = self._volt2reg(volt)
 
         self.write_reg(reg="DAC_DATA_REG", val=val)
+        return self._reg2volt(val)
 
+    def get_volt(self):
+        """Read and return the voltage setpoint.
+        """
+        return self._reg2volt(self.read_reg("DAC_DATA_REG"))
 
 class AttenuatorPE43705:
     """
@@ -1748,6 +1755,10 @@ class AdcDcChain216(AbsAdcDcChain, Chain216):
         with self.soc.board_sel.enable_context(self.card_num):
             self.card.switch_control[self.powerdown] = 1
 
+    def get_gain(self):
+        # TODO: get gain
+        return None
+
 class DaughterCard216(ABC):
     NCH = None # channels per daughter card
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
@@ -2220,7 +2231,7 @@ class RFQickSoc216V1(RFQickSoc):
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
-        self.gens[gen_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
+        self.gens[gen_ch].rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
     def rfb_set_ro_filter(self, ro_ch, fc, bw=1, ftype='bandpass'):
         """Enable and configure an RF-board RF input channel.
@@ -2237,5 +2248,5 @@ class RFQickSoc216V1(RFQickSoc):
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
-        self.avg_bufs[ro_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
+        self.avg_bufs[ro_ch].rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
