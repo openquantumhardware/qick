@@ -1086,7 +1086,7 @@ class AbsQickProgram(ABC):
 
     def declare_readout(
         self, ch, length, freq=None, phase=0, sel='product', gen_ch=None,
-        edge_counting=False, high_threshold=None, low_threshold=None):
+        edge_counting=False, high_threshold=0, low_threshold=0):
         """Add a channel to the program's list of readouts.
         Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
