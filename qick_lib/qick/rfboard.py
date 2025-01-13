@@ -1477,7 +1477,7 @@ class GainLMH6401:
         return self.Gmax - regval
 
     def get_gain(self):
-        regval = self.read_reg("GAIN_REG", signed=True)
+        regval = self.read_reg("GAIN_REG")
         return self.Gmax - regval
 
 class AbsDacRfChain(ABC):
