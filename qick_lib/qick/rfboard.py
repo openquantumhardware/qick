@@ -1436,9 +1436,6 @@ class GainLMH6401:
         # Initalize to min gain.
         self.set_gain(-6)
 
-    # Data array: 2 bytes.
-    # byte[0] = rw/address.
-    # byte[1] = data.
     def read_reg(self, reg):
         # Address.
         addr = self.REGS[reg]
@@ -1451,7 +1448,8 @@ class GainLMH6401:
         # Write value using spi.
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
 
-        return int.from_bytes(res, byteorder='big')
+        # res[0] is high-Z, might show up as 0 or 0xFF
+        return res[1]
 
     def write_reg(self, reg, val):
         # Address.
@@ -1471,16 +1469,16 @@ class GainLMH6401:
             raise RuntimeError("%s: gain %f out of limits [%f, %f]" % (self.__class__.__name__, db, self.Gmin, self.Gmax))
 
         # Convert gain to attenuation (register value).
-        db_a = int(np.round(self.Gmax - db))
+        regval = int(np.round(self.Gmax - db))
 
         # Write command.
-        self.write_reg(reg="GAIN_REG", val=db_a)
+        self.write_reg(reg="GAIN_REG", val=regval)
 
-        return self.Gmax - db_a
+        return self.Gmax - regval
 
     def get_gain(self):
-        db_a = self.read_reg("GAIN_REG")
-        return self.Gmax - db_a
+        regval = self.read_reg("GAIN_REG", signed=True)
+        return self.Gmax - regval
 
 class AbsDacRfChain(ABC):
     @abstractmethod
@@ -1745,19 +1743,20 @@ class AdcDcChain216(AbsAdcDcChain, Chain216):
         super().__init__(soc, card, global_ch, card_num, card_ch)
 
         self.powerdown = "PD%d"%(card_ch)
+        self.gain = GainLMH6401(soc.filter_spi, ch_en=card_ch)
 
     def enable_dc(self, gain):
         with self.soc.board_sel.enable_context(self.card_num):
             self.card.switch_control[self.powerdown] = 0
-            # TODO: set gain
+            return self.gain.set_gain(gain)
 
     def disable(self):
         with self.soc.board_sel.enable_context(self.card_num):
             self.card.switch_control[self.powerdown] = 1
 
     def get_gain(self):
-        # TODO: get gain
-        return None
+        with self.soc.board_sel.enable_context(self.card_num):
+            return self.gain.get_gain()
 
 class DaughterCard216(ABC):
     NCH = None # channels per daughter card
