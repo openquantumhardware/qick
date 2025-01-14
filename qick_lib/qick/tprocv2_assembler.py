@@ -267,12 +267,10 @@ def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     dec = int(strin, 10)
     # Check max.
     if dec < minv:
-        logger.error("integer2bin: number %d is smaller than %d" % (dec, minv))
-        return None
+        raise new RuntimeError("integer2bin: number %d is smaller than %d" % (dec, minv))
     # Check max.
     if dec > maxv:
-        logger.error("integer2bin: number %d is bigger than %d" % (dec, maxv))
-        return None
+        raise new RuntimeError("integer2bin: number %d is bigger than %d" % (dec, maxv))
     # Check if number is negative.
     if dec < 0:
         dec = dec + 2**bits
@@ -288,24 +286,22 @@ def get_src_type (src : str) -> str:
     src_type = 'X'
     error = 0
     REG = re.findall('s(\d+)|r(\d+)|w(\d+)|#([ubh0-9A-F\-]+)',src) #S,R,W,Signed, Unsigned, Binary, Hexa
-    if (REG):
-        #print('Register Type> ',REG, REG[0])
-        if ( len(REG) != 1 ):
-            logger.error('get_src_type: Source Data not Recognized '+src )
-        else:            
-            REG = REG[0]
-            if   (REG[0]):   
-                src_type = 'RS'
-            elif (REG[1]):   
-                src_type = 'RD'
-            elif (REG[2]):   
-                src_type = 'RW'
-            elif (REG[3]):   
-                src_type = 'N'
-            else:            
-                src_type = 'XX'
-    else:
-        logger.error('get_src_type: Source Data not Recognized '+src )
+    if not REG:
+        raise new RuntimeError('get_src_type: Source Data not Recognized '+src )
+    #print('Register Type> ',REG, REG[0])
+    if ( len(REG) != 1 ):
+        raise new RuntimeError('get_src_type: Source Data not Recognized '+src )
+    REG = REG[0]
+    if   (REG[0]):   
+        src_type = 'RS'
+    elif (REG[1]):   
+        src_type = 'RD'
+    elif (REG[2]):   
+        src_type = 'RW'
+    elif (REG[3]):   
+        src_type = 'N'
+    else:            
+        src_type = 'XX'
     return error, src_type
 
 def check_num(num_str : str) -> bool:
@@ -327,31 +323,30 @@ def check_lit(lit_str : str) -> bool:
 def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
     DataImm = ''
     LIT = re.findall('#(-?\d+)|#u(\d+)|#b(\d+)|#h([0-9A-F]+)|&(\d+)|@(-?\d+)',lit) #S,R,W,Signed, Unsigned, Binary, Hexa
-    if ( LIT and check_lit(lit)):
-        LIT = LIT[0]
-        try: 
-            if (LIT[0]): ## is Signed
-                literal = str(int(LIT[0]))
-                DataImm = '_'+ integer2bin(literal, bit_len)
-            elif (LIT[1]): ## is Unsigned
-                literal = str(int(LIT[1]))
-                DataImm = '_'+ integer2bin(literal, bit_len,1)
-            elif (LIT[2]): ## is Binary
-                literal = str(int(LIT[2],2))
-                DataImm = '_'+ integer2bin(literal, bit_len,1)
-            elif (LIT[3]): ## is Hexa
-                literal = str(int(LIT[3],16))
-                DataImm = '_'+ integer2bin(literal, bit_len,1)
-            elif (LIT[4]): ## is Address
-                literal = str(int(LIT[4]))
-                DataImm = '_'+ integer2bin(literal, bit_len,1)
-            elif (LIT[5]): ## is Time
-                literal = str(int(LIT[5]))
-                DataImm = '_'+ integer2bin(literal, bit_len)
-        except:
-            DataImm = ''
-    else:
-        logger.error("get_imm_dt: Data Format incorrect "+ lit )
+    if ( not LIT or not check_lit(lit)):
+        raise new RuntimeError("get_imm_dt: Data Format incorrect "+ lit )
+    LIT = LIT[0]
+    try: 
+        if (LIT[0]): ## is Signed
+            literal = str(int(LIT[0]))
+            DataImm = '_'+ integer2bin(literal, bit_len)
+        elif (LIT[1]): ## is Unsigned
+            literal = str(int(LIT[1]))
+            DataImm = '_'+ integer2bin(literal, bit_len,1)
+        elif (LIT[2]): ## is Binary
+            literal = str(int(LIT[2],2))
+            DataImm = '_'+ integer2bin(literal, bit_len,1)
+        elif (LIT[3]): ## is Hexa
+            literal = str(int(LIT[3],16))
+            DataImm = '_'+ integer2bin(literal, bit_len,1)
+        elif (LIT[4]): ## is Address
+            literal = str(int(LIT[4]))
+            DataImm = '_'+ integer2bin(literal, bit_len,1)
+        elif (LIT[5]): ## is Time
+            literal = str(int(LIT[5]))
+            DataImm = '_'+ integer2bin(literal, bit_len)
+    except:
+        DataImm = ''
     if  (DataImm) : 
         if (lit_val) :
             return 0, int(literal)
@@ -374,40 +369,39 @@ def get_reg_addr (reg : str, Type : str) -> tuple:
     """
     error    = 0
     reg_addr = 'X'
-    if (check_reg(reg) ): #extr_num == name_num):
-        REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)[0]
-        if (Type=='Dest'):
-            if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
-                else:               reg_addr =  '00'+integer2bin(REG[0], 5,1)   
-            elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
-                else:               reg_addr     = '01'+integer2bin(REG[1], 5,1)     
-            elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
-                else:               reg_addr     = '10'+integer2bin(REG[2], 5,1)
-        elif (Type=='src_data'):
-            if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
-                else:               reg_addr =  '0_00'+integer2bin(REG[0], 5,1)   
-            elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
-                else:               reg_addr     = '0_01'+integer2bin(REG[1], 5,1)     
-            elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[1])+' is not a wreg (Max 5)' )
-                else:               reg_addr     = '0_10'+integer2bin(REG[2], 5,1)
-        elif (Type=='src_addr'):
-            if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
-                else:               reg_addr =  '0'+integer2bin(REG[0], 5,1)   
-            elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
-                else:               reg_addr     = '1'+integer2bin(REG[1], 5,1)     
-            elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
-                logger.error('get_reg_addr: Register w'+ str(REG[2])+' Can not be wreg' )
-    else:
-        logger.error('get_reg_addr: Register '+ reg +' Name error' )
+    if not check_reg(reg): #extr_num == name_num):
+        raise new RuntimeError('get_reg_addr: Register '+ reg +' Name error' )
+    REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)[0]
+    if (Type=='Dest'):
+        if (REG[0]): ## is SREG
+            if (int(REG[0]) > 15): raise new RuntimeError('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+            reg_addr =  '00'+integer2bin(REG[0], 5,1)   
+        elif (REG[1]): ## is DREG
+            if (int(REG[1]) > 31): raise new RuntimeError('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+            reg_addr     = '01'+integer2bin(REG[1], 5,1)     
+        elif (REG[2]): ## is WREG
+            if (int(REG[2]) > 5): raise new RuntimeError('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+            reg_addr     = '10'+integer2bin(REG[2], 5,1)
+    elif (Type=='src_data'):
+        if (REG[0]): ## is SREG
+            if (int(REG[0]) > 15): raise new RuntimeError('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+            reg_addr     = '0_00'+integer2bin(REG[0], 5,1)   
+        elif (REG[1]): ## is DREG
+            if (int(REG[1]) > 31): raise new RuntimeError('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+            reg_addr     = '0_01'+integer2bin(REG[1], 5,1)     
+        elif (REG[2]): ## is WREG
+            if (int(REG[2]) > 5): raise new RuntimeError('get_reg_addr: Register w'+ str(REG[1])+' is not a wreg (Max 5)' )
+            reg_addr     = '0_10'+integer2bin(REG[2], 5,1)
+    elif (Type=='src_addr'):
+        if (REG[0]): ## is SREG
+            if (int(REG[0]) > 15): raise new RuntimeError('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+            reg_addr =  '0'+integer2bin(REG[0], 5,1)   
+        elif (REG[1]): ## is DREG
+            if (int(REG[1]) > 31): raise new RuntimeError('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+            reg_addr     = '1'+integer2bin(REG[1], 5,1)     
+        elif (REG[2]): ## is WREG
+            if (int(REG[2]) > 5): raise new RuntimeError('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+            raise new RuntimeError('get_reg_addr: Register w'+ str(REG[2])+' Can not be wreg' )
     return [error, reg_addr]
 
 class LFSR:
