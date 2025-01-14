@@ -227,68 +227,9 @@ regex = {
     'CDS'       : r'\s*([\w&\+\']+)'}
 
 import re
+import logging
 
-###  LOGGER ###
-class Logger():
-    INFO = 0
-    WARNING = 1
-    ERROR = 2
-   
-    __STATUS = { INFO: 'INFO', WARNING: 'WARNING', ERROR: 'ERROR', }
-    
-    #__STATUS = [Logger.__dict__]
-    filename = "assembler.log"
-    f = open(filename, "w")
-    f.write("-- Assembler LOG-- \n\n")
-    f.close()
-
-    level = WARNING
-    
-    @staticmethod
-    def setLevel(level : int) -> None:
-        if level > 2 :
-            raise ValueError("Logger.setLevel: show_level must be samller than 2 (0-INFO, 1-WARNINGS, 2-ERRORS)")
-        Logger.level = level
-    
-    @staticmethod
-    def setFile(filename : str) -> None:
-        Logger.filename = filename
-        open(filename, "w+").close()
-        with open(filename, 'a') as f:
-            f.write("-- Assembler LOG-- \n\n")
-
-    @staticmethod
-    def log(*args, **kwargs) -> None:
-        print (*args, **kwargs)
-    
-    @staticmethod
-    def info(locator : str, message : str) -> int:
-        Logger.__show_message__(Logger.INFO, locator, message)
-        return 0
-    
-    @staticmethod
-    def warning(locator : str, message : str) -> int:
-        Logger.__show_message__(Logger.WARNING, locator, message)
-        return 0
-    
-    @staticmethod
-    def error(locator : str, message : str) -> int:
-        Logger.__show_message__(Logger.ERROR, locator, message)
-        return 1
-
-    @staticmethod
-    def __show_message__(severity : int, locator : str, message : str) -> None:
-        msg = f"{Logger.__STATUS[severity]} : [{locator}] > {message}"
-        if (Logger.filename):
-            Logger.save(msg, Logger.filename)
-        if (severity >= Logger.level):
-            print (msg)
-    
-    @staticmethod
-    def save(message : str, filename : str) -> None:
-        msg_log = message + '\n'
-        with open(filename, 'a') as f:
-            f.write(msg_log)
+logger = logging.getLogger(__name__)
 
 def find_pattern(regex : str, text : str):
     match = re.search(regex, text)
@@ -304,14 +245,14 @@ def check_name(name_str : str) -> bool:
         if (name_check == name_str):
             # Check for Register Name
             if ( check_reg(name_str) ):
-                Logger.error('CHECK_NAME', 'Name can not be a Register name.')
+                logger.error('CHECK_NAME: Name can not be a Register name.')
             else:
                 r = True
         else:
-            Logger.error('CHECK_NAME', 'Name should use AlphaNumeric and _ characters')
+            logger.error('CHECK_NAME: Name should use AlphaNumeric and _ characters')
         return r
     else:
-        Logger.error('CHECK_NAME', 'Name Error')
+        logger.error('CHECK_NAME: Name Error')
             
 
 def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
@@ -332,11 +273,11 @@ def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     dec = int(strin, 10)
     # Check max.
     if dec < minv:
-        Logger.error("integer2bin", "number %d is smaller than %d" % (dec, minv))
+        logger.error("integer2bin: number %d is smaller than %d" % (dec, minv))
         return None
     # Check max.
     if dec > maxv:
-        Logger.error("integer2bin", "number %d is bigger than %d" % (dec, maxv))
+        logger.error("integer2bin: number %d is bigger than %d" % (dec, maxv))
         return None
     # Check if number is negative.
     if dec < 0:
@@ -356,7 +297,7 @@ def get_src_type (src : str) -> str:
     if (REG):
         #print('Register Type> ',REG, REG[0])
         if ( len(REG) != 1 ):
-            error = Logger.error('get_src_type', 'Source Data not Recognized '+src )
+            logger.error('get_src_type: Source Data not Recognized '+src )
         else:            
             REG = REG[0]
             if   (REG[0]):   
@@ -370,7 +311,7 @@ def get_src_type (src : str) -> str:
             else:            
                 src_type = 'XX'
     else:
-        error = Logger.error('get_src_type', 'Source Data not Recognized '+src )
+        logger.error('get_src_type: Source Data not Recognized '+src )
     return error, src_type
 
 def check_num(num_str : str) -> bool:
@@ -416,7 +357,7 @@ def get_imm_dt (lit : str, bit_len : int, lit_val : int = 0) -> str:
         except:
             DataImm = ''
     else:
-        Logger.error("get_imm_dt", 'Data Format incorrect '+ lit )
+        logger.error("get_imm_dt: Data Format incorrect "+ lit )
     if  (DataImm) : 
         if (lit_val) :
             return 0, int(literal)
@@ -443,36 +384,36 @@ def get_reg_addr (reg : str, Type : str) -> tuple:
         REG = re.findall('s(\d+)|r(\d+)|w(\d+)', reg)[0]
         if (Type=='Dest'):
             if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
                 else:               reg_addr =  '00'+integer2bin(REG[0], 5,1)   
             elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
                 else:               reg_addr     = '01'+integer2bin(REG[1], 5,1)     
             elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
                 else:               reg_addr     = '10'+integer2bin(REG[2], 5,1)
         elif (Type=='src_data'):
             if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
                 else:               reg_addr =  '0_00'+integer2bin(REG[0], 5,1)   
             elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
                 else:               reg_addr     = '0_01'+integer2bin(REG[1], 5,1)     
             elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[1])+' is not a wreg (Max 5)' )
+                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[1])+' is not a wreg (Max 5)' )
                 else:               reg_addr     = '0_10'+integer2bin(REG[2], 5,1)
         elif (Type=='src_addr'):
             if (REG[0]): ## is SREG
-                if (int(REG[0]) > 15): error = Logger.error('get_reg_addr', 'Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
+                if (int(REG[0]) > 15): logger.error('get_reg_addr: Register s'+ str(REG[0])+' is not a sreg (Max 15)' )
                 else:               reg_addr =  '0'+integer2bin(REG[0], 5,1)   
             elif (REG[1]): ## is DREG
-                if (int(REG[1]) > 31): error = Logger.error('get_reg_addr', 'Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
+                if (int(REG[1]) > 31): logger.error('get_reg_addr: Register d'+ str(REG[1])+' is not a dreg (Max 31)' )
                 else:               reg_addr     = '1'+integer2bin(REG[1], 5,1)     
             elif (REG[2]): ## is WREG
-                if (int(REG[2]) > 5): error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
-                error = Logger.error('get_reg_addr', 'Register w'+ str(REG[2])+' Can not be wreg' )
+                if (int(REG[2]) > 5): logger.error('get_reg_addr: Register w'+ str(REG[2])+' is not a wreg (Max 5)' )
+                logger.error('get_reg_addr: Register w'+ str(REG[2])+' Can not be wreg' )
     else:
-            error = Logger.error('get_reg_addr', 'Register '+ reg +' Name error' )
+        logger.error('get_reg_addr: Register '+ reg +' Name error' )
     return [error, reg_addr]
 
 class LFSR:
@@ -596,7 +537,7 @@ class Assembler():
                 if ( command['LABEL'] in label_dict ) :
                     command['ADDR'] = label_dict[ command['LABEL'] ]
                 else:
-                    Logger.error('LABEL: ', 'Label ' + command['LABEL'] + ' not recognized')
+                    logger.error('LABEL: Label ' + command['LABEL'] + ' not recognized')
             command['LINE'] = line_number
         return assembler_code
     
@@ -668,17 +609,17 @@ class Assembler():
                         L_Name    = command[:-1]
                         if (check_name(L_Name)):
                             if label in label_dict:
-                                error = Logger.error('LABEL_RECOGNITION', 'Label  "' + label + '" already in use as LABEL in line ' + str(line_number) )
+                                logger.error('LABEL_RECOGNITION: Label  "' + label + '" already in use as LABEL in line ' + str(line_number) )
                             elif label in Alias_List:
-                                 error = Logger.error('LABEL_RECOGNITION', 'Label "' + label + '" already in use as ALIAS in line ' + str(line_number) )
+                                logger.error('LABEL_RECOGNITION: Label "' + label + '" already in use as ALIAS in line ' + str(line_number) )
                             else:
                                 if (label == 'reg'):
-                                    error = Logger.error('LABEL_RECOGNITION', 'reg is not a valid label in line  ' + str(line_number) )
+                                    logger.error('LABEL_RECOGNITION: reg is not a valid label in line  ' + str(line_number) )
                                 else:
                                     label_dict[label] = '&' + str(mem_addr)
                                     label_line_idxs.append(line_number)
                         else:
-                            error = Logger.error('LABEL_RECOGNITION', 'Label Name error in line  ' + str(line_number) )
+                            logger.error('LABEL_RECOGNITION: Label Name error in line  ' + str(line_number) )
                     elif (directive):  # identify Aliases and adds them to Alias_List.
                         if ( directive == 'ALIAS'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
@@ -687,19 +628,19 @@ class Assembler():
                                 A_Reg     = directive_params[2]
                                 if (check_name(A_Name)):
                                     if A_Name in Alias_List:
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias "' + A_Name  +'" already in use as ALIAS in line ' + str(line_number) )
+                                        logger.error('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as ALIAS in line ' + str(line_number) )
                                     elif A_Name in label_dict:
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias "' + A_Name  +'" already in use as LABEL in line ' + str(line_number) )
+                                        logger.error('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as LABEL in line ' + str(line_number) )
                                     else:
                                         if ( check_reg(A_Reg) ):
                                             Alias_List.update({ A_Name : A_Reg } )        
-                                            Logger.info("ALIAS_RECOGNITION",' > ' + A_Reg + ' is called ' + A_Name)
+                                            logger.info("ALIAS_RECOGNITION:  > " + A_Reg + ' is called ' + A_Name)
                                         else:
-                                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Register Name error in line ' + str(line_number) )
+                                            logger.error('DIRECTIVE_RECOGNITION: Register Name error in line ' + str(line_number) )
                                 else:
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
+                                    logger.error('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
                             else:
-                                error = Logger.error('DIRECTIVE_RECOGNITION', 'ALIAS Parameters error in line ' + str(line_number) )
+                                logger.error('DIRECTIVE_RECOGNITION: ALIAS Parameters error in line ' + str(line_number) )
                         elif ( directive == 'CONST'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
                             if (len(directive_params) == 3):
@@ -707,22 +648,22 @@ class Assembler():
                                 C_val    = directive_params[2]
                                 if (check_name(C_name)):
                                     if C_name in Alias_List:
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
+                                        logger.error('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
                                     elif C_name in label_dict:
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
+                                        logger.error('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
                                     else:
     
                                         error, lit_val = get_imm_dt (C_val, 32, 1)
                                         if (error):
-                                            error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                                            logger.error('DIRECTIVE_RECOGNITION: CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
                                         else:
                                             Alias_List.update({ C_name : C_val } )        
-                                            Logger.info("DIRECTIVE_RECOGNITION",' > ' + C_val + ' is called ' + C_name)
+                                            logger.info("DIRECTIVE_RECOGNITION: > " + C_val + ' is called ' + C_name)
                                 else:
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Alias Name Error in line ' + str(line_number) )
+                                    logger.error('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
 
                             else:
-                                error = Logger.error('DIRECTIVE_RECOGNITION', 'CONST Parameters error in line ' + str(line_number) )
+                                logger.error('DIRECTIVE_RECOGNITION: CONST Parameters error in line ' + str(line_number) )
     
                         elif ( directive == 'ADDR'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
@@ -731,17 +672,17 @@ class Assembler():
                                     Value    = int(directive_params[1])
                                     distance = Value - mem_addr
                                     if  (distance < 0):
-                                        error = Logger.error('DIRECTIVE_RECOGNITION', 'New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
+                                        logger.error('DIRECTIVE_RECOGNITION: New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
                                     else :                          
                                         mem_addr = Value
                                 else:
-                                    error = Logger.error('DIRECTIVE_RECOGNITION', 'Address Value '+ directive_params[1] + ' error in Line ' + str(line_number))
+                                    logger.error('DIRECTIVE_RECOGNITION: Address Value '+ directive_params[1] + ' error in Line ' + str(line_number))
                             else:
-                                error = Logger.error('DIRECTIVE_RECOGNITION', 'ADDR Parameters error in line ' + str(line_number) )
+                                logger.error('DIRECTIVE_RECOGNITION: ADDR Parameters error in line ' + str(line_number) )
                         elif ( directive == 'END'):
                             mem_addr += 1  
                         else:
-                            error = Logger.error('DIRECTIVE_RECOGNITION', 'Directive Not Recognized in Line ' + str(line_number))
+                            logger.error('DIRECTIVE_RECOGNITION: Directive Not Recognized in Line ' + str(line_number))
                     elif (instruction): # Identify instructions to correctly set addresses.
                         if ( instruction in instList.keys() ) :
                             if (instruction == 'WAIT'):
@@ -749,9 +690,9 @@ class Assembler():
                             else:                            
                                 mem_addr += 1
                         else:
-                            error = Logger.error('CMD_RECOGNITION', 'Command Not Recognized in Line ' + str(line_number))
+                            logger.error('CMD_RECOGNITION: Command Not Recognized in Line ' + str(line_number))
                     else:
-                        error = Logger.error('CMD_RECOGNITION', 'Instruction Not Recognized in Line ' + str(line_number))
+                        logger.error('CMD_RECOGNITION: Instruction Not Recognized in Line ' + str(line_number))
 
             show_info =  ('\n## ALIAS LIST')
             show_info += '\n' + ('###############################')
@@ -759,7 +700,7 @@ class Assembler():
             for key in Alias_List:
                 show_info += '\n' + str( (f"{Alias_List[key]:<3}" + ' > '+ key) )
             show_info += '\n' + ('###############################')
-            Logger.info("ALIAS_RECOGNITION",show_info)
+            logger.info("ALIAS_RECOGNITION: "+show_info)
             
             show_info =         ('\n## LABEL LIST ')
             show_info += '\n' + ('###############################')
@@ -768,7 +709,7 @@ class Assembler():
                 if key != 's15':
                     show_info += '\n' + str( (f"{key:<15}" + ' > ' + label_dict[key]) )
             show_info += '\n' + ('###############################')
-            Logger.info("LABEL_RECOGNITION",show_info)
+            logger.info("LABEL_RECOGNITION: "+show_info)
                 
             return (error, label_dict)
         
@@ -802,7 +743,7 @@ class Assembler():
                             'ADDR'     : F"&{str(mem_addr)}",
                             'CMD'      : 'JUMP' }
                         program_list.append(command_info)
-                        Logger.info("COMMAND_RECOGNITION",'END OF PROGRAM ')
+                        logger.info("COMMAND_RECOGNITION: END OF PROGRAM")
                     elif ( directive == 'ADDR'): ## Already Verified on Label Recognition
                         directive_params = list(filter(lambda x:x, command.split(' ')))
                         Value    = int(directive_params[1])
@@ -822,7 +763,7 @@ class Assembler():
                         ###############################################################
                         LIT      = re.findall(regex['LIT'], command)
                         if (LIT and len(LIT) == 2 and LIT[0] != LIT[1]):
-                            error = Logger.error('COMMAND_RECOGNITION', 'Literals not equals in Line ' + str(line_number))
+                            logger.error('COMMAND_RECOGNITION: Literals not equals in Line ' + str(line_number))
                         
                         # CHANGE ALIAS 
                         ###############################################################
@@ -835,18 +776,20 @@ class Assembler():
                         # Extract PARAMETERS
                         ###############################################################
                         if (error == 0):
+                            #TODO: this should get printed?
                             command_info['LINE'] = line_number # Stores Line Number for ERROR Messages
                             for key in Param_List:
                                 PARAM = re.findall(Param_List[key]['RegEx'], command)
                                 if PARAM:
                                     if (len(PARAM) >1):
-                                        error = Logger.error('COMMAND_RECOGNITION', 'Duplicated Parameter ' + key +' in line '+str(line_number))
+                                        logger.error('COMMAND_RECOGNITION: Duplicated Parameter ' + key +' in line '+str(line_number))
                                     command_info[key] = PARAM[0].strip()
                                     aux  = Param_List[key]['RL'] + PARAM[0] + Param_List[key]['RR']
                                     command = command.replace(aux, '')
                         # COMMANDS PARAMETERS CHECK
                         ###############################################################
                         if (error == 0):
+                            #TODO: this should get printed?
                             CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
                             ## SINGLE PARAMETERS CHECK
                             ###########################################################
@@ -857,7 +800,7 @@ class Assembler():
                                     try:
                                         str(int(param_op[0],2))
                                     except ValueError:
-                                        error = Logger.error("COMMAND_RECOGNITION", "Binary value incorrect in Line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
                             if ('LIT' in command_info) :
                                 # Remove underscores
                                 command_info['LIT'] = command_info['LIT'].replace('_','')
@@ -866,7 +809,7 @@ class Assembler():
                                     try:
                                         command_info['LIT'] = str(int(command_info['LIT'][1:],2))
                                     except ValueError:
-                                        error = Logger.error("COMMAND_RECOGNITION", "Binary value incorrect in Line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
                                 command_info['LIT'] = '#' + command_info['LIT']
                             ###########################################################
                             if ('TIME' in command_info) :
@@ -878,7 +821,7 @@ class Assembler():
                             if ('UF' in command_info) :
                                 command_info['UF'] = '1'
                                 if not('OP' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "No Operation < -op() > set for Flag Update < -uf > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: No Operation < -op() > set for Flag Update < -uf > in Line " + str(line_number))
 
                             ## COMMAND VERIFICATION
                             ###########################################################
@@ -886,18 +829,18 @@ class Assembler():
                                 if (len(CMD_DEST_SOURCE) > 2):
                                     if (CMD_DEST_SOURCE[1] == 'r_wave'):
                                         if ('TIME' in command_info):
-                                            error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
                                     else:
                                         if ('WP' in command_info):
-                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
                                         if ('WR' in command_info):
-                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Register < -wr() > in Line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
                                         if ('WW' in command_info):
-                                            error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
                                         if ('TIME' in command_info):
-                                            error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
                                 else:
-                                    error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Not enough parameters in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Not enough parameters in Line " + str(line_number))
 
 
                             if ( (CMD_DEST_SOURCE[0] == 'NOP')  or (CMD_DEST_SOURCE[0] == 'TEST') or (CMD_DEST_SOURCE[0] == 'RET') \
@@ -905,52 +848,53 @@ class Assembler():
                               or (CMD_DEST_SOURCE[0] == 'DIV')  or (CMD_DEST_SOURCE[0] == 'NET')  or (CMD_DEST_SOURCE[0] == 'COM')  \
                               or (CMD_DEST_SOURCE[0] == 'PA')   or (CMD_DEST_SOURCE[0] == 'PB') ) :
                                 if ('WP' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
                                 if ('WR' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Register < -wr() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
                                 if ('WW' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
                                 if ('TIME' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
                             ###########################################################
                             if ( (CMD_DEST_SOURCE[0] == 'JUMP')   or (CMD_DEST_SOURCE[0] == 'CALL') ):
                                 if ('WP' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
                                 if ('WW' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
                                 if ('TIME' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
 
 
                             elif (CMD_DEST_SOURCE[0] == 'DMEM_WR'):
                                 if ('WP' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write Port < -wp() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
                                 if ('WW' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
                                 if ('TIME' in command_info):
-                                    error = Logger.error("COMMAND_RECOGNITION", "DMEM_WR is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: DMEM_WR is NOT a timed intruction < -@Time > in Line " + str(line_number))
                                 if ( not('ADDR' in command_info) ):
-                                    error = Logger.error("COMMAND_RECOGNITION", "Memory Address < [] > not set in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: Memory Address < [] > not set in Line " + str(line_number))
 
                             ###########################################################
                             elif (CMD_DEST_SOURCE[0] == 'WMEM_WR'):
                                 if ('TIME' in command_info) :
                                     if ('WR' in command_info) :
-                                        error = Logger.error("COMMAND_RECOGNITION", "Not allowed SDI with Literal Time in Line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Not allowed SDI with Literal Time in Line " + str(line_number))
                                     if ('OP' in command_info) :
-                                        error = Logger.error("COMMAND_RECOGNITION", "Not allowed ALU Operation Operation with Literal Time in Line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Not allowed ALU Operation Operation with Literal Time in Line " + str(line_number))
                                 if ( ('WP' in command_info) and not('PORT' in command_info) ):
-                                    error = Logger.error("COMMAND_RECOGNITION", "No Port Address < -p() > in Line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: No Port Address < -p() > in Line " + str(line_number))
                             ###########################################################
                             elif (CMD_DEST_SOURCE[0] =='DPORT_WR') or (CMD_DEST_SOURCE[0] =='WPORT_WR') \
                             or (CMD_DEST_SOURCE[0] =='TRIG') :
                                 if ( not('PORT' in command_info) ):
-                                    error = Logger.error("COMMAND_RECOGNITION", "No port in PORT_WR Instruction in line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: No port in PORT_WR Instruction in line " + str(line_number))
 
 
                         # GET COMMAND DESTINATION SOURCE
                         ###############################################################
                         if (error == 0):
+                            #TODO: this should get printed?
                             CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
                             command_info['CMD'] = CMD_DEST_SOURCE[0]
                             ###############################################################################
@@ -966,33 +910,33 @@ class Assembler():
                                     if ( len(CMD_DEST_SOURCE) > 5) :
                                         command_info['R4'] = CMD_DEST_SOURCE[5]
                                         if  (CMD_DEST_SOURCE[0] == 'NET') :
-                                            error = Logger.error('COMMAND_RECOGNITION', 'NET command max 3 Registers in line ' + str(line_number) )
+                                            logger.error('COMMAND_RECOGNITION: NET command max 3 Registers in line ' + str(line_number) )
                                     if ( len(CMD_DEST_SOURCE) > 6) :
-                                        error = Logger.error('COMMAND_RECOGNITION', CMD_DEST_SOURCE[0]+' Command max 4 Registers in line ' + str(line_number) )
+                                        logger.error('COMMAND_RECOGNITION: ' + CMD_DEST_SOURCE[0]+' Command max 4 Registers in line ' + str(line_number) )
                                 
                                 elif (CMD_DEST_SOURCE[0] == 'REG_WR') and (CMD_DEST_SOURCE[2] == 'label' ) :
                                     command_info['DST'] = CMD_DEST_SOURCE[1]
                                     command_info['SRC'] = CMD_DEST_SOURCE[2]
                                     if (CMD_DEST_SOURCE[3] in label_dict ) :
                                         command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[3]]
-                                        error = Logger.info('COMMAND_RECOGNITION', 'REG_WR command source label: '+CMD_DEST_SOURCE[3] +' replaced by value ' + command_info['ADDR'] + '  in line ' + str(line_number))
+                                        logger.info('COMMAND_RECOGNITION: REG_WR command source label: '+CMD_DEST_SOURCE[3] +' replaced by value ' + command_info['ADDR'] + '  in line ' + str(line_number))
                                     else:
-                                        error = Logger.error('COMMAND_RECOGNITION', 'Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
+                                        logger.error('COMMAND_RECOGNITION: Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
                                 else:
-                                    error = Logger.error("COMMAND_RECOGNITION", "[>3] Parameter Error in line " + str(line_number) )
+                                    logger.error("COMMAND_RECOGNITION: [>3] Parameter Error in line " + str(line_number) )
                                     
                             ###############################################################################
                             ## ONLY ONE SOURCE / DEST
                             elif ( len(CMD_DEST_SOURCE) == 3) :
                                 if (CMD_DEST_SOURCE[0] == 'REG_WR'):
-                                   if (CMD_DEST_SOURCE[2] == 'label' ) :
-                                        error = Logger.error("COMMAND_RECOGNITION", "Missing label in line " + str(line_number))
-                                   else:
-                                       command_info['DST'] = CMD_DEST_SOURCE[1]
-                                       command_info['SRC'] = CMD_DEST_SOURCE[2]        
+                                    if (CMD_DEST_SOURCE[2] == 'label' ) :
+                                        logger.error("COMMAND_RECOGNITION: Missing label in line " + str(line_number))
+                                    else:
+                                        command_info['DST'] = CMD_DEST_SOURCE[1]
+                                        command_info['SRC'] = CMD_DEST_SOURCE[2]
                                 elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
                                     if ( int(command_info['PORT'])  > 3):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Data Port MAX port number is p3 in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Data Port MAX port number is p3 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -1006,7 +950,7 @@ class Assembler():
                                     command_info['NUM'] = CMD_DEST_SOURCE[1]
                                     command_info['DEN'] = CMD_DEST_SOURCE[2]        
                                 else:
-                                    error = Logger.error("COMMAND_RECOGNITION", "[3] Parameter Error in line " + str(line_number) )
+                                    logger.error("COMMAND_RECOGNITION: [3] Parameter Error in line " + str(line_number) )
                             ###############################################################################
                             ## NO SOURCE OR -- SOURCE IN EXTRACTED PARAMETER
                             elif ( len(CMD_DEST_SOURCE) == 2) :
@@ -1017,14 +961,14 @@ class Assembler():
                                 elif (CMD_DEST_SOURCE[0] =='TRIG'):
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]
                                     if ( int(command_info['PORT'])  > 31):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Trigger Port max por number is p31 in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Trigger Port max por number is p31 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
                                 elif (CMD_DEST_SOURCE[0] =='WPORT_WR'):
                                     command_info['SRC'] = CMD_DEST_SOURCE[1]
                                     if ( int(command_info['PORT'])  > 15):
-                                        error = Logger.error("COMMAND_RECOGNITION", "Wave Port Port max value is 15 in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Wave Port Port max value is 15 in line " + str(line_number))
                                     else:
                                         command_info['DST'] = command_info['PORT']
                                         command_info.pop('PORT') 
@@ -1038,13 +982,13 @@ class Assembler():
                                         command_info['NUM'] = CMD_DEST_SOURCE[1]     
                                         command_info['DEN'] = command_info['LIT']
                                     else:
-                                        error = Logger.error("COMMAND_RECOGNITION", "Dividend Parameter Error in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Dividend Parameter Error in line " + str(line_number))
                                 elif (CMD_DEST_SOURCE[0]=='JUMP' or CMD_DEST_SOURCE[0]=='CALL'):
                                     if CMD_DEST_SOURCE[1]  in label_dict:
                                         if (CMD_DEST_SOURCE[1]  == 's15'):
-                                            Logger.info("COMMAND_RECOGNITION", "BRANCH to r_addr  > line " + str(line_number))
+                                            logger.info("COMMAND_RECOGNITION: BRANCH to r_addr  > line " + str(line_number))
                                         else:
-                                            Logger.info("COMMAND_RECOGNITION", "BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
+                                            logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
                                         command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
                                         command_info['LABEL'] = CMD_DEST_SOURCE[1]
                                     else:
@@ -1057,20 +1001,20 @@ class Assembler():
                                         elif (CMD_DEST_SOURCE[1] == 'SKIP'):
                                             command_info['ADDR'] = '&'+str(mem_addr+2)
                                         else:   
-                                            error = Logger.error("COMMAND_RECOGNITION", "Branch Address ERROR (Should be a label) in line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
                                 elif (CMD_DEST_SOURCE[0]=='WAIT'):
-                                    Logger.info("COMMAND_RECOGNITION", "WAIT adding Instruction")
+                                    logger.info("COMMAND_RECOGNITION: WAIT adding Instruction")
                                     command_info['C_OP'] = CMD_DEST_SOURCE[1]     
                                     command_info['P_ADDR'] = mem_addr
 
                                     mem_addr = mem_addr + 1            
                                 elif (CMD_DEST_SOURCE[0]=='CLEAR'):
                                     command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                    Logger.info("COMMAND_RECOGNITION", "CLEAR Instruction")
+                                    logger.info("COMMAND_RECOGNITION: CLEAR Instruction")
                                     command_info['P_ADDR'] = mem_addr
 
                                 else:
-                                    error = Logger.error("COMMAND_RECOGNITION", "[2] Parameter Error in line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: [2] Parameter Error in line " + str(line_number))
                             ###############################################################################
                             ## NO DESTINATION OR -- DESTINATION / SOURCE IN EXTRACTED PARAMETER
                             elif ( len(CMD_DEST_SOURCE) ==1 ):
@@ -1082,57 +1026,60 @@ class Assembler():
                                 elif (CMD_DEST_SOURCE[0] =='DPORT_RD') :
                                     if ('PORT' in command_info):
                                         if ( int(command_info['PORT'])  > 7):
-                                            error = Logger.error("COMMAND_RECOGNITION", "Data Port Read max value is 7 in line " + str(line_number))
+                                            logger.error("COMMAND_RECOGNITION: Data Port Read max value is 7 in line " + str(line_number))
                                         else:
                                             command_info['DST'] = command_info['PORT']
                                             command_info.pop('PORT') 
                                     else:
-                                        error = Logger.error("COMMAND_RECOGNITION", "No Port for DPORT_RD in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: No Port for DPORT_RD in line " + str(line_number))
 
                                 elif (CMD_DEST_SOURCE[0]=='WMEM_WR'):
                                     if ('ADDR' in command_info):
                                         command_info['DST'] = '[' + command_info['ADDR'] + ']'     
                                         command_info.pop('ADDR') 
                                     else:
-                                        error = Logger.error("COMMAND_RECOGNITION", "No Address for WMEM_WR in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: No Address for WMEM_WR in line " + str(line_number))
                                 elif ( (CMD_DEST_SOURCE[0]=='JUMP') or (CMD_DEST_SOURCE[0]=='CALL')):
                                     if ('ADDR' in command_info):
                                         command_info['ADDR'] = command_info['ADDR']
                                     else:
-                                        error = Logger.error("COMMAND_RECOGNITION", "Address Parameter Error in line " + str(line_number))
+                                        logger.error("COMMAND_RECOGNITION: Address Parameter Error in line " + str(line_number))
                                 else:
-                                    error = Logger.error("COMMAND_RECOGNITION", "[1] Parameter Error in line " + str(line_number))
+                                    logger.error("COMMAND_RECOGNITION: [1] Parameter Error in line " + str(line_number))
                             else:
-                                error = Logger.error("COMMAND_RECOGNITION", "Error Processing Line " + str(line_number)) + ". Command not recognized."
+                                logger.error("COMMAND_RECOGNITION: Error Processing Line " + str(line_number)) + ". Command not recognized."
 
                             # ADD CMD TO PROGRAM
                             ###########################################################
                             if (error == 1):
+                                #TODO: do this?
                                 break
                             else:
                                 program_list.append(command_info)
                         else:
                             break
                     else:
-                        error = Logger.error("COMMAND_RECOGNITION", f"< {instruction} > is not a Recognized Command in Line " + str(line_number))
+                        logger.error(f"COMMAND_RECOGNITION: < {instruction} > is not a Recognized Command in Line " + str(line_number))
                 else:
-                    error = Logger.error("COMMAND_RECOGNITION", "Not a Command in Line " + str(line_number))
+                    logger.error("COMMAND_RECOGNITION: Not a Command in Line " + str(line_number))
             return (error, program_list)
         
         
         ##### START ASSEMBLER TO LIST
-        Logger.info("ASM2LIST", "##### STEP_1 - LABEL RECOGNITION")
+        logger.info("ASM2LIST: ##### STEP_1 - LABEL RECOGNITION")
         error, label_dict = label_recognition(asm_str)
         
         if (error):
-            Logger.warning('LABEL_RECOGNITION', 'Error found ')
+            #TODO: this should get printed?
+            logger.warning('LABEL_RECOGNITION: Error found ')
             return (None, None)
         
-        Logger.info("ASM2LIST", "##### STEP_2 - COMMAND RECOGNITION")
+        logger.info("ASM2LIST: ##### STEP_2 - COMMAND RECOGNITION")
         error, program_list = command_recognition(asm_str, label_dict)
             
         if (error):
-            Logger.warning("COMMAND_RECOGNITION", "Errors found!")
+            #TODO: this should get printed?
+            logger.warning("COMMAND_RECOGNITION: Errors found!")
             return (None, None)
         
         return (program_list, label_dict)
@@ -1155,7 +1102,7 @@ class Assembler():
                 if not 'LINE' in command:
                     command['LINE'] = line_number
 
-        Logger.info("LIST2BIN", "##### LIST 2 BIN")
+        logger.info("LIST2BIN: ##### LIST 2 BIN")
 
         parse_lines_and_labels(program_list, label_dict)
         
@@ -1218,19 +1165,20 @@ class Assembler():
                 elif command['CMD'] == 'WAIT':
                     error, CODE = Instruction.WAIT(command)
                 else:
-                    error = Logger.error("COMMAND_TRANSLATION", "Command Listed but not programmed > " + command['CMD'])
+                    logger.error("COMMAND_TRANSLATION: Command Listed but not programmed > " + command['CMD'])
             else:    
-                error = Logger.error("COMMAND_TRANSLATION", "No Command at line " + str(command['LINE']))
+                logger.error("COMMAND_TRANSLATION: No Command at line " + str(command['LINE']))
         ###################################################################################
             length = CODE.count('0') + CODE.count('1')
             if (length != 72):
                 if (command['CMD'] == 'WAIT'):
-                    Logger.info('COMMAND_TRANSLATION', 'Command Wait add one more instruction ' + str(command['LINE']) )
+                    logger.info('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
                 else:
                     error = 72
-                    Logger.error("COMMAND_TRANSLATION", f"{CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
+                    logger.error(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
                     return [[],[]]
             if (error):
+                #TODO: do this?
                 return [[],[]]
             if (command['CMD'] == 'WAIT'):
                 binary_program_list.extend(CODE)
@@ -1270,7 +1218,7 @@ class Assembler():
                 binary_program_list = [[],[]]
         else:
             binary_program_list = [[],[]]
-            Logger.error("ASM2BIN", "Program list with errors.")
+            logger.error("ASM2BIN: Program list with errors.")
         
         return binary_program_list
     def str_asm2bin(str_asm : str, save_unparsed_filename : str = "") -> list:
@@ -1285,7 +1233,7 @@ class Assembler():
             binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
         else:
             binary_program_list = [[],[]]
-            Logger.error("ASM2BIN", "Program list with errors.")
+            logger.error("ASM2BIN: Program list with errors.")
         return binary_program_list
 ###############################################################################
 ## BASIC COMANDS
@@ -1300,7 +1248,7 @@ class Instruction():
             if command['IF'] in condList:
                 cond = condList[command['IF']]
             else:
-                error = Logger.error('Parameter.IF', 'Posible CONDITIONS are (' + ', '.join(list(condList.keys())) + ') in instruction ' + str(command['LINE']) )
+                logger.error('Parameter.IF: Posible CONDITIONS are (' + ', '.join(list(condList.keys())) + ') in instruction ' + str(command['LINE']) )
         else: 
             cond = '000'
         return error, cond
@@ -1320,18 +1268,19 @@ class Instruction():
                     if ('OP' in command ):
                         Rdi    = '0'
                     else:
-                        error = Logger.error('Parameter.WR', 'Operation < -op() > option not found in instruction ' + str(command['LINE']) )
+                        logger.error('Parameter.WR: Operation < -op() > option not found in instruction ' + str(command['LINE']) )
                 elif (DEST_SOURCE[1] == 'imm'):
                     if ('LIT' in command ):
                         Rdi    = '1'
                     else:
-                        error = Logger.error('Parameter.WR', 'Literal Value not found in instruction ' + str(command['LINE']) )
+                        logger.error('Parameter.WR: Literal Value not found in instruction ' + str(command['LINE']) )
                 else:
-                    error = Logger.error('Parameter.WR', 'Posible Source Dest for <-wr(reg source)> are (op, imm) in instruction ' + str(command['LINE']) )
+                    logger.error('Parameter.WR: Posible Source Dest for <-wr(reg source)> are (op, imm) in instruction ' + str(command['LINE']) )
             else:
-                error = Logger.error('Parameter.WR', 'Write Register error <-wr(reg source) in instruction ' + str(command['LINE']) )
+                logger.error('Parameter.WR: Write Register error <-wr(reg source) in instruction ' + str(command['LINE']) )
             #### DESTINATION REGISTER
             if (error==0):
+                #TODO: do this?
                 error, RD = get_reg_addr (DEST_SOURCE [0], 'Dest')
         return error, Wr, Rdi, RD
 
@@ -1351,9 +1300,9 @@ class Instruction():
                 elif (command['WP'] == 'wmem'):
                     Sp = '0'
                 else:
-                    error = Logger.error('Parameter.WP', 'Source Wave Port not recognized (wreg, r_wave) ' + str(command['LINE']) )
+                    logger.error('Parameter.WP: Source Wave Port not recognized (wreg, r_wave) ' + str(command['LINE']) )
             else:
-                error = Logger.error('Parameter.WP', 'Port Address not recognized < pX > ' + str(command['LINE']) )
+                logger.error('Parameter.WP: Port Address not recognized < pX > ' + str(command['LINE']) )
         return error, Wp, Sp, Dp
 
     @staticmethod        
@@ -1373,11 +1322,13 @@ class Instruction():
                 if FULL:                    alu_op  = '0000' # REG_WR rd op -op(rs)
                 else:                       alu_op  = '00'   # -wr(rd op) -op(rs)
                 if (error==0):
+                    #TODO: do this?
                     if ('LIT' in command):      error, DataImm = get_imm_dt (command ['LIT'], 16)
                     else:                       DataImm = '_0000000000000000'
                 if (error==0):
+                    #TODO: do this?
                     if   (src_type[0]=='R'):    error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
-                    else:                       error = Logger.error('Parameter.SRC', 'Operand can not be a Literal.')
+                    else:                       logger.error('Parameter.SRC: Operand can not be a Literal.')
             
             elif (len(cmd_op)==2 ) :
                 #print('LEN 2 >',cmd_op)
@@ -1392,9 +1343,9 @@ class Instruction():
                         if   (src_type[0]=='R'): 
                             error, rsD0    = get_reg_addr(cmd_op[1], 'src_data')
                         else:                    
-                            error = Logger.error('Parameter.SRC', 'Operand can not be a Literal.')
+                            logger.error('Parameter.SRC: Operand can not be a Literal.')
                     else:
-                        error = Logger.error('Parameter.SRC', 'Operation Not Recognized > ' + str(command['OP']) )
+                        logger.error('Parameter.SRC: Operation Not Recognized > ' + str(command['OP']) )
                     ## ABS Should be on rsD1
                     if (error==0):
                         if (operation == 'ABS') :
@@ -1403,9 +1354,10 @@ class Instruction():
                             rsD0      = '0_0000000'
                             DataImm   = '_0000000000000000'
                     else:
-                        error = Logger.error('Parameter.SRC', '1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+                        #TODO: this should get printed?
+                        logger.error('Parameter.SRC: 1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
                 else:
-                    error = Logger.error('Parameter.SRC', '1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+                    logger.error('Parameter.SRC: 1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
 
             elif (len(cmd_op)==3 ) :
                 #print('LEN 3 >',cmd_op)
@@ -1415,9 +1367,10 @@ class Instruction():
                 if   (src_type[0]=='R'): 
                     error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
                 else:                    
-                    error = Logger.error('Parameter.SRC', 'First Operand can not be a Literal.')
+                    logger.error('Parameter.SRC: First Operand can not be a Literal.')
                 ## CHECK FOR SECOND OPERAND (ALU_IN_B > Imm|rsD1)
                 if (error==0):
+                    #TODO: do this?
                     error, src_type = get_src_type(cmd_op[2])
                     #print('Second Operand >',src_type, cmd_op[2])
                     if   (src_type[0]=='R'): ## REG OP REG
@@ -1431,38 +1384,40 @@ class Instruction():
                     elif (src_type[0]=='N'): ## is Number
                         error, DataImm = get_imm_dt (cmd_op[2], 24)
                         if (error): 
-                            error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
+                            logger.error('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) ) 
                         else:
                             if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
                                 error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
                                 if (error == 0 ): 
                                     if (lit_val > 15): 
-                                        error = Logger.error('Parameter.SRC', 'Max Shift is 15 in instruction ' + str(command['LINE']) ) 
+                                        logger.error('Parameter.SRC: Max Shift is 15 in instruction ' + str(command['LINE']) ) 
                                 else:
-                                    error = Logger.error('Parameter.SRC', 'Literal Value error in instruction ' + str(command['LINE']) ) 
+                                    logger.error('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) ) 
                         if (error == 0 ): 
                             df             = '10'
                             DataImm  = '_'+DataImm 
 
                 ## CHECK FOR OPERATION
                 if (error==0):
+                    #TODO: do this?
                     operation = cmd_op[1]
                     if (FULL):
                         if operation in aluList:
                             alu_op      = aluList[ operation ]
                         else:
-                            error = Logger.error('Parameter.SRC', 'ALU {Full List} Operation Not Recognized in instruction ' + str(command['LINE']) )
+                            logger.error('Parameter.SRC: ALU {Full List} Operation Not Recognized in instruction ' + str(command['LINE']) )
                     else:
                         if operation in aluList_s:
                             alu_op      = aluList_s[ operation ]
                         else:
-                            error = Logger.error('Parameter.SRC', 'ALU {Reduced List} Operation Not Recognized in instruction ' + str(command['LINE']) )
+                            logger.error('Parameter.SRC: ALU {Reduced List} Operation Not Recognized in instruction ' + str(command['LINE']) )
         ## LITERAL and NO OP
         elif ('LIT' in command): 
             df = '11'
             alu_op  = '00'
             error, DataImm = get_imm_dt (command['LIT'], 32)
             if (error==0):
+                #TODO: do this?
                 DataImm  = '__'+DataImm 
         else:
             df      = '11'
@@ -1473,7 +1428,8 @@ class Instruction():
             Data_Source = rsD0 +'__'+ rsD1 +'_'+ DataImm
             return error, Data_Source, alu_op, df
         else:
-            error = Logger.error('Parameter.SRC', 'Error in line ' + str(command['LINE']) )
+            #TODO: print this?
+            logger.error('Parameter.SRC: Error in line ' + str(command['LINE']) )
             return error, 'X', 'X', 'X'
     @staticmethod
     def __PROCESS_MEM_ADDR (ADDR_CMD : str) -> tuple:
@@ -1493,7 +1449,7 @@ class Instruction():
                 rsA0     = '___'+ integer2bin(param_op[0][2], 11)
                 AI = '1'
             else:
-                error = Logger.error('Parameter.MEM_ADDR', 'First Operand not recognized.')
+                logger.error('Parameter.MEM_ADDR: First Operand not recognized.')
         elif (len(param_op)==3 ) :
             ## CHECK FOR FIRST OPERAND
             if (param_op[0][0]): ## is SREG
@@ -1501,9 +1457,10 @@ class Instruction():
             elif (param_op[0][1]): ## is DREG
                 rsA1     = '1' + integer2bin(param_op[0][1], 5)     
             elif (param_op[0][2]): ## is Literal
-                error = Logger.error('Parameter.MEM_ADDR', 'First Operand can not be a Literal.')    
+                logger.error('Parameter.MEM_ADDR: First Operand can not be a Literal.')    
             ## CHECK FOR SECOND OPERAND 
             if (error == 0):
+                #TODO: do this?
                 if (param_op[2][0]): ## is SREG
                     rsA0     = '00000___0' + integer2bin(param_op[2][0], 5)     
                 elif (param_op[2][1]): ## is DREG
@@ -1513,11 +1470,12 @@ class Instruction():
                     AI = '1'
             ## CHECK FOR PLUS
             if (error == 0):
+                #TODO: do this?
                 if (param_op[1][3]) != '+': ## is R_Reg
-                    error = Logger.error('Parameter.MEM_ADDR', 'Address Operand should be < + >.')    
+                    logger.error('Parameter.MEM_ADDR: Address Operand should be < + >.')    
         else:
             print(ADDR_CMD)
-            error = Logger.error('Parameter.MEM_ADDR', 'Address format error, should be Data Register(r) or Literal(&)')
+            logger.error('Parameter.MEM_ADDR: Address format error, should be Data Register(r) or Literal(&)')
         return error, rsA0, rsA1, AI
 
 
@@ -1531,6 +1489,7 @@ class Instruction():
         error, COND = Instruction.__PROCESS_CONDITION(current)
         ######### SOURCES
         if (error==0):
+            #TODO: do this?
             #### SOURCE ALU
             if (current ['SRC'] == 'op'):
                 if ('OP' in current ):
@@ -1538,7 +1497,7 @@ class Instruction():
                     CFG   = '00__' + current ['UF'] + '__'+ alu_op 
                     ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
                 else:
-                    error = Logger.error('Instruction.REG_WR', 'No < -op() > for Operation Writting in instruction ' + str(current['LINE']))
+                    logger.error('Instruction.REG_WR: No < -op() > for Operation Writting in instruction ' + str(current['LINE']))
             #### SOURCE IMM
             elif (current ['SRC'] == 'imm'):
                 #### Get Data Source
@@ -1547,7 +1506,7 @@ class Instruction():
                     CFG = '11__' + current ['UF'] + '_00_' + alu_op
                     ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
                 else:
-                    error = Logger.error('Instruction.REG_WR', 'No Literal value for immediate Assignation (#) in instruction ' + str(current['LINE']) )
+                    logger.error('Instruction.REG_WR: No Literal value for immediate Assignation (#) in instruction ' + str(current['LINE']) )
             #### SOURCE LABEL
             elif (current ['SRC'] == 'label'):
                 #### Get Data Source
@@ -1560,9 +1519,9 @@ class Instruction():
                         ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
                         CFG = '11__' + current ['UF'] + '_00_00'
                     else:
-                        error = Logger.error('Instruction.REG_WR', 'Address error in line ' + str(current['LINE']) )
+                        logger.error('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
                 else:
-                    error = Logger.error('Instruction.REG_WR', 'Address error in line ' + str(current['LINE']) )
+                    logger.error('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
             #### SOURCE DATA MEMORY
             elif (current ['SRC'] == 'dmem'):
                 #### Get Data Source
@@ -1570,16 +1529,17 @@ class Instruction():
                 CFG = '01__' + current ['UF'] + '_00_' + alu_op
                 #### Get ADDRESS
                 if error == 0:
+                    #TODO: do this?
                     if ('ADDR' in current):
                         error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
                         ADDR  = rsA0 + '__' + rsA1
                         CFG = '01__' + current ['UF'] + '_00_'+alu_op
                     else:
-                        error = Logger.error('Instruction.REG_WR', 'No Address for dmem in line ' + str(current['LINE']) )
+                        logger.error('Instruction.REG_WR: No Address for dmem in line ' + str(current['LINE']) )
             #### SOURCE WAVE MEM
             elif (current ['SRC'] == 'wmem'):
                     if (COND != '000'):
-                        error = Logger.error('Instruction.REG_WR', 'Wave Register Write is not conditional < -if() >  in instruction ' + str(current['LINE']) )
+                        logger.error('Instruction.REG_WR: Wave Register Write is not conditional < -if() >  in instruction ' + str(current['LINE']) )
                     else:
                         WW = WP = '0'
                         if ('WW' in current):
@@ -1589,25 +1549,29 @@ class Instruction():
                         COND = WW + Sp + WP    
                     #### WRITE REGISTER
                     if (error==0):
+                        #TODO: do this?
                         Wr = Rdi = '0'
                         error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
                     #### Get Data Source
                     if (error==0):
+                        #TODO: do this?
                         error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
                     #### Get ADDRESS
                     if error == 0:
+                        #TODO: do this?
                         if ('ADDR' in current):
                             error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
                             if (rsA1 != '000000'):
-                                error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in instruction ' + str(current['LINE']) )                    
+                                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in instruction ' + str(current['LINE']) )                    
                             ADDR  = rsA0 + '__' + RdP
                         else:
-                            error = Logger.error('Instruction.REG_WR', 'No addres for <wmem> source in instruction ' + str(current['LINE']) )
+                            logger.error('Instruction.REG_WR: No addres for <wmem> source in instruction ' + str(current['LINE']) )
             else:
-                error = Logger.error('Instruction.REG_WR', 'Posible REG_WR sources are (op, imm, dmem, wmem, label ) in instruction ' + str(current['LINE']) )
+                logger.error('Instruction.REG_WR: Posible REG_WR sources are (op, imm, dmem, wmem, label ) in instruction ' + str(current['LINE']) )
 
             ######### DESTINATION REGISTER
             if (error==0):
+                #TODO: do this?
                 if (current ['SRC'] == 'wmem'):
                     if (current ['DST'] != 'w0'):
                         Wr = Rdi = '0'
@@ -1615,18 +1579,19 @@ class Instruction():
                         CFG = '10__' + current ['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
                     
                     else:
-                        error = Logger.error('Instruction.REG_WR', 'Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
+                        logger.error('Instruction.REG_WR: Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
                 elif ( (current ['SRC'] == 'label') and () ):
                     if (RD!='15'):
-                        error = Logger.warning('Instruction.REG_WR', 'Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
+                        logger.warning('Instruction.REG_WR: Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
                 else:
                     comp_OP_PARAM = "^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
                     RD    = re.findall(comp_OP_PARAM, current ['DST'])
                     if (RD):
                         error, RD = get_reg_addr (current ['DST'], 'Dest')
                     else:
-                        error = Logger.error('Instruction.REG_WR', 'Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
+                        logger.error('Instruction.REG_WR: Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
         if (error==0):
+            #TODO: do this?
             CODE  = '100_' + AI + DF +'__'+ COND +'__'+ CFG +'___'+ADDR+'____'+DATA + '__' + RD
         else:
             CODE = 'X'
@@ -1641,29 +1606,34 @@ class Instruction():
         #### WRITE REGISTER
         Wr = Rdi = '0'
         if (error==0):
+            #TODO: do this?
             error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
         if (error==0):
+            #TODO: do this?
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         #### ADDRESS
         if (error==0):
+            #TODO: do this?
             error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
             ADDR  = rsA0 + '__' + rsA1
         #### SOURCE    
         if (error==0):
+            #TODO: do this?
             if (current ['SRC'] == 'op'):
                 if ('OP' in current ):
                     DI = '0'
                 else:
-                    error = Logger.error('Instruction.MEM_WR', '>  -op() option not found in instruction ' + str(current['LINE']) )
+                    logger.error('Instruction.MEM_WR: >  -op() option not found in instruction ' + str(current['LINE']) )
             elif (current ['SRC'] == 'imm'):
                 if 'LIT' in current: 
                     DI = '1'
                 else:
-                    error = Logger.error('Instruction.MEM_WR', 'No Literal value found in instruction ' + str(current['LINE']) )
+                    logger.error('Instruction.MEM_WR: No Literal value found in instruction ' + str(current['LINE']) )
             else:
-                error = Logger.error('Instruction.MEM_WR', 'Posible MEM_WR sources are (op, imm) in instruction ' + str(current['LINE']) )
+                logger.error('Instruction.MEM_WR: Posible MEM_WR sources are (op, imm) in instruction ' + str(current['LINE']) )
         if (error==0):
+            #TODO: do this?
             CFG = current['UF']+ '_'+Wr+Rdi+'_'+ alu_op
             CODE = '101_'+AI+DF+'__'+COND+'__0_'+DI+'_'+CFG+"___"+ADDR+'____'+DATA+'__'+RD
         return error, CODE
@@ -1676,31 +1646,36 @@ class Instruction():
         if 'DST' in current:
             error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
             if (rsA1 != '000000'):
-                error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
+                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
         else:
-            error = Logger.error('Instruction.WMEM_WR', 'No address specified in line ' + str(current['LINE']) )
+            logger.error('Instruction.WMEM_WR: No address specified in line ' + str(current['LINE']) )
         #### WRITE REGISTER
         Wr = Rdi = '0'
         if (error==0):
+            #TODO: do this?
             error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### WRITE PORT
         if (error==0):
+            #TODO: do this?
             error, Wp, Sp, Dp = Instruction.__PROCESS_WP(current)
         #### DATA SOURCE
         if (error==0):
+            #TODO: do this?
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         if (error==0):
+            #TODO: do this?
             if ('TIME' in current ):
                 TI='1'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
                 if (error): 
-                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                    logger.error('Parameter.WMEM_WR: Time Value error in instruction ') 
                 else:
                     DATA = '_____' + TIME 
             CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
             CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
         else:
-            error = Logger.error('Instruction.WMEM_WR', 'Error in line ' + str(current['LINE']) )
+            #TODO: print this?
+            logger.error('Instruction.WMEM_WR: Error in line ' + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
        
@@ -1714,15 +1689,19 @@ class Instruction():
         #### WRITE REGISTER
         Wr = Rdi = '0'
         if (error==0):
+            #TODO: do this?
             error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
         if (error==0):
+            #TODO: do this?
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         if (error==0):
+            #TODO: do this?
             CFG  = current['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
             CODE = '000_'+AI+DF+'__'+COND+'__'+SO+TO+'__'+CFG+"_______"+ADDR+'____'+DATA+'__'+RD
         else:
-            error = Logger.error('Instruction.CFG', 'Error in line ' + str(current['LINE']) )
+            #TODO: print this?
+            logger.error('Instruction.CFG: Error in line ' + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
     
@@ -1733,14 +1712,18 @@ class Instruction():
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
         if error == 0:
+            #TODO: do/print this?
             Wr = Rdi = '0'
             if (error==0):
+            #TODO: do/print this?
                 error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
         if (error==0):
+            #TODO: do/print this?
             error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         #### DESTINATION MEMORY ADDRESS
         if error == 0:
+            #TODO: do/print this?
             if (cj =='11'): # RET Instruction. ADDR came from STACK
                 current['UF'] = '0'
                 AI = '0'    
@@ -1756,15 +1739,17 @@ class Instruction():
                         ADDR     = '_00000000000_000000' 
                         AI = '0'
                     else:
-                        error = Logger.error("Instruction.BRANCH", "JUMP Memory Address not recognized (imm or s15)")
+                        logger.error("Instruction.BRANCH: JUMP Memory Address not recognized (imm or s15)")
                 except IndexError:
-                    error = Logger.error("COMMAND RECOGNITION", f"for address at line {current['LINE']}. (possible extra [])")
+                    logger.error(f"COMMAND RECOGNITION: for address at line {current['LINE']}. (possible extra [])")
 
         if (error==0):
+            #TODO: do/print this?
             CFG = current['UF'] +'_'+ Wr+Rdi +'_'+ alu_op
             CODE = '001_'+AI+DF+'__'+COND+'__'+cj+'__'+CFG+"______"+ADDR+'____'+DATA+'__'+RD
         else:
-            Logger.error("Instruction.BRANCH", "Exit with Error in instruction " + str(current['LINE']) )
+            #TODO: do/print this?
+            logger.error("Instruction.BRANCH: Exit with Error in instruction " + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
     
@@ -1778,11 +1763,14 @@ class Instruction():
             rsA0 = '___00000000000'
             #### WRITE REGISTER
             if (error==0):
+                #TODO: do/print this?
                 Wr = Rdi = '0'
                 if (error==0):
+                    #TODO: do/print this?
                     error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
             #### PORT DESTINATION 
             if (error==0):
+                #TODO: do/print this?
                 #### TRIG PORT
                 if (current['CMD'] == 'TRIG'):
                     if (current['SRC'] == 'set'):
@@ -1796,7 +1784,7 @@ class Instruction():
                         rsA0     = '___00000000000'
                         current['DST'] = str(int(current['DST'])+32)
                     else:
-                        error = Logger.error('Instruction.PORT_WR', 'Posible options for TRIG command are (set, clr)' )
+                        logger.error('Instruction.PORT_WR: Possible options for TRIG command are (set, clr)' )
 
                 #### DATA PORT
                 elif (current['CMD'] == 'DPORT_WR'):
@@ -1805,13 +1793,13 @@ class Instruction():
                     if (current ['SRC'] == 'imm'):
                         if 'DATA' in current:
                             if ( int(current['DATA']) > 2047 ):
-                                error = Logger.error('Instruction.PORT_WR', 'Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
+                                logger.error('Instruction.PORT_WR: Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
                             else:
                                 AI=Sp = '1'
                                 # DATA CAMES WITHOUT #
                                 rsA0     = '___'+ integer2bin(current['DATA'], 11)
                         else:
-                            error = Logger.error('Instruction.PORT_WR', 'No Port Data value found in line ' + str(current['LINE']) )
+                            logger.error('Instruction.PORT_WR: No Port Data value found in line ' + str(current['LINE']) )
                     elif (current ['SRC'] == 'reg'):
                         if ('DATA' in current ):
                             AI=Sp = '0'
@@ -1820,11 +1808,11 @@ class Instruction():
                             if (param_op):
                                rsA0     = '00000___1' + integer2bin(param_op[0], 5)     
                             else:
-                                error = Logger.error('Instruction.PORT_WR', 'Register Selection Error, should be dreg in line ' + str(current['LINE']) )
+                                logger.error('Instruction.PORT_WR: Register Selection Error, should be dreg in line ' + str(current['LINE']) )
                         else:
-                            error = Logger.error('Instruction.PORT_WR', 'No Port Register found in line ' + str(current['LINE']) )
+                            logger.error('Instruction.PORT_WR: No Port Register found in line ' + str(current['LINE']) )
                     else:
-                        error = Logger.error('Instruction.PORT_WR', 'Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
+                        logger.error('Instruction.PORT_WR: Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
                 #### READ DATA PORT
                 else:
                     TO=Wp='0'
@@ -1834,14 +1822,15 @@ class Instruction():
             SO=Wp= '1'
             #### SOURCE
             if (error==0):
+                #TODO: do/print this?
                 if (current['SRC'] == 'wmem'):
                     Sp = '0'
                     if 'ADDR' in current:
                         error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
                         if (rsA1 != '000000'):
-                            error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
+                            logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
                     else:
-                        error = Logger.error('Instruction.PORT_WR', 'No address specified for < wmem > in line ' + str(current['LINE']) )
+                        logger.error('Instruction.PORT_WR: No address specified for < wmem > in line ' + str(current['LINE']) )
                 elif (current['SRC'] == 'r_wave'):
                     Sp='1'
                     #### WRITE WAVE MEMORY
@@ -1850,14 +1839,14 @@ class Instruction():
                             Ww = '1'
                             error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
                             if (rsA1 != '000000'):
-                                error = Logger.error('Instruction.REG_WR', 'Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
+                                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
                         else:
-                            error = Logger.error('Instruction.PORT_WR', 'No address specified for < -ww > in line ' + str(current['LINE']) )
+                            logger.error('Instruction.PORT_WR: No address specified for < -ww > in line ' + str(current['LINE']) )
                     else:
                         Ww  = '0'
                         rsA0 = '___00000000000'
                 else:
-                    error = Logger.error('Instruction.PORT_WR', 'Posible wave sources are (wmem, r_wave) in line ' + str(current['LINE']) )
+                    logger.error('Instruction.PORT_WR: Posible wave sources are (wmem, r_wave) in line ' + str(current['LINE']) )
                     DF = '11'
         #### OUT TIME 
         if (error==0):
@@ -1866,7 +1855,8 @@ class Instruction():
                 DF = '11'
                 error, TIME = get_imm_dt (current ['TIME'], 32)
                 if (error): 
-                    error = Logger.error('Parameter.WMEM_WR', 'Time Value error in instruction ') 
+                    #TODO: do/print this?
+                    logger.error('Parameter.WMEM_WR: Time Value error in instruction ') 
                 else:
                     DATA = '_____' + TIME 
 
@@ -1874,30 +1864,35 @@ class Instruction():
                 CFG = SO+TO+'____00000'
                 RD = '0000000'
                 if ('WR' in current or 'OP' in current): 
-                    error = Logger.error('Instruction.PORT_WR', 'If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
+                    logger.error('Instruction.PORT_WR: If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
             else:
                 TO = '0'
-                error = Logger.info('Instruction.PORT_WR', 'No time specified for command will use s_time in line ' + str(current['LINE']) )
+                logger.info('Instruction.PORT_WR: No time specified for command will use s_time in line ' + str(current['LINE']) )
                 #### WRITE REGISTER
                 Wr = Rdi = '0'
                 if (error==0):
+                    #TODO: do/print this?
                     error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
                 #### DATA SOURCE
                 if (error==0):
+                    #TODO: do/print this?
                     error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
                     CFG = SO+TO+'__'+current['UF'] +'_'+Wr+Rdi +'_'+ alu_op
         #### OUT PORT
         if (error==0):
+            #TODO: do/print this?
             if ('DST' in current):
                 rsA1 = integer2bin(current['DST'], 6,1)
             else:
-                error = Logger.error('Instruction.PORT_WR', 'No Destination Port in line ' + str(current['LINE']) )        
+                logger.error('Instruction.PORT_WR: No Destination Port in line ' + str(current['LINE']) )        
         if (error == 0):
+            #TODO: do/print this?
             COND = Ww+Sp+Wp
             ADDR  = rsA0+'__'+rsA1
             CODE = '110'+'_'+AI+DF+'__'+COND+'__'+CFG+ '___'+ADDR +'____'+ DATA+'__'+RD
         else:
-            Logger.error("Instruction.PORT_WR", "Exit with Error in line " + str(current['LINE']) )
+            #TODO: do/print this?
+            logger.error("Instruction.PORT_WR: Exit with Error in line " + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
     
@@ -1925,7 +1920,7 @@ class Instruction():
             elif (current['C_OP'] == 'inc_ref'):
                 OPERATION = '_1000'
             else:
-                error = Logger.error('Instruction.CTRL', 'Posible Operations for TIME command are (rst, set_ref, inc_ref)' )
+                logger.error('Instruction.CTRL: Posible Operations for TIME command are (rst, set_ref, inc_ref)' )
             if ('LIT' in current ):
                 DF  ='11'
                 RD0 = '_'
@@ -1935,7 +1930,7 @@ class Instruction():
                 error, RD1 = get_reg_addr (current['R1'], 'src_data')
             else: 
                 if   (current['C_OP'] !='rst'):
-                    error = Logger.error('Instruction.CTRL', 'No Time Data' )
+                    logger.error('Instruction.CTRL: No Time Data' )
         ######### FLAG
         elif (current ['CMD'] == 'FLAG'):
             CTRL_ADDR      = '001'
@@ -1946,13 +1941,14 @@ class Instruction():
             elif (current['C_OP'] == 'inv'):
                 OPERATION = '_0100'
             else:
-                error = Logger.error('Instruction.CTRL', 'Posible Operations for FLAG command are (set, clr, inv)' )
+                logger.error('Instruction.CTRL: Posible Operations for FLAG command are (set, clr, inv)' )
         ######### DIVISION
         elif (current ['CMD'] == 'DIV'):
             CTRL_ADDR  = '011'
             OPERATION  = '_0000'
             error, RA1 = get_reg_addr (current['NUM'], 'src_addr')
             if (error == 0):
+                #TODO: do/print this?
                 if (check_reg(current['DEN'])) : # Is Register 
                     error, RD1 = get_reg_addr (current['DEN'], 'src_data')
                 elif (check_lit(current['DEN'])) : # Is Literal Value
@@ -1961,7 +1957,7 @@ class Instruction():
                     error, RD1 = get_imm_dt (current ['DEN'], 32)
                     ImmFill='__'
                 else:
-                    error = Logger.error('Instruction.CTRL', 'DIV Denominator not recognized in line ' + str(current['LINE']) )        
+                    logger.error('Instruction.CTRL: DIV Denominator not recognized in line ' + str(current['LINE']) )        
         ######### NET
         elif (current ['CMD'] == 'NET'):
             Header = '011'
@@ -1981,7 +1977,7 @@ class Instruction():
             elif (current['C_OP'] == 'get_flag'):
                 OPERATION = '01011'
             else:
-                error = Logger.error('Instruction.CTRL', 'NET Operation not recognized' )
+                logger.error('Instruction.CTRL: NET Operation not recognized' )
         ######### COM
         elif (current ['CMD'] == 'COM'):
             Header = '011'
@@ -1992,7 +1988,7 @@ class Instruction():
                 elif (current['R1'] == '1'):
                     OPERATION = '00010'
                 else:
-                    error = Logger.error('Instruction.CTRL', 'COM flag value can be 0 or 1' )
+                    logger.error('Instruction.CTRL: COM flag value can be 0 or 1' )
             elif (current['C_OP'] == 'sync'):
                 OPERATION = '00110'
             elif (current['C_OP'] == 'reset'):
@@ -2011,7 +2007,7 @@ class Instruction():
                 elif (current['C_OP'] == 'set_word_2'):
                     OPERATION = '01101'
                 else:
-                    error = Logger.error('Instruction.CTRL', 'Posible Operations for COM command are (set_flag, set_byte, set_hw, set_word)' )
+                    logger.error('Instruction.CTRL: Possible Operations for COM command are (set_flag, set_byte, set_hw, set_word)' )
                 if ('LIT' in current ):
                     DF='11'
                     RD0 = ''
@@ -2021,7 +2017,7 @@ class Instruction():
                     error, RD1 = get_reg_addr (current['R1'], 'src_data')
                 else: 
                     if (current['C_OP'] !='rst'):
-                        error = Logger.error('Instruction.CTRL', 'No Time Data' )
+                        logger.error('Instruction.CTRL: No Time Data' )
         ######### CUSTOM Peripheral
         elif (current ['CMD'] == 'PA' or current ['CMD'] == 'PB'):
             Header = '011'
@@ -2030,11 +2026,11 @@ class Instruction():
             else:
                 CTRL_ADDR      = '_11' # PB PERIPHERAL
             if ( int(current['C_OP']) > 31):
-                error = Logger.error("COMMAND_RECOGNITION", "External Peripheral Operation not in range [0:31] in line " + str(current['LINE']) )
+                logger.error("COMMAND_RECOGNITION: External Peripheral Operation not in range [0:31] in line " + str(current['LINE']) )
             else:
                 OPERATION = integer2bin(current['C_OP'], 5,1)
                 if ('LIT' in current):
-                        error = Logger.error('Instruction.CTRL', 'No Immediate value allowed in Peripheral instruction' )
+                    logger.error('Instruction.CTRL: No Immediate value allowed in Peripheral instruction' )
                 else :
                     if ('R1' in current):
                         error, RD0 = get_reg_addr (current['R1'], 'src_data')
@@ -2045,9 +2041,11 @@ class Instruction():
                     if ('R4' in current):
                         error, RA1 = get_reg_addr (current['R4'], 'src_addr')
         if (error):
-            Logger.error("Instruction.CTRL", "Error in instruction " + str(current['LINE']) )
+            #TODO: do/print this?
+            logger.error("Instruction.CTRL: Error in instruction " + str(current['LINE']) )
             CODE = 'X'
         else:
+            #TODO: do/print this?
             CODE = Header+'_'+AI+DF+'__'+COND+'___'+CTRL_ADDR+'__'+OPERATION+'___00000___'+RA0+'__'+RA1+'____'+RD0+'__'+RD1+ImmFill+'__0000000'
         return error, CODE
 
@@ -2059,9 +2057,9 @@ class Instruction():
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
         if ('LIT' in current):
-                error = Logger.error('Instruction.ARITH', 'No Immediate value allowed ' )
+            logger.error('Instruction.ARITH: No Immediate value allowed ' )
         if (not 'C_OP' in current) :
-            error = Logger.error('Instruction.ARITH', 'No ARITH Operation ' )
+            logger.error('Instruction.ARITH: No ARITH Operation ' )
         else :
             if (current['C_OP'] in arithList ):
                 ARITH_OP = arithList[current['C_OP']]
@@ -2070,28 +2068,28 @@ class Instruction():
                     error, RsA = get_reg_addr (current['R1'], 'src_data')
                     error, RsB = get_reg_addr (current['R2'], 'src_data')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Two Source Register for T operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need Two Source Register for T operation' )
             elif (current['C_OP'] == 'TP') : # A*B+C
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
                     error, RsA = get_reg_addr (current['R1'], 'src_data')
                     error, RsB = get_reg_addr (current['R2'], 'src_data')
                     error, RsC = get_reg_addr (current['R3'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for TP operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for TP operation' )
             elif (current['C_OP'] == 'TM') : # A*B-C
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
                     error, RsA = get_reg_addr (current['R1'], 'src_data')
                     error, RsB = get_reg_addr (current['R2'], 'src_data')
                     error, RsC = get_reg_addr (current['R3'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for TM operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for TM operation' )
             elif (current['C_OP'] == 'PT') : # (D+A)*B
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
                     error, RsD = get_reg_addr (current['R1'], 'src_addr')
                     error, RsA = get_reg_addr (current['R2'], 'src_data')
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for PT operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
             elif (current['C_OP'] == 'PTP'): #(D+A)*B+C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
                     error, RsD = get_reg_addr (current['R1'], 'src_addr')
@@ -2099,7 +2097,7 @@ class Instruction():
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                     error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
             elif (current['C_OP'] == 'PTM'): #(D+A)*B-C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
                     error, RsD = get_reg_addr (current['R1'], 'src_addr')
@@ -2107,14 +2105,14 @@ class Instruction():
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                     error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
             elif (current['C_OP'] == 'MT' ): #(D-A)*B
                 if ('R1' in current and 'R2' in current and 'R3' in current ):
                     error, RsD = get_reg_addr (current['R1'], 'src_addr')
                     error, RsA = get_reg_addr (current['R2'], 'src_data')
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need three Source Register for PT operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
             
             elif (current['C_OP'] == 'MTP'): #(D-A)*B+C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
@@ -2123,7 +2121,7 @@ class Instruction():
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                     error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
             elif (current['C_OP'] == 'MTM'): #(D-A)*B-C
                 if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
                     error, RsD = get_reg_addr (current['R1'], 'src_addr')
@@ -2131,13 +2129,15 @@ class Instruction():
                     error, RsB = get_reg_addr (current['R3'], 'src_data')
                     error, RsC = get_reg_addr (current['R4'], 'src_addr')
                 else:
-                    error = Logger.error('Instruction.ARITH', 'Few Sources > Need Four Source Register for PTP operation' )
+                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
             else:
-                    error = Logger.error('Instruction.ARITH', 'No Recognized Operation' )
+                logger.error('Instruction.ARITH: No Recognized Operation' )
         if (error==0):
+            #TODO: do/print this?
             CODE = '010_001__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
         else:
-            Logger.error("Instruction.ARITH", "Exit with Error in line " + str(current['LINE']) )
+            #TODO: do/print this?
+            logger.error("Instruction.ARITH: Exit with Error in line " + str(current['LINE']) )
             CODE = 'X'
         return error, CODE
 
@@ -2168,8 +2168,9 @@ class Instruction():
             jump_cond = 'Z'
         else:
             msg = 'No Recognized Operation in line ' + str(current['LINE'])
-            error = Logger.error('Instruction.WAIT', msg )
+            logger.error('Instruction.WAIT: ' + msg )
         if (error==0):
+            #TODO: do/print this?
             current['OP'] = test_op
             current['UF'] = '1'
             error, CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
@@ -2196,8 +2197,9 @@ class Instruction():
         elif (current['C_OP'] == 'port' ) : current['LIT'] = '#h400000'
         elif (current['C_OP'] == 'all'  ) : current['LIT'] = '#h7F0000'
         else:
-            error = Logger.error('Instruction.CLEAR', 'No Recognized Operation in line ' + str(current['LINE']) )
+            logger.error('Instruction.CLEAR: No Recognized Operation in line ' + str(current['LINE']) )
         if (error==0):
+            #TODO: do/print this?
             error, CODE = Instruction.REG_WR(current)
         return error, CODE        
 
