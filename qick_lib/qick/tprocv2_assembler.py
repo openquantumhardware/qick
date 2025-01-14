@@ -1750,7 +1750,7 @@ class Instruction():
                 addr = re.findall(comp_addr, current['ADDR']) 
                 try:
                     if (addr[0][0]): # LITERAL
-                        ADDR     = '_' + integer2bin(addr[0][0], 11) + '_000000' 
+                        ADDR     = '_' + integer2bin(addr[0][0], 11, uint=1) + '_000000'
                         AI = '1'
                     elif (addr[0][1] == '15'): #SREG s15
                         ADDR     = '_00000000000_000000' 
