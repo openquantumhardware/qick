@@ -237,23 +237,17 @@ def find_pattern(regex : str, text : str):
     return match
 
 def check_name(name_str : str) -> bool:
-    r = False
     # Check for correct Characters
     name_check = re.findall(regex['NAME'], name_str)
-    if name_check:
-        name_check = name_check[0]
-        if (name_check == name_str):
-            # Check for Register Name
-            if ( check_reg(name_str) ):
-                logger.error('CHECK_NAME: Name can not be a Register name.')
-            else:
-                r = True
-        else:
-            logger.error('CHECK_NAME: Name should use AlphaNumeric and _ characters')
-        return r
-    else:
-        logger.error('CHECK_NAME: Name Error')
-            
+    if not name_check:
+        raise new RuntimeError('CHECK_NAME, Name Error: ' + name_str)
+    name_check = name_check[0]
+    if (name_check != name_str):
+        raise new RuntimeError('CHECK_NAME, Name should use AlphaNumeric and _ characters: ' + name_str)
+    # Check for Register Name
+    if ( check_reg(name_str) ):
+        raise new RuntimeError('CHECK_NAME, Name can not be a Register name: ' + name_str)
+    return True
 
 def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     """
