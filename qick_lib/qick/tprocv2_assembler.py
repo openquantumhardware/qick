@@ -499,6 +499,8 @@ class LFSR:
 
 
 class Assembler():
+    WAIT_TIME_OFFSET = 10
+
     @staticmethod
     def list2asm(program_list : list, label_dict : dict) -> str:
         """
@@ -2147,7 +2149,7 @@ class Instruction():
         test_op   = ''
         jump_cond = ''
         if   (current['C_OP'] == 'time') : 
-            test_op   = 's11 - #' + str(int(current['TIME'][1:])-10)
+            test_op   = 's11 - #' + str(int(current['TIME'][1:])-Assembler.WAIT_TIME_OFFSET)
             jump_cond = 'S'
         elif (current['C_OP'] == 'port_dt') : 
             test_op   = 's10 AND #h8000'
