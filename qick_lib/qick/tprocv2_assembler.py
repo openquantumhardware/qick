@@ -525,7 +525,7 @@ class Assembler():
                 if ( command['LABEL'] in label_dict ) :
                     command['ADDR'] = label_dict[ command['LABEL'] ]
                 else:
-                    logger.error('LABEL: Label ' + command['LABEL'] + ' not recognized')
+                    raise RuntimeError('LABEL: Label ' + command['LABEL'] + ' not recognized')
             command['LINE'] = line_number
         return assembler_code
     
@@ -595,92 +595,74 @@ class Assembler():
                     instruction  = find_pattern(regex['CMD'], command)
                     if (label): # add label to label_dict if not already registered.
                         L_Name    = command[:-1]
-                        if (check_name(L_Name)):
-                            if label in label_dict:
-                                logger.error('LABEL_RECOGNITION: Label  "' + label + '" already in use as LABEL in line ' + str(line_number) )
-                            elif label in Alias_List:
-                                logger.error('LABEL_RECOGNITION: Label "' + label + '" already in use as ALIAS in line ' + str(line_number) )
-                            else:
-                                if (label == 'reg'):
-                                    logger.error('LABEL_RECOGNITION: reg is not a valid label in line  ' + str(line_number) )
-                                else:
-                                    label_dict[label] = '&' + str(mem_addr)
-                                    label_line_idxs.append(line_number)
-                        else:
-                            logger.error('LABEL_RECOGNITION: Label Name error in line  ' + str(line_number) )
+                        if not check_name(L_Name):
+                            raise RuntimeError('LABEL_RECOGNITION: Label Name error in line  ' + str(line_number) )
+                        if label in label_dict:
+                            raise RuntimeError('LABEL_RECOGNITION: Label  "' + label + '" already in use as LABEL in line ' + str(line_number) )
+                        if label in Alias_List:
+                            raise RuntimeError('LABEL_RECOGNITION: Label "' + label + '" already in use as ALIAS in line ' + str(line_number) )
+                        if (label == 'reg'):
+                            raise RuntimeError('LABEL_RECOGNITION: reg is not a valid label in line  ' + str(line_number) )
+                        label_dict[label] = '&' + str(mem_addr)
+                        label_line_idxs.append(line_number)
                     elif (directive):  # identify Aliases and adds them to Alias_List.
                         if ( directive == 'ALIAS'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
-                            if (len(directive_params) == 3):
-                                A_Name    = directive_params[1]
-                                A_Reg     = directive_params[2]
-                                if (check_name(A_Name)):
-                                    if A_Name in Alias_List:
-                                        logger.error('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as ALIAS in line ' + str(line_number) )
-                                    elif A_Name in label_dict:
-                                        logger.error('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as LABEL in line ' + str(line_number) )
-                                    else:
-                                        if ( check_reg(A_Reg) ):
-                                            Alias_List.update({ A_Name : A_Reg } )        
-                                            logger.info("ALIAS_RECOGNITION:  > " + A_Reg + ' is called ' + A_Name)
-                                        else:
-                                            logger.error('DIRECTIVE_RECOGNITION: Register Name error in line ' + str(line_number) )
-                                else:
-                                    logger.error('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
-                            else:
-                                logger.error('DIRECTIVE_RECOGNITION: ALIAS Parameters error in line ' + str(line_number) )
+                            if len(directive_params) != 3:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: ALIAS Parameters error in line ' + str(line_number) )
+                            A_Name    = directive_params[1]
+                            A_Reg     = directive_params[2]
+                            if not check_name(A_Name):
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
+                            if A_Name in Alias_List:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as ALIAS in line ' + str(line_number) )
+                            if A_Name in label_dict:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Alias "' + A_Name  +'" already in use as LABEL in line ' + str(line_number) )
+                            if not check_reg(A_Reg):
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Register Name error in line ' + str(line_number) )
+                            Alias_List.update({ A_Name : A_Reg } )
+                            logger.info("ALIAS_RECOGNITION:  > " + A_Reg + ' is called ' + A_Name)
                         elif ( directive == 'CONST'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
-                            if (len(directive_params) == 3):
-                                C_name    = directive_params[1]
-                                C_val    = directive_params[2]
-                                if (check_name(C_name)):
-                                    if C_name in Alias_List:
-                                        logger.error('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
-                                    elif C_name in label_dict:
-                                        logger.error('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
-                                    else:
-    
-                                        error, lit_val = get_imm_dt (C_val, 32, 1)
-                                        if (error):
-                                            logger.error('DIRECTIVE_RECOGNITION: CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
-                                        else:
-                                            Alias_List.update({ C_name : C_val } )        
-                                            logger.info("DIRECTIVE_RECOGNITION: > " + C_val + ' is called ' + C_name)
-                                else:
-                                    logger.error('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
-
-                            else:
-                                logger.error('DIRECTIVE_RECOGNITION: CONST Parameters error in line ' + str(line_number) )
-    
+                            if len(directive_params) != 3:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: CONST Parameters error in line ' + str(line_number) )
+                            C_name    = directive_params[1]
+                            C_val    = directive_params[2]
+                            if not check_name(C_name):
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Alias Name Error in line ' + str(line_number) )
+                            if C_name in Alias_List:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as ALIAS in line ' + str(line_number) )
+                            if C_name in label_dict:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Const "' + C_name  +'" already in use as LABEL in line ' + str(line_number) )
+                            error, lit_val = get_imm_dt (C_val, 32, 1)
+                            if error:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: CONST '+C_name+' Value '+C_val+' is not a Literal in line ' + str(line_number) )
+                            Alias_List.update({ C_name : C_val } )
+                            logger.info("DIRECTIVE_RECOGNITION: > " + C_val + ' is called ' + C_name)
                         elif ( directive == 'ADDR'):
                             directive_params = list(filter(lambda x:x, command.split(' ')))
-                            if (len(directive_params) == 2):
-                                if  (check_num(directive_params[1])):
-                                    Value    = int(directive_params[1])
-                                    distance = Value - mem_addr
-                                    if  (distance < 0):
-                                        logger.error('DIRECTIVE_RECOGNITION: New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
-                                    else :                          
-                                        mem_addr = Value
-                                else:
-                                    logger.error('DIRECTIVE_RECOGNITION: Address Value '+ directive_params[1] + ' error in Line ' + str(line_number))
-                            else:
-                                logger.error('DIRECTIVE_RECOGNITION: ADDR Parameters error in line ' + str(line_number) )
+                            if len(directive_params) != 2:
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: ADDR Parameters error in line ' + str(line_number) )
+                            if not check_num(directive_params[1]):
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: Address Value '+ directive_params[1] + ' error in Line ' + str(line_number))
+                            Value    = int(directive_params[1])
+                            distance = Value - mem_addr
+                            if  (distance < 0):
+                                raise RuntimeError('DIRECTIVE_RECOGNITION: New Memory Address '+str(Value)+ ' before than next empty address ('+str(mem_addr)+') in Line ' + str(line_number))
+                            mem_addr = Value
                         elif ( directive == 'END'):
                             mem_addr += 1  
                         else:
-                            logger.error('DIRECTIVE_RECOGNITION: Directive Not Recognized in Line ' + str(line_number))
+                            raise RuntimeError('DIRECTIVE_RECOGNITION: Directive Not Recognized in Line ' + str(line_number))
                     elif (instruction): # Identify instructions to correctly set addresses.
-                        if ( instruction in instList.keys() ) :
-                            if (instruction == 'WAIT'):
-                                mem_addr += 2
-                            else:                            
-                                mem_addr += 1
+                        if instruction not in instList.keys():
+                            raise RuntimeError('CMD_RECOGNITION: Command Not Recognized in Line ' + str(line_number))
+                        if (instruction == 'WAIT'):
+                            mem_addr += 2
                         else:
-                            logger.error('CMD_RECOGNITION: Command Not Recognized in Line ' + str(line_number))
+                            mem_addr += 1
                     else:
-                        logger.error('CMD_RECOGNITION: Instruction Not Recognized in Line ' + str(line_number))
+                        raise RuntimeError('CMD_RECOGNITION: Instruction Not Recognized in Line ' + str(line_number))
 
             show_info =  ('\n## ALIAS LIST')
             show_info += '\n' + ('###############################')
