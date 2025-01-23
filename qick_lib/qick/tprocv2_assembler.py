@@ -435,15 +435,16 @@ class Assembler():
             :returns (str): assembly as a string.
         """
         
-        def process_command(assembler : str, command : dict, p_addr : int) -> str:
+        def process_command(command : dict, p_addr : int) -> str:
             """
                 processes one command from program list and adds adds it to the assembler string as an instruction.
                 
-                :assembler (str): assembler instructions as a string
                 :command (dict): current instruction from program_list to add in assembler
                 :p_addr (int): program address of the command in memory. // p_addr stands for program address.
-                :returns (str): returns the assembler with extra information
+                :returns (str): returns the new line of assembler code
             """
+            logger.debug("process_command: processing %s at p_addr=%d"%(command, p_addr))
+            assembler = ""
             assembler += "RET\n" if (command['CMD']=='RET') else f"     {command['CMD']} "
             if (command['CMD'] == 'DPORT_WR') or (command['CMD']=='WPORT_WR') or (command['CMD']=='TRIG') or (command['CMD']=='DPORT_RD'):
                     assembler += 'p'+command['DST'] + ' '
@@ -485,6 +486,7 @@ class Assembler():
             assembler += f"{command['R3']} "      if ('R3'       in command) else ''
             assembler += f"{command['R4']} "      if ('R4'       in command) else ''
 
+            logger.debug("process_command: generated ASM string: %s"%(assembler))
             assembler += '\n'
             return assembler
     
@@ -512,7 +514,7 @@ class Assembler():
                         label = key_list[val_list.index(ADDR)]
                         #command.pop['ADDR']
                         command['LABEL'] = label
-            assembler_code = process_command(assembler_code, command, address)
+            assembler_code += process_command(command, address)
 
         # ADD Address to commands with LABEL
         for line_number, command in enumerate(program_list):
@@ -663,7 +665,7 @@ class Assembler():
             for key in Alias_List:
                 show_info += '\n' + str( (f"{Alias_List[key]:<3}" + ' > '+ key) )
             show_info += '\n' + ('###############################')
-            logger.info("ALIAS_RECOGNITION: "+show_info)
+            logger.debug("ALIAS_RECOGNITION: "+show_info)
             
             show_info =         ('\n## LABEL LIST ')
             show_info += '\n' + ('###############################')
@@ -672,7 +674,7 @@ class Assembler():
                 if key != 's15':
                     show_info += '\n' + str( (f"{key:<15}" + ' > ' + label_dict[key]) )
             show_info += '\n' + ('###############################')
-            logger.info("LABEL_RECOGNITION: "+show_info)
+            logger.debug("LABEL_RECOGNITION: "+show_info)
                 
             return label_dict
         
@@ -1027,6 +1029,7 @@ class Assembler():
         binary_program_list = []
         CODE = 'x'
         for command in program_list:
+            logger.debug("list2bin: translating %s"%(command))
             if 'CMD' not in command:
                 raise RuntimeError("COMMAND_TRANSLATION: No Command at line " + str(command['LINE']))
             if not ('UF' in command):
