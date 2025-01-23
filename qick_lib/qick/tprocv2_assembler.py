@@ -1465,37 +1465,25 @@ class Instruction():
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
         Wr = Rdi = '0'
-        if (error==0):
-            #TODO: do this?
-            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
-        if (error==0):
-            #TODO: do this?
-            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         #### ADDRESS
-        if (error==0):
-            #TODO: do this?
-            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
-            ADDR  = rsA0 + '__' + rsA1
+        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
+        ADDR  = rsA0 + '__' + rsA1
         #### SOURCE    
-        if (error==0):
-            #TODO: do this?
-            if (current ['SRC'] == 'op'):
-                if ('OP' in current ):
-                    DI = '0'
-                else:
-                    logger.error('Instruction.MEM_WR: >  -op() option not found in instruction ' + str(current['LINE']) )
-            elif (current ['SRC'] == 'imm'):
-                if 'LIT' in current: 
-                    DI = '1'
-                else:
-                    logger.error('Instruction.MEM_WR: No Literal value found in instruction ' + str(current['LINE']) )
-            else:
-                logger.error('Instruction.MEM_WR: Posible MEM_WR sources are (op, imm) in instruction ' + str(current['LINE']) )
-        if (error==0):
-            #TODO: do this?
-            CFG = current['UF']+ '_'+Wr+Rdi+'_'+ alu_op
-            CODE = '101_'+AI+DF+'__'+COND+'__0_'+DI+'_'+CFG+"___"+ADDR+'____'+DATA+'__'+RD
+        if (current ['SRC'] == 'op'):
+            if 'OP' not in current:
+                raise RuntimeError('Instruction.MEM_WR: >  -op() option not found in instruction ' + str(current['LINE']) )
+            DI = '0'
+        elif (current ['SRC'] == 'imm'):
+            if 'LIT' not in current:
+                raise RuntimeError('Instruction.MEM_WR: No Literal value found in instruction ' + str(current['LINE']) )
+            DI = '1'
+        else:
+            raise RuntimeError('Instruction.MEM_WR: Posible MEM_WR sources are (op, imm) in instruction ' + str(current['LINE']) )
+        CFG = current['UF']+ '_'+Wr+Rdi+'_'+ alu_op
+        CODE = '101_'+AI+DF+'__'+COND+'__0_'+DI+'_'+CFG+"___"+ADDR+'____'+DATA+'__'+RD
         return error, CODE
         
     @staticmethod
@@ -1503,40 +1491,30 @@ class Instruction():
         error   = 0
         AI=Wp=TI='0'
         #### WMEM ADDRESS
-        if 'DST' in current:
-            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
-            if (rsA1 != '000000'):
-                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
-        else:
-            logger.error('Instruction.WMEM_WR: No address specified in line ' + str(current['LINE']) )
+        if 'DST' not in current:
+            raise RuntimeError('Instruction.WMEM_WR: No address specified in line ' + str(current['LINE']) )
+        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current['DST'])
+        if rsA1 != '000000':
+            raise RuntimeError('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
         #### WRITE REGISTER
         Wr = Rdi = '0'
-        if (error==0):
-            #TODO: do this?
-            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### WRITE PORT
-        if (error==0):
-            #TODO: do this?
-            error, Wp, Sp, Dp = Instruction.__PROCESS_WP(current)
+        error, Wp, Sp, Dp = Instruction.__PROCESS_WP(current)
         #### DATA SOURCE
-        if (error==0):
-            #TODO: do this?
-            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-        if (error==0):
-            #TODO: do this?
-            if ('TIME' in current ):
-                TI='1'
-                error, TIME = get_imm_dt (current ['TIME'], 32)
-                if (error): 
-                    logger.error('Parameter.WMEM_WR: Time Value error in instruction ') 
-                else:
-                    DATA = '_____' + TIME 
-            CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
-            CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
-        else:
-            #TODO: print this?
-            logger.error('Instruction.WMEM_WR: Error in line ' + str(current['LINE']) )
-            CODE = 'X'
+        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+        #if error:
+        #    raise RuntimeError('Instruction.WMEM_WR: Error in line ' + str(current['LINE']) )
+        #    CODE = 'X'
+        if ('TIME' in current ):
+            TI='1'
+            error, TIME = get_imm_dt (current ['TIME'], 32)
+            if (error):
+                raise RuntimeError('Parameter.WMEM_WR: Time Value error in instruction ')
+            else:
+                DATA = '_____' + TIME
+        CFG  = '1_' + TI+'_' +current['UF'] +'_'+ Wr +Rdi +'_'+ alu_op
+        CODE = '101_'+AI+DF+'__1'+Sp+Wp+'__'+CFG+"___"+rsA0+'__'+Dp+'____'+DATA+'__'+RD
         return error, CODE
        
     @staticmethod
@@ -1548,21 +1526,14 @@ class Instruction():
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
         Wr = Rdi = '0'
-        if (error==0):
-            #TODO: do this?
-            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
-        if (error==0):
-            #TODO: do this?
-            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-        if (error==0):
-            #TODO: do this?
-            CFG  = current['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
-            CODE = '000_'+AI+DF+'__'+COND+'__'+SO+TO+'__'+CFG+"_______"+ADDR+'____'+DATA+'__'+RD
-        else:
-            #TODO: print this?
-            logger.error('Instruction.CFG: Error in line ' + str(current['LINE']) )
-            CODE = 'X'
+        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+        #if (error):
+        #    logger.error('Instruction.CFG: Error in line ' + str(current['LINE']) )
+        #    CODE = 'X'
+        CFG  = current['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
+        CODE = '000_'+AI+DF+'__'+COND+'__'+SO+TO+'__'+CFG+"_______"+ADDR+'____'+DATA+'__'+RD
         return error, CODE
     
     @staticmethod
@@ -1571,189 +1542,146 @@ class Instruction():
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
         #### WRITE REGISTER
-        if error == 0:
-            #TODO: do/print this?
-            Wr = Rdi = '0'
-            if (error==0):
-            #TODO: do/print this?
-                error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+        Wr = Rdi = '0'
+        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
         #### DATA SOURCE
-        if (error==0):
-            #TODO: do/print this?
-            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
         #### DESTINATION MEMORY ADDRESS
-        if error == 0:
-            #TODO: do/print this?
-            if (cj =='11'): # RET Instruction. ADDR came from STACK
-                current['UF'] = '0'
-                AI = '0'    
-                ADDR = '_00000000000_000000'
-            else:
-                comp_addr = "&(\d+)|s(\d+)"
-                addr = re.findall(comp_addr, current['ADDR']) 
-                try:
-                    if (addr[0][0]): # LITERAL
-                        ADDR     = '_' + integer2bin(addr[0][0], 11, uint=1) + '_000000'
-                        AI = '1'
-                    elif (addr[0][1] == '15'): #SREG s15
-                        ADDR     = '_00000000000_000000' 
-                        AI = '0'
-                    else:
-                        logger.error("Instruction.BRANCH: JUMP Memory Address not recognized (imm or s15)")
-                except IndexError:
-                    logger.error(f"COMMAND RECOGNITION: for address at line {current['LINE']}. (possible extra [])")
-
-        if (error==0):
-            #TODO: do/print this?
-            CFG = current['UF'] +'_'+ Wr+Rdi +'_'+ alu_op
-            CODE = '001_'+AI+DF+'__'+COND+'__'+cj+'__'+CFG+"______"+ADDR+'____'+DATA+'__'+RD
+        if (cj =='11'): # RET Instruction. ADDR came from STACK
+            current['UF'] = '0'
+            AI = '0'
+            ADDR = '_00000000000_000000'
         else:
-            #TODO: do/print this?
-            logger.error("Instruction.BRANCH: Exit with Error in instruction " + str(current['LINE']) )
-            CODE = 'X'
+            comp_addr = "&(\d+)|s(\d+)"
+            addr = re.findall(comp_addr, current['ADDR'])
+            try:
+                if (addr[0][0]): # LITERAL
+                    ADDR     = '_' + integer2bin(addr[0][0], 11, uint=1) + '_000000'
+                    AI = '1'
+                elif (addr[0][1] == '15'): #SREG s15
+                    ADDR     = '_00000000000_000000'
+                    AI = '0'
+                else:
+                    raise RuntimeError("Instruction.BRANCH: JUMP Memory Address not recognized (imm or s15)")
+            except IndexError:
+                raise RuntimeError(f"COMMAND RECOGNITION: for address at line {current['LINE']}. (possible extra [])")
+        #if (error):
+        #    raise RuntimeError("Instruction.BRANCH: Exit with Error in instruction " + str(current['LINE']) )
+        #    CODE = 'X'
+        CFG = current['UF'] +'_'+ Wr+Rdi +'_'+ alu_op
+        CODE = '001_'+AI+DF+'__'+COND+'__'+cj+'__'+CFG+"______"+ADDR+'____'+DATA+'__'+RD
         return error, CODE
     
     @staticmethod
     def PORT_WR (current : dict) -> tuple:
         error   = 0
         ##### DATA PORTS
-        if (current['CMD'] == 'DPORT_WR' or current['CMD'] == 'DPORT_RD') \
-        or (current['CMD'] == 'TRIG'):
+        if current['CMD'] in ['DPORT_WR', 'DPORT_RD', 'TRIG']:
             SO=AI=Ww=Sp= '0'
             rsA0 = '___00000000000'
             #### WRITE REGISTER
-            if (error==0):
-                #TODO: do/print this?
-                Wr = Rdi = '0'
-                if (error==0):
-                    #TODO: do/print this?
-                    error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+            Wr = Rdi = '0'
+            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
             #### PORT DESTINATION 
-            if (error==0):
-                #TODO: do/print this?
-                #### TRIG PORT
-                if (current['CMD'] == 'TRIG'):
-                    if (current['SRC'] == 'set'):
-                        Wp= '1'
-                        AI=Sp = '1'
-                        rsA0     = '___00000000001'
-                        current['DST'] = str(int(current['DST'])+32)
-                    elif (current['SRC'] == 'clr'):
-                        Wp= '1'
-                        AI=Sp = '1'
-                        rsA0     = '___00000000000'
-                        current['DST'] = str(int(current['DST'])+32)
-                    else:
-                        logger.error('Instruction.PORT_WR: Possible options for TRIG command are (set, clr)' )
-
-                #### DATA PORT
-                elif (current['CMD'] == 'DPORT_WR'):
-                    Wp= '1'
-                    Sp= '0'
-                    if (current ['SRC'] == 'imm'):
-                        if 'DATA' in current:
-                            if ( int(current['DATA']) > 2047 ):
-                                logger.error('Instruction.PORT_WR: Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
-                            else:
-                                AI=Sp = '1'
-                                # DATA CAMES WITHOUT #
-                                rsA0     = '___'+ integer2bin(current['DATA'], 11)
-                        else:
-                            logger.error('Instruction.PORT_WR: No Port Data value found in line ' + str(current['LINE']) )
-                    elif (current ['SRC'] == 'reg'):
-                        if ('DATA' in current ):
-                            AI=Sp = '0'
-                            comp_REG_FMT = "r(\d+)"
-                            param_op  = re.findall(comp_REG_FMT, current['DATA'])
-                            if (param_op):
-                               rsA0     = '00000___1' + integer2bin(param_op[0], 5)     
-                            else:
-                                logger.error('Instruction.PORT_WR: Register Selection Error, should be dreg in line ' + str(current['LINE']) )
-                        else:
-                            logger.error('Instruction.PORT_WR: No Port Register found in line ' + str(current['LINE']) )
-                    else:
-                        logger.error('Instruction.PORT_WR: Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
-                #### READ DATA PORT
+            #### TRIG PORT
+            if (current['CMD'] == 'TRIG'):
+                Wp= '1'
+                AI=Sp = '1'
+                current['DST'] = str(int(current['DST'])+32)
+                if (current['SRC'] == 'set'):
+                    rsA0     = '___00000000001'
+                elif (current['SRC'] == 'clr'):
+                    rsA0     = '___00000000000'
                 else:
-                    TO=Wp='0'
+                    raise RuntimeError('Instruction.PORT_WR: Possible options for TRIG command are (set, clr)' )
+
+            #### DATA PORT
+            elif (current['CMD'] == 'DPORT_WR'):
+                Wp= '1'
+                Sp= '0'
+                if (current ['SRC'] == 'imm'):
+                    if 'DATA' not in current:
+                        raise RuntimeError('Instruction.PORT_WR: No Port Data value found in line ' + str(current['LINE']) )
+                    if int(current['DATA']) > 2047:
+                        raise RuntimeError('Instruction.PORT_WR: Data imm should be smaller than 2047 No Port Data value found in line ' + str(current['LINE']) )
+                    AI=Sp = '1'
+                    # DATA CAMES WITHOUT #
+                    rsA0     = '___'+ integer2bin(current['DATA'], 11)
+                elif (current ['SRC'] == 'reg'):
+                    if 'DATA' not in current:
+                        raise RuntimeError('Instruction.PORT_WR: No Port Register found in line ' + str(current['LINE']) )
+                    AI=Sp = '0'
+                    comp_REG_FMT = "r(\d+)"
+                    param_op  = re.findall(comp_REG_FMT, current['DATA'])
+                    if not param_op:
+                        raise RuntimeError('Instruction.PORT_WR: Register Selection Error, should be dreg in line ' + str(current['LINE']) )
+                    rsA0     = '00000___1' + integer2bin(param_op[0], 5)
+                else:
+                    raise RuntimeError('Instruction.PORT_WR: Posible DPORT_WR sources are (imm, reg) in line ' + str(current['LINE']) )
+            #### READ DATA PORT
+            else:
+                TO=Wp='0'
         ##### WAVEFORM PORT
         else:
             AI=Ww=Sp= '0'
             SO=Wp= '1'
             #### SOURCE
-            if (error==0):
-                #TODO: do/print this?
-                if (current['SRC'] == 'wmem'):
-                    Sp = '0'
-                    if 'ADDR' in current:
-                        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                        if (rsA1 != '000000'):
-                            logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )                    
-                    else:
-                        logger.error('Instruction.PORT_WR: No address specified for < wmem > in line ' + str(current['LINE']) )
-                elif (current['SRC'] == 'r_wave'):
-                    Sp='1'
-                    #### WRITE WAVE MEMORY
-                    if ('WW' in current ): 
-                        if 'ADDR' in current:
-                            Ww = '1'
-                            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                            if (rsA1 != '000000'):
-                                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
-                        else:
-                            logger.error('Instruction.PORT_WR: No address specified for < -ww > in line ' + str(current['LINE']) )
-                    else:
-                        Ww  = '0'
-                        rsA0 = '___00000000000'
+            if (current['SRC'] == 'wmem'):
+                Sp = '0'
+                if 'ADDR' not in current:
+                    raise RuntimeError('Instruction.PORT_WR: No address specified for < wmem > in line ' + str(current['LINE']) )
+                error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                if (rsA1 != '000000'):
+                    raise RuntimeError('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
+            elif (current['SRC'] == 'r_wave'):
+                Sp='1'
+                #### WRITE WAVE MEMORY
+                if ('WW' in current ):
+                    if 'ADDR' not in current:
+                        raise RuntimeError('Instruction.PORT_WR: No address specified for < -ww > in line ' + str(current['LINE']) )
+                    Ww = '1'
+                    error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                    if (rsA1 != '000000'):
+                        raise RuntimeError('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in line ' + str(current['LINE']) )
                 else:
-                    logger.error('Instruction.PORT_WR: Posible wave sources are (wmem, r_wave) in line ' + str(current['LINE']) )
-                    DF = '11'
-        #### OUT TIME 
-        if (error==0):
-            if ('TIME' in current): 
-                TO = '1'
+                    Ww  = '0'
+                    rsA0 = '___00000000000'
+            else:
+                raise RuntimeError('Instruction.PORT_WR: Posible wave sources are (wmem, r_wave) in line ' + str(current['LINE']) )
                 DF = '11'
-                error, TIME = get_imm_dt (current ['TIME'], 32)
-                if (error): 
-                    #TODO: do/print this?
-                    logger.error('Parameter.WMEM_WR: Time Value error in instruction ') 
-                else:
-                    DATA = '_____' + TIME 
+        #### OUT TIME
+        if ('TIME' in current):
+            TO = '1'
+            DF = '11'
+            error, TIME = get_imm_dt (current ['TIME'], 32)
+            #if (error):
+            #    raise RuntimeError('Parameter.WMEM_WR: Time Value error in instruction ')
+            DATA = '_____' + TIME
 
-                #DATA = '______'+ integer2bin(current['TIME'], 32)
-                CFG = SO+TO+'____00000'
-                RD = '0000000'
-                if ('WR' in current or 'OP' in current): 
-                    logger.error('Instruction.PORT_WR: If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
-            else:
-                TO = '0'
-                logger.info('Instruction.PORT_WR: No time specified for command will use s_time in line ' + str(current['LINE']) )
-                #### WRITE REGISTER
-                Wr = Rdi = '0'
-                if (error==0):
-                    #TODO: do/print this?
-                    error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
-                #### DATA SOURCE
-                if (error==0):
-                    #TODO: do/print this?
-                    error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-                    CFG = SO+TO+'__'+current['UF'] +'_'+Wr+Rdi +'_'+ alu_op
-        #### OUT PORT
-        if (error==0):
-            #TODO: do/print this?
-            if ('DST' in current):
-                rsA1 = integer2bin(current['DST'], 6,1)
-            else:
-                logger.error('Instruction.PORT_WR: No Destination Port in line ' + str(current['LINE']) )        
-        if (error == 0):
-            #TODO: do/print this?
-            COND = Ww+Sp+Wp
-            ADDR  = rsA0+'__'+rsA1
-            CODE = '110'+'_'+AI+DF+'__'+COND+'__'+CFG+ '___'+ADDR +'____'+ DATA+'__'+RD
+            #DATA = '______'+ integer2bin(current['TIME'], 32)
+            CFG = SO+TO+'____00000'
+            RD = '0000000'
+            if ('WR' in current or 'OP' in current):
+                raise RuntimeError('Instruction.PORT_WR: If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
         else:
-            #TODO: do/print this?
-            logger.error("Instruction.PORT_WR: Exit with Error in line " + str(current['LINE']) )
-            CODE = 'X'
+            TO = '0'
+            logger.info('Instruction.PORT_WR: No time specified for command will use s_time in line ' + str(current['LINE']) )
+            #### WRITE REGISTER
+            Wr = Rdi = '0'
+            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+            #### DATA SOURCE
+            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+            CFG = SO+TO+'__'+current['UF'] +'_'+Wr+Rdi +'_'+ alu_op
+        #### OUT PORT
+        if 'DST' not in current:
+            raise RuntimeError('Instruction.PORT_WR: No Destination Port in line ' + str(current['LINE']) )
+        rsA1 = integer2bin(current['DST'], 6,1)
+        #if (error):
+        #    raise RuntimeError("Instruction.PORT_WR: Exit with Error in line " + str(current['LINE']) )
+        #    CODE = 'X'
+        COND = Ww+Sp+Wp
+        ADDR  = rsA0+'__'+rsA1
+        CODE = '110'+'_'+AI+DF+'__'+COND+'__'+CFG+ '___'+ADDR +'____'+ DATA+'__'+RD
         return error, CODE
     
     ################################ TO UPDATE CODE HERE. NOT LAST VERSION
@@ -1780,7 +1708,7 @@ class Instruction():
             elif (current['C_OP'] == 'inc_ref'):
                 OPERATION = '_1000'
             else:
-                logger.error('Instruction.CTRL: Posible Operations for TIME command are (rst, set_ref, inc_ref)' )
+                raise RuntimeError('Instruction.CTRL: Posible Operations for TIME command are (rst, set_ref, inc_ref)' )
             if ('LIT' in current ):
                 DF  ='11'
                 RD0 = '_'
@@ -1790,7 +1718,7 @@ class Instruction():
                 error, RD1 = get_reg_addr (current['R1'], 'src_data')
             else: 
                 if   (current['C_OP'] !='rst'):
-                    logger.error('Instruction.CTRL: No Time Data' )
+                    raise RuntimeError('Instruction.CTRL: No Time Data' )
         ######### FLAG
         elif (current ['CMD'] == 'FLAG'):
             CTRL_ADDR      = '001'
@@ -1801,23 +1729,21 @@ class Instruction():
             elif (current['C_OP'] == 'inv'):
                 OPERATION = '_0100'
             else:
-                logger.error('Instruction.CTRL: Posible Operations for FLAG command are (set, clr, inv)' )
+                raise RuntimeError('Instruction.CTRL: Posible Operations for FLAG command are (set, clr, inv)' )
         ######### DIVISION
         elif (current ['CMD'] == 'DIV'):
             CTRL_ADDR  = '011'
             OPERATION  = '_0000'
             error, RA1 = get_reg_addr (current['NUM'], 'src_addr')
-            if (error == 0):
-                #TODO: do/print this?
-                if (check_reg(current['DEN'])) : # Is Register 
-                    error, RD1 = get_reg_addr (current['DEN'], 'src_data')
-                elif (check_lit(current['DEN'])) : # Is Literal Value
-                    DF  ='11'
-                    RD0 ='_'
-                    error, RD1 = get_imm_dt (current ['DEN'], 32)
-                    ImmFill='__'
-                else:
-                    logger.error('Instruction.CTRL: DIV Denominator not recognized in line ' + str(current['LINE']) )        
+            if (check_reg(current['DEN'])) : # Is Register
+                error, RD1 = get_reg_addr (current['DEN'], 'src_data')
+            elif (check_lit(current['DEN'])) : # Is Literal Value
+                DF  ='11'
+                RD0 ='_'
+                error, RD1 = get_imm_dt (current ['DEN'], 32)
+                ImmFill='__'
+            else:
+                raise RuntimeError('Instruction.CTRL: DIV Denominator not recognized in line ' + str(current['LINE']) )
         ######### NET
         elif (current ['CMD'] == 'NET'):
             Header = '011'
@@ -1837,7 +1763,7 @@ class Instruction():
             elif (current['C_OP'] == 'get_flag'):
                 OPERATION = '01011'
             else:
-                logger.error('Instruction.CTRL: NET Operation not recognized' )
+                raise RuntimeError('Instruction.CTRL: NET Operation not recognized' )
         ######### COM
         elif (current ['CMD'] == 'COM'):
             Header = '011'
@@ -1848,7 +1774,7 @@ class Instruction():
                 elif (current['R1'] == '1'):
                     OPERATION = '00010'
                 else:
-                    logger.error('Instruction.CTRL: COM flag value can be 0 or 1' )
+                    raise RuntimeError('Instruction.CTRL: COM flag value can be 0 or 1' )
             elif (current['C_OP'] == 'sync'):
                 OPERATION = '00110'
             elif (current['C_OP'] == 'reset'):
@@ -1867,7 +1793,7 @@ class Instruction():
                 elif (current['C_OP'] == 'set_word_2'):
                     OPERATION = '01101'
                 else:
-                    logger.error('Instruction.CTRL: Possible Operations for COM command are (set_flag, set_byte, set_hw, set_word)' )
+                    raise RuntimeError('Instruction.CTRL: Possible Operations for COM command are (set_flag, set_byte, set_hw, set_word)' )
                 if ('LIT' in current ):
                     DF='11'
                     RD0 = ''
@@ -1877,7 +1803,7 @@ class Instruction():
                     error, RD1 = get_reg_addr (current['R1'], 'src_data')
                 else: 
                     if (current['C_OP'] !='rst'):
-                        logger.error('Instruction.CTRL: No Time Data' )
+                        raise RuntimeError('Instruction.CTRL: No Time Data' )
         ######### CUSTOM Peripheral
         elif (current ['CMD'] == 'PA' or current ['CMD'] == 'PB'):
             Header = '011'
@@ -1886,27 +1812,22 @@ class Instruction():
             else:
                 CTRL_ADDR      = '_11' # PB PERIPHERAL
             if ( int(current['C_OP']) > 31):
-                logger.error("COMMAND_RECOGNITION: External Peripheral Operation not in range [0:31] in line " + str(current['LINE']) )
-            else:
-                OPERATION = integer2bin(current['C_OP'], 5,1)
-                if ('LIT' in current):
-                    logger.error('Instruction.CTRL: No Immediate value allowed in Peripheral instruction' )
-                else :
-                    if ('R1' in current):
-                        error, RD0 = get_reg_addr (current['R1'], 'src_data')
-                    if ('R2' in current):
-                        error, RD1 = get_reg_addr (current['R2'], 'src_data')
-                    if ('R3' in current):
-                        error, RA0 = get_reg_addr (current['R3'], 'src_addr')
-                    if ('R4' in current):
-                        error, RA1 = get_reg_addr (current['R4'], 'src_addr')
-        if (error):
-            #TODO: do/print this?
-            logger.error("Instruction.CTRL: Error in instruction " + str(current['LINE']) )
-            CODE = 'X'
-        else:
-            #TODO: do/print this?
-            CODE = Header+'_'+AI+DF+'__'+COND+'___'+CTRL_ADDR+'__'+OPERATION+'___00000___'+RA0+'__'+RA1+'____'+RD0+'__'+RD1+ImmFill+'__0000000'
+                raise RuntimeError("COMMAND_RECOGNITION: External Peripheral Operation not in range [0:31] in line " + str(current['LINE']) )
+            OPERATION = integer2bin(current['C_OP'], 5,1)
+            if ('LIT' in current):
+                raise RuntimeError('Instruction.CTRL: No Immediate value allowed in Peripheral instruction' )
+            if ('R1' in current):
+                error, RD0 = get_reg_addr (current['R1'], 'src_data')
+            if ('R2' in current):
+                error, RD1 = get_reg_addr (current['R2'], 'src_data')
+            if ('R3' in current):
+                error, RA0 = get_reg_addr (current['R3'], 'src_addr')
+            if ('R4' in current):
+                error, RA1 = get_reg_addr (current['R4'], 'src_addr')
+        #if (error):
+        #    raise RuntimeError("Instruction.CTRL: Error in instruction " + str(current['LINE']) )
+        #    CODE = 'X'
+        CODE = Header+'_'+AI+DF+'__'+COND+'___'+CTRL_ADDR+'__'+OPERATION+'___00000___'+RA0+'__'+RA1+'____'+RD0+'__'+RD1+ImmFill+'__0000000'
         return error, CODE
 
     
@@ -1916,89 +1837,75 @@ class Instruction():
         RsC=RsD='000000'
         #### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
-        if ('LIT' in current):
-            logger.error('Instruction.ARITH: No Immediate value allowed ' )
-        if (not 'C_OP' in current) :
-            logger.error('Instruction.ARITH: No ARITH Operation ' )
-        else :
-            if (current['C_OP'] in arithList ):
-                ARITH_OP = arithList[current['C_OP']]
-            if   (current['C_OP'] == 'T'): # A*B
-                if ('R1' in current and 'R2' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'src_data')
-                    error, RsB = get_reg_addr (current['R2'], 'src_data')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need Two Source Register for T operation' )
-            elif (current['C_OP'] == 'TP') : # A*B+C
-                if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'src_data')
-                    error, RsB = get_reg_addr (current['R2'], 'src_data')
-                    error, RsC = get_reg_addr (current['R3'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for TP operation' )
-            elif (current['C_OP'] == 'TM') : # A*B-C
-                if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsA = get_reg_addr (current['R1'], 'src_data')
-                    error, RsB = get_reg_addr (current['R2'], 'src_data')
-                    error, RsC = get_reg_addr (current['R3'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for TM operation' )
-            elif (current['C_OP'] == 'PT') : # (D+A)*B
-                if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
-            elif (current['C_OP'] == 'PTP'): #(D+A)*B+C
-                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
-            elif (current['C_OP'] == 'PTM'): #(D+A)*B-C
-                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
-            elif (current['C_OP'] == 'MT' ): #(D-A)*B
-                if ('R1' in current and 'R2' in current and 'R3' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
-            
-            elif (current['C_OP'] == 'MTP'): #(D-A)*B+C
-                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
-            elif (current['C_OP'] == 'MTM'): #(D-A)*B-C
-                if ('R1' in current and 'R2' in current and 'R3' in current and 'R4' in current ):
-                    error, RsD = get_reg_addr (current['R1'], 'src_addr')
-                    error, RsA = get_reg_addr (current['R2'], 'src_data')
-                    error, RsB = get_reg_addr (current['R3'], 'src_data')
-                    error, RsC = get_reg_addr (current['R4'], 'src_addr')
-                else:
-                    logger.error('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
-            else:
-                logger.error('Instruction.ARITH: No Recognized Operation' )
-        if (error==0):
-            #TODO: do/print this?
-            CODE = '010_001__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
+        if 'LIT' in current:
+            raise RuntimeError('Instruction.ARITH: No Immediate value allowed ' )
+        if 'C_OP' not in current:
+            raise RuntimeError('Instruction.ARITH: No ARITH Operation ' )
+        if (current['C_OP'] in arithList ):
+            ARITH_OP = arithList[current['C_OP']]
+        if   (current['C_OP'] == 'T'): # A*B
+            if any([x not in current for x in ['R1', 'R2']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need Two Source Register for T operation' )
+            error, RsA = get_reg_addr (current['R1'], 'src_data')
+            error, RsB = get_reg_addr (current['R2'], 'src_data')
+        elif (current['C_OP'] == 'TP') : # A*B+C
+            if any([x not in current for x in ['R1', 'R2', 'R3']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need three Source Register for TP operation' )
+            error, RsA = get_reg_addr (current['R1'], 'src_data')
+            error, RsB = get_reg_addr (current['R2'], 'src_data')
+            error, RsC = get_reg_addr (current['R3'], 'src_addr')
+        elif (current['C_OP'] == 'TM') : # A*B-C
+            if any([x not in current for x in ['R1', 'R2', 'R3']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need three Source Register for TM operation' )
+            error, RsA = get_reg_addr (current['R1'], 'src_data')
+            error, RsB = get_reg_addr (current['R2'], 'src_data')
+            error, RsC = get_reg_addr (current['R3'], 'src_addr')
+        elif (current['C_OP'] == 'PT') : # (D+A)*B
+            if any([x not in current for x in ['R1', 'R2', 'R3']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+        elif (current['C_OP'] == 'MT' ): #(D-A)*B
+            if any([x not in current for x in ['R1', 'R2', 'R3']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need three Source Register for PT operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+        elif (current['C_OP'] == 'PTP'): #(D+A)*B+C
+            if any([x not in current for x in ['R1', 'R2', 'R3', 'R4']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+            error, RsC = get_reg_addr (current['R4'], 'src_addr')
+        elif (current['C_OP'] == 'PTM'): #(D+A)*B-C
+            if any([x not in current for x in ['R1', 'R2', 'R3', 'R4']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+            error, RsC = get_reg_addr (current['R4'], 'src_addr')
+        elif (current['C_OP'] == 'MTP'): #(D-A)*B+C
+            if any([x not in current for x in ['R1', 'R2', 'R3', 'R4']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+            error, RsC = get_reg_addr (current['R4'], 'src_addr')
+        elif (current['C_OP'] == 'MTM'): #(D-A)*B-C
+            if any([x not in current for x in ['R1', 'R2', 'R3', 'R4']]):
+                raise RuntimeError('Instruction.ARITH: Few Sources > Need Four Source Register for PTP operation' )
+            error, RsD = get_reg_addr (current['R1'], 'src_addr')
+            error, RsA = get_reg_addr (current['R2'], 'src_data')
+            error, RsB = get_reg_addr (current['R3'], 'src_data')
+            error, RsC = get_reg_addr (current['R4'], 'src_addr')
         else:
-            #TODO: do/print this?
-            logger.error("Instruction.ARITH: Exit with Error in line " + str(current['LINE']) )
-            CODE = 'X'
+            raise RuntimeError('Instruction.ARITH: No Recognized Operation' )
+        #if (error):
+        #    raise RuntimeError("Instruction.ARITH: Exit with Error in line " + str(current['LINE']) )
+        #    CODE = 'X'
+        CODE = '010_001__'+COND+'___010___'+ARITH_OP +'___00000___'+RsC+'__'+RsD+'____'+RsA+'__'+RsB+'__0000000000000000__0000000'
         return error, CODE
 
     @staticmethod
@@ -2028,18 +1935,14 @@ class Instruction():
             jump_cond = 'Z'
         else:
             msg = 'No Recognized Operation in line ' + str(current['LINE'])
-            logger.error('Instruction.WAIT: ' + msg )
-        if (error==0):
-            #TODO: do/print this?
-            current['OP'] = test_op
-            current['UF'] = '1'
-            error, CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
-            if (error==0):
-                binary_multi_list.append(CODE)
-                current['IF'] = jump_cond
-                error, CODE = Instruction.BRANCH(current, '00') ## ADD JUMP INSTRUCTION
-            if (error==0):
-                binary_multi_list.append(CODE)
+            raise RuntimeError('Instruction.WAIT: ' + msg )
+        current['OP'] = test_op
+        current['UF'] = '1'
+        error, CODE = Instruction.CFG(current) ## ADD TEST INSTRUCTION
+        binary_multi_list.append(CODE)
+        current['IF'] = jump_cond
+        error, CODE = Instruction.BRANCH(current, '00') ## ADD JUMP INSTRUCTION
+        binary_multi_list.append(CODE)
         return error, binary_multi_list        
 
     @staticmethod
@@ -2057,9 +1960,7 @@ class Instruction():
         elif (current['C_OP'] == 'port' ) : current['LIT'] = '#h400000'
         elif (current['C_OP'] == 'all'  ) : current['LIT'] = '#h7F0000'
         else:
-            logger.error('Instruction.CLEAR: No Recognized Operation in line ' + str(current['LINE']) )
-        if (error==0):
-            #TODO: do/print this?
-            error, CODE = Instruction.REG_WR(current)
+            raise RuntimeError('Instruction.CLEAR: No Recognized Operation in line ' + str(current['LINE']) )
+        error, CODE = Instruction.REG_WR(current)
         return error, CODE        
 
