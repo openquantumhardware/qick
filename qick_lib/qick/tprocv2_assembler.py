@@ -1037,74 +1037,68 @@ class Assembler():
         error = 0
         CODE = 'x'
         for command in program_list:
-            if ('CMD' in command):
-                if not ('UF' in command):
-                    command['UF'] = '0'
-            ###############################################################################
-                if command['CMD'] == 'NOP':
-                    CODE = '000_000__000__0_0_0_00_00___00000___000000__000000____0_0000000__0_0000000__0000000000000000__0000000'
-            ###############################################################################
-                elif command['CMD'] == 'TEST':
-                    command['UF'] = '1'
-                    error, CODE = Instruction.CFG(command)
-            ###############################################################################
-                elif (command['CMD'] == 'REG_WR'):
-                    error, CODE = Instruction.REG_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'DMEM_WR':
-                    error, CODE = Instruction.DMEM_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'WMEM_WR':
-                    error, CODE = Instruction.WMEM_WR(command)
-            ###############################################################################
-                elif command['CMD']=='TRIG':
-                    error, CODE = Instruction.PORT_WR(command)
-            ###############################################################################
-                elif command['CMD']=='DPORT_WR' or command['CMD'] == 'DPORT_RD' or command['CMD'] == 'WPORT_WR':
-                    error, CODE = Instruction.PORT_WR(command)
-            ###############################################################################
-                elif command['CMD'] == 'JUMP':
-                    error, CODE = Instruction.BRANCH(command, '00')
-            ###############################################################################
-                elif command['CMD'] == 'CALL':
-                    error, CODE = Instruction.BRANCH(command, '10')
-            ###############################################################################
-                elif command['CMD'] == 'RET':
-                    error, CODE = Instruction.BRANCH(command, '11')
-            ###############################################################################
-                elif command['CMD'] == 'TIME' or command['CMD'] == 'FLAG' or command['CMD'] == 'DIV' :
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'NET' or command['CMD'] == 'COM':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'PA' or command['CMD'] == 'PB':
-                    error, CODE = Instruction.CTRL(command)
-            ###############################################################################
-                elif command['CMD'] == 'ARITH':
-                    error, CODE = Instruction.ARITH(command)
-            ###############################################################################
-                elif command['CMD'] == 'CLEAR':
-                    error, CODE = Instruction.CLEAR(command)
-            ###############################################################################
-                elif command['CMD'] == 'WAIT':
-                    error, CODE = Instruction.WAIT(command)
-                else:
-                    logger.error("COMMAND_TRANSLATION: Command Listed but not programmed > " + command['CMD'])
-            else:    
-                logger.error("COMMAND_TRANSLATION: No Command at line " + str(command['LINE']))
+            if 'CMD' not in command:
+                raise RuntimeError("COMMAND_TRANSLATION: No Command at line " + str(command['LINE']))
+            if not ('UF' in command):
+                command['UF'] = '0'
+        ###############################################################################
+            if command['CMD'] == 'NOP':
+                CODE = '000_000__000__0_0_0_00_00___00000___000000__000000____0_0000000__0_0000000__0000000000000000__0000000'
+        ###############################################################################
+            elif command['CMD'] == 'TEST':
+                command['UF'] = '1'
+                error, CODE = Instruction.CFG(command)
+        ###############################################################################
+            elif (command['CMD'] == 'REG_WR'):
+                error, CODE = Instruction.REG_WR(command)
+        ###############################################################################
+            elif command['CMD'] == 'DMEM_WR':
+                error, CODE = Instruction.DMEM_WR(command)
+        ###############################################################################
+            elif command['CMD'] == 'WMEM_WR':
+                error, CODE = Instruction.WMEM_WR(command)
+        ###############################################################################
+            elif command['CMD']=='TRIG':
+                error, CODE = Instruction.PORT_WR(command)
+        ###############################################################################
+            elif command['CMD'] in ['DPORT_WR', 'DPORT_RD', 'WPORT_WR']:
+                error, CODE = Instruction.PORT_WR(command)
+        ###############################################################################
+            elif command['CMD'] == 'JUMP':
+                error, CODE = Instruction.BRANCH(command, '00')
+        ###############################################################################
+            elif command['CMD'] == 'CALL':
+                error, CODE = Instruction.BRANCH(command, '10')
+        ###############################################################################
+            elif command['CMD'] == 'RET':
+                error, CODE = Instruction.BRANCH(command, '11')
+        ###############################################################################
+            elif command['CMD'] in ['TIME', 'FLAG', 'DIV']:
+                error, CODE = Instruction.CTRL(command)
+        ###############################################################################
+            elif command['CMD'] in ['NET', 'COM']:
+                error, CODE = Instruction.CTRL(command)
+        ###############################################################################
+            elif command['CMD'] in ['PA', 'PB']:
+                error, CODE = Instruction.CTRL(command)
+        ###############################################################################
+            elif command['CMD'] == 'ARITH':
+                error, CODE = Instruction.ARITH(command)
+        ###############################################################################
+            elif command['CMD'] == 'CLEAR':
+                error, CODE = Instruction.CLEAR(command)
+        ###############################################################################
+            elif command['CMD'] == 'WAIT':
+                error, CODE = Instruction.WAIT(command)
+            else:
+                raise RuntimeError("COMMAND_TRANSLATION: Command Listed but not programmed > " + command['CMD'])
         ###################################################################################
             length = CODE.count('0') + CODE.count('1')
             if (length != 72):
                 if (command['CMD'] == 'WAIT'):
                     logger.info('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
                 else:
-                    error = 72
-                    logger.error(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
-                    return [[],[]]
-            if (error):
-                #TODO: do this?
-                return [[],[]]
+                    raise RuntimeError(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
             if (command['CMD'] == 'WAIT'):
                 binary_program_list.extend(CODE)
             else:
@@ -1137,15 +1131,13 @@ class Assembler():
         
         """
         program_list, label_dict = Assembler.file_asm2list(filename)
-        if program_list:
-            binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
-            if binary_program_list == []:
-                binary_program_list = [[],[]]
-        else:
+        if not program_list:
+            raise RuntimeError("ASM2BIN: Program list with errors.")
+        binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
+        if binary_program_list == []:
             binary_program_list = [[],[]]
-            logger.error("ASM2BIN: Program list with errors.")
-        
         return binary_program_list
+
     def str_asm2bin(str_asm : str, save_unparsed_filename : str = "") -> list:
         """  get STR with assembler and returns the binary
         
@@ -1154,12 +1146,11 @@ class Assembler():
         
         """
         program_list, label_dict = Assembler.str_asm2list(str_asm)
-        if program_list:
-            binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
-        else:
-            binary_program_list = [[],[]]
-            logger.error("ASM2BIN: Program list with errors.")
+        if not program_list:
+            raise RuntimeError("ASM2BIN: Program list with errors.")
+        binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
         return binary_program_list
+
 ###############################################################################
 ## BASIC COMANDS
 ###############################################################################
@@ -1170,10 +1161,9 @@ class Instruction():
         error = 0
         cond = ''
         if ('IF' in command ):
-            if command['IF'] in condList:
-                cond = condList[command['IF']]
-            else:
-                logger.error('Parameter.IF: Posible CONDITIONS are (' + ', '.join(list(condList.keys())) + ') in instruction ' + str(command['LINE']) )
+            if command['IF'] not in condList:
+                raise RuntimeError('Parameter.IF: Posible CONDITIONS are (' + ', '.join(list(condList.keys())) + ') in instruction ' + str(command['LINE']) )
+            cond = condList[command['IF']]
         else: 
             cond = '000'
         return error, cond
@@ -1188,25 +1178,20 @@ class Instruction():
             regex_inside_parenthesis = r'\s*([\w]+)'
             DEST_SOURCE = re.findall(regex_inside_parenthesis, command['WR'])
             #### SOURCE
-            if (len(DEST_SOURCE) == 2):
-                if (DEST_SOURCE[1] == 'op'):
-                    if ('OP' in command ):
-                        Rdi    = '0'
-                    else:
-                        logger.error('Parameter.WR: Operation < -op() > option not found in instruction ' + str(command['LINE']) )
-                elif (DEST_SOURCE[1] == 'imm'):
-                    if ('LIT' in command ):
-                        Rdi    = '1'
-                    else:
-                        logger.error('Parameter.WR: Literal Value not found in instruction ' + str(command['LINE']) )
-                else:
-                    logger.error('Parameter.WR: Posible Source Dest for <-wr(reg source)> are (op, imm) in instruction ' + str(command['LINE']) )
+            if len(DEST_SOURCE) != 2:
+                raise RuntimeError('Parameter.WR: Write Register error <-wr(reg source) in instruction ' + str(command['LINE']) )
+            if (DEST_SOURCE[1] == 'op'):
+                if 'OP' not in command :
+                    raise RuntimeError('Parameter.WR: Operation < -op() > option not found in instruction ' + str(command['LINE']) )
+                Rdi    = '0'
+            elif (DEST_SOURCE[1] == 'imm'):
+                if 'LIT' not in command:
+                    raise RuntimeError('Parameter.WR: Literal Value not found in instruction ' + str(command['LINE']) )
+                Rdi    = '1'
             else:
-                logger.error('Parameter.WR: Write Register error <-wr(reg source) in instruction ' + str(command['LINE']) )
+                raise RuntimeError('Parameter.WR: Posible Source Dest for <-wr(reg source)> are (op, imm) in instruction ' + str(command['LINE']) )
             #### DESTINATION REGISTER
-            if (error==0):
-                #TODO: do this?
-                error, RD = get_reg_addr (DEST_SOURCE [0], 'Dest')
+            error, RD = get_reg_addr (DEST_SOURCE [0], 'Dest')
         return error, Wr, Rdi, RD
 
     @staticmethod
@@ -1217,17 +1202,16 @@ class Instruction():
         Dp='000000'
         if ('WP' in command ):
             #### DESTINATION PORT
-            if ('PORT' in command):
-                Wp='1'
-                Dp = integer2bin(command['PORT'], 6)
-                if (command['WP'] == 'r_wave'):
-                    Sp = '1'
-                elif (command['WP'] == 'wmem'):
-                    Sp = '0'
-                else:
-                    logger.error('Parameter.WP: Source Wave Port not recognized (wreg, r_wave) ' + str(command['LINE']) )
+            if 'PORT' not in command:
+                raise RuntimeError('Parameter.WP: Port Address not recognized < pX > ' + str(command['LINE']) )
+            Wp='1'
+            Dp = integer2bin(command['PORT'], 6)
+            if (command['WP'] == 'r_wave'):
+                Sp = '1'
+            elif (command['WP'] == 'wmem'):
+                Sp = '0'
             else:
-                logger.error('Parameter.WP: Port Address not recognized < pX > ' + str(command['LINE']) )
+                raise RuntimeError('Parameter.WP: Source Wave Port not recognized (wreg, r_wave) ' + str(command['LINE']) )
         return error, Wp, Sp, Dp
 
     @staticmethod        
@@ -1246,116 +1230,98 @@ class Instruction():
                 rsD1         = '0_0000000'
                 if FULL:                    alu_op  = '0000' # REG_WR rd op -op(rs)
                 else:                       alu_op  = '00'   # -wr(rd op) -op(rs)
-                if (error==0):
-                    #TODO: do this?
-                    if ('LIT' in command):      error, DataImm = get_imm_dt (command ['LIT'], 16)
-                    else:                       DataImm = '_0000000000000000'
-                if (error==0):
-                    #TODO: do this?
-                    if   (src_type[0]=='R'):    error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
-                    else:                       logger.error('Parameter.SRC: Operand can not be a Literal.')
+
+                if ('LIT' in command):      error, DataImm = get_imm_dt (command ['LIT'], 16)
+                else:                       DataImm = '_0000000000000000'
+
+                if src_type[0]!='R':
+                    raise RuntimeError('Parameter.SRC: Operand can not be a Literal.')
+
+                error, rsD0 = get_reg_addr(cmd_op[0], 'src_data')
             
             elif (len(cmd_op)==2 ) :
                 #print('LEN 2 >',cmd_op)
                 operation = cmd_op[0]
                 error, src_type = get_src_type(cmd_op[1])
                 #print('src_type[1] > ', src_type)
-                if (FULL):
-                    if (operation in aluList_op) : #ALU LIST ONE PARAMETER
-                        df          = '10'
-                        alu_op      = aluList[operation]
-                        DataImm     = '__000000000000000000000000'
-                        if   (src_type[0]=='R'): 
-                            error, rsD0    = get_reg_addr(cmd_op[1], 'src_data')
-                        else:                    
-                            logger.error('Parameter.SRC: Operand can not be a Literal.')
-                    else:
-                        logger.error('Parameter.SRC: Operation Not Recognized > ' + str(command['OP']) )
-                    ## ABS Should be on rsD1
-                    if (error==0):
-                        if (operation == 'ABS') :
-                            df        = '01'
-                            rsD1      = rsD0
-                            rsD0      = '0_0000000'
-                            DataImm   = '_0000000000000000'
-                    else:
-                        #TODO: this should get printed?
-                        logger.error('Parameter.SRC: 1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
-                else:
-                    logger.error('Parameter.SRC: 1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) ) 
+                if not FULL:
+                    raise RuntimeError('Parameter.SRC: 1-FULL Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) )
+                if operation not in aluList_op: #ALU LIST ONE PARAMETER
+                    raise RuntimeError('Parameter.SRC: Operation Not Recognized > ' + str(command['OP']) )
+                df          = '10'
+                alu_op      = aluList[operation]
+                DataImm     = '__000000000000000000000000'
+                if src_type[0]!='R':
+                    raise RuntimeError('Parameter.SRC: Operand can not be a Literal.')
+                error, rsD0    = get_reg_addr(cmd_op[1], 'src_data')
+                ## ABS Should be on rsD1
+                if (operation == 'ABS') :
+                    df        = '01'
+                    rsD1      = rsD0
+                    rsD0      = '0_0000000'
+                    DataImm   = '_0000000000000000'
+                #if (error!=0):
+                #    raise RuntimeError('Parameter.SRC: 1-Operation Not Allowed > ' + str(command['OP']) +' in instruction ' + str(command['LINE']) )
 
             elif (len(cmd_op)==3 ) :
                 #print('LEN 3 >',cmd_op)
                 ## CHECK FOR FIRST OPERAND (ALU_IN_A > rsD0)
                 error, src_type = get_src_type(cmd_op[0])
                 #print('First Operand >',src_type, cmd_op[0])
-                if   (src_type[0]=='R'): 
-                    error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
-                else:                    
-                    logger.error('Parameter.SRC: First Operand can not be a Literal.')
+                if src_type[0]!='R':
+                    raise RuntimeError('Parameter.SRC: First Operand can not be a Literal.')
+                error, rsD0    = get_reg_addr(cmd_op[0], 'src_data')
                 ## CHECK FOR SECOND OPERAND (ALU_IN_B > Imm|rsD1)
-                if (error==0):
-                    #TODO: do this?
-                    error, src_type = get_src_type(cmd_op[2])
-                    #print('Second Operand >',src_type, cmd_op[2])
-                    if   (src_type[0]=='R'): ## REG OP REG
-                        df             = '01'
-                        error, rsD1    = get_reg_addr(cmd_op[2], 'src_data')
-                        ## Literal for Second Data Task -wr(rd imm)
-                        if ('LIT' in command):
-                                error, DataImm = get_imm_dt (command['LIT'], 16)
-                        else:
-                            DataImm = '_0000000000000000'
-                    elif (src_type[0]=='N'): ## is Number
-                        error, DataImm = get_imm_dt (cmd_op[2], 24)
-                        if (error): 
-                            logger.error('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) ) 
-                        else:
-                            if ( (cmd_op[1] == 'SR') or (cmd_op[1] == 'SL') or (cmd_op[1] == 'ASR') ):
-                                error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
-                                if (error == 0 ): 
-                                    if (lit_val > 15): 
-                                        logger.error('Parameter.SRC: Max Shift is 15 in instruction ' + str(command['LINE']) ) 
-                                else:
-                                    logger.error('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) ) 
-                        if (error == 0 ): 
-                            df             = '10'
-                            DataImm  = '_'+DataImm 
+                error, src_type = get_src_type(cmd_op[2])
+                #print('Second Operand >',src_type, cmd_op[2])
+                if src_type[0]=='R': ## REG OP REG
+                    df             = '01'
+                    error, rsD1    = get_reg_addr(cmd_op[2], 'src_data')
+                    ## Literal for Second Data Task -wr(rd imm)
+                    if ('LIT' in command):
+                        error, DataImm = get_imm_dt (command['LIT'], 16)
+                    else:
+                        DataImm = '_0000000000000000'
+                elif src_type[0]=='N': ## is Number
+                    error, DataImm = get_imm_dt (cmd_op[2], 24)
+                    #if (error):
+                    #    raise RuntimeError('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) )
+                    if cmd_op[1] in ['SR', 'SL', 'ASR']:
+                        error, lit_val = get_imm_dt (cmd_op[2], 24, 1)
+                        if (lit_val > 15):
+                            raise RuntimeError('Parameter.SRC: Max Shift is 15 in instruction ' + str(command['LINE']) )
+                        #if (error):
+                        #    raise RuntimeError('Parameter.SRC: Literal Value error in instruction ' + str(command['LINE']) )
+                    df             = '10'
+                    DataImm  = '_'+DataImm
 
                 ## CHECK FOR OPERATION
-                if (error==0):
-                    #TODO: do this?
-                    operation = cmd_op[1]
-                    if (FULL):
-                        if operation in aluList:
-                            alu_op      = aluList[ operation ]
-                        else:
-                            logger.error('Parameter.SRC: ALU {Full List} Operation Not Recognized in instruction ' + str(command['LINE']) )
-                    else:
-                        if operation in aluList_s:
-                            alu_op      = aluList_s[ operation ]
-                        else:
-                            logger.error('Parameter.SRC: ALU {Reduced List} Operation Not Recognized in instruction ' + str(command['LINE']) )
+                operation = cmd_op[1]
+                if (FULL):
+                    if operation not in aluList:
+                        raise RuntimeError('Parameter.SRC: ALU {Full List} Operation Not Recognized in instruction ' + str(command['LINE']) )
+                    alu_op      = aluList[ operation ]
+                else:
+                    if operation not in aluList_s:
+                        raise RuntimeError('Parameter.SRC: ALU {Reduced List} Operation Not Recognized in instruction ' + str(command['LINE']) )
+                    alu_op      = aluList_s[ operation ]
         ## LITERAL and NO OP
         elif ('LIT' in command): 
             df = '11'
             alu_op  = '00'
             error, DataImm = get_imm_dt (command['LIT'], 32)
-            if (error==0):
-                #TODO: do this?
-                DataImm  = '__'+DataImm 
+            DataImm  = '__'+DataImm
         else:
             df      = '11'
             alu_op  = '00'
             DataImm = '___00000000000000000000000000000000'
-        
-        if (error==0):
-            Data_Source = rsD0 +'__'+ rsD1 +'_'+ DataImm
-            return error, Data_Source, alu_op, df
-        else:
-            #TODO: print this?
-            logger.error('Parameter.SRC: Error in line ' + str(command['LINE']) )
-            return error, 'X', 'X', 'X'
+
+        #if (error):
+        #    raise RuntimeError('Parameter.SRC: Error in line ' + str(command['LINE']) )
+        #    return error, 'X', 'X', 'X'
+        Data_Source = rsD0 +'__'+ rsD1 +'_'+ DataImm
+        return error, Data_Source, alu_op, df
+
     @staticmethod
     def __PROCESS_MEM_ADDR (ADDR_CMD : str) -> tuple:
         error = 0
@@ -1374,33 +1340,28 @@ class Instruction():
                 rsA0     = '___'+ integer2bin(param_op[0][2], 11)
                 AI = '1'
             else:
-                logger.error('Parameter.MEM_ADDR: First Operand not recognized.')
+                raise RuntimeError('Parameter.MEM_ADDR: First Operand not recognized.')
         elif (len(param_op)==3 ) :
             ## CHECK FOR FIRST OPERAND
             if (param_op[0][0]): ## is SREG
-                rsA1     = '0'+integer2bin(param_op[0][0], 5)     
+                rsA1     = '0'+integer2bin(param_op[0][0], 5)
             elif (param_op[0][1]): ## is DREG
-                rsA1     = '1' + integer2bin(param_op[0][1], 5)     
+                rsA1     = '1' + integer2bin(param_op[0][1], 5)
             elif (param_op[0][2]): ## is Literal
-                logger.error('Parameter.MEM_ADDR: First Operand can not be a Literal.')    
-            ## CHECK FOR SECOND OPERAND 
-            if (error == 0):
-                #TODO: do this?
-                if (param_op[2][0]): ## is SREG
-                    rsA0     = '00000___0' + integer2bin(param_op[2][0], 5)     
-                elif (param_op[2][1]): ## is DREG
-                    rsA0     = '00000___1' + integer2bin(param_op[2][1], 5)     
-                elif (param_op[2][2]): ## is Literal
-                    rsA0     = '___'+ integer2bin(param_op[2][2], 11)     
-                    AI = '1'
+                raise RuntimeError('Parameter.MEM_ADDR: First Operand can not be a Literal.')
+            ## CHECK FOR SECOND OPERAND
+            if (param_op[2][0]): ## is SREG
+                rsA0     = '00000___0' + integer2bin(param_op[2][0], 5)
+            elif (param_op[2][1]): ## is DREG
+                rsA0     = '00000___1' + integer2bin(param_op[2][1], 5)
+            elif (param_op[2][2]): ## is Literal
+                rsA0     = '___'+ integer2bin(param_op[2][2], 11)
+                AI = '1'
             ## CHECK FOR PLUS
-            if (error == 0):
-                #TODO: do this?
-                if (param_op[1][3]) != '+': ## is R_Reg
-                    logger.error('Parameter.MEM_ADDR: Address Operand should be < + >.')    
+            if param_op[1][3] != '+': ## is R_Reg
+                raise RuntimeError('Parameter.MEM_ADDR: Address Operand should be < + >.')
         else:
-            print(ADDR_CMD)
-            logger.error('Parameter.MEM_ADDR: Address format error, should be Data Register(r) or Literal(&)')
+            raise RuntimeError('Parameter.MEM_ADDR: Address format error, should be Data Register(r) or Literal(&): '+ADDR_CMD)
         return error, rsA0, rsA1, AI
 
 
@@ -1413,113 +1374,87 @@ class Instruction():
         ######### CONDITIONAL
         error, COND = Instruction.__PROCESS_CONDITION(current)
         ######### SOURCES
-        if (error==0):
-            #TODO: do this?
-            #### SOURCE ALU
-            if (current ['SRC'] == 'op'):
-                if ('OP' in current ):
-                    error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE (current)
-                    CFG   = '00__' + current ['UF'] + '__'+ alu_op 
-                    ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
-                else:
-                    logger.error('Instruction.REG_WR: No < -op() > for Operation Writting in instruction ' + str(current['LINE']))
-            #### SOURCE IMM
-            elif (current ['SRC'] == 'imm'):
-                #### Get Data Source
-                if ('LIT' in current ):
-                    error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-                    CFG = '11__' + current ['UF'] + '_00_' + alu_op
-                    ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
-                else:
-                    logger.error('Instruction.REG_WR: No Literal value for immediate Assignation (#) in instruction ' + str(current['LINE']) )
-            #### SOURCE LABEL
-            elif (current ['SRC'] == 'label'):
-                #### Get Data Source
-                if ('ADDR' in current):
-                    comp_addr = "&(\d+)"
-                    address = re.findall(comp_addr, current['ADDR'])
-                    current['LIT'] = current['ADDR']
-                    if (address[0]): # LITERAL
-                        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-                        ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
-                        CFG = '11__' + current ['UF'] + '_00_00'
-                    else:
-                        logger.error('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
-                else:
-                    logger.error('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
-            #### SOURCE DATA MEMORY
-            elif (current ['SRC'] == 'dmem'):
+        #### SOURCE ALU
+        if (current ['SRC'] == 'op'):
+            if 'OP' not in current:
+                raise RuntimeError('Instruction.REG_WR: No < -op() > for Operation Writting in instruction ' + str(current['LINE']))
+            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE (current)
+            CFG   = '00__' + current ['UF'] + '__'+ alu_op
+            ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
+        #### SOURCE IMM
+        elif (current ['SRC'] == 'imm'):
+            #### Get Data Source
+            if 'LIT' not in current:
+                raise RuntimeError('Instruction.REG_WR: No Literal value for immediate Assignation (#) in instruction ' + str(current['LINE']) )
+            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+            CFG = '11__' + current ['UF'] + '_00_' + alu_op
+            ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
+        #### SOURCE LABEL
+        elif (current ['SRC'] == 'label'):
+            #### Get Data Source
+            if 'ADDR' not in current:
+                raise RuntimeError('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
+            comp_addr = "&(\d+)"
+            address = re.findall(comp_addr, current['ADDR'])
+            current['LIT'] = current['ADDR']
+            if not address[0]: # LITERAL
+                raise RuntimeError('Instruction.REG_WR: Address error in line ' + str(current['LINE']) )
+            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+            ADDR  = '___00000000000__000000' # 17 Bits 11 + 6
+            CFG = '11__' + current ['UF'] + '_00_00'
+        #### SOURCE DATA MEMORY
+        elif (current ['SRC'] == 'dmem'):
+            #### Get Data Source
+            error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
+            CFG = '01__' + current ['UF'] + '_00_' + alu_op
+            #### Get ADDRESS
+            if 'ADDR' not in current:
+                raise RuntimeError('Instruction.REG_WR: No Address for dmem in line ' + str(current['LINE']) )
+            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+            ADDR  = rsA0 + '__' + rsA1
+            CFG = '01__' + current ['UF'] + '_00_'+alu_op
+        #### SOURCE WAVE MEM
+        elif (current ['SRC'] == 'wmem'):
+                if (COND != '000'):
+                    raise RuntimeError('Instruction.REG_WR: Wave Register Write is not conditional < -if() >  in instruction ' + str(current['LINE']) )
+                WW = WP = '0'
+                if ('WW' in current):
+                    WW = '1'
+                #### WRITE PORT
+                error, WP, Sp, RdP = Instruction.__PROCESS_WP(current)
+                COND = WW + Sp + WP
+                #### WRITE REGISTER
+                Wr = Rdi = '0'
+                error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
                 #### Get Data Source
                 error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-                CFG = '01__' + current ['UF'] + '_00_' + alu_op
                 #### Get ADDRESS
-                if error == 0:
-                    #TODO: do this?
-                    if ('ADDR' in current):
-                        error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                        ADDR  = rsA0 + '__' + rsA1
-                        CFG = '01__' + current ['UF'] + '_00_'+alu_op
-                    else:
-                        logger.error('Instruction.REG_WR: No Address for dmem in line ' + str(current['LINE']) )
-            #### SOURCE WAVE MEM
-            elif (current ['SRC'] == 'wmem'):
-                    if (COND != '000'):
-                        logger.error('Instruction.REG_WR: Wave Register Write is not conditional < -if() >  in instruction ' + str(current['LINE']) )
-                    else:
-                        WW = WP = '0'
-                        if ('WW' in current):
-                            WW = '1'
-                        #### WRITE PORT
-                        error, WP, Sp, RdP = Instruction.__PROCESS_WP(current)
-                        COND = WW + Sp + WP    
-                    #### WRITE REGISTER
-                    if (error==0):
-                        #TODO: do this?
-                        Wr = Rdi = '0'
-                        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
-                    #### Get Data Source
-                    if (error==0):
-                        #TODO: do this?
-                        error, DATA, alu_op, DF = Instruction.__PROCESS_SOURCE(current)
-                    #### Get ADDRESS
-                    if error == 0:
-                        #TODO: do this?
-                        if ('ADDR' in current):
-                            error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
-                            if (rsA1 != '000000'):
-                                logger.error('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in instruction ' + str(current['LINE']) )                    
-                            ADDR  = rsA0 + '__' + RdP
-                        else:
-                            logger.error('Instruction.REG_WR: No addres for <wmem> source in instruction ' + str(current['LINE']) )
-            else:
-                logger.error('Instruction.REG_WR: Posible REG_WR sources are (op, imm, dmem, wmem, label ) in instruction ' + str(current['LINE']) )
-
-            ######### DESTINATION REGISTER
-            if (error==0):
-                #TODO: do this?
-                if (current ['SRC'] == 'wmem'):
-                    if (current ['DST'] != 'w0'):
-                        Wr = Rdi = '0'
-                        error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
-                        CFG = '10__' + current ['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
-                    
-                    else:
-                        logger.error('Instruction.REG_WR: Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
-                elif ( (current ['SRC'] == 'label') and () ):
-                    if (RD!='15'):
-                        logger.warning('Instruction.REG_WR: Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
-                else:
-                    comp_OP_PARAM = "^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
-                    RD    = re.findall(comp_OP_PARAM, current ['DST'])
-                    if (RD):
-                        error, RD = get_reg_addr (current ['DST'], 'Dest')
-                    else:
-                        logger.error('Instruction.REG_WR: Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
-        if (error==0):
-            #TODO: do this?
-            CODE  = '100_' + AI + DF +'__'+ COND +'__'+ CFG +'___'+ADDR+'____'+DATA + '__' + RD
+                if 'ADDR' not in current:
+                    raise RuntimeError('Instruction.REG_WR: No addres for <wmem> source in instruction ' + str(current['LINE']) )
+                error, rsA0, rsA1, AI = Instruction.__PROCESS_MEM_ADDR (current ['ADDR'])
+                if rsA1 != '000000':
+                    raise RuntimeError('Instruction.REG_WR: Wave Memory Addres Error Source Should be LIT or Reg in instruction ' + str(current['LINE']) )
+                ADDR  = rsA0 + '__' + RdP
         else:
-            CODE = 'X'
+            raise RuntimeError('Instruction.REG_WR: Posible REG_WR sources are (op, imm, dmem, wmem, label ) in instruction ' + str(current['LINE']) )
+
+        ######### DESTINATION REGISTER
+        if (current ['SRC'] == 'wmem'):
+            if current ['DST'] == 'w0':
+                raise RuntimeError('Instruction.REG_WR: Wave Memory Source Should have a Wave Register <r_wave> Destination ' + str(current['LINE']) )
+            Wr = Rdi = '0'
+            error, Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
+            CFG = '10__' + current ['UF'] +'_'+ Wr + Rdi +'_'+ alu_op
+        elif ( (current ['SRC'] == 'label') and () ):
+            if (RD!='15'):
+                logger.warning('Instruction.REG_WR: Register used to BRANCH should be s15 in instruction ' + str(current['LINE']) )
+        else:
+            comp_OP_PARAM = "^s(\d+)|^r(\d+)|^w(\d+)|(r_wave)"
+            RD    = re.findall(comp_OP_PARAM, current ['DST'])
+            if not RD:
+                raise RuntimeError('Instruction.REG_WR: Destination Register '+current ['DST']+' not Recognized in instruction ' + str(current['LINE']) )
+            error, RD = get_reg_addr (current ['DST'], 'Dest')
+        CODE  = '100_' + AI + DF +'__'+ COND +'__'+ CFG +'___'+ADDR+'____'+DATA + '__' + RD
         return error, CODE
     
     @staticmethod
