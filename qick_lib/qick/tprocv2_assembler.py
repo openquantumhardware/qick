@@ -726,334 +726,289 @@ class Assembler():
                             command_nop['CMD']    = 'NOP'
                             program_list.append(command_nop)
                 elif (instruction):
-                    if ( instruction in instList.keys() ) :
-                        mem_addr += 1            
-                        command_info['P_ADDR'] = mem_addr
-                        # CHECK for Literal Values
-                        ###############################################################
-                        LIT      = re.findall(regex['LIT'], command)
-                        if (LIT and len(LIT) == 2 and LIT[0] != LIT[1]):
-                            logger.error('COMMAND_RECOGNITION: Literals not equals in Line ' + str(line_number))
-                        
-                        # CHANGE ALIAS 
-                        ###############################################################
-                        cmd_words = re.split(' |\(|\)|\[|\]', command)
-                        for key in Alias_List:
-                            CHANGE = find_pattern(key, command)
-                            if (key in cmd_words):
-                                command = command.replace(CHANGE, Alias_List[key]) if CHANGE else command
-                        
-                        # Extract PARAMETERS
-                        ###############################################################
-                        if (error == 0):
-                            #TODO: this should get printed?
-                            command_info['LINE'] = line_number # Stores Line Number for ERROR Messages
-                            for key in Param_List:
-                                PARAM = re.findall(Param_List[key]['RegEx'], command)
-                                if PARAM:
-                                    if (len(PARAM) >1):
-                                        logger.error('COMMAND_RECOGNITION: Duplicated Parameter ' + key +' in line '+str(line_number))
-                                    command_info[key] = PARAM[0].strip()
-                                    aux  = Param_List[key]['RL'] + PARAM[0] + Param_List[key]['RR']
-                                    command = command.replace(aux, '')
-                        # COMMANDS PARAMETERS CHECK
-                        ###############################################################
-                        if (error == 0):
-                            #TODO: this should get printed?
-                            CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
-                            ## SINGLE PARAMETERS CHECK
-                            ###########################################################
-                            if ('OP' in command_info):
-                                comp_OP_PARAM = "#b(\d+)"
-                                param_op = re.findall(comp_OP_PARAM, command_info['OP'])
-                                if param_op:
-                                    try:
-                                        str(int(param_op[0],2))
-                                    except ValueError:
-                                        logger.error("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
-                            if ('LIT' in command_info) :
-                                # Remove underscores
-                                command_info['LIT'] = command_info['LIT'].replace('_','')
-                                # Check if Binary OK
-                                if (command_info['LIT'][0] == 'b'):
-                                    try:
-                                        command_info['LIT'] = str(int(command_info['LIT'][1:],2))
-                                    except ValueError:
-                                        logger.error("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
-                                command_info['LIT'] = '#' + command_info['LIT']
-                            ###########################################################
-                            if ('TIME' in command_info) :
-                                command_info['TIME'] = '@' + command_info['TIME']
-                            ###########################################################
-                            if ('WW' in command_info) :
-                                command_info['WW'] = '1'
-                            ###########################################################
-                            if ('UF' in command_info) :
-                                command_info['UF'] = '1'
-                                if not('OP' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: No Operation < -op() > set for Flag Update < -uf > in Line " + str(line_number))
-
-                            ## COMMAND VERIFICATION
-                            ###########################################################
-                            if (CMD_DEST_SOURCE[0] == 'REG_WR'):
-                                if (len(CMD_DEST_SOURCE) > 2):
-                                    if (CMD_DEST_SOURCE[1] == 'r_wave'):
-                                        if ('TIME' in command_info):
-                                            logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
-                                    else:
-                                        if ('WP' in command_info):
-                                            logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
-                                        if ('WR' in command_info):
-                                            logger.error("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
-                                        if ('WW' in command_info):
-                                            logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
-                                        if ('TIME' in command_info):
-                                            logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
-                                else:
-                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Not enough parameters in Line " + str(line_number))
-
-
-                            if ( (CMD_DEST_SOURCE[0] == 'NOP')  or (CMD_DEST_SOURCE[0] == 'TEST') or (CMD_DEST_SOURCE[0] == 'RET') \
-                              or (CMD_DEST_SOURCE[0] == 'TIME') or (CMD_DEST_SOURCE[0] == 'FLAG') or (CMD_DEST_SOURCE[0] == 'ARITH') \
-                              or (CMD_DEST_SOURCE[0] == 'DIV')  or (CMD_DEST_SOURCE[0] == 'NET')  or (CMD_DEST_SOURCE[0] == 'COM')  \
-                              or (CMD_DEST_SOURCE[0] == 'PA')   or (CMD_DEST_SOURCE[0] == 'PB') ) :
-                                if ('WP' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
-                                if ('WR' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
-                                if ('WW' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
-                                if ('TIME' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
-                            ###########################################################
-                            if ( (CMD_DEST_SOURCE[0] == 'JUMP')   or (CMD_DEST_SOURCE[0] == 'CALL') ):
-                                if ('WP' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
-                                if ('WW' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
-                                if ('TIME' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
-
-
-                            elif (CMD_DEST_SOURCE[0] == 'DMEM_WR'):
-                                if ('WP' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
-                                if ('WW' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
-                                if ('TIME' in command_info):
-                                    logger.error("COMMAND_RECOGNITION: DMEM_WR is NOT a timed intruction < -@Time > in Line " + str(line_number))
-                                if ( not('ADDR' in command_info) ):
-                                    logger.error("COMMAND_RECOGNITION: Memory Address < [] > not set in Line " + str(line_number))
-
-                            ###########################################################
-                            elif (CMD_DEST_SOURCE[0] == 'WMEM_WR'):
-                                if ('TIME' in command_info) :
-                                    if ('WR' in command_info) :
-                                        logger.error("COMMAND_RECOGNITION: Not allowed SDI with Literal Time in Line " + str(line_number))
-                                    if ('OP' in command_info) :
-                                        logger.error("COMMAND_RECOGNITION: Not allowed ALU Operation Operation with Literal Time in Line " + str(line_number))
-                                if ( ('WP' in command_info) and not('PORT' in command_info) ):
-                                    logger.error("COMMAND_RECOGNITION: No Port Address < -p() > in Line " + str(line_number))
-                            ###########################################################
-                            elif (CMD_DEST_SOURCE[0] =='DPORT_WR') or (CMD_DEST_SOURCE[0] =='WPORT_WR') \
-                            or (CMD_DEST_SOURCE[0] =='TRIG') :
-                                if ( not('PORT' in command_info) ):
-                                    logger.error("COMMAND_RECOGNITION: No port in PORT_WR Instruction in line " + str(line_number))
-
-
-                        # GET COMMAND DESTINATION SOURCE
-                        ###############################################################
-                        if (error == 0):
-                            #TODO: this should get printed?
-                            CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
-                            command_info['CMD'] = CMD_DEST_SOURCE[0]
-                            ###############################################################################
-                            ## MORE THAN ONE SOURCE
-                            if ( len(CMD_DEST_SOURCE) > 3) :
-                                if  (CMD_DEST_SOURCE[0] == 'ARITH'  or CMD_DEST_SOURCE[0] =='NET') \
-                                 or (CMD_DEST_SOURCE[0] =='PA' or CMD_DEST_SOURCE[0] =='PB') :
-                                    command_info['C_OP']  = CMD_DEST_SOURCE[1]
-                                    command_info['R1']    = CMD_DEST_SOURCE[2]
-                                    command_info['R2']    = CMD_DEST_SOURCE[3]
-                                    if ( len(CMD_DEST_SOURCE) > 4) :
-                                        command_info['R3'] = CMD_DEST_SOURCE[4]
-                                    if ( len(CMD_DEST_SOURCE) > 5) :
-                                        command_info['R4'] = CMD_DEST_SOURCE[5]
-                                        if  (CMD_DEST_SOURCE[0] == 'NET') :
-                                            logger.error('COMMAND_RECOGNITION: NET command max 3 Registers in line ' + str(line_number) )
-                                    if ( len(CMD_DEST_SOURCE) > 6) :
-                                        logger.error('COMMAND_RECOGNITION: ' + CMD_DEST_SOURCE[0]+' Command max 4 Registers in line ' + str(line_number) )
-                                
-                                elif (CMD_DEST_SOURCE[0] == 'REG_WR') and (CMD_DEST_SOURCE[2] == 'label' ) :
-                                    command_info['DST'] = CMD_DEST_SOURCE[1]
-                                    command_info['SRC'] = CMD_DEST_SOURCE[2]
-                                    if (CMD_DEST_SOURCE[3] in label_dict ) :
-                                        command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[3]]
-                                        logger.info('COMMAND_RECOGNITION: REG_WR command source label: '+CMD_DEST_SOURCE[3] +' replaced by value ' + command_info['ADDR'] + '  in line ' + str(line_number))
-                                    else:
-                                        logger.error('COMMAND_RECOGNITION: Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
-                                else:
-                                    logger.error("COMMAND_RECOGNITION: [>3] Parameter Error in line " + str(line_number) )
-                                    
-                            ###############################################################################
-                            ## ONLY ONE SOURCE / DEST
-                            elif ( len(CMD_DEST_SOURCE) == 3) :
-                                if (CMD_DEST_SOURCE[0] == 'REG_WR'):
-                                    if (CMD_DEST_SOURCE[2] == 'label' ) :
-                                        logger.error("COMMAND_RECOGNITION: Missing label in line " + str(line_number))
-                                    else:
-                                        command_info['DST'] = CMD_DEST_SOURCE[1]
-                                        command_info['SRC'] = CMD_DEST_SOURCE[2]
-                                elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
-                                    if ( int(command_info['PORT'])  > 3):
-                                        logger.error("COMMAND_RECOGNITION: Data Port MAX port number is p3 in line " + str(line_number))
-                                    else:
-                                        command_info['DST'] = command_info['PORT']
-                                        command_info.pop('PORT') 
-                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    command_info['DATA'] = CMD_DEST_SOURCE[2]        
-                                elif (CMD_DEST_SOURCE[0] =='COM' or CMD_DEST_SOURCE[0] == 'TIME' or CMD_DEST_SOURCE[0] == 'NET') \
-                                 or (CMD_DEST_SOURCE[0] =='PA' or CMD_DEST_SOURCE[0] =='PB') :
-                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                    command_info['R1'] = CMD_DEST_SOURCE[2]     
-                                elif (CMD_DEST_SOURCE[0] == 'DIV') :
-                                    command_info['NUM'] = CMD_DEST_SOURCE[1]
-                                    command_info['DEN'] = CMD_DEST_SOURCE[2]        
-                                else:
-                                    logger.error("COMMAND_RECOGNITION: [3] Parameter Error in line " + str(line_number) )
-                            ###############################################################################
-                            ## NO SOURCE OR -- SOURCE IN EXTRACTED PARAMETER
-                            elif ( len(CMD_DEST_SOURCE) == 2) :
-                                if (CMD_DEST_SOURCE[0] =='DMEM_WR' ) :
-                                    command_info['SRC'] = CMD_DEST_SOURCE[1]     
-                                    command_info['DST'] = '[' + command_info['ADDR'] + ']'     
-                                    command_info.pop('ADDR')     
-                                elif (CMD_DEST_SOURCE[0] =='TRIG'):
-                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    if ( int(command_info['PORT'])  > 31):
-                                        logger.error("COMMAND_RECOGNITION: Trigger Port max por number is p31 in line " + str(line_number))
-                                    else:
-                                        command_info['DST'] = command_info['PORT']
-                                        command_info.pop('PORT') 
-                                elif (CMD_DEST_SOURCE[0] =='WPORT_WR'):
-                                    command_info['SRC'] = CMD_DEST_SOURCE[1]
-                                    if ( int(command_info['PORT'])  > 15):
-                                        logger.error("COMMAND_RECOGNITION: Wave Port Port max value is 15 in line " + str(line_number))
-                                    else:
-                                        command_info['DST'] = command_info['PORT']
-                                        command_info.pop('PORT') 
-                                elif (CMD_DEST_SOURCE[0] =='FLAG' or CMD_DEST_SOURCE[0] =='NET' or CMD_DEST_SOURCE[0] =='COM') \
-                                    or (CMD_DEST_SOURCE[0] =='PA' or CMD_DEST_SOURCE[0] =='PB') :
-                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                elif (CMD_DEST_SOURCE[0]=='TIME'): # DST is ADDR
-                                        command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                elif (CMD_DEST_SOURCE[0]=='DIV'): 
-                                    if ('LIT' in command_info):
-                                        command_info['NUM'] = CMD_DEST_SOURCE[1]     
-                                        command_info['DEN'] = command_info['LIT']
-                                    else:
-                                        logger.error("COMMAND_RECOGNITION: Dividend Parameter Error in line " + str(line_number))
-                                elif (CMD_DEST_SOURCE[0]=='JUMP' or CMD_DEST_SOURCE[0]=='CALL'):
-                                    if CMD_DEST_SOURCE[1]  in label_dict:
-                                        if (CMD_DEST_SOURCE[1]  == 's15'):
-                                            logger.info("COMMAND_RECOGNITION: BRANCH to r_addr  > line " + str(line_number))
-                                        else:
-                                            logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
-                                        command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
-                                        command_info['LABEL'] = CMD_DEST_SOURCE[1]
-                                    else:
-                                        if (CMD_DEST_SOURCE[1] == 'PREV'):
-                                            command_info['ADDR'] = '&'+str(mem_addr-1)
-                                        elif  (CMD_DEST_SOURCE[1] == 'HERE'):
-                                            command_info['ADDR'] = '&'+str(mem_addr)
-                                        elif (CMD_DEST_SOURCE[1] == 'NEXT'):
-                                            command_info['ADDR'] = '&'+str(mem_addr+1)
-                                        elif (CMD_DEST_SOURCE[1] == 'SKIP'):
-                                            command_info['ADDR'] = '&'+str(mem_addr+2)
-                                        else:   
-                                            logger.error("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
-                                elif (CMD_DEST_SOURCE[0]=='WAIT'):
-                                    logger.info("COMMAND_RECOGNITION: WAIT adding Instruction")
-                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                    command_info['P_ADDR'] = mem_addr
-
-                                    mem_addr = mem_addr + 1            
-                                elif (CMD_DEST_SOURCE[0]=='CLEAR'):
-                                    command_info['C_OP'] = CMD_DEST_SOURCE[1]     
-                                    logger.info("COMMAND_RECOGNITION: CLEAR Instruction")
-                                    command_info['P_ADDR'] = mem_addr
-
-                                else:
-                                    logger.error("COMMAND_RECOGNITION: [2] Parameter Error in line " + str(line_number))
-                            ###############################################################################
-                            ## NO DESTINATION OR -- DESTINATION / SOURCE IN EXTRACTED PARAMETER
-                            elif ( len(CMD_DEST_SOURCE) ==1 ):
-                                if (CMD_DEST_SOURCE[0] =='NOP')       \
-                                or (CMD_DEST_SOURCE[0] =='ARITH')     \
-                                or (CMD_DEST_SOURCE[0] =='TEST')      \
-                                or (CMD_DEST_SOURCE[0] =='RET')       :
-                                    error = 0 
-                                elif (CMD_DEST_SOURCE[0] =='DPORT_RD') :
-                                    if ('PORT' in command_info):
-                                        if ( int(command_info['PORT'])  > 7):
-                                            logger.error("COMMAND_RECOGNITION: Data Port Read max value is 7 in line " + str(line_number))
-                                        else:
-                                            command_info['DST'] = command_info['PORT']
-                                            command_info.pop('PORT') 
-                                    else:
-                                        logger.error("COMMAND_RECOGNITION: No Port for DPORT_RD in line " + str(line_number))
-
-                                elif (CMD_DEST_SOURCE[0]=='WMEM_WR'):
-                                    if ('ADDR' in command_info):
-                                        command_info['DST'] = '[' + command_info['ADDR'] + ']'     
-                                        command_info.pop('ADDR') 
-                                    else:
-                                        logger.error("COMMAND_RECOGNITION: No Address for WMEM_WR in line " + str(line_number))
-                                elif ( (CMD_DEST_SOURCE[0]=='JUMP') or (CMD_DEST_SOURCE[0]=='CALL')):
-                                    if ('ADDR' in command_info):
-                                        command_info['ADDR'] = command_info['ADDR']
-                                    else:
-                                        logger.error("COMMAND_RECOGNITION: Address Parameter Error in line " + str(line_number))
-                                else:
-                                    logger.error("COMMAND_RECOGNITION: [1] Parameter Error in line " + str(line_number))
-                            else:
-                                logger.error("COMMAND_RECOGNITION: Error Processing Line " + str(line_number)) + ". Command not recognized."
-
-                            # ADD CMD TO PROGRAM
-                            ###########################################################
-                            if (error == 1):
-                                #TODO: do this?
-                                break
-                            else:
-                                program_list.append(command_info)
-                        else:
-                            break
-                    else:
+                    if instruction not in instList.keys():
                         logger.error(f"COMMAND_RECOGNITION: < {instruction} > is not a Recognized Command in Line " + str(line_number))
+                    mem_addr += 1
+                    command_info['P_ADDR'] = mem_addr
+                    # CHECK for Literal Values
+                    ###############################################################
+                    LIT      = re.findall(regex['LIT'], command)
+                    if (LIT and len(LIT) == 2 and LIT[0] != LIT[1]):
+                        raise RuntimeError('COMMAND_RECOGNITION: Literals not equals in Line ' + str(line_number))
+
+                    # CHANGE ALIAS
+                    ###############################################################
+                    cmd_words = re.split(' |\(|\)|\[|\]', command)
+                    for key in Alias_List:
+                        CHANGE = find_pattern(key, command)
+                        if (key in cmd_words):
+                            command = command.replace(CHANGE, Alias_List[key]) if CHANGE else command
+
+                    # Extract PARAMETERS
+                    ###############################################################
+                    command_info['LINE'] = line_number # Stores Line Number for ERROR Messages
+                    for key in Param_List:
+                        PARAM = re.findall(Param_List[key]['RegEx'], command)
+                        if PARAM:
+                            if (len(PARAM) >1):
+                                raise RuntimeError('COMMAND_RECOGNITION: Duplicated Parameter ' + key +' in line '+str(line_number))
+                            command_info[key] = PARAM[0].strip()
+                            aux  = Param_List[key]['RL'] + PARAM[0] + Param_List[key]['RR']
+                            command = command.replace(aux, '')
+                    # COMMANDS PARAMETERS CHECK
+                    ###############################################################
+                    CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
+                    ## SINGLE PARAMETERS CHECK
+                    ###########################################################
+                    if ('OP' in command_info):
+                        comp_OP_PARAM = "#b(\d+)"
+                        param_op = re.findall(comp_OP_PARAM, command_info['OP'])
+                        if param_op:
+                            try:
+                                str(int(param_op[0],2))
+                            except ValueError:
+                                raise RuntimeError("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
+                    if ('LIT' in command_info) :
+                        # Remove underscores
+                        command_info['LIT'] = command_info['LIT'].replace('_','')
+                        # Check if Binary OK
+                        if (command_info['LIT'][0] == 'b'):
+                            try:
+                                command_info['LIT'] = str(int(command_info['LIT'][1:],2))
+                            except ValueError:
+                                raise RuntimeError("COMMAND_RECOGNITION: Binary value incorrect in Line " + str(line_number))
+                        command_info['LIT'] = '#' + command_info['LIT']
+                    ###########################################################
+                    if ('TIME' in command_info) :
+                        command_info['TIME'] = '@' + command_info['TIME']
+                    ###########################################################
+                    if ('WW' in command_info) :
+                        command_info['WW'] = '1'
+                    ###########################################################
+                    if ('UF' in command_info) :
+                        command_info['UF'] = '1'
+                        if not('OP' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: No Operation < -op() > set for Flag Update < -uf > in Line " + str(line_number))
+
+                    ## COMMAND VERIFICATION
+                    ###########################################################
+                    if (CMD_DEST_SOURCE[0] == 'REG_WR'):
+                        if (len(CMD_DEST_SOURCE) <= 2):
+                            raise RuntimeError("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Not enough parameters in Line " + str(line_number))
+                        if (CMD_DEST_SOURCE[1] == 'r_wave'):
+                            if ('TIME' in command_info):
+                                raise RuntimeError("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                        else:
+                            if ('WP' in command_info):
+                                raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
+                            if ('WR' in command_info):
+                                raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
+                            if ('WW' in command_info):
+                                raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                            if ('TIME' in command_info):
+                                raise RuntimeError("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+
+
+                    elif CMD_DEST_SOURCE[0] in ['NOP', 'TEST', 'RET', 'TIME', 'FLAG', 'ARITH', 'DIV', 'NET', 'COM', 'PA', 'PB']:
+                        if ('WP' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
+                        if ('WR' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Register < -wr() > in Line " + str(line_number))
+                        if ('WW' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                        if ('TIME' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                    ###########################################################
+                    elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
+                        if ('WP' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
+                        if ('WW' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                        if ('TIME' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: " + CMD_DEST_SOURCE[0] + " Instruction is NOT a timed intruction < -@Time > in Line " + str(line_number))
+
+
+                    elif (CMD_DEST_SOURCE[0] == 'DMEM_WR'):
+                        if ('WP' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write Port < -wp() > in Line " + str(line_number))
+                        if ('WW' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: Not allowed Write WaveMemory < -ww() > in Line " + str(line_number))
+                        if ('TIME' in command_info):
+                            raise RuntimeError("COMMAND_RECOGNITION: DMEM_WR is NOT a timed intruction < -@Time > in Line " + str(line_number))
+                        if ( not('ADDR' in command_info) ):
+                            raise RuntimeError("COMMAND_RECOGNITION: Memory Address < [] > not set in Line " + str(line_number))
+
+                    ###########################################################
+                    elif (CMD_DEST_SOURCE[0] == 'WMEM_WR'):
+                        if ('TIME' in command_info) :
+                            if ('WR' in command_info) :
+                                raise RuntimeError("COMMAND_RECOGNITION: Not allowed SDI with Literal Time in Line " + str(line_number))
+                            if ('OP' in command_info) :
+                                raise RuntimeError("COMMAND_RECOGNITION: Not allowed ALU Operation Operation with Literal Time in Line " + str(line_number))
+                        if ( ('WP' in command_info) and not('PORT' in command_info) ):
+                            raise RuntimeError("COMMAND_RECOGNITION: No Port Address < -p() > in Line " + str(line_number))
+                    ###########################################################
+                    elif CMD_DEST_SOURCE[0] in ['DPORT_WR', 'WPORT_WR', 'TRIG']:
+                        if ( not('PORT' in command_info) ):
+                            raise RuntimeError("COMMAND_RECOGNITION: No port in PORT_WR Instruction in line " + str(line_number))
+
+
+                    # GET COMMAND DESTINATION SOURCE
+                    ###############################################################
+                    CMD_DEST_SOURCE = re.findall(regex['CDS'], command)
+                    command_info['CMD'] = CMD_DEST_SOURCE[0]
+                    ###############################################################################
+                    ## MORE THAN ONE SOURCE
+                    if ( len(CMD_DEST_SOURCE) > 3) :
+                        if CMD_DEST_SOURCE[0] in ['ARITH', 'NET', 'PA', 'PB']:
+                            command_info['C_OP']  = CMD_DEST_SOURCE[1]
+                            command_info['R1']    = CMD_DEST_SOURCE[2]
+                            command_info['R2']    = CMD_DEST_SOURCE[3]
+                            if ( len(CMD_DEST_SOURCE) > 4) :
+                                command_info['R3'] = CMD_DEST_SOURCE[4]
+                            if ( len(CMD_DEST_SOURCE) > 5) :
+                                command_info['R4'] = CMD_DEST_SOURCE[5]
+                                if  (CMD_DEST_SOURCE[0] == 'NET') :
+                                    raise RuntimeError('COMMAND_RECOGNITION: NET command max 3 Registers in line ' + str(line_number) )
+                            if ( len(CMD_DEST_SOURCE) > 6) :
+                                raise RuntimeError('COMMAND_RECOGNITION: ' + CMD_DEST_SOURCE[0]+' Command max 4 Registers in line ' + str(line_number) )
+                        
+                        elif (CMD_DEST_SOURCE[0] == 'REG_WR') and (CMD_DEST_SOURCE[2] == 'label' ) :
+                            command_info['DST'] = CMD_DEST_SOURCE[1]
+                            command_info['SRC'] = CMD_DEST_SOURCE[2]
+                            if CMD_DEST_SOURCE[3] not in label_dict:
+                                raise RuntimeError('COMMAND_RECOGNITION: Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
+                            command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[3]]
+                            logger.info('COMMAND_RECOGNITION: REG_WR command source label: '+CMD_DEST_SOURCE[3] +' replaced by value ' + command_info['ADDR'] + '  in line ' + str(line_number))
+                        else:
+                            raise RuntimeError("COMMAND_RECOGNITION: [>3] Parameter Error in line " + str(line_number) )
+
+                    ###############################################################################
+                    ## ONLY ONE SOURCE / DEST
+                    elif ( len(CMD_DEST_SOURCE) == 3) :
+                        if (CMD_DEST_SOURCE[0] == 'REG_WR'):
+                            if (CMD_DEST_SOURCE[2] == 'label' ) :
+                                raise RuntimeError("COMMAND_RECOGNITION: Missing label in line " + str(line_number))
+                            command_info['DST'] = CMD_DEST_SOURCE[1]
+                            command_info['SRC'] = CMD_DEST_SOURCE[2]
+                        elif (CMD_DEST_SOURCE[0] =='DPORT_WR' ) :
+                            if ( int(command_info['PORT'])  > 3):
+                                raise RuntimeError("COMMAND_RECOGNITION: Data Port MAX port number is p3 in line " + str(line_number))
+                            command_info['DST'] = command_info['PORT']
+                            command_info.pop('PORT')
+                            command_info['SRC'] = CMD_DEST_SOURCE[1]
+                            command_info['DATA'] = CMD_DEST_SOURCE[2]
+                        elif CMD_DEST_SOURCE[0] in ['COM', 'TIME', 'NET', 'PA', 'PB']:
+                            command_info['C_OP'] = CMD_DEST_SOURCE[1]
+                            command_info['R1'] = CMD_DEST_SOURCE[2]
+                        elif (CMD_DEST_SOURCE[0] == 'DIV') :
+                            command_info['NUM'] = CMD_DEST_SOURCE[1]
+                            command_info['DEN'] = CMD_DEST_SOURCE[2]
+                        else:
+                            raise RuntimeError("COMMAND_RECOGNITION: [3] Parameter Error in line " + str(line_number) )
+                    ###############################################################################
+                    ## NO SOURCE OR -- SOURCE IN EXTRACTED PARAMETER
+                    elif ( len(CMD_DEST_SOURCE) == 2) :
+                        if (CMD_DEST_SOURCE[0] =='DMEM_WR' ) :
+                            command_info['SRC'] = CMD_DEST_SOURCE[1]
+                            command_info['DST'] = '[' + command_info['ADDR'] + ']'
+                            command_info.pop('ADDR')
+                        elif (CMD_DEST_SOURCE[0] =='TRIG'):
+                            command_info['SRC'] = CMD_DEST_SOURCE[1]
+                            if ( int(command_info['PORT'])  > 31):
+                                raise RuntimeError("COMMAND_RECOGNITION: Trigger Port max por number is p31 in line " + str(line_number))
+                            command_info['DST'] = command_info['PORT']
+                            command_info.pop('PORT')
+                        elif (CMD_DEST_SOURCE[0] =='WPORT_WR'):
+                            command_info['SRC'] = CMD_DEST_SOURCE[1]
+                            if ( int(command_info['PORT'])  > 15):
+                                raise RuntimeError("COMMAND_RECOGNITION: Wave Port Port max value is 15 in line " + str(line_number))
+                            command_info['DST'] = command_info['PORT']
+                            command_info.pop('PORT')
+                        elif CMD_DEST_SOURCE[0] in ['FLAG', 'NET', 'COM', 'PA', 'PB']:
+                            command_info['C_OP'] = CMD_DEST_SOURCE[1]
+                        elif (CMD_DEST_SOURCE[0]=='TIME'): # DST is ADDR
+                            command_info['C_OP'] = CMD_DEST_SOURCE[1]
+                        elif (CMD_DEST_SOURCE[0]=='DIV'):
+                            if 'LIT' not in command_info:
+                                raise RuntimeError("COMMAND_RECOGNITION: Dividend Parameter Error in line " + str(line_number))
+                            command_info['NUM'] = CMD_DEST_SOURCE[1]
+                            command_info['DEN'] = command_info['LIT']
+                        elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
+                            if CMD_DEST_SOURCE[1]  in label_dict:
+                                if (CMD_DEST_SOURCE[1]  == 's15'):
+                                    logger.info("COMMAND_RECOGNITION: BRANCH to r_addr  > line " + str(line_number))
+                                else:
+                                    logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
+                                command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
+                                command_info['LABEL'] = CMD_DEST_SOURCE[1]
+                            else:
+                                if (CMD_DEST_SOURCE[1] == 'PREV'):
+                                    command_info['ADDR'] = '&'+str(mem_addr-1)
+                                elif  (CMD_DEST_SOURCE[1] == 'HERE'):
+                                    command_info['ADDR'] = '&'+str(mem_addr)
+                                elif (CMD_DEST_SOURCE[1] == 'NEXT'):
+                                    command_info['ADDR'] = '&'+str(mem_addr+1)
+                                elif (CMD_DEST_SOURCE[1] == 'SKIP'):
+                                    command_info['ADDR'] = '&'+str(mem_addr+2)
+                                else:
+                                    raise RuntimeError("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
+                        elif (CMD_DEST_SOURCE[0]=='WAIT'):
+                            logger.info("COMMAND_RECOGNITION: WAIT adding Instruction")
+                            command_info['C_OP'] = CMD_DEST_SOURCE[1]
+                            command_info['P_ADDR'] = mem_addr
+
+                            mem_addr += 1
+                        elif (CMD_DEST_SOURCE[0]=='CLEAR'):
+                            command_info['C_OP'] = CMD_DEST_SOURCE[1]
+                            logger.info("COMMAND_RECOGNITION: CLEAR Instruction")
+                            command_info['P_ADDR'] = mem_addr
+
+                        else:
+                            raise RuntimeError("COMMAND_RECOGNITION: [2] Parameter Error in line " + str(line_number))
+                    ###############################################################################
+                    ## NO DESTINATION OR -- DESTINATION / SOURCE IN EXTRACTED PARAMETER
+                    elif ( len(CMD_DEST_SOURCE) ==1 ):
+                        if CMD_DEST_SOURCE[0] in ['NOP', 'ARITH', 'TEST', 'RET']:
+                            pass
+                        elif (CMD_DEST_SOURCE[0] =='DPORT_RD') :
+                            if 'PORT' not in command_info:
+                                raise RuntimeError("COMMAND_RECOGNITION: No Port for DPORT_RD in line " + str(line_number))
+                            if ( int(command_info['PORT'])  > 7):
+                                raise RuntimeError("COMMAND_RECOGNITION: Data Port Read max value is 7 in line " + str(line_number))
+                            command_info['DST'] = command_info['PORT']
+                            command_info.pop('PORT')
+                        elif (CMD_DEST_SOURCE[0]=='WMEM_WR'):
+                            if 'ADDR' not in command_info:
+                                raise RuntimeError("COMMAND_RECOGNITION: No Address for WMEM_WR in line " + str(line_number))
+                            command_info['DST'] = '[' + command_info['ADDR'] + ']'
+                            command_info.pop('ADDR')
+                        elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
+                            if 'ADDR' not in command_info:
+                                raise RuntimeError("COMMAND_RECOGNITION: Address Parameter Error in line " + str(line_number))
+                            command_info['ADDR'] = command_info['ADDR']
+                        else:
+                            raise RuntimeError("COMMAND_RECOGNITION: [1] Parameter Error in line " + str(line_number))
+                    else:
+                        raise RuntimeError("COMMAND_RECOGNITION: Error Processing Line " + str(line_number)) + ". Command not recognized."
+
+                    # ADD CMD TO PROGRAM
+                    ###########################################################
+                    program_list.append(command_info)
                 else:
                     logger.error("COMMAND_RECOGNITION: Not a Command in Line " + str(line_number))
             return (error, program_list)
-        
-        
+
+
         ##### START ASSEMBLER TO LIST
         logger.info("ASM2LIST: ##### STEP_1 - LABEL RECOGNITION")
         error, label_dict = label_recognition(asm_str)
-        
-        if (error):
-            #TODO: this should get printed?
-            logger.warning('LABEL_RECOGNITION: Error found ')
-            return (None, None)
-        
+
         logger.info("ASM2LIST: ##### STEP_2 - COMMAND RECOGNITION")
         error, program_list = command_recognition(asm_str, label_dict)
-            
-        if (error):
-            #TODO: this should get printed?
-            logger.warning("COMMAND_RECOGNITION: Errors found!")
-            return (None, None)
-        
+
         return (program_list, label_dict)
-    
+
     @staticmethod
     def list2bin(program_list : list, label_dict : dict = {}, save_unparsed_filename : str = "") -> list:
         """
