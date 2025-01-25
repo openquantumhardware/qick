@@ -61,7 +61,7 @@ autodoc_default_options = {
     'show-inheritance': True,
 }
 
-autodoc_mock_imports = ["pynq", "xrfclk", "xrfdc"]
+autodoc_mock_imports = ["pynq", "xrfclk", "xrfdc", "cffi"]
 
 ## Generate autodoc stubs with summaries from code
 autosummary_generate = True
