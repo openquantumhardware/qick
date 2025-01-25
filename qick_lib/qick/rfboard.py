@@ -1785,6 +1785,7 @@ class DacRfCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
     CHAIN_CLASS = DacRfChain216
+    # disable all outputs by default
     GPIO_OUTPUTS = [("RFOUT5V0_EN%d"%(i), 0) for i in range(2)] + [None]*2
 
     def disable_all(self):
@@ -1795,18 +1796,21 @@ class DacDcCard216(DaughterCard216):
     NCH = 4
     CARDNUM_OFFSET = 0
     CHAIN_CLASS = DacDcChain216
-    GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(4)]
+    # power-on all outputs by default, because in power-down state the LMH5401 just lets through the DAC common-mode voltage
+    GPIO_OUTPUTS = [("PD%d"%(i), 0) for i in range(4)]
 
 class AdcRfCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
     CHAIN_CLASS = AdcRfChain216
+    # disable all outputs by default
     GPIO_OUTPUTS = [("RFIN5V0CH%d_EN"%(i), 0) for i in range(2)] + [None]*2
 
 class AdcDcCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
     CHAIN_CLASS = AdcDcChain216
+    # power-down all outputs by default
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
 
 class BoardSelection:
