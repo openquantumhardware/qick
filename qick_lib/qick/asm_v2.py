@@ -847,6 +847,7 @@ class Wait(TimedMacro):
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
             waitmax = wait.maxval()
             if not self.no_warn:
+                #TODO: now that we support register arguments, we could do swept waits
                 logger.warning("WAIT can only take a scalar argument, but in this case it would be %s, so rounding up to the max val of %f." % (wait, waitmax))
             wait = waitmax
         wait_rounded = self.convert_time(prog, wait, "t")
@@ -857,7 +858,24 @@ class Wait(TimedMacro):
             # if this was a wait_auto and we have no relevant channels, it should compile to nothing
             return []
         elif isinstance(t_reg, int):
-            return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': f'@{t_reg}'}, addr_inc=2)]
+            if check_bytes(t_reg, 3):
+                src = '@%d'%(t_reg)
+                return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
+            elif check_bytes(t_reg, 4):
+                # we need to write to a scratch register
+                # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
+                insts = []
+                # constrain the value to signed 32-bit
+                trunc = np.int64(t_reg).astype(np.int32)
+                prog.add_reg("scratch", allow_reuse=True)
+                src = prog._get_reg("scratch")
+                insts.append(WriteReg(dst="scratch", src=trunc-Assembler.WAIT_TIME_OFFSET))
+                insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': 's11 - %s'%(src)}, addr_inc=1))
+                # note that because this translates to three instructions, ADDR needs to be incremented by 2 (as opposed to 1 in the literal-time case)
+                insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':f'&{prog.p_addr + 2}'}, addr_inc=1))
+                return insts
+            else:
+                raise RuntimeError("WAIT argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
 
