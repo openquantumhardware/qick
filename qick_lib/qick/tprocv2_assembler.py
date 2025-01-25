@@ -706,7 +706,7 @@ class Assembler():
                             'ADDR'     : F"&{str(mem_addr)}",
                             'CMD'      : 'JUMP' }
                         program_list.append(command_info)
-                        logger.info("COMMAND_RECOGNITION: END OF PROGRAM")
+                        logger.debug("COMMAND_RECOGNITION: END OF PROGRAM")
                     elif ( directive == 'ADDR'): ## Already Verified on Label Recognition
                         directive_params = list(filter(lambda x:x, command.split(' ')))
                         Value    = int(directive_params[1])
@@ -947,14 +947,14 @@ class Assembler():
                                 else:
                                     raise RuntimeError("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
                         elif (CMD_DEST_SOURCE[0]=='WAIT'):
-                            logger.info("COMMAND_RECOGNITION: WAIT adding Instruction")
+                            logger.debug("COMMAND_RECOGNITION: WAIT adding Instruction")
                             command_info['C_OP'] = CMD_DEST_SOURCE[1]
                             command_info['P_ADDR'] = mem_addr
 
                             mem_addr += 1
                         elif (CMD_DEST_SOURCE[0]=='CLEAR'):
                             command_info['C_OP'] = CMD_DEST_SOURCE[1]
-                            logger.info("COMMAND_RECOGNITION: CLEAR Instruction")
+                            logger.debug("COMMAND_RECOGNITION: CLEAR Instruction")
                             command_info['P_ADDR'] = mem_addr
 
                         else:
@@ -994,10 +994,10 @@ class Assembler():
 
 
         ##### START ASSEMBLER TO LIST
-        logger.info("ASM2LIST: ##### STEP_1 - LABEL RECOGNITION")
+        logger.debug("ASM2LIST: ##### STEP_1 - LABEL RECOGNITION")
         label_dict = label_recognition(asm_str)
 
-        logger.info("ASM2LIST: ##### STEP_2 - COMMAND RECOGNITION")
+        logger.debug("ASM2LIST: ##### STEP_2 - COMMAND RECOGNITION")
         program_list = command_recognition(asm_str, label_dict)
 
         return (program_list, label_dict)
@@ -1020,7 +1020,7 @@ class Assembler():
                 if not 'LINE' in command:
                     command['LINE'] = line_number
 
-        logger.info("LIST2BIN: ##### LIST 2 BIN")
+        logger.debug("LIST2BIN: ##### LIST 2 BIN")
 
         parse_lines_and_labels(program_list, label_dict)
         
@@ -1089,7 +1089,7 @@ class Assembler():
             length = CODE.count('0') + CODE.count('1')
             if (length != 72):
                 if (command['CMD'] == 'WAIT'):
-                    logger.info('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
+                    logger.debug('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
                 else:
                     raise RuntimeError(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
             if (command['CMD'] == 'WAIT'):
@@ -1639,7 +1639,7 @@ class Instruction():
                 raise RuntimeError('Instruction.PORT_WR: If time specified, Not allowed SDI <-wr(), -op()> in line ' + str(current['LINE']) )
         else:
             TO = '0'
-            logger.info('Instruction.PORT_WR: No time specified for command will use s_time in line ' + str(current['LINE']) )
+            logger.debug('Instruction.PORT_WR: No time specified for command will use s_time in line ' + str(current['LINE']) )
             #### WRITE REGISTER
             Wr = Rdi = '0'
             Wr, Rdi, RD = Instruction.__PROCESS_WR(current)
