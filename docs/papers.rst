@@ -10,6 +10,7 @@ QICK system
 
 Superconducting circuits - coherence
 ------------------------------------
+* `Kumar, S. et al. Protomon: A Multimode Qubit in the Fluxonium Molecule. (2024) <https://arxiv.org/abs/2411.16648>`_.
 * `Chang, R.D. et al. Eliminating Surface Oxides of Superconducting Circuits with Noble Metal Encapsulation. (2024) <https://arxiv.org/abs/2408.13051>`_.
 * `McFadden, A. et al. Fabrication and characterization of low-loss Al/Si/Al parallel plate capacitors for superconducting quantum information applications. (2024) <https://arxiv.org/abs/2408.01369>`_.
 * `Tuokkola, M. et al. Methods to achieve near-millisecond energy relaxation and dephasing times for a superconducting transmon qubit. (2024) <https://arxiv.org/abs/2407.18778>`_.
@@ -25,6 +26,7 @@ Superconducting circuits - decoherence mechanisms
 
 Superconducting circuits – readout
 ----------------------------------
+* `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
 * `Yen, A. et al. Directional emission of a readout resonator for qubit measurement. (2024) <https://arxiv.org/abs/2403.01375>`_.
 * `Bryon, J. et al. Experimental verification of the treatment of time-dependent flux in circuit quantization. (2022) <https://arxiv.org/abs/2208.03738>`_.
@@ -45,6 +47,7 @@ Superconducting circuits - transduction
 
 Spin defects
 ------------
+* `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/pdf/2411.16835>`_.
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
 
 MKIDs
@@ -53,6 +56,7 @@ MKIDs
 
 Dark matter detection
 ---------------------
+* `Zhao, F. et al. A Flux-Tunable cavity for Dark matter detection. (2025) <https://arxiv.org/pdf/2501.06882>`_.
 * `Knirck, S. et al. First Results from a Broadband Search for Dark Photon Dark Matter in the $44$ to $52\,\mu$eV range with a coaxial dish antenna. (2023) <https://arxiv.org/abs/2310.13891>`_.
 
 Single-photon detection
@@ -61,6 +65,7 @@ Single-photon detection
 
 Open source control with the Qibo/QICK stack (Qibolab/Qibosoq)
 --------------------------------------------------------------
+* `Pasquale, A. et al. Qibocal: an open-source framework for calibration of self-hosted quantum devices. (2024) <https://arxiv.org/abs/2410.00101>`_.
 * `Moretti, R. et al. Transmon qubit modeling and characterization for Dark Matter search. (2024) <https://arxiv.org/abs/2409.05988>`_.
 * `Pedicillo, E. et al. An open-source framework for quantum hardware control. (2024) <https://arxiv.org/abs/2407.21737>`_.
 * `D'Elia, A. et al. Characterization of a Transmon Qubit in a 3D Cavity for Quantum Machine Learning and Photon Counting. (2024) <https://arxiv.org/abs/2402.04322>`_.
