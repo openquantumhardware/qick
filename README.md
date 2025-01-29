@@ -62,5 +62,12 @@ FuseSoC necesita saber donde buscar las librerias, para ello usar el script `fus
 O de forma manual con el comando `fuseosc library add`, por ejemplo:
 
 	$ fusesoc library add --location $PWD/.fusesoc_libraries/svunit-lib svunit-lib https://github.com/ivanvig/svunit.git
+### Ejemplo
+El Beamformer TX posee un target *sim* que corre una cosimulacion en Python, generando estimulos y leyendo la salida de los puertos para generar algunos plots.
+
+Para correr este target el comando es
+
+    $ fusesoc --cores-root . run --build --target sim :rts:beamformer_tx
 
 Para mas informacion, esta disponible la documentacion de [FuseSoC](https://fusesoc.readthedocs.io/en/stable/) y [Edalize](https://edalize.readthedocs.io/en/latest/)
+
