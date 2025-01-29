@@ -55,7 +55,6 @@ def start_server(ns_host, ns_port=8888, proxy_name='myqick', soc_class=QickSoc, 
     Pyro4.config.SERIALIZER = "pickle"
     Pyro4.config.SERIALIZERS_ACCEPTED=set(['pickle'])
     Pyro4.config.PICKLE_PROTOCOL_VERSION=4
-
     print("looking for nameserver . . .")
     ns = Pyro4.locateNS(host=ns_host, port=ns_port)
     print("found nameserver")

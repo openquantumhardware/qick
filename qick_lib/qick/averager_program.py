@@ -11,7 +11,7 @@ class AveragerProgram(AcquireProgram):
     AveragerProgram class is an abstract base class for programs which do loops over experiments in hardware.
     It consists of a template program which takes care of the loop and acquire methods that talk to the processor to stream single shot data in real-time and then reshape and average it appropriately.
 
-    :param soccfg: This can be either a QickSoc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
+    :param soccfg: This can be either a QickSOc object (if the program is running on the QICK) or a QickCOnfig (if running remotely).
     :type soccfg: QickConfig
     :param cfg: Configuration dictionary
     :type cfg: dict
@@ -73,14 +73,14 @@ class AveragerProgram(AcquireProgram):
         p.end()
 
 
-    def acquire(self, soc, readouts_per_experiment=None, save_experiments=None, **kwargs):
+    def acquire(self, soc, threshold=None, angle=None, readouts_per_experiment=None, save_experiments=None, load_pulses=True, start_src="internal", progress=False, remove_offset=True):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
         "reps" = number of repetitions;
 
         :param soc: Qick object
-        :type soc: QickSoc
+        :type soc: Qick object
         :param threshold: threshold
         :type threshold: int
         :param angle: rotation angle
@@ -92,7 +92,7 @@ class AveragerProgram(AcquireProgram):
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        :type start_src: str
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -103,7 +103,7 @@ class AveragerProgram(AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress, remove_offset=remove_offset)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -126,7 +126,7 @@ class AveragerProgram(AcquireProgram):
         return avg_di, avg_dq
 
 
-    def acquire_decimated(self, soc, readouts_per_experiment=None, **kwargs):
+    def acquire_decimated(self, soc, load_pulses=True, readouts_per_experiment=None, start_src="internal", progress=True, remove_offset=True):
         """
         This method acquires the raw (downconverted and decimated) data sampled by the ADC. This method is slow and mostly useful for lining up pulses or doing loopback tests.
 
@@ -144,13 +144,13 @@ class AveragerProgram(AcquireProgram):
         3D array with dimensions (reps, expts, 2, length), indices (rep, expt, I/Q, sample)
 
         :param soc: Qick object
-        :type soc: QickSoc
+        :type soc: Qick object
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param readouts_per_experiment: readouts per experiment (all will be saved)
         :type readouts_per_experiment: int
         :param start_src: "internal" (tProc starts immediately) or "external" (each soft_avg waits for an external trigger)
-        :type start_src: str
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -159,7 +159,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, **kwargs)
+        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, progress=progress, remove_offset=remove_offset)
         # move the I/Q axis from last to second-last
         return np.moveaxis(buf, -1, -2)
 
@@ -246,18 +246,18 @@ class RAveragerProgram(AcquireProgram):
         Method for calculating experiment points (for x-axis of plots) based on the config.
 
         :return: Numpy array of experiment points
-        :rtype: numpy.ndarray
+        :rtype: array
         """
         return self.cfg["start"]+np.arange(self.cfg["expts"])*self.cfg["step"]
 
-    def acquire(self, soc, readouts_per_experiment=None, save_experiments=None, **kwargs):
+    def acquire(self, soc, threshold=None, angle=None, load_pulses=True, readouts_per_experiment=None, save_experiments=None, start_src="internal", progress=False, remove_offset=True):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python, returning it as a set of numpy arrays.
         config requirements:
         "reps" = number of repetitions;
 
         :param soc: Qick object
-        :type soc: QickSoc
+        :type soc: Qick object
         :param threshold: threshold
         :type threshold: int
         :param angle: rotation angle
@@ -269,7 +269,7 @@ class RAveragerProgram(AcquireProgram):
         :param load_pulses: If true, loads pulses into the tProc
         :type load_pulses: bool
         :param start_src: "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
-        :type start_src: str
+        :type start_src: string
         :param progress: If true, displays progress bar
         :type progress: bool
         :returns:
@@ -280,7 +280,7 @@ class RAveragerProgram(AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses, start_src=start_src, threshold=threshold, angle=angle, progress=progress, remove_offset=remove_offset)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
@@ -319,7 +319,7 @@ class AbsQickSweep:
         self.label = label
         self.expts: int = None
 
-    def get_sweep_pts(self) -> Union[List, np.ndarray]:
+    def get_sweep_pts(self) -> Union[List, np.array]:
         """
         abstract method for getting the sweep values
         """
@@ -529,7 +529,8 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
             sweep_pts.append(swp.get_sweep_pts())
         return sweep_pts
 
-    def acquire(self, soc, readouts_per_experiment=None, save_experiments: List = None, **kwargs):
+    def acquire(self, soc, threshold: int = None, angle: List = None, load_pulses=True, readouts_per_experiment=None,
+                save_experiments: List = None, start_src: str = "internal", progress=False, remove_offset=True):
         """
         This method optionally loads pulses on to the SoC, configures the ADC readouts, loads the machine code
         representation of the AveragerProgram onto the SoC, starts the program and streams the data into the Python,
@@ -557,7 +558,11 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, **kwargs)
+        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_pulses=load_pulses,
+                                              start_src=start_src, 
+                                              threshold=threshold, angle=angle,
+                                              progress=progress,
+                                              remove_offset=remove_offset)
 
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis

@@ -1,0 +1,3138 @@
+[
+    {
+        "addr": 0,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP_EN",
+                "description": "Control frequency ramping mode.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLE",
+                            "description": "Disable frequency ramping mode"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLE",
+                            "description": "Enable frequency ramping mode"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "VCO_PHASE_SYNC",
+                "description": "Control phase synchronization.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disable phase SYNC mode"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enable phase SYNC mode"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 9,
+                "start": 9,
+                "name": "OUT_MUTE",
+                "description": "Mute the outputs when the VCO is calibrating.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled. If disabled, also be sure to enable OUT_FORCE"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled. If enabled, also be sure to disable OUT_FORCE"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 7,
+                "name": "FCAL_HPFD_ADJ",
+                "description": "Set this field in accordance to the phase-detector frequency for optimal VCO calibration.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "F_PD_LTE_100_MHZ",
+                            "description": "f_PD <= 100 MHz"
+                        },
+                        {
+                            "value": 1,
+                            "name": "F_PD_100_MHZ_TO_150_MHZ",
+                            "description": "100 MHz < f_PD <= 150 MHz"
+                        },
+                        {
+                            "value": 2,
+                            "name": "F_PD_150_MHZ_TO_200_MHZ",
+                            "description": "150 MHz < f_PD <= 200 MHz"
+                        },
+                        {
+                            "value": 3,
+                            "name": "F_PD_GT_200_MHZ",
+                            "description": "f_PD > 200 MHz"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 5,
+                "name": "FCAL_LPFD_ADJ",
+                "description": "Set this field in accordance to the phase detector frequency for optimal VCO calibration.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "F_PD_GTE_10_MHZ",
+                            "description": "f_PD >= 10 MHz"
+                        },
+                        {
+                            "value": 1,
+                            "name": "F_PD_10_MHZ_TO_5_MHZ",
+                            "description": "10 MHz > f_PD >= 5 MHz"
+                        },
+                        {
+                            "value": 2,
+                            "name": "F_PD_5_MHZ_TO_2_5_MHZ",
+                            "description": "5 MHz > f_PD >= 2.5 MHz"
+                        },
+                        {
+                            "value": 3,
+                            "name": "F_PD_LT_2_5_MHZ",
+                            "description": "f_PD < 2.5 MHz"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 3,
+                "start": 3,
+                "name": "FCAL_EN",
+                "description": "Enable the VCO frequency calibration. Also note that the action of programming this bit to a 1 activates the VCO calibration",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": "0",
+                            "name": "DISABLED",
+                            "description": "VCO frequency calibration disabled."
+                        },
+                        {
+                            "value": "1",
+                            "name": "ENABLED",
+                            "description": "VCO frequency calibration enabled."
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 2,
+                "name": "MUXOUT_LD_SEL",
+                "description": "Selects the state of the function of the MUXout pin",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "READBACK",
+                            "description": "Readback"
+                        },
+                        {
+                            "value": 1,
+                            "name": "LOCK_DETECT",
+                            "description": "Lock detect"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 1,
+                "name": "RESET",
+                "description": "Resets and holds all state machines and registers to default value.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_OPERATION",
+                            "description": "Normal operation"
+                        },
+                        {
+                            "value": 1,
+                            "name": "RESET",
+                            "description": "Reset active"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "POWERDOWN",
+                "description": "Powers down entire device",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_OPERATION",
+                            "description": "Normal operation"
+                        },
+                        {
+                            "value": 1,
+                            "name": "POWERDOWN",
+                            "description": "Powered down"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 9232
+            }
+        ]
+    },
+    {
+        "addr": 1,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "CAL_CLK_DIV",
+                "description": "Sets divider for VCO calibration state machine clock based on input frequency. If user is not concerned with lock time, it is recommended to set this value to 3. By slowing down the VCO calibration, the best and most repeatable VCO phase noise can be attained.",
+                "default": 3,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DIVIDE_BY_1",
+                            "description": "Divide by 1. Use for fOSC ≤ 200 MHz"
+                        },
+                        {
+                            "value": 1,
+                            "name": "DIVIDE_BY_2",
+                            "description": "Divide by 2. Use for fOSC ≤ 400 MHz"
+                        },
+                        {
+                            "value": 2,
+                            "name": "DIVIDE_BY_4",
+                            "description": "Divide by 4. Use for fOSC ≤ 800 MHz"
+                        },
+                        {
+                            "value": 3,
+                            "name": "DIVIDE_BY_8",
+                            "description": "Divide by 8. All fOSC"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2056
+            }
+        ]
+    },
+    {
+        "addr": 2,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1280
+            }
+        ]
+    },
+    {
+        "addr": 3,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1602
+            }
+        ]
+    },
+    {
+        "addr": 4,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 8,
+                "name": "ACAL_CMP_DLY",
+                "description": "VCO amplitude calibration delay. Lowering this value can speed up VCO calibration, but lowering it too much may degrade VCO phase noise. The minimum allowable value for this field is 10 and this allows the VCO to calibrate to the correct frequency for all scenarios. To yield the best and most repeatable VCO phase noise, this relationship should be met: ACAL_CMP_DLY > Fsmclk / 10 MHz, where Fsmclk = Fosc / 2^(CAL_CLK_DIV) and Fosc is the input reference frequency. If calibration time is of concern, then it is recommended to set this register to ≥ 25.",
+                "default": 10,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 67
+            }
+        ]
+    },
+    {
+        "addr": 5,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 200
+            }
+        ]
+    },
+    {
+        "addr": 6,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 51202
+            }
+        ]
+    },
+    {
+        "addr": 7,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "OUT_FORCE",
+                "description": "Works with OUT_MUTE in disabling outputs when VCO calibrating.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "OUTPUT_ENABLE_NOT_FORCED",
+                            "description": "Output not forced"
+                        },
+                        {
+                            "value": 1,
+                            "name": "OUTPUT_ENABLE_FORCED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 178
+            }
+        ]
+    },
+    {
+        "addr": 8,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "VCO_DACISET_FORCE",
+                "description": "This forces the VCO_DACISET value",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 11,
+                "name": "VCO_CAPCTRL_FORCE",
+                "description": "This forces the VCO_CAPCTRL value",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 8192
+            }
+        ]
+    },
+    {
+        "addr": 9,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 12,
+                "start": 12,
+                "name": "OSC_2X",
+                "description": "Low noise OSCin frequency doubler.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Frequency doubler disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Frequency doubler enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1540
+            }
+        ]
+    },
+    {
+        "addr": 10,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 7,
+                "name": "MULT",
+                "description": "Programmable input frequency multiplier 0,2,,8-31: Reserved, 1: Byapss, 3: 3X ... 7: 7X",
+                "default": 1,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4184
+            }
+        ]
+    },
+    {
+        "addr": 11,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 4,
+                "name": "PLL_R",
+                "description": "Programmable input path divider after the programmable input frequency multiplier.",
+                "default": 1,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 8
+            }
+        ]
+    },
+    {
+        "addr": 12,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 0,
+                "name": "PLL_R_PRE",
+                "description": "Programmable input path divider before the programmable input frequency multiplier.",
+                "default": 1,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 20480
+            }
+        ]
+    },
+    {
+        "addr": 13,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 16384
+            }
+        ]
+    },
+    {
+        "addr": 14,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 4,
+                "name": "CPG",
+                "description": "Effective charge-pump current. This is the sum of up and down currents.",
+                "default": 7,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "CPC_0_mA",
+                            "description": "0 mA"
+                        },
+                        {
+                            "value": 1,
+                            "name": "CPC_6_mA",
+                            "description": "6 mA"
+                        },
+                        {
+                            "value": 3,
+                            "name": "CPC_12_mA",
+                            "description": "12 mA"
+                        },
+                        {
+                            "value": 4,
+                            "name": "CPC_3_mA",
+                            "description": "3 mA"
+                        },
+                        {
+                            "value": 5,
+                            "name": "CPC_9_mA",
+                            "description": "9 mA"
+                        },
+                        {
+                            "value": 7,
+                            "name": "CPC_15_mA",
+                            "description": "15 mA"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 7680
+            }
+        ]
+    },
+    {
+        "addr": 15,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1615
+            }
+        ]
+    },
+    {
+        "addr": 16,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "VCO_DACISET",
+                "description": "This sets the final amplitude for the VCO calibration in the case that amplitude calibration is forced.",
+                "default": 128,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 17,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "VCO_DACISET_STRT",
+                "description": "This sets the initial starting point for the VCO amplitude calibration.",
+                "default": 250,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 18,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 100
+            }
+        ]
+    },
+    {
+        "addr": 19,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 0,
+                "name": "VCO_CAPCTRL",
+                "description": "This sets the final VCO band when VCO_CAPCTRL is forced.",
+                "default": 183,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 9984
+            }
+        ]
+    },
+    {
+        "addr": 20,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 11,
+                "name": "VCO_SEL",
+                "description": "This sets VCO start core for calibration and the VCO when it is forced.",
+                "default": 7,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NOT_USED",
+                            "description": "Not used."
+                        },
+                        {
+                            "value": 1,
+                            "name": "VCO1",
+                            "description": "VCO1"
+                        },
+                        {
+                            "value": 2,
+                            "name": "VCO2",
+                            "description": "VCO2"
+                        },
+                        {
+                            "value": 3,
+                            "name": "VCO3",
+                            "description": "VCO3"
+                        },
+                        {
+                            "value": 4,
+                            "name": "VCO4",
+                            "description": "VCO4"
+                        },
+                        {
+                            "value": 5,
+                            "name": "VCO5",
+                            "description": "VCO5"
+                        },
+                        {
+                            "value": 6,
+                            "name": "VCO6",
+                            "description": "VCO6"
+                        },
+                        {
+                            "value": 7,
+                            "name": "VCO7",
+                            "description": "VCO7"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 10,
+                "name": "VCO_SEL_FORCE",
+                "description": "This forces the VCO to use the core specified by VCO_SEL. It is intended mainly for diagnostic purposes.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled (recommended)"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 49224
+            }
+        ]
+    },
+    {
+        "addr": 21,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1025
+            }
+        ]
+    },
+    {
+        "addr": 22,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 23,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 124
+            }
+        ]
+    },
+    {
+        "addr": 24,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1818
+            }
+        ]
+    },
+    {
+        "addr": 25,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 3115
+            }
+        ]
+    },
+    {
+        "addr": 26,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 3504
+            }
+        ]
+    },
+    {
+        "addr": 27,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2
+            }
+        ]
+    },
+    {
+        "addr": 28,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1160
+            }
+        ]
+    },
+    {
+        "addr": 29,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12684
+            }
+        ]
+    },
+    {
+        "addr": 30,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12684
+            }
+        ]
+    },
+    {
+        "addr": 31,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "CHDIV_DIV2",
+                "description": "Enable driver buffer for CHDIV > 2",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled (only valid for CHDIV = 2)"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled (use for CHDIV > 2)"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1004
+            }
+        ]
+    },
+    {
+        "addr": 32,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 915
+            }
+        ]
+    },
+    {
+        "addr": 33,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 7713
+            }
+        ]
+    },
+    {
+        "addr": 34,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "PLL_N[18:16]",
+                "description": "The PLL_N divider value is in the feedback path and divides the VCO frequency.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 35,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4
+            }
+        ]
+    },
+    {
+        "addr": 36,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_N[15:0]",
+                "description": "The PLL_N divider value is in the feedback path and divides the VCO frequency.",
+                "default": 100,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 37,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "MASH_SEED_EN",
+                "description": "Enabling this bit allows the to be applied to shift the phase at the output or optimize spurs.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 8,
+                "name": "PFD_DLY_SEL",
+                "description": "The PFD_DLY_SEL must be adjusted in accordance to the Ndivider value. This is with the functional description for the Ndivider",
+                "default": 2,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 4
+            }
+        ]
+    },
+    {
+        "addr": 38,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_DEN[31:16]",
+                "description": "The fractional denominator",
+                "default": 65535,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 39,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_DEN[15:0]",
+                "description": "The fractional denominator",
+                "default": 65535,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NAME",
+                            "description": "Descr"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 40,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_SEED[31:16]",
+                "description": "The initial state of the MASH engine first accumulator. Can be used to shift phase or optimize fractional spurs. Every time the field is programmed, it ADDS this MASH seed to the existing one. To reset it, use the MASH_RESET_N bit.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 41,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_SEED[15:0]",
+                "description": "The initial state of the MASH engine first accumulator. Can be used to shift phase or optimize fractional spurs. Every time the field is programmed, it ADDS this MASH seed to the existing one. To reset it, use the MASH_RESET_N bit.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 42,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_NUM[31:16]",
+                "description": "The fractional numerator",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 43,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "PLL_NUM[15:0]",
+                "description": "The fractional numerator",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 44,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 8,
+                "name": "OUTA_PWR",
+                "description": "Adjusts output power. Higher numbers give more output power to a point, depending on the pullup component used.",
+                "default": 31,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 7,
+                "name": "OUTB_PD",
+                "description": "Powers down output B",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_OPERATION",
+                            "description": "Normal operation"
+                        },
+                        {
+                            "value": 1,
+                            "name": "POWERDOWN",
+                            "description": "Powerdown"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 6,
+                "name": "OUTA_PD",
+                "description": "Powers down output A",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_OPERATION",
+                            "description": "Normal operation"
+                        },
+                        {
+                            "value": 1,
+                            "name": "POWERDOWN",
+                            "description": "Powerdown"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "MASH_RESET_N",
+                "description": "Resets MASH circuitry to an initial state",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "RESET",
+                            "description": "MASH held in reset. All fractions are ignored"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Fractional mode enabled. MASH is NOT held in reset."
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "MASH_ORDER",
+                "description": "Sets the MASH order",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "INTEGER_MODE",
+                            "description": "Integer mode"
+                        },
+                        {
+                            "value": 1,
+                            "name": "FIRST_ORDER_MODULATOR",
+                            "description": "First order modulator"
+                        },
+                        {
+                            "value": 2,
+                            "name": "SECOND_ORDER_MODULATOR",
+                            "description": "Second order modulator"
+                        },
+                        {
+                            "value": 3,
+                            "name": "THIRD_ORDER_MODULATOR",
+                            "description": "Third order modulator"
+                        },
+                        {
+                            "value": 4,
+                            "name": "FOURTH_ORDER_MODULATOR",
+                            "description": "Fourth order modulator"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 45,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 12,
+                "start": 11,
+                "name": "OUTA_MUX",
+                "description": "Selects what signal goes to RFoutA",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "CHANNEL_DIVIDER",
+                            "description": "Channel divider"
+                        },
+                        {
+                            "value": 1,
+                            "name": "VCO",
+                            "description": "VCO"
+                        },
+                        {
+                            "value": 3,
+                            "name": "HIGH_IMPEDANCE",
+                            "description": "High impedance"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 9,
+                "name": "OUT_ISET",
+                "description": "Setting to a lower value allows slightly higher output power at higher frequencies at the expense of higher current consumption. 0: Maximum power boost, 3: No output power boost.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "OUTB_PWR",
+                "description": "Output power setting for RFoutB",
+                "default": 31,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 49344
+            }
+        ]
+    },
+    {
+        "addr": 46,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "OUTB_MUX",
+                "description": "Selects what signal goes to RFoutB",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "CHANNEL_DIVIDER",
+                            "description": "Channel divider"
+                        },
+                        {
+                            "value": 1,
+                            "name": "VCO",
+                            "description": "VCO"
+                        },
+                        {
+                            "value": 2,
+                            "name": "SYSREF",
+                            "description": "SysRef (also ensure SYSREF_EN=1)"
+                        },
+                        {
+                            "value": 3,
+                            "name": "HIGH_IMPEDANCE",
+                            "description": "High impedance"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2044
+            }
+        ]
+    },
+    {
+        "addr": 47,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 768
+            }
+        ]
+    },
+    {
+        "addr": 48,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 768
+            }
+        ]
+    },
+    {
+        "addr": 49,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 16768
+            }
+        ]
+    },
+    {
+        "addr": 50,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 51,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 128
+            }
+        ]
+    },
+    {
+        "addr": 52,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2080
+            }
+        ]
+    },
+    {
+        "addr": 53,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 54,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 55,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 56,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 57,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 32
+            }
+        ]
+    },
+    {
+        "addr": 58,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "INPIN_IGNORE",
+                "description": "Ignore SYNC and SysRefReq Pins",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_OPERATION",
+                            "description": "Pins are used. Only valid for VCO_PHASE_SYNC = 1"
+                        },
+                        {
+                            "value": 1,
+                            "name": "IGNORED",
+                            "description": "Pin is ignored"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 14,
+                "name": "INPIN_HYST",
+                "description": "High Hysteresis for LVDS mode",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 12,
+                "name": "INPIN_LVL",
+                "description": "Sets bias level for LVDS mode. In LVDS mode, a voltage divider can be inserted to reduce susceptibility to common-mode noise of an LVDS line because the input is single-ended. With a reasonable setup, TI recommends using INPIN_LVL = 1 (Vin) to use the entire signal swing of an LVDS line.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "VIN_DIV_4",
+                            "description": "Vin/4"
+                        },
+                        {
+                            "value": 1,
+                            "name": "VIN",
+                            "description": "Vin"
+                        },
+                        {
+                            "value": 2,
+                            "name": "VIN_DIV_2",
+                            "description": "Vin/2"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 9,
+                "name": "INPIN_FMT",
+                "description": "IO Standard to be used for SYNC and SysRefReq pins.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "SYNC_CMOS_SYSREFREQ_CMOS",
+                            "description": "Use CMOS for both pins."
+                        },
+                        {
+                            "value": 1,
+                            "name": "SYNC_LVDS_SYSREFREQ_CMOS",
+                            "description": "Use LVDS for SYNC and CMOS for SysRefReq."
+                        },
+                        {
+                            "value": 2,
+                            "name": "SYNC_CMOS_SYSREFREQ_LVDS",
+                            "description": "Use CMOS for SYNC and LVDS for SysRefReq."
+                        },
+                        {
+                            "value": 3,
+                            "name": "SYNC_LVDS_SYSREFREQ_LVDS",
+                            "description": "Use LVDS for both pins."
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 59,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "LD_TYPE",
+                "description": "Lock detect type",
+                "default": 1,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "VCO_CAL_STATUS",
+                            "description": "VCO calibration status"
+                        },
+                        {
+                            "value": 1,
+                            "name": "VCO_CAL_STATUS_AND_INDIRECT_VTUNE",
+                            "description": "VCO calibration status and Indirect Vtune"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 60,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "LD_DLY",
+                "description": "Lock Detect Delay. This is the delay added to the lock detect after the VCO calibration is successful and before the lock detect is asserted high. The delay added is in phase-detector cycles. If set to 0, the lock detect immediately becomes high after the VCO calibration is successful.",
+                "default": 1000,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 61,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 168
+            }
+        ]
+    },
+    {
+        "addr": 62,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 802
+            }
+        ]
+    },
+    {
+        "addr": 63,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 64,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 5000
+            }
+        ]
+    },
+    {
+        "addr": 65,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 66,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 500
+            }
+        ]
+    },
+    {
+        "addr": 67,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 68,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1000
+            }
+        ]
+    },
+    {
+        "addr": 69,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_RST_COUNT[31:16]",
+                "description": "If the designer does not use this device in fractional mode with VCO_PHASE_SYNC = 1, then this field can be set to 0. In phase-sync mode with fractions, this bit is used so that there is a delay for the VCO divider after the MASH is reset. This delay must be set to greater than the lock time of the PLL. It does impact the latency time of the SYNC feature.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 70,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "MASH_RST_COUNT[15:0]",
+                "description": "If the designer does not use this device in fractional mode with VCO_PHASE_SYNC = 1, then this field can be set to 0. In phase-sync mode with fractions, this bit is used so that there is a delay for the VCO divider after the MASH is reset. This delay must be set to greater than the lock time of the PLL. It does impact the latency time of the SYNC feature.",
+                "default": 50000,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 71,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 5,
+                "name": "SYSREF_DIV_PRE",
+                "description": "Pre-divider for SYSREF",
+                "default": 4,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 1,
+                            "name": "DIVIDE_BY_1",
+                            "description": "Divide by 1"
+                        },
+                        {
+                            "value": 2,
+                            "name": "DIVIDE_BY_2",
+                            "description": "Divide by 2"
+                        },
+                        {
+                            "value": 4,
+                            "name": "DIVIDE_BY_4",
+                            "description": "Divide by 4"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "SYSREF_PULSE",
+                "description": "Enable pulser mode in master mode",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 3,
+                "start": 3,
+                "name": "SYSREF_EN",
+                "description": "Enable SYSREF",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 2,
+                "name": "SYSREF_REPEAT",
+                "description": "Enable repeater mode",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "MASTER",
+                            "description": "Master mode"
+                        },
+                        {
+                            "value": 1,
+                            "name": "REPEATER",
+                            "description": "Repeater mode"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 72,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 0,
+                "name": "SYSREF_DIV",
+                "description": "Divider for the SYSREF. Actual divider value = regValue * 2 + 4",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 73,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 6,
+                "name": "JESD_DAC2_CTRL",
+                "description": "These are the adjustments for the delay for the SYSREF. Two of these must be zero and the other two values must sum to 63. ",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "JESD_DAC1_CTRL",
+                "description": "These are the adjustments for the delay for the SYSREF. Two of these must be zero and the other two values must sum to 63. ",
+                "default": 63,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 74,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 12,
+                "name": "SYSREF_PULSE_CNT",
+                "description": "Number of pulses in pulse mode in master mode",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 6,
+                "name": "JESD_DAC4_CTRL",
+                "description": "These are the adjustments for the delay for the SYSREF. Two of these must be zero and the other two values must sum to 63. ",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 0,
+                "name": "JESD_DAC3_CTRL",
+                "description": "These are the adjustments for the delay for the SYSREF. Two of these must be zero and the other two values must sum to 63. ",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 75,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 6,
+                "name": "CHDIV",
+                "description": "VCO divider value, 0: 2, 1: 4, 2: 6, 3: 8, 4: 12, 5: 16, 6: 24, 7: 32, 8: 48, 9: 64, 10: 72, 11: 96, 12: 128, 13: 192, 14: 256, 15: 384, 16: 512, 17: 768, 18-31: Reserved",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2048
+            }
+        ]
+    },
+    {
+        "addr": 76,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 12
+            }
+        ]
+    },
+    {
+        "addr": 77,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 78,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 11,
+                "start": 11,
+                "name": "RAMP_THRESH[32:32]",
+                "description": "This sets how much the ramp can change the VCO frequency before calibrating. If this frequency is chosen to be Δf, then it is calculated as follows: RAMP_THRESH = (Δf / fPD) × 16777216",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 9,
+                "start": 9,
+                "name": "QUICK_RECAL_EN",
+                "description": "Causes the initial VCO_CORE, VCO_CAPCTRL, and VCO_DACISET to be based on the last value. Useful if the frequency change is small, as is often the case for ramping.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 1,
+                "name": "VCO_CAPCTRL_STRT",
+                "description": "This sets the initial value for VCO_CAPCTRL if not overridden by other settings. Smaller values yield a higher frequency band within a VCO core. Valid number range is 0 to 183.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 1
+            }
+        ]
+    },
+    {
+        "addr": 79,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_THRESH[31:16]",
+                "description": "This sets how much the ramp can change the VCO frequency before calibrating. If this frequency is chosen to be Δf, then it is calculated as follows: RAMP_THRESH = (Δf / fPD) × 16777216",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 80,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_THRESH[15:0]",
+                "description": "This sets how much the ramp can change the VCO frequency before calibrating. If this frequency is chosen to be Δf, then it is calculated as follows: RAMP_THRESH = (Δf / fPD) × 16777216",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 81,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH[32:32]",
+                "description": "This sets a maximum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fHIGH is this frequency and fVCO is the starting VCO frequency then: For fHIGH ≥ fVCO: RAMP_LIMIT_HIGH = (fHIGH – fVCO)/fPD × 16777216 For fHIGH < fVCO this is not a valid condition to choose",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 82,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH[31:16]",
+                "description": "This sets a maximum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fHIGH is this frequency and fVCO is the starting VCO frequency then: For fHIGH ≥ fVCO: RAMP_LIMIT_HIGH = (fHIGH – fVCO)/fPD × 16777216 For fHIGH < fVCO this is not a valid condition to choose",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 83,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_HIGH[15:0]",
+                "description": "This sets a maximum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fHIGH is this frequency and fVCO is the starting VCO frequency then: For fHIGH ≥ fVCO: RAMP_LIMIT_HIGH = (fHIGH – fVCO)/fPD × 16777216 For fHIGH < fVCO this is not a valid condition to choose",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 84,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW[32:32]",
+                "description": "This sets a minimum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fLOW is this frequency and fVCO is the starting VCO frequency then: For fLOW ≤ fVCO: RAMP_LIMIT_LOW = 2 33 – 16777216 x (fVCO – fLOW) / fPD For fLOW > fVCO, this is not a valid condition to choose.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 85,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW[31:16]",
+                "description": "This sets a minimum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fLOW is this frequency and fVCO is the starting VCO frequency then: For fLOW ≤ fVCO: RAMP_LIMIT_LOW = 2 33 – 16777216 x (fVCO – fLOW) / fPD For fLOW > fVCO, this is not a valid condition to choose.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 86,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP_LIMIT_LOW[15:0]",
+                "description": "This sets a minimum frequency that the ramp can not exceed so that the VCO does not get set beyond a valid frequency range. Suppose fLOW is this frequency and fVCO is the starting VCO frequency then: For fLOW ≤ fVCO: RAMP_LIMIT_LOW = 2 33 – 16777216 x (fVCO – fLOW) / fPD For fLOW > fVCO, this is not a valid condition to choose.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 87,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 88,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 89,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 90,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 91,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 92,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 93,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 94,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 95,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 96,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP_BURST_EN",
+                "description": "Enables burst ramping mode. In this mode, a RAMP_BURST_COUNT ramps are sent out when RAMP_EN is set from 0 to 1.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 14,
+                "start": 2,
+                "name": "RAMP_BURST_COUNT",
+                "description": "Sets how many ramps are run in burst ramping mode",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 97,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 15,
+                "name": "RAMP0_RST",
+                "description": "Resets RAMP0 at start of ramp to eliminate round-off errors. Must only be used in automatic ramping mode.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 7,
+                "name": "RAMP_TRIGB",
+                "description": "Multipurpose trigger B definition",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "RAMP_CLK_RISING_EDGE",
+                            "description": "RampClk pin rising edge"
+                        },
+                        {
+                            "value": 2,
+                            "name": "RAMP_DIR_RISING_EDGE",
+                            "description": "RampDir pin rising edge"
+                        },
+                        {
+                            "value": 4,
+                            "name": "ALWAYS",
+                            "description": "Always triggered"
+                        },
+                        {
+                            "value": 9,
+                            "name": "RAMP_CLK_FALLING_EDGE",
+                            "description": "RampClk pin falling edge"
+                        },
+                        {
+                            "value": 10,
+                            "name": "RAMP_DIR_FALLING_EDGE",
+                            "description": "RampDir pin falling edge"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 3,
+                "name": "RAMP_TRIGA",
+                "description": "Multipurpose Trigger A definition",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "RAMP_CLK_RISING_EDGE",
+                            "description": "RampClk pin rising edge"
+                        },
+                        {
+                            "value": 2,
+                            "name": "RAMP_DIR_RISING_EDGE",
+                            "description": "RampDir pin rising edge"
+                        },
+                        {
+                            "value": 4,
+                            "name": "ALWAYS",
+                            "description": "Always triggered"
+                        },
+                        {
+                            "value": 9,
+                            "name": "RAMP_CLK_FALLING_EDGE",
+                            "description": "RampClk pin falling edge"
+                        },
+                        {
+                            "value": 10,
+                            "name": "RAMP_DIR_FALLING_EDGE",
+                            "description": "RampDir pin falling edge"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP_BURST_TRIG",
+                "description": "Ramp burst trigger definition that triggers the next ramp in the count. Note that RAMP_EN starts the count, not this word.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "RAMP_TRANSITION",
+                            "description": "Ramp Transition"
+                        },
+                        {
+                            "value": 1,
+                            "name": "TRIGGER_A",
+                            "description": "Trigger A"
+                        },
+                        {
+                            "value": 2,
+                            "name": "TRIGGER_B",
+                            "description": "Trigger B"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 2048
+            }
+        ]
+    },
+    {
+        "addr": 98,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 2,
+                "name": "RAMP0_INC[29:16]",
+                "description": "2's complement of the amount the RAMP0 is incremented in phase detector cycles.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 0,
+                "start": 0,
+                "name": "RAMP0_DLY",
+                "description": "Enabling this bit uses two clocks instead of one to clock the ramp. Effectively doubling the length.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_LENGTH",
+                            "description": "Normal ramp length"
+                        },
+                        {
+                            "value": 1,
+                            "name": "DOUBLE_LENGTH",
+                            "description": "Double ramp length"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 99,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP0_INC[15:0]",
+                "description": "2's complement of the amount the RAMP0 is incremented in phase detector cycles.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 100,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP0_LEN",
+                "description": "Length of RAMP0 in phase detector cycles",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 101,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 6,
+                "start": 6,
+                "name": "RAMP1_DLY",
+                "description": "Enabling this bit uses two clocks instead of one to clock the ramp. Effectively doubling the length.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "NORMAL_LENGTH",
+                            "description": "Normal ramp length"
+                        },
+                        {
+                            "value": 1,
+                            "name": "DOUBLE_LENGTH",
+                            "description": "Double ramp length"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "RAMP1_RST",
+                "description": "Resets RAMP1 to eliminate rounding errors. Must be used in automatic ramping mode.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP0_NEXT",
+                "description": "Defines what ramp comes after RAMP0",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "RAMP0",
+                            "description": "Ramp 0"
+                        },
+                        {
+                            "value": 1,
+                            "name": "RAMP1",
+                            "description": "Ramp 1"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP0_NEXT_TRIG",
+                "description": "Defines what triggers the next ramp",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "TIMEOUT_COUNTER",
+                            "description": "RAMP0_LEN timeout counter"
+                        },
+                        {
+                            "value": 1,
+                            "name": "TRIGGER_A",
+                            "description": "Trigger A"
+                        },
+                        {
+                            "value": 2,
+                            "name": "TRIGGER_B",
+                            "description": "Trigger B"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 102,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 13,
+                "start": 0,
+                "name": "RAMP1_INC[29:16]",
+                "description": "2's complement of the amount the RAMP1 is incremented in phase detector cycles",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 103,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP1_INC[15:0]",
+                "description": "2's complement of the amount the RAMP1 is incremented in phase detector cycles",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 104,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 0,
+                "name": "RAMP1_LEN",
+                "description": "Length of RAMP1 in phase detector cycles",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 105,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 15,
+                "start": 6,
+                "name": "RAMP_DLY_CNT",
+                "description": "This is the number of state machine clock cycles for the VCO calibration in automatic mode. If the VCO calibration is less, then it is this time. If it is more, then the time is the VCO calibration time.",
+                "default": 0,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 5,
+                "start": 5,
+                "name": "RAMP_MANUAL",
+                "description": "Enables manual ramping mode, or otherwise automatic mode",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "AUTOMATIC",
+                            "description": "Automatic ramping mode"
+                        },
+                        {
+                            "value": 1,
+                            "name": "MANUAL",
+                            "description": "Manual ramping mode"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP1_NEXT",
+                "description": "Determines what ramp comes after RAMP1",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "RAMP0",
+                            "description": "Ramp 0"
+                        },
+                        {
+                            "value": 1,
+                            "name": "RAMP1",
+                            "description": "Ramp 1"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 1,
+                "start": 0,
+                "name": "RAMP1_NEXT_TRIG",
+                "description": "Defines what triggers the next ramp",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "RAMP1_LEN_TIMEOUT",
+                            "description": "RAMP1_LEN timeout counter"
+                        },
+                        {
+                            "value": 1,
+                            "name": "TRIGGER_A",
+                            "description": "Trigger A"
+                        },
+                        {
+                            "value": 2,
+                            "name": "TRIGGER_B",
+                            "description": "Trigger B"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 106,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 4,
+                "start": 4,
+                "name": "RAMP_TRIG_CAL",
+                "description": "Enabling this bit forces the VCO to calibrate after the ramp.",
+                "default": 0,
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "DISABLED",
+                            "description": "Disabled"
+                        },
+                        {
+                            "value": 1,
+                            "name": "ENABLED",
+                            "description": "Enabled"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 2,
+                "start": 0,
+                "name": "RAMP_SCALE_COUNT",
+                "description": "Multiplies RAMP_DLY count by 2^RAMP_SCALE_COUNT",
+                "default": 7,
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 107,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 108,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 109,
+        "fields": [
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 110,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 10,
+                "start": 9,
+                "name": "rb_LD_VTUNE",
+                "description": "Readback of Vtune lock detect",
+                "default": 0,
+                "access": "R",
+                "valid": {
+                    "type": "enum",
+                    "values": [
+                        {
+                            "value": 0,
+                            "name": "UNLOCKED_LOW",
+                            "description": "Unlocked (Vtune low)"
+                        },
+                        {
+                            "value": 1,
+                            "name": "INVALID_STATE",
+                            "description": "Invalid State"
+                        },
+                        {
+                            "value": 2,
+                            "name": "LOCKED",
+                            "description": "Locked"
+                        },
+                        {
+                            "value": 3,
+                            "name": "UNLOCKED_HIGH",
+                            "description": "Unlocked (Vtune High)"
+                        }
+                    ]
+                }
+            },
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 5,
+                "name": "rb_VCO_SEL",
+                "description": "Reads back the actual VCO that the calibration has selected.",
+                "default": 0,
+                "access": "R",
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 111,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 7,
+                "start": 0,
+                "name": "rb_VCO_CAPCTRL",
+                "description": "Reads back the actual CAPCTRL capcode value the VCO calibration has chosen.",
+                "default": 183,
+                "access": "R",
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    },
+    {
+        "addr": 112,
+        "fields": [
+            {
+                "fieldtype": "normal",
+                "end": 8,
+                "start": 0,
+                "name": "rb_VCO_DACISET",
+                "description": "Reads back the actual amplitude (DACISET) value that the VCO calibration has chosen.",
+                "default": 170,
+                "access": "R",
+                "valid": {
+                    "type": "int"
+                }
+            },
+            {
+                "fieldtype": "constant",
+                "end": 15,
+                "start": 0,
+                "value": 0
+            }
+        ]
+    }
+]

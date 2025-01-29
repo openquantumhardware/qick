@@ -378,7 +378,7 @@ class QickSoc(Overlay, QickConfig):
                 self.iqs.append(getattr(self, key))
             elif issubclass(val['driver'], AbsReadout):
                 self.readouts.append(getattr(self, key))
-            elif issubclass(val['driver'], AxisAvgBuffer):
+            elif val['driver'] == AxisAvgBuffer:
                 self.avg_bufs.append(getattr(self, key))
 
         # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
@@ -644,7 +644,7 @@ class QickSoc(Overlay, QickConfig):
         :param length: Buffer transfer length
         :type length: int
         :return: List of I and Q decimated arrays
-        :rtype: list of numpy.ndarray
+        :rtype: list
         """
         if length is None:
             # this default will always cause a RuntimeError
@@ -706,9 +706,7 @@ class QickSoc(Overlay, QickConfig):
         buf = self.avg_bufs[ch]
         buf.readout.set_all_int(ro_regs)
 
-    def config_avg(
-        self, ch, address=0, length=1, enable=True,
-        edge_counting=False, high_threshold=1000, low_threshold=0):
+    def config_avg(self, ch, address=0, length=1, enable=True):
         """Configure and optionally enable accumulation buffer
         :param ch: Channel to configure
         :type ch: int
@@ -720,12 +718,7 @@ class QickSoc(Overlay, QickConfig):
         :type enable: bool
         """
         avg_buf = self.avg_bufs[ch]
-        if avg_buf['has_edge_counter']:
-            avg_buf.config_avg(
-                address, length,
-                edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
-        else:
-            avg_buf.config_avg(address, length)
+        avg_buf.config_avg(address, length)
         if enable:
             avg_buf.enable_avg()
 
@@ -759,7 +752,7 @@ class QickSoc(Overlay, QickConfig):
         :param ch: Channel
         :type ch: int
         :param data: array of (I, Q) values for pulse envelope
-        :type data: numpy.ndarray of int16
+        :type data: int16 array
         :param addr: address to start data at
         :type addr: int
         """
@@ -866,7 +859,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        binprog : numpy.ndarray or dict
+        binprog : array or dict
             compiled program (format depends on tProc version)
         load_mem : bool
             write waveform and data memory now (can do this later with reload_mem())
@@ -887,7 +880,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        buff_in : numpy.ndarray of int
+        buff_in : array
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         mem_sel : str
@@ -920,7 +913,7 @@ class QickSoc(Overlay, QickConfig):
 
         Returns
         -------
-        numpy.ndarray
+        array
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         """
         if self.TPROC_VERSION == 1:
@@ -936,7 +929,7 @@ class QickSoc(Overlay, QickConfig):
         Sets the start source of tProc
 
         :param src: start source "internal" or "external"
-        :type src: str
+        :type src: string
         """
         if self.TPROC_VERSION == 1:
             self.tproc.start_src(src)
@@ -1089,6 +1082,7 @@ class QickSoc(Overlay, QickConfig):
         streamer.count = 0
 
         streamer.done_flag.clear()
+        print("in qick.py, number of reads per shot: ", reads_per_shot)
         streamer.job_queue.put((total_shots, counter_addr, ch_list, reads_per_shot, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
@@ -1111,9 +1105,12 @@ class QickSoc(Overlay, QickConfig):
 
         time_end = time.time() + totaltime
         new_data = []
+        print("streamer count: ", streamer.count, "streamer total count: ", streamer.total_count)
+        print("time: ", time.time(), "time end: ", time_end)
         while (totaltime < 0) or (streamer.count < streamer.total_count and time.time() < time_end):
             try:
-                raise RuntimeError("exception in readout loop") from streamer.error_queue.get(block=False)
+                print(streamer.error_queue.get(block=False,  timeout=timeout))
+                raise RuntimeError("exception in readout loopppp") from streamer.error_queue.get(block=False,  timeout=timeout)
             except queue.Empty:
                 pass
             try:

@@ -114,9 +114,9 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: str
+        :type blockname: string
         :param portname: the port we want to trace
-        :type portname: str
+        :type portname: string
 
         :return: a list of [block, port] pairs, or just [port] for ports of the top-level design
         :rtype: list
@@ -135,9 +135,9 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: str
+        :type blockname: string
         :param portname: the port we want to trace
-        :type portname: str
+        :type portname: string
 
         :return: frequency in MHz
         :rtype: float
@@ -153,12 +153,12 @@ class QickMetadata:
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
-        :type blockname: str
+        :type blockname: string
         :param parname: the parameter of interest
-        :type parname: str
+        :type parname: string
 
         :return: parameter value
-        :rtype: str
+        :rtype: string
         """
         xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PARAMETERS/PARAMETER[@NAME='{1}']".format(
             blockname, parname)
@@ -172,9 +172,6 @@ class QickMetadata:
 
     def mod2rev(self, blockname):
         return self.busparser.mod2rev[blockname]
-
-    def mod2version(self, blockname):
-        return self.busparser.mod2version[blockname]
 
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
@@ -288,12 +285,10 @@ class BusParser:
         self.pins = {}
         self.mod2type = {}
         self.mod2rev = {}
-        self.mod2version = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
             self.mod2type[fullpath] = module.get('MODTYPE')
             self.mod2rev[fullpath] = int(module.get('COREREVISION'))
-            self.mod2version[fullpath] = module.get('HWVERSION')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')

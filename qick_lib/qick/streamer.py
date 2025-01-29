@@ -98,6 +98,7 @@ class DataStreamer():
                 # wait for a job
                 total_shots, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
                 #print("streamer loop: start", total_count)
+                print("max of reads per count: ", reads_per_count)
 
                 shots = 0
                 last_shots = 0
@@ -127,7 +128,7 @@ class DataStreamer():
                     if shots >= min(last_shots+stride, total_shots):
                         newshots = shots-last_shots
                         # buffer for each channel
-                        acc_buf = [None for nreads in reads_per_count]
+                        d_buf = [None for nreads in reads_per_count]
 
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
@@ -140,17 +141,17 @@ class DataStreamer():
 
                             addr = last_shots * reads_per_count[iCh] % self.soc.get_avg_max_length(ch)
                             data = self.soc.get_accumulated(ch=ch, address=addr, length=newpoints)
-                            acc_buf[iCh] = data
+                            d_buf[iCh] = data
 
                         last_shots += newshots
 
                         stats = (time.time()-t_start, shots, addr, newshots)
-                        self.data_queue.put((newshots, (acc_buf, stats)))
+                        self.data_queue.put((newshots, (d_buf, stats)))
                 #if last_count==total_count: print("streamer loop: normal completion")
 
             except Exception as e:
                 print("streamer loop: got exception")
-                # traceback.print_exc()
+                traceback.print_exc()
                 # pass the exception to the main thread
                 self.error_queue.put(e)
                 # put dummy data in the data queue, to trigger a poll_data read

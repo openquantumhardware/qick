@@ -46,7 +46,8 @@ except ModuleNotFoundError:
 
 from .averager_program import AveragerProgram, RAveragerProgram, NDAveragerProgram
 from .qick_asm import QickConfig, DummyIp
-from .asm_v1 import QickProgram
+from .asm_v1 import QickProgram, AcquireProgram, QickRegister, AcquireMixin
+from .asm_v2 import QickProgramV2, AcquireProgramV2, QickRegisterV2, AcquireMixin
 
 # only import the hardware drivers if running on a Zynq
 # also import if we're in the ReadTheDocs Sphinx build (the imports won't really work but they will be mocked)

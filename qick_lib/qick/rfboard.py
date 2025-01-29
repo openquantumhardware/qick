@@ -6,7 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
-from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
+from qick.ipq_pynq_utils import clock_models
 
 
 class AxisSignalGenV3(SocIp):
@@ -503,9 +503,6 @@ class spi(DefaultIP):
 # Parts are used in serial mode.
 # See schematics for Address/LE correspondance.
 class PE43705:
-    """
-    """
-
     address = 0
     nSteps = 2**7
     dbStep = 0.25
@@ -534,8 +531,6 @@ class PE43705:
 
 # GPIO chip MCP23S08.
 class MCP23S08:
-    """
-    """
     # Commands.
     cmd_wr = 0x40
     cmd_rd = 0x41
@@ -590,8 +585,6 @@ class MCP23S08:
 
 # LO Chip ADF4372.
 class ADF4372:
-    """
-    """
     # Reference input.
     f_REF_in = 122.88
 
@@ -739,8 +732,6 @@ class ADF4372:
 
 # BIAS DAC chip AD5781.
 class AD5781:
-    """
-    """
     # Commands.
     cmd_wr = 0x0
     cmd_rd = 0x1
@@ -808,8 +799,6 @@ class AD5781:
 
 # BIAS DAC chip DAC11001.
 class DAC11001:
-    """
-    """
     # Commands.
     cmd_wr = 0x0
     cmd_rd = 0x1
@@ -882,8 +871,6 @@ class DAC11001:
 
 # ADMV8818 Filter Chip.
 class ADMV8818:
-    """
-    """
     # Commands.
     cmd_wr = 0x00
     cmd_rd = 0x01
@@ -1029,8 +1016,6 @@ class ADMV8818:
 
 # Attenuator class: This class instantiates spi and PE43705 to simplify access to attenuator.
 class attenuator:
-    """
-    """
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, nch=3, le=[0], en_l="high", cs_t="pulse"):
@@ -1057,8 +1042,6 @@ class attenuator:
 
 # Filter class: This class instantiates spi and ADMV8818 to simplify access to the filter chip.
 class prog_filter:
-    """
-    """
 
     # Constructor.
     def __init__(self, spi_ip, ch=0, cs_t=""):
@@ -1154,8 +1137,6 @@ class prog_filter:
 
 # Power, Switch and Fan.
 class SwitchControl:
-    """
-    """
     # Constructor.
     def __init__(self, spi_ip):
         self.spi = spi_ip
@@ -1184,8 +1165,6 @@ class SwitchControl:
             raise RuntimeError("invalid value:", val)
 
 class power_sw_fan:
-    """
-    """
 
     # Constructor.
     def __init__(self, spi_ip, ch_en, defaults=0xFF, dev_addr=0, cs_t=""):
@@ -1245,8 +1224,6 @@ class power_sw_fan:
 
 # LO Synthesis.
 class lo_synth:
-    """
-    """
 
     # Constructor.
     def __init__(self, spi_ip, nch=2, le=[0], en_l="low", cs_t=""):
@@ -1412,8 +1389,6 @@ class lo_synth:
 
 # Bias dac.
 class dac_bias:
-    """
-    """
 
     # Constructor.
     def __init__(self, spi_ip, ch_en, cs_t="", gpio_ip=None, version=1, fpga_board="ZCU216", debug=False):
@@ -1514,8 +1489,6 @@ class dac_bias:
 
 # Variable Gain Amp chip LMH6401.
 class LMH6401:
-    """
-    """
     # Commands.
     cmd_wr = 0x00
     cmd_rd = 0x80
@@ -1560,8 +1533,6 @@ class LMH6401:
 
 # Variable step amp class: This class instantiates spi and LMH6401 to simplify access to amplifier.
 class gain:
-    """
-    """
 
     # Number of bits of gain setting.
     B = 6
@@ -1602,20 +1573,8 @@ class gain:
             # Write value using spi.
             self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
 
-    def get_gain(self):
-        # Write command.
-        byte = self.lmh.reg_rd(reg="GAIN_REG")
-
-        # Write value using spi.
-        msg = self.spi.send_receive_m(byte, self.ch_en, self.cs_t)
-
-        db_a = int.from_bytes(msg, byteorder='big')
-        return self.Gmax - db_a
-
 # Class to describe the ADC-RF channel chain.
 class adc_rf_ch():
-    """
-    """
     # Constructor.
     def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
@@ -1731,8 +1690,6 @@ class adc_rf_ch():
 
 # Class to describe the ADC-DC channel chain.
 class adc_dc_ch():
-    """
-    """
     # Constructor.
     def __init__(self, ch, switches, gain_spi, version=2):
         # Channel number.
@@ -1760,9 +1717,6 @@ class adc_dc_ch():
         if self.version==2:
             self.enable()
 
-    def get_gain_db(self):
-        return self.gain.get_gain()
-
     def enable(self):
         if self.version!=2:
             raise RuntimeError("enable/disable not supported for version", self.version)
@@ -1777,8 +1731,6 @@ class adc_dc_ch():
 
 # Class to describe the DAC channel chain.
 class dac_ch():
-    """
-    """
     # Constructor.
     def __init__(self, ch=0, switches=None, attn_spi=None, filter_spi=None, version=2, fpga_board="ZCU216", rfboard_ch=0, rfboard_sel=None, debug=False):
         # Channel number.
@@ -2126,7 +2078,7 @@ class RFQickSoc(QickSoc):
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
             Bandwidth.
-        ftype : str
+        ftype : string.
             Filter type: bypass, lowpass, highpass or bandpass.
         """
         self.gens[gen_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
@@ -2143,15 +2095,12 @@ class RFQickSoc(QickSoc):
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
             Bandwidth.
-        ftype : str
+        ftype : string.
             Filter type: bypass, lowpass, highpass or bandpass.
         """
         self.avg_bufs[ro_ch].rfb.set_filter(fc = fc, bw = bw, ftype = ftype)
 
 class lo_synth_v2:
-    """
-    """
-
     def __init__(self, spi_ip, ch):
         # SPI.
         self.spi = spi_ip
@@ -2181,13 +2130,19 @@ class lo_synth_v2:
         data = bytes([addr + (1<<7), 0, 0])
         return self.spi.send_receive_m(data, self.ch_en, self.cs_t)
 
+    def read_and_parse(self, addr):
+        regval = int.from_bytes(self.reg_rd(addr), byteorder="big")
+        reg = clock_models.Register(self.lmx.registers_by_addr[addr].regdef)
+        reg.parse(regval)
+        return reg
+
     def is_locked(self):
         status = self.get_param("rb_LD_VTUNE")
         #print(status.value_description)
-        return status.value == status.LOCKED.value
+        return status.value == self.lmx.rb_LD_VTUNE.LOCKED.value
 
-    def set_freq(self, f, pwr=50, reset=True, verbose=False):
-        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, verbose=verbose)
+    def set_freq(self, f, pwr=50, osc_2x=False, reset=True, verbose=False):
+        self.lmx.set_output_frequency(f, pwr=pwr, en_b=True, osc_2x=osc_2x, verbose=verbose)
         if reset: self.reset()
         self.program()
         time.sleep(0.01)
@@ -2209,15 +2164,17 @@ class lo_synth_v2:
         raise RuntimeError("LO failed to lock after %d attempts"%(n_attempts))
 
     def set_param(self, name, val):
-        getattr(self.lmx, name).value = val
-        for addr in self.lmx.find_addrs([name]):
-            self.reg_wr(self.lmx.registers_by_addr[addr].get_raw())
+        param = getattr(self.lmx, name)
+        param.value = val
+        if isinstance(param, clock_models.Field):
+            self.reg_wr(self.lmx.registers_by_addr[param.addr].get_raw())
+        else: # MultiRegister
+            for field in param.fields:
+                self.reg_wr(self.lmx.registers_by_addr[field.addr].get_raw())
 
     def get_param(self, name):
-        for addr in self.lmx.find_addrs([name]):
-            res = self.reg_rd(addr)
-            self.lmx.registers_by_addr[addr].parse(int.from_bytes(res, byteorder='big'))
-        return getattr(self.lmx, name)
+        param = getattr(self.lmx, name)
+        return self.read_and_parse(param.addr).fields[param.index]
 
     def program(self):
         for regval in self.lmx.get_register_dump():
