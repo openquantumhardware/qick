@@ -1,0 +1,33 @@
+CAPI=2:
+name: invap:rts_syncro:cdc_axis:0.1.0
+description: IP AXI4-Stream Clock Converter
+
+filesets:
+  rtl:
+    depend:
+      - ~stratum:utils:xil_ip_gen:0.5
+
+generate:
+  cdc_axis:
+    generator: xil_ip_gen
+    parameters:
+      vlnv: xilinx.com:ip:axis_clock_converter:1.1
+      module_name: cdc_axis
+      targets: [simulation, synthesis]
+      properties:
+        TDATA_NUM_BYTES : 8
+        IS_ACLK_ASYNC   : 1
+        HAS_TLAST       : 1
+      output:
+        - cdc_axis/hdl/axis_clock_converter_v1_1_vl_rfs.v : {file_type: verilogSource}    
+        - cdc_axis/hdl/axis_infrastructure_v1_1_0.vh      : {file_type: systemVerilogSource}    
+        - cdc_axis/hdl/axis_infrastructure_v1_1_vl_rfs.v  : {file_type: verilogSource}    
+
+        - cdc_axis/sim/cdc_axis.v                         : {file_type: verilogSource}    
+        
+targets:
+  default: &default
+    filesets:
+      - rtl
+    generate:
+      - cdc_axis

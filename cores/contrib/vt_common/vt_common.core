@@ -1,0 +1,17 @@
+CAPI=2:
+name: vt:utils:vt_common:0.1.0
+description: Common sources of Vadatech
+
+filesets:
+  rtl:
+    files:
+      - hdl/vt_gt_clk.vhd
+      - hdl/axi_spi_sdio.vhd
+      - hdl/axi_gpio_32.vhd
+    file_type: vhdlSource
+    logical_name: vt_common_lib
+
+targets:
+  default: &default
+    filesets:
+     - rtl

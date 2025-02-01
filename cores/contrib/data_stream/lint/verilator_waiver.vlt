@@ -1,0 +1,3 @@
+`verilator_config
+lint_off -rule UNUSED -file "*data_stream_if.sv" -match "*Signal is not driven*"
+lint_off -rule UNUSED -file "*data_stream_if.sv" -match "*Signal is not used*"

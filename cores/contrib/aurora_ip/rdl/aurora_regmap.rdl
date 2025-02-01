@@ -1,0 +1,42 @@
+addrmap aurora_regmap {
+    reg {
+        field {singlepulse = true; reset = 1'b0; sw = w; hw = r;} pulse_rst = 0;
+        field {sw = rw; hw = r;} toggle_rst = 0;
+    } rst_reg;
+
+    regfile {
+        default sw = r;
+        default hw = w;
+        reg {
+            field {sticky; onread = rclr;} hard_err     [ 1] = 0;
+            field {sticky; onread = rclr;} soft_err     [ 1] = 0;
+        } error_reg;
+
+        reg {   
+            field {} lane_up                [ 1];
+            field {} channel_up             [ 1];
+            field {} mmcm_not_locked_out    [ 1];
+            field {} gt_powergood           [ 1];
+        } status_reg;
+
+    } aurora_regs;
+
+    regfile {
+        default sw = r;
+        default hw = w;
+        reg {
+            field {sticky; onread = rclr;} empty_status [ 1] = 0;
+            field {sticky; onread = rclr;} full_status  [ 1] = 0;
+        } status_reg;        
+    } fifo_rx;
+
+    regfile {
+        default sw = r;
+        default hw = w;
+        reg {
+            field {sticky; onread = rclr;} empty_status [ 1] = 0;
+            field {sticky; onread = rclr;} full_status  [ 1] = 0;
+        } status_reg;
+    } fifo_tx;
+    
+};

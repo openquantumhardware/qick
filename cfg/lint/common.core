@@ -1,0 +1,12 @@
+CAPI=2:
+name: "pynq_fused:lint:common:0.1.0"
+description: "Common rules and/or waives for Linting tools"
+filesets:
+  files_veriblelint:
+    files:
+      - src/verible_rules.verible_lint: {file_type: veribleLintRules}
+
+targets:
+  default: &default_target
+    filesets:
+      - tool_veriblelint ? (files_veriblelint)

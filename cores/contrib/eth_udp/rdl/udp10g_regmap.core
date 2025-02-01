@@ -1,0 +1,25 @@
+CAPI=2:
+name: stratum:udp:udp10g_regmap:0.2.0
+
+filesets:
+  rdl:
+    files:
+        - udp10g_regmap.rdl : {file_type: user }
+    depend: 
+        - "^stratum:utils:rdl_gen:0.2.1"
+
+generate:
+  rdl_regmap:
+    generator: rdl_gen
+    parameters:
+      rdl_file: udp10g_regmap.rdl
+      documentation:
+      headers:
+        - verilog
+
+targets:
+  default: &default
+    filesets:
+      - rdl
+    generate:
+      - rdl_regmap

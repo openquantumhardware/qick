@@ -1,0 +1,15 @@
+CAPI=2:
+name: pynq_fused::simutils:0.1.0
+description: Utility package for pyxsi simulation
+
+filesets:
+  py:
+    files:
+      - simutils.py: {copyto: simutils.py}
+      - vcd_utils.py: {copyto: vcd_utils.py}
+    file_type: user
+
+targets:
+  default: &default
+    filesets:
+      - py

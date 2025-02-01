@@ -1,0 +1,136 @@
+addrmap udp10g_regmap {
+    default sw = rw;
+    default hw = r;
+
+    reg rstReg{
+        field {singlepulse=true;reset=1'b0;sw=w;hw=r;} 
+            pulse;
+        field {sw=rw;hw=r;reset=1'b0;}
+            toggle;
+    };
+
+    regfile {
+        reg {
+            default sw = r;
+            field {reset=32'hFAFACAFE;} version [32];
+        } version_reg;
+    } general;
+
+    regfile {
+        reg {
+            default sw = r;
+            default hw = w;
+
+            field {} tx_fifo_overflow   ;
+            field {} tx_fifo_bad_frame  ;
+            field {} tx_fifo_good_frame ;
+            field {} rx_error_bad_frame ;
+            field {} rx_error_bad_fcs   ;
+            field {} rx_fifo_overflow   ;
+            field {} rx_fifo_bad_frame  ;
+            field {} rx_fifo_good_frame ;
+        } status;
+    } eth_mac_10g_fifo;
+
+    regfile {
+        reg {
+            default sw = r;
+            default hw = w;
+
+            field {} tx_busy;
+            field {} rx_busy;
+            field {} rx_error_header_early_termination;
+        } status;
+        rstReg tx_rst;
+        rstReg rx_rst;
+    } eth_axis;
+
+    regfile {
+        reg {
+            default sw = r;
+            default hw = w;
+
+            field {} ip_rx_busy                             ;
+            field {} ip_tx_busy                             ;
+            field {} udp_rx_busy                            ;
+            field {} udp_tx_busy                            ;
+            field {} ip_rx_error_header_early_termination   ;
+            field {} ip_rx_error_payload_early_termination  ;
+            field {} ip_rx_error_invalid_header             ;
+            field {} ip_rx_error_invalid_checksum           ;
+            field {} ip_tx_error_payload_early_termination  ;
+            field {} ip_tx_error_arp_failed                 ;
+            field {} udp_rx_error_header_early_termination  ;
+            field {} udp_rx_error_payload_early_termination ;
+            field {} udp_tx_error_payload_early_termination ;
+        } status;
+
+        regfile {
+            regfile {
+                reg {
+                    field {} dscp [6];
+                    field {} ecn  [2];
+                    field {} ttl  [8];
+                } options;
+                reg {
+                    field {} addr [32];
+                } source;
+                reg {
+                    field {} addr [32];
+                } dest;
+            } ip_hdr;
+
+            reg {
+                field {} source [16];
+                field {} dest   [16];
+            } port;
+
+            reg {
+                field {} length   [16];
+                field {} checksum [16];
+            } options;
+
+            reg  {
+                field {} valid;
+                field {sw=r;hw=w;} ready;
+            } transaction;
+        } udp_tx_hdr;
+
+
+        regfile {
+            regfile {
+                reg {
+                    field {} addr [32];
+                } lsb;
+                reg {
+                    field {} addr [16];
+                } msb;
+            } local_mac;
+
+            reg {
+                field {} ip [32];
+            } local_ip;
+
+            reg {
+                field {} gateway [32];
+            } gateway_ip;
+
+            reg {
+                field {} mask [32]; 
+            } subnet_mask;
+
+            reg {
+                field {} clear = 0;
+            } arp_cache;
+        } cfg;
+
+        rstReg rst;
+    } udp;
+
+    reg {
+        field {swmod;} ramp = 0;
+    } debug;
+    reg {
+        field {counter; hw=r;} count [32] = 0;
+    } eth_axis_count;
+};

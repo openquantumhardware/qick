@@ -1,0 +1,47 @@
+CAPI=2:
+
+name : stratum:external:fifo:1.3.0
+description : > 
+    Core file for external fifo based on the fusesoc std core library fifo:
+    https://github.com/fusesoc/fusesoc-cores/blob/master/fifo/fifo-1.3.core
+
+filesets:
+  rtl:
+    files:
+      - rtl/verilog/simple_dpram_sclk.v
+      - rtl/verilog/fifo.v
+      - rtl/verilog/fifo_fwft.v
+      - rtl/verilog/fifo_fwft_adapter.v
+    file_type : verilogSource
+
+parameters:
+  read_rate:
+    datatype    : str
+    description : FIFO read rate
+    paramtype   : plusarg
+
+  write_rate:
+    datatype    : str
+    description : FIFO write rate
+    paramtype   : plusarg
+
+  data_width:
+    datatype    : int
+    description : FIFO data width
+    paramtype   : vlogparam
+
+  depth_width:
+    datatype    : int
+    description : 2**(FIFO depth)
+    paramtype   : vlogparam
+
+targets:
+  default:
+    filesets :
+      - rtl
+
+provider:
+  name    : github
+  user    : olofk
+  repo    : fifo
+  version : v1.3

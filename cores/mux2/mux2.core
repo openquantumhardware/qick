@@ -1,0 +1,64 @@
+CAPI=2:
+name: lha:utils:mux2:1.0.0
+description: Parametrizable MUX2x1 core
+
+filesets:
+  rtl:
+    files:
+      - rtl/mux2.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - tb/mux2_tb.sv
+    file_type: systemVerilogSource
+
+  pynq_z2:
+    files:
+      - data/pynq_z2.xdc: {file_type: xdc}
+
+targets:
+  # The "default" target is special in FuseSoC and used in dependencies.
+  # The "&default" is a YAML anchor referenced later.
+  default: &default
+    filesets:
+      - rtl
+    toplevel: mux2
+    parameters:
+      - WIDTH
+
+  # The "sim" target simulates the design. (It could have any name.)
+  sim:
+    # Copy all key/value pairs from the "default" target.
+    <<: *default
+    description: Simulate the design
+    default_tool: icarus
+    filesets_append:
+      - tb
+    toplevel: mux2_tb
+    tools:
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - WIDTH=8
+
+parameters:
+  WIDTH:
+    datatype    : int
+    description : Width of the I/O ports
+    paramtype   : vlogparam

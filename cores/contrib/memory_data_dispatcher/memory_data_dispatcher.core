@@ -1,0 +1,75 @@
+CAPI=2:
+name: stratum:common:memory_data_dispatcher:1.0.1
+
+filesets:
+  rtl:
+    files:
+      - rtl/memory_data_dispatcher.sv
+    file_type: systemVerilogSource
+    depend:
+      - stratum:interfaces:data_stream
+      - stratum:interfaces:axi4_stream
+      - stratum:common:common_counter
+      - stratum:interfaces:bram_if
+      - :rts:bram_linked
+
+  tb:
+    files: &tb_files
+      - tests/memory_data_dispatcher_tc00.sv
+      - tests/memory_data_dispatcher_tc01.sv
+      - tests/tests_00.sv: {is_include_file: true}
+      - tests/tests_01.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - stratum:sim:sim_base
+
+  files_lint_verilator:
+    files:
+      - lint/verilator_waiver.vlt: {file_type: vlt}
+    depend:
+      - stratum:lint:common
+
+  files_lint_verible:
+    files:
+      - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
+    depend:
+      - stratum:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/memory_data_dispatcher_tc00.sv
+          - tests/memory_data_dispatcher_tc01.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - tool_verilator ? (files_lint_verilator)
+      - tool_veriblelint ? (files_lint_verible)
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: memory_data_dispatcher
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wall"
+      veriblelint:
+        ruleset: all
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

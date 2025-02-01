@@ -1,0 +1,49 @@
+CAPI=2:
+name: ::utc_time:0.1.0
+description: PPS counter and UTC Time decoder coming from a GPS. It recovers ZDA sentences
+
+filesets:
+  rtl:
+    files:
+      - rtl/utc_time.sv : {file_type: systemVerilogSource}
+    depend:
+      - stratum:interfaces:axi4_stream
+      - stratum:adsb:utc_time_regmap
+      - stratum:adsb:adsb_pkg
+      - stratum:adsb:nmea_zda_decoder
+      - stratum:common:common_counter
+
+  tb:
+    files: &tb_files
+      - tests/utc_time_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - stratum:sim:sim_base
+      - stratum:sim:nmea_functions
+
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/utc_time_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate_append:
+      - testrunner_gen
+    toplevel: [testrunner]
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -timescale 1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

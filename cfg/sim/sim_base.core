@@ -1,0 +1,24 @@
+CAPI=2:
+name: pynq_fused:sim:sim_base:0.1.1
+description: base package for simulations
+
+filesets:
+  rtl:
+    depend: 
+      - pynq_fused:sim:clk_gen
+      - svunit
+      - pynq_fused:sim:svunit_assert_macros
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  lint:
+    <<: *default
+    default_tool: verilator
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+

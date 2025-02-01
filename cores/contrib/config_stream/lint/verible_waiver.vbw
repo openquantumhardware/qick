@@ -1,0 +1,2 @@
+# Waived because Verible expects localparam definitions within modules or classes, but this is an interface
+waive --rule=proper-parameter-declaration

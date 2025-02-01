@@ -1,0 +1,67 @@
+CAPI=2:
+name: stratum:common:axis_skid_buffer:1.2.0
+description: breaks combinational path in AXI4-Stream tvalid/tready handshake-based communication
+
+filesets:
+  rtl:
+    files:
+      - src/axis_skid_buffer.sv
+    file_type: systemVerilogSource
+    depend:
+      - stratum:interfaces:axi4_stream
+
+  tb:
+    files: &tb_files
+      - tests/axis_skid_buffer_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - stratum:sim:sim_base
+
+  files_lint_verilator:
+    files:
+      - lint/verilator_waiver.vlt: {file_type: vlt}
+    depend:
+      - stratum:lint:common
+
+  files_lint_verible:
+    depend:
+      - stratum:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axis_skid_buffer_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - tool_verilator ? (files_lint_verilator)
+      - tool_veriblelint ? (files_lint_verible)
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: axis_skid_buffer
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wall"
+      veriblelint:
+        ruleset: all
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

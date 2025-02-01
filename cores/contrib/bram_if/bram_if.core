@@ -1,0 +1,14 @@
+CAPI=2:
+name: stratum:interfaces:bram_if:0.1.0
+description: BRAM memory interface 
+
+filesets:
+  rtl:
+    files:
+      - src/bram_if.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl

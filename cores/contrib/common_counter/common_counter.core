@@ -1,0 +1,70 @@
+CAPI=2:
+name: stratum:common:common_counter:1.2.0
+description: Configurable (length and mode) Counter.
+
+filesets:
+  rtl:
+    files:
+      - rtl/common_counter.sv:        {file_type: systemVerilogSource}
+      - rtl/common_counter_wrapper.v: {file_type: verilogSource}
+
+  tb:
+    files: &tb_files
+      - tests/common_counter_tc00.sv
+      - tests/common_counter_tc01.sv
+      - tests/tests_tc00.sv: {is_include_file: true}
+      - tests/tests_tc01.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - stratum:sim:sim_base
+
+  files_lint_verilator:
+    files:
+      - lint/verilator_waiver.vlt: {file_type: vlt}
+    depend:
+      - stratum:lint:common
+
+  files_lint_verible:
+    files:
+      - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
+    depend:
+      - stratum:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/common_counter_tc00.sv
+          - tests/common_counter_tc01.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - tool_verilator ? (files_lint_verilator)
+      - tool_veriblelint ? (files_lint_verible)
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: common_counter
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wall"
+      veriblelint:
+        ruleset: all
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

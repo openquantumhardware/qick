@@ -1,0 +1,313 @@
+CAPI=2:
+name: invap:rts:aurora64b66b_ip:0.1.0
+description: IP Aurora 64b66b
+
+filesets:
+  rtl:
+    files:
+      - hdl/aurora_if.sv
+    file_type: systemVerilogSource
+    depend:
+      - ~stratum:utils:xil_ip_gen:0.5
+      - invap:rts:aurora_regmap:0.1.0
+
+generate:
+  aurora64b66b_freq_100_00:
+    generator: xil_ip_gen
+    parameters:
+      vlnv: xilinx.com:ip:aurora_64b66b:12.0
+      module_name: aurora_64b66b
+      targets: [simulation, synthesis]
+      properties:
+        Component_Name : aurora_64b66b
+        C_GT_TYPE : GTH
+        CHANNEL_ENABLE : X0Y8
+        C_AURORA_LANES : 1
+        C_LINE_RATE : 10
+        C_REFCLK_FREQUENCY : 100
+        C_INIT_CLK : 100
+        C_UCOLUMN_USED : left
+        C_START_QUAD : Quad_X0Y2
+        C_START_LANE : X0Y8
+        C_REFCLK_SOURCE : MGTREFCLK0_of_Quad_X0Y2
+        drp_mode : Native
+        SupportLevel : 1
+        C_GTWIZ_OUT : false
+        C_USE_BYTESWAP : true
+        INS_LOSS_NYQ : 20
+        RX_PPM_OFFSET : 100
+      output:
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_multi_wrapper.v           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_ultrascale_rx_userclk.v   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_wrapper.v                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/aurora_64b66b_gt_gthe4_common_wrapper.v    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gtwizard_ultrascale_v1_7_gthe4_common.v    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_descrambler.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_scrambler.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_aurora_lane.v                           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_axi_to_ll.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_block_sync_sm.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cbcc_gtx_6466.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cdc_sync.v                              : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ch_bond_code_gen.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_err_detect.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_init_sm.v                       : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_clock_module.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_logic_cbcc.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_reset_cbcc.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_err_detect.v                            : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_global_logic.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_gt_common_wrapper.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_lane_init_sm.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ll_to_axi.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_polarity_check.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_reset_logic.v                           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll_datapath.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll.v                                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_standard_cc_module.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support_reset_logic.v                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_dec.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_gen.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_control_sm.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_datapath.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll.v                                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ultrascale_tx_userclk.v                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_width_conversion.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_bit_sync.v                            : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gte4_drp_arb.v                        : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_delay_powergood.v               : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_rx.v                 : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_tx.v                 : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_reset.v                         : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_rx.v                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_tx.v                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_delay_powergood.v               : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_inv_sync.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_sync.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gthe4_channel_wrapper.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_gthe4.v                              : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_top.v                                : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt.v                                             : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/gtwizard_ultrascale_v1_7_gthe4_channel.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.v                                     : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.vhd                                   : {file_type: vhdlSource}
+        - aurora_64b66b/ip_1/sim/aurora_64b66b_fifo_gen_master.v                                : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/simulation/fifo_generator_vlog_beh.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b_core.v                                                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b.v                                                         : {file_type: verilogSource}
+
+  aurora64b66b_freq_122_88:
+    generator: xil_ip_gen
+    parameters:
+      vlnv: xilinx.com:ip:aurora_64b66b:12.0
+      module_name: aurora_64b66b
+      targets: [simulation, synthesis]
+      properties:
+        Component_Name : aurora_64b66b
+        C_GT_TYPE : GTH
+        CHANNEL_ENABLE : X0Y8
+        C_AURORA_LANES : 1
+        C_LINE_RATE : 10
+        C_REFCLK_FREQUENCY : 100
+        C_INIT_CLK : 122.88
+        C_UCOLUMN_USED : left
+        C_START_QUAD : Quad_X0Y2
+        C_START_LANE : X0Y8
+        C_REFCLK_SOURCE : MGTREFCLK0_of_Quad_X0Y2
+        drp_mode : Native
+        SupportLevel : 1
+        C_GTWIZ_OUT : false
+        C_USE_BYTESWAP : true
+        INS_LOSS_NYQ : 20
+        RX_PPM_OFFSET : 100
+      output:
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_multi_wrapper.v           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_ultrascale_rx_userclk.v   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_wrapper.v                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/aurora_64b66b_gt_gthe4_common_wrapper.v    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gtwizard_ultrascale_v1_7_gthe4_common.v    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_descrambler.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_scrambler.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_aurora_lane.v                           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_axi_to_ll.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_block_sync_sm.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cbcc_gtx_6466.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cdc_sync.v                              : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ch_bond_code_gen.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_err_detect.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_init_sm.v                       : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_clock_module.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_logic_cbcc.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_reset_cbcc.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_err_detect.v                            : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_global_logic.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_gt_common_wrapper.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_lane_init_sm.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ll_to_axi.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_polarity_check.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_reset_logic.v                           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll_datapath.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll.v                                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_standard_cc_module.v                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support_reset_logic.v                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_dec.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_gen.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_control_sm.v                      : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_datapath.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll.v                                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ultrascale_tx_userclk.v                 : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_width_conversion.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_bit_sync.v                            : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gte4_drp_arb.v                        : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_delay_powergood.v               : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_rx.v                 : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_tx.v                 : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_reset.v                         : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_rx.v                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_tx.v                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cal_freqcnt.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_rx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_tx.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_delay_powergood.v               : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_inv_sync.v                      : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_sync.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gthe4_channel_wrapper.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_gthe4.v                              : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_top.v                                : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt.v                                             : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/gtwizard_ultrascale_v1_7_gthe4_channel.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.v                                     : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.vhd                                   : {file_type: vhdlSource}
+        - aurora_64b66b/ip_1/sim/aurora_64b66b_fifo_gen_master.v                                : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/simulation/fifo_generator_vlog_beh.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b_core.v                                                    : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b.v                                                         : {file_type: verilogSource}
+        
+  aurora64b66b_freq_125_00:
+    generator: xil_ip_gen
+    parameters:
+      board_part: xcvu13p-fhgc2104-2-e
+      vlnv: xilinx.com:ip:aurora_64b66b:12.0
+      module_name: aurora_64b66b
+      targets: [simulation, synthesis]
+      properties:
+        Component_Name : aurora_64b66b
+        C_GT_TYPE : GTY
+        CHANNEL_ENABLE : X0Y8
+        C_AURORA_LANES : 1
+        C_LINE_RATE : 10
+        C_REFCLK_FREQUENCY : 100
+        C_INIT_CLK : 125
+        C_UCOLUMN_USED : left
+        C_START_QUAD : Quad_X0Y2
+        C_START_LANE : X0Y8
+        C_REFCLK_SOURCE : MGTREFCLK0_of_Quad_X0Y2
+        drp_mode : Native
+        SupportLevel : 1
+        C_USE_BYTESWAP : true
+        INS_LOSS_NYQ : 20
+        RX_PPM_OFFSET : 100
+      output:
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_multi_wrapper.v               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_ultrascale_rx_userclk.v       : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gt/aurora_64b66b_wrapper.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/aurora_64b66b_gt_gtye4_common_wrapper.v        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/example_design/gtwizard_ultrascale_v1_7_gtye4_common.v        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_descrambler.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_64b66b_scrambler.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_aurora_lane.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_block_sync_sm.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cbcc_gtx_6466.v                             : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_cdc_sync.v                                  : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ch_bond_code_gen.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_err_detect.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_channel_init_sm.v                           : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_clock_module.v                              : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_logic_cbcc.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_common_reset_cbcc.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_err_detect.v                                : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_global_logic.v                              : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_gt_common_wrapper.v                         : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_lane_init_sm.v                              : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_polarity_check.v                            : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_reset_logic.v                               : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll_datapath.v                            : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_rx_ll.v                                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_standard_cc_module.v                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support_reset_logic.v                       : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_support.v                                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_dec.v                                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_sym_gen.v                                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_control_sm.v                          : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll_datapath.v                            : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_tx_ll.v                                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_ultrascale_tx_userclk.v                     : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b/src/aurora_64b66b_width_conversion.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_bit_sync.v                                : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gte4_drp_arb.v                            : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cal_freqcnt.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe3_cpll_cal.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cal_freqcnt.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_rx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_cpll_cal.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gthe4_delay_powergood.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_rx.v                     : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_buffbypass_tx.v                     : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_reset.v                             : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_rx.v                        : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userclk_tx.v                        : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_rx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtwiz_userdata_tx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cal_freqcnt.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_rx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal_tx.v                       : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_cpll_cal.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_gtye4_delay_powergood.v                   : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_inv_sync.v                          : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/hdl/gtwizard_ultrascale_v1_7_reset_sync.v                              : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_gtye4.v                                  : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtwizard_top.v                                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt_gtye4_channel_wrapper.v                           : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/aurora_64b66b_gt.v                                                 : {file_type: verilogSource}
+        - aurora_64b66b/ip_0/sim/gtwizard_ultrascale_v1_7_gtye4_channel.v                           : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.v                                         : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/hdl/fifo_generator_v13_2_rfs.vhd                                       : {file_type: vhdlSource}
+        - aurora_64b66b/ip_1/sim/aurora_64b66b_fifo_gen_master.v                                    : {file_type: verilogSource}
+        - aurora_64b66b/ip_1/simulation/fifo_generator_vlog_beh.v                                   : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b_core.v                                                        : {file_type: verilogSource}
+        - aurora_64b66b/aurora_64b66b.v                                                             : {file_type: verilogSource}
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+    generate:
+      - "freq_100_00 ? (aurora64b66b_freq_100_00)"
+      - "freq_122_88 ? (aurora64b66b_freq_122_88)"
+      - "freq_125_00 ? (aurora64b66b_freq_125_00)"
+

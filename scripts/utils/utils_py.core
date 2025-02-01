@@ -1,0 +1,13 @@
+CAPI=2:
+name: ::utils_py:0.1.0
+
+filesets:
+    py:
+        files:
+         - signal_models.py: {copyto: signal_models.py} 
+        file_type: user
+
+targets:
+    default:
+        filesets: [py]
+

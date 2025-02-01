@@ -1,0 +1,16 @@
+CAPI=2:
+name: invap:scripts:xil_scripts:0.1.0
+description: Scripts for Xilinx
+
+filesets:
+  sources:
+    files:
+      - cfg_project.tcl: {file_type: tclSource}
+      - cfg_warning.tcl: {file_type: tclSource}
+      - create_reports.tcl: {file_type: user,copyto: create_reports.tcl}
+      - create_bitbin_xsa.tcl: {file_type: user,copyto: create_bitbin_xsa.tcl}
+
+targets:
+  default: &default
+    filesets:
+      - sources

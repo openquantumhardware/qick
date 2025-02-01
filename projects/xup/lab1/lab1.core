@@ -1,0 +1,46 @@
+CAPI=2:
+name : xup::lab1:1.0.0
+
+filesets:
+  rtl:
+    files: 
+      - lab1.v : {file_type : verilogSource}
+      - lab1_pynq.xdc : {file_type : xdc}
+
+  tb:
+    files: [lab1_tb.v : {file_type : verilogSource}]
+    depend: [vlog_tb_utils]
+
+targets:
+  default: &default
+
+  pynq_z2:
+    default_tool: vivado
+    description : Pynq-Z2 Zynq Z7020 Evaluation Kit
+    filesets : [rtl]
+    tools:
+      vivado:
+        part : xc7z020clg400-1
+    toplevel : lab1
+
+  sim:
+     default_tool: icarus
+     filesets : [rtl, tb]
+     parameters : [clk_freq_hz, pulses] 
+     tools:
+       modelsim:
+         vlog_options: [-timescale=1ns/1ns]
+       xsim:
+         xelab_options: [--timescale, 1ns/1ns]
+     toplevel: lab1_tb
+
+parameters:
+  clk_freq_hz:
+    datatype    : int
+    description : Clock frequency in Hz
+    paramtype   : vlogparam
+  pulses:
+    datatype    : int
+    description : Number of pulses to run in testbench
+    paramtype   : vlogparam
+

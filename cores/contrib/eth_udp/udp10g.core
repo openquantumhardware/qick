@@ -1,0 +1,18 @@
+CAPI=2:
+name: stratum:udp:udp10g:0.2.0
+
+filesets:
+  rtl:
+    files:
+      - rtl/udp10g_pkg.sv
+      - rtl/udp10g.sv
+    file_type: systemVerilogSource
+    depend:
+      - stratum:udp:udp10g_regmap
+      - stratum:common:common_counter
+      - stratum:external:eth_udp
+
+targets:
+  default: &default
+    filesets:
+      - rtl

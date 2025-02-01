@@ -1,0 +1,56 @@
+CAPI=2:
+name: stratum:common:bram:0.2.0
+description: Simple dual-port, one clock, read-first block RAM
+
+filesets:
+  rtl:
+    files:
+      - src/bram.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files: &tb_files
+      - tests/bram_tc00.sv
+      - tests/bin_memory_file.mem: {file_type: user,copyto: bin_memory_file.mem}
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - pynq_fused:sim:sim_base
+
+  lint_files:
+    depend:
+      - pynq_fused:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/bram_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - lint_files
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: [bram]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
