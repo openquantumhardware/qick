@@ -7,4 +7,4 @@ build
 fusesoc.conf
 lib
 tools
-pynq_fused.egg-info
+*.egg-info
