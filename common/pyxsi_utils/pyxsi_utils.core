@@ -1,5 +1,5 @@
 CAPI=2:
-name: pynq_fused:sim:pyxsi_utils:0.2.0
+name: pynq_fused:common:pyxsi_utils:0.2.0
 description: Utility package for pyxsi simulation
 
 filesets:

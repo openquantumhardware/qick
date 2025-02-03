@@ -1,13 +1,12 @@
 CAPI=2:
-name: pynq_fused:sim:sim_base:0.1.1
-description: base package for simulations
+name: pynq_fused:common:clk_gen:0.1.0
+description: clock generator with configurable frequency, phase and duty cycle intended for simulations
 
 filesets:
   rtl:
-    depend: 
-      - pynq_fused:sim:clk_gen
-      - svunit
-      - pynq_fused:sim:svunit_assert_macros
+    files:
+      - rtl/clk_gen.sv
+    file_type: systemVerilogSource
 
 targets:
   default: &default
@@ -21,4 +20,3 @@ targets:
       verilator:
         mode: lint-only
         verilator_options: [-Wall]
-

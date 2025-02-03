@@ -1,5 +1,5 @@
 CAPI=2:
-name: pynq_fused:sim:glbl:1.0.0
+name: pynq_fused:common:glbl:1.0.0
 description: glbl sources from Xilinx needed to simulate XPM modules
 
 filesets:
