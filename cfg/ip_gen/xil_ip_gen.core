@@ -1,6 +1,6 @@
 CAPI=2:
 
-name: stratum:utils:xil_ip_gen:0.5.2
+name: pynq_fused:utils:xil_ip_gen:0.1.0
 
 generators:
   xil_ip_gen:
