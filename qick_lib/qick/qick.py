@@ -1204,3 +1204,19 @@ class QickSoc(Overlay, QickConfig):
         """
         return self.mr_buf.transfer(start)
 
+    def run_led_pattern(self, delay=1, offset=0, pattern=[0x00, 0xFF, 0x55, 0xAA, 0xFF, 0x00]):
+        """Set the system LEDs to a pattern.
+        This can be used to display any sequence of valid codes.
+
+        Parameters
+        ----------
+        delay : float
+            Time (in seconds) to wait between values
+        offset : int
+            Address to write to for self.pmod_led_gpio.write
+        pattern: list, elements of list are either int or bytes
+            The sequence of values to write out to the LEDs
+        """
+        for value in pattern:
+            self.pmod_led_gpio.write(offset=offset, value=value)
+            time.sleep(delay)
