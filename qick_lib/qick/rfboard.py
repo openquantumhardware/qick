@@ -2176,9 +2176,10 @@ class RFQickSoc216V1(RFQickSoc):
                 gpio = GpioMCP23S08(self.filter_spi, ch_en=2, dev_addr=0, iodir=0xf0)
                 card_id = gpio.read_reg("GPIO_REG") >> 4
                 logger.debug("DAC card %d: ID %d"%(card_num, card_id))
-                if card_id == 0 or card_id == 15:
-                    # TODO: SPI communication with DC-in card is not working
-                    # for now, we assume that if we can't read the ID it's a DC-in!
+                # TODO: recognize 15 as empty or balun, raise error on unrecognized
+                if card_id == 0:
+                    # note: first version of DC-in had pinout bug that broke SPI reads
+                    #if card_id == 0 or card_id == 15:
                     card = AdcDcCard216(card_num, self, gpio)
                 elif card_id == 2:
                     card = AdcRfCard216(card_num, self, gpio)
