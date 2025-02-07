@@ -284,6 +284,18 @@ class QickSoc(Overlay, QickConfig):
         self['board'] = os.environ["BOARD"]
         self['sw_version'] = get_version()
 
+       # Signal generators (anything driven by the tProc)
+        self.gens = []
+
+        # Constant generators
+        self.iqs = []
+
+        # Average + Buffer blocks.
+        self.avg_bufs = []
+
+        # Readout blocks.
+        self.readouts = []
+
         # a space to dump any additional lines of config text which you want to print in the QickConfig
         self['extra_description'] = []
 
