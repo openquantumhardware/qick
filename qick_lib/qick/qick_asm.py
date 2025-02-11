@@ -174,6 +174,33 @@ class QickConfig():
             #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (
             #    buf['maxlen'], buflist, buf['trigger_type'], buf['trigger_port'], buf['trigger_bit']))
 
+        lines.append("\nDaughter cards detected:")
+        total_output_channels = list(range(16))
+        total_input_channels = list(range(8))
+        with suppress(AttributeError):
+            for slot, card in enumerate(self.dac_cards):
+                with self.board_sel.enable_context(board_id=slot):
+                    channels = total_output_channels[slot * 4:(slot + 1) * 4]
+                    if card is None:
+                        lines.append(f"\tslot {slot}: No card detected")
+                    else:
+                        try:
+                            lines.append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:{card.card_num})")
+                        except AttributeError:
+                            lines.append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+
+            for raw_slot, card in enumerate(self.adc_cards):
+                channels = total_input_channels[raw_slot * 2:(raw_slot + 1) * 2]
+                slot = raw_slot + 4
+                with self.board_sel.enable_context(board_id=slot):
+                    if card is None:
+                        lines.append(f"\tslot {slot}: No card detected")
+                    else:
+                        try:
+                            lines.append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:{card.card_num})")
+                        except AttributeError:
+                            lines.append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+
         lines.extend(self['extra_description'])
 
         return "\n".join(lines)
