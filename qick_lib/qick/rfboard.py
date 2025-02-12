@@ -6,7 +6,7 @@ from pynq.buffer import allocate
 import xrfclk
 import numpy as np
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from abc import ABC, abstractmethod
 import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
@@ -208,6 +208,22 @@ class AxisSignalGenV6Ctrl(SocIp):
         # Default registers.
         self.we_reg = 0
 
+        # Set via self.configure()
+        self.fs  = None
+        self.df  = None
+        self.gen = None
+
+        # set via self.add()
+        self.freq_reg       = None
+        self.phase_reg      = None
+        self.addr_reg       = None
+        self.gain_reg       = None
+        self.nsamp_reg      = None
+        self.outsel_reg     = None
+        self.mode_reg       = None
+        self.stdysel_reg    = None
+        self.phase_reg      = None
+
     def configure(self, fs, gen):
         # Sampling frequency.
         self.fs = fs
@@ -230,15 +246,18 @@ class AxisSignalGenV6Ctrl(SocIp):
             phrst   = "no"      ):
 
         # Set registers.
-        self.freq_reg       = int(np.round(freq/self.df))
-        self.phase_reg      = phase
-        self.addr_reg       = addr
-        self.gain_reg       = int(gain*self.gen.MAXV)
-        self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
-        self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
-        self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
-        self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
-        self.phase_reg      = {"no": 0, "yes":1}[phrst]
+        try:
+            self.freq_reg       = int(np.round(freq/self.df))
+            self.phase_reg      = phase
+            self.addr_reg       = addr
+            self.gain_reg       = int(gain*self.gen.MAXV)
+            self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
+            self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
+            self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
+            self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
+            self.phase_reg      = {"no": 0, "yes":1}[phrst]
+        except Exception as e:
+            raise type(e)('Did you call configure').with_traceback(e.__traceback__)
 
         logger.debug("{}".format(self.__class__.__name__))
         logger.debug(" * freq_reg      : {}".format(self.freq_reg))
@@ -282,6 +301,31 @@ class AxisDdsMrSwitch(SocIp):
 
     def imag(self):
         self.config(1)
+
+
+class AxisSwitchV1(SocIp):
+    bindto = ['user.org:user:axis_switch_v1:1.0']
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        self.REGISTERS = {'channel_reg': 0}
+
+        # Number of bits.
+        self.B = int(description['parameters']['B'])
+        # Number of master interfaces.
+        self.N = int(description['parameters']['N'])
+
+    def sel(self, mst=0):
+        if mst > self.N-1:
+            print("%s: Master number %d does not exist in block." %
+                  __class__.__name__)
+            return
+
+        # Select channel.
+        self.channel_reg = mst
 
 
 class spi(DefaultIP):
@@ -2125,6 +2169,32 @@ RFQickSocV2 = RFQickSoc111V2
 
 class RFQickSoc216V1(RFQickSoc):
     HAS_LO = False
+
+    def __init__(self, bitfile, **kwargs):
+        super().__init__(bitfile, **kwargs)
+
+        self['extra_description'].append("\nDaughter cards detected:")
+        with suppress(AttributeError):
+            for slot, card in enumerate(self.dac_cards):
+                if card is None:
+                    self['extra_description'].append(f"\tslot {slot}: No card detected")
+                else:
+                    try:
+                        channels = [chain.global_ch for chain in card.chains]
+                    except AttributeError:
+                        channels = "[UNKNOWN]"
+                    self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels}")
+
+            for raw_slot, card in enumerate(self.adc_cards):
+                slot = raw_slot + 4
+                if card is None:
+                    self['extra_description'].append(f"\tslot {slot}: No card detected")
+                else:
+                    try:
+                        channels = [chain.global_ch for chain in card.chains]
+                    except AttributeError:
+                        channels = "[UNKNOWN]"
+                    self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels}")
 
     def rfb_config(self, no_tproc):
         """
