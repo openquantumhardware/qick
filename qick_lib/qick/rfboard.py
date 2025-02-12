@@ -208,6 +208,22 @@ class AxisSignalGenV6Ctrl(SocIp):
         # Default registers.
         self.we_reg = 0
 
+        # Set via self.configure()
+        self.fs  = None
+        self.df  = None
+        self.gen = None
+
+        # set via self.add()
+        self.freq_reg       = None
+        self.phase_reg      = None
+        self.addr_reg       = None
+        self.gain_reg       = None
+        self.nsamp_reg      = None
+        self.outsel_reg     = None
+        self.mode_reg       = None
+        self.stdysel_reg    = None
+        self.phase_reg      = None
+
     def configure(self, fs, gen):
         # Sampling frequency.
         self.fs = fs
@@ -230,15 +246,18 @@ class AxisSignalGenV6Ctrl(SocIp):
             phrst   = "no"      ):
 
         # Set registers.
-        self.freq_reg       = int(np.round(freq/self.df))
-        self.phase_reg      = phase
-        self.addr_reg       = addr
-        self.gain_reg       = int(gain*self.gen.MAXV)
-        self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
-        self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
-        self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
-        self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
-        self.phase_reg      = {"no": 0, "yes":1}[phrst]
+        try:
+            self.freq_reg       = int(np.round(freq/self.df))
+            self.phase_reg      = phase
+            self.addr_reg       = addr
+            self.gain_reg       = int(gain*self.gen.MAXV)
+            self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
+            self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
+            self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
+            self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
+            self.phase_reg      = {"no": 0, "yes":1}[phrst]
+        except Exception as e:
+            raise type(e)('Did you call configure').with_traceback(e.__traceback__)
 
         logger.debug("{}".format(self.__class__.__name__))
         logger.debug(" * freq_reg      : {}".format(self.freq_reg))
