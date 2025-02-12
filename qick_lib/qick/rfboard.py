@@ -2127,7 +2127,7 @@ class RFQickSoc216V1(RFQickSoc):
     HAS_LO = False
 
     def __init__(self, bitfile, **kwargs):
-        super().__init__(self, bitfile, **kwargs)
+        super().__init__(bitfile, **kwargs)
 
         self['extra_description'].append("\nDaughter cards detected:")
         total_output_channels = list(range(16))
