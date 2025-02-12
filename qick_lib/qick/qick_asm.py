@@ -117,12 +117,13 @@ class QickConfig():
                 lines.append("\t\t" + self._describe_dac(dacname))
 
         with suppress(KeyError): # self['iqs'] may not exist
-            lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
-            for iIQ, iq in enumerate(self['iqs']):
-                dacname = iq['dac']
-                dac = self['dacs'][dacname]
-                lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
-                lines.append("\t\t" + self._describe_dac(dacname))
+            if self['iqs']: # if there are no IQ generators, don't print this section
+                lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
+                for iIQ, iq in enumerate(self['iqs']):
+                    dacname = iq['dac']
+                    dac = self['dacs'][dacname]
+                    lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
+                    lines.append("\t\t" + self._describe_dac(dacname))
 
         with suppress(KeyError): # self['readouts'] may not exist
             lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
