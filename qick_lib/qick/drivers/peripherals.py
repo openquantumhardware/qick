@@ -56,22 +56,20 @@ class QICK_Time_Tagger(SocIp):
         # Used Values
         self.dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
 
-        # Configure this driver with links to its memory and DMA.
-    def configure(self, axi_dma):
-        # dma
-        self.dma = axi_dma
         maxlen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
         self.buff_rd = allocate(shape=(maxlen, 1), dtype=np.int32)
 
+    # Configure this driver with links to its memory and DMA.
     def configure_connections(self, soc):
-        super().configure_connections(soc)
+        ((block, port),) = soc.metadata.trace_bus(self.fullpath, "m_axis_dma")
+        self.dma = soc._get_block(block)
+
         self.qtt_adc = ['Not Connected', 'Not Connected', 'Not Connected', 'Not Connected']
         for iADC in range(4):
             try:
-                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 's%d_axis_adc%d' % (iADC, iADC))
-                if (port == 'M_AXIS'): 
-                    ((block, port),) = soc.metadata.trace_sig(block, 'S_AXIS')
-                adc     = re.findall(r'\d+', port)[0]
+                block, port, _ = soc.metadata.trace_back(self.fullpath, "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
+                # port names are of the form 'm02_axis' where the block number is always even
+                adc = port[1:3]
                 self.qtt_adc[iADC] = soc._describe_adc(adc)
             except: # skip disconnected ADC Ports
                 continue
