@@ -2134,27 +2134,25 @@ class RFQickSoc216V1(RFQickSoc):
         total_input_channels = list(range(8))
         with suppress(AttributeError):
             for slot, card in enumerate(self.dac_cards):
-                with self.board_sel.enable_context(board_id=slot):
-                    channels = total_output_channels[slot * 4:(slot + 1) * 4]
-                    if card is None:
-                        self['extra_description'].append(f"\tslot {slot}: No card detected")
-                    else:
-                        try:
-                            self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:{card.card_num})")
-                        except AttributeError:
-                            self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+                channels = total_output_channels[slot * 4:(slot + 1) * 4]
+                if card is None:
+                    self['extra_description'].append(f"\tslot {slot}: No card detected")
+                else:
+                    try:
+                        self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:{card.card_num})")
+                    except AttributeError:
+                        self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
 
             for raw_slot, card in enumerate(self.adc_cards):
                 channels = total_input_channels[raw_slot * 2:(raw_slot + 1) * 2]
                 slot = raw_slot + 4
-                with self.board_sel.enable_context(board_id=slot):
-                    if card is None:
-                        self['extra_description'].append(f"\tslot {slot}: No card detected")
-                    else:
-                        try:
-                            self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:{card.card_num})")
-                        except AttributeError:
-                            self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+                if card is None:
+                    self['extra_description'].append(f"\tslot {slot}: No card detected")
+                else:
+                    try:
+                        self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:{card.card_num})")
+                    except AttributeError:
+                        self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
 
     def rfb_config(self, no_tproc):
         """
