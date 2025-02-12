@@ -2137,9 +2137,9 @@ class RFQickSoc216V1(RFQickSoc):
                 else:
                     try:
                         channels = [chain.global_ch for chain in card.chains]
-                        self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:{card.card_num})")
                     except AttributeError:
-                        self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+                        channels = "[UNKNOWN]"
+                    self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels}")
 
             for raw_slot, card in enumerate(self.adc_cards):
                 slot = raw_slot + 4
@@ -2148,9 +2148,9 @@ class RFQickSoc216V1(RFQickSoc):
                 else:
                     try:
                         channels = [chain.global_ch for chain in card.chains]
-                        self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:{card.card_num})")
                     except AttributeError:
-                        self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels} (card_num:UNKNOWN)")
+                        channels = "[UNKNOWN]"
+                    self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels}")
 
     def rfb_config(self, no_tproc):
         """
