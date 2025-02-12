@@ -842,7 +842,7 @@ class Wait(TimedMacro):
                 wait = None
             else:
                 wait += max_t
-        if wait.is_sweep():
+        if wait is not None and wait.is_sweep():
             # TODO: maybe rounding up should be optional?
             # TODO: track wait time in timestamps and do safety checks vs. sync and pulse times?
             waitmax = wait.maxval()
