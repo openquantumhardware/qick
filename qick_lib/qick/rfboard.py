@@ -284,6 +284,31 @@ class AxisDdsMrSwitch(SocIp):
         self.config(1)
 
 
+class AxisSwitchV1(SocIp):
+    bindto = ['user.org:user:axis_switch_v1:1.0']
+
+    def __init__(self, description):
+        """
+        Constructor method
+        """
+        super().__init__(description)
+        self.REGISTERS = {'channel_reg': 0}
+
+        # Number of bits.
+        self.B = int(description['parameters']['B'])
+        # Number of master interfaces.
+        self.N = int(description['parameters']['N'])
+
+    def sel(self, mst=0):
+        if mst > self.N-1:
+            print("%s: Master number %d does not exist in block." %
+                  __class__.__name__)
+            return
+
+        # Select channel.
+        self.channel_reg = mst
+
+
 class spi(DefaultIP):
 
     bindto = ['xilinx.com:ip:axi_quad_spi:3.2']
