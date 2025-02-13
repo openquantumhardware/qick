@@ -14,6 +14,7 @@ class QICK_Time_Tagger(SocIp):
     bindto = ['Fermi:user:qick_time_tagger:1.0']
 
 
+
     def __init__(self, description):
         """
         Constructor method
@@ -38,10 +39,20 @@ class QICK_Time_Tagger(SocIp):
             'qtt_debug'    :15,
         }
         
+        # dict to map from memory names to IDs and counter names
+        self.MEMS = {}
+        for i in range(4):
+            self.MEMS['TAG%d'%(i)] = (i, 'tag%d_qty'%(i))
+        self.MEMS['ARM'] = (4, 'arm_qty')
+        self.MEMS['SMP'] = (5, 'smp_qty')
+
+        # state names
+        self.DMA_STATES = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
+
         # Parameters
-        self.cfg['tag_mem_size'] = pow( 2, int(description['parameters']['TAG_FIFO_AW']) )
-        self.cfg['arm_mem_size'] = pow( 2, int(description['parameters']['ARM_FIFO_AW']) )
-        self.cfg['smp_mem_size'] = pow( 2, int(description['parameters']['SMP_FIFO_AW']) )
+        self.cfg['tag_mem_size'] = 2**int(description['parameters']['TAG_FIFO_AW'])
+        self.cfg['arm_mem_size'] = 2**int(description['parameters']['ARM_FIFO_AW'])
+        self.cfg['smp_mem_size'] = 2**int(description['parameters']['SMP_FIFO_AW'])
         
         for param in ['adc_qty','cmp_inter','arm_store','smp_store','cmp_slope']:
             self.cfg[param] = int(description['parameters'][param.upper()])
@@ -53,26 +64,34 @@ class QICK_Time_Tagger(SocIp):
         self.dma_cfg  = 0 + 16* 1
         self.axi_dt1  = 0
 
-        # Used Values
-        self.dma_st_list = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
+        # list of connected ADCs
+        self.adcs = None
 
-        maxlen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
-        self.buff_rd = allocate(shape=(maxlen, 1), dtype=np.int32)
+        # DMA block
+        self.dma = None
+
+        # DMA buffer
+        self.buff_rd = None
 
     # Configure this driver with links to its memory and DMA.
     def configure_connections(self, soc):
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, "m_axis_dma")
         self.dma = soc._get_block(block)
 
-        self.qtt_adc = ['Not Connected', 'Not Connected', 'Not Connected', 'Not Connected']
+        dma_maxlen = 2**int(self.dma.description["parameters"]["c_sg_length_width"])//4 - 1
+        buflen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
+        buflen = min(buflen, dma_maxlen)
+        self.buff_rd = allocate(shape=buflen, dtype=np.int32)
+
+        self.adcs = []
         for iADC in range(4):
             try:
                 block, port, _ = soc.metadata.trace_back(self.fullpath, "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
                 # port names are of the form 'm02_axis' where the block number is always even
                 adc = port[1:3]
-                self.qtt_adc[iADC] = soc._describe_adc(adc)
+                self.adcs.append((adc, soc._describe_adc(adc)))
             except: # skip disconnected ADC Ports
-                continue
+                self.adcs.append((None, "not connected"))
                 
     def __str__(self):
         lines = []
@@ -80,60 +99,48 @@ class QICK_Time_Tagger(SocIp):
         lines.append(' QICK Time Tagger INFO ')
         lines.append('---------------------------------------------')
         lines.append("Connections:")
-        lines.append(" ADC0 : %s" % (self.qtt_adc[0]) )
-        lines.append(" ADC1 : %s" % (self.qtt_adc[1]) )
-        lines.append(" ADC2 : %s" % (self.qtt_adc[2]) )
-        lines.append(" ADC3 : %s" % (self.qtt_adc[3]) )
+        for i, (_, adcdesc) in enumerate(self.adcs):
+            lines.append(" ADC%d : %s" % (i, adcdesc) )
         lines.append("Configuration:")
         for param in ['adc_qty','tag_mem_size', 'cmp_slope','cmp_inter','arm_store','arm_mem_size', 'smp_store','smp_mem_size']:
             lines.append(" %-14s: %d" % (param, self.cfg[param]) )
         lines.append("----------\n")
         return "\n".join(lines)
     
-    def read_mem(self,mem_sel:str, length=-1):
+    def read_mem(self, mem_sel:str, length=None):
         """
-        Read tProc Selected memory using DMA
+        Read selected time-tagger memory using DMA.
+
         Parameters
         ----------
         mem_sel : str
             TAG0, TAG1, TAG2, TAG3, ARM, SMP
         length : int
-            Number of Values to read
+            Number of values to read.
+            If None, read as many as possible (all the values, or the DMA max.
         """
+        if mem_sel not in self.MEMS:
+            raise RuntimeError('Source Memory error. Options are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
+        mem_id, mem_counter = self.MEMS[mem_sel]
+
         # Configure FIFO Read.
-        if   (mem_sel=='TAG0'):
-            data_len = length if (length != -1) else self.tag0_qty
-            self.dma_cfg     = 0+16* data_len
-        elif (mem_sel=='TAG1'):
-            data_len = length if (length != -1) else self.tag1_qty
-            self.dma_cfg     = 1+16* data_len
-        elif (mem_sel=='TAG2'):
-            data_len = length if (length != -1) else self.tag2_qty
-            self.dma_cfg     = 2+16* data_len
-        elif (mem_sel=='TAG3'):
-            data_len = length if (length != -1) else self.tag3_qty
-            self.dma_cfg     = 3+16* data_len
-        elif (mem_sel=='ARM'):
-            data_len = length if (length != -1) else self.arm_qty
-            self.dma_cfg     = 4+16* data_len
-        elif (mem_sel=='SMP'):
-            data_len = length if (length != -1) else self.smp_qty
-            self.dma_cfg     = 5+16* data_len
+        if length is None:
+            length = min(getattr(self, mem_counter), self.buff_rd.shape)
         else:
-            raise RuntimeError('Source Memory error. Optionas are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
+            length = int(length)
+        self.dma_cfg = mem_id + 16*length
        
-        if   (data_len==0):
+        if length==0:
             print('No Data to read in ', mem_sel)
             return np.array([])
         else:
-            #Strat DMA Transfer
+            #Start DMA Transfer
             self.qtt_ctrl     = 32
             # DMA data.
-            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(data_len*4))
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=length*4)
             self.dma.recvchannel.wait()
             # truncate, copy, convert PynqBuffer to ndarray
-            #print(len(self.buff_rd), data_len)
-            return np.array(self.buff_rd[:data_len], copy=True)
+            return np.array(self.buff_rd[:length], copy=True)
     
     def set_config(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty, cfg_invert):
         """
@@ -223,7 +230,7 @@ class QICK_Time_Tagger(SocIp):
         print( ' PROC_FULL  : ' + str(debug_bin[29])  )
         print( ' PROC_EMPTY : ' + str(debug_bin[28])  )
         print( ' -- DMA --' )
-        print( ' DMA_ST     : ' + str(dma_st) + ' - ' + self.dma_st_list[dma_st])
+        print( ' DMA_ST     : ' + str(dma_st) + ' - ' + self.DMA_STATES[dma_st])
         print( ' DMA_REQ    : ' + str(debug_bin[25])  )
         print( ' DMA_ACK    : ' + str(debug_bin[24])  )
         print( ' POP_REQ    : ' + str(debug_bin[23])  )
