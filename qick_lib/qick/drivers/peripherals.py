@@ -126,8 +126,6 @@ class QICK_Time_Tagger(SocIp):
         # Configure FIFO Read.
         if length is None:
             length = min(getattr(self, mem_counter), self.buff_rd.shape)
-        else:
-            length = int(length)
         self.dma_cfg = mem_id + 16*length
        
         if length==0:
@@ -137,11 +135,19 @@ class QICK_Time_Tagger(SocIp):
             #Start DMA Transfer
             self.qtt_ctrl     = 32
             # DMA data.
-            self.dma.recvchannel.transfer(self.buff_rd, nbytes=length*4)
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(length*4))
             self.dma.recvchannel.wait()
             # truncate, copy, convert PynqBuffer to ndarray
             return np.array(self.buff_rd[:length], copy=True)
     
+    def clear_mems(self, verbose=False):
+        for memname, (_, countname) in self.MEMS.items():
+            while True:
+                to_read = getattr(self, countname)
+                if verbose: print(memname, to_read)
+                if to_read == 0: break
+                self.read_mem(memname)
+
     def set_config(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty, cfg_invert):
         """
         QICK_Time_Tagger Configuration
