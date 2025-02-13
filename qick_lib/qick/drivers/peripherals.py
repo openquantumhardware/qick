@@ -169,16 +169,23 @@ class QICK_Time_Tagger(SocIp):
                 print('Sample Store is not Implemented')
         self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32 +cfg_invert*1024
 
-    def get_config(self):
+    def get_config(self, print_cfg=False):
         print('--- AXI Time Tagger CONFIG')
         qtt_cfg_num = self.qtt_cfg
         qtt_cfg_bin = '{:032b}'.format(qtt_cfg_num)
-        print( ' FILTER           : ' + str(qtt_cfg_bin[31])  )
-        print( ' SLOPE            : ' + str(qtt_cfg_bin[30])  )
-        print( ' INTERPOLATION    : ' + str(int(qtt_cfg_bin[27:30], 2) )  )
-        print( ' WRITE SAMPLE QTY : ' + str(int(qtt_cfg_bin[22:27], 2) )  )
-        print( ' INVERT INPUT     : ' + str(qtt_cfg_bin[21])  )
-        
+        filt = qtt_cfg_bin[31]
+        slope = qtt_cfg_bin[30]
+        interp = int(qtt_cfg_bin[27:30], 2)
+        wr_smp = int(qtt_cfg_bin[22:27], 2)
+        invert = qtt_cfg_bin[21]
+        if print_cfg:
+            print('--- AXI Time Tagger CONFIG')
+            print( ' FILTER           : ' + str(filt))
+            print( ' SLOPE            : ' + str(slope))
+            print( ' INTERPOLATION    : ' + str(interp))
+            print( ' WRITE SAMPLE QTY : ' + str(wr_smp))
+            print( ' INVERT INPUT     : ' + str(invert))
+        return filt, slope, interp, wr_smp, invert
 
     def disarm(self):
         self.qtt_ctrl    = 1+2* 0 
@@ -186,17 +193,17 @@ class QICK_Time_Tagger(SocIp):
         self.qtt_ctrl    = 1+2* 1
     def pop_dt(self):
         self.qtt_ctrl    = 1+2* 2
-    def set_threshold(self,value):
+    def set_threshold(self, value):
         self.axi_dt1     = value
         self.qtt_ctrl    = 1+2* 4
-    def set_dead_time(self,value):
+    def set_dead_time(self, value):
+        if value < 5 or value > 255:
+            raise ValueError(f'Dead time must be in the range [5, 255] clocks.')
         self.axi_dt1     = value
         self.qtt_ctrl    = 1+2* 5
     def reset(self):
         self.qtt_cfg     = 0
         self.qtt_ctrl    = 7
-
-
 
     def info(self):
         print(self)
