@@ -13,8 +13,6 @@ class QICK_Time_Tagger(SocIp):
     """
     bindto = ['Fermi:user:qick_time_tagger:1.0']
 
-
-
     def __init__(self, description):
         """
         Constructor method
@@ -65,7 +63,7 @@ class QICK_Time_Tagger(SocIp):
         self.axi_dt1  = 0
 
         # list of connected ADCs
-        self.adcs = None
+        self.cfg['adcs'] = []
 
         # DMA block
         self.dma = None
@@ -75,6 +73,8 @@ class QICK_Time_Tagger(SocIp):
 
     # Configure this driver with links to its memory and DMA.
     def configure_connections(self, soc):
+        self.cfg['f_fabric'] = soc.metadata.get_fclk(self.fullpath, 'adc_clk')
+
         ((block, port),) = soc.metadata.trace_bus(self.fullpath, "m_axis_dma")
         self.dma = soc._get_block(block)
 
@@ -83,15 +83,14 @@ class QICK_Time_Tagger(SocIp):
         buflen = min(buflen, dma_maxlen)
         self.buff_rd = allocate(shape=buflen, dtype=np.int32)
 
-        self.adcs = []
         for iADC in range(4):
             try:
                 block, port, _ = soc.metadata.trace_back(self.fullpath, "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
                 # port names are of the form 'm02_axis' where the block number is always even
                 adc = port[1:3]
-                self.adcs.append((adc, soc._describe_adc(adc)))
+                self.cfg['adcs'].append([adc, soc._describe_adc(adc)])
             except: # skip disconnected ADC Ports
-                self.adcs.append((None, "not connected"))
+                self.cfg['adcs'].append([None, "not connected"])
                 
     def __str__(self):
         lines = []
@@ -99,7 +98,7 @@ class QICK_Time_Tagger(SocIp):
         lines.append(' QICK Time Tagger INFO ')
         lines.append('---------------------------------------------')
         lines.append("Connections:")
-        for i, (_, adcdesc) in enumerate(self.adcs):
+        for i, (_, adcdesc) in enumerate(self['adcs']):
             lines.append(" ADC%d : %s" % (i, adcdesc) )
         lines.append("Configuration:")
         for param in ['adc_qty','tag_mem_size', 'cmp_slope','cmp_inter','arm_store','arm_mem_size', 'smp_store','smp_mem_size']:
@@ -148,42 +147,36 @@ class QICK_Time_Tagger(SocIp):
                 if to_read == 0: break
                 self.read_mem(memname)
 
-    def set_config(self,cfg_filter, cfg_slope, cfg_inter, smp_wr_qty, cfg_invert):
+    def set_config(self, filt, slope, interp, wr_smp, invert):
         """
         QICK_Time_Tagger Configuration
-        cfg_filter : Filter ADC Inputs  > 0:No , 1:Yes
-        cfg_slope  : Compare with Slope > 0:No , 1:Yes
-        cfg_inter  : Number of bits for Interpolation (0 to 7)
-        smp_wr_qty : Number of group of 8 samples to store (1 to 32)
-        cfg_invert : Invert Input       > 0:No , 1:Yes
+        filt   : Filter ADC Inputs  > 0:No , 1:Yes
+        slope  : Compare with Slope > 0:No , 1:Yes
+        inter  : Number of bits for Interpolation (0 to 7)
+        wr_smp : Number of group of 8 samples to store (1 to 32)
+        invert : Invert Input       > 0:No , 1:Yes
         """
         # Check for Parameters
-        if (cfg_slope > self.cfg['cmp_slope']):
-            print('error Slope Comparator not implemented')
-        if (cfg_inter > self.cfg['cmp_inter']):
-            print('Interpolation bits max Value ',  self.cfg['cmp_inter'])
+        if (slope > self.cfg['cmp_slope']):
+            raise ValueError('Slope Comparator not implemented')
+        if (interp > self.cfg['cmp_inter']):
+            raise ValueError('Interpolation bits max Value ',  self.cfg['cmp_inter'])
         if (self.cfg['smp_store'] == 1):
-            if (smp_wr_qty == 0):
-                print('Minimum Sample Store is 1 ')
-                smp_wr_qty = 1
-            if (smp_wr_qty == 32):
-                smp_wr_qty = 0
-            if (smp_wr_qty > 32):
-                print('Maximum Sample Store is 32 ')
-                smp_wr_qty = 0
-        elif (smp_wr_qty > 1):
-                print('Sample Store is not Implemented')
-        self.qtt_cfg     = cfg_filter + cfg_slope*2 + cfg_inter*4 + smp_wr_qty*32 +cfg_invert*1024
+            if wr_smp < 1 or wr_smp > 32:
+                raise ValueError('wr_smp must be in range [1, 32]')
+            if (wr_smp == 32):
+                wr_smp = 0
+        self.qtt_cfg = filt + (slope << 1) + (interp << 2) + (wr_smp << 5) + (invert << 10)
 
     def get_config(self, print_cfg=False):
-        print('--- AXI Time Tagger CONFIG')
-        qtt_cfg_num = self.qtt_cfg
-        qtt_cfg_bin = '{:032b}'.format(qtt_cfg_num)
-        filt = qtt_cfg_bin[31]
-        slope = qtt_cfg_bin[30]
-        interp = int(qtt_cfg_bin[27:30], 2)
-        wr_smp = int(qtt_cfg_bin[22:27], 2)
-        invert = qtt_cfg_bin[21]
+        cfg = self.qtt_cfg
+        filt = cfg & 1
+        slope = (cfg >> 1) & 1
+        interp = (cfg >> 2) & 0x7
+        wr_smp = (cfg >> 5) & 0x1f
+        if wr_smp == 0:
+            wr_smp = 32
+        invert = (cfg >> 10) & 1
         if print_cfg:
             print('--- AXI Time Tagger CONFIG')
             print( ' FILTER           : ' + str(filt))
