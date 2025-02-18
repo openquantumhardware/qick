@@ -461,6 +461,9 @@ class QickPulse(SimpleClass):
             self.numeric_params = list(params.keys() & ch_mgr.PARAMS_NUMERIC) + ['total_length']
         self.params = params
         self.waveforms = []
+        # channels that this pulse can be played on
+        self.gen_chs = None
+        self.ro_chs = None
 
     def add_wave(self, waveform):
         """Add a Waveform or a waveform name to this pulse.
@@ -884,7 +887,12 @@ class Wait(TimedMacro):
 class Pulse(TimedMacro):
     # ch, name, t
     def preprocess(self, prog):
-        pulse_length = prog.pulses[self.name].get_length() # in us
+        if self.name not in prog.pulses:
+            raise RuntimeError("trying to play pulse %s, but it hasn't been defined"%(self.name))
+        pulse = prog.pulses[self.name]
+        if pulse.gen_chs is None or self.ch not in pulse.gen_chs:
+            raise RuntimeError("trying to play pulse %s on generator %d, but the pulse was only defined for gens %s"%(self.name, self.ch, pulse.gen_chs))
+        pulse_length = pulse.get_length() # in us
         ts = prog.get_timestamp(gen_ch=self.ch)
         t = self.t
         if t == 'auto':
@@ -1492,6 +1500,14 @@ class AbsGenManager(AbsRegisterManager):
         # dictionary of defined envelopes
         self.envelopes = prog.envelopes[gen_ch]['envs']
 
+        # a hashable value that can be used to check whether different generators are of the same type+configuration
+        self.cfg_hash = (self.chcfg['type'], self.chcfg['fs'])
+
+    def param_hash(self, params):
+        """Returns a hashable value that can be used to check whether the same set of parameters will result in the same pulse definition on different generators.
+        """
+        return None
+
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
         Raise an exception if there is a problem.
@@ -1530,6 +1546,17 @@ class StandardGenManager(AbsGenManager):
             'arb': ['ro_ch', 'phrst', 'stdysel', 'mode', 'outsel'],
             'flat_top': ['ro_ch', 'phrst', 'stdysel']}
     PARAMS_NUMERIC = ['freq', 'phase', 'gain', 'length']
+
+    def param_hash(self, params):
+        """Returns a hashable value that can be used to check whether the same set of parameters will result in the same pulse definition on different generators.
+        """
+        if 'envelope' in params:
+            env = self.envelopes[params['envelope']]
+            env_length = env['data'].shape[0]
+            env_addr = env['addr']
+            return (env_addr, env_length)
+        else:
+            return None
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
@@ -2083,20 +2110,32 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             name of the pulse
         waveforms : list of Waveform or str
             waveforms that will be concatenated for this pulse
-        gen_ch : int
+        gen_ch : int or list of int
             generator channel (index in 'gens' list)
-        ro_ch : int
+        ro_ch : int or list of int
             readout channel (index in 'readouts' list)
         """
         ch_mgr = None
+        gen_chs = []
+        ro_chs = []
         if gen_ch is not None and ro_ch is not None:
             raise RuntimeError("can't specify both gen_ch and ro_ch!")
         elif gen_ch is not None:
-            ch_mgr = self._gen_mgrs[gen_ch]
+            if isinstance(gen_ch, Number):
+                gen_chs = [gen_ch]
+            else:
+                gen_chs = gen_ch
+            ch_mgr = self._gen_mgrs[gen_chs[0]]
         elif ro_ch is not None:
-            ch_mgr = self._ro_mgrs[ro_ch]
+            if isinstance(ro_ch, Number):
+                ro_chs = [ro_ch]
+            else:
+                ro_chs = ro_ch
+            ch_mgr = self._ro_mgrs[ro_chs[0]]
 
         pulse = QickPulse(self, ch_mgr)
+        pulse.gen_chs = gen_chs
+        pulse.ro_chs = ro_chs
         for w in waveforms:
             pulse.add_wave(w)
         self._register_pulse(pulse, name)
@@ -2107,8 +2146,11 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         Parameters
         ----------
-        ch : int
-            generator channel (index in 'gens' list)
+        ch : int or list of int
+            Generator channel (index in 'gens' list).
+            The use of one pulse definition for multiple generators is experimental.
+            The generators must be of the same type and running at the same sampling frequency,
+            and if an envelope is used it must be defined on all generators at the same address.
         name : str
             name of the pulse
         ro_ch : int or None, optional
@@ -2136,8 +2178,20 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         mask : list of int
             for a muxed signal generator, the list of tones to enable for this pulse
         """
-        pulse = self._gen_mgrs[ch].make_pulse(kwargs)
-        self._register_pulse(pulse, name)
+        if isinstance(ch, Number):
+            pulse = self._gen_mgrs[ch].make_pulse(kwargs)
+            pulse.gen_chs = [ch]
+            self._register_pulse(pulse, name)
+        else: # list of channels
+            distinct_cfgs = len(set([self._gen_mgrs[x].cfg_hash for x in ch]))
+            if distinct_cfgs != 1:
+                raise RuntimeError("tried to define a pulse for generators %s, but they have different types or sampling freqs"%(ch))
+            distinct_pars = len(set([self._gen_mgrs[x].param_hash(kwargs) for x in ch]))
+            if distinct_pars != 1:
+                raise RuntimeError("tried to define a pulse for generators %s, but they can't all use the same pulse definition: if you're using an envelope, maybe it is not the same length or at the same address in all gens?"%(ch))
+            pulse = self._gen_mgrs[ch[0]].make_pulse(kwargs)
+            pulse.gen_chs = ch
+            self._register_pulse(pulse, name)
 
     def add_readoutconfig(self, ch, name, **kwargs):
         """Add a readout config to the program's pulse library.
@@ -2165,6 +2219,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
         pulse = self._ro_mgrs[ch].make_pulse(kwargs)
+        pulse.ro_chs = [ch]
         self._register_pulse(pulse, name)
 
     def list_pulse_waveforms(self, pulsename, exclude_special=True):
