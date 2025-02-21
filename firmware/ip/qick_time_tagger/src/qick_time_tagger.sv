@@ -346,8 +346,8 @@ pulse_cdc tag_vld_sync (
 );
 
 reg [31:0] tag_dt_r;
-always_ff @(posedge ps_clk_i) begin
-   if      ( !ps_rst_ni  )    tag_dt_r <= 0;
+always_ff @(posedge c_clk_i) begin
+   if      ( !c_rst_ni  )    tag_dt_r <= 0;
    else if ( qtt_pop_ack )    tag_dt_r <= tag_fifo_dt;
 end
 

@@ -67,7 +67,7 @@ TAG_FIFO_TC # (
    .dt_o          ( mem_dt      [0] ) , 
    .dma_empty_o   ( empty [0]       ) , 
    .full_o        ( full [0]        ) ,
-   .debug_do      ( tag_mem_ds      )
+   .debug_do      (                 )
 );
 
 genvar ind;
