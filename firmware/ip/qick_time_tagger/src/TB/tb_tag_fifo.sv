@@ -10,18 +10,19 @@
 
 `define WR_CLK         3   // Half Clock Period for Simulation
 `define RD_CLK         11   // Half Clock Period for Simulation
+`define CORE_CLK       5   // Half Clock Period for Simulation
 
 module tb_tag_mem();
 
 
 parameter MEM_QTY = 4 ;
-parameter DW      = 16 ;
+parameter DW      = 32 ;
 parameter AW      = 8  ;
 parameter SMP_CK  = 8  ;
 
 // Signals
 ///////////////////////////////////////////////////////////////////////////////
-reg wr_clk_i, rd_clk_i;
+reg wr_clk_i, rd_clk_i, core_clk_i;
 reg rst_ni, ready;
 
 //  CLK
@@ -33,6 +34,10 @@ end
 initial begin
   rd_clk_i = 1'b0;
   forever # (`RD_CLK) rd_clk_i = ~rd_clk_i;
+end
+initial begin
+  core_clk_i = 1'b0;
+  forever # (`CORE_CLK) core_clk_i = ~core_clk_i;
 end
 
 //  READY
@@ -52,27 +57,31 @@ reg  [DW-1:0] data_i;
 reg   push_i, dma_pop_i;
 reg   flush_i;
 
-reg              tag_wr_i [MEM_QTY] ;
+reg [MEM_QTY-1:0] tag_wr_i;
 reg [31:0]       tag_dt_i [MEM_QTY] ; 
 reg [AW-1:0]     dma_qty_o[MEM_QTY] ;     
 wire [DW-1:0] dma_dt_o;
 
+reg [32-1:0]     tag_debug_o ;
+reg [AW-1:0]     proc_qty_o ;
+reg              qtt_pop_req;
+reg [DW-1:0]     m_axis_tdata_o ;
 
 
 tag_mem # (
    .MEM_QTY      ( MEM_QTY  ), // Amount of Memories
-   .DMA_RD       ( 1  ), // TAG FIFO Read from DMA
-   .PROC_RD      ( 0  ), // TAG FIFO Read from tProcessor
+//   .DMA_RD       ( 1  ), // TAG FIFO Read from DMA
+//   .PROC_RD      ( 0  ), // TAG FIFO Read from tProcessor
    .TAG_FIFO_AW  ( AW ), // Size of TAG FIFO Memory
    .DEBUG        ( 0  )
 ) TAG_MEM (
    .dma_clk_i      ( rd_clk_i     ),
    .dma_rst_ni     ( rst_ni    ),
-   .c_clk_i        ( wr_clk_i       ),
+   .c_clk_i        ( core_clk_i       ),
    .c_rst_ni       ( rst_ni      ),
    .adc_clk_i      ( wr_clk_i     ),
    .adc_rst_ni     ( rst_ni    ),
-   .qtt_pop_req_i  ( 0 ),
+   .qtt_pop_req_i  ( qtt_pop_req ),
    .qtt_rst_req_i  ( flush_i ),
    .qtt_rst_ack_o  ( qtt_rst_ack_o ),
    .tag_wr_i       ( tag_wr_i     ), 
@@ -127,8 +136,13 @@ initial begin
    TAG_WR();
    tag_wr_sel = 4'b1111;
    TAG_WR();
+   #1000;
 
-   #2000;
+   TAG_POP();
+   TAG_POP();
+   TAG_POP();
+
+   #1000;
    dma_len_i = 22;
    dma_sel_i = 2'b00;
    FIFO_DMA();   
@@ -156,6 +170,7 @@ flush_i = 1'b0;
    dma_pop_i = 1'b0;
    dma_req_i = 0;
    dma_len_i = 0;
+   qtt_pop_req = 0;
    tag_wr_i    = '{default:'0} ;
    tag_dt_i    = '{default:'0} ;
    #10;
@@ -185,6 +200,19 @@ end
 
 endtask
 
+task TAG_POP(); begin
+   $display("POP TAGS");
+   @ (posedge core_clk_i); #0.1;
+   for (t=0; t<=9; t=t+1) begin
+      @ (posedge core_clk_i); #0.1;
+      qtt_pop_req = 1;
+      @ (posedge core_clk_i); #0.1;
+      qtt_pop_req = 0;
+      #200;
+   end
+end
+
+endtask
 
 
 task FIFO_DMA(); begin
