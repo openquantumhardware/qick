@@ -685,9 +685,9 @@ class OpenLoop(Macro):
 
     def expand(self, prog):
         insts = []
-        prog.loop_stack.append(self.name)
+        prog.loop_stack.append((self.name, self.n))
         # initialize the loop counter to zero and set the loop label
-        insts.append(WriteReg(dst=self.name, src=self.n))
+        insts.append(WriteReg(dst=self.name, src=0))
         label = self.name
         insts.append(Label(label=label))
         return insts
@@ -697,7 +697,7 @@ class CloseLoop(Macro):
         insts = []
 
         # the loop we're closing is the one at the top of the loop stack
-        lname = prog.loop_stack.pop()
+        lname, lcount = prog.loop_stack.pop()
         label = lname
 
         # check for wave sweeps
@@ -729,8 +729,10 @@ class CloseLoop(Macro):
 
         # increment and test the loop counter
         reg = prog.reg_dict[lname].full_addr()
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':reg, 'SRC':'op', 'OP':f'{reg} - #1', 'UF':'1'}, addr_inc=1))
-        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ'}, addr_inc=1))
+        # test i-n
+        insts.append(AsmInst(inst={'CMD':'TEST', 'OP':'%s - #%d'%(reg, lcount-1)}, addr_inc=1))
+        # if i!=n, jump to the start and increment i
+        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ', 'WR':'%s op'%(reg), 'OP':'%s + #1'%(reg)}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
         for wname, spans_to_apply in wave_sweeps:
