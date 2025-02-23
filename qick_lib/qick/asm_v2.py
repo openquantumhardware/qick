@@ -685,9 +685,9 @@ class OpenLoop(Macro):
 
     def expand(self, prog):
         insts = []
-        prog.loop_stack.append(self.name)
+        prog.loop_stack.append((self.name, self.n))
         # initialize the loop counter to zero and set the loop label
-        insts.append(WriteReg(dst=self.name, src=self.n))
+        insts.append(WriteReg(dst=self.name, src=0))
         label = self.name
         insts.append(Label(label=label))
         return insts
@@ -697,7 +697,7 @@ class CloseLoop(Macro):
         insts = []
 
         # the loop we're closing is the one at the top of the loop stack
-        lname = prog.loop_stack.pop()
+        lname, lcount = prog.loop_stack.pop()
         label = lname
 
         # check for wave sweeps
@@ -729,8 +729,10 @@ class CloseLoop(Macro):
 
         # increment and test the loop counter
         reg = prog.reg_dict[lname].full_addr()
-        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':reg, 'SRC':'op', 'OP':f'{reg} - #1', 'UF':'1'}, addr_inc=1))
-        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ'}, addr_inc=1))
+        # test i-n
+        insts.append(AsmInst(inst={'CMD':'TEST', 'OP':'%s - #%d'%(reg, lcount-1)}, addr_inc=1))
+        # if i!=n, jump to the start and increment i
+        insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ', 'WR':'%s op'%(reg), 'OP':'%s + #1'%(reg)}, addr_inc=1))
 
         # if we swept a parameter, we should restore it to its original value
         for wname, spans_to_apply in wave_sweeps:
@@ -881,6 +883,33 @@ class Wait(TimedMacro):
                 raise RuntimeError("WAIT argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
+
+class Resync(TimedMacro):
+    # t, auto, gens, ros (last two only defined if auto=True)
+    def preprocess(self, prog):
+        delay = self.t
+        if isinstance(delay, Number):
+            delay = QickParam(delay)
+        delay_rounded = self.convert_time(prog, delay, "t")
+        prog.decrement_timestamps(delay_rounded)
+    def expand(self, prog):
+        t = self.t_regs["t"]
+        prog.add_reg("scratch", allow_reuse=True)
+        s_reg = prog._get_reg("scratch")
+        u_reg = prog._get_reg("s_usr_time")
+        insts = []
+        if isinstance(t, int):
+            t_reg = '#%d'%(t)
+        else:
+            t_reg = prog._get_reg(t)
+        # set scratch register to the current time plus t
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':s_reg, 'SRC':'op', 'OP':'%s + %s'%(u_reg, t_reg), 'UF':'1'}, addr_inc=1))
+        # if result is negative (i.e. we already had sufficient slack), set it to zero
+        insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':s_reg, 'SRC':'op', 'OP':'s0', 'IF':'S'}, addr_inc=1))
+        #insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':s_reg, 'SRC':'imm', 'LIT':'#0', 'IF':'S'}, addr_inc=1))
+        # apply the computed delay
+        insts.append(AsmInst(inst={'CMD': 'TIME', 'C_OP': 'inc_ref', 'R1':s_reg}, addr_inc=1))
+        return insts
 
 # pulses and triggers
 
@@ -1278,7 +1307,7 @@ class AsmV2:
 
         Parameters
         ----------
-        t : float
+        t : float or QickParam
             time (us)
         tag: str
             arbitrary name for use with get_time_param()
@@ -1291,7 +1320,7 @@ class AsmV2:
 
         Parameters
         ----------
-        t : float
+        t : float or QickParam
             time (us)
         gens : bool
             check the ends of generator pulses
@@ -1332,6 +1361,31 @@ class AsmV2:
             don't warn if the "auto" logic results in a swept wait which gets rounded up to a scalar
         """
         self.append_macro(Wait(t=t, auto=True, gens=gens, ros=ros, tag=tag, no_warn=no_warn))
+
+    def resync(self, t=0.05, tag=None):
+        """Apply the appropriate delay to create some slack between the execution and reference times.
+        In other words, increment the reference time to ensure it exceeds the execution time by at least t.
+        This will never decrement the reference time, so if the slack already exceeded t it won't change.
+
+        This is useful if your program waits for external input for an unknown time.
+        Without resyncing, you run the risk that you will run out of slack and your future timed instructions will pile up on each other.
+
+        Cautions:
+
+        * The appropriate delay is computed at execution time, so it is not generally possible to determine at compile time how much delay will be added.
+        * The amount of delay added will fluctuate by tens of ns.
+        * If t=0, you will probably end up with a small negative slack due to this macro's execution time. Better to keep t positive (the default is safe).
+
+        If you know (or can put an upper bound on) how long your program waits, you may prefer to use delay().
+
+        Parameters
+        ----------
+        t : float or QickParam
+            time (us)
+        tag: str
+            arbitrary name for use with get_time_param()
+        """
+        self.append_macro(Resync(t=t, tag=tag))
 
     # pulses and triggers
 
