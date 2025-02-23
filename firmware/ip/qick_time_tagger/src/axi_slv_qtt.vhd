@@ -39,13 +39,13 @@ entity axi_slv_qtt is
      DMA_CFG    : out std_logic_vector (23 downto 0) ;
      AXI_DT1    : out std_logic_vector (31 downto 0) ;
      PROC_DT        : in  std_logic_vector (31 downto 0) ;
-     PROC_QTY       : in  std_logic_vector (19 downto 0) ;
-     TAG0_QTY       : in  std_logic_vector (19 downto 0) ;
-     TAG1_QTY       : in  std_logic_vector (19 downto 0) ;
-     TAG2_QTY       : in  std_logic_vector (19 downto 0) ;
-     TAG3_QTY       : in  std_logic_vector (19 downto 0) ;
-     SMP_QTY        : in  std_logic_vector (19 downto 0) ;
-     ARM_QTY        : in  std_logic_vector (19 downto 0) ;
+     PROC_QTY       : in  std_logic_vector (31 downto 0) ;
+     TAG0_QTY       : in  std_logic_vector (31 downto 0) ;
+     TAG1_QTY       : in  std_logic_vector (31 downto 0) ;
+     TAG2_QTY       : in  std_logic_vector (31 downto 0) ;
+     TAG3_QTY       : in  std_logic_vector (31 downto 0) ;
+     SMP_QTY        : in  std_logic_vector (31 downto 0) ;
+     ARM_QTY        : in  std_logic_vector (31 downto 0) ;
      THR_INH        : in  std_logic_vector (31 downto 0) ;
      QTT_STATUS     : in  std_logic_vector (31 downto 0) ;
      QTT_DEBUG      : in  std_logic_vector (31 downto 0) );
@@ -471,19 +471,19 @@ begin
 	      when b"0101" =>
 	        reg_data_out <= PROC_DT;
 	      when b"0110" =>
-	        reg_data_out <= "000000000000" & PROC_QTY;
+	        reg_data_out <= PROC_QTY;
 	      when b"0111" =>
-	        reg_data_out <= "000000000000" & TAG0_QTY;
+	        reg_data_out <= TAG0_QTY;
 	      when b"1000" =>
-	        reg_data_out <= "000000000000" & TAG1_QTY;
+	        reg_data_out <= TAG1_QTY;
 	      when b"1001" =>
-	        reg_data_out <= "000000000000" & TAG2_QTY;
+	        reg_data_out <= TAG2_QTY;
 	      when b"1010" =>
-	        reg_data_out <= "000000000000" & TAG3_QTY;
+	        reg_data_out <= TAG3_QTY;
 	      when b"1011" =>
-	        reg_data_out <= "000000000000" & SMP_QTY;
+	        reg_data_out <= SMP_QTY;
 	      when b"1100" =>
-	        reg_data_out <= "000000000000" & ARM_QTY;
+	        reg_data_out <= ARM_QTY;
 	      when b"1101" =>
 	        reg_data_out <= THR_INH;
 	      when b"1110" =>

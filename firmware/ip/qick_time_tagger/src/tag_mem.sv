@@ -57,7 +57,7 @@ TAG_FIFO_TC # (
    .tag_data_i    ( tag_dt_i [0]    ) , 
    .flush_i       ( qtt_rst_req_i   ) ,
    .flush_o       ( qtt_rst_ack_o   ) ,
-   .c_pop_i       ( qtt_pop_req_i   ) , 
+   .tag_pop_i       ( qtt_pop_req_i   ) , 
    .c_pop_o       ( qtt_pop_ack_o   ) , 
    .c_qty_o       ( proc_qty_o      ) , 
    .c_empty_o     (                 ) , 
@@ -276,7 +276,7 @@ module TAG_FIFO_TC # (
    output wire                   flush_o   ,
    input  wire                   tag_push_i  ,
    input  wire [TAG_DW - 1:0]    tag_data_i  ,
-   input  wire                   c_pop_i     ,
+   input  wire                   tag_pop_i     ,
    output wire                   c_pop_o     ,
    output wire [FIFO_AW-1:0]     c_qty_o     ,
    output wire                   c_empty_o   ,
@@ -376,9 +376,9 @@ sync_pulse # (
    .QUEUE_AW ( 8 ) ,
    .BLOCK    ( 0  ) 
 ) sync_p_i ( 
-   .a_clk_i    ( c_clk_i   ) ,
-   .a_rst_ni   ( c_rst_ni  ) ,
-   .a_pulse_i  ( c_pop_i   ) ,
+   .a_clk_i    ( tag_clk_i   ) ,
+   .a_rst_ni   ( tag_rst_ni  ) ,
+   .a_pulse_i  ( tag_pop_i   ) ,
    .b_clk_i    ( dma_clk_i ) ,
    .b_rst_ni   ( dma_rst_ni) ,
    .b_pulse_o  ( c_pop_s   ) ,
@@ -433,7 +433,7 @@ assign debug_do[4]    = do_push;
 assign debug_do[5]    = dma_pop_i ;
 assign debug_do[6]    = do_dma_pop ;
 assign debug_do[7]    = dma_pop_o;
-assign debug_do[8]    = c_pop_i;
+assign debug_do[8]    = tag_pop_i;
 assign debug_do[9]    = do_proc_pop;
 assign debug_do[10]   = c_pop_o;
 assign debug_do[11]   = flush_i;

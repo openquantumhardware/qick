@@ -114,9 +114,9 @@ wire [10:0] axi_reg_CFG;
 wire [23:0] axi_reg_DMA_CFG ;
 wire [31:0] axi_reg_AXI_DT1 ;
 wire [31:0] axi_reg_PROC_DT ;
-wire [19:0] axi_reg_PROC_QTY, axi_reg_TAG0_QTY ;
-wire [19:0] axi_reg_TAG1_QTY, axi_reg_TAG2_QTY, axi_reg_TAG3_QTY ;
-wire [19:0] axi_reg_SMP_QTY, axi_reg_ARM_QTY ;
+wire [31:0] axi_reg_PROC_QTY, axi_reg_TAG0_QTY ;
+wire [31:0] axi_reg_TAG1_QTY, axi_reg_TAG2_QTY, axi_reg_TAG3_QTY ;
+wire [31:0] axi_reg_SMP_QTY, axi_reg_ARM_QTY ;
 wire [31:0] axi_reg_THR_INH , axi_reg_QTT_STATUS, axi_reg_QTT_DEBUG;
 
 wire [SMP_DW-1:0] qtt_cmp_th;
@@ -196,8 +196,10 @@ qick_time_tagger # (
 
 wire[7:0]   cmd_cnt_do;
 qtt_cmd CMD (
-   .clk_i         ( c_clk           ) ,
-   .rst_ni        ( c_aresetn       ) ,
+   .clk_i         ( adc_clk         ) ,
+   .rst_ni        ( adc_aresetn     ) ,
+   .c_clk_i       ( c_clk         ) ,
+   .c_rst_ni      ( c_aresetn     ) ,
    .ext_arm_i     ( arm_i           ) ,
    .c_en_i        ( qtag_en_i       ) ,
    .c_op_i        ( qtag_op_i       ) ,
@@ -209,6 +211,7 @@ qtt_cmd CMD (
 //   .pop_ack_i     ( qtt_pop_ack     ) ,
    .rst_req_o     ( qtt_rst_req     ) ,
    .rst_ack_i     ( qtt_rst_ack     ) ,
+   .peek_o        ( cmd_peek        ) ,
    .qtt_arm_o     ( qtt_arm         ) ,
    .qtt_cmp_th_o  ( qtt_cmp_th      ) ,
    .qtt_cmp_inh_o ( qtt_cmp_inh     ) ,
@@ -304,11 +307,17 @@ assign adc3_s_axis_tready_o = 1'b1;
 
 assign qtag_rdy_o   = 1;
 assign qtag_dt1_o   = tag_dt;
-assign qtag_dt2_o   = axi_reg_TAG0_QTY;
-assign qtag_vld_o   = qtt_tag_vld;
+//assign qtag_dt2_o   = axi_reg_PROC_QTY;
+assign qtag_vld_o   = qtt_tag_vld | cmd_peek;
 assign qtag_flag_o  = 0;
 
-
+sync_reg # (
+   .DW ( 32 )
+) sync_dt2 (
+   .dt_i      ( axi_reg_PROC_QTY ) ,
+   .clk_i     ( c_clk ) ,
+   .rst_ni    ( c_aresetn ) ,
+   .dt_o      ( qtag_dt2_o ) );
 
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
