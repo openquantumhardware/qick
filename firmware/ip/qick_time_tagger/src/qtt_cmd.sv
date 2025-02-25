@@ -181,18 +181,15 @@ always_ff @ (posedge clk_i, negedge rst_ni) begin
       else if ( cmd_set_inh ) qtt_cmp_inh  <= cmd_dt[7:0];
 end
 
-sync_pulse # (
-   .QUEUE_AW ( 8 ) ,
-   .BLOCK    ( 0  ) 
-) sync_peek ( 
-   .a_clk_i    ( clk_i   ) ,
-   .a_rst_ni   ( rst_ni  ) ,
-   .a_pulse_i  ( core_peek   ) ,
-   .b_clk_i    ( c_clk_i ) ,
-   .b_rst_ni   ( c_rst_ni) ,
-   .b_pulse_o  ( peek_o   ) ,
-   .b_en_i     ( 1'b1 ) ,
-   .pulse_full (  ) );
+pulse_cdc peek_sync (
+   .clk_a_i   ( clk_i    ) ,
+   .rst_a_ni  ( rst_ni   ) ,
+   .pulse_a_i ( core_peek) ,
+   .rdy_a_o   (          ) ,
+   .clk_b_i   ( c_clk_i  ) ,
+   .rst_b_ni  ( c_rst_ni ) ,
+   .pulse_b_o ( peek_o   )
+);
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////

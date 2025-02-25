@@ -211,11 +211,22 @@ end
 assign tag_empty   = (rd_ptr == wr_ptr) ;   
 assign tag_full    = (rd_ptr == wr_ptr_p1) ;
 
+wire flush_dma;
+pulse_cdc flush_sync (
+   .clk_a_i   ( adc_clk_i  ) ,
+   .rst_a_ni  ( adc_rst_ni ) ,
+   .pulse_a_i ( flush_i    ) ,
+   .rdy_a_o   (            ) ,
+   .clk_b_i   ( dma_clk_i  ) ,
+   .rst_b_ni  ( dma_rst_ni ) ,
+   .pulse_b_o ( flush_dma  )
+);
+
 // TAG QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )        tag_qty <= 0;
-   else if (  do_push & !do_pop ) tag_qty <= tag_qty + 1'b1 ;
-   else if ( !do_push &  do_pop ) tag_qty <= tag_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_dma ) tag_qty <= 0;
+   else if (  do_push    & !do_pop    ) tag_qty <= tag_qty + 1'b1 ;
+   else if ( !do_push    &  do_pop    ) tag_qty <= tag_qty - 1'b1 ;
 end
 
 
@@ -358,6 +369,16 @@ always_ff @(posedge dma_clk_i, negedge dma_rst_ni) begin
    end
 end
 
+wire flush_dma;
+pulse_cdc flush_sync (
+   .clk_a_i   ( tag_clk_i  ) ,
+   .rst_a_ni  ( tag_rst_ni ) ,
+   .pulse_a_i ( flush_i    ) ,
+   .rdy_a_o   (            ) ,
+   .clk_b_i   ( dma_clk_i  ) ,
+   .rst_b_ni  ( dma_rst_ni ) ,
+   .pulse_b_o ( flush_dma  )
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 // READ (tProc has Priority)
@@ -367,9 +388,9 @@ assign dma_empty   = (rd_dma_ptr == wr_ptr) ;
 assign dma_full    = (rd_dma_ptr == wr_ptr_p1) ;
 // DMA Data QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )            dma_qty <= 0;
-   else if (  do_push & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
-   else if ( !do_push &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_dma  ) dma_qty <= 0;
+   else if (  do_push    & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
+   else if ( !do_push    &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
 end
 
 sync_pulse # (
@@ -390,9 +411,9 @@ assign proc_empty    = ( rd_proc_ptr == wr_ptr) ;
 assign proc_full     = ( rd_proc_ptr == wr_ptr_p1) ;
 // PROC_RD Data QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )             proc_qty <= 0;
-   else if (  do_push & !do_proc_pop ) proc_qty <= proc_qty + 1'b1 ;
-   else if ( !do_push &  do_proc_pop ) proc_qty <= proc_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_dma   ) proc_qty <= 0;
+   else if (  do_push    & !do_proc_pop ) proc_qty <= proc_qty + 1'b1 ;
+   else if ( !do_push    &  do_proc_pop ) proc_qty <= proc_qty - 1'b1 ;
 end
 
 

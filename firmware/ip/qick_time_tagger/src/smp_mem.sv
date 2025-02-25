@@ -255,7 +255,16 @@ assign wr_dt      = wr_dt_r[SMP_DW*wr_cnt +: SMP_DW];
 
 
 
-
+wire flush_dma;
+pulse_cdc flush_sync (
+   .clk_a_i   ( adc_clk_i  ) ,
+   .rst_a_ni  ( adc_rst_ni ) ,
+   .pulse_a_i ( flush_i    ) ,
+   .rdy_a_o   (            ) ,
+   .clk_b_i   ( dma_clk_i  ) ,
+   .rst_b_ni  ( dma_rst_ni ) ,
+   .pulse_b_o ( flush_dma  )
+);
 
 ///////////////////////////////////////////////////////////////////////////////
 // READ
@@ -266,9 +275,9 @@ assign dma_full    = (rd_dma_ptr == wr_ptr_p1) ;
 
 // DMA Data QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )            dma_qty <= 0;
-   else if (  wr_push & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
-   else if ( !wr_push &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_dma  ) dma_qty <= 0;
+   else if (  wr_push    & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
+   else if ( !wr_push    &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
 end
 
 

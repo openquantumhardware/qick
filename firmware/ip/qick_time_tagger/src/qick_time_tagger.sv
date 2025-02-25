@@ -27,7 +27,7 @@ module qick_time_tagger # (
    input  wire                      adc_clk_i            ,
    input  wire                      adc_rst_ni           ,
    input  wire                      qtt_pop_req_i        ,
-   input  wire                      qtt_rst_req_i        ,
+   input  wire                      qtt_rst_req_i        , // reset from qtt_cmd, on ADC clock
    output wire                      qtt_rst_ack_o        ,
    input  wire                      cfg_invert_i         ,
    input  wire                      cfg_filter_i         ,
