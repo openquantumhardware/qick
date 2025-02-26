@@ -90,7 +90,7 @@ class AxisSwitch(SocIp):
         self.ctrl = 2
 
 
-class RFDC(xrfdc.RFdc):
+class RFDC(xrfdc.RFdc, SocIp):
     """
     Extends the xrfdc driver.
     Since operations on the RFdc tend to be slow (tens of ms), we cache the Nyquist zone and frequency.
@@ -98,6 +98,19 @@ class RFDC(xrfdc.RFdc):
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4",
               "xilinx.com:ip:usp_rf_data_converter:2.6"]
+
+    # consts from https://github.com/Xilinx/embeddedsw/blob/master/XilinxProcessorIPLib/drivers/rfdc/src/xrfdc.h
+    XRFDC_CAL_BLOCK_OCB1 = 0
+    XRFDC_CAL_BLOCK_OCB2 = 1
+    XRFDC_CAL_BLOCK_GCB  = 2
+    XRFDC_CAL_BLOCK_TSCB = 3
+    XRFDC_GEN3 = 2
+    # name, ID, number of coefficients
+    ADC_CAL_BLOCKS = {'OCB1': (XRFDC_CAL_BLOCK_OCB1, 4),
+                      'OCB2': (XRFDC_CAL_BLOCK_OCB2, 4),
+                      'GCB' : (XRFDC_CAL_BLOCK_GCB,  4),
+                      'TSCB': (XRFDC_CAL_BLOCK_TSCB, 8),
+                      }
 
     def __init__(self, description):
         """
@@ -108,6 +121,8 @@ class RFDC(xrfdc.RFdc):
         self.nqz_dict = {'dac': {}, 'adc': {}}
         # Rounded NCO frequency for each channel
         self.mixer_dict = {}
+
+        self._cfg['ip_type'] = int(description['parameters']['C_IP_Type'])
 
     def configure(self, soc):
         self.daccfg = soc['dacs']
@@ -221,6 +236,145 @@ class RFDC(xrfdc.RFdc):
                 self.nqz_dict[blocktype][blockname] = self.adc_tiles[tile].blocks[channel].NyquistZone
             return self.nqz_dict[blocktype][blockname]
 
+    def get_adc_attenuator(self, blockname):
+        """Read the ADC's built-in step attenuator.
+
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+
+        Returns
+        -------
+        float
+            Attenuation value (dB)
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        return adc.DSA['Attenuation']
+
+    def set_adc_attenuator(self, blockname, attenuation):
+        """Set the ADC's built-in step attenuator.
+        The requested value will be rounded to the nearest valid value (0-27 dB inclusive, 1 dB steps).
+
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        attenuation : float
+            Attenuation value (dB)
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        adc.DSA['Attenuation'] = np.round(attenuation)
+
+    def get_adc_cal(self, blockname):
+        """Get the current calibration coefficients for an ADC.
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+
+        Returns
+        -------
+        dict of lists
+            Calibration coefficients
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        a = xrfdc._ffi.new("XRFdc_Calibration_Coefficients *")
+        cal = {}
+        for name, (const, n) in self.ADC_CAL_BLOCKS.items():
+            adc.GetCalCoefficients(const, a)
+            cal[name] = [getattr(a, 'Coeff%d'%(i)) for i in range(n)]
+        return cal
+
+    def set_adc_cal(self, blockname, cal, calblocks):
+        """Set calibration coefficients for an ADC.
+
+        See the Xilinx documentation for explanations and cautions:
+
+        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Getting/Setting-Calibration-Coefficients
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        cal : dict of lists
+            Calibration coefficients
+        calblocks : list of str
+            List of calibration blocks to configure.
+            Valid values are OCB1, OCB2, GCB, TSCB.
+
+        Returns
+        -------
+        dict of lists
+            Calibration coefficients
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        for name, (const, n) in self.ADC_CAL_BLOCKS.items():
+            a = xrfdc._ffi.new("XRFdc_Calibration_Coefficients *")
+            for i in range(n):
+                setattr(a, 'Coeff%d'%(i), cal[name][i])
+            adc.SetCalCoefficients(const, a)
+
+    def restart_adc_tile(self, tile):
+        """Restart an ADC tile.
+
+        This is useful as a way to rerun the OCB2 offset calibration, though of course it resets all of the calibrations.
+        WHatever voltage the ADCs on this tile are seeing when you run this, that will be 0 ADU.
+
+        Parameters
+        ----------
+        tile : int
+            ADC tile number (0-3)
+        """
+        self.adc_tiles[tile].Reset()
+
+    def freeze_adc_cal(self, blockname):
+        """Freeze an ADC's calibration (stop the background calibration).
+
+        See the Xilinx documentation:
+
+        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Background-Calibration-Process
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        adc.CalFreeze['FreezeCalibration'] = 1
+
+    def unfreeze_adc_cal(self, blockname, calblocks=None):
+        """Unfreeze an ADC's calibration (resume the background calibration).
+
+        See the Xilinx documentation:
+
+        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Background-Calibration-Process
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        """
+        tile, block = [int(x) for x in blockname]
+        adc = self.adc_tiles[tile].blocks[block]
+        adc.CalFreeze['FreezeCalibration'] = 0
+        if calblocks is None:
+            if self['ip_type'] < self.XRFDC_GEN3:
+                calblocks = ['OCB1', 'OCB2', 'GCB', 'TSCB']
+            else:
+                calblocks = ['OCB2', 'GCB', 'TSCB']
+        for calblock in calblocks:
+            adc.DisableCoefficientsOverride(self.ADC_CAL_BLOCKS[calblock][0])
 
 class QickSoc(Overlay, QickConfig):
     """
@@ -1041,7 +1195,7 @@ class QickSoc(Overlay, QickConfig):
             prog.end()
         elif self.TPROC_VERSION == 2:
             prog = QickProgramV2(self)
-            prog.add_raw_pulse("dummypulse", ["dummy"], gen_ch=gen_chs[0])
+            prog.add_raw_pulse("dummypulse", ["dummy"], gen_ch=gen_chs)
             for gen in gen_chs:
                 prog.pulse(ch=gen, name="dummypulse", t=0)
             prog.end()

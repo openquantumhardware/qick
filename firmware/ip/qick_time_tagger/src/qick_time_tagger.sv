@@ -27,7 +27,7 @@ module qick_time_tagger # (
    input  wire                      adc_clk_i            ,
    input  wire                      adc_rst_ni           ,
    input  wire                      qtt_pop_req_i        ,
-   input  wire                      qtt_rst_req_i        ,
+   input  wire                      qtt_rst_req_i        , // reset from qtt_cmd, on ADC clock
    output wire                      qtt_rst_ack_o        ,
    input  wire                      cfg_invert_i         ,
    input  wire                      cfg_filter_i         ,
@@ -346,8 +346,8 @@ pulse_cdc tag_vld_sync (
 );
 
 reg [31:0] tag_dt_r;
-always_ff @(posedge ps_clk_i) begin
-   if      ( !ps_rst_ni  )    tag_dt_r <= 0;
+always_ff @(posedge c_clk_i) begin
+   if      ( !c_rst_ni  )    tag_dt_r <= 0;
    else if ( qtt_pop_ack )    tag_dt_r <= tag_fifo_dt;
 end
 

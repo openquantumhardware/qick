@@ -176,6 +176,18 @@ RFDC DAC settings:
 * Mixer Mode: I/Q->Real
 * Frequency: Fs/4
 
+### time tagger (`qick_time_tagger`):
+* qick_peripheral: to tProc v2 QPeriphA/B
+* c_clk/c_aresetn: tProc core clock
+* adc_clk/adc_aresetn: ADC fabric clock
+* ps_clk/ps_aresetn: AXI clock
+* m_axis_dma: to S_AXIS_S2MM port of a DMA
+
+If IO ARM control is enabled, arm_i input can be connected to a tProc trigger bit.
+
+DMA should have:
+* buffer length width 18, address width 32
+* write enabled, 1 channel, width 32 (auto), burst 16
 
 ### tProc v1 (`axis_tproc64x32_x8`):
 

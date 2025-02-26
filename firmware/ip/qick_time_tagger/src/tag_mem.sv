@@ -57,7 +57,7 @@ TAG_FIFO_TC # (
    .tag_data_i    ( tag_dt_i [0]    ) , 
    .flush_i       ( qtt_rst_req_i   ) ,
    .flush_o       ( qtt_rst_ack_o   ) ,
-   .c_pop_i       ( qtt_pop_req_i   ) , 
+   .tag_pop_i       ( qtt_pop_req_i   ) , 
    .c_pop_o       ( qtt_pop_ack_o   ) , 
    .c_qty_o       ( proc_qty_o      ) , 
    .c_empty_o     (                 ) , 
@@ -67,7 +67,7 @@ TAG_FIFO_TC # (
    .dt_o          ( mem_dt      [0] ) , 
    .dma_empty_o   ( empty [0]       ) , 
    .full_o        ( full [0]        ) ,
-   .debug_do      ( tag_mem_ds      )
+   .debug_do      (                 )
 );
 
 genvar ind;
@@ -211,11 +211,38 @@ end
 assign tag_empty   = (rd_ptr == wr_ptr) ;   
 assign tag_full    = (rd_ptr == wr_ptr_p1) ;
 
+//wire flush_dma;
+/*
+pulse_cdc flush_sync (
+   .clk_a_i   ( adc_clk_i  ) ,
+   .rst_a_ni  ( adc_rst_ni ) ,
+   .pulse_a_i ( flush_i    ) ,
+   .rdy_a_o   (            ) ,
+   .clk_b_i   ( dma_clk_i  ) ,
+   .rst_b_ni  ( dma_rst_ni ) ,
+   .pulse_b_o ( flush_dma  )
+);
+*/
+/*
+sync_pulse # (
+   .QUEUE_AW ( 8 ) ,
+   .BLOCK    ( 0  )
+) flush_sync (
+   .a_clk_i    ( adc_clk_i  ) ,
+   .a_rst_ni   ( adc_rst_ni ) ,
+   .a_pulse_i  ( flush_i    ) ,
+   .b_clk_i    ( dma_clk_i  ) ,
+   .b_rst_ni   ( dma_rst_ni ) ,
+   .b_pulse_o  ( flush_dma  ) ,
+   .b_en_i     ( 1'b1 ) ,
+   .pulse_full (  ) );
+*/
+
 // TAG QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )        tag_qty <= 0;
-   else if (  do_push & !do_pop ) tag_qty <= tag_qty + 1'b1 ;
-   else if ( !do_push &  do_pop ) tag_qty <= tag_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_i   ) tag_qty <= 0;
+   else if (  do_push    & !do_pop    ) tag_qty <= tag_qty + 1'b1 ;
+   else if ( !do_push    &  do_pop    ) tag_qty <= tag_qty - 1'b1 ;
 end
 
 
@@ -276,7 +303,7 @@ module TAG_FIFO_TC # (
    output wire                   flush_o   ,
    input  wire                   tag_push_i  ,
    input  wire [TAG_DW - 1:0]    tag_data_i  ,
-   input  wire                   c_pop_i     ,
+   input  wire                   tag_pop_i     ,
    output wire                   c_pop_o     ,
    output wire [FIFO_AW-1:0]     c_qty_o     ,
    output wire                   c_empty_o   ,
@@ -358,6 +385,32 @@ always_ff @(posedge dma_clk_i, negedge dma_rst_ni) begin
    end
 end
 
+//wire flush_dma;
+/*
+pulse_cdc flush_sync (
+   .clk_a_i   ( tag_clk_i  ) ,
+   .rst_a_ni  ( tag_rst_ni ) ,
+   .pulse_a_i ( flush_i    ) ,
+   .rdy_a_o   (            ) ,
+   .clk_b_i   ( dma_clk_i  ) ,
+   .rst_b_ni  ( dma_rst_ni ) ,
+   .pulse_b_o ( flush_dma  )
+);
+*/
+/*
+sync_pulse # (
+   .QUEUE_AW ( 8 ) ,
+   .BLOCK    ( 0  )
+) flush_sync (
+   .a_clk_i    ( tag_clk_i  ) ,
+   .a_rst_ni   ( tag_rst_ni ) ,
+   .a_pulse_i  ( flush_i    ) ,
+   .b_clk_i    ( dma_clk_i  ) ,
+   .b_rst_ni   ( dma_rst_ni ) ,
+   .b_pulse_o  ( flush_dma  ) ,
+   .b_en_i     ( 1'b1 ) ,
+   .pulse_full (  ) );
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 // READ (tProc has Priority)
@@ -367,18 +420,18 @@ assign dma_empty   = (rd_dma_ptr == wr_ptr) ;
 assign dma_full    = (rd_dma_ptr == wr_ptr_p1) ;
 // DMA Data QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )            dma_qty <= 0;
-   else if (  do_push & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
-   else if ( !do_push &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_i    ) dma_qty <= 0;
+   else if (  do_push    & !do_dma_pop ) dma_qty <= dma_qty + 1'b1 ;
+   else if ( !do_push    &  do_dma_pop ) dma_qty <= dma_qty - 1'b1 ;
 end
 
 sync_pulse # (
    .QUEUE_AW ( 8 ) ,
    .BLOCK    ( 0  ) 
 ) sync_p_i ( 
-   .a_clk_i    ( c_clk_i   ) ,
-   .a_rst_ni   ( c_rst_ni  ) ,
-   .a_pulse_i  ( c_pop_i   ) ,
+   .a_clk_i    ( tag_clk_i   ) ,
+   .a_rst_ni   ( tag_rst_ni  ) ,
+   .a_pulse_i  ( tag_pop_i   ) ,
    .b_clk_i    ( dma_clk_i ) ,
    .b_rst_ni   ( dma_rst_ni) ,
    .b_pulse_o  ( c_pop_s   ) ,
@@ -390,9 +443,9 @@ assign proc_empty    = ( rd_proc_ptr == wr_ptr) ;
 assign proc_full     = ( rd_proc_ptr == wr_ptr_p1) ;
 // PROC_RD Data QTY
 always_ff @(posedge dma_clk_i) begin
-   if      ( !dma_rst_ni )             proc_qty <= 0;
-   else if (  do_push & !do_proc_pop ) proc_qty <= proc_qty + 1'b1 ;
-   else if ( !do_push &  do_proc_pop ) proc_qty <= proc_qty - 1'b1 ;
+   if      ( !dma_rst_ni |  flush_i     ) proc_qty <= 0;
+   else if (  do_push    & !do_proc_pop ) proc_qty <= proc_qty + 1'b1 ;
+   else if ( !do_push    &  do_proc_pop ) proc_qty <= proc_qty - 1'b1 ;
 end
 
 
@@ -433,7 +486,7 @@ assign debug_do[4]    = do_push;
 assign debug_do[5]    = dma_pop_i ;
 assign debug_do[6]    = do_dma_pop ;
 assign debug_do[7]    = dma_pop_o;
-assign debug_do[8]    = c_pop_i;
+assign debug_do[8]    = tag_pop_i;
 assign debug_do[9]    = do_proc_pop;
 assign debug_do[10]   = c_pop_o;
 assign debug_do[11]   = flush_i;
