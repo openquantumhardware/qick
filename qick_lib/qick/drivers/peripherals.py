@@ -124,7 +124,7 @@ class QICK_Time_Tagger(SocIp):
 
         # Configure FIFO Read.
         if length is None:
-            length = min(getattr(self, mem_counter), self.buff_rd.shape)
+            length = min(getattr(self, mem_counter), len(self.buff_rd))
         self.dma_cfg = mem_id + 16*length
        
         if length==0:
@@ -139,7 +139,10 @@ class QICK_Time_Tagger(SocIp):
             # truncate, copy, convert PynqBuffer to ndarray
             return np.array(self.buff_rd[:length], copy=True)
     
-    def clear_mems(self, verbose=False):
+    def flush_mems(self, verbose=False):
+        """Flush the time-tagger memories by reading them.
+        This does not clear the tag queue to the tProc, only the memories readable by DMA.
+        """
         for memname, (_, countname) in self.MEMS.items():
             while True:
                 to_read = getattr(self, countname)
@@ -187,22 +190,32 @@ class QICK_Time_Tagger(SocIp):
         return filt, slope, interp, wr_smp, invert
 
     def disarm(self):
-        self.qtt_ctrl    = 1+2* 0 
+        self.qtt_ctrl    = 1 + 2*0
     def arm(self):
-        self.qtt_ctrl    = 1+2* 1
+        self.qtt_ctrl    = 1 + 2*1
     def pop_dt(self):
-        self.qtt_ctrl    = 1+2* 2
+        self.qtt_ctrl    = 1 + 2*2
     def set_threshold(self, value):
+        valid = [-1*2**15, 2**15-1]
+        if value < valid[0] or value > valid[1]:
+            raise ValueError('Threshold must be in the range %s ADU.'%(valid))
         self.axi_dt1     = value
-        self.qtt_ctrl    = 1+2* 4
+        self.qtt_ctrl    = 1 + 2*4
     def set_dead_time(self, value):
-        if value < 5 or value > 255:
-            raise ValueError(f'Dead time must be in the range [5, 255] clocks.')
+        valid = [5, 255]
+        if value < valid[0] or value > valid[1]:
+            raise ValueError('Dead time must be in the range %s clocks.'%(valid))
         self.axi_dt1     = value
-        self.qtt_ctrl    = 1+2* 5
+        self.qtt_ctrl    = 1 + 2*5
     def reset(self):
-        self.qtt_cfg     = 0
-        self.qtt_ctrl    = 7
+        """Flush the time-tagger memories and reset the counters to 0.
+        This flushes both the memories read by DMA and those read by the tProc.
+        The configuration is not changed.
+
+        This functionality is not reliable in current firmware.
+        You should use flush_mems() instead.
+        """
+        self.qtt_ctrl    = 1 + 2*7
 
     def info(self):
         print(self)
