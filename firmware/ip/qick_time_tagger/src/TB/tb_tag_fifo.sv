@@ -17,8 +17,8 @@ module tb_tag_mem();
 
 parameter MEM_QTY = 4 ;
 parameter DW      = 32 ;
-parameter AW      = 8  ;
-parameter SMP_CK  = 8  ;
+parameter AW      = 16 ;
+//parameter SMP_CK  = 8  ;
 
 // Signals
 ///////////////////////////////////////////////////////////////////////////////
@@ -122,6 +122,7 @@ reg [3:0] tag_wr_sel;
 reg [1:0] dma_sel_i;
 initial begin
    START_SIMULATION();
+   #1000;
    tag_wr_sel = 4'b0001;
    TAG_WR();
    tag_wr_sel = 4'b0010;
@@ -137,6 +138,13 @@ initial begin
    tag_wr_sel = 4'b1111;
    TAG_WR();
    #1000;
+
+//   @ (posedge wr_clk_i); #0.1;
+//  flush_i = 1'b1;
+//   @ (posedge wr_clk_i); #0.1;
+//   @ (posedge wr_clk_i); #0.1;
+//   flush_i = 1'b0;
+//   #1000;
 
    TAG_POP();
    TAG_POP();
