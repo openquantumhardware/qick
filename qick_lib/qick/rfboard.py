@@ -208,22 +208,6 @@ class AxisSignalGenV6Ctrl(SocIp):
         # Default registers.
         self.we_reg = 0
 
-        # Set via self.configure()
-        self.fs  = None
-        self.df  = None
-        self.gen = None
-
-        # set via self.add()
-        self.freq_reg       = None
-        self.phase_reg      = None
-        self.addr_reg       = None
-        self.gain_reg       = None
-        self.nsamp_reg      = None
-        self.outsel_reg     = None
-        self.mode_reg       = None
-        self.stdysel_reg    = None
-        self.phase_reg      = None
-
     def configure(self, fs, gen):
         # Sampling frequency.
         self.fs = fs
