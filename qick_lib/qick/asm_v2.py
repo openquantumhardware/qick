@@ -892,6 +892,7 @@ class Resync(TimedMacro):
             delay = QickParam(delay)
         delay_rounded = self.convert_time(prog, delay, "t")
         prog.decrement_timestamps(delay_rounded)
+        # TODO: can we be smarter with timestamps?
     def expand(self, prog):
         t = self.t_regs["t"]
         prog.add_reg("scratch", allow_reuse=True)
