@@ -498,6 +498,19 @@ class QickSoc(Overlay, QickConfig):
     @property
     def tproc(self):
         return self._tproc
+    
+    @property
+    def adc_sample_rates(self):
+        """
+        Produce a dictionary of the current ADC sample rates.
+        A dictionary of this form can be used to configure the 
+        ADC sample rates of the tiles in SoC initialization.
+        """
+        adc_sample_rates = {}
+        for tile in self.adc_tiles:
+            fs = self.usp_rf_data_converter_0.adc_tiles[tile].PLLConfig['SampleRate']*1000
+            adc_sample_rates['ADC_Tile%d_fs' % (tile)] = fs
+        return adc_sample_rates
 
     @property
     def streamer(self):
