@@ -8,6 +8,7 @@ import xrfdc
 import numpy as np
 import time
 import queue
+import logging
 from collections import OrderedDict
 from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
@@ -19,6 +20,8 @@ from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
+
+logger = logging.getLogger(__name__)
 
 
 class AxisSwitch(SocIp):
@@ -415,7 +418,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, adc_sample_rates=None, **kwargs):
         """
         Constructor method
         """
