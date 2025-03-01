@@ -457,15 +457,27 @@ class QickSoc(Overlay, QickConfig):
         self['extra_description'] = []
 
         if not no_rf:
+            # Set Up RFDC
+            self.config_clocks(force_init_clks)   
+            self.download()
+
+            # Update the ADC sample rate if specified
+            if adc_sample_rates:
+                self.configure_adc_sample_rates(adc_sample_rates)
+
             # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
             self.list_rf_blocks(
                 self.ip_dict['usp_rf_data_converter_0']['parameters'])
     
-            self.config_clocks(force_init_clks)
-    
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             self.rf = self.usp_rf_data_converter_0
             self.rf.configure(self)
+
+        # Check if all DAC and ADC PLLs are locked.
+        if not self.clocks_locked():
+            print(
+                "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
@@ -629,15 +641,6 @@ class QickSoc(Overlay, QickConfig):
         # if we're changing the clock config, we must set the clocks to apply the config
         if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
             self.set_all_clks()
-            self.download()
-        else:
-            self.download()
-            if not self.clocks_locked():
-                self.set_all_clks()
-                self.download()
-        if not self.clocks_locked():
-            print(
-                "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
 
     def check_samp_freq(self, target_fs, fref, words_per_axi):
         """
