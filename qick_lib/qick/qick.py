@@ -682,7 +682,7 @@ class QickSoc(Overlay, QickConfig):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
                 continue
             self.set_adc_sample_rate(tile=iTile, fs=adc_sample_rates['ADC_Tile%d_fs' % (iTile)])
-            
+
     def clocks_locked(self):
         """
         Checks whether the DAC and ADC PLLs are locked.
@@ -746,16 +746,16 @@ class QickSoc(Overlay, QickConfig):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
                 continue
             self.adc_tiles.append(iTile)
-            f_fabric = float(rf_config['C_ADC%d_Fabric_Freq' % (iTile)])
-            f_refclk = float(rf_config['C_ADC%d_Refclk_Freq' % (iTile)])
+            f_refclk = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkFreq']
+            fs = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['SampleRate']*1000
+            f_fabric = fs / self.usp_rf_data_converter_0.adc_tiles[iTile].blocks[0].FabRdVldWords
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
-            fbdiv = int(rf_config['C_ADC%d_FBDIV' % (iTile)])
-            refdiv = int(rf_config['C_ADC%d_Refclk_Div' % (iTile)])
-            outdiv = int(rf_config['C_ADC%d_OutDiv' % (iTile)])
+            fbdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['FeedbackDivider']
+            refdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkDivider']
+            outdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['OutputDivider']
             fs_div = refdiv*outdiv
             fs_mult = fbdiv
-            fs = float(rf_config['C_ADC%d_Sampling_Rate' % (iTile)])*1000
             for iBlock in range(4):
                 # for dual-ADC FPGAs, each channel is two blocks
                 # so just look at the even blocks
