@@ -626,6 +626,63 @@ class QickSoc(Overlay, QickConfig):
             print(
                 "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
 
+    def check_samp_freq(self, target_fs, fref, words_per_axi):
+        """
+        Check if the requested sampling frequency is supported.
+        If not, it will return the closest achievable frequency.
+        """
+        # See DS926 "RF-ADC/RF-DAC to PL Interface Performance"
+        if self['board'] == 'ZCU111':
+            max_axi_clk = 520 # MHz
+        elif self['board'] in ['ZCU216','RFSoC4x2']:
+            max_axi_clk = 614 # MHz
+        else:
+            raise RuntimeError(f"Unable to determine maximum frequency due to unknown board: {self['board']}")
+        
+        fs_max = words_per_axi * max_axi_clk # MHz
+
+        # Allowed divider values, see PG269 "PLL Parameters"
+        Fb_div_vals = np.arange(13,161, dtype=int)
+        M_vals = np.insert(np.arange(4,66,2,dtype=int), 0, np.array([2,3]))
+
+        # Calculate Feedback Divider and M value
+        all_ratios = np.clip(fref*(Fb_div_vals[:,np.newaxis].T / M_vals[:,np.newaxis]), a_min=None, a_max=fs_max)
+        differences = np.abs(all_ratios - target_fs)
+        indicies = np.where(differences == differences.min())
+        M = M_vals[indicies[0][0]]
+        Fb_div_val = Fb_div_vals[indicies[1][0]]
+        fs_acheived = fref*Fb_div_val/M
+        f_err = fs_acheived - target_fs
+        logger.info(f'Requested Fs = {target_fs} MHz, Acheived Fs = {fs_acheived:.3f} MHz, Frequency Error = {f_err:.3f} MHz.')
+        logger.debug(f'Fb_div = {Fb_div_val}, M = {M}, fs_max = {fs_max:.3f} MHz')
+        if f_err > 10:
+            logger.warning(f'Frequency error is {f_err:.3} MHz. Please check the PLL settings.')
+        return fs_acheived
+
+    def set_adc_sample_rate(self, tile, fs):
+        """
+        Set the ADC sample rate of a tile.
+        """
+        ref_clk_freq = float(self.ip_dict['usp_rf_data_converter_0']['parameters']['C_ADC%d_Refclk_Freq' % (tile)])
+        words_per_axi = self.usp_rf_data_converter_0.adc_tiles[tile].blocks[0].FabRdVldWords
+        fs_safe = self.check_samp_freq(fs, ref_clk_freq, words_per_axi)
+        if fs_safe:
+            logging.info(f'Programming ADC Tile {tile} to {fs_safe:.3f} MHz')
+            self.usp_rf_data_converter_0.adc_tiles[tile].DynamicPLLConfig(source=1,ref_clk_freq=ref_clk_freq, samp_rate=fs_safe)
+        else:
+            raise RuntimeError(f"Requested sampling frequency {fs} MHz is not supported.")
+
+    def configure_adc_sample_rates(self, adc_sample_rates):
+        """
+        Set the ADC sample rate of each tile from a dictionary.
+        See adc_sample_rates property for the expected format.
+        """
+        rf_config = self.ip_dict['usp_rf_data_converter_0']['parameters']
+        for iTile in range(4):
+            if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
+                continue
+            self.set_adc_sample_rate(tile=iTile, fs=adc_sample_rates['ADC_Tile%d_fs' % (iTile)])
+            
     def clocks_locked(self):
         """
         Checks whether the DAC and ADC PLLs are locked.
