@@ -8,6 +8,7 @@ import xrfdc
 import numpy as np
 import time
 import queue
+import logging
 from collections import OrderedDict
 from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
@@ -19,6 +20,8 @@ from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
+
+logger = logging.getLogger(__name__)
 
 
 class AxisSwitch(SocIp):
@@ -415,7 +418,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, **kwargs):
+    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, adc_sample_rates=None, **kwargs):
         """
         Constructor method
         """
@@ -454,15 +457,27 @@ class QickSoc(Overlay, QickConfig):
         self['extra_description'] = []
 
         if not no_rf:
+            # Set Up RFDC
+            self.config_clocks(force_init_clks)   
+            self.download()
+
+            # Update the ADC sample rate if specified
+            if adc_sample_rates:
+                self.configure_adc_sample_rates(adc_sample_rates)
+
             # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
             self.list_rf_blocks(
                 self.ip_dict['usp_rf_data_converter_0']['parameters'])
     
-            self.config_clocks(force_init_clks)
-    
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             self.rf = self.usp_rf_data_converter_0
             self.rf.configure(self)
+
+        # Check if all DAC and ADC PLLs are locked.
+        if not self.clocks_locked():
+            print(
+                "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
@@ -495,6 +510,19 @@ class QickSoc(Overlay, QickConfig):
     @property
     def tproc(self):
         return self._tproc
+    
+    @property
+    def adc_sample_rates(self):
+        """
+        Produce a dictionary of the current ADC sample rates.
+        A dictionary of this form can be used to configure the 
+        ADC sample rates of the tiles in SoC initialization.
+        """
+        adc_sample_rates = {}
+        for tile in self.adc_tiles:
+            fs = self.usp_rf_data_converter_0.adc_tiles[tile].PLLConfig['SampleRate']*1000
+            adc_sample_rates['ADC_Tile%d_fs' % (tile)] = fs
+        return adc_sample_rates
 
     @property
     def streamer(self):
@@ -613,15 +641,63 @@ class QickSoc(Overlay, QickConfig):
         # if we're changing the clock config, we must set the clocks to apply the config
         if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
             self.set_all_clks()
-            self.download()
+
+    def check_samp_freq(self, target_fs, fref, words_per_axi):
+        """
+        Check if the requested sampling frequency is supported.
+        If not, it will return the closest achievable frequency.
+        """
+        # See DS926 "RF-ADC/RF-DAC to PL Interface Performance"
+        if self['board'] == 'ZCU111':
+            max_axi_clk = 520 # MHz
+        elif self['board'] in ['ZCU216','RFSoC4x2']:
+            max_axi_clk = 614 # MHz
         else:
-            self.download()
-            if not self.clocks_locked():
-                self.set_all_clks()
-                self.download()
-        if not self.clocks_locked():
-            print(
-                "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
+            raise RuntimeError(f"Unable to determine maximum frequency due to unknown board: {self['board']}")
+        
+        fs_max = words_per_axi * max_axi_clk # MHz
+
+        # Allowed divider values, see PG269 "PLL Parameters"
+        Fb_div_vals = np.arange(13,161, dtype=int)
+        M_vals = np.insert(np.arange(4,66,2,dtype=int), 0, np.array([2,3]))
+
+        # Calculate Feedback Divider and M value
+        all_ratios = np.clip(fref*(Fb_div_vals[:,np.newaxis].T / M_vals[:,np.newaxis]), a_min=None, a_max=fs_max)
+        differences = np.abs(all_ratios - target_fs)
+        indicies = np.where(differences == differences.min())
+        M = M_vals[indicies[0][0]]
+        Fb_div_val = Fb_div_vals[indicies[1][0]]
+        fs_acheived = fref*Fb_div_val/M
+        f_err = fs_acheived - target_fs
+        logger.info(f'Requested Fs = {target_fs} MHz, Acheived Fs = {fs_acheived:.3f} MHz, Frequency Error = {f_err:.3f} MHz.')
+        logger.debug(f'Fb_div = {Fb_div_val}, M = {M}, fs_max = {fs_max:.3f} MHz')
+        if f_err > 10:
+            logger.warning(f'Frequency error is {f_err:.3} MHz. Please check the PLL settings.')
+        return fs_acheived
+
+    def set_adc_sample_rate(self, tile, fs):
+        """
+        Set the ADC sample rate of a tile.
+        """
+        ref_clk_freq = float(self.ip_dict['usp_rf_data_converter_0']['parameters']['C_ADC%d_Refclk_Freq' % (tile)])
+        words_per_axi = self.usp_rf_data_converter_0.adc_tiles[tile].blocks[0].FabRdVldWords
+        fs_safe = self.check_samp_freq(fs, ref_clk_freq, words_per_axi)
+        if fs_safe:
+            logging.info(f'Programming ADC Tile {tile} to {fs_safe:.3f} MHz')
+            self.usp_rf_data_converter_0.adc_tiles[tile].DynamicPLLConfig(source=1,ref_clk_freq=ref_clk_freq, samp_rate=fs_safe)
+        else:
+            raise RuntimeError(f"Requested sampling frequency {fs} MHz is not supported.")
+
+    def configure_adc_sample_rates(self, adc_sample_rates):
+        """
+        Set the ADC sample rate of each tile from a dictionary.
+        See adc_sample_rates property for the expected format.
+        """
+        rf_config = self.ip_dict['usp_rf_data_converter_0']['parameters']
+        for iTile in range(4):
+            if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
+                continue
+            self.set_adc_sample_rate(tile=iTile, fs=adc_sample_rates['ADC_Tile%d_fs' % (iTile)])
 
     def clocks_locked(self):
         """
@@ -686,16 +762,16 @@ class QickSoc(Overlay, QickConfig):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
                 continue
             self.adc_tiles.append(iTile)
-            f_fabric = float(rf_config['C_ADC%d_Fabric_Freq' % (iTile)])
-            f_refclk = float(rf_config['C_ADC%d_Refclk_Freq' % (iTile)])
+            f_refclk = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkFreq']
+            fs = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['SampleRate']*1000
+            f_fabric = fs / self.usp_rf_data_converter_0.adc_tiles[iTile].blocks[0].FabRdVldWords
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
-            fbdiv = int(rf_config['C_ADC%d_FBDIV' % (iTile)])
-            refdiv = int(rf_config['C_ADC%d_Refclk_Div' % (iTile)])
-            outdiv = int(rf_config['C_ADC%d_OutDiv' % (iTile)])
+            fbdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['FeedbackDivider']
+            refdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkDivider']
+            outdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['OutputDivider']
             fs_div = refdiv*outdiv
             fs_mult = fbdiv
-            fs = float(rf_config['C_ADC%d_Sampling_Rate' % (iTile)])*1000
             for iBlock in range(4):
                 # for dual-ADC FPGAs, each channel is two blocks
                 # so just look at the even blocks
