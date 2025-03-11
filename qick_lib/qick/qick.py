@@ -500,6 +500,15 @@ class QickSoc(Overlay, QickConfig):
     def streamer(self):
         return self._streamer
 
+    @property
+    def ch_map(self):
+       """Map channels to block/tile identity.
+       """
+       return {
+           "dac": dict(enumerate(self["dacs"])),
+           "adc": dict(enumerate(self["adcs"])),
+       }
+
     def _get_block(self, fullpath):
         """Return the IP block specified by its full path.
         """
