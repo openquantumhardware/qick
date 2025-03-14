@@ -1,7 +1,7 @@
 QICK papers
 ===========
 
-This list of academic papers that used the QICK was last updated Sept 17, 2024.
+This list of academic papers that used the QICK was last updated March 14, 2025.
 
 QICK system
 -----------
@@ -18,7 +18,7 @@ Superconducting circuits - coherence
 * `Anferov, A. et al. Superconducting Qubits Above 20 GHz Operating over 200 mK. (2024) <https://arxiv.org/abs/2402.03031>`_.
 * `Anferov, A. et al. Improved Coherence in Optically-Defined Niobium Trilayer Junction Qubits. (2023) <https://arxiv.org/abs/2306.05883>`_.
 
-Superconducting circuits - decoherence mechanisms
+Superconducting circuits - radiative loss
 -------------------------------------------------
 * `De Dominicis, F. et al. Evaluating radiation impact on transmon qubits in above and underground facilities. (2024) <https://arxiv.org/abs/2405.18355>`_.
 * `Bratrud, G. et al. First Measurement of Correlated Charge Noise in Superconducting Qubits at an Underground Facility. (2024) <https://arxiv.org/abs/2405.04642>`_.
@@ -31,8 +31,14 @@ Superconducting circuits – readout
 * `Yen, A. et al. Directional emission of a readout resonator for qubit measurement. (2024) <https://arxiv.org/abs/2403.01375>`_.
 * `Bryon, J. et al. Experimental verification of the treatment of time-dependent flux in circuit quantization. (2022) <https://arxiv.org/abs/2208.03738>`_.
 
+Superconducting circuits - parametric amplifiers
+-----------------------------------------
+* `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
+
 Superconducting circuits – gates/couplers
 -----------------------------------------
+* `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
+* `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
@@ -45,10 +51,18 @@ Superconducting circuits - transduction
 ---------------------------------------
 * `Warner, H.K. et al. Coherent control of a superconducting qubit using light. (2023) <https://arxiv.org/abs/2310.16155>`_.
 
+Superconducting circuits - quantum acoustic systems
+---------------------------------------------------
+* `Undershute, C. et al. Decoherence of surface phonons in a quantum acoustic system. (2024) <https://arxiv.org/abs/2410.03005>`_.
+
 Spin defects
 ------------
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/pdf/2411.16835>`_.
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
+
+Quantum dots
+-----
+* `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
 MKIDs
 -----
@@ -56,8 +70,9 @@ MKIDs
 
 Dark matter detection
 ---------------------
+* `Hoshino, G. et al. First Axion-Like Particle Results from a Broadband Search for Wave-Like Dark Matter in the 44 to 52 ueV Range with a Coaxial Dish Antenna. (2025) <https://arxiv.org/abs/2501.17119>`_.
 * `Zhao, F. et al. A Flux-Tunable cavity for Dark matter detection. (2025) <https://arxiv.org/pdf/2501.06882>`_.
-* `Knirck, S. et al. First Results from a Broadband Search for Dark Photon Dark Matter in the $44$ to $52\,\mu$eV range with a coaxial dish antenna. (2023) <https://arxiv.org/abs/2310.13891>`_.
+* `Knirck, S. et al. First Results from a Broadband Search for Dark Photon Dark Matter in the 44 to 52 ueV range with a coaxial dish antenna. (2023) <https://arxiv.org/abs/2310.13891>`_.
 
 Single-photon detection
 -----------------------
