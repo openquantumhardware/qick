@@ -1,7 +1,7 @@
 QICK papers
 ===========
 
-This list of academic papers that used the QICK was last updated March 14, 2025.
+This list of academic papers that used the QICK was last updated March 19, 2025.
 
 QICK system
 -----------
@@ -34,10 +34,12 @@ Superconducting circuits – readout
 
 Superconducting circuits - parametric amplifiers
 -----------------------------------------
+* `Wang, J. et al. High-Efficiency, Low-Loss Floquet-Mode Traveling-Wave Parametric Amplifier. (2025) <https://arxiv.org/abs/2503.11812>`_.
 * `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
 
 Superconducting circuits – gates/couplers
 -----------------------------------------
+* `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 * `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
