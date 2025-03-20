@@ -10,6 +10,7 @@ QICK system
 
 Superconducting circuits - coherence
 ------------------------------------
+* `Bland, M. et al. 2D transmons with lifetimes and coherence times exceeding 1 millisecond. (2025) <https://arxiv.org/abs/2503.14798>`_.
 * `Kumar, S. et al. Protomon: A Multimode Qubit in the Fluxonium Molecule. (2024) <https://arxiv.org/abs/2411.16648>`_.
 * `Chang, R.D. et al. Eliminating Surface Oxides of Superconducting Circuits with Noble Metal Encapsulation. (2024) <https://arxiv.org/abs/2408.13051>`_.
 * `McFadden, A. et al. Fabrication and characterization of low-loss Al/Si/Al parallel plate capacitors for superconducting quantum information applications. (2024) <https://arxiv.org/abs/2408.01369>`_.
