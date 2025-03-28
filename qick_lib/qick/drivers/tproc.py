@@ -375,8 +375,12 @@ class Axis_QICK_Proc(SocIp):
         
         for param in ['in_port_qty', 'out_trig_qty', 'out_dport_qty','out_dport_dw', 'out_wport_qty']:
             self.cfg[param] = int(description['parameters'][param.upper()])
-        for param in ['lfsr','divider','arith','time_read','tnet','qcom','custom_periph','io_ctrl','ext_flag']:
+        for param in ['lfsr','divider','arith','time_read','qcom','custom_periph','io_ctrl','ext_flag']:
             self.cfg['has_'+param] = int(description['parameters'][param.upper()])
+        # parameter name was changed from TNET to QNET in rev 22
+        for param in ['tnet','qnet']:
+            if param.upper() in description['parameters']:
+                self.cfg['has_qnet'] = int(description['parameters'][param.upper()])
         self.cfg['fifo_depth']  = pow( 2, int(description['parameters']['FIFO_DEPTH'])  )
         self.cfg['call_depth']  = int(description['parameters']['CALL_DEPTH'])
         self.cfg['debug']  = int(description['parameters']['DEBUG'])
@@ -529,7 +533,7 @@ class Axis_QICK_Proc(SocIp):
         for param in ['has_io_ctrl', 'has_ext_flag']:
             lines.append("%-14s: %s" % (param, ["NO", "YES"][self.cfg[param]]))
         lines.append("----------\nPeripherals:")
-        for param in ['has_lfsr', 'has_divider', 'has_arith', 'has_time_read', 'has_tnet', 'has_qcom']:
+        for param in ['has_lfsr', 'has_divider', 'has_arith', 'has_time_read', 'has_qnet', 'has_qcom']:
             lines.append("%-14s: %s" % (param, ["NO", "YES"][self.cfg[param]]))
         lines.append("%-14s: %s" % ('has_custom_periph', ["NO", "Only PA", "PA and PB"][self.cfg['has_custom_periph']]))
         lines.append("----------\nDebug:")
