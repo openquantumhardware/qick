@@ -1912,14 +1912,16 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     # downconversion frequencies are negative
     FLIP_DOWNCONVERSION = True
 
+    # supported revisions of the tProc v2 core
+    ASM_REVISIONS = [21, 22, 23]
+
     def __init__(self, soccfg):
         super().__init__(soccfg)
 
-        ASM_REVISION = 21
         if self.tproccfg['type']!='qick_processor':
             raise RuntimeError("tProc v2 programs can only be run on a tProc v2 firmware")
-        if self.tproccfg['revision']!=ASM_REVISION:
-            raise RuntimeError("this version of the QICK library only supports tProc v2 revision %d, you have %d"%(ASM_REVISION, self.tproccfg['revision']))
+        if self.tproccfg['revision'] not in self.ASM_REVISIONS:
+            raise RuntimeError("this version of the QICK library only supports tProc v2 revisions in the list %s, you have %d"%(self.ASM_REVISIONS, self.tproccfg['revision']))
 
         # all current v1 programs are processed in one pass:
         # * init the program
