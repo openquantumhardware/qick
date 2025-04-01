@@ -10,7 +10,9 @@
 
 */
 //////////////////////////////////////////////////////////////////////////////
-module qproc_ctrl (
+module qproc_ctrl # (
+   parameter TIME_READ      =  1
+)(
 // Time, Core and AXI CLK & RST.
    input   wire        t_clk_i         ,
    input   wire        t_rst_ni        ,
@@ -29,7 +31,7 @@ module qproc_ctrl (
 // Core Control  
    input  wire         int_time_en      , //int_time_pen
    input  wire  [3:0]  int_time_cmd     , //core_usr_operation
-   input  wire  [3:0]  int_time_dt     , //core_usr_operation
+   input  wire  [31:0] int_time_dt     , //core_usr_operation
 // AXI  Control  
    input wire [15:0]   xreg_TPROC_CTRL ,
    input wire [15:0]   xreg_TPROC_CFG  ,
@@ -44,6 +46,7 @@ module qproc_ctrl (
    output reg          time_en_o         ,
    output wire  [47:0]  time_abs_o      ,
    output reg   [47:0]  c_time_ref_o  ,
+   output wire  [31:0]  c_time_usr_o  , // User time "current_user_time"
 // DEBUG
    output reg   [ 2:0]  time_st_do ,
    output reg   [ 2:0]  core_st_do ,
@@ -175,7 +178,7 @@ end
 // T_CLK DOMAIN Synchronization
 ///////////////////////////////////////////////////////////////////////////////
 sync_reg # (.DW ( 7 ) ) sync_ctrl_ps_t (
-   .dt_i      ( {core_rst, time_rst_stop_p, c_time_rst_run, c_time_updt, time_stop_p, time_run_p, time_step_p} ) ,
+   .dt_i      ( {core_rst_o, time_rst_stop_p, c_time_rst_run, c_time_updt, time_stop_p, time_run_p, time_step_p} ) ,
    .clk_i     ( t_clk_i   ) ,
    .rst_ni    ( t_rst_ni  ) ,
    .dt_o      ( {core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step }  ) );
@@ -253,7 +256,7 @@ end
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
    if (!c_rst_ni)            c_time_ref_o    <= '{default:'0} ;
-   else if  (core_rst)       c_time_ref_o    <= '{default:'0} ;
+   else if  (core_rst_o)     c_time_ref_o    <= '{default:'0} ;
    else if  (time_ref_set )  c_time_ref_o    <=  {16'd0, int_time_dt} ;
    else if  (time_ref_inc )  c_time_ref_o    <=  c_time_ref_o + {16'd0, int_time_dt} ;
 end
@@ -265,11 +268,48 @@ qproc_time_ctrl QTIME_CTRL (
    .t_rst_ni      ( t_rst_ni     ) ,
    .time_en_i     ( time_en_o    ) ,
    .time_rst_i    ( time_rst_o   ) ,
+   .time_init_i   ( 1'b0         ) ,
    .time_updt_i   ( time_updt    ) ,
    .updt_dt_i     ( time_updt_dt ) ,
-   .time_abs_o    ( time_abs     ) );
+   .time_abs_o    ( time_abs_o   ) );
    
 assign c_debug_do   = { 1'b0, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
 assign t_debug_do   = { ctrl_t_updt, 1'b0, ctrl_t_step, ctrl_t_stop, ctrl_t_run, ctrl_t_rst_run, ctrl_t_rst_stop }  ;
+
+///////////////////////////////////////////////////////////////////////////////
+// TIME READ
+reg  [47:0]    t_time_abs_cdc, c_time_abs_r ; // Absolute Time Counter Value "Registered"
+
+generate
+   if ( TIME_READ == 1) begin : QPER_TIME_READ
+      sync_ab_en sync_ab_en_inst (
+         .clk_a_i    ( c_clk_i ) ,
+         .rst_a_ni   ( c_rst_ni ) ,
+         .clk_b_i    ( t_clk_i ) ,
+         .rst_b_ni   ( t_rst_ni ) ,
+         .a_en_o     ( c_time_en ) ,
+         .b_en_o     ( t_time_en ) );
+
+      // Register TIME_ABS
+      ///////////////////////////////////////////////////////////////////////////////
+      always_ff @(posedge t_clk_i) begin
+         if      ( !t_rst_ni )   t_time_abs_cdc  <= 0;
+         else if ( t_time_en )   t_time_abs_cdc  <= time_abs_o;
+      end
+
+      always_ff @(posedge c_clk_i) begin
+         if      ( !c_rst_ni  )   c_time_abs_r  <= 0;
+         else if ( c_time_en  )   c_time_abs_r  <= t_time_abs_cdc;
+      end
+
+      assign c_time_usr_o = (c_time_abs_r - c_time_ref_o);
+
+   end else begin : TIME_READ_NO
+      assign c_time_usr_o       = 0;
+   end
+endgenerate
+
+assign time_st_do   = { time_st[2:0] };
+assign core_st_do   = { core_st[2:0] };
 
 endmodule

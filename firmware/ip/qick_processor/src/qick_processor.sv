@@ -122,11 +122,8 @@ module qick_processor # (
 
 // TIME
 wire [47:0]    time_abs               ; // Absolute Time Counter Value "out_abs_time"
-reg  [47:0]    t_time_abs_cdc, c_time_abs_r ; // Absolute Time Counter Value "Registered"
 reg  [47:0]    c_time_ref_dt           ; // Reference time "ref_time"
 wire [31:0]    c_time_usr  ; // User time "current_user_time"
-
-reg  [31:0]    time_updt_dt            ; // New incremental time value 
 
 // AXI REGISTERS
 wire [15:0]    xreg_TPROC_CTRL  , xreg_TPROC_CFG       ;
@@ -177,7 +174,11 @@ wire [31:0]    core_ds ;
 // CONTROL Signals
 ///////////////////////////////////////////////////////////////////////////////
 
-qproc_ctrl QPROC_CTRL(
+wire [2:0] time_st_ds, core_st_ds;
+wire [6:0] ctrl_t_ds, ctrl_c_ds;
+qproc_ctrl # (
+   .TIME_READ ( TIME_READ )
+) QPROC_CTRL (
    .t_clk_i         ( t_clk_i            ),
    .t_rst_ni        ( t_rst_ni           ),
    .c_clk_i         ( c_clk_i            ),
@@ -192,7 +193,7 @@ qproc_ctrl QPROC_CTRL(
    .time_updt_i     ( time_updt_i        ),
    .time_updt_dt_i  ( time_updt_dt_i     ),
    .int_time_en     ( int_time_pen       ),
-   .int_time_cmd    ( core_usr_operation ),
+   .int_time_cmd    ( core_usr_operation[3:0] ),
    .int_time_dt     ( core_usr_b_dt      ),
    .xreg_TPROC_CTRL ( xreg_TPROC_CTRL    ),
    .xreg_TPROC_CFG  ( xreg_TPROC_CFG     ),
@@ -202,15 +203,14 @@ qproc_ctrl QPROC_CTRL(
    .core_en_o       ( core_en_s          ),
    .time_rst_o      ( time_rst           ),
    .time_en_o       ( time_en            ),
-   .time_abs_o      ( time_abs_o         ),
-   .c_time_ref_o    ( c_time_ref_o       ),
+   .time_abs_o      ( time_abs           ),
+   .c_time_ref_o    ( c_time_ref_dt      ),
+   .c_time_usr_o    ( c_time_usr         ),
    .time_st_do      ( time_st_ds),
    .core_st_do      ( core_st_ds),
    .t_debug_do      ( ctrl_t_ds),
    .c_debug_do      ( ctrl_c_ds)
 );
-wire [2:0] time_st_ds, core_st_ds;
-wire [6:0] ctrl_t_ds, ctrl_c_ds;
 
 assign fifo_ok    = ~(some_fifo_full)  | xreg_TPROC_CFG[11] ;  // With 1 in TPROC_CFG[11] Continue
 assign core_en = core_en_s  & fifo_ok;
@@ -404,18 +404,6 @@ qproc_mem_ctrl # (
    .MEM_DT_O         ( xreg_MEM_DT_O         ) ,
    .DEBUG_O          ( axi_mem_ds)            );
 
-// Time ABS
-///////////////////////////////////////////////////////////////////////////////
-qproc_time_ctrl QTIME_CTRL ( 
-   .t_clk_i       ( t_clk_i      ) ,
-   .t_rst_ni      ( t_rst_ni     ) ,
-   .time_en_i     ( time_en      )  ,
-   .time_rst_i    ( time_rst     ) ,
-   .time_init_i   ( time_init    ) ,
-   .time_updt_i   ( time_updt    ) ,
-   .updt_dt_i     ( time_updt_dt ) ,
-   .time_abs_o    ( time_abs     ) );
-
 
 // AXI REGISTERS
 ///////////////////////////////////////////////////////////////////////////////
@@ -543,38 +531,8 @@ generate
          .ready_o        ( arith_rdy ) ,
          .arith_result_o ( arith_result ) );
    end else begin : ARITH_NO
+      assign arith_rdy        = 0;
       assign arith_result     = 0;
-   end
-endgenerate
-
-///////////////////////////////////////////////////////////////////////////////
-// TIME READ
-generate
-   if ( TIME_READ == 1) begin : QPER_TIME_READ
-      sync_ab_en sync_ab_en_inst (
-         .clk_a_i    ( c_clk_i ) ,
-         .rst_a_ni   ( c_rst_ni ) ,
-         .clk_b_i    ( t_clk_i ) ,
-         .rst_b_ni   ( t_rst_ni ) ,
-         .a_en_o     ( c_time_en ) ,
-         .b_en_o     ( t_time_en ) );
-      
-      // Register TIME_ABS
-      ///////////////////////////////////////////////////////////////////////////////
-      always_ff @(posedge t_clk_i) begin
-         if      ( !t_rst_ni )   t_time_abs_cdc  <= 0;
-         else if ( t_time_en )   t_time_abs_cdc  <= time_abs;
-      end
-
-      always_ff @(posedge c_clk_i) begin
-         if      ( !c_rst_ni  )   c_time_abs_r  <= 0;
-         else if ( c_time_en  )   c_time_abs_r  <= t_time_abs_cdc;
-      end
-
-      assign c_time_usr = (c_time_abs_r - c_time_ref_dt);
-
-   end else begin : TIME_READ_NO
-      assign c_time_usr       = 0;
    end
 endgenerate
 
@@ -626,6 +584,8 @@ always_comb begin
       default: core0_r_dt = xreg_TPROC_W_DT ;
    endcase
 end
+
+PORT_DT        out_port_data  ; // Port Data from the CORE
 
 qproc_core # (
    .LFSR        (  LFSR  ),
@@ -741,9 +701,9 @@ endgenerate
 
 
 
-PORT_DT        out_port_data  ; // Port Data from the CORE
 
-
+wire [31:0] fifo_dt_ds, axi_fifo_ds;
+wire [15:0] c_fifo_ds, t_fifo_ds ;
 
 qproc_dispatcher # (
    .DEBUG          ( DEBUG         ),
@@ -823,11 +783,9 @@ assign time_abs_o = time_abs ;
 ///////////////////////////////////////////////////////////////////////////////
 
 
-wire [31:0] fifo_dt_ds, axi_fifo_ds;
-wire [15:0] c_fifo_ds, t_fifo_ds ;
 
-wire [ 3:0] c_fifo_data_dt;
-wire [31:0] c_fifo_data_time;
+//wire [ 3:0] c_fifo_data_dt;
+//wire [31:0] c_fifo_data_time;
 
 
 localparam DEBUG_AXI = (DEBUG > 0) ? 1 : 0;

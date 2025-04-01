@@ -416,7 +416,7 @@ qick_processor# (
    .ps_rst_ni           ( ps_resetn             ) ,
 // CTRL 
    .ext_flag_i          ( ext_flag_i            ) ,
-   .proc_start_i        ( proc_start_t0         ) ,
+   .proc_start_i        ( proc_start_t01        ) ,
    .proc_stop_i         ( proc_stop_t01         ) ,
    .core_start_i        ( core_start_i          ) ,
    .core_stop_i         ( core_stop_i           ) ,
