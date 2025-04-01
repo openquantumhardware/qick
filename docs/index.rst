@@ -80,6 +80,8 @@ If you would like to save the instrument configuration for every measurement usi
 
 If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in `QICK-DAWG <https://github.com/sandialabs/qick-dawg>`_ which extends QICK with pulses and measurement programs specific to that application.
 
+If you want to use QICK for control and readout of solid-state spin qubits, `SpinQICK <https://github.com/HRL-Laboratories/spinqick>`_ extends the QICK API and provides high-level experiment code.
+
 QICK papers
 -------------
 
