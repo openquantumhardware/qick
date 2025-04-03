@@ -418,11 +418,14 @@ class Axis_QICK_Proc(SocIp):
 
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
+        self.cfg['stop_pin'] = None
         self.cfg['f_core'] = soc.metadata.get_fclk(self.fullpath, "c_clk_i")
         self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "t_clk_i")
         try:
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-            self.start_pin = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_start_i')
+            self.cfg['start_pin'] = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_stop_i')
+            self.cfg['stop_pin'] = port[0]
         except:
             pass
         # WE have trig_%d_o and port_%d_dt_o as OUT of the QICK_PROCESSOR...
