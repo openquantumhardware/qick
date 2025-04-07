@@ -456,32 +456,28 @@ class QickSoc(Overlay, QickConfig):
         # a space to dump any additional lines of config text which you want to print in the QickConfig
         self['extra_description'] = []
 
+        # Extract the IP connectivity information from the HWH parser and metadata.
+        self.metadata = QickMetadata(self)
+        self['fw_timestamp'] = self.metadata.timestamp
+
+        self.download()
+
         if not no_rf:
-            # Set Up RFDC
+            rfdc_name = 'usp_rf_data_converter_0'
+            self.rf = getattr(self, rfdc_name)
+
+            # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
+            self.list_rf_blocks(self.ip_dict[rfdc_name]['parameters'])
+
+            # Configure xrfclk reference clocks
             self.config_clocks(force_init_clks)   
-            self.download()
 
             # Update the ADC sample rate if specified
             if adc_sample_rates:
                 self.configure_adc_sample_rates(adc_sample_rates)
 
-            # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
-            self.list_rf_blocks(
-                self.ip_dict['usp_rf_data_converter_0']['parameters'])
-    
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
-            self.rf = self.usp_rf_data_converter_0
             self.rf.configure(self)
-
-        # Check if all DAC and ADC PLLs are locked.
-        if not self.clocks_locked():
-            print(
-                "Not all DAC and ADC PLLs are locked. You may want to repeat the initialization of the QickSoc.")
-
-
-        # Extract the IP connectivity information from the HWH parser and metadata.
-        self.metadata = QickMetadata(self)
-        self['fw_timestamp'] = self.metadata.timestamp
 
         if no_tproc:
             self.TPROC_VERSION = 0
@@ -520,7 +516,7 @@ class QickSoc(Overlay, QickConfig):
         """
         adc_sample_rates = {}
         for tile in self.adc_tiles:
-            fs = self.usp_rf_data_converter_0.adc_tiles[tile].PLLConfig['SampleRate']*1000
+            fs = self.rf.adc_tiles[tile].PLLConfig['SampleRate']*1000
             adc_sample_rates['ADC_Tile%d_fs' % (tile)] = fs
         return adc_sample_rates
 
@@ -636,11 +632,19 @@ class QickSoc(Overlay, QickConfig):
     def config_clocks(self, force_init_clks):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
+        The ADC/DAC PLL lock status is read through the RFDC IP, so this assumes that the bitstream has already been downloaded.
         """
-              
         # if we're changing the clock config, we must set the clocks to apply the config
         if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
             self.set_all_clks()
+        else:
+            # only set clocks if the RFDC isn't locked
+            if not self.clocks_locked():
+                self.set_all_clks()
+        # Check if all DAC and ADC PLLs are locked.
+        if not self.clocks_locked():
+            print(
+                "Not all DAC and ADC PLLs are locked. The FPGA may not be getting a good reference clock from the on-board clock chips.")
 
     def check_samp_freq(self, target_fs, fref, words_per_axi):
         """
@@ -708,9 +712,9 @@ class QickSoc(Overlay, QickConfig):
         :rtype: bool
         """
 
-        dac_locked = [self.usp_rf_data_converter_0.dac_tiles[iTile]
+        dac_locked = [self.rf.dac_tiles[iTile]
                       .PLLLockStatus == 2 for iTile in self.dac_tiles]
-        adc_locked = [self.usp_rf_data_converter_0.adc_tiles[iTile]
+        adc_locked = [self.rf.adc_tiles[iTile]
                       .PLLLockStatus == 2 for iTile in self.adc_tiles]
         return all(dac_locked) and all(adc_locked)
 
@@ -762,14 +766,14 @@ class QickSoc(Overlay, QickConfig):
             if rf_config['C_ADC%d_Enable' % (iTile)] != '1':
                 continue
             self.adc_tiles.append(iTile)
-            f_refclk = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkFreq']
-            fs = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['SampleRate']*1000
-            f_fabric = fs / self.usp_rf_data_converter_0.adc_tiles[iTile].blocks[0].FabRdVldWords
+            f_refclk = self.rf.adc_tiles[iTile].PLLConfig['RefClkFreq']
+            fs = self.rf.adc_tiles[iTile].PLLConfig['SampleRate']*1000
+            f_fabric = fs / self.rf.adc_tiles[iTile].blocks[0].FabRdVldWords
             adc_fabric_freqs.append(f_fabric)
             refclk_freqs.append(f_refclk)
-            fbdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['FeedbackDivider']
-            refdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['RefClkDivider']
-            outdiv = self.usp_rf_data_converter_0.adc_tiles[iTile].PLLConfig['OutputDivider']
+            fbdiv = self.rf.adc_tiles[iTile].PLLConfig['FeedbackDivider']
+            refdiv = self.rf.adc_tiles[iTile].PLLConfig['RefClkDivider']
+            outdiv = self.rf.adc_tiles[iTile].PLLConfig['OutputDivider']
             fs_div = refdiv*outdiv
             fs_mult = fbdiv
             for iBlock in range(4):
