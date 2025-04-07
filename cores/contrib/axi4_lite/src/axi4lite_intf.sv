@@ -1,17 +1,17 @@
 interface axi4lite_intf
-#(
-    parameter DATA_WIDTH = 32,
-    parameter ADDR_WIDTH = 32
-)
-(
-    input logic i_clk,
-    input logic i_rst
-);
+    #(
+        parameter DATA_WIDTH = 32,
+        parameter ADDR_WIDTH = 32
+    )
+    (
+        input logic i_clk,
+        input logic i_rst
+    );
 
     generate
-        if ((DATA_WIDTH != 32) && (DATA_WIDTH != 64)) begin : g_check_data_width
-            $fatal(1, "The AXI4-Lite data bus width must be 32 or 64 bits wide (%0d not supported).", DATA_WIDTH);
-        end
+    if ((DATA_WIDTH != 32) && (DATA_WIDTH != 64)) begin : g_check_data_width
+        $fatal(1, "The AXI4-Lite data bus width must be 32 or 64 bits wide (%0d not supported).", DATA_WIDTH);
+    end
     endgenerate
 
     logic                       AWREADY;
@@ -92,7 +92,7 @@ interface axi4lite_intf
 
     // ASSERTIONS
     `ifdef SYNTHESIS
-    `elsif VERILATOR
+        `elsif VERILATOR
     `else
 
         modport tb_master(clocking m_cb);
@@ -155,7 +155,7 @@ interface axi4lite_intf
             output RRESP;
 
         endclocking
-    
+
 
     `endif //SYNTHESIS
 
@@ -163,36 +163,36 @@ interface axi4lite_intf
         input  logic [ADDR_WIDTH-1:0] addr,
         output logic [DATA_WIDTH-1:0] data
     );
-    begin
-        ARADDR = addr;
-        ARVALID = 1'b1;
-        RREADY = 1'b1;
-        wait(ARREADY);
-        @(posedge i_clk) #1;
-        ARVALID = 1'b0;
-        wait(RVALID);
-        data = RDATA;
-        @(posedge i_clk) #1;
-        RREADY = 1'b0;
-    end
+begin
+    ARADDR = addr;
+    ARVALID = 1'b1;
+    RREADY = 1'b1;
+    wait(ARREADY);
+    @(posedge i_clk) #1;
+    ARVALID = 1'b0;
+    wait(RVALID);
+    data = RDATA;
+    @(posedge i_clk) #1;
+    RREADY = 1'b0;
+end
     endtask
 
     task automatic write (
         input logic [ADDR_WIDTH-1:0] addr,
         input logic [DATA_WIDTH-1:0] data
     );
-    begin
-        WDATA = data;
-        AWADDR = addr;
-        AWVALID = 1'b1;
-        WVALID = 1'b1;
-        WSTRB = '1;
-        BREADY = 1'b1;
-        wait(AWREADY && WREADY);
-        @(posedge i_clk) #1;
-        AWVALID = 1'b0;
-        WVALID = 1'b0;
-    end
+begin
+    WDATA = data;
+    AWADDR = addr;
+    AWVALID = 1'b1;
+    WVALID = 1'b1;
+    WSTRB = '1;
+    BREADY = 1'b1;
+    wait(AWREADY && WREADY);
+    @(posedge i_clk) #1;
+    AWVALID = 1'b0;
+    WVALID = 1'b0;
+end
     endtask
 
     task automatic write_field (
@@ -201,12 +201,12 @@ interface axi4lite_intf
         input logic [DATA_WIDTH        -1:0] mask,
         input logic [$clog2(ADDR_WIDTH)  :0] offset
     );
-    begin
-        logic [DATA_WIDTH-1:0] rd_data, wr_data;
-        read(addr, rd_data);
-        wr_data = (rd_data & ~mask) | ((data << offset) & mask);
-        write(addr, wr_data);
-    end
+begin
+    logic [DATA_WIDTH-1:0] rd_data, wr_data;
+    read(addr, rd_data);
+    wr_data = (rd_data & ~mask) | ((data << offset) & mask);
+    write(addr, wr_data);
+end
     endtask
 
     task automatic read_field (
@@ -215,11 +215,11 @@ interface axi4lite_intf
         input  logic [DATA_WIDTH        -1:0] mask,
         input  logic [$clog2(ADDR_WIDTH)  :0] offset
     );
-    begin
-        logic [DATA_WIDTH-1:0] tmp_data;
-        read(addr, tmp_data);
-        data = (tmp_data & mask) >> offset;
-    end
+begin
+    logic [DATA_WIDTH-1:0] tmp_data;
+    read(addr, tmp_data);
+    data = (tmp_data & mask) >> offset;
+end
     endtask
 
 
