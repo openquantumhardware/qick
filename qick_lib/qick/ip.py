@@ -70,38 +70,40 @@ class QickMetadata:
         self.systemgraph = None
         # root element of the HWH file
         self.xml = None
-        # parsers for signals and busses, using system graph or XML as appropriate
-        self.sigparser = None
-        self.busparser = None
 
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
+            # this contains much of the information we need, but we don't use it because it has various quirks and we want to maintain compatibility with PYNQ 2.6/2.7
             self.systemgraph = soc.systemgraph
             self.xml = soc.systemgraph._root
         else:
-            self.sigparser = soc.parser
-            # Since the HWH parser doesn't parse buses, we also make our own BusParser.
             self.xml = soc.parser.root
+
+        # parsers for signals and busses
+        self.sigparser = SigParser(self.xml)
         # TODO: We shouldn't need to use BusParser for PYNQ 3.0, but we think there's a bug in how pynqmetadata handles axis_switch.
         self.busparser = BusParser(self.xml)
 
+        # info for IP blocks - this is largely the same information available in ip_dict at driver initialization, but includes IPs without AXI interfaces.
+        self.modinfo = {}
+        for module in self.xml.findall('./MODULES/MODULE'):
+            fullpath = module.get('FULLNAME').lstrip('/')
+            info = {'params':{}}
+            info['type'] = module.get('MODTYPE')
+            info['version'] = module.get('HWVERSION')
+            info['revision'] = int(module.get('COREREVISION'))
+            params = {}
+            for param in module.findall('./PARAMETERS/PARAMETER'):
+                info['params'][param.get('NAME')] = param.get('VALUE')
+            self.modinfo[fullpath] = info
+
+        # firmware build time
         self.timestamp = self.xml.get('TIMESTAMP')
 
     def get_systemgraph_block(self, blockname):
         return self.systemgraph.blocks[blockname.replace('/','_')]
 
     def trace_sig(self, blockname, portname):
-        if self.systemgraph is not None:
-            dests = self.get_systemgraph_block(blockname).ports[portname].destinations()
-            result = []
-            for port, block in dests.items():
-                blockname = block.parent().name
-                if blockname==self.systemgraph.name:
-                    result.append([port])
-                else:
-                    result.append([blockname, port])
-            return result
-
         return self._trace_net(self.sigparser, blockname, portname)
 
     def trace_bus(self, blockname, portname):
@@ -142,10 +144,7 @@ class QickMetadata:
         :return: frequency in MHz
         :rtype: float
         """
-        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
-            blockname, portname)
-        port = self.xml.find(xmlpath)
-        return float(port.get('CLKFREQUENCY'))/1e6
+        return self.sigparser.freqs[blockname + '/' + portname]/1e6
 
     def get_param(self, blockname, parname):
         """
@@ -160,21 +159,16 @@ class QickMetadata:
         :return: parameter value
         :rtype: str
         """
-        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PARAMETERS/PARAMETER[@NAME='{1}']".format(
-            blockname, parname)
-        param = self.xml.find(xmlpath)
-        return param.get('VALUE')
+        return self.modinfo[blockname]['params'][parname]
 
     def mod2type(self, blockname):
-        if self.systemgraph is not None:
-            return self.get_systemgraph_block(blockname).vlnv.name
-        return self.busparser.mod2type[blockname]
-
-    def mod2rev(self, blockname):
-        return self.busparser.mod2rev[blockname]
+        return self.modinfo[blockname]['type']
 
     def mod2version(self, blockname):
-        return self.busparser.mod2version[blockname]
+        return self.modinfo[blockname]['version']
+
+    def mod2rev(self, blockname):
+        return self.modinfo[blockname]['revision']
 
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
@@ -286,14 +280,8 @@ class BusParser:
         """
         self.nets = {}
         self.pins = {}
-        self.mod2type = {}
-        self.mod2rev = {}
-        self.mod2version = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
-            self.mod2type[fullpath] = module.get('MODTYPE')
-            self.mod2rev[fullpath] = int(module.get('COREREVISION'))
-            self.mod2version[fullpath] = module.get('HWVERSION')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')
@@ -303,4 +291,32 @@ class BusParser:
                 else:
                     self.nets[busname] = set([port])
 
+class SigParser:
+    """Parses the HWH XML file to extract information on the nets connecting IP blocks.
+    This is mostly a copy of the PYNQ 2.7 HWH parser, but also grabs clock frequencies.
+    """
+    def __init__(self, root):
+        self.nets = {}
+        self.pins = {}
+        self.freqs = {}
+        for module in root.findall('./MODULES/MODULE'):
+            fullpath = module.get('FULLNAME').lstrip('/')
+            for netport in module.findall('./PORTS/PORT'):
+                netname = netport.get('SIGNAME')
+                portname = fullpath + '/' + netport.get('NAME')
+                if 'CLKFREQUENCY' in netport.attrib: self.freqs[portname] = float(netport.get('CLKFREQUENCY'))
+                self.pins[portname] = netname
+                if netname in self.nets:
+                    self.nets[netname] |= set([portname])
+                else:
+                    self.nets[netname] = set([portname])
+
+        for netport in root.findall('./EXTERNALPORTS/PORT'):
+            netname = netport.get('SIGNAME')
+            portname = netport.get('NAME')
+            self.pins[portname] = netname
+            if netname in self.nets:
+                self.nets[netname] |= set([portname])
+            else:
+                self.nets[netname] = set([portname])
 

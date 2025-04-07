@@ -375,8 +375,12 @@ class Axis_QICK_Proc(SocIp):
         
         for param in ['in_port_qty', 'out_trig_qty', 'out_dport_qty','out_dport_dw', 'out_wport_qty']:
             self.cfg[param] = int(description['parameters'][param.upper()])
-        for param in ['lfsr','divider','arith','time_read','tnet','qcom','custom_periph','io_ctrl','ext_flag']:
+        for param in ['lfsr','divider','arith','time_read','qcom','custom_periph','io_ctrl','ext_flag']:
             self.cfg['has_'+param] = int(description['parameters'][param.upper()])
+        # parameter name was changed from TNET to QNET in rev 22
+        for param in ['tnet','qnet']:
+            if param.upper() in description['parameters']:
+                self.cfg['has_qnet'] = int(description['parameters'][param.upper()])
         self.cfg['fifo_depth']  = pow( 2, int(description['parameters']['FIFO_DEPTH'])  )
         self.cfg['call_depth']  = int(description['parameters']['CALL_DEPTH'])
         self.cfg['debug']  = int(description['parameters']['DEBUG'])
@@ -414,11 +418,14 @@ class Axis_QICK_Proc(SocIp):
 
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
+        self.cfg['stop_pin'] = None
         self.cfg['f_core'] = soc.metadata.get_fclk(self.fullpath, "c_clk_i")
         self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "t_clk_i")
         try:
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-            self.start_pin = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_start_i')
+            self.cfg['start_pin'] = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_stop_i')
+            self.cfg['stop_pin'] = port[0]
         except:
             pass
         # WE have trig_%d_o and port_%d_dt_o as OUT of the QICK_PROCESSOR...
@@ -529,7 +536,7 @@ class Axis_QICK_Proc(SocIp):
         for param in ['has_io_ctrl', 'has_ext_flag']:
             lines.append("%-14s: %s" % (param, ["NO", "YES"][self.cfg[param]]))
         lines.append("----------\nPeripherals:")
-        for param in ['has_lfsr', 'has_divider', 'has_arith', 'has_time_read', 'has_tnet', 'has_qcom']:
+        for param in ['has_lfsr', 'has_divider', 'has_arith', 'has_time_read', 'has_qnet', 'has_qcom']:
             lines.append("%-14s: %s" % (param, ["NO", "YES"][self.cfg[param]]))
         lines.append("%-14s: %s" % ('has_custom_periph', ["NO", "Only PA", "PA and PB"][self.cfg['has_custom_periph']]))
         lines.append("----------\nDebug:")

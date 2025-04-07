@@ -101,7 +101,7 @@ class QickConfig():
         lines.append("QICK running on %s, software version %s"%(self['board'], self['sw_version']))
         lines.append("\nFirmware configuration (built %s):"%(self['fw_timestamp']))
         if 'refclk_freq' in self._cfg:
-            lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
+            lines.append("\n\tGlobal clocks (MHz): tProc dispatcher timing %.3f, RF reference %.3f" % (
                 tproc.get('f_time', 0), self['refclk_freq']))
 
         with suppress(KeyError): # self['gens'] may not exist
@@ -151,9 +151,18 @@ class QickConfig():
                 lines.append("\t%d:\t%s" % (iPin, name))
                 #lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
-            lines.append("\n\ttProc %s (\"%s\") rev %d: program memory %d words, data memory %d words" %
-                    (tproc['type'], {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']], tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
-            lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+            tproc_version = {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']]
+            if tproc_version == 'v1':
+                lines.append("\n\ttProc: %s (\"%s\") rev %d, program memory %d words, data memory %d words" %
+                        (tproc['type'], tproc_version, tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
+                lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+            else: # qick_processor
+                lines.append("\n\ttProc: %s (\"%s\") rev %d, core execution clock %.3f MHz" %
+                        (tproc['type'], tproc_version, tproc['revision'], tproc['f_core']))
+                lines.append("\t\tmemories (words): program %d, data %d, waveform %d" %
+                        (tproc['pmem_size'], tproc['dmem_size'], tproc['wmem_size']))
+                lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+                lines.append("\t\texternal stop pin: %s" % (tproc['stop_pin']))
 
         if "ddr4_buf" in self._cfg:
             buf = self['ddr4_buf']
