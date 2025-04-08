@@ -418,21 +418,21 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, adc_sample_rates=None, **kwargs):
+    def __init__(self, bitfile=None, download=True, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, adc_sample_rates=None, **kwargs):
         """
         Constructor method
         """
 
         self.external_clk = external_clk
         self.clk_output = clk_output
-        # Load bitstream. We read the bitstream configuration from the HWH file, but we don't program the FPGA yet.
-        # We need to program the clocks first.
+        # Read the bitstream configuration from the HWH file.
+        # If download=True, we also program the FPGA.
         if bitfile is None:
             Overlay.__init__(self, bitfile_path(
-            ), ignore_version=ignore_version, download=False, **kwargs)
+            ), ignore_version=ignore_version, download=download, **kwargs)
         else:
             Overlay.__init__(
-                self, bitfile, ignore_version=ignore_version, download=False, **kwargs)
+                self, bitfile, ignore_version=ignore_version, download=download, **kwargs)
 
         # Initialize the configuration
         self._cfg = {}
@@ -441,18 +441,6 @@ class QickSoc(Overlay, QickConfig):
         self['board'] = os.environ["BOARD"]
         self['sw_version'] = get_version()
 
-       # Signal generators (anything driven by the tProc)
-        self.gens = []
-
-        # Constant generators
-        self.iqs = []
-
-        # Average + Buffer blocks.
-        self.avg_bufs = []
-
-        # Readout blocks.
-        self.readouts = []
-
         # a space to dump any additional lines of config text which you want to print in the QickConfig
         self['extra_description'] = []
 
@@ -460,7 +448,15 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
-        self.download()
+        # Initialize lists of IP blocks.
+        # Signal generators (anything driven by the tProc)
+        self.gens = []
+        # Constant generators
+        self.iqs = []
+        # Average + Buffer blocks.
+        self.avg_bufs = []
+        # Readout blocks.
+        self.readouts = []
 
         if not no_rf:
             rfdc_name = 'usp_rf_data_converter_0'
@@ -475,6 +471,8 @@ class QickSoc(Overlay, QickConfig):
             # Update the ADC sample rate if specified
             if adc_sample_rates:
                 self.configure_adc_sample_rates(adc_sample_rates)
+                # we changed the clocks, so refresh that info
+                self.list_rf_blocks(self.ip_dict[rfdc_name]['parameters'])
 
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             self.rf.configure(self)
@@ -547,18 +545,6 @@ class QickSoc(Overlay, QickConfig):
         for key, val in self.ip_dict.items():
             if hasattr(val['driver'], 'configure_connections'):
                 self._get_block(val['fullpath']).configure_connections(self)
-
-        # Signal generators (anything driven by the tProc)
-        self.gens = []
-
-        # Constant generators
-        self.iqs = []
-
-        # Average + Buffer blocks.
-        self.avg_bufs = []
-
-        # Readout blocks.
-        self.readouts = []
 
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
