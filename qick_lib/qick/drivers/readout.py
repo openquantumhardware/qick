@@ -47,8 +47,9 @@ class AbsReadout(DummyIp):
         # Sampling frequency.
         self.cfg['adc'] = self.adc
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
+        adccfg = self.rf['adcs'][self['adc']]
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
-            self.cfg[p] = self.rf.adccfg[self['adc']][p]
+            self.cfg[p] = adccfg[p]
         # decimation reduces the DDS range
         self.cfg['f_dds'] = self['fs']/self['decimation']
         self.cfg['fdds_div'] = self['fs_div']*self['decimation']

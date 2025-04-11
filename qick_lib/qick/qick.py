@@ -96,7 +96,8 @@ class AxisSwitch(SocIp):
 class RFDC(xrfdc.RFdc, SocIp):
     """
     Extends the xrfdc driver.
-    Since operations on the RFdc tend to be slow (tens of ms), we cache the Nyquist zone and frequency.
+    Calling xrfdc functions is slow (typically ~8 ms per call).
+    We therefore cache parameters that need to be set in program initialization, such as Nyquist zone and frequency.
     """
     bindto = ["xilinx.com:ip:usp_rf_data_converter:2.3",
               "xilinx.com:ip:usp_rf_data_converter:2.4",
@@ -125,11 +126,95 @@ class RFDC(xrfdc.RFdc, SocIp):
         # Rounded NCO frequency for each channel
         self.mixer_dict = {}
 
-        self._cfg['ip_type'] = int(description['parameters']['C_IP_Type'])
+        ip_params = description['parameters']
 
-    def configure(self, soc):
-        self.daccfg = soc['dacs']
-        self.adccfg = soc['adcs']
+        # which generation RFSoC we are using
+        self.cfg['ip_type'] = int(ip_params['C_IP_Type'])
+        # quad or dual RF-ADC
+        self.cfg['hs_adc'] = (ip_params['C_High_Speed_ADC'] == '1')
+        # dicts of RFDC tiles and channels
+        self.cfg['tiles'] = {'DAC':{}, 'ADC':{}}
+        self.cfg['dacs'] = OrderedDict()
+        self.cfg['adcs'] = OrderedDict()
+
+        # list the enabled DAC+ADC tiles and blocks, and enumerate the "channel name" for each block
+        # the channel name is a 2-digit string with the indices needed to index into the dac_tiles/adc_tiles structures
+        for tiletype in ['DAC', 'ADC']:
+            for iTile in range(4):
+                if ip_params['C_%s%d_Enable' % (tiletype, iTile)] != '1': continue
+                self['tiles'][tiletype][iTile] = {}
+                for iBlock in range(4):
+                    # pack the indices for the tile/block structure "channel name"
+                    chname = "%d%d" % (iTile, iBlock)
+                    if tiletype == 'ADC' and self['hs_adc']:
+                        if iBlock%2 != 0: continue
+                        chname = "%d%d" % (iTile, iBlock//2)
+
+                    # check whether this block is enabled
+                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype, iTile, iBlock)] != 'true': continue
+                    self[{'DAC':'dacs', 'ADC':'adcs'}[tiletype]][chname] = {}
+        # read the clock settings and block configs
+        self._read_freqs()
+
+    def _read_freqs(self):
+        for tiletype, tiles in [('DAC',self.dac_tiles), ('ADC',self.adc_tiles)]:
+            for iTile, tilecfg in self['tiles'][tiletype].items():
+                tilecfg.clear()
+                tile = tiles[iTile]
+                pllcfg = tile.PLLConfig
+                tilecfg['f_ref'] = pllcfg['RefClkFreq']
+                tilecfg['fs_mult'] = pllcfg['FeedbackDivider']
+                tilecfg['fs_div'] = pllcfg['RefClkDivider']*pllcfg['OutputDivider']
+                # we could use SampleRate here, but it's the same
+                tilecfg['fs'] = tilecfg['f_ref']*tilecfg['fs_mult']/tilecfg['fs_div']
+
+        # lookup table for deciding whether the AXI-S interface uses IQ or real data
+        # this only covers the cases we actually use in our generators/ROs
+        mixer2iq = {}
+        mixer2iq['DAC'] = {
+            (xrfdc.MIXER_TYPE_FINE,   xrfdc.MIXER_MODE_C2R): 2,
+            (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2R): 1,
+        }
+        mixer2iq['ADC'] = {
+            (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2C): 2,
+            (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2R): 1,
+        }
+        for tiletype, tiles in [('DAC',self.dac_tiles), ('ADC',self.adc_tiles)]:
+            for chname, chcfg in self[{'DAC':'dacs', 'ADC':'adcs'}[tiletype]].items():
+                chcfg.clear()
+                chcfg['index'] = [int(x) for x in chname]
+                iTile, iBlock = chcfg['index']
+                # copy the tile info
+                chcfg.update(self['tiles'][tiletype][iTile])
+
+                block = tiles[iTile].blocks[iBlock]
+
+                # now we compute the ratio between the sample and fabric clocks
+                # this is surprisingly annoying to do in full generality
+                # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Interface-Data-and-Clock-Rates
+                # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-ADC-Interface-Data-and-Clock-Rates
+                # note that this ratio has to be the same for all channels in a tile
+                if tiletype == 'DAC':
+                    data_width = block.FabWrVldWords
+                else:
+                    data_width = block.FabRdVldWords
+                mixer_settings = block.MixerSettings
+                iq = mixer2iq[tiletype][tuple(mixer_settings[k] for k in ['MixerType', 'MixerMode'])]
+
+                if tiletype == 'DAC':
+                    chcfg['interpolation'] = block.InterpolationFactor
+                    chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
+                else:
+                    chcfg['decimation'] = block.DecimationFactor
+                    chcfg['fabric_div'] = data_width*iq//chcfg['decimation']
+                chcfg['f_fabric'] = chcfg['fs']/chcfg['fabric_div']
+
+    def clocks_locked(self):
+        dac_locked = [self.dac_tiles[iTile]
+                      .PLLLockStatus == 2 for iTile in self['tiles']['DAC']]
+        adc_locked = [self.adc_tiles[iTile]
+                      .PLLLockStatus == 2 for iTile in self['tiles']['ADC']]
+        return dac_locked, adc_locked
 
     def set_mixer_freq(self, dacname, f, phase_reset=True, force=False):
         """
@@ -151,7 +236,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         if not force and f == self.get_mixer_freq(dacname):
             return
 
-        tile, channel = self.daccfg[dacname]['index']
+        tile, channel = self['dacs'][dacname]['index']
         # Make a copy of mixer settings.
         dac_mixer = self.dac_tiles[tile].blocks[channel].MixerSettings
         new_mixcfg = dac_mixer.copy()
@@ -175,7 +260,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         try:
             return self.mixer_dict[dacname]
         except KeyError:
-            tile, channel = self.daccfg[dacname]['index']
+            tile, channel = self['dacs'][dacname]['index']
             self.mixer_dict[dacname] = self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
             return self.mixer_dict[dacname]
 
@@ -203,10 +288,10 @@ class RFDC(xrfdc.RFdc, SocIp):
         if not force and self.get_nyquist(blockname, blocktype) == nqz:
             return
         if blocktype=='dac':
-            tile, channel = self.daccfg[blockname]['index']
+            tile, channel = self['dacs'][blockname]['index']
             self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
         else:
-            tile, channel = self.adccfg[blockname]['index']
+            tile, channel = self['adcs'][blockname]['index']
             self.adc_tiles[tile].blocks[channel].NyquistZone = nqz
         self.nqz_dict[blocktype][blockname] = nqz
 
@@ -232,10 +317,10 @@ class RFDC(xrfdc.RFdc, SocIp):
             return self.nqz_dict[blocktype][blockname]
         except KeyError:
             if blocktype=='dac':
-                tile, channel = self.daccfg[blockname]['index']
+                tile, channel = self['dacs'][blockname]['index']
                 self.nqz_dict[blocktype][blockname] = self.dac_tiles[tile].blocks[channel].NyquistZone
             else:
-                tile, channel = self.adccfg[blockname]['index']
+                tile, channel = self['adcs'][blockname]['index']
                 self.nqz_dict[blocktype][blockname] = self.adc_tiles[tile].blocks[channel].NyquistZone
             return self.nqz_dict[blocktype][blockname]
 
@@ -459,23 +544,32 @@ class QickSoc(Overlay, QickConfig):
         self.readouts = []
 
         if not no_rf:
+            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             rfdc_name = 'usp_rf_data_converter_0'
             self.rf = getattr(self, rfdc_name)
+
+            refclks = []
+            for tiletype in ['DAC', 'ADC']:
+                refclks.extend([v['f_ref'] for k,v in self.rf['tiles'][tiletype].items()])
+            if len(set(refclks)) != 1:
+                raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
+            self['refclk_freq'] = refclks[0]
 
             # Read the config to get a list of enabled ADCs and DACs, and the sampling frequencies.
             self.list_rf_blocks(self.ip_dict[rfdc_name]['parameters'])
 
             # Configure xrfclk reference clocks
-            self.config_clocks(force_init_clks)   
+            self.config_clocks(force_init_clks)
 
             # Update the ADC sample rate if specified
             if adc_sample_rates:
                 self.configure_adc_sample_rates(adc_sample_rates)
                 # we changed the clocks, so refresh that info
                 self.list_rf_blocks(self.ip_dict[rfdc_name]['parameters'])
+                self.rf._read_freqs()
 
-            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
-            self.rf.configure(self)
+
+            self['rf'] = self.rf.cfg
 
         if no_tproc:
             self.TPROC_VERSION = 0
@@ -619,6 +713,7 @@ class QickSoc(Overlay, QickConfig):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         The ADC/DAC PLL lock status is read through the RFDC IP, so this assumes that the bitstream has already been downloaded.
+        The reference clock frequency must already have been read from the firmware config.
         """
         # if we're changing the clock config, we must set the clocks to apply the config
         if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
@@ -693,15 +788,12 @@ class QickSoc(Overlay, QickConfig):
         """
         Checks whether the DAC and ADC PLLs are locked.
         This can only be run after the bitstream has been downloaded.
+        A failure usually means the FPGA is not getting a good reference clock from the on-board clock chips.
 
         :return: clock status
         :rtype: bool
         """
-
-        dac_locked = [self.rf.dac_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self.dac_tiles]
-        adc_locked = [self.rf.adc_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self.adc_tiles]
+        dac_locked, adc_locked = self.rf.clocks_locked()
         return all(dac_locked) and all(adc_locked)
 
     def list_rf_blocks(self, rf_config):
