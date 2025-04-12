@@ -163,6 +163,7 @@ class RFDC(xrfdc.RFdc, SocIp):
                 tile = tiles[iTile]
                 pllcfg = tile.PLLConfig
                 tilecfg['f_ref'] = pllcfg['RefClkFreq']
+                tilecfg['ref_div'] = pllcfg['RefClkDivider']
                 tilecfg['fs_mult'] = pllcfg['FeedbackDivider']
                 tilecfg['fs_div'] = pllcfg['RefClkDivider']*pllcfg['OutputDivider']
                 # we could use SampleRate here, but it's the same
@@ -187,6 +188,8 @@ class RFDC(xrfdc.RFdc, SocIp):
                 iTile, iBlock = chcfg['index']
                 # copy the tile info
                 chcfg.update(self['tiles'][tiletype][iTile])
+                # clean up parameters that are only used at the tile level
+                del chcfg['ref_div']
 
                 block = tiles[iTile].blocks[iBlock]
 
@@ -223,52 +226,91 @@ class RFDC(xrfdc.RFdc, SocIp):
                       .PLLLockStatus == 2 for iTile in self['tiles']['ADC']]
         return dac_locked, adc_locked
 
-    def check_samp_freq(self, target_fs, fref, words_per_axi):
-        """
-        Check if the requested sampling frequency is supported.
-        If not, it will return the closest achievable frequency.
-        """
+    def valid_samp_freqs(self, tiletype, tile):
+        tilecfg = self['tiles'][tiletype][tile]
+        # reference clock after the PLL reference divider
+        # this divider can't be changed by software, and Xilinx recommends keeping it at 1 for best phase noise
+        refclk = tilecfg['f_ref']/tilecfg['ref_div']
+        words_per_axi = tilecfg['fabric_div']
+
+        # Allowed divider values, see PG269 "PLL Parameters"
+        # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
+        Fb_div_vals = np.arange(13,161, dtype=int)
+        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='DAC':
+            M_vals = np.concatenate([[1,2,3], np.arange(4,66,2)])
+            VCO_range = [7863, 13760]
+        else:
+            M_vals = np.concatenate([[2,3], np.arange(4,66,2)])
+            VCO_range = [8500, 13200]
+
+        VCO_possible = refclk * Fb_div_vals
+        Fb_div_possible = Fb_div_vals[(VCO_possible>=VCO_range[0]) & (VCO_possible<=VCO_range[1])]
+        fs_possible = refclk*(Fb_div_possible.T/M_vals[:,np.newaxis]).ravel()
+
         # See DS926 "RF-ADC/RF-DAC to PL Interface Performance"
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-ADC/RF-DAC-to-PL-Interface-Switching-Characteristics
         if self['ip_type'] == self.XRFDC_GEN3:
             max_axi_clk = 614 # MHz
         else:
             max_axi_clk = 520 # MHz
+        fs_possible = fs_possible[fs_possible <= words_per_axi*max_axi_clk]
 
-        fs_max = words_per_axi * max_axi_clk # MHz
+        # Allowed ranges of sampling freqs
+        # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-DAC-Electrical-Characteristics
+        # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-ADC-Electrical-Characteristics
+        if tiletype=='ADC' and self['hs_adc']:
+            fs_min = 1000
+        else:
+            fs_min = 500
+        fs_possible = fs_possible[fs_possible >= fs_min]
+        if tiletype=='DAC':
+            if self['ip_type'] == self.XRFDC_GEN3:
+                fs_max = 9850
+            else:
+                fs_max = 6554
+        else:
+            if self['ip_type'] < self.XRFDC_GEN3:
+                fs_max = 4096 # ZCU111
+            else:
+                if self['hs_adc']:
+                    fs_max = 5000
+                else:
+                    fs_max = 2500
+        fs_possible = fs_possible[fs_possible <= fs_max]
 
-        # Allowed divider values, see PG269 "PLL Parameters"
-        # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
-        Fb_div_vals = np.arange(13,161, dtype=int)
-        M_vals = np.insert(np.arange(4,66,2,dtype=int), 0, np.array([2,3]))
+        # forbidden "hole" for Gen3 RFSoC DAC PLL
+        # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
+        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='DAC':
+            fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
 
-        # Calculate Feedback Divider and M value
-        all_ratios = np.clip(fref*(Fb_div_vals[:,np.newaxis].T / M_vals[:,np.newaxis]), a_min=None, a_max=fs_max)
-        differences = np.abs(all_ratios - target_fs)
-        indicies = np.where(differences == differences.min())
-        M = M_vals[indicies[0][0]]
-        Fb_div_val = Fb_div_vals[indicies[1][0]]
-        fs_acheived = fref*Fb_div_val/M
-        f_err = fs_acheived - target_fs
-        logger.info(f'Requested Fs = {target_fs} MHz, Acheived Fs = {fs_acheived:.3f} MHz, Frequency Error = {f_err:.3f} MHz.')
-        logger.debug(f'Fb_div = {Fb_div_val}, M = {M}, fs_max = {fs_max:.3f} MHz')
-        if f_err > 10:
-            logger.warning(f'Frequency error is {f_err:.3} MHz. Please check the PLL settings.')
-        return fs_acheived
+        fs_possible.sort()
+        return fs_possible
+
+    def check_samp_freq(self, tiletype, tile, fs_target):
+        """
+        Check if the requested sampling frequency is supported.
+        If not, it will return the closest achievable frequency.
+        """
+        # TODO: warn or error if you're raising the frequency
+        fs_possible = self.valid_samp_freqs(tiletype, tile)
+        fs_best = fs_possible[np.argmin(np.abs(fs_possible - fs_target))]
+        fs_err = fs_best - fs_target
+        logger.info('fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(fs_target, fs_best, fs_err))
+        if abs(fs_err) > 1:
+            logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype, tile, fs_target, fs_best))
+        return fs_best
 
     def set_adc_sample_rate(self, tile, fs):
         """
         Set the ADC sample rate of a tile.
         """
-        tilecfg = self['tiles']['ADC'][tile]
-        ref_clk_freq = tilecfg['f_ref']
-        words_per_axi = tilecfg['fabric_div']
-        fs_safe = self.check_samp_freq(fs, ref_clk_freq, words_per_axi)
-        if fs_safe:
-            logging.info(f'Programming ADC Tile {tile} to {fs_safe:.3f} MHz')
-            self.adc_tiles[tile].DynamicPLLConfig(source=1,ref_clk_freq=ref_clk_freq, samp_rate=fs_safe)
-        else:
-            raise RuntimeError(f"Requested sampling frequency {fs} MHz is not supported.")
+        tiletype = 'ADC'
+        fs_best = self.check_samp_freq(tiletype, tile, fs)
+        if abs(fs_best-fs) > 10:
+            raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype, tile, fs, fs_best))
+        logging.info('programming %s tile %d to %.3f MHz'%(tiletype, tile, fs))
+        f_ref = self['tiles'][tiletype][tile]['f_ref']
+        self.adc_tiles[tile].DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs_best)
 
     def configure_adc_sample_rates(self, adc_sample_rates):
         """
