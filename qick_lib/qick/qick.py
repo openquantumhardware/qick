@@ -133,34 +133,38 @@ class RFDC(xrfdc.RFdc, SocIp):
         # quad or dual RF-ADC
         self.cfg['hs_adc'] = (ip_params['C_High_Speed_ADC'] == '1')
         # dicts of RFDC tiles and channels
-        self.cfg['tiles'] = {'DAC':{}, 'ADC':{}}
+        self.cfg['tiles'] = {'dac':{}, 'adc':{}}
         self.cfg['dacs'] = OrderedDict()
         self.cfg['adcs'] = OrderedDict()
 
         # list the enabled DAC+ADC tiles and blocks, and enumerate the "channel name" for each block
         # the channel name is a 2-digit string with the indices needed to index into the dac_tiles/adc_tiles structures
-        for tiletype in ['DAC', 'ADC']:
+        for tiletype in ['dac', 'adc']:
             for iTile in range(4):
-                if ip_params['C_%s%d_Enable' % (tiletype, iTile)] != '1': continue
+                if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 self['tiles'][tiletype][iTile] = {}
                 for iBlock in range(4):
                     # pack the indices for the tile/block structure "channel name"
                     chname = "%d%d" % (iTile, iBlock)
-                    if tiletype == 'ADC' and self['hs_adc']:
+                    if tiletype == 'adc' and self['hs_adc']:
                         if iBlock%2 != 0: continue
                         chname = "%d%d" % (iTile, iBlock//2)
 
                     # check whether this block is enabled
-                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype, iTile, iBlock)] != 'true': continue
-                    self[{'DAC':'dacs', 'ADC':'adcs'}[tiletype]][chname] = {}
+                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype.upper(), iTile, iBlock)] != 'true': continue
+                    self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {}
         # read the clock settings and block configs
         self._read_freqs()
 
+    def _get_tile(self, tiletype, iTile):
+        tiles = {'dac':self.dac_tiles, 'adc':self.adc_tiles}[tiletype]
+        return tiles[iTile]
+
     def _read_freqs(self):
-        for tiletype, tiles in [('DAC',self.dac_tiles), ('ADC',self.adc_tiles)]:
+        for tiletype in ['dac', 'adc']:
             for iTile, tilecfg in self['tiles'][tiletype].items():
                 tilecfg.clear()
-                tile = tiles[iTile]
+                tile = self._get_tile(tiletype, iTile)
                 pllcfg = tile.PLLConfig
                 tilecfg['f_ref'] = pllcfg['RefClkFreq']
                 tilecfg['ref_div'] = pllcfg['RefClkDivider']
@@ -172,17 +176,17 @@ class RFDC(xrfdc.RFdc, SocIp):
         # lookup table for deciding whether the AXI-S interface uses IQ or real data
         # this only covers the cases we actually use in our generators/ROs
         mixer2iq = {}
-        mixer2iq['DAC'] = {
+        mixer2iq['dac'] = {
             (xrfdc.MIXER_TYPE_FINE,   xrfdc.MIXER_MODE_C2R): 2,
             (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2R): 1,
         }
-        mixer2iq['ADC'] = {
+        mixer2iq['adc'] = {
             (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2C): 2,
             (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2R): 1,
         }
         fabric_divs = {k:{iTile:[] for iTile in v.keys()} for k,v in self['tiles'].items()}
-        for tiletype, tiles in [('DAC',self.dac_tiles), ('ADC',self.adc_tiles)]:
-            for chname, chcfg in self[{'DAC':'dacs', 'ADC':'adcs'}[tiletype]].items():
+        for tiletype in ['dac', 'adc']:
+            for chname, chcfg in self[{'dac':'dacs', 'adc':'adcs'}[tiletype]].items():
                 chcfg.clear()
                 chcfg['index'] = [int(x) for x in chname]
                 iTile, iBlock = chcfg['index']
@@ -191,22 +195,23 @@ class RFDC(xrfdc.RFdc, SocIp):
                 # clean up parameters that are only used at the tile level
                 del chcfg['ref_div']
 
-                block = tiles[iTile].blocks[iBlock]
+                block = self._get_tile(tiletype, iTile).blocks[iBlock]
 
                 # now we compute the ratio between the sample and fabric clocks
                 # this is surprisingly annoying to do in full generality
                 # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Interface-Data-and-Clock-Rates
                 # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-ADC-Interface-Data-and-Clock-Rates
                 # note that this ratio has to be the same for all channels in a tile
-                if tiletype == 'DAC':
+                if tiletype == 'dac':
                     data_width = block.FabWrVldWords
                 else:
                     data_width = block.FabRdVldWords
                 mixer_settings = block.MixerSettings
                 iq = mixer2iq[tiletype][tuple(mixer_settings[k] for k in ['MixerType', 'MixerMode'])]
 
-                if tiletype == 'DAC':
+                if tiletype == 'dac':
                     chcfg['interpolation'] = block.InterpolationFactor
+                    chcfg['datapath'] = block.DataPathMode
                     chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
                 else:
                     chcfg['decimation'] = block.DecimationFactor
@@ -214,16 +219,16 @@ class RFDC(xrfdc.RFdc, SocIp):
                 fabric_divs[tiletype][iTile].append(chcfg['fabric_div'])
                 chcfg['f_fabric'] = chcfg['fs']/chcfg['fabric_div']
 
-        for tiletype in ['DAC', 'ADC']:
+        for tiletype in ['dac', 'adc']:
             for iTile, tiledivs in fabric_divs[tiletype].items():
                 assert len(set(tiledivs)) == 1
                 self['tiles'][tiletype][iTile]['fabric_div'] = tiledivs[0]
 
     def clocks_locked(self):
         dac_locked = [self.dac_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self['tiles']['DAC']]
+                      .PLLLockStatus == 2 for iTile in self['tiles']['dac']]
         adc_locked = [self.adc_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self['tiles']['ADC']]
+                      .PLLLockStatus == 2 for iTile in self['tiles']['adc']]
         return dac_locked, adc_locked
 
     def valid_samp_freqs(self, tiletype, tile):
@@ -236,7 +241,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         # Allowed divider values, see PG269 "PLL Parameters"
         # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
         Fb_div_vals = np.arange(13,161, dtype=int)
-        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='DAC':
+        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             M_vals = np.concatenate([[1,2,3], np.arange(4,66,2)])
             VCO_range = [7863, 13760]
         else:
@@ -258,12 +263,12 @@ class RFDC(xrfdc.RFdc, SocIp):
         # Allowed ranges of sampling freqs
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-DAC-Electrical-Characteristics
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-ADC-Electrical-Characteristics
-        if tiletype=='ADC' and self['hs_adc']:
+        if tiletype=='adc' and self['hs_adc']:
             fs_min = 1000
         else:
             fs_min = 500
         fs_possible = fs_possible[fs_possible >= fs_min]
-        if tiletype=='DAC':
+        if tiletype=='dac':
             if self['ip_type'] == self.XRFDC_GEN3:
                 fs_max = 9850
             else:
@@ -280,8 +285,10 @@ class RFDC(xrfdc.RFdc, SocIp):
 
         # forbidden "hole" for Gen3 RFSoC DAC PLL
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
-        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='DAC':
+        if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
+
+        # TODO: lower max for DAC NCO
 
         fs_possible.sort()
         return fs_possible
@@ -300,25 +307,30 @@ class RFDC(xrfdc.RFdc, SocIp):
             logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype, tile, fs_target, fs_best))
         return fs_best
 
-    def set_adc_sample_rate(self, tile, fs):
+    def _set_sample_rate(self, tiletype, tile, fs):
         """
-        Set the ADC sample rate of a tile.
+        Set the sample rate of a tile.
         """
-        tiletype = 'ADC'
         fs_best = self.check_samp_freq(tiletype, tile, fs)
         if abs(fs_best-fs) > 10:
             raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype, tile, fs, fs_best))
         logging.info('programming %s tile %d to %.3f MHz'%(tiletype, tile, fs))
         f_ref = self['tiles'][tiletype][tile]['f_ref']
-        self.adc_tiles[tile].DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs_best)
+        self._get_tile(tiletype, tile).DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs_best)
 
-    def configure_adc_sample_rates(self, adc_sample_rates):
+    def configure_sample_rates(self, dac_sample_rates=None, adc_sample_rates=None):
         """
         Set the ADC sample rate of each tile from a dictionary.
         See adc_sample_rates property for the expected format.
         """
-        for iTile in self['tiles']['ADC'].keys():
-            self.set_adc_sample_rate(tile=iTile, fs=adc_sample_rates['ADC_Tile%d_fs' % (iTile)])
+        for tiletype, fs_dict in [('dac', dac_sample_rates), ('adc', adc_sample_rates)]:
+            if fs_dict is not None:
+                for iTile, fs in fs_dict.items():
+                    if iTile not in self['tiles'][tiletype].keys():
+                        raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype, iTile))
+                    self._set_sample_rate(tiletype, iTile, fs)
+        # we changed the clocks, so refresh that info
+        self._read_freqs()
 
     def set_mixer_freq(self, dacname, f, phase_reset=True, force=False):
         """
@@ -607,7 +619,7 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, download=True, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, adc_sample_rates=None, **kwargs):
+    def __init__(self, bitfile=None, download=True, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
         """
         Constructor method
         """
@@ -653,7 +665,7 @@ class QickSoc(Overlay, QickConfig):
 
             # Examine the RFDC config to find the reference clock frequency.
             refclks = []
-            for tiletype in ['DAC', 'ADC']:
+            for tiletype in ['dac', 'adc']:
                 refclks.extend([v['f_ref'] for k,v in self.rf['tiles'][tiletype].items()])
             if len(set(refclks)) != 1:
                 raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
@@ -663,12 +675,11 @@ class QickSoc(Overlay, QickConfig):
             self.config_clocks(force_init_clks)
 
             # Update the ADC sample rate if specified
-            if adc_sample_rates:
-                self.rf.configure_adc_sample_rates(adc_sample_rates)
-                # we changed the clocks, so refresh that info
-                self.rf._read_freqs()
+            if dac_sample_rates or adc_sample_rates:
+                self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
             self['rf'] = self.rf.cfg
+            # TODO: all code should reference ['rf']
             self['dacs'] = self.rf['dacs']
             self['adcs'] = self.rf['adcs']
 
@@ -701,17 +712,13 @@ class QickSoc(Overlay, QickConfig):
         return self._tproc
     
     @property
-    def adc_sample_rates(self):
+    def get_sample_rates(self):
         """
         Produce a dictionary of the current ADC sample rates.
         A dictionary of this form can be used to configure the 
         ADC sample rates of the tiles in SoC initialization.
         """
-        adc_sample_rates = {}
-        for tile in self.adc_tiles:
-            fs = self.rf.adc_tiles[tile].PLLConfig['SampleRate']*1000
-            adc_sample_rates['ADC_Tile%d_fs' % (tile)] = fs
-        return adc_sample_rates
+        return {tiletype: {k: v['fs'] for k,v in self['tiles'][tiletype].items()} for tiletype in ['dac', 'adc']}
 
     @property
     def streamer(self):
