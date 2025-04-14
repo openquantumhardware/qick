@@ -137,22 +137,25 @@ class RFDC(xrfdc.RFdc, SocIp):
         self.cfg['dacs'] = OrderedDict()
         self.cfg['adcs'] = OrderedDict()
 
-        # list the enabled DAC+ADC tiles and blocks, and enumerate the "channel name" for each block
-        # the channel name is a 2-digit string with the indices needed to index into the dac_tiles/adc_tiles structures
+        # list the enabled DAC+ADC tiles and blocks, and enumerate the "channel name" and tile/block indices for each block
+        # the channel name is a 2-digit string that gets used in RFDC port and parameter names
+        # the indices are what you need to index into the dac_tiles/adc_tiles structures
         for tiletype in ['dac', 'adc']:
             for iTile in range(4):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 self['tiles'][tiletype][iTile] = {}
-                for iBlock in range(4):
+                for block in range(4):
                     # pack the indices for the tile/block structure "channel name"
-                    chname = "%d%d" % (iTile, iBlock)
+                    chname = "%d%d" % (iTile, block)
                     if tiletype == 'adc' and self['hs_adc']:
-                        if iBlock%2 != 0: continue
-                        chname = "%d%d" % (iTile, iBlock//2)
+                        if block%2 != 0: continue
+                        iBlock = block//2
+                    else:
+                        iBlock = block
 
                     # check whether this block is enabled
-                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype.upper(), iTile, iBlock)] != 'true': continue
-                    self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {}
+                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype.upper(), iTile, block)] != 'true': continue
+                    self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {'index': [iTile, iBlock]}
         # read the clock settings and block configs
         self._read_freqs()
 
@@ -187,9 +190,9 @@ class RFDC(xrfdc.RFdc, SocIp):
         fabric_divs = {k:{iTile:[] for iTile in v.keys()} for k,v in self['tiles'].items()}
         for tiletype in ['dac', 'adc']:
             for chname, chcfg in self[{'dac':'dacs', 'adc':'adcs'}[tiletype]].items():
-                chcfg.clear()
-                chcfg['index'] = [int(x) for x in chname]
                 iTile, iBlock = chcfg['index']
+                chcfg.clear()
+                chcfg['index'] = [iTile, iBlock]
                 # copy the tile info
                 chcfg.update(self['tiles'][tiletype][iTile])
                 # clean up parameters that are only used at the tile level
@@ -211,7 +214,8 @@ class RFDC(xrfdc.RFdc, SocIp):
 
                 if tiletype == 'dac':
                     chcfg['interpolation'] = block.InterpolationFactor
-                    chcfg['datapath'] = block.DataPathMode
+                    if self['ip_type'] == self.XRFDC_GEN3:
+                        chcfg['datapath'] = block.DataPathMode
                     chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
                 else:
                     chcfg['decimation'] = block.DecimationFactor
