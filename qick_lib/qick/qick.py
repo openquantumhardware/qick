@@ -143,7 +143,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         for tiletype in ['dac', 'adc']:
             for iTile in range(4):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
-                self['tiles'][tiletype][iTile] = {}
+                self['tiles'][tiletype][iTile] = {'blocks': []}
                 for block in range(4):
                     # pack the indices for the tile/block structure "channel name"
                     chname = "%d%d" % (iTile, block)
@@ -154,7 +154,8 @@ class RFDC(xrfdc.RFdc, SocIp):
                         iBlock = block
 
                     # check whether this block is enabled
-                    if ip_params['C_%s_Slice%d%d_Enable' % (tiletype.upper(), iTile, block)] != 'true': continue
+                    if ip_params['C_%s_Slice%s_Enable' % (tiletype.upper(), chname)] != 'true': continue
+                    self['tiles'][tiletype][iTile]['blocks'].append(chname)
                     self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {'index': [iTile, iBlock]}
         # read the clock settings and block configs
         self._read_freqs()
@@ -166,7 +167,7 @@ class RFDC(xrfdc.RFdc, SocIp):
     def _read_freqs(self):
         for tiletype in ['dac', 'adc']:
             for iTile, tilecfg in self['tiles'][tiletype].items():
-                tilecfg.clear()
+                #tilecfg.clear()
                 tile = self._get_tile(tiletype, iTile)
                 pllcfg = tile.PLLConfig
                 tilecfg['f_ref'] = pllcfg['RefClkFreq']
@@ -191,12 +192,13 @@ class RFDC(xrfdc.RFdc, SocIp):
         for tiletype in ['dac', 'adc']:
             for chname, chcfg in self[{'dac':'dacs', 'adc':'adcs'}[tiletype]].items():
                 iTile, iBlock = chcfg['index']
-                chcfg.clear()
-                chcfg['index'] = [iTile, iBlock]
+                #chcfg.clear()
+                #chcfg['index'] = [iTile, iBlock]
+
                 # copy the tile info
                 chcfg.update(self['tiles'][tiletype][iTile])
                 # clean up parameters that are only used at the tile level
-                del chcfg['ref_div']
+                del chcfg['ref_div'], chcfg['blocks']
 
                 block = self._get_tile(tiletype, iTile).blocks[iBlock]
 
@@ -291,6 +293,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
+            print([self[tiletype+'s'][chname]['datapath'] for chname in tilecfg['blocks']])
 
         # TODO: lower max for DAC NCO
 
