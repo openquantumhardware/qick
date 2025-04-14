@@ -289,13 +289,18 @@ class RFDC(xrfdc.RFdc, SocIp):
                     fs_max = 2500
         fs_possible = fs_possible[fs_possible <= fs_max]
 
-        # forbidden "hole" for Gen3 RFSoC DAC PLL
-        # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
+        # special rules for Gen3 RFSoC DACs
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
+            # forbidden "hole" for Gen3 RFSoC DAC PLL
+            # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
             fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
-            print([self[tiletype+'s'][chname]['datapath'] for chname in tilecfg['blocks']])
 
-        # TODO: lower max for DAC NCO
+            # in datapath mode 1, Gen3 DACs can't go above 7 Gsps
+            # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-High-Sampling-Rates-Mode-Gen-3/DFE
+            # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-DAC-Electrical-Characteristics
+            datapaths = [self[tiletype+'s'][chname]['datapath'] for chname in tilecfg['blocks']]
+            if any([x==1 for x in datapaths]):
+                fs_possible = fs_possible[fs_possible<=7000]
 
         fs_possible.sort()
         return fs_possible
