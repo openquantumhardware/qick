@@ -143,7 +143,15 @@ class RFDC(xrfdc.RFdc, SocIp):
         for tiletype in ['dac', 'adc']:
             for iTile in range(4):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
-                self['tiles'][tiletype][iTile] = {'blocks': []}
+                tilecfg = {}
+                self['tiles'][tiletype][iTile] = tilecfg
+                f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
+                f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
+                fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
+                tilecfg['fabric_div'] = int(fs/f_fabric)
+                tilecfg['out_div'] = int(f_fabric/f_out)
+                #out_div = Fraction(f_fabric/f_out).limit_denominator()
+                tilecfg['blocks'] = []
                 for block in range(4):
                     # pack the indices for the tile/block structure "channel name"
                     chname = "%d%d" % (iTile, block)
@@ -155,7 +163,7 @@ class RFDC(xrfdc.RFdc, SocIp):
 
                     # check whether this block is enabled
                     if ip_params['C_%s_Slice%s_Enable' % (tiletype.upper(), chname)] != 'true': continue
-                    self['tiles'][tiletype][iTile]['blocks'].append(chname)
+                    tilecfg['blocks'].append(chname)
                     self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {'index': [iTile, iBlock]}
         # read the clock settings and block configs
         self._read_freqs()
@@ -176,7 +184,10 @@ class RFDC(xrfdc.RFdc, SocIp):
                 tilecfg['fs_div'] = pllcfg['RefClkDivider']*pllcfg['OutputDivider']
                 # we could use SampleRate here, but it's the same
                 tilecfg['fs'] = tilecfg['f_ref']*tilecfg['fs_mult']/tilecfg['fs_div']
+                tilecfg['f_fabric'] = tilecfg['fs']/tilecfg['fabric_div']
+                tilecfg['f_out'] = tilecfg['f_fabric']/tilecfg['out_div']
 
+        """
         # lookup table for deciding whether the AXI-S interface uses IQ or real data
         # this only covers the cases we actually use in our generators/ROs
         mixer2iq = {}
@@ -189,6 +200,7 @@ class RFDC(xrfdc.RFdc, SocIp):
             (xrfdc.MIXER_TYPE_COARSE, xrfdc.MIXER_MODE_R2R): 1,
         }
         fabric_divs = {k:{iTile:[] for iTile in v.keys()} for k,v in self['tiles'].items()}
+        """
         for tiletype in ['dac', 'adc']:
             for chname, chcfg in self[{'dac':'dacs', 'adc':'adcs'}[tiletype]].items():
                 iTile, iBlock = chcfg['index']
@@ -198,10 +210,11 @@ class RFDC(xrfdc.RFdc, SocIp):
                 # copy the tile info
                 chcfg.update(self['tiles'][tiletype][iTile])
                 # clean up parameters that are only used at the tile level
-                del chcfg['ref_div'], chcfg['blocks']
+                del chcfg['ref_div'], chcfg['out_div'], chcfg['fabric_div'], chcfg['f_out'], chcfg['blocks']
 
                 block = self._get_tile(tiletype, iTile).blocks[iBlock]
 
+                """
                 # now we compute the ratio between the sample and fabric clocks
                 # this is surprisingly annoying to do in full generality
                 # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Interface-Data-and-Clock-Rates
@@ -213,22 +226,27 @@ class RFDC(xrfdc.RFdc, SocIp):
                     data_width = block.FabRdVldWords
                 mixer_settings = block.MixerSettings
                 iq = mixer2iq[tiletype][tuple(mixer_settings[k] for k in ['MixerType', 'MixerMode'])]
+                """
 
                 if tiletype == 'dac':
                     chcfg['interpolation'] = block.InterpolationFactor
                     if self['ip_type'] == self.XRFDC_GEN3:
                         chcfg['datapath'] = block.DataPathMode
-                    chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
+                    #chcfg['fabric_div'] = data_width*chcfg['interpolation']//iq
                 else:
                     chcfg['decimation'] = block.DecimationFactor
-                    chcfg['fabric_div'] = data_width*iq//chcfg['decimation']
-                fabric_divs[tiletype][iTile].append(chcfg['fabric_div'])
-                chcfg['f_fabric'] = chcfg['fs']/chcfg['fabric_div']
+                    #chcfg['fabric_div'] = data_width*iq//chcfg['decimation']
+                #fabric_divs[tiletype][iTile].append(chcfg['fabric_div'])
+                #chcfg['f_fabric'] = chcfg['fs']/chcfg['fabric_div']
 
+        """
         for tiletype in ['dac', 'adc']:
             for iTile, tiledivs in fabric_divs[tiletype].items():
                 assert len(set(tiledivs)) == 1
-                self['tiles'][tiletype][iTile]['fabric_div'] = tiledivs[0]
+                tilecfg = self['tiles'][tiletype][iTile]
+                tilecfg['fabric_div'] = tiledivs[0]
+                tilecfg['f_out'] = tilecfg['fs']/tilecfg['fabric_div']/tilecfg['out_div']
+        """
 
     def clocks_locked(self):
         dac_locked = [self.dac_tiles[iTile]

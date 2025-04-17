@@ -4,6 +4,7 @@ Support classes for dealing with FPGA IP blocks.
 from pynq.overlay import DefaultIP
 import numpy as np
 import logging
+from fractions import Fraction
 from qick import obtain
 from .qick_asm import DummyIp
 
@@ -263,6 +264,53 @@ class QickMetadata:
         if len(found) != 1:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
         return found[0]
+
+    def trace_clk_back(self, start_block, start_port):
+        """Follow the clock backwards from a given block and port.
+        Find the source of the clock (the Zynq PS or the RF data converter).
+        Raise an error if the clock can't be traced back to either of those sources.
+        Keep track of clock multipliers encountered on the path.
+
+        Parameters
+        ----------
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the clock input port to start tracing from.
+
+        Returns
+        -------
+        str
+            The fullpath for the block we found.
+        str
+            The clock output port on the block we found.
+        float
+            The frequency of the clock output we found. This is taken from the HWH metadata, and may be incorrect if the clock has been changed by software.
+        Fraction
+            The total multiplier of the clock path. The clock seen by start_block is the product of the two numbers returned.
+        """
+        clk_mult = Fraction(1)
+        next_block = start_block
+        next_port = start_port
+        while next_port is not None:
+            trace_result = self.trace_sig(next_block, next_port)
+            next_port = None
+            for block, port in trace_result:
+                next_type = self.mod2type(block)
+                if next_type == 'clk_wiz' and port.startswith('clk_out'):
+                    next_block = block
+                    next_port = 'clk_in1'
+                    f_out = self.get_fclk(block, port)
+                    f_in = self.get_fclk(block, next_port)
+                    clk_mult *= Fraction(f_out/f_in).limit_denominator()
+                    continue
+                elif next_type == 'zynq_ultra_ps_e' and port.startswith('pl_clk'):
+                    f_clk = self.get_fclk(block, port)
+                    return block, port, f_clk, clk_mult
+                elif next_type == 'usp_rf_data_converter' and port.startswith('clk_'):
+                    f_clk = self.get_fclk(block, port)
+                    return block, port, f_clk, clk_mult
+        raise RuntimeError("tried to trace clock %s from IP block %s, but this clock doesn't seem to come from Zynq PS or RFDC"%(start_port, start_block))
 
 
 class BusParser:
