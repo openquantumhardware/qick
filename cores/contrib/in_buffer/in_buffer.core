@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:in_buffer:0.1
+name: pynq_fused:common:in_buffer:0.1
 description: Simple buffer for interface management
 
 filesets:
@@ -14,12 +14,12 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
   lint_files:
     depend:
-      - stratum:sim:sim_base
-        #- stratum:lint:common
+      - pynq_fused:sim:sim_base
+        #- pynq_fused:lint:common
 
 generate:
   testrunner_gen:

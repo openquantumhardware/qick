@@ -5,7 +5,8 @@ description: IP AXI4-Stream Clock Converter
 filesets:
   rtl:
     depend:
-      - ~stratum:utils:xil_ip_gen:0.5
+      #- ~stratum:utils:xil_ip_gen:0.5
+      - ~pynq_fused:utils:xil_ip_gen:0.1.0
 
 generate:
   cdc_axis:
