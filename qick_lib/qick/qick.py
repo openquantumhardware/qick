@@ -9,7 +9,7 @@ import numpy as np
 import time
 import queue
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
@@ -248,6 +248,53 @@ class RFDC(xrfdc.RFdc, SocIp):
                 tilecfg['f_out'] = tilecfg['fs']/tilecfg['fabric_div']/tilecfg['out_div']
         """
 
+    def map_clocks(self, soc):
+        """Map the clock networks driving the various IP blocks, and determine the resulting constraints on the RFDC sampling rates.
+        This method gets run early in QickSoc initialization because it's needed to check validity of a requested set of sampling freqs.
+
+        This code assumes that the RFDC configuration dictionary has been filled (this happens in RFDC driver initialization).
+        It does not assume that configure_connections() has been run on all drivers.
+        """
+        # first, gather information
+        clk_groups = defaultdict(list)
+        # search for IP blocks with trace_clocks() methods - typically this is just the tProc
+        # we run trace_clocks() here
+        # it will also run as part of QickSoc init (via configure_connections()), but that's after sampling rate modification
+        for blockname, blockdict in soc.ip_dict.items():
+            if hasattr(blockdict['driver'], 'trace_clocks'):
+                ip = soc._get_block(blockname)
+                ip.trace_clocks(soc)
+                for clkname, clkcfg in ip['clk_srcs'].items():
+                    clkid = (blockname, clkname)
+                    clk_groups[clkcfg['source']].append([clkid, clkcfg['src_range']])
+        # check all RFDC inputs and outputs
+        for tiletype, direction in [('dac', 's'), ('adc', 'm')]:
+            for iTile in self['tiles'][tiletype].keys():
+                clkcfg = soc.metadata.trace_clk_back(self['fullpath'],'%s%d_axis_aclk'%(direction, iTile))
+                clkid = (tiletype, iTile)
+                clk_groups[clkcfg['source']].append([clkid, clkcfg['src_range']])
+
+        # now, analyze clock groups
+        self.cfg['clk_groups'] = []
+        for clk_src, clk_dests in clk_groups.items():
+            # find RFDC tiles whose fabric clocks come from this source
+            fs_group = [x[0] for x in clk_dests if x[0][0] in ['dac', 'adc']]
+            if fs_group:
+                self['clk_groups'].append(fs_group)
+            # find limits imposed on the clock source freq
+            src_ranges = [x[1] for x in clk_dests if x[1] is not None]
+
+            if clk_src[0] in ['dac', 'adc']:
+                tilecfg = self['tiles'][clk_src[0]][clk_src[1]]
+                # cross-check
+                # this isn't a fundamental rule, we might end up making a firmware that violates it
+                # for now, this assumption simplifies thinking about clock groups
+                if clk_src not in fs_group:
+                    raise RuntimeError("%s tile %d drives logic, but not its own fabric clock. There may be a problem with this firmware design."%(clk_src[0].upper(), clk_src[1]))
+                # add the output clock limits to the tile info
+                if src_ranges:
+                    tilecfg['outclk_limits'] = [max([x[0] for x in src_ranges]), min([x[1] for x in src_ranges])]
+
     def clocks_locked(self):
         dac_locked = [self.dac_tiles[iTile]
                       .PLLLockStatus == 2 for iTile in self['tiles']['dac']]
@@ -275,6 +322,11 @@ class RFDC(xrfdc.RFdc, SocIp):
         VCO_possible = refclk * Fb_div_vals
         Fb_div_possible = Fb_div_vals[(VCO_possible>=VCO_range[0]) & (VCO_possible<=VCO_range[1])]
         fs_possible = refclk*(Fb_div_possible.T/M_vals[:,np.newaxis]).ravel()
+
+        if 'outclk_limits' in tilecfg:
+            fs_range = [x*tilecfg['out_div']*tilecfg['fabric_div'] for x in tilecfg['outclk_limits']]
+            fs_possible = fs_possible[fs_possible >= fs_range[0]]
+            fs_possible = fs_possible[fs_possible <= fs_range[1]]
 
         # See DS926 "RF-ADC/RF-DAC to PL Interface Performance"
         # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-ADC/RF-DAC-to-PL-Interface-Switching-Characteristics
@@ -692,6 +744,8 @@ class QickSoc(Overlay, QickConfig):
         if not no_rf:
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             self.rf = self.usp_rf_data_converter_0
+            # map the clock networks, so we can validate the requested sampling rates
+            self.rf.map_clocks(self)
 
             # Examine the RFDC config to find the reference clock frequency.
             refclks = []
