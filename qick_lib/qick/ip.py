@@ -4,7 +4,7 @@ Support classes for dealing with FPGA IP blocks.
 from pynq.overlay import DefaultIP
 import numpy as np
 import logging
-from fractions import Fraction
+from collections import defaultdict
 from qick import obtain
 from .qick_asm import DummyIp
 
@@ -71,6 +71,8 @@ class QickMetadata:
         self.systemgraph = None
         # root element of the HWH file
         self.xml = None
+        # QIckSoc object, for getting RFDC clock freqs
+        self.soc = soc
 
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
@@ -135,6 +137,7 @@ class QickMetadata:
     def get_fclk(self, blockname, portname):
         """
         Find the frequency of a clock port.
+        This returns whatever value is in the HWH file, and does not reflect software changes to the frequency after the bitstream was loaded.
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
@@ -265,11 +268,37 @@ class QickMetadata:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
         return found[0]
 
+    def _analyze_clkwiz(self, blockname):
+        """Compute the range of valid input frequencies to a clocking wizard, based on the VCO range.
+        """
+        # determine whether we're using an MMCM or PLL
+        primitive = self.get_param(blockname, 'PRIMITIVE')
+        if primitive == 'Auto':
+            primitive = self.get_param(blockname, 'AUTO_PRIMITIVE')
+        # grab the relevant mult/divide factors
+        if primitive == 'MMCM':
+            div = float(self.get_param(blockname, 'MMCM_DIVCLK_DIVIDE'))
+            mult = float(self.get_param(blockname, 'MMCM_CLKFBOUT_MULT_F'))
+        else:
+            div = float(self.get_param(blockname, 'PLL_DIVCLK_DIVIDE'))
+            mult = float(self.get_param(blockname, 'PLL_CLKFBOUT_MULT'))
+        vco_mult = mult/div
+        # grab the VCO range and compute the input clock range
+        vco_min = float(self.get_param(blockname, 'C_VCO_MIN'))
+        vco_max = float(self.get_param(blockname, 'C_VCO_MAX'))
+        in_min = vco_min/vco_mult
+        in_max = vco_max/vco_mult
+        return in_min, in_max
+
     def trace_clk_back(self, start_block, start_port):
         """Follow the clock backwards from a given block and port.
-        Find the source of the clock (the Zynq PS or the RF data converter).
+        Compute the clock source, the frequency, and any limits imposed by the clock path.
+        Because it traces the clock back to its source, the frequency accounts for software changes.
+
+        The clock source is assumed to be the Zynq PS or the RF data converter.
         Raise an error if the clock can't be traced back to either of those sources.
-        Keep track of clock multipliers encountered on the path.
+
+        The clock path may pass through clocking wizards, which multiply the clock and impose limits on the frequency range.
 
         Parameters
         ----------
@@ -280,16 +309,14 @@ class QickMetadata:
 
         Returns
         -------
-        str
-            The fullpath for the block we found.
-        str
-            The clock output port on the block we found.
-        float
-            The frequency of the clock output we found. This is taken from the HWH metadata, and may be incorrect if the clock has been changed by software.
-        Fraction
-            The total multiplier of the clock path. The clock seen by start_block is the product of the two numbers returned.
+        dict
+            source: The clock source ('PS', 'dac', 'adc'), and the channel number.
+            f_clk: The clock frequency that the block sees (MHz).
+            Accounts for clock multipliers between the source and the given block, and for software changes to the source frequency.
+            src_range: None, or bounds (MHz) on the source clock's frequency.
         """
-        clk_mult = Fraction(1)
+        clk_mult = 1.0
+        src_range = None
         next_block = start_block
         next_port = start_port
         while next_port is not None:
@@ -302,16 +329,99 @@ class QickMetadata:
                     next_port = 'clk_in1'
                     f_out = self.get_fclk(block, port)
                     f_in = self.get_fclk(block, next_port)
-                    clk_mult *= Fraction(f_out/f_in).limit_denominator()
+                    clk_mult *= (f_out/f_in)
+                    if src_range is not None:
+                        src_range[0] /= (f_out/f_in)
+                        src_range[1] /= (f_out/f_in)
+
+                    in_min, in_max = self._analyze_clkwiz(block)
+                    if src_range is None:
+                        src_range = [in_min, in_max]
+                    else:
+                        src_range[0] = max(src_range[0], in_min)
+                        src_range[1] = min(src_range[1], in_max)
                     continue
                 elif next_type == 'zynq_ultra_ps_e' and port.startswith('pl_clk'):
                     f_clk = self.get_fclk(block, port)
-                    return block, port, f_clk, clk_mult
+                    iClk = int(port[6:])
+                    return {
+                            'source': ('PS', iClk),
+                            'f_clk': float(f_clk*clk_mult),
+                            'src_range': src_range
+                            }
                 elif next_type == 'usp_rf_data_converter' and port.startswith('clk_'):
-                    f_clk = self.get_fclk(block, port)
-                    return block, port, f_clk, clk_mult
+                    tilename = port.split('_')[1]
+                    tiletype = tilename[:3]
+                    iTile = int(tilename[3:])
+                    f_clk = self.soc['rf']['tiles'][tiletype][iTile]['f_out']
+                    return {
+                            'source': (tiletype, iTile),
+                            'f_clk': float(f_clk*clk_mult),
+                            'src_range': src_range
+                            }
         raise RuntimeError("tried to trace clock %s from IP block %s, but this clock doesn't seem to come from Zynq PS or RFDC"%(start_port, start_block))
 
+    def analyze_clock_groups(self):
+        """Map the clock networks driving the various IP blocks, and determine the resulting constraints on the RFDC sampling rates.
+        This method gets run early in QickSoc initialization, to check validity of a requested set of sampling freqs.
+
+        This code assumes that the RFDC configuration dictionary has been filled (this happens in RFDC driver initialization).
+        It does not assume that configure_connections() has been run on all drivers.
+
+        Returns
+        -------
+        dict
+            a mapping from clock sources to the ranges imposed on the clock frequencies by clocking wizards in the clock networks
+        list of list of tuple
+            a list of RFDC clock groups: tiles in a group must have their sampling freqs scaled by the same factor
+        """
+        # first, gather information
+        clk_groups = defaultdict(list)
+        # search for IP blocks with trace_clocks() methods - typically this is just the tProc
+        # we run trace_clocks() here
+        # it will also run as part of QickSoc init (via configure_connections()), but that's after sampling rate modification
+        for blockname, blockdict in self.soc.ip_dict.items():
+            if hasattr(blockdict['driver'], 'trace_clocks'):
+                ip = self.soc._get_block(blockname)
+                ip.trace_clocks(self.soc)
+                for clkname, clkcfg in ip['clk_srcs'].items():
+                    clkid = (blockname, clkname)
+                    clk_groups[clkcfg['source']].append([clkid, clkcfg['src_range']])
+        # check all RFDC inputs and outputs
+        for tiletype, direction in [('dac', 's'), ('adc', 'm')]:
+            for iTile in self.soc['rf']['tiles'][tiletype].keys():
+                clkcfg = self.trace_clk_back(self.soc.rf['fullpath'],'%s%d_axis_aclk'%(direction, iTile))
+                clkid = (tiletype, iTile)
+                clk_groups[clkcfg['source']].append([clkid, clkcfg['src_range']])
+
+        # now, analyze clock groups
+        fs_limited = {}
+        fs_groups = []
+        for clk_src, clk_dests in clk_groups.items():
+            # find RFDC tiles whose fabric clocks come from this source
+            fs_group = [x[0] for x in clk_dests if x[0][0] in ['dac', 'adc']]
+            if fs_group:
+                fs_groups.append(fs_group)
+            # find limits imposed on the clock source freq
+            src_ranges = [x[1] for x in clk_dests if x[1] is not None]
+            if src_ranges:
+                src_range = [max([x[0] for x in src_ranges]), min([x[1] for x in src_ranges])]
+            else:
+                src_range = None
+
+            if clk_src[0] in ['dac', 'adc']:
+                tilecfg = self.soc['rf']['tiles'][clk_src[0]][clk_src[1]]
+                # cross-check
+                # this isn't a fundamental rule, we might end up making a firmware that violates it
+                # for now, this assumption simplifies thinking about clock groups
+                if clk_src not in fs_group:
+                    raise RuntimeError("%s tile %d drives logic, but not its own fabric clock. There may be a problem with this firmware design."%(clk_src[0].upper(), clk_src[1]))
+                # convert the output clock limits into sampling rate limits
+                if src_range is not None:
+                    fs_range = [x*tilecfg['out_div']*tilecfg['fabric_div'] for x in src_range]
+                    fs_limited[clk_src] = fs_range
+
+        return fs_limited, fs_groups
 
 class BusParser:
     """Parses the HWH XML file to extract information on the buses connecting IP blocks.
