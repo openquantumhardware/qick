@@ -8,3 +8,5 @@ fusesoc.conf
 lib
 tools
 *.egg-info
+# Jupyter Notebook
+.ipynb_checkpoints
