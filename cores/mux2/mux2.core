@@ -10,7 +10,7 @@ filesets:
 
   tb:
     files:
-      - tb/mux2_tb.sv
+      - test/mux2_tb.sv
     file_type: systemVerilogSource
 
   pynq_z2:
