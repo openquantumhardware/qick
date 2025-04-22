@@ -32,5 +32,5 @@ packages = ["cores", "models", "pyxsi_utils", "simutils"]
 [tool.setuptools.package-dir]
 cores = "cores"
 models = "scripts/utils"
-pyxsi_utils = "cfg/pyxsi_utils"
-simutils = "cfg/simutils"
+pyxsi_utils = "common/pyxsi_utils"
+simutils = "common/simutils"
