@@ -1,17 +1,16 @@
 module mux2_tb;
 
  //inputs
- reg a, b, select;
+ logic a, b, select;
  //outputs
- wire y;
+ logic y;
 
- mux2 u0_DUT#(
-   .WIDTH(1'b1)
-   )(
-  .d0(a),
-  .d1(b),
-  .s(select),
-  .y(y)
+ mux2 #(.NB_DATA(1'b1))
+ u0_DUT(
+  .i_d0(a),
+  .i_d1(b),
+  .i_s(select),
+  .o_y(y)
  );
 
  //initialize inputs

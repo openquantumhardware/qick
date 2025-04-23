@@ -1,5 +1,5 @@
 CAPI=2:
-name: lha:utils:mux2:1.0.0
+name: pynq_fused:utils:mux2:1.0.0
 description: Parametrizable MUX2x1 core
 
 filesets:
