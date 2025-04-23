@@ -1,0 +1,19 @@
+CAPI=2:
+name: pynq_fused:utils:rdl_gen:0.2.2
+
+generators:
+  rdl_gen:
+    interpreter: python3
+    command: rdl_gen.py
+    description: Generate the rtl logic of the register banks (CSR).
+    cache_type: input
+    file_input_parameters: rdl_file
+    usage: |
+      Modules have their own register bank (CSR) which is generated from an RDL file and a header.
+      The RDL generator creates a RegMap and headers of a specific type and then exports the produced files.
+
+      Parameters:
+          rdl_file (str): List of rdl files
+          documentation (str): Generate html documentation (html)
+          headers (list): List of possible headers to generate (- c, - verilog)
+          is_top (bool): Variable that indicates if the module belongs a top_level instance or not (default: false).

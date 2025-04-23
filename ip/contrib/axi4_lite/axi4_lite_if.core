@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:interfaces:axi4_lite:0.2.0
+name: pynq_fused:interfaces:axi4_lite:0.2.0
 description: AXI4 Lite interface definition (includes master & slave modports)
 
 filesets:

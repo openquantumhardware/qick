@@ -1,6 +1,6 @@
 CAPI=2:
 name: pynq_fused:utils:leds_status:0.1.0
-description: PPS counter and UTC Time decoder coming from a GPS. It recovers ZDA sentences
+description: LEDs status utility block
 
 filesets:
   rtl:
@@ -9,9 +9,8 @@ filesets:
       - rtl/manager_led.sv : {file_type: systemVerilogSource}
       - rtl/leds_status.sv : {file_type: systemVerilogSource}
     depend:
-      - pynq_fused:adsb:leds_status_regmap
+      - pynq_fused:utils:leds_status_regmap
       - pynq_fused:interfaces:axi4_lite
-      - pynq_fused:adsb:adsb_pkg
 
   tb:
     files: &tb_files
@@ -19,8 +18,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - pynq_fused:sim:sim_base
-      - pynq_fused:sim:nmea_functions
+      - pynq_fused:common:sim_base
 
 
 generate:

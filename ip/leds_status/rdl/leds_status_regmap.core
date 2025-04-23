@@ -1,6 +1,6 @@
 CAPI=2:
-name: pynq_fused::leds_status_regmap:0.1
-description: "UTC Time Register Map"
+name: pynq_fused:utils:leds_status_regmap:0.1
+description: "LEDs status Register Map"
 
 filesets:
   rdl:
