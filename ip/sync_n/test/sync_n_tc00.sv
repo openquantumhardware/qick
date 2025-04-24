@@ -9,7 +9,7 @@ import svunit_pkg::svunit_testcase;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam N                 = 2;
+  localparam N                 = 4;
 
   logic      tb_clk     = 1'b0;
   logic      tb_rstn    = 1'b1;
