@@ -1,0 +1,74 @@
+CAPI=2:
+name: pynq_fused:utils:sync2ff:1.0.0
+description: Parametrizable 2 flip-flop synchronizer core
+
+filesets:
+  rtl:
+    files:
+      - rtl/sync2ff.sv
+    file_type: systemVerilogSource
+
+  tb:
+    files:
+      - test/sync2ff_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - pynq_fused:common:sim_base
+
+
+  pynq_z2:
+    files:
+      - data/pynq_z2.xdc: {file_type: xdc}
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/in_buffer_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: sync2ff
+    parameters:
+      - NB
+
+  test:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  # The "synth" target synthesizes the design. (It could have any name.)
+  synth:
+    <<: *default
+    description: Synthesize the design for a Nexys Video FPGA board
+    default_tool: vivado
+    filesets_append:
+      - pynq_z2
+    tools:
+      vivado:
+        part: xc7z020clg400-1
+    parameters:
+      - NB=8
+
+parameters:
+  NB:
+    datatype    : int
+    description : Width of the I/O ports in bits
+    paramtype   : vlogparam
