@@ -1,5 +1,5 @@
 CAPI=2:
-name: pynq_fused:utils:sync2ff:1.0.0
+name: pynq_fused:utils:ack_cmd:1.0.0
 description: Parametrizable 2 flip-flop synchronizer core
 
 filesets:
@@ -11,7 +11,7 @@ filesets:
   tb:
     files:
       - test/sync2ff_tc00.sv
-      - tests/tests.sv: {is_include_file: true}
+      - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
       - pynq_fused:common:sim_base
@@ -26,7 +26,7 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - tests/in_buffer_tc00.sv
+          - test/ack_cmd_tc00.sv
 
 targets:
   default: &default
