@@ -1,16 +1,17 @@
 CAPI=2:
-name: pynq_fused:utils:sync2ff:1.0.0
-description: Parametrizable 2 flip-flop synchronizer core
+name: pynq_fused:utils:sync_nxm:1.0.0
+description: Parametrizable N stages by M data width register synchronizer core.
+             Minimum value of N=2.
 
 filesets:
   rtl:
     files:
-      - rtl/sync2ff.sv
+      - rtl/sync_nxm.sv
     file_type: systemVerilogSource
 
   tb:
     files:
-      - test/sync2ff_tc00.sv
+      - test/sync_nxm_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
@@ -26,13 +27,13 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/sync2ff_tc00.sv
+          - test/sync_nxm_tc00.sv
 
 targets:
   default: &default
     filesets:
       - rtl
-    toplevel: sync2ff
+    toplevel: sync_nxm
     parameters:
       - NB
 

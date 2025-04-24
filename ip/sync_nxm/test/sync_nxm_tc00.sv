@@ -1,25 +1,25 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module sync2ff_unit_test;
+module sync_nxm_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "sync2ff_ut";
+  string name = "sync_nxm_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam NB                 = 32;
+  localparam N                  = 2;  //number of stages. Minimum = 2
+  localparam M                  = 32; // data width
 
   logic              tb_clk     = 1'b0;
   logic              tb_rstn    = 1'b1;
 
-  logic [NB-1:0]     tb_i_data  = '0;
-
-  logic [NB-1:0]     tb_o_data  = '0;
+  logic [M-1:0]     tb_i_data  = '0;
+  logic [M-1:0]     tb_o_data  = '0;
 
 initial begin
-  $dumpfile("sync2ff.vcd");
+  $dumpfile("sync_nxm.vcd");
   $dumpvars();
 end
 
@@ -42,18 +42,19 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-sync2ff
+sync_nxm
 #(
-  .NB (NB)
+  .N (N),
+  .M (M)
 )
-u_sync2ff
+u_sync_nxm
 (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
 
   .i_d        ( tb_i_data  ),
                            
-  .o_d        ( tb_o_data  ),
+  .o_d        ( tb_o_data  )
 );
 
 //===================================
@@ -72,9 +73,9 @@ task setup();
   tb_i_data  = '0;
   
   @(negedge tb_clk);
-  tb_rstn             <= 1'b1;
-  repeat(2) @(negedge tb_clk);
   tb_rstn             <= 1'b0;
+  repeat(2) @(negedge tb_clk);
+  tb_rstn             <= 1'b1;
   repeat(5) @(negedge tb_clk);
 
 endtask
