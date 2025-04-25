@@ -1,0 +1,68 @@
+CAPI=2:
+
+name: pynq_fused:utils:axis_exec_op:0.1.0
+description: Verilog module for executing logic operations over AXI4-Stream interface data. It applies logic operations over 32-bit words moved by AXI4-Streams interfaces.
+
+
+filesets:
+  rtl:
+    files:
+      - hdl/axis_exec_op.sv  
+      - hdl/axis_exec_op_wrapper.v  
+      - hdl/easyaxil_out.v  
+      - hdl/fallthrough_small_fifo_v2.v  
+      - hdl/small_fifo_v3.v
+    file_type: verilogSource
+
+  xdc:
+    files:
+      - uart_led_pins_pynq.xdc
+      - uart_led_timing_pynq.xdc
+    file_type : xdc
+
+  tcl:
+    files:
+      - tcl/axis_exec_op.tcl
+      - tcl/metadata.tcl
+    file_type: tclSource
+
+  tb:
+    files: &tb_files
+      - tests/leds_status_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:common:sim_base
+
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files:
+        - tests/leds_status_tc00.sv
+
+targets:
+  default: &default
+
+  pynq_z2:
+    default_tool: vivado
+    description : Pynq-Z2 Zynq Z7020 Evaluation Kit
+    filesets : [rtl, tcl]
+    tools:
+      vivado:
+        part : xc7z020clg400-1
+        toplevel : system_wrapper
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate_append:
+      - testrunner_gen
+    toplevel: [testrunner]
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -timescale 1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
