@@ -1,0 +1,60 @@
+CAPI=2:
+
+name: adiuvo::hackster:0.1
+description: Implementation for Hackster Project
+ 
+filesets:
+  core:
+    files:
+      - src/protocol.vhd	: {logical_name: work}
+      - src/uart_pkg.vhd	: {logical_name: work}
+      - src/uart.vhd        : {logical_name: work}
+      - src/top_level.vhd   : {logical_name: work}
+    file_type: vhdlSource
+
+  vivado_files_tcl:
+    files:
+      - src/build_ip.tcl: {file_type: tclSource}
+
+  artix_io:
+    files:
+      - constraints/artix7.xdc : {file_type : xdc}
+      
+  kintex_io:
+    files:
+      - constraints/kintexus.xdc : {file_type : xdc}
+
+  spartan_io:
+    files:
+      - constraints/spartan7.xdc : {file_type : xdc}
+
+targets:
+  default: &default
+    filesets : [core]
+
+  artix7:
+    <<: *default
+    default_tool: vivado
+    filesets_append : [vivado_files_tcl, artix_io]
+    toplevel : top_level
+    tools:
+      vivado:
+        part : XC7A35TI-CSG324-1L
+
+  spartan7:
+    <<: *default
+    default_tool: vivado
+    filesets_append : [vivado_files_tcl, spartan_io]
+    toplevel : top_level
+    tools:
+      vivado:
+        part : xc7s50-csga324-1
+
+  kintexus:
+    <<: *default
+    default_tool: vivado
+    filesets_append : [vivado_files_tcl, kintex_io]
+    toplevel : top_level
+    tools:
+      vivado:
+        part : xcku040-ffva1156-2-i  
