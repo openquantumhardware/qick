@@ -13,7 +13,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - pynq_fused:sim:sim_base
+      - pynq_fused:common:sim_base
 
 generate:
   testrunner_gen:

@@ -14,7 +14,6 @@ module pps_gen_tc00_unit_test;
     logic              tb_rst = 1'b0;
     logic              tb_pps = 1'b0;
     logic              tb_en  = 1'b0;
-    logic              tb_pps = 1'b0;
     logic [26-1   : 0] tb_pps_count = '0;
     logic              tb_false_pps_led;
 
