@@ -50,7 +50,7 @@ endgroup
 connect_bd_net [get_bd_pins processing_system7_0/GPIO_O] [get_bd_pins uart_led_0/rxd_pin]
 regenerate_bd_layout
 validate_bd_design
-make_wrapper -files [get_files ./lab2.srcs/sources_1/bd/system/system.bd] -top
-add_files -norecurse ./lab2.gen/sources_1/bd/system/hdl/system_wrapper.v
+make_wrapper -files [get_files ./xup__lab2_1.0.0.srcs/sources_1/bd/system/system.bd] -top
+add_files -norecurse ./xup__lab2_1.0.0.gen/sources_1/bd/system/hdl/system_wrapper.v
 update_compile_order -fileset sources_1
 set_property top system_wrapper [current_fileset]
