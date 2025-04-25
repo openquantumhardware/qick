@@ -35,7 +35,7 @@ targets:
     tools:
       vivado:
         part : xc7z020clg400-1
-    toplevel : system_wrapper
+    toplevel : lab2
 
   sim:
      default_tool: icarus
