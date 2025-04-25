@@ -1,5 +1,5 @@
 CAPI=2:
-name: pynq_fused:common:io_buffer:0.1
+name: pynq_fused:common:io_buffer:0.1.0
 description: Simple io buffer for interface management
 
 filesets:
