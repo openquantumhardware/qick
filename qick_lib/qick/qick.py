@@ -744,6 +744,7 @@ class QickSoc(Overlay, QickConfig):
         if not no_rf:
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
             self.rf = self.usp_rf_data_converter_0
+            self['rf'] = self.rf.cfg
             # map the clock networks, so we can validate the requested sampling rates
             self.rf.map_clocks(self)
 
@@ -762,7 +763,6 @@ class QickSoc(Overlay, QickConfig):
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
-            self['rf'] = self.rf.cfg
             # TODO: all code should reference ['rf']
             self['dacs'] = self.rf['dacs']
             self['adcs'] = self.rf['adcs']
@@ -999,6 +999,9 @@ class QickSoc(Overlay, QickConfig):
                 # default value is 0x01471A
                 xrfclk.xrfclk._Config['lmk04828'][lmk_freq][80] = 0x01470A
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
+
+        # wait for the clock chips to lock
+        time.sleep(1.0)
 
     def get_decimated(self, ch, address=0, length=None):
         """

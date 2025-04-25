@@ -436,8 +436,8 @@ class Axis_QICK_Proc(SocIp):
         super().configure_connections(soc)
 
         self.trace_clocks(soc)
-        self.cfg['f_core'] = self.cfg['clk_srcs']['timing clock']['f_clk']
-        self.cfg['f_time'] = self.cfg['clk_srcs']['core clock']['f_clk']
+        self.cfg['f_core'] = self.cfg['clk_srcs']['core clock']['f_clk']
+        self.cfg['f_time'] = self.cfg['clk_srcs']['timing clock']['f_clk']
 
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
