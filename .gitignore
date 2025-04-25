@@ -10,3 +10,5 @@ tools
 *.egg-info
 # Jupyter Notebook
 .ipynb_checkpoints
+#vim swap files
+*.swp
