@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="dds_model_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="dds_model_tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="3714486001fs"></ZoomEndTime>
+      <Cursor1Time time="0fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="175"></NameColumnWidth>
+      <ValueColumnWidth column_width="134"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="8" />
+   <wave_markers>
+      <marker label="" time="53965000000" />
+   </wave_markers>
+   <wvobject type="logic" fp_name="/dds_model_tb/dut_0/aclk">
+      <obj_property name="ElementShortName">aclk</obj_property>
+      <obj_property name="ObjectShortName">aclk</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dds_model_tb/dut_0/aresetn">
+      <obj_property name="ElementShortName">aresetn</obj_property>
+      <obj_property name="ObjectShortName">aresetn</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dds_model_tb/dut_0/s_axis_phase_tvalid">
+      <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dds_model_tb/dut_0/s_axis_phase_tdata">
+      <obj_property name="ElementShortName">s_axis_phase_tdata[15:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tdata[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/dds_model_tb/dut_0/m_axis_data_tvalid">
+      <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dds_model_tb/dut_0/m_axis_data_tdata">
+      <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dds_model_tb/real_out">
+      <obj_property name="ElementShortName">real_out[15:0]</obj_property>
+      <obj_property name="ObjectShortName">real_out[15:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/dds_model_tb/imag_out">
+      <obj_property name="ElementShortName">imag_out[15:0]</obj_property>
+      <obj_property name="ObjectShortName">imag_out[15:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+</wave_config>

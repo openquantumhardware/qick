@@ -2,67 +2,69 @@ CAPI=2:
 
 name: pynq_fused:utils:axis_exec_op:0.1.0
 description: Verilog module for executing logic operations over AXI4-Stream interface data. It applies logic operations over 32-bit words moved by AXI4-Streams interfaces.
-
-
+ 
 filesets:
-  rtl:
+  core:
     files:
-      - hdl/axis_exec_op.sv  
+      - hdl/axis_exec_op.sv : {file_type: systemVerilogSource}  
       - hdl/axis_exec_op_wrapper.v  
       - hdl/easyaxil_out.v  
       - hdl/fallthrough_small_fifo_v2.v  
       - hdl/small_fifo_v3.v
     file_type: verilogSource
 
-  xdc:
+  vivado_tcl:
     files:
-      - uart_led_pins_pynq.xdc
-      - uart_led_timing_pynq.xdc
-    file_type : xdc
-
-  tcl:
-    files:
+      #- tcl/metadata.tcl
       - tcl/axis_exec_op.tcl
-      - tcl/metadata.tcl
     file_type: tclSource
 
-  tb:
-    files: &tb_files
-      - tests/leds_status_tc00.sv
-      - tests/tests.sv: {is_include_file: true}
-    file_type: systemVerilogSource
-    depend:
-      - pynq_fused:common:sim_base
+  artix_io:
+    files:
+      - constraints/artix7.xdc : {file_type : xdc}
+      
+  kintex_io:
+    files:
+      - constraints/kintexus.xdc : {file_type : xdc}
 
-
-generate:
-  testrunner_gen:
-    generator: svunit_gen
-    parameters:
-      test_files:
-        - tests/leds_status_tc00.sv
+  spartan_io:
+    files:
+      - constraints/spartan7.xdc : {file_type : xdc}
 
 targets:
   default: &default
+    filesets : [core]
 
-  pynq_z2:
+  ip:
+    <<: *default
     default_tool: vivado
-    description : Pynq-Z2 Zynq Z7020 Evaluation Kit
-    filesets : [rtl, tcl]
+    filesets_append: [vivado_tcl]
+    toplevel : axis_exec_op
+
+
+  artix7:
+    <<: *default
+    default_tool: vivado
+    filesets_append : [tcl, artix_io]
+    toplevel : top_level
     tools:
       vivado:
-        part : xc7z020clg400-1
-        toplevel : system_wrapper
+        part : XC7A35TI-CSG324-1L
 
-  test:
+  spartan7:
     <<: *default
-    description: Run testbenches
-    filesets_append: [tb]
-    default_tool: xsim
-    generate_append:
-      - testrunner_gen
-    toplevel: [testrunner]
+    default_tool: vivado
+    filesets_append : [vivado_files_tcl, spartan_io]
+    toplevel : top_level
     tools:
-      xsim:
-        xelab_options: [-debug all -L XPM -timescale 1ns/1ps]
-        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      vivado:
+        part : xc7s50-csga324-1
+
+  kintexus:
+    <<: *default
+    default_tool: vivado
+    filesets_append : [vivado_files_tcl, kintex_io]
+    toplevel : top_level
+    tools:
+      vivado:
+        part : xcku040-ffva1156-2-i  
