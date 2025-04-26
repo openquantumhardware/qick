@@ -21,16 +21,7 @@ set family_lifecycle { \
   kintex7l Production \
   kintexu Production \
   kintexuplus Production \
-  virtex7 Production \
-  virtexu Production \
   virtexuplus Production \
   zynq Production \
   zynquplus Production \
-  aartix7 Production \
-  azynq Production \
-  qartix7 Production \
-  qkintex7 Production \
-  qkintex7l Production \
-  qvirtex7 Production \
-  qzynq Production \
 }

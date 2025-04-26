@@ -6,16 +6,15 @@ description: Verilog module for executing logic operations over AXI4-Stream inte
 filesets:
   core:
     files:
-      - hdl/axis_exec_op.sv : {file_type: systemVerilogSource}  
-      - hdl/axis_exec_op_wrapper.v  
-      - hdl/easyaxil_out.v  
-      - hdl/fallthrough_small_fifo_v2.v  
-      - hdl/small_fifo_v3.v
-    file_type: verilogSource
+      - hdl/axis_exec_op.sv : {file_type: systemVerilogSource, copyto : axis_exec_op.sv}  
+      - hdl/easyaxil_out.v : {file_type: verilogSource, copyto : easyaxil_out.v}   
+      - hdl/fallthrough_small_fifo_v2.v : {file_type: verilogSource, copyto : fallthrough_small_fifo_v2.v}   
+      - hdl/small_fifo_v3.v : {file_type: verilogSource, copyto : small_fifo_v3.v}  
+      - hdl/axis_exec_op_wrapper.v : {file_type: verilogSource, copyto : axis_exec_op_wrapper.sv}   
 
-  vivado_tcl:
+  tcl:
     files:
-      #- tcl/metadata.tcl
+      - tcl/metadata.tcl : {file_type : user, copyto : metadata.tcl}
       - tcl/axis_exec_op.tcl
     file_type: tclSource
 
@@ -35,12 +34,16 @@ targets:
   default: &default
     filesets : [core]
 
-  ip:
-    <<: *default
-    default_tool: vivado
-    filesets_append: [vivado_tcl]
-    toplevel : axis_exec_op
-
+  synth:
+      <<: *default
+      default_tool : vivado
+      description : synthesis target
+      filesets :
+          - core
+          - tcl
+      tools:
+        vivado: {source_mgmt_mode: All}
+      toplevel : [axis_exec_op_wrapper]
 
   artix7:
     <<: *default
