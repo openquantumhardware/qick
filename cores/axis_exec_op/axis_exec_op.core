@@ -6,15 +6,15 @@ description: Verilog module for executing logic operations over AXI4-Stream inte
 filesets:
   core:
     files:
-      - hdl/axis_exec_op.sv : {file_type: systemVerilogSource, copyto : axis_exec_op.sv}  
-      - hdl/easyaxil_out.v : {file_type: verilogSource, copyto : easyaxil_out.v}   
-      - hdl/fallthrough_small_fifo_v2.v : {file_type: verilogSource, copyto : fallthrough_small_fifo_v2.v}   
-      - hdl/small_fifo_v3.v : {file_type: verilogSource, copyto : small_fifo_v3.v}  
-      - hdl/axis_exec_op_wrapper.v : {file_type: verilogSource, copyto : axis_exec_op_wrapper.sv}   
+      - hdl/axis_exec_op.sv : {file_type: systemVerilogSource, copyto : hdl/axis_exec_op.sv}  
+      - hdl/easyaxil_out.v : {file_type: verilogSource, copyto : hdl/easyaxil_out.v}   
+      - hdl/fallthrough_small_fifo_v2.v : {file_type: verilogSource, copyto : hdl/fallthrough_small_fifo_v2.v}   
+      - hdl/small_fifo_v3.v : {file_type: verilogSource, copyto : hdl/small_fifo_v3.v}  
+      - hdl/axis_exec_op_wrapper.v : {file_type: verilogSource, copyto : hdl/axis_exec_op_wrapper.sv}   
 
   tcl:
     files:
-      - tcl/metadata.tcl : {file_type : user, copyto : metadata.tcl}
+      - tcl/metadata.tcl : {file_type : user, copyto : tcl/metadata.tcl}
       - tcl/axis_exec_op.tcl
     file_type: tclSource
 

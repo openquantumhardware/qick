@@ -1,7 +1,5 @@
-set path [file tail [pwd]]
-puts ${path}
 # Source metadata
-source ./metadata.tcl
+source ./tcl/metadata.tcl
 
 # Create project 
 set ip_project [ create_project -name ${design} -force -dir ${proj_dir} -ip ]
@@ -9,8 +7,8 @@ set_property top ${top} [current_fileset]
 set_property source_mgmt_mode All ${ip_project}
 
 # Read source files from hdl directory
-set v_src_files [glob ./*.v]
-set sv_src_files [glob ./*.sv]
+set v_src_files [glob ./hdl/*.v]
+set sv_src_files [glob ./hdl/*.sv]
 read_verilog ${v_src_files}
 read_verilog -sv ${sv_src_files}
 update_compile_order -fileset sources_1
