@@ -1,0 +1,16 @@
+CAPI=2:
+name: fnal:qick:qick_pkg:0.1.0
+description: Package with system definitions
+
+filesets:
+  rtl:
+    files:
+      - rtl/qick_pkg.sv
+    file_type: systemVerilogSource
+    depend:
+      - fnal:qick:fxp_pkg
+
+targets:
+  default: &default
+    filesets:
+      - rtl
