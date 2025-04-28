@@ -380,13 +380,12 @@ class RFDC(xrfdc.RFdc, SocIp):
         Check if the requested sampling frequency is supported.
         If not, it will return the closest achievable frequency.
         """
-        # TODO: warn or error if you're raising the frequency
         fs_possible = self.valid_samp_freqs(tiletype, tile)
         fs_best = fs_possible[np.argmin(np.abs(fs_possible - fs_target))]
         fs_err = fs_best - fs_target
-        logger.info('fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(fs_target, fs_best, fs_err))
+        self.logger.info('fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(fs_target, fs_best, fs_err))
         if abs(fs_err) > 1:
-            logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype, tile, fs_target, fs_best))
+            self.logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype.upper(), tile, fs_target, fs_best))
         return fs_best
 
     def _set_sample_rate(self, tiletype, tile, fs):
@@ -394,9 +393,12 @@ class RFDC(xrfdc.RFdc, SocIp):
         Set the sample rate of a tile.
         """
         fs_best = self.check_samp_freq(tiletype, tile, fs)
+        fs_current = self['tiles'][tiletype][tile]['fs']
+        if fs_best > fs_current+0.1:
+            self.logger.warning('%s tile %d: requested fs (%.3f MHz) is greater than current fs (%.3f MHz)'%(tiletype.upper(), tile, fs_best, fs_current))
         if abs(fs_best-fs) > 10:
-            raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype, tile, fs, fs_best))
-        logging.info('programming %s tile %d to %.3f MHz'%(tiletype, tile, fs))
+            raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype.upper(), tile, fs, fs_best))
+        self.logger.info('programming %s tile %d to %.3f MHz'%(tiletype.upper(), tile, fs))
         f_ref = self['tiles'][tiletype][tile]['f_ref']
         self._get_tile(tiletype, tile).DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs_best)
 
@@ -409,7 +411,7 @@ class RFDC(xrfdc.RFdc, SocIp):
             if fs_dict is not None:
                 for iTile, fs in fs_dict.items():
                     if iTile not in self['tiles'][tiletype].keys():
-                        raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype, iTile))
+                        raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype.upper(), iTile))
                     self._set_sample_rate(tiletype, iTile, fs)
         # we changed the clocks, so refresh that info
         self._read_freqs()
