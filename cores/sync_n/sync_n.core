@@ -1,5 +1,5 @@
 CAPI=2:
-name: pynq_fused:utils:sync_n:1.0.0
+name: fnal:utils:sync_n:1.0.0
 description: Parametrizable N stages by 1 data width register synchronizer core.
              Minimum value of N=2.
 
