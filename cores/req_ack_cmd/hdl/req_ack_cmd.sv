@@ -8,104 +8,111 @@
 // Description: Board communication peripheral
 //
 //
-// Change history: 10/20/24 - v2 Started by mdifederico
+// Change history: 10/20/24 - v2 Started by @mdifederico
 //                 04/27/25 - Refactored by @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
 module req_ack_cmd (
-   input  logic             src_clk_i   ,
-   input  logic             src_rst_ni  ,
-   // Command Input
-   input  logic             src_vld_i   ,
-   input  logic [ 4:0]      src_op_i    ,
-   input  logic [ 3:0]      src_dst_i   ,
-   input  logic [31:0]      src_dt_i    ,
-   // Command Execution
-   output logic              loc_req_o   ,
-   output logic              net_req_o   ,
-   input  logic             async_ack_i ,
-   input  logic             sync_ack_i  ,
-   output logic [ 7:0]      cmd_op_o    ,
-   output logic [31:0]      cmd_dt_o    ,
-   output logic  [3:0]       cmd_cnt_do
+    input  logic        i_clk       ,
+    input  logic        i_rstn      ,
+    // Command Input
+    input  logic        i_valid     ,
+    input  logic [ 4:0] i_op        ,
+    input  logic [ 3:0] i_addr      ,
+    input  logic [31:0] i_data      ,
+    // Command Execution
+    output logic        o_loc_req   ,
+    output logic        o_net_req   ,
+    input  logic        i_async_ack ,
+    input  logic        i_sync_ack  ,
+    output logic [ 7:0] o_op        ,
+    output logic [31:0] o_data      ,
+    output logic  [3:0] o_data_cntr
 );
 
-sync_reg #(.DW(1)) sync_ack (
-   .dt_i      ( async_ack_i ),
-   .clk_i     ( src_clk_i   ),
-   .rst_ni    ( src_rst_ni  ),
-   .dt_o      ( async_ack_s  ));
+    logic [ 7:0]   cmd_op_r, cmd_op_n;
+    logic [31:0]   cmd_dt_r, cmd_dt_n;
+    logic [ 3:0]   cmd_cnt_r, cmd_cnt_n;
 
-assign ack_s = sync_ack_i | async_ack_s ;
-   
-typedef enum { IDLE, LOC_REQ, NET_REQ, ACK} TYPE_CMD_ST ;
-(* fsm_encoding = "one_hot" *) TYPE_CMD_ST cmd_st;
-TYPE_CMD_ST cmd_st_nxt;
+    sync_n #(.N(2)) sync_ack (
+        .i_clk     ( i_clk       ),
+        .rst_ni    ( i_rstn      ),
+        .dt_i      ( i_async_ack ),
+        .dt_o      ( async_ack_s )
+    );
 
-always_ff @ (posedge src_clk_i) begin
-   if      ( !src_rst_ni ) cmd_st <= IDLE;
-   else                    cmd_st <= cmd_st_nxt;
-end
+    assign ack_s = i_sync_ack | async_ack_s ;
 
-always_comb begin
-   cmd_st_nxt  = cmd_st; // Default Current
-   loc_req_o   = 1'b0;
-   net_req_o   = 1'b0;
-   case (cmd_st)
-      IDLE   :  begin
-         if ( src_vld_i ) 
-            if (src_op_i[4]) begin
-                cmd_st_nxt  = LOC_REQ;
-                loc_req_o   =  1'b1;
-            end else begin
-                cmd_st_nxt  = NET_REQ;
-                net_req_o   = 1'b1;
-         end
-      end
-      LOC_REQ  :  begin
-         loc_req_o       = 1'b1;
-         if ( ack_s ) cmd_st_nxt = ACK;     
-      end
-      NET_REQ  :  begin
-         net_req_o       = 1'b1;
-         if ( ack_s ) cmd_st_nxt = ACK;     
-      end
-      ACK  :  begin
-         if ( !ack_s ) cmd_st_nxt = IDLE;     
-      end
-      default: cmd_st_nxt = cmd_st;
-   endcase
-end
+    typedef enum logic [1:0] {IDLE    = 2'b00, 
+                              LOC_REQ = 2'b01, 
+                              NET_REQ = 2'b10, 
+                              ACK     = 2'b11
+    } state_r, state_n;
 
-// assign req = loc_req_o | net_req_o ;
+    //State register
+    always_ff @ (posedge i_clk) begin
+        if ( !i_rstn ) state_r <= IDLE;
+        else           state_r <= state_n;
+    end
 
- 
-logic  [ 7:0]   cmd_op_r;
-logic  [31:0]   cmd_dt_r;
-logic  [ 3:0]   cmd_cnt;
-logic [ 7:0]   cmd_op_s;
-assign cmd_op_s = {src_op_i[3:0], src_dst_i};
+    //next state logic
+    always_comb begin
+        state_n  = state_r; 
+        o_loc_req   = 1'b0;
+        o_net_req   = 1'b0;
+        case (state_r)
+            IDLE: begin
+                if ( i_valid ) begin 
+                    if (i_op[4]) begin
+                        state_n   = LOC_REQ;
+                        o_loc_req = 1'b1;
+                    end else begin
+                        state_n   = NET_REQ;
+                        o_net_req = 1'b1;
+                    end
+                end
+            end
+            LOC_REQ:  begin
+                o_loc_req = 1'b1;
+                if ( ack_s ) state_n = ACK;     
+            end
+            NET_REQ:  begin
+                o_net_req = 1'b1;
+                if ( ack_s ) state_n = ACK;     
+            end
+            ACK:  begin
+                if ( !ack_s ) state_n = IDLE;     
+            end
+            default: 
+                state_n = state_r;
+        endcase
+    end
 
-always_ff @(posedge src_clk_i) 
-   if (!src_rst_ni) begin
-      cmd_op_r   <= '{default:'0};
-      cmd_dt_r   <= '{default:'0};
-      cmd_cnt    <= 4'd0;
-   end else if ( src_vld_i ) begin
-      cmd_op_r   <= cmd_op_s ;
-      cmd_dt_r   <= src_dt_i ;
-      cmd_cnt    <= cmd_cnt + 1'b1;
-   end
-   
-   
-// OUTPUTS
-///////////////////////////////////////////////////////////////////////////////
-assign cmd_op_o   = src_vld_i ? cmd_op_s : cmd_op_r;
-assign cmd_dt_o   = src_vld_i ? src_dt_i : cmd_dt_r;
+    always_ff @(posedge i_clk) 
+        if (!i_rstn) begin
+            cmd_op_r   <= '{default:'0};
+            cmd_dt_r   <= '{default:'0};
+            cmd_cnt_r  <= 4'd0;
+        end else begin
+            cmd_op_r   <= cmd_op_n;
+            cmd_dt_r   <= cmd_dt_n;
+            cmd_cnt_r  <= cmd_cnt_n;
+        end
+    //next state logic
+    assign cmd_op_n  = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
+    assign cmd_dt_n  = i_valid ? i_data              : cmd_dt_r;
+    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
 
-// DEBUG
-///////////////////////////////////////////////////////////////////////////////
-assign cmd_cnt_do = cmd_cnt; 
+
+    // OUTPUTS
+    ///////////////////////////////////////////////////////////////////////////////
+    assign o_op   = cmd_op_r;
+    assign o_data = cmd_dt_r;
+    //assign o_op   = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
+    //assign o_data = i_valid ? i_data              : cmd_dt_r;
+
+    // DEBUG
+    ///////////////////////////////////////////////////////////////////////////////
+    assign o_data_cntr = cmd_cnt; 
 
 endmodule
-
