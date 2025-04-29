@@ -10,38 +10,31 @@
 //
 // Change history: 10/20/24 - v2 Started by @mdifederico
 //                 04/27/25 - Refactored by @lharnaldi
+//                          - the sync_n core was removed to sync all signals
+//                          in one place (external).
 //
 ///////////////////////////////////////////////////////////////////////////////
-module req_ack_cmd (
+module req_ack_cmd 
+(
     input  logic        i_clk       ,
     input  logic        i_rstn      ,
     // Command Input
-    input  logic        i_valid     ,
-    input  logic [ 4:0] i_op        ,
-    input  logic [ 3:0] i_addr      ,
-    input  logic [31:0] i_data      ,
+    input  logic        i_valid     , //data valid
+    input  logic [ 4:0] i_op        , //data operation
+    input  logic [ 3:0] i_addr      , //data addr
+    input  logic [31:0] i_data      , //data
     // Command Execution
-    output logic        o_loc_req   ,
-    output logic        o_net_req   ,
-    input  logic        i_async_ack ,
-    input  logic        i_sync_ack  ,
+    input  logic        i_ack       ,
+    output logic        o_req_loc   ,
+    output logic        o_req_net   ,
     output logic [ 7:0] o_op        ,
     output logic [31:0] o_data      ,
-    output logic  [3:0] o_data_cntr
+    output logic [ 3:0] o_data_cntr
 );
 
     logic [ 7:0]   cmd_op_r, cmd_op_n;
     logic [31:0]   cmd_dt_r, cmd_dt_n;
     logic [ 3:0]   cmd_cnt_r, cmd_cnt_n;
-
-    sync_n #(.N(2)) sync_ack (
-        .i_clk     ( i_clk       ),
-        .rst_ni    ( i_rstn      ),
-        .dt_i      ( i_async_ack ),
-        .dt_o      ( async_ack_s )
-    );
-
-    assign ack_s = i_sync_ack | async_ack_s ;
 
     typedef enum logic [1:0] {IDLE    = 2'b00, 
                               LOC_REQ = 2'b01, 
@@ -57,31 +50,36 @@ module req_ack_cmd (
 
     //next state logic
     always_comb begin
-        state_n  = state_r; 
-        o_loc_req   = 1'b0;
-        o_net_req   = 1'b0;
+        state_n   = state_r; 
+        o_req_loc = 1'b0;
+        o_req_net = 1'b0;
         case (state_r)
             IDLE: begin
-                if ( i_valid ) begin 
-                    if (i_op[4]) begin
-                        state_n   = LOC_REQ;
-                        o_loc_req = 1'b1;
-                    end else begin
-                        state_n   = NET_REQ;
-                        o_net_req = 1'b1;
-                    end
-                end
+               if( i_valid )  begin
+                  if (i_op[4]) begin
+                     o_req_loc = 1'b1;
+                     state_n   = LOC_REQ;
+                  end else begin
+                     o_req_net = 1'b1;
+                     state_n   = NET_REQ;
+                  end
+               end else begin
+                  state_n = IDLE;
+               end
             end
             LOC_REQ:  begin
-                o_loc_req = 1'b1;
-                if ( ack_s ) state_n = ACK;     
+               o_req_loc = 1'b1;
+               if (i_ack) state_n = ACK;
+               else       state_n = LOC_REQ;     
             end
             NET_REQ:  begin
-                o_net_req = 1'b1;
-                if ( ack_s ) state_n = ACK;     
+               o_req_net = 1'b1;
+               if (i_ack) state_n = ACK;     
+               else       state_n = NET_REQ;
             end
             ACK:  begin
-                if ( !ack_s ) state_n = IDLE;     
+               if (!i_ack) state_n = IDLE;  
+               else        state_n = ACK;   
             end
             default: 
                 state_n = state_r;
@@ -108,8 +106,6 @@ module req_ack_cmd (
     ///////////////////////////////////////////////////////////////////////////////
     assign o_op   = cmd_op_r;
     assign o_data = cmd_dt_r;
-    //assign o_op   = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
-    //assign o_data = i_valid ? i_data              : cmd_dt_r;
 
     // DEBUG
     ///////////////////////////////////////////////////////////////////////////////

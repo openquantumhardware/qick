@@ -3,7 +3,7 @@ name: fnal:qick:req_ack_cmd:0.1.0
 description: Board communication peripheral.
 
 filesets:
-  src:
+  hdl:
     files:
       - hdl/req_ack_cmd.sv
     file_type: systemVerilogSource
@@ -35,7 +35,7 @@ generate:
 targets:
   default: &default
     filesets:
-      - rtl
+      - hdl
     toplevel: sync_n
     parameters:
       - NB
