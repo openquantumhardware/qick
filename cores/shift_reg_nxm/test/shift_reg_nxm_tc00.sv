@@ -1,24 +1,25 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module sync_n_unit_test;
+module sync_nxm_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "sync_n_ut";
+  string name = "sync_nxm_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam N                 = 4;
+  localparam N                  = 2;  //number of stages. Minimum = 2
+  localparam M                  = 32; // data width
 
-  logic      tb_clk     = 1'b0;
-  logic      tb_rstn    = 1'b1;
+  logic              tb_clk     = 1'b0;
+  logic              tb_rstn    = 1'b1;
 
-  logic      tb_i_data  = 1'b0;
-  logic      tb_o_data  = 1'b0;
+  logic [M-1:0]     tb_i_data  = '0;
+  logic [M-1:0]     tb_o_data  = '0;
 
 initial begin
-  $dumpfile("sync_n.vcd");
+  $dumpfile("sync_nxm.vcd");
   $dumpvars();
 end
 
@@ -41,11 +42,12 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-sync_n
+shift_reg_nxm
 #(
-  .N (N)
+  .N (N),
+  .M (M)
 )
-u_sync_n
+u_shift_reg_nxm
 (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
