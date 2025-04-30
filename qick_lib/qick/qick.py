@@ -10,6 +10,7 @@ import time
 import queue
 import logging
 from collections import OrderedDict, defaultdict
+from fractions import Fraction
 from . import bitfile_path, obtain, get_version
 from .ip import SocIp, QickMetadata
 from .parser import parse_to_bin
@@ -278,13 +279,14 @@ class RFDC(xrfdc.RFdc, SocIp):
         self.cfg['clk_groups'] = []
         for clk_src, clk_dests in clk_groups.items():
             # find RFDC tiles whose fabric clocks come from this source
-            fs_group = [x[0] for x in clk_dests if x[0][0] in ['dac', 'adc']]
-            if fs_group:
-                self['clk_groups'].append(fs_group)
+            fs_group = [x[0] for x in clk_dests]
             # find limits imposed on the clock source freq
             src_ranges = [x[1] for x in clk_dests if x[1] is not None]
 
             if clk_src[0] in ['dac', 'adc']:
+                if fs_group:
+                    self['clk_groups'].append(fs_group)
+
                 tilecfg = self['tiles'][clk_src[0]][clk_src[1]]
                 # cross-check
                 # this isn't a fundamental rule, we might end up making a firmware that violates it
@@ -391,8 +393,10 @@ class RFDC(xrfdc.RFdc, SocIp):
     def _set_sample_rate(self, tiletype, tile, fs):
         """
         Set the sample rate of a tile.
+        It's assumed that the requested frequency has already been validated and rounded to a valid value.
         """
         fs_best = self.check_samp_freq(tiletype, tile, fs)
+        #TODO: do checks elsewhere?
         fs_current = self['tiles'][tiletype][tile]['fs']
         if fs_best > fs_current+0.1:
             self.logger.warning('%s tile %d: requested fs (%.3f MHz) is greater than current fs (%.3f MHz)'%(tiletype.upper(), tile, fs_best, fs_current))
@@ -407,12 +411,47 @@ class RFDC(xrfdc.RFdc, SocIp):
         Set the ADC sample rate of each tile from a dictionary.
         See adc_sample_rates property for the expected format.
         """
-        for tiletype, fs_dict in [('dac', dac_sample_rates), ('adc', adc_sample_rates)]:
-            if fs_dict is not None:
-                for iTile, fs in fs_dict.items():
-                    if iTile not in self['tiles'][tiletype].keys():
-                        raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype.upper(), iTile))
-                    self._set_sample_rate(tiletype, iTile, fs)
+
+        # build a dictionary for the requested fs changes
+        fs_requested = {
+            'dac': dac_sample_rates,
+            'adc': adc_sample_rates
+        }
+        for tiletype, fs_dict in fs_requested.items():
+            # handle None input
+            if fs_dict is None:
+                fs_dict = {}
+            # check that all tiles are valid
+            for iTile, fs in fs_dict.items():
+                if iTile not in self['tiles'][tiletype].keys():
+                    raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype.upper(), iTile))
+            # do a copy, since we will be modifying this dictionary
+            fs_requested[tiletype] = fs_dict.copy()
+
+        # compute the scaling to be applied to each RF tile's fs
+        fs_ratios = {}
+        for tiletype, tiles in self['tiles'].items():
+            for iTile, tilecfg in tiles.items():
+                if iTile not in fs_requested[tiletype]:
+                    fs_ratios[(tiletype, iTile)] = Fraction(1)
+                else:
+                    fs_requested[tiletype][iTile] = self.check_samp_freq(tiletype, iTile, fs_requested[tiletype][iTile])
+                    fs_ratios[(tiletype, iTile)] = Fraction(fs_requested[tiletype][iTile]/tilecfg['fs']).limit_denominator()
+
+        # check that linked clocks will get the same scaling
+        for fs_group in self['clk_groups']:
+            tiles = [x for x in fs_group if x[0] in ['dac', 'adc']]
+            if not tiles: continue
+            ratios = [fs_ratios[tile] for tile in tiles]
+            if len(set(ratios)) != 1:
+                tilenames = ["%s %d"%(tile[0].upper(), tile[1]) for tile in tiles]
+                ratios_f = [float(r) for r in ratios]
+                raise RuntimeError("the following RF tiles have related clocks and their sampling frequencies must be scaled by the same ratio: %s\nafter rounding your requested frequencies to the nearest valid value, you are requesting scaling by: %s"%(tilenames, ratios_f))
+
+        # now we can apply the changes
+        for tiletype, fs_dict in fs_requested.items():
+            for iTile, fs in fs_dict.items():
+                self._set_sample_rate(tiletype, iTile, fs)
         # we changed the clocks, so refresh that info
         self._read_freqs()
 
