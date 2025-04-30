@@ -1,16 +1,16 @@
 CAPI=2:
 name: pynq_fused:utils:ack_cmd:1.0.0
-description: Parametrizable 2 flip-flop synchronizer core
+description: Core to acknowledge commands
 
 filesets:
-  rtl:
+  hdl:
     files:
-      - rtl/sync2ff.sv
+      - hdl/ack_cmd.sv
     file_type: systemVerilogSource
 
   tb:
     files:
-      - test/sync2ff_tc00.sv
+      - test/ack_cmd_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
@@ -31,8 +31,8 @@ generate:
 targets:
   default: &default
     filesets:
-      - rtl
-    toplevel: sync2ff
+      - hdl
+    toplevel: ack_cmd
     parameters:
       - NB
 

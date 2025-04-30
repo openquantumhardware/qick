@@ -1,10 +1,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module sync2ff_unit_test;
+module ack_cmd_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "sync2ff_ut";
+  string name = "ack_cmd_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
@@ -19,7 +19,7 @@ import svunit_pkg::svunit_testcase;
   logic [NB-1:0]     tb_o_data  = '0;
 
 initial begin
-  $dumpfile("sync2ff.vcd");
+  $dumpfile("ack_cmd.vcd");
   $dumpvars();
 end
 
@@ -42,11 +42,11 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-sync2ff
+ack_cmd
 #(
   .NB (NB)
 )
-u_sync2ff
+u_ack_cmd
 (
   .i_clk      ( tb_clk     ),
   .i_rstn     ( tb_rstn    ),
