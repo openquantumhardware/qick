@@ -9,7 +9,7 @@ import svunit_pkg::svunit_testcase;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam N                = 4;
+  localparam NB               = 32;
 
   logic        tb_clk         = 1'b0;
   logic        tb_rstn        = 1'b1;
@@ -24,6 +24,7 @@ import svunit_pkg::svunit_testcase;
   logic [31:0] tb_o_data      ;
   logic [ 3:0] tb_o_data_cntr ;
 
+  logic [NB-1:0] random_data;
 
 initial begin
   $dumpfile("req_ack_cmd.vcd");
@@ -41,7 +42,20 @@ u_clk_gen
 );
 
 
-default clocking cb @(posedge tb_clk);
+clocking tb_cb @(posedge tb_clk);
+  default input #1step output #2;
+  output  tb_rstn          ;
+  output  tb_i_valid       ;
+  output  tb_i_op          ;
+  output  tb_i_addr        ;
+  output  tb_i_data        ;
+  output  tb_i_ack         ;
+
+  input   tb_o_req_loc     ;
+  input   tb_o_req_net     ;
+  input   tb_o_op          ;
+  input   tb_o_data        ;
+  input   tb_o_data_cntr   ;
 endclocking
 
 //===================================
@@ -79,18 +93,19 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-    tb_i_data  = '0;
-    tb_i_valid = 1'b0;   
-    tb_i_op    = 5'b0000_1;   
-    tb_i_addr  = 4'b0000;   
-    tb_i_data  = 32'h11223344;   
-    tb_i_ack   = 1'b0; 
+    random_data = $urandom();
+    tb_cb.tb_i_data  <= '0;
+    tb_cb.tb_i_valid <= 1'b0;   
+    tb_cb.tb_i_op    <= 5'b0000_1;   
+    tb_cb.tb_i_addr  <= 4'b0000;   
+    tb_cb.tb_i_data  <= 32'h11223344;   
+    tb_cb.tb_i_ack   <= 1'b0; 
 
-    @(negedge tb_clk);
-    tb_rstn    <= 1'b0;
-    repeat(2) @(negedge tb_clk);
-    tb_rstn    <= 1'b1;
-    repeat(5) @(negedge tb_clk);
+    @(tb_cb);
+    tb_cb.tb_rstn    <= 1'b0;
+    repeat(2) @(tb_cb);
+    tb_cb.tb_rstn    <= 1'b1;
+    repeat(5) @(tb_cb);
 
 endtask
 
@@ -115,6 +130,21 @@ endtask
 //     <test code>
 //   `SVTEST_END
 //===================================
+
+task automatic write_loc(input logic [NB-1:0] in_data);
+    for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
+        tb_cb.tb_i_valid <= 1'b1;
+        tb_cb.tb_i_op    <= 5'b1_1010;
+        tb_cb.tb_i_addr  <= 4'b0010;
+        tb_cb.tb_i_data  <= in_data + i;
+        @(tb_cb);
+        tb_cb.tb_i_valid <= 1'b0;
+        tb_cb.tb_i_ack   <= 1'b1;
+        @(tb_cb);
+        tb_cb.tb_i_ack   <= 1'b0;
+        repeat($urandom(10))@(tb_cb);
+    end
+endtask
 
 
 `SVUNIT_TESTS_BEGIN

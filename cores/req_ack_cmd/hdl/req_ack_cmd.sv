@@ -16,30 +16,30 @@
 ///////////////////////////////////////////////////////////////////////////////
 module req_ack_cmd 
 (
-    input  logic        i_clk       ,
-    input  logic        i_rstn      ,
+    input  logic          i_clk       ,
+    input  logic          i_rstn      ,
     // Command Input
-    input  logic        i_valid     , //data valid
-    input  logic [ 4:0] i_op        , //data operation
-    input  logic [ 3:0] i_addr      , //data addr
-    input  logic [31:0] i_data      , //data
+    input  logic          i_valid     , //data valid
+    input  logic [ 5-1:0] i_op        , //data operation
+    input  logic [ 4-1:0] i_addr      , //data addr
+    input  logic [32-1:0] i_data      , //data
     // Command Execution
-    input  logic        i_ack       ,
-    output logic        o_req_loc   ,
-    output logic        o_req_net   ,
-    output logic [ 7:0] o_op        ,
-    output logic [31:0] o_data      ,
-    output logic [ 3:0] o_data_cntr
+    input  logic          i_ack       ,
+    output logic          o_req_loc   ,
+    output logic          o_req_net   ,
+    output logic [ 8-1:0] o_op        ,
+    output logic [32-1:0] o_data      ,
+    output logic [ 4-1:0] o_data_cntr
 );
 
-    logic [ 7:0]   cmd_op_r, cmd_op_n;
-    logic [31:0]   cmd_dt_r, cmd_dt_n;
-    logic [ 3:0]   cmd_cnt_r, cmd_cnt_n;
+    logic [ 8-1:0]   cmd_op_r, cmd_op_n;
+    logic [32-1:0]   cmd_dt_r, cmd_dt_n;
+    logic [ 4-1:0]   cmd_cnt_r, cmd_cnt_n;
 
-    typedef enum logic [1:0] {IDLE    = 2'b00, 
-                              LOC_REQ = 2'b01, 
-                              NET_REQ = 2'b10, 
-                              ACK     = 2'b11
+    typedef enum logic [2-1:0] {IDLE    = 2'b00, 
+                                LOC_REQ = 2'b01, 
+                                NET_REQ = 2'b10, 
+                                ACK     = 2'b11
     } state_t;
     
     state_t state_r, state_n;
@@ -59,10 +59,10 @@ module req_ack_cmd
             IDLE: begin
                if( i_valid )  begin
                   if (i_op[4]) begin
-                     o_req_loc = 1'b1;
+                     //o_req_loc = 1'b1;
                      state_n   = LOC_REQ;
                   end else begin
-                     o_req_net = 1'b1;
+                     //o_req_net = 1'b1;
                      state_n   = NET_REQ;
                   end
                end else begin
@@ -90,18 +90,18 @@ module req_ack_cmd
 
     always_ff @(posedge i_clk) 
         if (!i_rstn) begin
-            cmd_op_r   <= '{default:'0};
-            cmd_dt_r   <= '{default:'0};
-            cmd_cnt_r  <= 4'd0;
+            cmd_op_r   <= '0;
+            cmd_dt_r   <= '0;
+            cmd_cnt_r  <= '0;
         end else begin
             cmd_op_r   <= cmd_op_n;
             cmd_dt_r   <= cmd_dt_n;
             cmd_cnt_r  <= cmd_cnt_n;
         end
     //next state logic
-    assign cmd_op_n  = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
-    assign cmd_dt_n  = i_valid ? i_data              : cmd_dt_r;
-    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
+    assign cmd_op_n  = i_valid ? {i_op[4-1:0], i_addr} : cmd_op_r;
+    assign cmd_dt_n  = i_valid ? i_data                : cmd_dt_r;
+    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1      : cmd_cnt_r;//FIXME:check this
 
 
     // OUTPUTS
