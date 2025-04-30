@@ -40,7 +40,9 @@ module req_ack_cmd
                               LOC_REQ = 2'b01, 
                               NET_REQ = 2'b10, 
                               ACK     = 2'b11
-    } state_r, state_n;
+    } state_t;
+    
+    state_t state_r, state_n;
 
     //State register
     always_ff @ (posedge i_clk) begin
@@ -109,6 +111,6 @@ module req_ack_cmd
 
     // DEBUG
     ///////////////////////////////////////////////////////////////////////////////
-    assign o_data_cntr = cmd_cnt; 
+    assign o_data_cntr = cmd_cnt_r; 
 
 endmodule
