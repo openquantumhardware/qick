@@ -17,7 +17,7 @@
 
 module xcom_link_tx (
     // CLK & RST
-    input  logic          i_xclk     ,
+    input  logic          i_clk     ,
     input  logic          i_rstn     ,
     // Config 
     input  logic [ 4-1:0] i_cfg_tick ,
@@ -32,17 +32,35 @@ module xcom_link_tx (
 );
 
     logic s_last;
+    //Out Shift Register For Par 2 Ser. (Data encoded on tx_dt)
+    logic [40-1:0] tx_data_r, tx_data_n ; 
+    // Data and Clock
+    logic tx_clk_r, tx_clk_n; 
+    //Number of bits transmited  (Total Defined in s_tx_pkt_size)
+    logic  [ 6-1:0] tx_bit_cnt_r, tx_bit_cnt_n;
+    logic  [ 6-1:0] tx_pkt_size_r, tx_pkt_size_n;
 
-
-    // TICK GENERATOR
-    ///////////////////////////////////////////////////////////////////////////////
     // Number of tx_clk per Data 
     logic  [ 4-1:0] tick_cnt; 
     logic   tick_en ; 
     logic   tick_clk ; 
     logic   tick_dt ; 
 
-    always_ff @ (posedge i_xclk, negedge i_rstn) begin
+    logic [ 6-1:0] s_tx_pkt_size ;
+    logic [40-1:0] tx_buff;
+
+    typedef enum logic [2-1:0]{ TX_IDLE = 2'b00, 
+                                TX_DATA = 2'b01, 
+                                TX_CLK  = 2'b10, 
+                                TX_END  = 2'b11
+    } state_t;
+    state_t state_r, state_n;
+    logic   s_ready;
+
+
+    // TICK GENERATOR
+    ///////////////////////////////////////////////////////////////////////////////
+    always_ff @ (posedge i_clk, negedge i_rstn) begin
         if (!i_rstn) begin
             tick_cnt    <= 0;
             tick_clk    <= 1'b0;
@@ -68,8 +86,6 @@ module xcom_link_tx (
 
     // TX Encode Header
     ///////////////////////////////////////////////////////////////////////////////
-    logic [ 6-1:0] s_tx_pkt_size ;
-    logic [40-1:0] tx_buff;
     always_comb begin
         case (i_header[6:5])
             2'b00  : begin // NO DATA
@@ -95,16 +111,8 @@ module xcom_link_tx (
 
     ///////////////////////////////////////////////////////////////////////////////
     ///// TX STATE
-    typedef enum logic [2-1:0]{ TX_IDLE = 2'b00, 
-                                TX_DATA = 2'b01, 
-                                TX_CLK  = 2'b10, 
-                                TX_END  = 2'b11
-    } state_t;
-    state_t state_r, state_n;
-    logic   s_ready;
-
     //state register
-    always_ff @ (posedge i_xclk) begin
+    always_ff @ (posedge i_clk) begin
         if   ( !i_rstn )  state_r  <= TX_IDLE;
         else              state_r  <= state_n;
     end
@@ -144,15 +152,7 @@ module xcom_link_tx (
 
     // TX Registers
     ///////////////////////////////////////////////////////////////////////////////
-    //Out Shift Register For Par 2 Ser. (Data encoded on tx_dt)
-    logic [40-1:0] tx_data_r, tx_data_n ; 
-    // Data and Clock
-    logic tx_clk_r, tx_clk_n; 
-    //Number of bits transmited  (Total Defined in s_tx_pkt_size)
-    logic  [ 6-1:0] tx_bit_cnt_r, tx_bit_cnt_n;
-    logic  [ 6-1:0] tx_pkt_size_r, tx_pkt_size_n;
-
-    always_ff @ (posedge i_xclk) begin
+    always_ff @ (posedge i_clk) begin
         if (!i_rstn) begin
             tx_clk_r      <= 1'b0;
             tx_data_r     <= '0; 

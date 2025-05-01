@@ -21,7 +21,7 @@ tb_cb.tb_i_valid <= 1'b1;
 tb_cb.tb_i_valid <= 1'b0;
 repeat(5) @(tb_cb);
 
-tb_cb.tb_i_op <= 5'b1000_0;
+//tb_cb.tb_i_op <= 5'b1000_0;
 @(tb_cb);
 for (integer k = 0; k < 10; k = k + 1) begin
     tb_cb.tb_i_data <= k;
