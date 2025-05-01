@@ -5,7 +5,7 @@ filesets:
   rtl:
     files: 
       - lab1.v : {file_type : verilogSource}
-      - lab1_pynq.xdc : {file_type : xdc}
+      - lab1_pynq.xdc : {file_type : user}
 
   tb:
     files: [lab1_tb.v : {file_type : verilogSource}]

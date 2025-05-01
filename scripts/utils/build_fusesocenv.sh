@@ -9,6 +9,7 @@ source venv/bin/activate
 
 # simulation libraries
 fusesoc library add --location .fusesoc_libraries/svunit_lib svunit_lib https://github.com/ivanvig/svunit.git
+fusesoc library add --location .fusesoc_libraries/vlog_tb_utils https://github.com/fusesoc/vlog_tb_utils.git
 
 #zynq building library
 fusesoc library add --location .fusesoc_libraries/fuse-zynq fuse-zynq https://github.com/craigjb/fuse-zynq

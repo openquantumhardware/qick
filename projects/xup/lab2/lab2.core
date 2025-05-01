@@ -3,7 +3,7 @@ name : xup::lab2:1.0.0
 
 filesets:
   rtl:
-    files: 
+    files:
       - uart_led.v 
       - meta_harden.v  
       - uart_baud_gen.v
@@ -27,26 +27,29 @@ filesets:
 
 targets:
   default: &default
+    filesets: [rtl]
 
   pynq_z2:
+    <<: *default
     default_tool: vivado
     description : Pynq-Z2 Zynq Z7020 Evaluation Kit
-    filesets : [rtl, xdc, tcl]
+    filesets_append : [tcl, xdc]
+    toplevel : system_wrapper
     tools:
       vivado:
         part : xc7z020clg400-1
-    toplevel : system_wrapper
 
   sim:
-     default_tool: icarus
-     filesets : [rtl, tb]
-     parameters : [clk_freq_hz, pulses] 
-     tools:
-       modelsim:
-         vlog_options: [-timescale=1ns/1ns]
-       xsim:
-         xelab_options: [--timescale, 1ns/1ns]
-     toplevel: lab2_tb
+    <<: *default
+    default_tool: icarus
+    filesets_append : [tb]
+    toplevel: lab2_tb
+    parameters : [clk_freq_hz, pulses] 
+    tools:
+      modelsim:
+        vlog_options: [-timescale=1ns/1ns]
+      xsim:
+        xelab_options: [--timescale, 1ns/1ns]
 
 parameters:
   clk_freq_hz:
