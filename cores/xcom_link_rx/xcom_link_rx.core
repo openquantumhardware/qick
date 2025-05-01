@@ -1,11 +1,11 @@
 CAPI=2:
-name: fnal:qick:req_ack_cmd:0.1.0
+name: fnal:qick:xcom_link_rx:0.1.0
 description: Board communication peripheral.
 
 filesets:
   hdl:
     files:
-      - hdl/req_ack_cmd.sv
+      - hdl/xcom_link_rx.sv
     file_type: systemVerilogSource
     depend:
        - fnal:qick:qick_pkg
@@ -14,7 +14,7 @@ filesets:
   tb:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
-      - test/req_ack_cmd_tc00.sv
+      - test/xcom_link_rx_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
@@ -30,13 +30,13 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/req_ack_cmd_tc00.sv
+          - test/xcom_link_rx_tc00.sv
 
 targets:
   default: &default
     filesets:
       - hdl
-    toplevel: req_ack_cmd
+    toplevel: xcom_link_rx
     parameters:
       - NB
 

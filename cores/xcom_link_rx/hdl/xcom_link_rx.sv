@@ -1,30 +1,39 @@
 ///////////////////////////////////////////////////////////////////////////////
-//  FERMI RESEARCH LAB
-///////////////////////////////////////////////////////////////////////////////
-//  Author         : Martin Di Federico
-//  Date           : 2024_5
-//  Version        : 1
+// vim:set shiftwidth=3 softtabstop=3 expandtab:
+//
+// Fermi Fordward Alliance LLC
+//
+// Module: req_ack_cmd.sv
+// Project: QICK 
+// Description: Board communication peripheral
+//
+//
+// Change history: 09/20/24 - v1 Started by @mdifederico
+//                 05/01/25 - Refactored by @lharnaldi
+//                          - the sync_n core was removed to sync all signals
+//                          in one place (external).
+//
 ///////////////////////////////////////////////////////////////////////////////
 
 module xcom_link_rx (
-// CLK & RST
-   input  wire          x_clk_i     ,
-   input  wire          x_rst_ni    ,
-   input  wire [ 3:0]   xcom_id_i   ,
-// Command Processing  
-   output reg           rx_req_o    ,
-   input  wire          rx_ack_i    ,
-   output reg  [ 3:0]   rx_cmd_o    ,
-   output reg  [31:0]   rx_data_o   ,
-// Xwire COM
-   input  wire          rx_dt_i     ,
-   input  wire          rx_ck_i     ,
-// XCOM RX DEBUG
-   output wire  [4:0]   rx_st_do      
-   );
+    // CLK & RST
+    input  logic         i_clk     ,
+    input  logic         x_rst_ni    ,
+    input  logic [ 3:0]  xcom_id_i   ,
+    // Command Processing  
+    output reg           rx_req_o    ,
+    input  logic         rx_ack_i    ,
+    output reg   [ 3:0]  rx_cmd_o    ,
+    output reg   [31:0]  rx_data_o   ,
+    // Xwire COM
+    input  logic         rx_dt_i     ,
+    input  logic         rx_ck_i     ,
+    // XCOM RX DEBUG
+    output logic [4:0]   rx_st_do      
+);
 
 
-wire rx_no_dt, rx_last_hd, rx_time_out, rx_last_dt ;
+logic rx_no_dt, rx_last_hd, rx_time_out, rx_last_dt ;
 
 // Sync rx_clk and Data with x_clk
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,11 +41,10 @@ sync_reg # (
    .DW ( 2 )
 ) c_sync_pulse (
    .dt_i      ( {rx_ck_i, rx_dt_i} ) ,
-   .clk_i     ( x_clk_i            ) ,
+   .clk_i     ( i_clk            ) ,
    .rst_ni    ( x_rst_ni           ) ,
    .dt_o      ( {rx_ck_r, rx_dt_r} ) );
    
-
 
 
 ///// RX STATE
@@ -48,7 +56,7 @@ typedef enum { RX_IDLE, RX_HEADER, RX_DATA, RX_REQ, RX_ACK} TYPE_RX_ST ;
 TYPE_RX_ST rx_st_nxt;
 
 
-always_ff @ (posedge x_clk_i) begin
+always_ff @ (posedge i_clk) begin
    if      ( !x_rst_ni   )  rx_st  <= RX_IDLE;
    else                     rx_st  <= rx_st_nxt;
 end
@@ -99,7 +107,7 @@ reg [31:0]  rx_dt_sr ;
 
 assign rx_new_dt   = rx_ck_r2 ^ rx_ck_r;
 
-always_ff @ (posedge x_clk_i, negedge x_rst_ni) begin
+always_ff @ (posedge i_clk, negedge x_rst_ni) begin
    if (!x_rst_ni) begin
       rx_ck_r2    <= 1'b0;
       rx_dt_r2    <= 1'b0;
@@ -137,7 +145,7 @@ end
 reg [4:0] rx_time_out_cnt; // Timeout
 reg [5:0] rx_bit_cnt     ; // Received Bit up to 40
 
-always_ff @ (posedge x_clk_i, negedge x_rst_ni) begin
+always_ff @ (posedge i_clk, negedge x_rst_ni) begin
    if (!x_rst_ni) begin
       rx_bit_cnt      <= 8'd1;
       rx_time_out_cnt <= 5'd0;
