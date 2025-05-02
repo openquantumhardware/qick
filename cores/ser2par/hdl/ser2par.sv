@@ -1,3 +1,18 @@
+///////////////////////////////////////////////////////////////////////////////
+// vim:set shiftwidth=3 softtabstop=3 expandtab:
+//
+// Fermi Fordward Alliance LLC
+//
+// Module: ser2par.sv
+// Project: QICK 
+// Description: Serial input, parallel output converter. Data width is
+//              a parameter
+//
+//
+// Change history: 05/02/25 - v0.1.0 Started by @lharnaldi
+//
+///////////////////////////////////////////////////////////////////////////////
+
 module ser2par #(
     parameter DWIDTH = 8
 ) (
@@ -15,8 +30,8 @@ module ser2par #(
 
     // State to track reception progress
     typedef enum logic {
-        IDLE,
-        RECEIVING
+        IDLE      = 1'b0,
+        RECEIVING = 1'b1
     } state_t;
 
     state_t state_r, state_n;
