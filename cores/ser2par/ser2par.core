@@ -1,5 +1,5 @@
 CAPI=2:
-name: fnal:qick:ser2par:0.1.0
+name: fnal:common:ser2par:0.1.0
 description: Parametrizable serial to parallel converter.
 
 filesets:
