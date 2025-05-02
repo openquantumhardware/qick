@@ -5,8 +5,32 @@
 //
 // Module: xcom_link_tx.sv
 // Project: QICK 
-// Description: Transmitter interface for the XCOM block
-//
+// Description: 
+// Transmitter interface for the XCOM block
+// 
+//Inputs:
+// - i_clk      clock signal
+// - i_rstn     active low reset signal
+// - i_cfg_tick this input is connected to the AXI_CFG register and 
+//              determines the duration of the xcom_clk output signal.
+//              xcom_clk will be CFG_AXI clock cycles in states 1 and 0.
+//              Possible values ranges from 0 to 7 with 0 equal to two 
+//              clock cycles and 7 equal to 15 clock cycles
+// - i_valid    it is a one clock duration signal indicating a valid data has
+//              arrived and is ready to be send through the xcom ip  
+// - i header   this is the header to be sent to the slave. 
+//              It determines the data length to transmit in bits [6:5]
+//              00 no data
+//              01 8-bit data
+//              10 16-bit data
+//              11 32-bit data
+// - i_data     the data to be transmitted 
+// - o_ready    signal indicating the ip is ready to receive new data to
+//              transmit
+// - o_data     serial data transmitted. This is the general output of the
+//              XCOM block
+// - o_clk      serial clock for transmission. This is the general output of
+//              the XCOM block
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
 //                 04/30/25 - Refactored by @lharnaldi
@@ -16,10 +40,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 module xcom_link_tx (
-    input  logic          i_clk     ,
-    input  logic          i_rstn    ,
+    input  logic          i_clk      ,
+    input  logic          i_rstn     ,
     // Config 
-    input  logic [ 4-1:0] i_cfg_tick ,
+    input  logic [ 4-1:0] i_cfg_tick , //
     // Transmittion 
     input  logic          i_valid    ,
     input  logic [ 8-1:0] i_header   ,
@@ -59,7 +83,7 @@ module xcom_link_tx (
 
     // TICK GENERATOR
     ///////////////////////////////////////////////////////////////////////////////
-    always_ff @ (posedge i_clk, negedge i_rstn) begin
+    always_ff @ (posedge i_clk) begin
         if (!i_rstn) begin
             tick_cnt    <= 0;
             tick_clk    <= 1'b0;
@@ -68,7 +92,7 @@ module xcom_link_tx (
             if (tick_en) begin
                 if (tick_cnt == i_cfg_tick) begin
                     tick_dt  <= 1'b1;
-                    tick_cnt <= 4'd1;
+                    tick_cnt <= 4'b0001;
                 end else begin 
                     tick_dt  <= 1'b0;
                     tick_cnt <= tick_cnt + 1'b1 ;
@@ -118,32 +142,28 @@ module xcom_link_tx (
 
     //next-state logic
     always_comb begin
-        state_n   = state_r; 
-        tick_en   = 1'b0;
+        state_n = state_r; 
+        tick_en = 1'b1;
         s_ready = 1'b0;
         case (state_r)
-            TX_IDLE   :  begin
+            TX_IDLE:  begin
                 s_ready = 1'b1;
+                tick_en = 1'b0;
                 if ( i_valid ) begin
-                    tick_en     = 1'b1;
                     state_n = TX_DATA;
                 end     
             end
-            TX_CLK :  begin
-                tick_en     = 1'b1;
+            TX_CLK:  begin
                 if ( tick_clk ) state_n = TX_DATA;
             end
-            TX_DATA :  begin
-                tick_en     = 1'b1;
+            TX_DATA:  begin
                 if ( tick_dt ) begin
                     if ( s_last ) state_n = TX_END;
-                    else              state_n = TX_CLK;
+                    else          state_n = TX_CLK;
                 end
             end
             TX_END    :  begin
-                tick_en     = 1'b1;
                 if ( tick_clk ) state_n = TX_IDLE;
-                //state_n = TX_IDLE;
             end
             default: state_n = state_r;
         endcase
