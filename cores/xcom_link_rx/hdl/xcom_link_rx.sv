@@ -18,12 +18,12 @@
 module xcom_link_rx (
     input  logic            i_clk          ,
     input  logic            i_rstn         ,
-    input  logic [ 4-1:0]   i_id           ,
+    input  logic [4-1:0]    i_id           ,
     // Command Processing    
     output logic            o_req          ,
     input  logic            i_ack          ,
-    output logic   [ 4-1:0] o_cmd          ,
-    output logic   [32-1:0] o_data         ,
+    output logic  [4-1:0]   o_cmd          ,
+    output logic [32-1:0]   o_data         ,
     // Xwire COM
     input  logic            i_xcom_data    ,
     input  logic            i_xcom_clk     ,
@@ -34,66 +34,59 @@ module xcom_link_rx (
 
 logic rx_no_dt, rx_last_hd, rx_time_out, rx_last_dt ;
 
-// Sync rx_clk and Data with x_clk
-///////////////////////////////////////////////////////////////////////////////
-sync_reg # (
-   .DW ( 2 )
-) c_sync_pulse (
-   .dt_i      ( {i_xcom_clk, i_xcom_data} ) ,
-   .clk_i     ( i_clk            ) ,
-   .rst_ni    ( i_rstn           ) ,
-   .dt_o      ( {i_xcom_clk, i_xcom_data} ) );
-   
-
-
 ///// RX STATE
 ///////////////////////////////////////////////////////////////////////////////
 logic rx_idle_s, rx_header_s, rx_ok ;
 
-typedef enum { RX_IDLE, RX_HEADER, RX_DATA, RX_REQ, RX_ACK} TYPE_RX_ST ;
-(* fsm_encoding = "one_hot" *) TYPE_RX_ST rx_st;
-TYPE_RX_ST rx_st_nxt;
+typedef enum logic [3-1:0]{ RX_IDLE   = 3'b000, 
+                            RX_HEADER = 3'b001, 
+                            RX_DATA   = 3'b010, 
+                            RX_REQ    = 3'b011, 
+                            RX_ACK    = 3'b100
+} state_t;
+state_t state_r, state_n;
 
 
 always_ff @ (posedge i_clk) begin
-   if      ( !i_rstn   )  rx_st  <= RX_IDLE;
-   else                     rx_st  <= rx_st_nxt;
+   if   ( !i_rstn ) state_r  <= RX_IDLE;
+   else             state_r  <= state_n;
 end
+
 always_comb begin
-   rx_st_nxt   = rx_st; // Default Current
+   state_n     = state_r;
    rx_idle_s   = 1'b0;
    rx_header_s = 1'b0;
    rx_ok       = 1'b0;
-   case (rx_st)
-      RX_IDLE   :  begin
+   case (state_r)
+      RX_IDLE:  begin
          rx_idle_s = 1'b1;
          if ( rx_new_dt ) begin
             rx_header_s = 1'b1;
-            rx_st_nxt = RX_HEADER; // First Transition 0 to 1
+            state_n = RX_HEADER; // First Transition 0 to 1
          end
       end
-      RX_HEADER :  begin
+      RX_HEADER:  begin
          rx_header_s = 1'b1;
          if ( rx_last_hd )
-            if      ( rx_no_dt  ) rx_st_nxt = RX_REQ  ; // Package has No Data
-            else if ( rx_new_dt ) rx_st_nxt = RX_DATA ; // Package has Data   
-         else if ( rx_time_out  ) rx_st_nxt = RX_IDLE; // TimeOut    
+            if      ( rx_no_dt  ) state_n = RX_REQ  ; // Package has No Data
+            else if ( rx_new_dt ) state_n = RX_DATA ; // Package has Data   
+         else if ( rx_time_out  ) state_n = RX_IDLE; // TimeOut    
       end
-      RX_DATA :  begin 
-         if      ( rx_last_dt  ) rx_st_nxt = RX_REQ; // Last Data Received
-         else if ( rx_time_out ) rx_st_nxt = RX_IDLE;   // TimeOut  
+      RX_DATA:  begin 
+         if      ( rx_last_dt  ) state_n = RX_REQ; // Last Data Received
+         else if ( rx_time_out ) state_n = RX_IDLE;   // TimeOut  
       end
-      RX_REQ    :  begin
+      RX_REQ:  begin
          if ( rx_dst_all | rx_dst_own ) begin
             rx_ok     = 1'b1;
-            if (i_ack) rx_st_nxt = RX_ACK;     
+            if (i_ack) state_n = RX_ACK;     
          end else
-            rx_st_nxt = RX_IDLE;
+            state_n = RX_IDLE;
       end
       RX_ACK    :  begin
-         if (!i_ack) rx_st_nxt = RX_IDLE;     
+         if (!i_ack) state_n = RX_IDLE;     
       end
-      default: rx_st_nxt = rx_st;
+      default: state_n = state_r;
       
    endcase
 end
@@ -101,7 +94,7 @@ end
 // RX Serial to Paralel
 ///////////////////////////////////////////////////////////////////////////////
 logic         i_xcom_clk2, i_xcom_data2;
-logic [ 7:0]  rx_hd_sr ;
+logic [ 8-1:0]  rx_hd_sr ;
 logic [32-1:0]  rx_dt_sr ;  
 
 assign rx_new_dt   = i_xcom_clk2 ^ i_xcom_clk;
@@ -117,7 +110,7 @@ always_ff @ (posedge i_clk, negedge i_rstn) begin
       i_xcom_data2     <= i_xcom_data;
       if (rx_new_dt) begin
          if ( rx_header_s ) begin
-            rx_hd_sr <= {rx_hd_sr[7:0]  , i_xcom_data2}  ;
+            rx_hd_sr <= {rx_hd_sr[8-1:0]  , i_xcom_data2}  ;
             rx_dt_sr <= '{default:'0} ;
          end else               
             rx_dt_sr <= {rx_dt_sr[32-1:0] , i_xcom_data2 } ;
@@ -165,13 +158,12 @@ assign rx_last_hd    = rx_new_dt & (rx_bit_cnt == 5'd8) ; // Last Header bit
 assign rx_last_dt    = rx_new_dt & (rx_bit_cnt == rx_pack_size ) ; // Last Data Received
 assign rx_dst_all    = rx_hd_sr[3:0] == 4'd0;
 assign rx_dst_own    = rx_hd_sr[3:0] == i_id ;
-
 assign rx_time_out   = &rx_time_out_cnt ; // New Data was not received in time
 
 ///////////////////////////////////////////////////////////////////////////////
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
-assign o_dbg_state  = rx_st[4:0] ;
+assign o_dbg_state  = state_r[4:0] ;
 assign o_req        = rx_ok;
 assign o_cmd        = rx_hd_sr[7:4];
 assign o_data       = rx_dt_sr;
