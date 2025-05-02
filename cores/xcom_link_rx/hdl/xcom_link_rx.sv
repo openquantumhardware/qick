@@ -16,19 +16,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 module xcom_link_rx (
-    input  logic          i_clk     ,
-    input  logic          i_rstn    ,
-    input  logic [ 4-1:0] i_id      ,
-    // Command Processing  
-    output logic            o_req    ,
-    input  logic          i_ack    ,
-    output logic   [ 4-1:0] o_cmd    ,
-    output logic   [32-1:0] o_data   ,
+    input  logic            i_clk          ,
+    input  logic            i_rstn         ,
+    input  logic [ 4-1:0]   i_id           ,
+    // Command Processing    
+    output logic            o_req          ,
+    input  logic            i_ack          ,
+    output logic   [ 4-1:0] o_cmd          ,
+    output logic   [32-1:0] o_data         ,
     // Xwire COM
-    input  logic          i_xcom_data     ,
-    input  logic          i_xcom_clk     ,
+    input  logic            i_xcom_data    ,
+    input  logic            i_xcom_clk     ,
     // XCOM RX DEBUG
-    output logic  [5-1:0] o_dbg_state      
+    output logic  [5-1:0]   o_dbg_state      
 );
 
 
@@ -42,7 +42,7 @@ sync_reg # (
    .dt_i      ( {i_xcom_clk, i_xcom_data} ) ,
    .clk_i     ( i_clk            ) ,
    .rst_ni    ( i_rstn           ) ,
-   .dt_o      ( {rx_ck_r, rx_dt_r} ) );
+   .dt_o      ( {i_xcom_clk, i_xcom_data} ) );
    
 
 
@@ -100,27 +100,27 @@ end
 
 // RX Serial to Paralel
 ///////////////////////////////////////////////////////////////////////////////
-logic         rx_ck_r2, rx_dt_r2;
+logic         i_xcom_clk2, i_xcom_data2;
 logic [ 7:0]  rx_hd_sr ;
 logic [32-1:0]  rx_dt_sr ;  
 
-assign rx_new_dt   = rx_ck_r2 ^ rx_ck_r;
+assign rx_new_dt   = i_xcom_clk2 ^ i_xcom_clk;
 
 always_ff @ (posedge i_clk, negedge i_rstn) begin
    if (!i_rstn) begin
-      rx_ck_r2    <= 1'b0;
-      rx_dt_r2    <= 1'b0;
+      i_xcom_clk2    <= 1'b0;
+      i_xcom_data2    <= 1'b0;
       rx_dt_sr    <= '{default:'0} ; 
       rx_hd_sr    <= '{default:'0} ; 
    end else begin 
-      rx_ck_r2     <= rx_ck_r;
-      rx_dt_r2     <= rx_dt_r;
+      i_xcom_clk2     <= i_xcom_clk;
+      i_xcom_data2     <= i_xcom_data;
       if (rx_new_dt) begin
          if ( rx_header_s ) begin
-            rx_hd_sr <= {rx_hd_sr[7:0]  , rx_dt_r2}  ;
+            rx_hd_sr <= {rx_hd_sr[7:0]  , i_xcom_data2}  ;
             rx_dt_sr <= '{default:'0} ;
          end else               
-            rx_dt_sr <= {rx_dt_sr[32-1:0] , rx_dt_r2 } ;
+            rx_dt_sr <= {rx_dt_sr[32-1:0] , i_xcom_data2 } ;
       end
    end
 end

@@ -17,7 +17,7 @@ import svunit_pkg::svunit_testcase;
   logic [ 4:0] tb_i_op        = 5'b00000; 
   logic [ 3:0] tb_i_addr      = 4'b0000; 
   logic [31:0] tb_i_data      = 32'h00000000; 
-  logic        tb_i_ack       = 1'b0;
+  logic [4-1:0] tb_i_id        = 1'b0;
   logic        tb_o_req_loc   ;
   logic        tb_o_req_net   ;
   logic [ 7:0] tb_o_op        ;
@@ -45,13 +45,13 @@ u_clk_gen
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
+  output  tb_i_id          ;
   output  tb_i_valid       ;
   output  tb_i_op          ;
   output  tb_i_addr        ;
   output  tb_i_data        ;
-  output  tb_i_ack         ;
 
-  input   tb_o_req_loc     ;
+  input   tb_o_req         ;
   input   tb_o_req_net     ;
   input   tb_o_op          ;
   input   tb_o_data        ;
@@ -68,16 +68,14 @@ u_xcom_link_rx
 (
   .i_clk      (tb_clk        ),
   .i_rstn     (tb_rstn       ),
-  .i_valid    (tb_i_valid    ),
-  .i_op       (tb_i_op       ),
-  .i_addr     (tb_i_addr     ), 
-  .i_data     (tb_i_data     ), 
+  .i_id       (tb_i_id       ),
+  .o_req      (tb_o_req      ),
   .i_ack      (tb_i_ack      ),
-  .o_req_loc  (tb_o_req_loc  ),
-  .o_req_net  (tb_o_req_net  ),
-  .o_op       (tb_o_op       ),
+  .o_cmd      (tb_o_cmd      ),
   .o_data     (tb_o_data     ),
-  .o_data_cntr(tb_o_data_cntr)
+  .i_xcom_data(tb_i_xcom_data),
+  .i_xcom_clk (tb_i_xcom_clk ), 
+  .o_dbg_state(tb_o_dbg_state)
 );
 
 //===================================
