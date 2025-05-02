@@ -10,24 +10,15 @@ import svunit_pkg::svunit_testcase;
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
   // Parameters for the DUT
-  parameter DATA_WIDTH_TB = 4;
-  parameter SERIAL_WIDTH_TB = 2;
+  parameter DWIDTH = 8;
 
-  // Calculate PARALLEL_WIDTH for the testbench
-  localparam PARALLEL_WIDTH_TB = DATA_WIDTH_TB / SERIAL_WIDTH_TB;
+  logic              tb_clk         = 1'b0;
+  logic              tb_rstn        = 1'b1;
+  logic              tb_i_load      = 1'b0;
+  logic              tb_i_data      = 1'b0; 
+  logic              tb_o_ready     ;
+  logic [DWIDTH-1:0] tb_o_data      ;
 
-  localparam NB                 = 32;
-
-  logic                         tb_clk         = 1'b0;
-  logic                         tb_rstn        = 1'b1;
-  logic                         tb_i_valid     = 1'b0;
-  logic                         tb_i_load      = 1'b0;
-  logic [SERIAL_WIDTH_TB-1:0]   tb_i_data      = '0; 
-  logic                         tb_o_ready     ;
-  logic [PARALLEL_WIDTH_TB-1:0] tb_o_data      ;
-  logic                         tb_o_clk       ;
-
-  logic [NB-1:0] random_data;
 
 initial begin
   $dumpfile("ser2par.vcd");
@@ -48,13 +39,11 @@ u_clk_gen
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
-  output  tb_i_valid       ;
   output  tb_i_load        ;
   output  tb_i_data        ;
 
   input   tb_o_ready       ;
   input   tb_o_data        ;
-  input   tb_o_clk         ;
 endclocking
 
 //===================================
@@ -63,8 +52,7 @@ endclocking
 //===================================
 
 ser2par #(
-  .DATA_WIDTH(DATA_WIDTH_TB),
-  .SERIAL_WIDTH(SERIAL_WIDTH_TB)
+  .DWIDTH(DWIDTH)
   ) u_ser2par (
   .i_clk    (tb_clk        ),
   .i_rstn   (tb_rstn       ),
@@ -87,9 +75,8 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-    tb_cb.tb_i_valid  <= 1'b0;   
     tb_cb.tb_i_load   <= 1'b0;   
-    tb_cb.tb_i_data     <= '0;
+    tb_cb.tb_i_data   <= 1'b0;
 
     @(tb_cb);
     tb_cb.tb_rstn    <= 1'b0;
