@@ -1,10 +1,10 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module req_ack_cmd_unit_test;
+module xcom_link_rx_unit_test;
 import svunit_pkg::svunit_testcase;
 
-  string name = "req_ack_cmd_ut";
+  string name = "xcom_link_rx_ut";
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
@@ -27,7 +27,7 @@ import svunit_pkg::svunit_testcase;
   logic [NB-1:0] random_data;
 
 initial begin
-  $dumpfile("req_ack_cmd.vcd");
+  $dumpfile("xcom_link_rx.vcd");
   $dumpvars();
 end
 
@@ -63,8 +63,8 @@ endclocking
 // running the Unit Tests on
 //===================================
 
-req_ack_cmd
-u_req_ack_cmd
+xcom_link_rx
+u_xcom_link_rx
 (
   .i_clk      (tb_clk        ),
   .i_rstn     (tb_rstn       ),
