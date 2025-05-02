@@ -3,9 +3,9 @@
 //
 // Fermi Fordward Alliance LLC
 //
-// Module: req_ack_cmd.sv
+// Module: xcom_link_rx.sv
 // Project: QICK 
-// Description: Board communication peripheral
+// Description: Receiver interface for the XCOM block
 //
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico

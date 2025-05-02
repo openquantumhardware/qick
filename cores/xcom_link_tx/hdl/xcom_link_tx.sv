@@ -3,9 +3,9 @@
 //
 // Fermi Fordward Alliance LLC
 //
-// Module: req_ack_cmd.sv
+// Module: xcom_link_tx.sv
 // Project: QICK 
-// Description: Board communication peripheral
+// Description: Transmitter interface for the XCOM block
 //
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
@@ -16,9 +16,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 module xcom_link_tx (
-    // CLK & RST
     input  logic          i_clk     ,
-    input  logic          i_rstn     ,
+    input  logic          i_rstn    ,
     // Config 
     input  logic [ 4-1:0] i_cfg_tick ,
     // Transmittion 
