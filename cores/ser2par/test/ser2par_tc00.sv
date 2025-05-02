@@ -10,7 +10,7 @@ import svunit_pkg::svunit_testcase;
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
   // Parameters for the DUT
-  parameter DWIDTH = 8;
+  parameter DWIDTH = 16;
 
   logic              tb_clk         = 1'b0;
   logic              tb_rstn        = 1'b1;
@@ -108,6 +108,9 @@ endtask
 //   `SVTEST_END
 //===================================
 
+// Tests enable. Those tests that don't wish to run, set their respective flag to 0
+     integer test_8bit              = 0;
+     integer test_16bit             = 1;
 
 `SVUNIT_TESTS_BEGIN
 `include "tests.sv"
