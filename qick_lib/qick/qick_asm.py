@@ -119,7 +119,7 @@ class QickConfig():
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):
                 dacname = gen['dac']
-                dac = self['dacs'][dacname]
+                dac = self['rf']['dacs'][dacname]
                 buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
                 lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
                              (iGen, gen['type'], gen['maxlen'], buflen))
@@ -132,7 +132,7 @@ class QickConfig():
                 lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
                 for iIQ, iq in enumerate(self['iqs']):
                     dacname = iq['dac']
-                    dac = self['dacs'][dacname]
+                    dac = self['rf']['dacs'][dacname]
                     lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
                     lines.append("\t\t" + self._describe_dac(dacname))
 
@@ -140,7 +140,7 @@ class QickConfig():
             lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
             for iReadout, readout in enumerate(self['readouts']):
                 adcname = readout['adc']
-                adc = self['adcs'][adcname]
+                adc = self['rf']['adcs'][adcname]
                 buflen = readout['buf_maxlen']/readout['f_output']
                 if 'tproc_ctrl' in readout:
                     lines.append("\t%d:\t%s - configured by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
@@ -189,7 +189,7 @@ class QickConfig():
             buf = self['mr_buf']
             bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
             buflist = [bufnames.index(x) for x in buf['readouts']]
-            buflen = buf['maxlen']/self['adcs'][self['readouts'][buflist[0]]['adc']]['fs']
+            buflen = buf['maxlen']/self['rf']['adcs'][self['readouts'][buflist[0]]['adc']]['fs']
             lines.append("\n\tMR buffer: %d samples (%.3f us), wired to readouts %s" % (
                 buf['maxlen'], buflen, buflist))
             #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (

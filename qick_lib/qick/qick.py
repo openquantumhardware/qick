@@ -165,7 +165,7 @@ class RFDC(xrfdc.RFdc, SocIp):
                     # check whether this block is enabled
                     if ip_params['C_%s_Slice%s_Enable' % (tiletype.upper(), chname)] != 'true': continue
                     tilecfg['blocks'].append(chname)
-                    self[{'dac':'dacs', 'adc':'adcs'}[tiletype]][chname] = {'index': [iTile, iBlock]}
+                    self[tiletype+'s'][chname] = {'index': [iTile, iBlock]}
         # read the clock settings and block configs
         self._read_freqs()
 
@@ -203,7 +203,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         fabric_divs = {k:{iTile:[] for iTile in v.keys()} for k,v in self['tiles'].items()}
         """
         for tiletype in ['dac', 'adc']:
-            for chname, chcfg in self[{'dac':'dacs', 'adc':'adcs'}[tiletype]].items():
+            for chname, chcfg in self[tiletype+'s'].items():
                 iTile, iBlock = chcfg['index']
                 #chcfg.clear()
                 #chcfg['index'] = [iTile, iBlock]
@@ -831,10 +831,6 @@ class QickSoc(Overlay, QickConfig):
             # Update the ADC sample rate if specified
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
-
-            # TODO: all code should reference ['rf']
-            self['dacs'] = self.rf['dacs']
-            self['adcs'] = self.rf['adcs']
 
         if no_tproc:
             self.TPROC_VERSION = 0
