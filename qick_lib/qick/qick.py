@@ -308,6 +308,10 @@ class RFDC(xrfdc.RFdc, SocIp):
         """
         Return an array of valid sample rates.
         """
+        if tiletype not in ['dac', 'adc']:
+            raise RuntimeError('tiletype must be "dac" or "adc"')
+        if tile not in self['tiles'][tiletype]:
+            raise RuntimeError('specified tile is not enabled in this firmware')
         tilecfg = self['tiles'][tiletype][tile]
         # reference clock after the PLL reference divider
         # this divider can't be changed by software, and Xilinx recommends keeping it at 1 for best phase noise
@@ -384,6 +388,10 @@ class RFDC(xrfdc.RFdc, SocIp):
         """
         Return the closest achievable sample rate to the requested value.
         """
+        if tiletype not in ['dac', 'adc']:
+            raise RuntimeError('tiletype must be "dac" or "adc"')
+        if tile not in self['tiles'][tiletype]:
+            raise RuntimeError('specified tile is not enabled in this firmware')
         fs_possible = self.valid_sample_rates(tiletype, tile)
         fs_best = fs_possible[np.argmin(np.abs(fs_possible - fs_target))]
         return fs_best
@@ -432,7 +440,7 @@ class RFDC(xrfdc.RFdc, SocIp):
                 fs_dict = {}
             # check that all tiles are valid
             for iTile, fs in fs_dict.items():
-                if iTile not in self['tiles'][tiletype].keys():
+                if iTile not in self['tiles'][tiletype]:
                     raise RuntimeError('requested to change fs for %s tile %d, which is not enabled in this firmware'%(tiletype.upper(), iTile))
             # do a copy, since we will be modifying this dictionary
             fs_requested[tiletype] = fs_dict.copy()
@@ -1074,7 +1082,8 @@ class QickSoc(Overlay, QickConfig):
     def valid_sample_rates(self, tiletype, tile):
         """
         Return an array of valid sample rates.
-        This does not account for dependencies due to clock groups.
+        This does not account for dependencies due to clock groups,
+        or the restriction that you're not allowed to raise the sample rate.
 
         Parameters
         ----------
@@ -1093,7 +1102,8 @@ class QickSoc(Overlay, QickConfig):
     def round_sample_rate(self, tiletype, tile, fs_target):
         """
         Return the closest achievable sample rate to the requested value.
-        This does not account for dependencies due to clock groups.
+        This does not account for dependencies due to clock groups,
+        or the restriction that you're not allowed to raise the sample rate.
 
         Parameters
         ----------
