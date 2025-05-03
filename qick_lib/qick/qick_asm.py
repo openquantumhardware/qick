@@ -104,6 +104,17 @@ class QickConfig():
             lines.append("\n\tGlobal clocks (MHz): tProc dispatcher timing %.3f, RF reference %.3f" % (
                 tproc.get('f_time', 0), self['refclk_freq']))
 
+        groupdescs = []
+        for group in self['rf']['clk_groups']:
+            groupnames = []
+            for srctype, src_id in group:
+                if srctype in ['dac', 'adc']:
+                    groupnames.append('%s tile %d'%(srctype.upper(), src_id))
+                else:
+                    groupnames.append("tProc %s"%(src_id))
+            groupdescs.append('[' + ', '.join(groupnames) + ']')
+        lines.append('\tGroups of related clocks: ' + ', '.join(groupdescs))
+
         with suppress(KeyError): # self['gens'] may not exist
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):
@@ -112,7 +123,7 @@ class QickConfig():
                 buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
                 lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
                              (iGen, gen['type'], gen['maxlen'], buflen))
-                lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                              (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
@@ -122,7 +133,7 @@ class QickConfig():
                 for iIQ, iq in enumerate(self['iqs']):
                     dacname = iq['dac']
                     dac = self['dacs'][dacname]
-                    lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
+                    lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
                     lines.append("\t\t" + self._describe_dac(dacname))
 
         with suppress(KeyError): # self['readouts'] may not exist
@@ -135,7 +146,7 @@ class QickConfig():
                     lines.append("\t%d:\t%s - configured by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
                 else:
                     lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
-                lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                lines.append("\t\tfs=%.3f Msps, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                              (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
                 lines.append("\t\t%s v%s (%s edge counter)" % (
                     readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']]))

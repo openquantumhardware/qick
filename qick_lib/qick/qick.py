@@ -257,10 +257,10 @@ class RFDC(xrfdc.RFdc, SocIp):
         It does not assume that configure_connections() has been run on all drivers.
         """
         # first, gather information
-        clk_groups = defaultdict(list)
         # search for IP blocks with trace_clocks() methods - typically this is just the tProc
         # we run trace_clocks() here
         # it will also run as part of QickSoc init (via configure_connections()), but that's after sampling rate modification
+        clk_groups = defaultdict(list)
         for blockname, blockdict in soc.ip_dict.items():
             if hasattr(blockdict['driver'], 'trace_clocks'):
                 ip = soc._get_block(blockname)
@@ -304,7 +304,10 @@ class RFDC(xrfdc.RFdc, SocIp):
                       .PLLLockStatus == 2 for iTile in self['tiles']['adc']]
         return dac_locked, adc_locked
 
-    def valid_samp_freqs(self, tiletype, tile):
+    def valid_sample_rates(self, tiletype, tile):
+        """
+        Return an array of valid sample rates.
+        """
         tilecfg = self['tiles'][tiletype][tile]
         # reference clock after the PLL reference divider
         # this divider can't be changed by software, and Xilinx recommends keeping it at 1 for best phase noise
@@ -377,12 +380,11 @@ class RFDC(xrfdc.RFdc, SocIp):
         fs_possible.sort()
         return fs_possible
 
-    def round_samp_freq(self, tiletype, tile, fs_target):
+    def round_sample_rate(self, tiletype, tile, fs_target):
         """
-        Check if the requested sampling frequency is supported.
-        If not, it will return the closest achievable frequency.
+        Return the closest achievable sample rate to the requested value.
         """
-        fs_possible = self.valid_samp_freqs(tiletype, tile)
+        fs_possible = self.valid_sample_rates(tiletype, tile)
         fs_best = fs_possible[np.argmin(np.abs(fs_possible - fs_target))]
         return fs_best
 
@@ -390,15 +392,33 @@ class RFDC(xrfdc.RFdc, SocIp):
         """
         Set the sample rate of a tile.
         It's assumed that the requested frequency has already been validated and rounded to a valid value.
+
+        Parameters
+        ----------
+        tiletype : str
+            'dac' or 'adc'
+        tile : int
+            Tile number (0-3)
+        fs : float
+            Requested sample rate, in Msps
         """
-        self.logger.info('programming %s tile %d to %.3f MHz'%(tiletype.upper(), tile, fs))
+        self.logger.info('programming %s tile %d to %.3f Msps'%(tiletype.upper(), tile, fs))
         f_ref = self['tiles'][tiletype][tile]['f_ref']
         self._get_tile(tiletype, tile).DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs)
 
     def configure_sample_rates(self, dac_sample_rates=None, adc_sample_rates=None):
         """
-        Set the ADC sample rate of each tile from a dictionary.
-        See adc_sample_rates property for the expected format.
+        Set the tile sample rates.
+        This should only be called as part of initialization.
+
+        Parameters
+        ----------
+        dac_sample_rates : dict[int, float]
+            Sample rates to override the values compiled into the firmware.
+            This should be a dictionary mapping DAC tiles to sample rates (in megasamples per second).
+        adc_sample_rates : dict[int, float]
+            Sample rates to override the values compiled into the firmware.
+            This should be a dictionary mapping ADC tiles to sample rates (in megasamples per second).
         """
 
         # build a dictionary for the requested fs changes
@@ -425,16 +445,16 @@ class RFDC(xrfdc.RFdc, SocIp):
                     fs_ratios[(tiletype, iTile)] = Fraction(1)
                 else:
                     fs_target = fs_requested[tiletype][iTile]
-                    fs_best = self.round_samp_freq(tiletype, iTile, fs_target)
+                    fs_best = self.round_sample_rate(tiletype, iTile, fs_target)
                     fs_current = tilecfg['fs']
                     fs_err = fs_best - fs_target
-                    self.logger.info('%s tile %d: fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(tiletype.upper(), iTile, fs_target, fs_best, fs_err))
+                    self.logger.info('%s tile %d: fs requested = %f Msps, best possible = %.3f Msps, error = %.3f Msps.'%(tiletype.upper(), iTile, fs_target, fs_best, fs_err))
                     if abs(fs_err) > 10:
-                        raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype.upper(), iTile, fs_target, fs_best))
+                        raise RuntimeError("%s tile %d: requested fs %f Msps is not supported, closest is %.3f."%(tiletype.upper(), iTile, fs_target, fs_best))
                     if abs(fs_err) > 1:
-                        self.logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype.upper(), iTile, fs_target, fs_best))
+                        self.logger.warning('%s tile %d: requested fs %f.3 Msps could not be achieved, will use %f.3 Msps.'%(tiletype.upper(), iTile, fs_target, fs_best))
                     if fs_best > fs_current+0.1:
-                        raise RuntimeError('%s tile %d: requested fs (%.3f MHz) is greater than current fs (%.3f MHz)'%(tiletype.upper(), iTile, fs_best, fs_current))
+                        raise RuntimeError('%s tile %d: increasing a sample rate is not allowed, but requested fs (%.3f Msps) is greater than current fs (%.3f Msps)'%(tiletype.upper(), iTile, fs_best, fs_current))
                     fs_requested[tiletype][iTile] = fs_best
                     fs_ratios[(tiletype, iTile)] = Fraction(fs_best/fs_current).limit_denominator()
 
@@ -706,21 +726,6 @@ class RFDC(xrfdc.RFdc, SocIp):
 class QickSoc(Overlay, QickConfig):
     """
     QickSoc class. This class will create all object to access system blocks
-
-    :param bitfile: Path to the bitfile. This should end with .bit, and the corresponding .hwh file must be in the same directory.
-    :type bitfile: str
-    :param force_init_clks: Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
-    :type force_init_clks: bool
-    :param clk_output: If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
-    :type clk_output: bool or None
-    :param external_clk: If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
-    :type external_clk: bool or None
-    :param ignore_version: Whether version discrepancies between PYNQ build and firmware build are ignored
-    :type ignore_version: bool
-    :param no_tproc: Use if this is a special firmware that doesn't have a tProcessor.
-    :type no_tproc: bool
-    :param no_rf: Use if this is a special firmware that doesn't have an RF data converter.
-    :type no_rf: bool
     """
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
@@ -742,9 +747,32 @@ class QickSoc(Overlay, QickConfig):
     #gain_resolution_signed_bits = 16
 
     # Constructor.
-    def __init__(self, bitfile=None, download=True, force_init_clks=False, ignore_version=True, no_tproc=False, no_rf=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
+    def __init__(self, bitfile=None, download=True, no_tproc=False, no_rf=False, force_init_clks=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
         """
         Constructor method
+
+        Parameters
+        ----------
+        bitfile : str
+            Path to the firmware bitfile. This should end with .bit, and the corresponding .hwh file must be in the same directory.
+        download : bool
+            Load the bitfile into the FPGA logic. If you are certain that the bitfile you specified is already running, you can use False here.
+        no_tproc : bool
+            Use if this is a special firmware that doesn't have a tProcessor.
+        no_rf : bool
+            Use if this is a special firmware that doesn't have an RF data converter.
+        force_init_clks : bool
+            Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
+        clk_output: bool or None
+            If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
+        external_clk: bool or None
+            If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
+        dac_sample_rates : dict[int, float] or None
+            Sample rates to override the values compiled into the firmware.
+            This should be a dictionary mapping DAC tiles to sample rates (in megasamples per second).
+        adc_sample_rates : dict[int, float] or None
+            Sample rates to override the values compiled into the firmware.
+            This should be a dictionary mapping ADC tiles to sample rates (in megasamples per second).
         """
 
         self.external_clk = external_clk
@@ -753,10 +781,10 @@ class QickSoc(Overlay, QickConfig):
         # If download=True, we also program the FPGA.
         if bitfile is None:
             Overlay.__init__(self, bitfile_path(
-            ), ignore_version=ignore_version, download=download, **kwargs)
+            ), ignore_version=True, download=download, **kwargs)
         else:
             Overlay.__init__(
-                self, bitfile, ignore_version=ignore_version, download=download, **kwargs)
+                self, bitfile, ignore_version=True, download=download, **kwargs)
 
         # Initialize the configuration
         self._cfg = {}
@@ -836,15 +864,6 @@ class QickSoc(Overlay, QickConfig):
     def tproc(self):
         return self._tproc
     
-    @property
-    def get_sample_rates(self):
-        """
-        Produce a dictionary of the current ADC sample rates.
-        A dictionary of this form can be used to configure the 
-        ADC sample rates of the tiles in SoC initialization.
-        """
-        return {tiletype: {k: v['fs'] for k,v in self['tiles'][tiletype].items()} for tiletype in ['dac', 'adc']}
-
     @property
     def streamer(self):
         return self._streamer
@@ -1043,6 +1062,58 @@ class QickSoc(Overlay, QickConfig):
 
         # wait for the clock chips to lock
         time.sleep(1.0)
+
+    def get_sample_rates(self):
+        """
+        Produce dictionaries of the current sample rates of the DAC and ADC tiles.
+        A dictionary of this form can be used to configure the sample rates at SoC initialization.
+
+        Returns
+        -------
+        dict[str, dict[int, float]]
+            A pair of dictionaries mapping DAC/ADC tiles to sample rates (in Msps).
+        """
+        return {tiletype: {k: v['fs'] for k,v in self['rf']['tiles'][tiletype].items()} for tiletype in ['dac', 'adc']}
+
+    def valid_sample_rates(self, tiletype, tile):
+        """
+        Return an array of valid sample rates.
+        This does not account for dependencies due to clock groups.
+
+        Parameters
+        ----------
+        tiletype : str
+            'dac' or 'adc'
+        tile : int
+            Tile number (0-3)
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of sample rates, in Msps
+        """
+        return self.rf.valid_sample_rates(tiletype, tile)
+
+    def round_sample_rate(self, tiletype, tile, fs_target):
+        """
+        Return the closest achievable sample rate to the requested value.
+        This does not account for dependencies due to clock groups.
+
+        Parameters
+        ----------
+        tiletype : str
+            'dac' or 'adc'
+        tile : int
+            Tile number (0-3)
+        fs_target : float
+            Requested sample rate, in Msps
+
+        Returns
+        -------
+        float
+            Closest valid sample rate, in Msps
+        """
+        return self.rf.round_sample_rate(tiletype, tile, fs_target)
 
     def get_decimated(self, ch, address=0, length=None):
         """
