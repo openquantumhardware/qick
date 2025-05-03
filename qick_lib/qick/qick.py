@@ -377,17 +377,13 @@ class RFDC(xrfdc.RFdc, SocIp):
         fs_possible.sort()
         return fs_possible
 
-    def check_samp_freq(self, tiletype, tile, fs_target):
+    def round_samp_freq(self, tiletype, tile, fs_target):
         """
         Check if the requested sampling frequency is supported.
         If not, it will return the closest achievable frequency.
         """
         fs_possible = self.valid_samp_freqs(tiletype, tile)
         fs_best = fs_possible[np.argmin(np.abs(fs_possible - fs_target))]
-        fs_err = fs_best - fs_target
-        self.logger.info('fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(fs_target, fs_best, fs_err))
-        if abs(fs_err) > 1:
-            self.logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype.upper(), tile, fs_target, fs_best))
         return fs_best
 
     def _set_sample_rate(self, tiletype, tile, fs):
@@ -395,16 +391,9 @@ class RFDC(xrfdc.RFdc, SocIp):
         Set the sample rate of a tile.
         It's assumed that the requested frequency has already been validated and rounded to a valid value.
         """
-        fs_best = self.check_samp_freq(tiletype, tile, fs)
-        #TODO: do checks elsewhere?
-        fs_current = self['tiles'][tiletype][tile]['fs']
-        if fs_best > fs_current+0.1:
-            self.logger.warning('%s tile %d: requested fs (%.3f MHz) is greater than current fs (%.3f MHz)'%(tiletype.upper(), tile, fs_best, fs_current))
-        if abs(fs_best-fs) > 10:
-            raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype.upper(), tile, fs, fs_best))
         self.logger.info('programming %s tile %d to %.3f MHz'%(tiletype.upper(), tile, fs))
         f_ref = self['tiles'][tiletype][tile]['f_ref']
-        self._get_tile(tiletype, tile).DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs_best)
+        self._get_tile(tiletype, tile).DynamicPLLConfig(source=xrfdc.CLK_SRC_PLL, ref_clk_freq=f_ref, samp_rate=fs)
 
     def configure_sample_rates(self, dac_sample_rates=None, adc_sample_rates=None):
         """
@@ -435,8 +424,19 @@ class RFDC(xrfdc.RFdc, SocIp):
                 if iTile not in fs_requested[tiletype]:
                     fs_ratios[(tiletype, iTile)] = Fraction(1)
                 else:
-                    fs_requested[tiletype][iTile] = self.check_samp_freq(tiletype, iTile, fs_requested[tiletype][iTile])
-                    fs_ratios[(tiletype, iTile)] = Fraction(fs_requested[tiletype][iTile]/tilecfg['fs']).limit_denominator()
+                    fs_target = fs_requested[tiletype][iTile]
+                    fs_best = self.round_samp_freq(tiletype, iTile, fs_target)
+                    fs_current = tilecfg['fs']
+                    fs_err = fs_best - fs_target
+                    self.logger.info('%s tile %d: fs requested = %f MHz, best possible = %.3f MHz, error = %.3f MHz.'%(tiletype.upper(), iTile, fs_target, fs_best, fs_err))
+                    if abs(fs_err) > 10:
+                        raise RuntimeError("%s tile %d: requested sampling frequency %f MHz is not supported, closest is %.3f."%(tiletype.upper(), iTile, fs_target, fs_best))
+                    if abs(fs_err) > 1:
+                        self.logger.warning('%s tile %d: requested fs %f.3 MHz could not be achieved, will use %f.3 MHz.'%(tiletype.upper(), iTile, fs_target, fs_best))
+                    if fs_best > fs_current+0.1:
+                        raise RuntimeError('%s tile %d: requested fs (%.3f MHz) is greater than current fs (%.3f MHz)'%(tiletype.upper(), iTile, fs_best, fs_current))
+                    fs_requested[tiletype][iTile] = fs_best
+                    fs_ratios[(tiletype, iTile)] = Fraction(fs_best/fs_current).limit_denominator()
 
         # check that linked clocks will get the same scaling
         for fs_group in self['clk_groups']:
