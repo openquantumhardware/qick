@@ -163,7 +163,7 @@ assign rx_time_out   = &rx_time_out_cnt ; // New Data was not received in time
 ///////////////////////////////////////////////////////////////////////////////
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
-assign o_dbg_state  = state_r[4:0] ;
+assign o_dbg_state  = {2'b00,state_r[4:0]};
 assign o_req        = rx_ok;
 assign o_cmd        = rx_hd_sr[7:4];
 assign o_data       = rx_dt_sr;

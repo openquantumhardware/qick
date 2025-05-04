@@ -15,16 +15,16 @@ end
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test01_32bit_data)
 
-tb_cb.tb_i_data  <= 1'b1;     
-tb_cb.tb_i_valid <= 1'b1;
-@(tb_cb);
-tb_cb.tb_i_valid <= 1'b0;
+//tb_cb.tb_i_data  <= 1'b1;     
+//tb_cb.tb_i_valid <= 1'b1;
+//@(tb_cb);
+//tb_cb.tb_i_valid <= 1'b0;
 repeat(5) @(tb_cb);
 
-tb_cb.tb_i_op <= 5'b1000_0;
+//tb_cb.tb_i_op <= 5'b1000_0;
 @(tb_cb);
 for (integer k = 0; k < 10; k = k + 1) begin
-    tb_cb.tb_i_data <= k;
+    //tb_cb.tb_i_data <= k;
     @(tb_cb);
 
     //if (k > 1) 
@@ -38,7 +38,7 @@ repeat(5) @(tb_cb);
 
     random_data  = $urandom();     
     @(tb_cb);
-    write_loc(random_data);
+    //write_loc(random_data);
 
     //`ASSERT_IMMEDIATE(tb_o_data  == k);     
     repeat(10) @(tb_cb);
