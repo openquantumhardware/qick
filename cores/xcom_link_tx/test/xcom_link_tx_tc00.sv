@@ -18,7 +18,7 @@ import svunit_pkg::svunit_testcase;
   logic [ 8-1:0] tb_i_header    = 8'b0000_0000;
   logic [32-1:0] tb_i_data      = 32'h00000000; 
   logic          tb_o_ready     ;
-  logic [32-1:0] tb_o_data      ;
+  logic          tb_o_data      ;
   logic          tb_o_clk       ;
 
 initial begin

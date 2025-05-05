@@ -19,12 +19,18 @@
 // - i_valid    it is a one clock duration signal indicating a valid data has
 //              arrived and is ready to be send through the xcom ip  
 // - i header   this is the header to be sent to the slave. 
-//              It determines the data length to transmit in bits [6:5]
-//              00 no data
-//              01 8-bit data
-//              10 16-bit data
-//              11 32-bit data
+//              bit 7 is sometimes used to indicate a synchronization in other
+//              places in the XCOM hierarchy
+//              bits [6:5] determines the data length to transmit:
+//               00 no data
+//               01 8-bit data
+//               10 16-bit data
+//               11 32-bit data
+//              bit 4 not used in this block
+//              bits [3:0] not used in this block. Sometimes used as mem_id 
+//              and sometimes used as board ID in the XCOM hierarchy 
 // - i_data     the data to be transmitted 
+//Outputs:
 // - o_ready    signal indicating the ip is ready to receive new data to
 //              transmit
 // - o_data     serial data transmitted. This is the general output of the
