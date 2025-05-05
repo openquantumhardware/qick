@@ -99,21 +99,21 @@ logic [32-1:0]  rx_dt_sr ;
 
 assign rx_new_dt   = i_xcom_clk2 ^ i_xcom_clk;
 
-always_ff @ (posedge i_clk, negedge i_rstn) begin
+always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
-      i_xcom_clk2    <= 1'b0;
-      i_xcom_data2    <= 1'b0;
-      rx_dt_sr    <= '{default:'0} ; 
-      rx_hd_sr    <= '{default:'0} ; 
+      i_xcom_clk2  <= 1'b0;
+      i_xcom_data2 <= 1'b0;
+      rx_dt_sr     <= '{default:'0} ; 
+      rx_hd_sr     <= '{default:'0} ; 
    end else begin 
-      i_xcom_clk2     <= i_xcom_clk;
-      i_xcom_data2     <= i_xcom_data;
+      i_xcom_clk2  <= i_xcom_clk;
+      i_xcom_data2 <= i_xcom_data;
       if (rx_new_dt) begin
          if ( rx_header_s ) begin
-            rx_hd_sr <= {rx_hd_sr[8-1:0]  , i_xcom_data2}  ;
-            rx_dt_sr <= '{default:'0} ;
+            rx_hd_sr <= {rx_hd_sr[8-1:0], i_xcom_data2};
+            rx_dt_sr <= '{default:'0};
          end else               
-            rx_dt_sr <= {rx_dt_sr[32-1:0] , i_xcom_data2 } ;
+            rx_dt_sr <= {rx_dt_sr[32-1:0], i_xcom_data2};
       end
    end
 end
@@ -137,7 +137,7 @@ end
 logic [5-1:0] rx_time_out_cnt; // Timeout
 logic [6-1:0] rx_bit_cnt     ; // Received Bit up to 40
 
-always_ff @ (posedge i_clk, negedge i_rstn) begin
+always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
       rx_bit_cnt      <= 8'd1;
       rx_time_out_cnt <= 5'd0;
