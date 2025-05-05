@@ -208,7 +208,7 @@ end
 endtask
 
 `SVUNIT_TESTS_BEGIN
-`include "tests.sv"
+`include "tests_alone.sv"
 `SVUNIT_TESTS_END 
 
 endmodule

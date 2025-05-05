@@ -19,7 +19,16 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - pynq_fused:common:sim_base
+      - fnal:qick:xcom_link_tx
 
+  tb_alone:
+    files:
+      - data/states.txt: {file_type : user, copyto : states.txt}
+      - test/xcom_link_rx_tc01.sv
+      - test/tests_alone.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - pynq_fused:common:sim_base
 
   pynq_z2:
     files:
@@ -44,6 +53,24 @@ targets:
     <<: *default
     description: Simulate the design
     filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  test_alone:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb_alone]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner
