@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:adsb:utc_time_regmap:0.1
+name: pynq_fused:adsb:utc_time_regmap:0.1
 description: "UTC Time Register Map"
 
 filesets:
@@ -7,8 +7,8 @@ filesets:
     files:
         - utc_time_regmap.rdl : {file_type: user }
     depend: 
-        - stratum:utils:rdl_gen:0.2.1
-        - stratum:interfaces:axi4_lite
+        - pynq_fused:utils:rdl_gen:0.2.1
+        - pynq_fused:interfaces:axi4_lite
 
 generate:
   rdl_regmap:

@@ -1,5 +1,5 @@
 CAPI=2:
-name: ::utc_time:0.1.0
+name: pynq_fused:utils:utc_time:0.1.0
 description: PPS counter and UTC Time decoder coming from a GPS. It recovers ZDA sentences
 
 filesets:
@@ -7,11 +7,11 @@ filesets:
     files:
       - rtl/utc_time.sv : {file_type: systemVerilogSource}
     depend:
-      - stratum:interfaces:axi4_stream
-      - stratum:adsb:utc_time_regmap
-      - stratum:adsb:adsb_pkg
-      - stratum:adsb:nmea_zda_decoder
-      - stratum:common:common_counter
+      - pynq_fused:interfaces:axi4_stream
+      - pynq_fused:adsb:utc_time_regmap
+      - pynq_fused:adsb:adsb_pkg
+      - pynq_fused:adsb:nmea_zda_decoder
+      - pynq_fused:common:common_counter
 
   tb:
     files: &tb_files
@@ -19,8 +19,8 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - stratum:sim:sim_base
-      - stratum:sim:nmea_functions
+      - pynq_fused:sim:sim_base
+      - pynq_fused:sim:nmea_functions
 
 
 generate:
