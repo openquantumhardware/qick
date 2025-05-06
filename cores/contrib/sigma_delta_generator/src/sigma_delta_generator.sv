@@ -1,10 +1,5 @@
 /***********************************************
  * 
- *  Copyright (C) 2022 - Stratum Labs
- * 
- *  Project: ADS-B
- *  Author: Leandro Echevarria <leo.echevarria@stratum-labs.com>
- * 
  *  File: sigma_delta_generator.sv
  *  Description: generates a configurable enable pattern using
  *  sigma-delta modulo logic based on inputs i_delta and i_sigma

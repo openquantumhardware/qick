@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:round_robin:0.3.0
+name: pynq_fused:common:round_robin:0.3.0
 description: takes an input bus of width NB_DATA*N_CHANNELS and muxes slices of width NB_DATA sequentially to its output
 
 filesets:
@@ -8,7 +8,7 @@ filesets:
       - src/round_robin.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:interfaces:axi4_stream
+      - pynq_fused:interfaces:axi4_stream
 
   tb:
     files: &tb_files
@@ -17,7 +17,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
 generate:
   testrunner_gen:

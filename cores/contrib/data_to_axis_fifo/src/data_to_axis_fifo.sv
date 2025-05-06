@@ -1,13 +1,9 @@
 /***********************************************
- *
- *  Copyright (C) 2022 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Leandro Echevarria <leo.echevarria@stratum-labs.com>
- *
  *  File: data_to_axis_fifo.sv
- *  Description: adds back-pressure to data/valid stream
- *  by means of a FIFO buffer and adapting the outputs to AXI-4 Stream
+ *  Description: adds back-pressure to data/valid 
+ *               stream by means of a FIFO buffer 
+ *               and adapting the outputs to 
+ *               AXI-4 Stream
  *
  * ********************************************/
 

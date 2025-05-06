@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:sigma_delta_generator:0.1.0
+name: pynq_fused:common:sigma_delta_generator:0.1.0
 description: fifo sigma delta
 
 filesets:
@@ -13,7 +13,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
 generate:
   testrunner_gen:

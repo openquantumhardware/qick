@@ -1,6 +1,6 @@
 CAPI=2:
 
-name : stratum:external:fifo:1.3.0
+name : pynq_fused:external:fifo:1.3.0
 description : > 
     Core file for external fifo based on the fusesoc std core library fifo:
     https://github.com/fusesoc/fusesoc-cores/blob/master/fifo/fifo-1.3.core

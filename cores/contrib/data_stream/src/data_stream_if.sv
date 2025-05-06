@@ -1,9 +1,3 @@
-//! @title INTERFAZ DATA STREAM
-//! @file data_stream_if.sv
-//! @author Julian Delle Donne <julian.delledonne@stratum-labs.com>
-//! @date 17-03-2023
-//! @version Unit01 - SystemVerilog
-
 interface data_stream_if
 #(
     parameter integer unsigned NB_DATA = 32

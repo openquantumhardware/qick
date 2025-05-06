@@ -1,6 +1,6 @@
 CAPI=2:
 
-name : stratum:external:axis_fifo:1.0.0
+name : pynq_fused:external:axis_fifo:1.0.0
 description : > 
     Core file for external AXI-4 Stream FIFO by Alex Forencich (https://github.com/alexforencich/verilog-axis). Repo forked to freeze version.
 

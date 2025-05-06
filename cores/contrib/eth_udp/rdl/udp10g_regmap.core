@@ -1,12 +1,12 @@
 CAPI=2:
-name: stratum:udp:udp10g_regmap:0.2.0
+name: pynq_fused:udp:udp10g_regmap:0.2.0
 
 filesets:
   rdl:
     files:
         - udp10g_regmap.rdl : {file_type: user }
     depend: 
-        - "^stratum:utils:rdl_gen:0.2.1"
+        - "^pynq_fused:utils:rdl_gen:0.2.1"
 
 generate:
   rdl_regmap:

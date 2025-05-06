@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:interfaces:config_stream:0.1.0
+name: pynq_fused:interfaces:config_stream:0.1.0
 description: config-Stream interface definition (includes master & slave modports)
 
 filesets:
@@ -8,19 +8,19 @@ filesets:
       - src/config_stream_if.sv
     file_type: systemVerilogSource
     depend:
-      - "tool_xsim ? (stratum:sim:svunit_assert_macros)"
+      - "tool_xsim ? (pynq_fused:sim:svunit_assert_macros)"
 
   lint_files_verible:
     files:
       - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
     depend:
-      - stratum:lint:common
+      - pynq_fused:lint:common
 
   lint_files_verilator:
     files:
       - lint/verilator_waiver.vlt: {file_type: vlt}
     depend:
-      - stratum:lint:common
+      - pynq_fused:lint:common
 
 targets:
   default: &default
