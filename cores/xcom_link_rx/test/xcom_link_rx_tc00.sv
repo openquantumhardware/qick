@@ -162,31 +162,31 @@ endtask
 task SIM_TX (); begin
    $display("SIM TX");
    @(tb_cb);
-   tb_cb.tb_i_header <= 8'b1001_1010;//no data, should trigger timeout
+   tb_cb.tb_i_header <= 8'b1001_1010;//no data, should trigger timeout. cmd=AUTO_ID
    tb_cb.tb_i_data   <= 32'd8;
    repeat(100)@(tb_cb);
    TX_DT();
    
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1010_1010;//8-bit data
+   tb_cb.tb_i_header <= 8'b1010_1010;//8-bit data. cmd=Updata DT8
    tb_cb.tb_i_data   <= 32'd16;
    repeat(100)@(tb_cb);
    TX_DT();
  
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1100_1010;//16-bit data
+   tb_cb.tb_i_header <= 8'b1100_1010;//16-bit data. cmd=Updata DT16
    tb_cb.tb_i_data   <= 32'd24;
    repeat(100)@(tb_cb);
    TX_DT();
  
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1110_1010;//32-bit data
+   tb_cb.tb_i_header <= 8'b1110_1010;//32-bit data. cmd=Updata DT32
    tb_cb.tb_i_data   <= 32'd40;
    repeat(100)@(tb_cb);
    TX_DT();
  
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1000_0000;//no data, should trigger timeout
+   tb_cb.tb_i_header <= 8'b1000_0000;//no data, should trigger timeout. cmd=QRST_SYNC
    tb_cb.tb_i_data   <= 32'd40;
    repeat(100)@(tb_cb);
    TX_DT();

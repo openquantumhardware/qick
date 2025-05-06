@@ -12,20 +12,21 @@
 // - i_rstn      active low reset signal
 // - i_id        this input configures the ID of the board in the network. It
 //               can be configured manually or automatically. 
-// - i_ack       it is a one clock duration signal indicating a valid data has
-//               arrived and is ready to be send through the xcom ip  
+// - i_ack       it is a one clock duration signal indicating an
+//               acknowledgement from the tproc/pynq side. This means the
+//               tproc/pynq side can receive and process the data arriving in
+//               the XCOM link  
 // - i xcom_data serial data received. This is the general data input of the
 //               XCOM block
 // - i_xcom_clk  serial clock for reception. This is the general clock input of
 //               the XCOM block
 //Outputs:
-// - o_req       signal indicating the ip (board) is ready and responsive
-// - o_cmd       serial data transmitted. This is the general output of the
-//               XCOM block
-// - o_data      serial clock for transmission. This is the general output of
-//               the XCOM block
-// - o_dbg_state serial clock for transmission. This is the general output of
-//               the XCOM block
+// - o_req       signal indicating valid data arrived. This signal is to
+//               indicate to the tproc/pynq side there are new valid data to
+//               process.
+// - o_cmd       command to be executed by the tproc/pynq
+// - o_data      data received, to be processed by the tproc/pynq
+// - o_dbg_state debug port for monitoring the state of the internal FSM
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
 //                 05/01/25 - Refactored by @lharnaldi
