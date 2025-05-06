@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:interfaces:bram_if:0.1.0
+name: pynq_fused:interfaces:bram_if:0.1.0
 description: BRAM memory interface 
 
 filesets:

@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:bram:0.2.0
+name: pynq_fused:common:bram:0.2.0
 description: Simple dual-port, one clock, read-first block RAM
 
 filesets:

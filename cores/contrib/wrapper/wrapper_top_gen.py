@@ -10,16 +10,16 @@ from jinja2 import Environment, FileSystemLoader
 sys.path.append('../common')
 import common_functions
 
-env_vars = ["STRATUM_COMMON"]
+env_vars = ["QICK_COMMON"]
 
 if not common_functions.check_env_vars(env_vars):
     print("Environment must be configured in order to run this script.. Exiting..")
     exit()
 
-AXI4_LITE_INTF_PATH         = os.getenv('STRATUM_COMMON')+"/interfaces/axi4_lite/src/axi4lite_intf.sv"
-AXI4_STREAM_INTF_PATH       = os.getenv('STRATUM_COMMON')+"/interfaces/axi4_stream/src/axi4_stream_if.sv"
-DATA_STREAM_INTF_PATH       = os.getenv('STRATUM_COMMON')+"/interfaces/data_stream/src/data_stream_if.sv"
-CONFIG_STREAM_INTF_PATH     = os.getenv('STRATUM_COMMON')+"/interfaces/config_stream/src/config_stream_if.sv"
+AXI4_LITE_INTF_PATH         = os.getenv('QICK_COMMON')+"/interfaces/axi4_lite/src/axi4lite_intf.sv"
+AXI4_STREAM_INTF_PATH       = os.getenv('QICK_COMMON')+"/interfaces/axi4_stream/src/axi4_stream_if.sv"
+DATA_STREAM_INTF_PATH       = os.getenv('QICK_COMMON')+"/interfaces/data_stream/src/data_stream_if.sv"
+CONFIG_STREAM_INTF_PATH     = os.getenv('QICK_COMMON')+"/interfaces/config_stream/src/config_stream_if.sv"
 
 import verible_verilog_syntax
 import anytree

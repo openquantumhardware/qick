@@ -1,16 +1,3 @@
-/***********************************************
- *
- *  Copyright (C) 2023 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Leandro Echevarria <leo.echevarria@stratum-labs.com>
- *
- *  File: axi4_stream_fifo.sv
- *  Description: AXI4-Stream FIFO based on external core, but adding our own
- *  AXI4-Stream interface
- *
- * ********************************************/
-
 module axi4_stream_fifo
 #(
     parameter integer unsigned      DEPTH   = 16

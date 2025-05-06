@@ -1,5 +1,5 @@
 CAPI=2:
-name: vt:utils:vt_common:0.1.0
+name: pynq_fused:common:vt_common:0.1.0
 description: Common sources of Vadatech
 
 filesets:

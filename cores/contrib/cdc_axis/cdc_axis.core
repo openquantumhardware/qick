@@ -1,11 +1,11 @@
 CAPI=2:
-name: invap:rts_syncro:cdc_axis:0.1.0
+name: pynq_fused:qick:cdc_axis:0.1.0
 description: IP AXI4-Stream Clock Converter
 
 filesets:
   rtl:
     depend:
-      #- ~stratum:utils:xil_ip_gen:0.5
+      #- ~pynq_fused:utils:xil_ip_gen:0.5
       - ~pynq_fused:utils:xil_ip_gen:0.1.0
 
 generate:

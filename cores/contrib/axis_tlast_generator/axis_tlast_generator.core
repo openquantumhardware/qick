@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:axis_tlast_generator:0.1
+name: pynq_fused:common:axis_tlast_generator:0.1
 description: packetizes an AXI-4 stream datapath by adding tlast signal from a configurable input size
 
 filesets:
@@ -8,8 +8,8 @@ filesets:
       - src/axis_tlast_generator.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:interfaces:axi4_stream
-      - stratum:common:common_counter
+      - pynq_fused:interfaces:axi4_stream
+      - pynq_fused:common:common_counter
 
   tb:
     files: &tb_files
@@ -17,19 +17,19 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
   files_lint_verilator:
     files:
       - lint/verilator_waiver.vlt: {file_type: vlt}
     depend:
-      - stratum:lint:common
+      - pynq_fused:lint:common
 
   files_lint_verible:
     files:
       - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
     depend:
-      - stratum:lint:common
+      - pynq_fused:lint:common
 
 generate:
   testrunner_gen:

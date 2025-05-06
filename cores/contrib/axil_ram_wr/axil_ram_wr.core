@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:common:axil_ram_wr:0.1.0
+name: pynq_fused:common:axil_ram_wr:0.1.0
 description: Write interface for DP-BRAM. Has an interface AXI4-Lite to write a DP-BRAM
 
 filesets:
@@ -8,10 +8,10 @@ filesets:
       - src/axil_ram_wr.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:interfaces:axi4_lite
-      - stratum:interfaces:bram_if
-      - stratum:common:in_buffer
-      - stratum:common:out_buffer
+      - pynq_fused:interfaces:axi4_lite
+      - pynq_fused:interfaces:bram_if
+      - pynq_fused:common:in_buffer
+      - pynq_fused:common:out_buffer
 
   tb:
     files: &tb_files
@@ -19,7 +19,7 @@ filesets:
       - tests/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend:
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
 generate:
   testrunner_gen:

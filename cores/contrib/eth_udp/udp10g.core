@@ -1,5 +1,5 @@
 CAPI=2:
-name: stratum:udp:udp10g:0.2.0
+name: pynq_fused:udp:udp10g:0.2.0
 
 filesets:
   rtl:
@@ -8,9 +8,9 @@ filesets:
       - rtl/udp10g.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:udp:udp10g_regmap
-      - stratum:common:common_counter
-      - stratum:external:eth_udp
+      - pynq_fused:udp:udp10g_regmap
+      - pynq_fused:common:common_counter
+      - pynq_fused:external:eth_udp
 
 targets:
   default: &default

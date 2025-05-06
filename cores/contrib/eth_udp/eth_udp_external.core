@@ -1,6 +1,6 @@
 CAPI=2:
 
-name : stratum:external:eth_udp:1.0
+name : pynq_fused:external:eth_udp:1.0
 description : > 
     Core file for external full stack UDP by Alex Forencich
     (https://github.com/alexforencich/verilog-ethernet). Currently using

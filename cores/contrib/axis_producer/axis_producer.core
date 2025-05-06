@@ -1,25 +1,25 @@
 CAPI=2:
-name: stratum:rts:hwtest_axis_producer:0.1.0
+name: pynq_fused:rts:hwtest_axis_producer:0.1.0
 filesets:
   rtl:
     files:
       - src/axis_producer.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:common:bram
+      - pynq_fused:common:bram
 
   test_files:
     files: &test_files
       - tests/axis_producer_unit_test.sv
     file_type: systemVerilogSource
     depend:
-      - stratum:sim:sim_base
+      - pynq_fused:sim:sim_base
 
   lint_files:
       # files:
         # - 
     depend:
-      - stratum:lint:common
+      - pynq_fused:lint:common
 
 generate:
   testrunner_gen:

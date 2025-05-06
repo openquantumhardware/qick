@@ -1,15 +1,3 @@
-/***********************************************
- *
- *  Copyright (C) 2022 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Leandro Echevarria <leo.echevarria@stratum-labs.com>
- *
- *  File: axis_skid_buffer.sv
- *  Description: breaks combinational path in AXI4-Stream tvalid/tready handshake-based communication
- *
- * ********************************************/
-
 module axis_skid_buffer
 #(
     parameter integer       NB_DATA = 0

@@ -1,16 +1,3 @@
-/***********************************************
- *
- *  Copyright (C) 2023 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Horacio Arnaldi <horacio.arnaldi@stratum-labs.com>
- *
- *  File: bram_if.sv
- *  Description: BRAM block memory interface
- *
- *
- * ********************************************/
-
 interface bram_if
 #(
   parameter integer unsigned NB_DATA  = 32,

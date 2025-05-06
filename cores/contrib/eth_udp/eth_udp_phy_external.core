@@ -1,5 +1,5 @@
 CAPI=2:
-name : stratum:external:eth_udp_phy:1.0
+name : pynq_fused:external:eth_udp_phy:1.0
 description : > 
     Core file for external full stack UDP (PHY only) by Alex Forencich
     (https://github.com/alexforencich/verilog-ethernet). Currently using
@@ -11,7 +11,7 @@ filesets:
       - example/KR260/fpga_10g/rtl/eth_xcvr_phy_wrapper.v
     file_type: verilogSource
     depend:
-      - stratum:external:eth_udp
+      - pynq_fused:external:eth_udp
 
   kr260_gth:
     files:

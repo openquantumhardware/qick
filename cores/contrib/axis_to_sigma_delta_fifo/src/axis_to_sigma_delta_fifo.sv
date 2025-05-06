@@ -1,15 +1,3 @@
-/***********************************************
- *
- *  Copyright (C) 2022 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Leandro Echevarria <leo.echevarria@stratum-labs.com>
- *
- *  File: axis_to_sigma_delta_fifo.sv
- *  Description: 
- *
- * ********************************************/
-
 module axis_to_sigma_delta_fifo
 #(
     parameter integer unsigned          DEPTH           = 16,

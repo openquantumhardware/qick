@@ -1,14 +1,3 @@
-/***********************************************
- *
- *  Copyright (C) 2022 - Stratum Labs
- *
- *  Project:    Common
- *  Author:     Ramiro Moral <ramiro.moral@stratum-labs.com>
- *
- *  File: bram.sv
- *  Description: Simple dual-port, one clock, read-first block RAM
- *
- * ********************************************/
  module bram
 #(
     parameter int unsigned              NB_DATA         = 32,
