@@ -1,0 +1,84 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Tue May  6 15:53:28 2025
+[*]
+[dumpfile] "/home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_link_rx_0.1.0/test-xsim/xcom_link_rx.vcd"
+[dumpfile_mtime] "Tue May  6 15:53:01 2025"
+[dumpfile_size] 310364
+[savefile] "/home/larnaldi/git/lharnaldi/pynq_fused/cores/xcom_link_rx/data/tests.gtkw"
+[timestart] 16157000
+[size] 1920 1140
+[pos] -1 -1
+*-18.576046 16652000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.xcom_link_rx_ut.
+[sst_width] 206
+[signals_width] 273
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@800200
+-Rx
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_clk
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_rstn
+@22
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_id[3:0]
+@28
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_xcom_clk
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_xcom_data
+[color] 3
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.i_ack
+@2028
+[color] 7
+^1 /home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_link_rx_0.1.0/test-xsim/states.txt
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.state_r[2:0]
+@28
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_new_data
+@22
+[color] 1
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.bit_cntr_r[5:0]
+@28
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_broadcast
+@29
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_rx_req
+@28
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_header_last
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_timeout
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_data_last
+@22
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_header_shreg[7:0]
+@28
+[color] 1
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_local_id
+[color] 1
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_no_data
+[color] 1
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_rx_header
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_rx_idle
+@22
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_rx_pack_size[5:0]
+@28
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_xcom_clk_dly
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.s_xcom_data_dly
+@22
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.timeout_cntr_r[4:0]
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_cmd[3:0]
+@28
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_req
+@22
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_data[31:0]
+[color] 6
+testrunner.__ts.xcom_link_rx_ut.u_xcom_link_rx.o_dbg_state[4:0]
+@1000200
+-Rx
+[pattern_trace] 1
+[pattern_trace] 0

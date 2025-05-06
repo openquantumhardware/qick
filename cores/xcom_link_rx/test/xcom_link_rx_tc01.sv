@@ -14,24 +14,20 @@ import svunit_pkg::svunit_testcase;
   logic          tb_clk         = 1'b0;
   logic          tb_rstn        = 1'b1;
 
-//tx
-  logic [ 4-1:0] tb_i_cfg_tick  = 4'b0000;
-  logic          tb_i_valid     = 1'b0;
-  logic [ 8-1:0] tb_i_header    = 8'b0000_0000;
-  logic [32-1:0] tb_i_data      = 32'h00000000; 
-  logic          tb_o_ready     ;
-
-//rx
   logic  [4-1:0] tb_i_id        = 4'b0000;
   logic          tb_o_req       ;
   logic          tb_i_ack       = 1'b0;
   logic  [4-1:0] tb_o_cmd       ;
-  logic [32-1:0] tb_o_data      ;
+  logic [NB-1:0] tb_o_data      ;
   logic  [5-1:0] tb_o_dbg_state ;
 
   logic          tb_xcom_data   ; 
   logic          tb_xcom_clk    ; 
 
+  logic          tb_i_load_par  = 1'b0;
+  logic [NB-1:0] tb_i_data_par  = '0:
+  logic          tb_o_data_par  ;
+  logic          tb_o_valid_par ;
 initial begin
   $dumpfile("xcom_link_rx.vcd");
   $dumpvars();
@@ -52,36 +48,30 @@ clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
   output  tb_i_id          ;
-//tx
-  output  tb_i_cfg_tick    ;
-  output  tb_i_valid       ;
-  output  tb_i_header      ;
-  output  tb_i_data        ;
-
-  input   tb_o_ready       ;
-
-//rx
   output  tb_i_ack         ;
+  output  tb_i_load_par    ;
+  output  tb_i_data_par    ;
 
   input   tb_o_req         ;
   input   tb_o_cmd         ;
   input   tb_o_data        ;
   input   tb_o_dbg_state   ;
+  input   tb_o_data_par    ;
+  input   tb_o_valid_par   ;
 endclocking
 
-// TX
-xcom_link_tx
-u_xcom_link_tx
+par2ser
+#(
+  .DWIDTH     ( NB )
+)
+u_par2ser
 (
-  .i_clk      (tb_clk        ),
-  .i_rstn     (tb_rstn       ),
-  .i_cfg_tick (tb_i_cfg_tick ),
-  .i_valid    (tb_i_valid    ),
-  .i_header   (tb_i_header   ),
-  .i_data     (tb_i_data     ), 
-  .o_ready    (tb_o_ready    ),
-  .o_data     (tb_xcom_data  ),
-  .o_clk      (tb_xcom_clk   )
+    .i_clk  ( tb_clk        ),
+    .i_rstn ( tb_rstn       ),
+    .i_load ( tb_i_load_par ),
+    .i_data ( tb_i_data_par ),
+    .o_data ( tb_o_data_par ),
+    .o_valid( tb_o_valid_par)
 );
 
 //===================================
@@ -119,13 +109,6 @@ endfunction
 task setup();
   svunit_ut.setup();
   $display("Starting simulation...");
-//tx
-    tb_cb.tb_i_cfg_tick <= 4'h0;   
-    tb_cb.tb_i_valid    <= 1'b0;   
-    tb_cb.tb_i_header   <= 8'h00;   
-    tb_cb.tb_i_data     <= '0;
-
-//rx
     tb_cb.tb_i_id        <= 4'b0010; 
     tb_cb.tb_i_ack       <= 1'b0; 
 
@@ -158,6 +141,18 @@ endtask
 //     <test code>
 //   `SVTEST_END
 //===================================
+
+task RCV_DT (); begin
+   $display("TX_DT");
+   tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
+   wait (tb_cb.tb_o_ready == 1'b1);
+   @ (tb_cb);
+   tb_cb.tb_i_valid     <= 1;
+   wait (tb_cb.tb_o_ready == 1'b0);
+   @ (tb_cb);
+   tb_cb.tb_i_valid     <= 0;
+end
+endtask
 
 task SIM_TX (); begin
    $display("SIM TX");
