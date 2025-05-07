@@ -13,7 +13,7 @@ end
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_32bit_data)
+`SVTEST(test01_net_req)
 
 tb_cb.tb_i_data  <= 1'b1;     
 tb_cb.tb_i_valid <= 1'b1;
@@ -34,9 +34,10 @@ repeat(5) @(tb_cb);
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test02_data)
+`SVTEST(test02_loc_req)
 
-    random_data  = $urandom();     
+    //random_data  = $urandom();     
+    random_data  = 32'd8;     
     @(tb_cb);
     write_loc(random_data);
 

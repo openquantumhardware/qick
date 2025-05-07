@@ -5,13 +5,37 @@
 //
 // Module: req_ack_cmd.sv
 // Project: QICK 
-// Description: Board communication peripheral
+// Description: 
+// Block to determine if the command must be executed locally (LOC_REQ) to 
+// the board or if it should be executed through the network of 
+// connected QICKs (NET_REQ).
+// 
+//Inputs:
+// - i_clk       clock signal
+// - i_rstn      active low reset signal
+// - i_valid     indicates a valid data is available
+// - i_op        5-bit port indicating the operation over the data. MSB bit is
+//               used to indicate a local command operation (LOC_REQ) when it
+//               is 1 and a network (remote) operation (NET_REQ) when it is 0.  
+// - i_addr      addr of register to work on.  
+// - i data      data port. 
+// - i_ack       acknowledgement port. The tproc/Python side should acknowledge
+//               the command processing requirement 
+//Outputs:
+// - o_req_loc   local command requirement signal. Indicates a local command
+//               should be excecuted.
+// - o_req_net   network (remote) command requirement signal. Indicates a 
+//               network (remote) command should be excecuted.
+// - o_op        operation to be excecuted (local or remote).
+// - o_data      data to be excecuted (local or remote).
+// - o_data_cntr data counter port for debug purposes.
 //
 //
 // Change history: 10/20/24 - v2 Started by @mdifederico
 //                 04/27/25 - Refactored by @lharnaldi
 //                          - the sync_n core was removed to sync all signals
 //                          in one place (external).
+//                 05/07/25 - Added header documentation @lharnaldi
 //
 ///////////////////////////////////////////////////////////////////////////////
 module req_ack_cmd 
@@ -19,10 +43,10 @@ module req_ack_cmd
     input  logic          i_clk       ,
     input  logic          i_rstn      ,
     // Command Input
-    input  logic          i_valid     , //data valid
-    input  logic [ 5-1:0] i_op        , //data operation
-    input  logic [ 4-1:0] i_addr      , //data addr
-    input  logic [32-1:0] i_data      , //data
+    input  logic          i_valid     , 
+    input  logic [ 5-1:0] i_op        , 
+    input  logic [ 4-1:0] i_addr      , 
+    input  logic [32-1:0] i_data      , 
     // Command Execution
     input  logic          i_ack       ,
     output logic          o_req_loc   ,
@@ -59,10 +83,8 @@ module req_ack_cmd
             IDLE: begin
                if( i_valid )  begin
                   if (i_op[4]) begin
-                     //o_req_loc = 1'b1;
                      state_n   = LOC_REQ;
                   end else begin
-                     //o_req_net = 1'b1;
                      state_n   = NET_REQ;
                   end
                end else begin
@@ -99,10 +121,9 @@ module req_ack_cmd
             cmd_cnt_r  <= cmd_cnt_n;
         end
     //next state logic
-    assign cmd_op_n  = i_valid ? {i_op[4-1:0], i_addr} : cmd_op_r;
-    assign cmd_dt_n  = i_valid ? i_data                : cmd_dt_r;
-    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1      : cmd_cnt_r;//FIXME:check this
-
+    assign cmd_op_n  = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
+    assign cmd_dt_n  = i_valid ? i_data              : cmd_dt_r;
+    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
 
     // OUTPUTS
     ///////////////////////////////////////////////////////////////////////////////

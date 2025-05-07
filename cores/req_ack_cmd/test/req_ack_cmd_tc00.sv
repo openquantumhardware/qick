@@ -11,18 +11,18 @@ import svunit_pkg::svunit_testcase;
 
   localparam NB               = 32;
 
-  logic        tb_clk         = 1'b0;
-  logic        tb_rstn        = 1'b1;
-  logic        tb_i_valid     = 1'b0;
-  logic [ 4:0] tb_i_op        = 5'b00000; 
-  logic [ 3:0] tb_i_addr      = 4'b0000; 
-  logic [31:0] tb_i_data      = 32'h00000000; 
-  logic        tb_i_ack       = 1'b0;
-  logic        tb_o_req_loc   ;
-  logic        tb_o_req_net   ;
-  logic [ 7:0] tb_o_op        ;
-  logic [31:0] tb_o_data      ;
-  logic [ 3:0] tb_o_data_cntr ;
+  logic          tb_clk         = 1'b0;
+  logic          tb_rstn        = 1'b1;
+  logic          tb_i_valid     = 1'b0;
+  logic  [5-1:0] tb_i_op        = '0; 
+  logic  [4-1:0] tb_i_addr      = '0; 
+  logic [NB-1:0] tb_i_data      = '0; 
+  logic          tb_i_ack       = 1'b0;
+  logic          tb_o_req_loc   ;
+  logic          tb_o_req_net   ;
+  logic  [8-1:0] tb_o_op        ;
+  logic [NB-1:0] tb_o_data      ;
+  logic  [4-1:0] tb_o_data_cntr ;
 
   logic [NB-1:0] random_data;
 
@@ -94,11 +94,10 @@ endfunction
 task setup();
   svunit_ut.setup();
     random_data = $urandom();
-    tb_cb.tb_i_data  <= '0;
     tb_cb.tb_i_valid <= 1'b0;   
-    tb_cb.tb_i_op    <= 5'b0000_1;   
+    tb_cb.tb_i_op    <= 5'b0_0001;   
     tb_cb.tb_i_addr  <= 4'b0000;   
-    tb_cb.tb_i_data  <= 32'h11223344;   
+    tb_cb.tb_i_data  <= '0;
     tb_cb.tb_i_ack   <= 1'b0; 
 
     @(tb_cb);
@@ -135,14 +134,14 @@ task automatic write_loc(input logic [NB-1:0] in_data);
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
         tb_cb.tb_i_valid <= 1'b1;
         tb_cb.tb_i_op    <= 5'b1_1010;
-        tb_cb.tb_i_addr  <= 4'b0010;
+        tb_cb.tb_i_addr  <= $urandom_range(0,15);
         tb_cb.tb_i_data  <= in_data + i;
         @(tb_cb);
         tb_cb.tb_i_valid <= 1'b0;
         tb_cb.tb_i_ack   <= 1'b1;
         @(tb_cb);
         tb_cb.tb_i_ack   <= 1'b0;
-        repeat($urandom(10))@(tb_cb);
+        repeat($urandom_range(1,5))@(tb_cb);
     end
 endtask
 
