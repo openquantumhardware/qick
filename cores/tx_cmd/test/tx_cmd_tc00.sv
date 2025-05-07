@@ -8,6 +8,7 @@ import svunit_pkg::svunit_testcase;
   svunit_testcase svunit_ut;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
+  localparam SYNC_PULSE_FREQ = 5e6; //[Hz]
 
   localparam NB                 = 32;
 
@@ -39,6 +40,15 @@ u_clk_gen
   .o_clk      ( tb_clk            )
 );
 
+//clk_gen
+//#(
+//  .FREQ       ( SYNC_PULSE_FREQ   )
+//)
+//u_sync_pulse
+//(
+//  .i_enable   ( 1'b1              ),
+//  .o_clk      ( tb_i_sync         )
+//);
 
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
@@ -55,6 +65,13 @@ clocking tb_cb @(posedge tb_clk);
   input   tb_o_clk         ;
   input   tb_o_dbg_state   ;
 endclocking
+
+initial begin
+  tb_i_sync <= 1'b0;
+  forever # (200) tb_i_sync <= ~tb_i_sync;  
+end 
+
+
 
 //===================================
 // This is the UUT that we're
@@ -90,8 +107,7 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-    tb_cb.tb_i_sync     <= 1'b0;   
-    tb_cb.tb_i_cfg_tick <= 4'h0;   
+    tb_cb.tb_i_cfg_tick <= 4'h2;//N clock cycles in 1/0. Invalid values here 0 and 1. Bit LSB is always 0
     tb_cb.tb_i_req      <= 1'b0;   
     tb_cb.tb_i_valid    <= 1'b0;   
     tb_cb.tb_i_header   <= 8'h00;   

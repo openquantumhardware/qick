@@ -64,9 +64,10 @@ module tx_cmd(
    );
 
 logic s_ready;
-logic i_sync_dly ;
+logic i_sync_dly_r, i_sync_dly_n ;
 logic s_tx_valid;
 logic s_xcmd_sync;
+logic s_sync;
 
 typedef enum logic [2-1:0]{ IDLE  = 2'b00, 
                             WSYNC = 2'b01, 
@@ -80,10 +81,12 @@ state_t state_r, state_n;
 assign s_xcmd_sync  = ( i_header[7:4] == 4'b1000 ); // Sync Command
 
 always_ff@(posedge i_clk) begin
-   if (!i_rstn) i_sync_dly <= 1'b0; 
-   else         i_sync_dly <= i_sync;
+    if (!i_rstn) i_sync_dly_r <= 1'b0;
+    else         i_sync_dly_r <= i_sync_dly_n;
 end
-assign x_sync_t01 = !i_sync_dly & i_sync ;
+    
+assign i_sync_dly_n = i_sync;
+assign s_sync = !i_sync_dly_r & i_sync ;
 
 
 // TX Control state
@@ -107,7 +110,7 @@ always_comb begin
             end
       end
       WSYNC:  begin
-         if ( x_sync_t01 ) begin 
+         if ( s_sync ) begin 
             s_tx_valid = 1'b1;
             state_n    = WRDY;     
          end
