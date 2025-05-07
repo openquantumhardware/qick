@@ -1,10 +1,5 @@
 /***********************************************
  *
- *  Copyright (C) 2023 - Stratum Labs
- *
- *  Project: Stratum Labs - Common Library
- *  Author: Horacio Arnaldi <horacio.arnaldi@stratum-labs.com>
- *
  *  File: axil_ram_wr.sv
  *  Description: Interface between AXI4-Lite and DP BRAM block
  *
