@@ -29,8 +29,9 @@ class AbsSignalGen(SocIp):
         self.cfg['dac'] = self.dac
         self.cfg['has_mixer'] = self.HAS_MIXER
 
+        daccfg = self.rf['dacs'][self['dac']]
         for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
-            self.cfg[p] = self.rf.daccfg[self['dac']][p]
+            self.cfg[p] = daccfg[p]
         # interpolation reduces the DDS range
         self.cfg['f_dds'] = self['fs']/self['interpolation']
         self.cfg['fdds_div'] = self['fs_div']*self['interpolation']

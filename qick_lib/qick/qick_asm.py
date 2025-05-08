@@ -101,18 +101,29 @@ class QickConfig():
         lines.append("QICK running on %s, software version %s"%(self['board'], self['sw_version']))
         lines.append("\nFirmware configuration (built %s):"%(self['fw_timestamp']))
         if 'refclk_freq' in self._cfg:
-            lines.append("\n\tGlobal clocks (MHz): tProcessor %.3f, RF reference %.3f" % (
+            lines.append("\n\tGlobal clocks (MHz): tProc dispatcher timing %.3f, RF reference %.3f" % (
                 tproc.get('f_time', 0), self['refclk_freq']))
+
+        groupdescs = []
+        for group in self['rf']['clk_groups']:
+            groupnames = []
+            for srctype, src_id in group:
+                if srctype in ['dac', 'adc']:
+                    groupnames.append('%s tile %d'%(srctype.upper(), src_id))
+                else:
+                    groupnames.append("tProc %s"%(src_id))
+            groupdescs.append('[' + ', '.join(groupnames) + ']')
+        lines.append('\tGroups of related clocks: ' + ', '.join(groupdescs))
 
         with suppress(KeyError): # self['gens'] may not exist
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):
                 dacname = gen['dac']
-                dac = self['dacs'][dacname]
+                dac = self['rf']['dacs'][dacname]
                 buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
                 lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
                              (iGen, gen['type'], gen['maxlen'], buflen))
-                lines.append("\t\tfs=%.3f MHz, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                              (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
@@ -121,21 +132,21 @@ class QickConfig():
                 lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
                 for iIQ, iq in enumerate(self['iqs']):
                     dacname = iq['dac']
-                    dac = self['dacs'][dacname]
-                    lines.append("\t%d:\tfs=%.3f MHz" % (iIQ, iq['fs']))
+                    dac = self['rf']['dacs'][dacname]
+                    lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
                     lines.append("\t\t" + self._describe_dac(dacname))
 
         with suppress(KeyError): # self['readouts'] may not exist
             lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
             for iReadout, readout in enumerate(self['readouts']):
                 adcname = readout['adc']
-                adc = self['adcs'][adcname]
+                adc = self['rf']['adcs'][adcname]
                 buflen = readout['buf_maxlen']/readout['f_output']
                 if 'tproc_ctrl' in readout:
                     lines.append("\t%d:\t%s - configured by tProc output %d" % (iReadout, readout['ro_type'], readout['tproc_ctrl']))
                 else:
                     lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
-                lines.append("\t\tfs=%.3f MHz, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                lines.append("\t\tfs=%.3f Msps, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                              (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
                 lines.append("\t\t%s v%s (%s edge counter)" % (
                     readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']]))
@@ -151,9 +162,18 @@ class QickConfig():
                 lines.append("\t%d:\t%s" % (iPin, name))
                 #lines.append("\t%d:\t%s (%s %d, pin %d)" % (iPin, name, porttype, port, pin))
 
-            lines.append("\n\ttProc %s (\"%s\") rev %d: program memory %d words, data memory %d words" %
-                    (tproc['type'], {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']], tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
-            lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+            tproc_version = {'axis_tproc64x32_x8':'v1','qick_processor':'v2'}[tproc['type']]
+            if tproc_version == 'v1':
+                lines.append("\n\ttProc: %s (\"%s\") rev %d, program memory %d words, data memory %d words" %
+                        (tproc['type'], tproc_version, tproc['revision'], tproc['pmem_size'], tproc['dmem_size']))
+                lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+            else: # qick_processor
+                lines.append("\n\ttProc: %s (\"%s\") rev %d, core execution clock %.3f MHz" %
+                        (tproc['type'], tproc_version, tproc['revision'], tproc['f_core']))
+                lines.append("\t\tmemories (words): program %d, data %d, waveform %d" %
+                        (tproc['pmem_size'], tproc['dmem_size'], tproc['wmem_size']))
+                lines.append("\t\texternal start pin: %s" % (tproc['start_pin']))
+                lines.append("\t\texternal stop pin: %s" % (tproc['stop_pin']))
 
         if "ddr4_buf" in self._cfg:
             buf = self['ddr4_buf']
@@ -169,7 +189,7 @@ class QickConfig():
             buf = self['mr_buf']
             bufnames = [ro['avgbuf_fullpath'] for ro in self['readouts']]
             buflist = [bufnames.index(x) for x in buf['readouts']]
-            buflen = buf['maxlen']/self['adcs'][self['readouts'][buflist[0]]['adc']]['fs']
+            buflen = buf['maxlen']/self['rf']['adcs'][self['readouts'][buflist[0]]['adc']]['fs']
             lines.append("\n\tMR buffer: %d samples (%.3f us), wired to readouts %s" % (
                 buf['maxlen'], buflen, buflist))
             #lines.append("\n\tMR buffer: %d samples, wired to readouts %s, triggered by %s %d, pin %d" % (

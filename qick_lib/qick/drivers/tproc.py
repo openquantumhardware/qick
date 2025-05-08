@@ -100,11 +100,23 @@ class AxisTProc64x32_x8(SocIp):
 
         self.cfg['pmem_size'] = self.mem.mmio.length//8
 
+    def trace_clocks(self, soc):
+        """Trace back the sources for this block's clocks.
+        This is run as part of configure_connections(), but can be run separately to plan RFDC sampling rate changes.
+        """
+        self.cfg['clk_srcs'] = {}
+        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self.fullpath, 'aclk')
+
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
+        self.trace_clocks(soc)
+        self.cfg['f_time'] = self.cfg['clk_srcs']['clock']['f_clk']
+
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
+        self.cfg['clk_srcs'] = {}
+        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self.fullpath, 'aclk')
         self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "aclk")
         try:
             ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
@@ -412,17 +424,29 @@ class Axis_QICK_Proc(SocIp):
         self.buff_wr = allocate(shape=(maxlen, 8), dtype=np.int32)
         self.buff_rd = allocate(shape=(maxlen, 8), dtype=np.int32)
 
+    def trace_clocks(self, soc):
+        """Trace back the sources for this block's clocks.
+        This is run as part of configure_connections(), but can be run separately to plan RFDC sampling rate changes.
+        """
+        self.cfg['clk_srcs'] = {}
+        self.cfg['clk_srcs']['core clock'] = soc.metadata.trace_clk_back(self.fullpath, 'c_clk_i')
+        self.cfg['clk_srcs']['timing clock'] = soc.metadata.trace_clk_back(self.fullpath, 't_clk_i')
     
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
+        self.trace_clocks(soc)
+        self.cfg['f_core'] = self.cfg['clk_srcs']['core clock']['f_clk']
+        self.cfg['f_time'] = self.cfg['clk_srcs']['timing clock']['f_clk']
+
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
-        self.cfg['f_core'] = soc.metadata.get_fclk(self.fullpath, "c_clk_i")
-        self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "t_clk_i")
+        self.cfg['stop_pin'] = None
         try:
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
-            self.start_pin = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_start_i')
+            self.cfg['start_pin'] = port[0]
+            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_stop_i')
+            self.cfg['stop_pin'] = port[0]
         except:
             pass
         # WE have trig_%d_o and port_%d_dt_o as OUT of the QICK_PROCESSOR...
