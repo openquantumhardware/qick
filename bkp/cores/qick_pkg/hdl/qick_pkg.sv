@@ -1,5 +1,33 @@
 package qick_pkg;
     import fxp_pkg::*;
+  
+    parameter VERSION = "0.1.0";
+
+    /////////// XCOM ////////////
+
+    typedef struct packed {
+        logic [5-1:0] rst           ;//LOC command 
+        logic [5-1:0] write_mem     ;//LOC command  
+        logic [5-1:0] write_reg     ;//LOC command  
+        logic [5-1:0] write_flag    ;//LOC command  
+        logic [5-1:0] set_id        ;//LOC command  
+        logic [5-1:0] rfu2          ; 
+        logic [5-1:0] rfu1          ; 
+        logic [5-1:0] qctrl         ; 
+        logic [5-1:0] update_dt32   ; 
+        logic [5-1:0] update_dt16   ; 
+        logic [5-1:0] update_dt8    ; 
+        logic [5-1:0] auto_id       ; 
+        logic [5-1:0] qrst_sync     ; 
+        logic [5-1:0] send_32bit_2  ; 
+        logic [5-1:0] send_32bit_1  ; 
+        logic [5-1:0] send_16bit_2  ; 
+        logic [5-1:0] send_16bit_1  ; 
+        logic [5-1:0] send_8bit_2   ; 
+        logic [5-1:0] send_8bit_1   ; 
+        logic [5-1:0] set_flag      ; 
+        logic [5-1:0] clear_flag    ; 
+    } xcom_opcode_t;
 
     //////////// CONFIG FRAME //////////
     localparam NB_CONFIG_FRAME = 64;
