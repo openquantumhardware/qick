@@ -1,7 +1,7 @@
 CAPI=2:
 name: fnal:qick:xcom_cmd:1.1.0
 description: 
-  Command syncronizer for the XCOM core. Receives commands from tproc and Python
+  Command synchronizer for the XCOM core. Receives commands from tproc and Python
 
 filesets:
   hdl:
@@ -9,17 +9,18 @@ filesets:
       - hdl/xcom_cmd.sv
     file_type: systemVerilogSource
     depend:
-       - fnal:qick:xcom_link_tx
-       - fnal:qick:qick_pkg
+       - fnal:qick:req_ack_cmd
 
 
   tb:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
+      - data/opcodes.txt: {file_type : user, copyto : opcodes.txt}
       - test/xcom_cmd_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
     depend: 
+      - fnal:qick:qick_pkg
       - pynq_fused:common:sim_base
 
 

@@ -12,51 +12,60 @@ end
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_8bit_data)
-
-tb_cb.tb_i_data   <= $urandom();     
-//tb_cb.tb_i_data   <= 32'h0000_0003;     
-tb_cb.tb_i_req    <= 1'b1;
-tb_cb.tb_i_header <= 8'b0010_1010;//8-bit data witdth     
-@(tb_cb);
-tb_cb.tb_i_req <= 1'b0;
-repeat(50) @(tb_cb);
-
+`SVTEST(test02_ps_write_net)
+ 
+    random_data  = $urandom_range(0,32);     
+    //random_data  = 32'd8;
+    @(tb_cb);
+    for (int j=0;j<16;j=j+1) begin
+        write_ps(random_data,j);
+    end
+ 
+    //`ASSERT_IMMEDIATE(tb_o_data  == k);     
+    repeat(10) @(tb_cb);
+ 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test02_16bit_data)
-
-tb_cb.tb_i_data   <= $urandom();     
-//tb_cb.tb_i_data   <= 32'h0000_0003;     
-tb_cb.tb_i_req    <= 1'b1;
-tb_cb.tb_i_header <= 8'b0100_1010;//8-bit data witdth     
-@(tb_cb);
-tb_cb.tb_i_req <= 1'b0;
-repeat(100) @(tb_cb);
-
+`SVTEST(test03_ps_write_loc)
+ 
+    random_data  = $urandom_range(0,32);     
+    //random_data  = 32'd8;
+    @(tb_cb);
+    for (int j=16;j<32;j=j+1) begin
+        write_ps(random_data,j);
+    end
+ 
+    //`ASSERT_IMMEDIATE(tb_o_data  == k);     
+    repeat(10) @(tb_cb);
+ 
+`SVTEST_END
+////-------------------------------------------------------------------------------------------------//
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test04_tproc_write_net)
+ 
+    random_data  = $urandom_range(0,32);     
+    //random_data  = 32'd8;
+    @(tb_cb);
+    for (int j=0;j<16;j=j+1) begin
+        write_tproc(random_data,j);
+    end
+ 
+    //`ASSERT_IMMEDIATE(tb_o_data  == k);     
+    repeat(10) @(tb_cb);
+ 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test03_32bit_data)
-
-tb_cb.tb_i_data   <= $urandom();     
-//tb_cb.tb_i_data   <= 32'h0000_0003;     
-tb_cb.tb_i_req  <= 1'b1;
-tb_cb.tb_i_header <= 8'b0110_1010;//32-bit data witdth     
-@(tb_cb);
-tb_cb.tb_i_req <= 1'b0;
-repeat(100) @(tb_cb);
-
+`SVTEST(test05_tproc_write_loc)
+ 
+    random_data  = $urandom_range(0,32);     
+    //random_data  = 32'd8;
+    @(tb_cb);
+    for (int j=16;j<32;j=j+1) begin
+        write_tproc(random_data,j);
+    end
+ 
+    //`ASSERT_IMMEDIATE(tb_o_data  == k);     
+    repeat(10) @(tb_cb);
+ 
 `SVTEST_END
-//-------------------------------------------------------------------------------------------------//
-`SVTEST(test04_cmd_sync)
-
-tb_cb.tb_i_data   <= $urandom();     
-//tb_cb.tb_i_data   <= 32'h0000_0003;     
-tb_cb.tb_i_req  <= 1'b1;
-tb_cb.tb_i_header <= 8'b1000_1010;//sync command     
-@(tb_cb);
-tb_cb.tb_i_req <= 1'b0;
-repeat(200) @(tb_cb);
-
-`SVTEST_END
-//-------------------------------------------------------------------------------------------------//
+////-------------------------------------------------------------------------------------------------//
