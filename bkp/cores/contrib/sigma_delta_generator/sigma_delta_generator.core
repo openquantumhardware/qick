@@ -1,0 +1,39 @@
+CAPI=2:
+name: pynq_fused:common:sigma_delta_generator:0.1.0
+description: fifo sigma delta
+
+filesets:
+  rtl:
+    files:
+      - src/sigma_delta_generator.sv
+    file_type: systemVerilogSource
+  tb:
+    files:
+      - tests/sigma_delta_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:sim:sim_base
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/sigma_delta_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

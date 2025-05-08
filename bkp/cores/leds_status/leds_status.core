@@ -1,0 +1,47 @@
+CAPI=2:
+name: pynq_fused:utils:leds_status:0.1.0
+description: LEDs status utility block
+
+filesets:
+  rtl:
+    files:
+      - rtl/blink_gen.sv   : {file_type: systemVerilogSource}
+      - rtl/manager_led.sv : {file_type: systemVerilogSource}
+      - rtl/leds_status.sv : {file_type: systemVerilogSource}
+    depend:
+      - pynq_fused:utils:leds_status_regmap
+      - pynq_fused:interfaces:axi4_lite
+
+  tb:
+    files: &tb_files
+      - tests/leds_status_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:common:sim_base
+
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/leds_status_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate_append:
+      - testrunner_gen
+    toplevel: [testrunner]
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -timescale 1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

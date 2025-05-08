@@ -1,0 +1,28 @@
+CAPI=2:
+name: pynq_fused:adsb:utc_time_regmap:0.1
+description: "UTC Time Register Map"
+
+filesets:
+  rdl:
+    files:
+        - utc_time_regmap.rdl : {file_type: user }
+    depend: 
+        - pynq_fused:utils:rdl_gen:0.2.1
+        - pynq_fused:interfaces:axi4_lite
+
+generate:
+  rdl_regmap:
+    generator: rdl_gen
+    parameters:
+      rdl_file: utc_time_regmap.rdl
+      documentation:
+      headers:
+        - verilog
+        - c
+
+targets:
+  default: &default
+    filesets:
+      - rdl
+    generate:
+      - rdl_regmap

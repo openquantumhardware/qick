@@ -1,0 +1,73 @@
+CAPI=2:
+name: pynq_fused:common:data_to_axis_fifo:0.2.0
+description: adds back-pressure to data/valid stream by means of a FIFO buffer and adapting the outputs to AXI-4 Stream
+
+filesets:
+  rtl:
+    files:
+      - src/data_to_axis_fifo.sv
+    file_type: systemVerilogSource
+    depend:
+      - "^pynq_fused:interfaces:axi4_stream:1.1.0"
+      - "^pynq_fused:interfaces:data_stream:0.2"
+      - pynq_fused:external:axis_fifo
+
+  tb:
+    files: &tb_files
+      - tests/data_to_axis_fifo_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:sim:sim_base
+
+  # TODO waives for verilator (does not support interfaces in top level)
+  files_lint_verilator:
+    files:
+      - lint/verilator_waiver.vlt: {file_type: vlt}
+    depend:
+      - pynq_fused:lint:common
+
+  files_lint_verible:
+    files:
+      - lint/verible_waiver.vbw: {file_type: veribleLintWaiver}
+    depend:
+      - pynq_fused:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/data_to_axis_fifo_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      - tool_verilator ? (files_lint_verilator)
+      - tool_veriblelint ? (files_lint_verible)
+
+  lint:
+    <<: *default
+    default_tool: veriblelint
+    toplevel: data_to_axis_fifo
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options:
+          - "-Wall"
+      veriblelint:
+        ruleset: all
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -relax]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+

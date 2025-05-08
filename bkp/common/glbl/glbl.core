@@ -1,0 +1,14 @@
+CAPI=2:
+name: pynq_fused:common:glbl:1.0.0
+description: glbl sources from Xilinx needed to simulate XPM modules
+
+filesets:
+  rtl:
+    files:
+      - src/glbl.v
+    file_type: verilogSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl

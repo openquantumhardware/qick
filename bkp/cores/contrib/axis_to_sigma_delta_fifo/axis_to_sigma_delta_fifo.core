@@ -1,0 +1,47 @@
+CAPI=2:
+name: pynq_fused:common:axis_to_sigma_delta_fifo:0.1.0
+description: adds back-pressure to data/valid stream by means of a FIFO buffer and adapting the outputs to AXI-4 Stream
+
+filesets:
+  rtl:
+    files:
+      - src/axis_to_sigma_delta_fifo.sv
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:interfaces:axi4_stream
+      - pynq_fused:interfaces:data_stream
+      - pynq_fused:common:axi4_stream_fifo
+      - pynq_fused:common:sigma_delta_generator
+
+  tb:
+    files: &tb_files
+      - tests/axis_to_sigma_delta_fifo_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:sim:sim_base
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files: 
+          - tests/axis_to_sigma_delta_fifo_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -relax]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+

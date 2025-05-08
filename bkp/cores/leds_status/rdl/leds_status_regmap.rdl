@@ -1,0 +1,21 @@
+addrmap leds_status_regmap {
+  regfile {
+         default sw = rw;
+         default hw = rw;
+         reg {
+           field {sw = rw; hw = r; } btime [32] = 1; 
+         } blink_time;
+         reg {
+             field   {sw = rw; hw = r; } mode [8] = 0;
+             field {sw = rw; hw = r; } status [8] = 0;
+             field   {sw = rw; hw = r; } gnss [8] = 0;
+             field  {sw = rw; hw = r; } track [8] = 0;
+         } led_id;
+     } led_registers;
+    reg {
+        field {singlepulse = true; reset = 1'b0; sw = w; hw = r;} pulse_rst = 0;
+        field {sw = rw; hw = r;} toggle_rst = 0;
+    } rst;
+
+};
+

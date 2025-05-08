@@ -1,0 +1,5 @@
+waive --rule=generate-label --location=".*axis_fifo.v.*"
+waive --rule=line-length --location=".*axis_fifo.v.*"
+waive --rule=unpacked-dimensions-range-ordering --location=".*axis_fifo.v.*"
+waive --rule=explicit-parameter-storage-type --location=".*axis_fifo.v.*"
+

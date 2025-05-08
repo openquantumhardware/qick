@@ -1,0 +1,2 @@
+0 IDLE 
+1 RECEIVING

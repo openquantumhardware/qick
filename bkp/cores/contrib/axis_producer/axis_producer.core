@@ -1,0 +1,87 @@
+CAPI=2:
+name: pynq_fused:rts:hwtest_axis_producer:0.1.0
+filesets:
+  rtl:
+    files:
+      - src/axis_producer.sv
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:common:bram
+
+  test_files:
+    files: &test_files
+      - tests/axis_producer_unit_test.sv
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:sim:sim_base
+
+  lint_files:
+      # files:
+        # - 
+    depend:
+      - pynq_fused:lint:common
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+      test_files: *test_files
+
+scripts:
+  coverage_script:
+    cmd:
+      - xcrg
+      - -cc_db
+      - cov_db
+      - -cc_dir
+      - xsim.codeCov
+      - -cc_report
+      - coverage_rpt
+  open_coverage_rpt:
+    cmd:
+      - xdg-open
+      - coverage_rpt/dashboard.html
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+      # - lint_files
+
+  lint:
+    <<: *default
+    description: Run lint with Verible or Verilator
+    default_tool: veriblelint
+    toplevel: [axis_producer]
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]
+
+  test:
+    <<: *default
+    description: Run unit tests with SVUnit
+    filesets_append: [test_files]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -relax]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*"]
+
+  coverage:
+    <<: *default
+    description: Run coverage
+    filesets_append: [test_files]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-cc_type sbct -cc_db cov_db -R]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+    hooks:
+      post_run:
+        - coverage_script
+        - open_coverage_rpt

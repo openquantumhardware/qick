@@ -1,0 +1,41 @@
+CAPI=2:
+name: pynq_fused::pps_gen:1.0.0
+description: PPS generator. It can generate a PPS signal internally (system clock dependent) and/or externally (dependent of a GPS module).
+
+filesets:
+  rtl:
+    files:
+      - rtl/pps_gen.sv : {file_type: systemVerilogSource}
+
+  tb:
+    files: &tb_files
+      - tests/pps_gen_tc00.sv
+      - tests/tests.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend:
+      - pynq_fused:common:sim_base
+
+generate:
+  testrunner_gen:
+    generator: svunit_gen
+    parameters:
+        test_files:
+          - tests/pps_gen_tc00.sv
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  test:
+    <<: *default
+    description: Run testbenches
+    filesets_append: [tb]
+    default_tool: xsim
+    generate_append:
+      - testrunner_gen
+    toplevel: [testrunner]
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM -timescale 1ns/1ps]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]

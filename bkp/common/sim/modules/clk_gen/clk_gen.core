@@ -1,0 +1,22 @@
+CAPI=2:
+name: pynq_fused:common:clk_gen:0.1.0
+description: clock generator with configurable frequency, phase and duty cycle intended for simulations
+
+filesets:
+  rtl:
+    files:
+      - rtl/clk_gen.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+
+  lint:
+    <<: *default
+    default_tool: verilator
+    tools:
+      verilator:
+        mode: lint-only
+        verilator_options: [-Wall]

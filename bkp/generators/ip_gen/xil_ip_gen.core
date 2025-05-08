@@ -1,0 +1,23 @@
+CAPI=2:
+
+name: pynq_fused:utils:xil_ip_gen:0.1.0
+
+generators:
+  xil_ip_gen:
+    interpreter: python3
+    command: ip_generator.py
+    description: Generate and execute tcl script for Xilinx's ip generation
+    cache_type: input
+    usage: |
+      The Xilinx IP generator creates a tcl script from a template, executes it
+      from vivado and then exports the produced files specified by the user in
+      the output parameter. These output files are exported only for the simulation target.
+
+      Parameters:
+          vlnv (str): The IP core vlnv
+          module_name (srt): Desired module name
+          targets (list): List of targets to generate
+          properties (dict): Dictionary with the IP's properties
+          output (list): A list of files, specified in the same format as CAPI2
+            fileset files, which are expected to be exported by the generator for
+            target simulation.
