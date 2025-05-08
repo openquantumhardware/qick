@@ -3,9 +3,9 @@ name: fnal:qick:qick_pkg:0.1.0
 description: Package with system definitions
 
 filesets:
-  rtl:
+  hdl:
     files:
-      - rtl/qick_pkg.sv
+      - hdl/qick_pkg.sv
     file_type: systemVerilogSource
     depend:
       - fnal:qick:fxp_pkg
@@ -13,4 +13,4 @@ filesets:
 targets:
   default: &default
     filesets:
-      - rtl
+      - hdl
