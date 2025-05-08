@@ -133,7 +133,7 @@ endtask
 task automatic write_loc(input logic [NB-1:0] in_data);
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
         tb_cb.tb_i_valid <= 1'b1;
-        tb_cb.tb_i_op    <= 5'b1_1010;
+        tb_cb.tb_i_op    <= 5'b0_1000;
         tb_cb.tb_i_addr  <= $urandom_range(0,15);
         tb_cb.tb_i_data  <= in_data + i;
         @(tb_cb);
