@@ -782,6 +782,7 @@ class TimedMacro(Macro):
             else:
                 # this is just an int literal
                 t_reg = int(t_reg)
+            #logger.info("%s %s"%(name, t.raw_param))
             t_rounded = t.get_rounded()
         # t_params gets a QickParam, for later reference
         # t_regs gets an int or a register name, for use in ASM

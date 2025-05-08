@@ -118,9 +118,6 @@ class RFDC(xrfdc.RFdc, SocIp):
                       }
 
     def __init__(self, description):
-        """
-        Constructor method
-        """
         super().__init__(description)
         # Nyquist zone for each channel
         self.nqz_dict = {'dac': {}, 'adc': {}}
@@ -637,7 +634,7 @@ class RFDC(xrfdc.RFdc, SocIp):
 
         Returns
         -------
-        dict of lists
+        dict of list
             Calibration coefficients
         """
         tile, block = [int(x) for x in blockname]
@@ -660,7 +657,7 @@ class RFDC(xrfdc.RFdc, SocIp):
         ----------
         blockname : str
             Channel ID (2-digit string)
-        cal : dict of lists
+        cal : dict of list
             Calibration coefficients
         calblocks : list of str
             List of calibration blocks to configure.
@@ -668,7 +665,7 @@ class RFDC(xrfdc.RFdc, SocIp):
 
         Returns
         -------
-        dict of lists
+        dict of list
             Calibration coefficients
         """
         tile, block = [int(x) for x in blockname]
@@ -733,7 +730,30 @@ class RFDC(xrfdc.RFdc, SocIp):
 
 class QickSoc(Overlay, QickConfig):
     """
-    QickSoc class. This class will create all object to access system blocks
+    This class loads, initializes, and provides access to the QICK firmware.
+
+    Parameters
+    ----------
+    bitfile : str
+        Path to the firmware bitfile. This should end with .bit, and the corresponding .hwh file must be in the same directory.
+    download : bool
+        Load the bitfile into the FPGA logic. If you are certain that the bitfile you specified is already running, you can use False here.
+    no_tproc : bool
+        Use if this is a special firmware that doesn't have a tProcessor.
+    no_rf : bool
+        Use if this is a special firmware that doesn't have an RF data converter.
+    force_init_clks : bool
+        Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
+    clk_output: bool or None
+        If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
+    external_clk: bool or None
+        If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
+    dac_sample_rates : dict[int, float] or None
+        Sample rates to override the values compiled into the firmware.
+        This should be a dictionary mapping DAC tiles to sample rates (in megasamples per second).
+    adc_sample_rates : dict[int, float] or None
+        Sample rates to override the values compiled into the firmware.
+        This should be a dictionary mapping ADC tiles to sample rates (in megasamples per second).
     """
 
     # The following constants are no longer used. Some of the values may not match the bitfile.
@@ -756,33 +776,6 @@ class QickSoc(Overlay, QickConfig):
 
     # Constructor.
     def __init__(self, bitfile=None, download=True, no_tproc=False, no_rf=False, force_init_clks=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
-        """
-        Constructor method
-
-        Parameters
-        ----------
-        bitfile : str
-            Path to the firmware bitfile. This should end with .bit, and the corresponding .hwh file must be in the same directory.
-        download : bool
-            Load the bitfile into the FPGA logic. If you are certain that the bitfile you specified is already running, you can use False here.
-        no_tproc : bool
-            Use if this is a special firmware that doesn't have a tProcessor.
-        no_rf : bool
-            Use if this is a special firmware that doesn't have an RF data converter.
-        force_init_clks : bool
-            Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
-        clk_output: bool or None
-            If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
-        external_clk: bool or None
-            If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
-        dac_sample_rates : dict[int, float] or None
-            Sample rates to override the values compiled into the firmware.
-            This should be a dictionary mapping DAC tiles to sample rates (in megasamples per second).
-        adc_sample_rates : dict[int, float] or None
-            Sample rates to override the values compiled into the firmware.
-            This should be a dictionary mapping ADC tiles to sample rates (in megasamples per second).
-        """
-
         self.external_clk = external_clk
         self.clk_output = clk_output
         # Read the bitstream configuration from the HWH file.

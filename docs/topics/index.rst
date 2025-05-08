@@ -10,3 +10,4 @@ Specific topics
    playing_pulses
    gen_config
    units
+   changing_fs
