@@ -27,10 +27,10 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["ip", "models", "pyxsi_utils", "simutils"]
+packages = ["cores", "models", "pyxsi_utils", "simutils"]
 
 [tool.setuptools.package-dir]
-cores = "ip"
+cores = "cores"
 models = "scripts/utils"
 pyxsi_utils = "common/pyxsi_utils"
 simutils = "common/simutils"

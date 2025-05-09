@@ -58,58 +58,71 @@
 module rx_cmd # (
    parameter NCH = 2
 )( 
-   input  logic             c_clk_i     ,
-   input  logic             c_rst_ni    ,
-   input  logic             i_clk     ,
-   input  logic             i_rstn    ,
+   input  logic           c_clk_i     ,
+   input  logic           c_rst_ni    ,
+   input  logic           i_clk     ,
+   input  logic           i_rstn    ,
 // XCOM CFG
-   input  logic  [3:0]      port_id_i   ,
+   input  logic   [4-1:0] i_id   ,
 // XCOM CNX
-   input  logic [NCH-1:0]    rx_dt_i     ,
-   input  logic [NCH-1:0]    rx_ck_i     ,
+   input  logic [NCH-1:0] i_xcom_data     ,
+   input  logic [NCH-1:0] i_xcom_clk     ,
 // Command Processing
-   output logic             cmd_vld_o ,
-   output logic [ 3:0]      cmd_op_o  ,
-   output logic [31:0]      cmd_dt_o  ,
-   output logic [ 3:0]      cmd_id_o  ,
+   output logic           cmd_vld_o ,
+   output logic  [ 4-1:0] cmd_op_o  ,
+   output logic  [32-1:0] cmd_dt_o  ,
+   output logic  [ 4-1:0] cmd_id_o  ,
 // XCOM RX DEBUG
-   output logic  [3:0]      cmd_st_do ,   
-   output logic  [9:0]      rx_st_do      
+   output logic   [4-1:0] cmd_st_do ,   
+   output logic  [10-1:0] rx_st_do      
    );
 
-logic [NCH-1:0]  rx_req_s      ;
-logic  [NCH-1:0]  rx_ack_s      ;
-logic            rx_cmd_valid  ;
-logic [ 3:0]    rx_cmd_s  [NCH];
-logic [31:0]    rx_data_s [NCH];
-logic  [ 3:0]    rx_cmd_ind    ;
+logic [NCH-1:0] rx_req_s      ;
+logic [NCH-1:0] rx_ack_s      ;
+logic           rx_cmd_valid  ;
+logic  [ 4-1:0] rx_cmd_s  [NCH];
+logic  [32-1:0] rx_data_s [NCH];
+logic  [ 4-1:0] rx_cmd_ind    ;
 
-logic            rx_cmd_req, rx_cmd_id_wr;
-logic [3:0]      rx_cmd_id ;
+logic           rx_cmd_req, rx_cmd_id_wr;
+logic  [4-1:0]| rx_cmd_id ;
 logic           rx_cmd_ack;
 
 logic           c_cmd_req ;
-logic            c_cmd_ack ;
-logic            c_cmd_vld;
+logic           c_cmd_ack ;
+logic           c_cmd_vld;
 
-logic [4:0]    rx_st_ds [NCH];
+logic [5-1:0]   rx_st_ds [NCH];
 // LINK RECEIVERS 
 /////////////////////////////////////////////////////////////////////////////
 genvar k;
 generate
    for (k=0; k < NCH ; k=k+1) begin: RX
+       xcom_link_rx u_xcom_link_rx(
+           .i_clk      ( i_clk        ),
+           .i_rstn     ( i_rstn       ),
+           .i_id       ( i_id         ),
+           .o_req      ( tb_o_req      ),
+           .i_ack      ( tb_i_ack      ),
+           .o_cmd      ( tb_o_cmd      ),
+           .o_data     ( tb_o_data     ),
+           .i_xcom_data( i_xcom_data[k] ),
+           .i_xcom_clk ( i_xcom_clk[k]   ),
+           .o_dbg_state( tb_o_dbg_state)
+       );
       xcom_link_rx LINK (
          .i_clk     ( i_clk   ),
          .i_rstn    ( i_rstn  ),
-         .xcom_id_i   ( port_id_i ),
+         .xcom_id_i   ( i_id ),
          .rx_req_o    ( rx_req_s [k] ),
          .rx_ack_i    ( rx_ack_s [k] ),
          .rx_cmd_o    ( rx_cmd_s [k] ),
          .rx_data_o   ( rx_data_s[k] ),
-         .rx_dt_i     ( rx_dt_i  [k] ),
-         .rx_ck_i     ( rx_ck_i  [k] ),
+         .rx_dt_i     ( i_xcom_data  [k] ),
+         .rx_ck_i     ( i_xcom_clk  [k] ),
          .rx_st_do    ( rx_st_ds [k] )
       );
+
   end
 endgenerate
 
@@ -233,8 +246,8 @@ always_comb begin
    endcase
 end
 
-logic [ 3:0] c_cmd_id, c_cmd_op ;
-logic [31:0] c_cmd_dt ;
+logic [ 4-1:0] c_cmd_id, c_cmd_op ;
+logic [32-1:0] c_cmd_dt ;
 
 assign c_cmd_op = rx_cmd_s[rx_cmd_id];
 assign c_cmd_dt = rx_data_s[rx_cmd_id];
