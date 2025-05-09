@@ -15,6 +15,7 @@ filesets:
   tb:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
+      - data/cmd_states.txt: {file_type : user, copyto : cmd_states.txt}
       - test/rx_cmd_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
