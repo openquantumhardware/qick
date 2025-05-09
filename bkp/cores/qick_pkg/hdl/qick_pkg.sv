@@ -6,6 +6,49 @@ package qick_pkg;
     /////////// XCOM ////////////
 
     typedef struct packed {
+        logic [32-1:0] xcom_debug   ;
+        logic [32-1:0] xcom_status  ;
+        logic [32-1:0] xcom_tx_data ;
+        logic [32-1:0] xcom_rx_data ;
+        logic [32-1:0] xcom_tbd_1   ;//To be defined 1 
+        logic [32-1:0] xcom_mem     ; 
+        logic [32-1:0] xcom_data_2  ; 
+        logic [32-1:0] xcom_data_1  ; 
+        logic          xcom_flag    ; 
+        logic [5-1:0]  board_id     ; 
+        logic [32-1:0] xcom_tbd_2   ; //To be defined 2 
+        logic [5-1:0]  axi_addr     ; 
+        logic [32-1:0] axi_data_2   ; 
+        logic [32-1:0] axi_data_1   ; 
+        logic [5-1:0]  xcom_cfg     ; 
+        logic [6-1:0]  xcom_ctrl    ; 
+    } xcom_register_t;
+
+    typedef struct packed {
+        logic [5-1:0] rst           ;//LOC command 
+        logic [5-1:0] write_mem     ;//LOC command  
+        logic [5-1:0] write_reg     ;//LOC command  
+        logic [5-1:0] write_flag    ;//LOC command  
+        logic [5-1:0] set_id        ;//LOC command  
+        logic [5-1:0] rfu2          ; 
+        logic [5-1:0] rfu1          ; 
+        logic [5-1:0] qctrl         ; 
+        logic [5-1:0] update_dt32   ; 
+        logic [5-1:0] update_dt16   ; 
+        logic [5-1:0] update_dt8    ; 
+        logic [5-1:0] auto_id       ; 
+        logic [5-1:0] qrst_sync     ; 
+        logic [5-1:0] send_32bit_2  ; 
+        logic [5-1:0] send_32bit_1  ; 
+        logic [5-1:0] send_16bit_2  ; 
+        logic [5-1:0] send_16bit_1  ; 
+        logic [5-1:0] send_8bit_2   ; 
+        logic [5-1:0] send_8bit_1   ; 
+        logic [5-1:0] set_flag      ; 
+        logic [5-1:0] clear_flag    ; 
+    } xcom_cmd_t;
+
+    typedef struct packed {
         logic [5-1:0] rst           ;//LOC command 
         logic [5-1:0] write_mem     ;//LOC command  
         logic [5-1:0] write_reg     ;//LOC command  
