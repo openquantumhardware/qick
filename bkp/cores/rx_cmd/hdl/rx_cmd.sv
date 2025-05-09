@@ -10,7 +10,7 @@
 // xcom_link_rx block through the external i_sync signal.
 // 
 //Parameters:
-// - NCH        number of channels
+// - NCH        number of RX channels
 //Inputs:
 // - i_clk      clock signal
 // - i_rstn     active low reset signal
@@ -50,7 +50,7 @@
 // - o_dbg_state debug port for monitoring the state of the internal FSM
 //
 // Change history: 09/20/24 - v1.0.0 Started by @mdifederico
-//                 05/07/25 - v1.1.0 Refactored by @lharnaldi
+//                 05/09/25 - v1.1.0 Refactored by @lharnaldi
 //                                   - the sync_n core was removed to sync 
 //                                   all signals in one place (external).
 //
@@ -58,87 +58,22 @@
 module rx_cmd # (
    parameter NCH = 2
 )( 
-   input  logic           c_clk_i     ,
-   input  logic           c_rst_ni    ,
-   input  logic           i_clk     ,
-   input  logic           i_rstn    ,
-// XCOM CFG
-   input  logic   [4-1:0] i_id   ,
-// XCOM CNX
-   input  logic [NCH-1:0] i_xcom_data     ,
-   input  logic [NCH-1:0] i_xcom_clk     ,
-// Command Processing
-   output logic           cmd_vld_o ,
-   output logic  [ 4-1:0] cmd_op_o  ,
-   output logic  [32-1:0] cmd_dt_o  ,
-   output logic  [ 4-1:0] cmd_id_o  ,
-// XCOM RX DEBUG
-   output logic   [4-1:0] cmd_st_do ,   
-   output logic  [10-1:0] rx_st_do      
+   input  logic           i_clk            ,
+   input  logic           i_rstn           ,
+   // XCOM CFG
+   input  logic   [4-1:0] i_id             ,
+   // XCOM CNX
+   input  logic [NCH-1:0] i_xcom_data      ,
+   input  logic [NCH-1:0] i_xcom_clk       ,
+   // Command Processing
+   output logic           o_valid          ,
+   output logic  [ 4-1:0] o_op             ,
+   output logic  [32-1:0] o_data           ,
+   output logic  [ 4-1:0] o_chid           ,
+   // XCOM RX DEBUG
+   output logic   [4-1:0] o_dbg_cmd_state  ,   
+   output logic   [5-1:0] o_dbg_state [NCH]      
    );
-
-logic [NCH-1:0] rx_req_s      ;
-logic [NCH-1:0] rx_ack_s      ;
-logic           rx_cmd_valid  ;
-logic  [ 4-1:0] rx_cmd_s  [NCH];
-logic  [32-1:0] rx_data_s [NCH];
-logic  [ 4-1:0] rx_cmd_ind    ;
-
-logic           rx_cmd_req, rx_cmd_id_wr;
-logic  [4-1:0]| rx_cmd_id ;
-logic           rx_cmd_ack;
-
-logic           c_cmd_req ;
-logic           c_cmd_ack ;
-logic           c_cmd_vld;
-
-logic [5-1:0]   rx_st_ds [NCH];
-// LINK RECEIVERS 
-/////////////////////////////////////////////////////////////////////////////
-genvar k;
-generate
-   for (k=0; k < NCH ; k=k+1) begin: RX
-       xcom_link_rx u_xcom_link_rx(
-           .i_clk      ( i_clk        ),
-           .i_rstn     ( i_rstn       ),
-           .i_id       ( i_id         ),
-           .o_req      ( tb_o_req      ),
-           .i_ack      ( tb_i_ack      ),
-           .o_cmd      ( tb_o_cmd      ),
-           .o_data     ( tb_o_data     ),
-           .i_xcom_data( i_xcom_data[k] ),
-           .i_xcom_clk ( i_xcom_clk[k]   ),
-           .o_dbg_state( tb_o_dbg_state)
-       );
-      xcom_link_rx LINK (
-         .i_clk     ( i_clk   ),
-         .i_rstn    ( i_rstn  ),
-         .xcom_id_i   ( i_id ),
-         .rx_req_o    ( rx_req_s [k] ),
-         .rx_ack_i    ( rx_ack_s [k] ),
-         .rx_cmd_o    ( rx_cmd_s [k] ),
-         .rx_data_o   ( rx_data_s[k] ),
-         .rx_dt_i     ( i_xcom_data  [k] ),
-         .rx_ck_i     ( i_xcom_clk  [k] ),
-         .rx_st_do    ( rx_st_ds [k] )
-      );
-
-  end
-endgenerate
-
-
-// RX Command Priority Encoder
-/////////////////////////////////////////////////////////////////////////////
-integer i ;
-always_comb begin
-  rx_cmd_valid  = 1'b0;
-  rx_cmd_ind    = 0;
-  for (i = 0 ; i < NCH; i=i+1)
-    if (!rx_cmd_valid & rx_req_s[i]) begin
-      rx_cmd_valid   = 1'b1;
-      rx_cmd_ind     = i;
-   end
-end
 
 typedef enum logic [2-1:0]{ IDLE = 2'b00, 
                             REQ  = 2'b01, 
@@ -146,29 +81,94 @@ typedef enum logic [2-1:0]{ IDLE = 2'b00,
 } state_t;
 state_t state_r, state_n;
 
+//Command FSM
+typedef enum logic [2-1:0]{ CMD_IDLE = 2'b00, 
+                            CMD_EXEC = 2'b01, 
+                            CMD_ACK  = 2'b10 
+} cmd_state_t;
+cmd_state_t cmd_state_r, cmd_state_n;
+
+logic [NCH-1:0] s_req       ;
+logic [NCH-1:0] s_ack       ;
+logic           s_valid     ;
+logic  [ 4-1:0] s_cmd  [NCH];
+logic  [32-1:0] s_data [NCH];
+logic  [$clog2(NCH)-1:0] s_channel   ;
+
+logic           s_cmd_req   ;
+logic           s_cmd_wrid  ;//command write id
+logic  [4-1:0]  s_cmd_chid  ;
+logic           s_cmd_ack   ;
+logic           s_cmd_valid ;
+
+logic [5-1:0]   s_dbg_state [NCH];
+// LINK RECEIVERS 
+/////////////////////////////////////////////////////////////////////////////
+genvar k;
+generate
+   for (k=0; k < NCH ; k=k+1) begin: RX
+       xcom_link_rx u_xcom_link_rx(
+           .i_clk      ( i_clk          ),
+           .i_rstn     ( i_rstn         ),
+           .i_id       ( i_id           ),
+           .o_req      ( s_req[k]       ),
+           .i_ack      ( s_ack[k]       ),
+           .o_cmd      ( s_cmd[k]       ),
+           .o_data     ( s_data[k]      ),
+           .i_xcom_data( i_xcom_data[k] ),
+           .i_xcom_clk ( i_xcom_clk[k]  ),
+           .o_dbg_state( s_dbg_state[k] )
+       );
+       //debug
+       assign o_dbg_state[k]  = s_dbg_state[k];
+  end
+endgenerate
+
+
+// RX Command Priority Encoder
+/////////////////////////////////////////////////////////////////////////////
+assign s_valid = &s_req;
+
+always_comb begin
+   case (s_req)
+      default: begin
+         s_channel = '0; // Default case for all zeros or non-one-hot
+         // Use a loop to generate the one-hot cases
+         for (integer i = 0; i < NCH; i++) begin
+            logic [NCH-1:0] one_hot_vector;
+            one_hot_vector = 1'b1 << i;
+            if (s_req == one_hot_vector) begin
+               s_channel = i;
+            end
+         end
+      end
+   endcase
+end
+
+//RX FSM
 always_ff @ (posedge i_clk) begin
-   if      ( !i_rstn   )  state_r  <= IDLE;
-   else                     state_r  <= state_n;
+   if ( !i_rstn ) state_r <= IDLE;
+   else           state_r <= state_n;
 end
 
 always_comb begin
-   state_n   = state_r; // Default Current
-   rx_cmd_req   = 1'b0;
-   rx_cmd_id_wr = 1'b0;
+   state_n    = state_r; 
+   s_cmd_req  = 1'b0;
+   s_cmd_wrid = 1'b0;
    case (state_r)
-      IDLE:  begin
-         if ( rx_cmd_valid ) begin
-            state_n = REQ;
-            rx_cmd_req   = 1'b1;
-            rx_cmd_id_wr = 1'b1;
+      IDLE: begin
+         if ( s_valid ) begin
+            s_cmd_req  = 1'b1;
+            s_cmd_wrid = 1'b1;
+            state_n    = REQ;
          end
       end
-      REQ:  begin
-         rx_cmd_req       = 1'b1;
-         if ( rx_cmd_ack ) state_n = ACK;     
+      REQ: begin
+         s_cmd_req = 1'b1;
+         if ( s_cmd_ack ) state_n = ACK;     
       end
-      ACK:  begin
-         if ( !rx_cmd_ack ) state_n = IDLE;     
+      ACK: begin
+         if ( !s_cmd_ack ) state_n = IDLE;     
       end
       default: state_n = state_r;
    endcase
@@ -177,93 +177,61 @@ end
 // RX Caller ID
 /////////////////////////////////////////////////////////////////////////////
 always_ff @ (posedge i_clk) begin
-   if      ( !i_rstn   )  rx_cmd_id  <= 0;
-   else if ( rx_cmd_id_wr ) rx_cmd_id  <= rx_cmd_ind;
+   if      ( !i_rstn )      s_cmd_chid  <= 0;
+   else if ( s_cmd_wrid ) s_cmd_chid  <= s_channel;
 end
 
 // RX Command Decoder ACK
 /////////////////////////////////////////////////////////////////////////////
-integer ind_ch;
 always_comb begin
-   for (ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: RX_DECOX
-      if (ind_ch == rx_cmd_id)
-         rx_ack_s[ind_ch] = rx_cmd_ack;
+   for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: RX_DECOX
+      if (ind_ch == s_cmd_chid)
+         s_ack[ind_ch] = s_cmd_ack;
       else 
-         rx_ack_s[ind_ch] = 1'b0;
+         s_ack[ind_ch] = 1'b0;
     end
 end
 
-// C CLOCK REQ SYNC 
-///////////////////////////////////////////////////////////////////////////////
-sync_reg #(.DW(1)) rx_req_sync (
-   .dt_i      ( rx_cmd_req  ) ,
-   .clk_i     ( c_clk_i     ) ,
-   .rst_ni    ( c_rst_ni    ) ,
-   .dt_o      ( c_cmd_req   ) );
-
-
-// X CLOCK ACK SYNC 
-/////////////////////////////////////////////////////////////////////////////
-sync_reg #(.DW(1)) SYNC (
-   .dt_i      ( c_cmd_ack   ) ,
-   .clk_i     ( i_clk     ) ,
-   .rst_ni    ( i_rstn    ) ,
-   .dt_o      ( rx_cmd_ack  ) );
-   
- 
-typedef enum { C_IDLE, C_EXEC, C_ACK} TYPE_C_CMD_ST ;
-(* fsm_encoding = "one_hot" *) TYPE_C_CMD_ST c_cmd_st;
-TYPE_C_CMD_ST c_cmd_st_nxt;
-
-always_ff @ (posedge c_clk_i) begin
-   if      ( !c_rst_ni   )  c_cmd_st  <= C_IDLE;
-   else                     c_cmd_st  <= c_cmd_st_nxt;
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn   ) cmd_state_r <= CMD_IDLE;
+   else             cmd_state_r <= cmd_state_n;
 end
 
 always_comb begin
-   c_cmd_st_nxt = c_cmd_st; // Default Current
-   c_cmd_vld    = 1'b0;
-   c_cmd_ack    = 1'b0;
-   case (c_cmd_st)
-      C_IDLE : begin
-         if ( c_cmd_req ) begin
-            c_cmd_vld    = 1'b1;
-            c_cmd_ack    = 1'b1;
-            c_cmd_st_nxt  = C_ACK;
+   cmd_state_n = cmd_state_r;
+   s_cmd_valid = 1'b0;
+   s_cmd_ack   = 1'b0;
+   case (cmd_state_r)
+      CMD_IDLE: begin
+         if ( s_cmd_req ) begin
+            s_cmd_valid  = 1'b1;
+            s_cmd_ack    = 1'b1;
+            cmd_state_n  = CMD_EXEC;
          end
       end
-      C_EXEC : begin
-         c_cmd_vld    = 1'b1;
-         c_cmd_ack    = 1'b1;
-         c_cmd_st_nxt = C_ACK;     
+      CMD_EXEC: begin
+         s_cmd_valid = 1'b1;
+         s_cmd_ack   = 1'b1;
+         cmd_state_n = CMD_ACK;     
       end
-      C_ACK : begin
-         c_cmd_ack    = 1'b1;
-         if ( !c_cmd_req )
-            c_cmd_st_nxt  = C_IDLE; 
+      CMD_ACK: begin
+         s_cmd_ack    = 1'b1;
+         if ( !s_cmd_req )
+            cmd_state_n  = CMD_IDLE; 
       end
-      default: c_cmd_st_nxt = c_cmd_st;
+      default: cmd_state_n = cmd_state_r;
    endcase
 end
 
-logic [ 4-1:0] c_cmd_id, c_cmd_op ;
-logic [32-1:0] c_cmd_dt ;
-
-assign c_cmd_op = rx_cmd_s[rx_cmd_id];
-assign c_cmd_dt = rx_data_s[rx_cmd_id];
-assign c_cmd_id = rx_cmd_id;
-
-  
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-assign cmd_st_do = {c_cmd_st[1:0], state_r[1:0]};
-assign rx_st_do  = { rx_st_ds[1], rx_st_ds[0] } ;
+assign o_dbg_cmd_state = {cmd_state_r, state_r};
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
-assign cmd_op_o  = c_cmd_op ;
-assign cmd_dt_o  = c_cmd_dt ;
-assign cmd_id_o  = c_cmd_id ;
-assign cmd_vld_o = c_cmd_vld;
+assign o_op    = s_cmd[s_cmd_chid];
+assign o_data  = s_data[s_cmd_chid];
+assign o_chid  = s_cmd_chid ;
+assign o_valid = s_cmd_valid;
 
 endmodule

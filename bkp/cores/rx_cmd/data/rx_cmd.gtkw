@@ -1,0 +1,248 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Fri May  9 20:53:02 2025
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_qick_rx_cmd_0.1.0/test-xsim/rx_cmd.vcd"
+[dumpfile_mtime] "Fri May  9 20:52:12 2025"
+[dumpfile_size] 52207
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/rx_cmd/data/rx_cmd.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-17.606743 786900 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.rx_cmd_ut.
+[treeopen] testrunner.__ts.rx_cmd_ut.u_rx_cmd.
+[treeopen] testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].
+[treeopen] testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].
+[sst_width] 206
+[signals_width] 190
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@800200
+-rx_cmd
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.i_clk
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.i_rstn
+@22
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.i_id[3:0]
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.i_xcom_clk[1:0]
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.i_xcom_data[1:0]
+@2028
+^1 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_rx_cmd_0.1.0/test-xsim/states.txt
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.cmd_state_r[1:0]
+@28
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_cmd_req
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_cmd_ack
+@22
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.o_dbg_cmd_state[3:0]
+@28
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_ack[1:0]
+@22
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_channel[3:0]
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_cmd_chid[3:0]
+@28
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_cmd_valid
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_cmd_wrid
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_req[1:0]
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.s_valid
+@2028
+[color] 2
+^1 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_rx_cmd_0.1.0/test-xsim/states.txt
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.state_r[1:0]
+@28
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.o_valid
+@22
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.o_chid[3:0]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.o_op[3:0]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.o_data[31:0]
+@1000200
+-rx_cmd
+@800200
+-tx_0
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_clk
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_rstn
+@22
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_cfg_tick[3:0]
+@c00024
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+@28
+[color] 3
+(0)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(1)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(2)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(3)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(4)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(5)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(6)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(7)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(8)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(9)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(10)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(11)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(12)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(13)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(14)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(15)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(16)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(17)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(18)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(19)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(20)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(21)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(22)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(23)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(24)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(25)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(26)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(27)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(28)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(29)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(30)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+[color] 3
+(31)testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_data[31:0]
+@1401200
+-group_end
+@22
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_header[7:0]
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.i_valid
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.o_clk
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.o_data
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[0].u_xcom_link_tx.o_ready
+@1000200
+-tx_0
+@c00201
+-tx_1
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.i_clk
+@24
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.i_data[31:0]
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.i_header[7:0]
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.i_rstn
+[color] 3
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.i_valid
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.o_clk
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.o_data
+[color] 6
+testrunner.__ts.rx_cmd_ut.TX[1].u_xcom_link_tx.o_ready
+@1401201
+-tx_1
+@800200
+-rx_0
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_ack
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_clk
+@22
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_id[3:0]
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_rstn
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_xcom_clk
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.i_xcom_data
+@22
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.o_data[63:32]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.o_dbg_state[9:5]
+@28
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[0].u_xcom_link_rx.o_req
+@1000200
+-rx_0
+@800200
+-rx_1
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_ack
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_clk
+@22
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_id[3:0]
+@28
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_rstn
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_xcom_clk
+[color] 3
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.i_xcom_data
+@22
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.o_cmd[3:0]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.o_data[31:0]
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.o_dbg_state[4:0]
+@28
+[color] 6
+testrunner.__ts.rx_cmd_ut.u_rx_cmd.RX[1].u_xcom_link_rx.o_req
+@1000200
+-rx_1
+[pattern_trace] 1
+[pattern_trace] 0

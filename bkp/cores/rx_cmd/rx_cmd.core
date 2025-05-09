@@ -21,6 +21,7 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - pynq_fused:common:sim_base
+      - fnal:qick:xcom_link_tx
 
 
   pynq_z2:
