@@ -31,6 +31,7 @@ def _trace_trigger(soc, start_block):
     return trigger_type, trigger_port, trigger_bit
 
 RO_TYPES = ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4", "axis_dyn_readout_v1"]
+BUF_TYPES = ['axis_avg_buffer', 'axis_matchfilt_buffer']
 
 class AbsReadout(DummyIp):
     # Downsampling ratio (RFDC samples per decimated readout sample)
@@ -533,6 +534,7 @@ class AxisAvgBuffer(SocIp):
     bindto = ['user.org:user:axis_avg_buffer:1.0']
 
     EDGE_COUNTER = False
+    RO_PORT = 's_axis'
 
     def __init__(self, description):
         """
@@ -577,7 +579,7 @@ class AxisAvgBuffer(SocIp):
         super().configure_connections(soc)
 
         # what readout port drives this buffer?
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's_axis', RO_TYPES)
+        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], self.RO_PORT, RO_TYPES)
 
         # the dynamic readout blocks have no registers, so they don't get PYNQ drivers
         # so we initialize them here
@@ -874,6 +876,103 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
             self.avg_h_threshold_reg = high_threshold
             self.avg_l_threshold_reg = low_threshold
 
+class AxisWeightedBuffer(AxisAvgBuffer):
+    bindto = ['user.org:user:axis_matchfilt_buffer:1.2']
+    RO_PORT = 's_axis_from_adc'
+    #TODO: filter length should be N_BUF probably?
+    #TODO: reorganize start bits?
+
+    def __init__(self, description):
+        # Init IP.
+        super().__init__(description)
+
+        self.REGISTERS = {'avg_start_reg': 0,
+                          'avg_addr_reg': 1,
+                          'avg_len_reg': 2,
+                          'avg_dr_start_reg': 3,
+                          'avg_dr_addr_reg': 4,
+                          'avg_dr_len_reg': 5,
+                          'buf_start_reg': 6,
+                          'buf_addr_reg': 7,
+                          'buf_len_reg': 8,
+                          'buf_dr_start_reg': 9,
+                          'buf_dr_addr_reg': 10,
+                          'buf_dr_len_reg': 11,
+                          'avg_photon_mode_reg': 12,
+                          'avg_h_threshold_reg': 13,
+                          'avg_l_threshold_reg': 14,
+                          'filter_start_addr_reg': 15,
+                          }
+
+        self.dma = None
+        self.switch = None
+        self.switch_ch = None
+
+        self.weight_buff = allocate(shape=self['avg_maxlen'], dtype=np.int32)
+
+    def configure_connections(self, soc):
+        super().configure_connections(soc)
+        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 's1_axis_envelope_program')
+        blocktype = soc.metadata.mod2type(block)
+        #block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's1_axis_envelope_program', ["axi_dma", "axis_switch"])
+        print(block, port, blocktype)
+        if blocktype == 'axi_dma':
+            self.dma = soc._get_block(block)
+        else:
+            self.switch = soc._get_block(block)
+            # port names are of the form 'M01_AXIS'
+            self.switch_ch = int(port.split('_')[0][1:])
+            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
+            self.dma = soc._get_block(block)
+
+    # Load waveforms.
+    def load(self, xin):
+        """
+        Load waveform into I,Q envelope
+
+        :param xin: array of 16-bit (I, Q) values for pulse envelope
+        :type xin: numpy.ndarray of int
+        :param addr: starting address
+        :type addr: int
+        """
+        length = xin.shape[0]
+        assert xin.dtype==np.int16
+
+        # Check for max length.
+        if length > self['avg_maxlen']:
+            raise RuntimeError("tried to load %d samples, which exceeds the buffer size (%d)." %
+                  (length, self['avg_maxlen']))
+
+        # Check for even transfer size.
+        #if length % 2 != 0:
+        #    raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Route switch to channel.
+        if self.switch is not None:
+            self.switch.sel(mst=self.switch_ch)
+
+        #print(self.fullpath, xin.shape, addr, self.switch_ch)
+
+        # Pack the data into a single array; columns will be concatenated
+        # -> lower 16 bits: I value.
+        # -> higher 16 bits: Q value.
+        # Format and copy data.
+        np.copyto(self.weight_buff[:length],
+                np.frombuffer(xin, dtype=np.int32))
+
+        ################
+        ### Load I/Q ###
+        ################
+        # Enable writes.
+        self.filter_start_addr_reg = 0
+        self.avg_start_reg = 2
+
+        # DMA data.
+        self.dma.sendchannel.transfer(self.weight_buff, nbytes=int(length*4))
+        self.dma.sendchannel.wait()
+
+        # Disable writes.
+        self.avg_start_reg = 0
 
 class MrBufferEt(SocIp):
     # Registers.
@@ -951,14 +1050,14 @@ class MrBufferEt(SocIp):
                 ro_block, port, blocktype = trace_result
 
                 # trace the decimated output forward to find the avg_buf driven by this readout
-                block, port, blocktype = soc.metadata.trace_forward(ro_block, 'm1_axis', ["axis_avg_buffer"])
+                block, port, blocktype = soc.metadata.trace_forward(ro_block, 'm1_axis', BUF_TYPES)
 
                 self.buf2switch[block] = iIn
                 self.cfg['readouts'].append(block)
         else:
             # no switch, just wired to a single readout
             # trace forward to find the avg_buf driven by this readout
-            block, port, blocktype = soc.metadata.trace_forward(block, 'm1_axis', ["axis_avg_buffer"])
+            block, port, blocktype = soc.metadata.trace_forward(block, 'm1_axis', BUF_TYPES)
 
             self.buf2switch[block] = 0
             self.cfg['readouts'].append(block)
@@ -1090,14 +1189,14 @@ class AxisBufferDdrV1(SocIp):
                 ro_block, port, blocktype = trace_result
 
                 # trace forward to find the avg_buf driven by this readout
-                block, port, blocktype = soc.metadata.trace_forward(ro_block, port, ["axis_avg_buffer"])
+                block, port, blocktype = soc.metadata.trace_forward(ro_block, port, BUF_TYPES)
 
                 self.buf2switch[block] = iIn
                 self.cfg['readouts'].append(block)
         else:
             # no switch, just wired to a single readout
             # trace forward to find the avg_buf driven by this readout
-            block, port, blocktype = soc.metadata.trace_forward(block, port, ["axis_avg_buffer"])
+            block, port, blocktype = soc.metadata.trace_forward(block, port, BUF_TYPES)
 
             self.buf2switch[block] = 0
             self.cfg['readouts'].append(block)
