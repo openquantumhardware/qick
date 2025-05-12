@@ -12,41 +12,20 @@
 //Parameters:
 // - NCH        number of RX channels
 //Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
-// - i_sync     synchronization signal. Lets the XCOM synchronize with an
-//              external signal. Actuates in coordination with the 
-//              QRST_SYNC command.
-// - i_cfg_tick this input is connected to the AXI_CFG register and 
-//              determines the duration of the xcom_clk output signal.
-//              xcom_clk will be either in state 1 or 0 for CFG_AXI clock 
-//              cycles (i_clk). Possible values ranges from 0 to 7 with 
-//              0 equal to two clock cycles and 7 equal to 15 clock 
-//              cycles. As an example, if i_cfg_tick = 2 and 
-//              i_clk = 500 MHz, then xcom_clk would be ~125 MHz.
-// - i_req      transmission requirement signal. Signal indicating a new
-//              data transmission starts.  
-// - i header   this is the header to be sent to the slaves. 
-//              bit 7      is sometimes used to indicate a 
-//                         synchronization in other places in the 
-//                         XCOM hierarchy
-//              bits [6:5] determines the data length to transmit:
-//                         00 no data
-//                         01 8-bit data
-//                         10 16-bit data
-//                         11 32-bit data
-//              bit 4      not used in this block
-//              bits [3:0] not used in this block. Sometimes used 
-//                         as mem_id and sometimes used as board 
-//                         ID in the XCOM hierarchy 
-// - i_data     the data to be transmitted 
+// - i_clk       clock signal
+// - i_rstn      active low reset signal
+// - i_id        local ID (address) of the board. The range is from 1 to 16.
+// - i xcom_data serial data received. This is the general data input of the
+//               XCOM block. This port length depends on the number of
+//               channels
+// - i_xcom_clk  serial clock for reception. This is the general clock input of
+//               the XCOM block. This port length depends on the number of
+//               channels
 //Outputs:
-// - o_ready    signal indicating the ip is ready to receive new data to
-//              transmit
-// - o_data     serial data transmitted. This is the general output of the
-//              XCOM block
-// - o_clk      serial clock for transmission. This is the general output of
-//              the XCOM block
+// - o_valid    signal indicating valid data is available
+// - o_op       opcode to be excecuted 
+// - o_data     data receved. 
+// - o_chid     id of the board sending data
 // - o_dbg_state debug port for monitoring the state of the internal FSM
 //
 // Change history: 09/20/24 - v1.0.0 Started by @mdifederico
@@ -71,7 +50,6 @@ module rx_cmd # (
    output logic  [32-1:0] o_data           ,
    output logic  [ 4-1:0] o_chid           ,
    // XCOM RX DEBUG
-   output logic   [2-1:0] o_dbg_cmd_state  ,   
    output logic   [5-1:0] o_dbg_state [NCH]      
    );
 
@@ -81,27 +59,18 @@ typedef enum logic [2-1:0]{ IDLE = 2'b00,
 } state_t;
 state_t state_r, state_n;
 
-//Command FSM
-typedef enum logic [2-1:0]{ CMD_IDLE = 2'b00, 
-                            CMD_EXEC = 2'b01, 
-                            CMD_ACK  = 2'b10 
-} cmd_state_t;
-cmd_state_t cmd_state_r, cmd_state_n;
-
-logic  s_req [NCH] ;
-logic  s_ack [NCH] ;
-logic           s_valid     ;
+logic [NCH-1:0] s_req       ;
+logic [NCH-1:0] s_ack       ;
 logic  [ 4-1:0] s_cmd  [NCH];
 logic  [32-1:0] s_data [NCH];
-logic  [$clog2(NCH):0] s_channel   ;
-
+logic [NCH-1:0] s_channel   ;
+logic           s_valid     ;
 logic           s_cmd_req   ;
-logic           s_cmd_wrid  ;//command write id
-logic  [4-1:0]  s_cmd_chid  ;
-logic           s_cmd_ack   ;
-logic           s_cmd_valid ;
-
+logic [NCH-1:0] s_cmd_chid  ;
+logic           cmd_ack_r   ;
+logic           cmd_ack_n   ;
 logic [5-1:0]   s_dbg_state [NCH];
+
 // LINK RECEIVERS 
 /////////////////////////////////////////////////////////////////////////////
 genvar k;
@@ -127,26 +96,34 @@ endgenerate
 
 // RX Command Priority Encoder
 /////////////////////////////////////////////////////////////////////////////
-//assign s_valid = |s_req;
+assign s_valid = |s_req;
 
-//assign s_channel = $clog2(s_req + 1'b1);
-logic one_hot_vector [NCH];
-always_comb begin
-   case (s_req)
-      default: begin
-         s_channel = '0; // Default case for all zeros or non-one-hot
-         s_valid   = '0; // Default case for all zeros or non-one-hot
-         // Use a loop to generate the one-hot cases
-         for (integer i = 0; i < NCH; i++) begin
-            one_hot_vector[i] = 1'b1;
-            if (s_req[i] == one_hot_vector[i]) begin
-               s_channel = i;
-               s_valid   = 1'b1;
-            end
-         end
-      end
-   endcase
+assign s_channel = $clog2(s_req);
+
+// RX Caller ID
+/////////////////////////////////////////////////////////////////////////////
+always_ff @ (posedge i_clk) begin
+   if      ( !i_rstn ) s_cmd_chid  <= 0;
+   else if ( s_valid ) s_cmd_chid  <= s_channel;
 end
+
+// RX Command Decoder ACK
+/////////////////////////////////////////////////////////////////////////////
+always_comb begin
+   for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: RX_DECOX
+      if (ind_ch == s_cmd_chid)
+         s_ack[ind_ch] = cmd_ack_r;
+      else 
+         s_ack[ind_ch] = 1'b0;
+    end
+end
+
+//registers
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn   ) cmd_ack_r <= 1'b0;
+   else             cmd_ack_r <= cmd_ack_n;
+end
+assign cmd_ack_n = s_cmd_req ? 1'b1 : 1'b0;
 
 //RX FSM
 always_ff @ (posedge i_clk) begin
@@ -157,84 +134,28 @@ end
 always_comb begin
    state_n    = state_r; 
    s_cmd_req  = 1'b0;
-   s_cmd_wrid = 1'b0;
    case (state_r)
       IDLE: begin
          if ( s_valid ) begin
-            s_cmd_req  = 1'b1;
-            s_cmd_wrid = 1'b1;
+            s_cmd_req = 1'b1;
             state_n    = REQ;
          end
       end
       REQ: begin
-         s_cmd_req = 1'b1;
-         if ( s_cmd_ack ) state_n = ACK;     
+         if ( cmd_ack_r ) state_n = ACK;     
       end
       ACK: begin
-         if ( !s_cmd_ack ) state_n = IDLE;     
+         if ( !cmd_ack_r ) state_n = IDLE;     
       end
       default: state_n = state_r;
    endcase
 end
-
-// RX Caller ID
-/////////////////////////////////////////////////////////////////////////////
-always_ff @ (posedge i_clk) begin
-   if      ( !i_rstn )      s_cmd_chid  <= 0;
-   else if ( s_cmd_wrid ) s_cmd_chid  <= s_channel + 1'b1;
-end
-
-// RX Command Decoder ACK
-/////////////////////////////////////////////////////////////////////////////
-always_comb begin
-   for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: RX_DECOX
-      if (ind_ch == s_cmd_chid)
-         s_ack[ind_ch] = s_cmd_ack;
-      else 
-         s_ack[ind_ch] = 1'b0;
-    end
-end
-
-always_ff @ (posedge i_clk) begin
-   if ( !i_rstn   ) cmd_state_r <= CMD_IDLE;
-   else             cmd_state_r <= cmd_state_n;
-end
-
-always_comb begin
-   cmd_state_n = cmd_state_r;
-   s_cmd_valid = 1'b0;
-   s_cmd_ack   = 1'b0;
-   case (cmd_state_r)
-      CMD_IDLE: begin
-         if ( s_cmd_req ) begin
-            s_cmd_valid  = 1'b1;
-            s_cmd_ack    = 1'b1;
-            cmd_state_n  = CMD_EXEC;
-         end
-      end
-      CMD_EXEC: begin
-         s_cmd_valid = 1'b1;
-         s_cmd_ack   = 1'b1;
-         cmd_state_n = CMD_ACK;     
-      end
-      CMD_ACK: begin
-         s_cmd_ack    = 1'b1;
-         if ( !s_cmd_req )
-            cmd_state_n  = CMD_IDLE; 
-      end
-      default: cmd_state_n = cmd_state_r;
-   endcase
-end
-
-// DEBUG
-///////////////////////////////////////////////////////////////////////////////
-assign o_dbg_cmd_state = cmd_state_r;
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
 assign o_op    = s_cmd[s_cmd_chid];
 assign o_data  = s_data[s_cmd_chid];
 assign o_chid  = s_cmd_chid ;
-assign o_valid = s_cmd_valid;
+assign o_valid = cmd_ack_r;
 
 endmodule

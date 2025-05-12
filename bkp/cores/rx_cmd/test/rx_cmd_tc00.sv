@@ -10,7 +10,7 @@ import qick_pkg::*;
 
   localparam CLOCK_FREQUENCY     = 250e6; //[Hz]
 
-  localparam NCH                 = 2;
+  localparam NCH                 = 5;
   localparam NB                  = 32;
 
   logic           tb_clk         = 1'b0;
@@ -28,7 +28,6 @@ import qick_pkg::*;
   logic  [ 4-1:0] tb_o_op        ;
   logic  [32-1:0] tb_o_data      ;
   logic  [ 4-1:0] tb_o_chid      ;
-  logic   [2-1:0] tb_o_dbg_cmd_state  ;   
   logic   [5-1:0] tb_o_dbg_state [NCH];   
 
   logic  [8-1:0]  s_header ;
@@ -91,7 +90,6 @@ clocking tb_cb @(posedge tb_clk);
   input   tb_o_op            ;
   input   tb_o_data          ;
   input   tb_o_chid          ;
-  input   tb_o_dbg_cmd_state ;
   input   tb_o_dbg_state     ;
 endclocking
 
@@ -129,7 +127,6 @@ rx_cmd#(.NCH(NCH)) u_rx_cmd(
   .o_op            ( tb_o_op            ),
   .o_data          ( tb_o_data          ),
   .o_chid          ( tb_o_chid          ),
-  .o_dbg_cmd_state ( tb_o_dbg_cmd_state ),
   .o_dbg_state     ( tb_o_dbg_state     )
 );
 
@@ -242,18 +239,6 @@ task TX_DT (input int channel); begin
    wait (tb_cb.tb_o_ready[channel] == 1'b0);
    @ (tb_cb);
    tb_cb.tb_i_valid[channel]     <= 0;
-end
-endtask
-
-task RX_ACK (input int channel); begin
-   $display("RX ACK %d", tb_cb.tb_o_chid);
-   wait (tb_cb.tb_o_valid == 1'b1);
-   @ (tb_cb);
-   tb_cb.tb_i_valid[channel]     <= 1;
-   wait (tb_cb.tb_o_ready[channel] == 1'b0);
-   @ (tb_cb);
-   tb_cb.tb_i_valid[channel]     <= 0;
-   $display("Out of RX ACK %d", tb_cb.tb_o_chid);
 end
 endtask
 
