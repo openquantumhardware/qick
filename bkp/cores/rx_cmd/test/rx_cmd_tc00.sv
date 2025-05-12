@@ -28,7 +28,7 @@ import qick_pkg::*;
   logic  [ 4-1:0] tb_o_op        ;
   logic  [32-1:0] tb_o_data      ;
   logic  [ 4-1:0] tb_o_chid      ;
-  logic   [4-1:0] tb_o_dbg_cmd_state  ;   
+  logic   [2-1:0] tb_o_dbg_cmd_state  ;   
   logic   [5-1:0] tb_o_dbg_state [NCH];   
 
   logic  [8-1:0]  s_header ;
@@ -208,7 +208,7 @@ task SIM_TX (); begin
    TX_ALL();
  
    repeat(20)@(tb_cb);
-   s_header <= {s_op.update_dt32[3:0],4'b1010};//32-bit data. cmd=Update DT32, addr board=10
+   s_header <= {s_op.update_dt32[3:0],4'b0010};//32-bit data. cmd=Update DT32, addr board=10
    s_data   <= 32'd40;
    repeat(10)@(tb_cb);
    TX_ALL();
@@ -227,7 +227,7 @@ task TX_ALL ; begin
    $display("TX_ALL");
    for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: STX
       tb_cb.tb_i_header[ind_ch] <= s_header;
-      tb_cb.tb_i_data[ind_ch]   <= s_data+ind_ch;
+      tb_cb.tb_i_data[ind_ch]   <= s_data;
       TX_DT(ind_ch);
    end
    repeat(100)@(tb_cb);
@@ -245,14 +245,15 @@ task TX_DT (input int channel); begin
 end
 endtask
 
-task RX_ACK (); begin
+task RX_ACK (input int channel); begin
    $display("RX ACK %d", tb_cb.tb_o_chid);
-   wait (tb_cb.tb_o_valid[tb_cb.tb_o_chid] == 1'b1);
+   wait (tb_cb.tb_o_valid == 1'b1);
    @ (tb_cb);
    tb_cb.tb_i_valid[channel]     <= 1;
    wait (tb_cb.tb_o_ready[channel] == 1'b0);
    @ (tb_cb);
    tb_cb.tb_i_valid[channel]     <= 0;
+   $display("Out of RX ACK %d", tb_cb.tb_o_chid);
 end
 endtask
 

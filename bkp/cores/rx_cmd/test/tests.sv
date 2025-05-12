@@ -12,14 +12,22 @@ end
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
- `SVTEST(test01_32bit_data)
+ `SVTEST(test01_rx_data)
   
-   tb_cb.tb_i_id <= 4'b0001;
-   SIM_TX();
-   tb_cb.tb_i_id <= 4'b0010;
-   SIM_TX();
-   tb_cb.tb_i_id <= 4'b1010;
-   SIM_TX();
+fork
+    tb_cb.tb_i_id <= 4'b0001;
+    SIM_TX();
+    repeat(200) @(tb_cb);
+    RX_ACK(1);
+    tb_cb.tb_i_id <= 4'b0010;
+    SIM_TX();
+    repeat(200) @(tb_cb);
+    RX_ACK(2);
+    tb_cb.tb_i_id <= 4'b1010;
+    SIM_TX();
+    repeat(200) @(tb_cb);
+    RX_ACK(10);
+join
   
  repeat(5) @(tb_cb);
   

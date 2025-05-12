@@ -71,7 +71,7 @@ module rx_cmd # (
    output logic  [32-1:0] o_data           ,
    output logic  [ 4-1:0] o_chid           ,
    // XCOM RX DEBUG
-   output logic   [4-1:0] o_dbg_cmd_state  ,   
+   output logic   [2-1:0] o_dbg_cmd_state  ,   
    output logic   [5-1:0] o_dbg_state [NCH]      
    );
 
@@ -88,12 +88,12 @@ typedef enum logic [2-1:0]{ CMD_IDLE = 2'b00,
 } cmd_state_t;
 cmd_state_t cmd_state_r, cmd_state_n;
 
-logic [NCH-1:0] s_req       ;
-logic [NCH-1:0] s_ack       ;
+logic  s_req [NCH] ;
+logic  s_ack [NCH] ;
 logic           s_valid     ;
 logic  [ 4-1:0] s_cmd  [NCH];
 logic  [32-1:0] s_data [NCH];
-logic  [$clog2(NCH)-1:0] s_channel   ;
+logic  [$clog2(NCH):0] s_channel   ;
 
 logic           s_cmd_req   ;
 logic           s_cmd_wrid  ;//command write id
@@ -127,18 +127,21 @@ endgenerate
 
 // RX Command Priority Encoder
 /////////////////////////////////////////////////////////////////////////////
-assign s_valid = &s_req;
+//assign s_valid = |s_req;
 
+//assign s_channel = $clog2(s_req + 1'b1);
+logic one_hot_vector [NCH];
 always_comb begin
    case (s_req)
       default: begin
          s_channel = '0; // Default case for all zeros or non-one-hot
+         s_valid   = '0; // Default case for all zeros or non-one-hot
          // Use a loop to generate the one-hot cases
          for (integer i = 0; i < NCH; i++) begin
-            logic [NCH-1:0] one_hot_vector;
-            one_hot_vector = 1'b1 << i;
-            if (s_req == one_hot_vector) begin
+            one_hot_vector[i] = 1'b1;
+            if (s_req[i] == one_hot_vector[i]) begin
                s_channel = i;
+               s_valid   = 1'b1;
             end
          end
       end
@@ -178,7 +181,7 @@ end
 /////////////////////////////////////////////////////////////////////////////
 always_ff @ (posedge i_clk) begin
    if      ( !i_rstn )      s_cmd_chid  <= 0;
-   else if ( s_cmd_wrid ) s_cmd_chid  <= s_channel;
+   else if ( s_cmd_wrid ) s_cmd_chid  <= s_channel + 1'b1;
 end
 
 // RX Command Decoder ACK
@@ -225,7 +228,7 @@ end
 
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-assign o_dbg_cmd_state = {cmd_state_r, state_r};
+assign o_dbg_cmd_state = cmd_state_r;
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
