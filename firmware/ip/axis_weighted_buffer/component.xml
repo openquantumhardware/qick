@@ -2,7 +2,7 @@
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>user.org</spirit:vendor>
   <spirit:library>user</spirit:library>
-  <spirit:name>axis_matchfilt_buffer</spirit:name>
+  <spirit:name>axis_weighted_buffer</spirit:name>
   <spirit:version>1.2</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
@@ -519,7 +519,7 @@
         <spirit:displayName>Synthesis</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>
         <spirit:language>Verilog</spirit:language>
-        <spirit:modelName>axis_matchfilt_buffer</spirit:modelName>
+        <spirit:modelName>axis_weighted_buffer</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_anylanguagesynthesis_xilinx_com_ip_dsp_macro_1_0__ref_view_fileset</spirit:localName>
         </spirit:fileSetRef>
@@ -538,7 +538,7 @@
         <spirit:displayName>Simulation</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>
         <spirit:language>Verilog</spirit:language>
-        <spirit:modelName>axis_matchfilt_buffer</spirit:modelName>
+        <spirit:modelName>axis_weighted_buffer</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_anylanguagebehavioralsimulation_xilinx_com_ip_dsp_macro_1_0__ref_view_fileset</spirit:localName>
         </spirit:fileSetRef>
@@ -1335,7 +1335,7 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axis_matchfilt_buffer.v</spirit:name>
+        <spirit:name>src/axis_weighted_buffer.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_891def08</spirit:userFileType>
       </spirit:file>
@@ -1440,7 +1440,7 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axis_matchfilt_buffer.v</spirit:name>
+        <spirit:name>src/axis_weighted_buffer.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
@@ -1465,7 +1465,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/axis_matchfilt_buffer_v1_2.tcl</spirit:name>
+        <spirit:name>xgui/axis_weighted_buffer_v1_2.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_96a8b3e0</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
@@ -1491,7 +1491,7 @@
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
-      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">axis_matchfilt_buffer_v1_0</spirit:value>
+      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">axis_weighted_buffer_v1_0</spirit:value>
     </spirit:parameter>
   </spirit:parameters>
   <spirit:vendorExtensions>
@@ -1529,6 +1529,7 @@
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.1</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.2</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
       <xilinx:coreCreationDateTime>2025-02-28T00:49:52Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

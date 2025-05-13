@@ -3,7 +3,7 @@
 // s_axis_aclk : clock for s_axis_*
 // m_axis_aclk : clock for m0_axis_* and m1_axis_*
 //
-module axis_matchfilt_buffer
+module axis_weighted_buffer
   (
     // AXI Slave I/F for configuration.
     s_axi_aclk ,

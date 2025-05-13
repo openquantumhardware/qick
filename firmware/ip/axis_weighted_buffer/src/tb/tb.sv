@@ -117,7 +117,7 @@ module tb();
       .m_axi_wvalid (s_axi_wvalid )
       );
 
-   axis_matchfilt_buffer
+   axis_weighted_buffer
      #
      (
       .N_AVG (N_AVG ),
