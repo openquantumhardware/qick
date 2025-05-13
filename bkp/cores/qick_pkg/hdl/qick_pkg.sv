@@ -4,6 +4,28 @@ package qick_pkg;
     parameter VERSION = "0.1.0";
 
     /////////// XCOM ////////////
+    //Opcodes
+    parameter XCOM_RST         = 5'b1_1111  ,//LOC command
+    parameter XCOM_WRITE_MEM   = 5'b1_0011  ,//LOC command
+    parameter XCOM_WRITE_REG   = 5'b1_0010  ,//LOC command
+    parameter XCOM_WRITE_FLAG  = 5'b1_0001  ,//LOC command
+    parameter XCOM_SET_ID      = 5'b1_0000  ,//LOC command
+    parameter XCOM_RFU2        = 5'b0_1111  ,
+    parameter XCOM_RFU1        = 5'b0_1101  ,
+    parameter XCOM_QCTRL       = 5'b0_1011  ,
+    parameter XCOM_UPDATE_DT32 = 5'b0_1110  ,
+    parameter XCOM_UPDATE_DT16 = 5'b0_1100  ,
+    parameter XCOM_UPDATE_DT8  = 5'b0_1010  ,
+    parameter XCOM_AUTO_ID     = 5'b0_1001  ,
+    parameter XCOM_QRST_SYNC   = 5'b0_1000  ,
+    parameter XCOM_SEND_32BIT_2= 5'b0_0111  ,
+    parameter XCOM_SEND_32BIT_1= 5'b0_0110  ,
+    parameter XCOM_SEND_16BIT_2= 5'b0_0101  ,
+    parameter XCOM_SEND_16BIT_1= 5'b0_0100  ,
+    parameter XCOM_SEND_8BIT_2 = 5'b0_0011  ,
+    parameter XCOM_SEND_8BIT_1 = 5'b0_0010  ,
+    parameter XCOM_SET_FLAG    = 5'b0_0001  ,
+    parameter XCOM_CLEAR_FLAG  = 5'b0_0000
 
     typedef struct packed {
         logic [32-1:0] xcom_debug   ;
