@@ -53,7 +53,9 @@
 //                            in one place (external).
 //
 ///////////////////////////////////////////////////////////////////////////////
-module xcom_txrx # (
+module xcom_txrx 
+    import qick_pkg::*;
+    # (
    parameter CH   = 2 ,
    parameter SYNC = 1 
 )(
@@ -62,141 +64,153 @@ module xcom_txrx # (
    input  logic             c_rst_ni      ,
    input  logic             t_clk_i       ,
    input  logic             t_rst_ni      ,
-   input  logic             x_clk_i       ,
-   input  logic             x_rst_ni      ,
-   input  logic             pulse_sync_i  ,
+   input  logic             i_clk         ,
+   input  logic             i_rstn        ,
+   input  logic             i_sync        ,
 // COMMAND INTERFACE
-   input  logic             cmd_loc_req_i ,
-   output logic             cmd_loc_ack_o ,
-   input  logic             cmd_net_req_i ,
-   output logic             cmd_net_ack_o ,
-   input  logic  [ 7:0]     cmd_op_i      ,
-   input  logic  [31:0]     cmd_dt_i      ,
+   input  logic             i_req_loc     ,
+   output logic             o_ack_loc     ,
+   input  logic             i_req         ,
+   output logic             o_ack_net     ,
+   input  logic [ 8-1:0]    i_header      ,
+   input  logic [32-1:0]    i_data        ,
 // QICK INTERFACE
-   output logic              qp_rdy_o      ,
-   output logic              qp_vld_o      ,
-   output logic              qp_flag_o     ,
-   output logic   [31:0]     qp_dt1_o      ,
-   output logic   [31:0]     qp_dt2_o      ,
+   output logic             qp_rdy_o      ,
+   output logic             qp_vld_o      ,
+   output logic             qp_flag_o     ,
+   output logic [32-1:0]    qp_dt1_o      ,
+   output logic [32-1:0]    qp_dt2_o      ,
 // QICK PROCESSOR CONTROL
    output logic             p_start_o     ,
    output logic             p_stop_o      ,
    output logic             t_rst_o       ,
    output logic             t_updt_o      ,
-   output logic [31:0]      t_updt_dt_o      ,
+   output logic [32-1:0]    t_updt_dt_o   ,
    output logic             c_start_o     ,
    output logic             c_stop_o      ,
 // XCOM CFG
-   input  logic  [3:0]      xcom_cfg_i    ,
-   output logic   [ 3:0]     xcom_id_o     ,
-   output logic   [31:0]    xcom_mem_o[15],
+   input  logic [4-1:0]     i_cfg_tick    ,
+   output logic [ 4-1:0]    xcom_id_o     ,
+   output logic [32-1:0]    xcom_mem_o[15],
 // Xlogic COM
-   input  logic  [CH-1:0]   rx_dt_i       ,
-   input  logic  [CH-1:0]   rx_ck_i       ,
-   output logic             tx_dt_o       ,
-   output logic             tx_ck_o       ,
+   input  logic [CH-1:0]    i_xcom_data   ,
+   input  logic [CH-1:0]    i_xcom_clk    ,
+   output logic             o_xcom_data   ,
+   output logic             o_xcom_clk    ,
 // DEBUG
-   output logic [31:0]      xcom_rx_do    ,
-   output logic [31:0]      xcom_tx_do    ,
-   output logic [20:0]      xcom_status_do,
-   output logic [31:0]      xcom_debug_do 
+   output logic [32-1:0]    xcom_rx_do    ,
+   output logic [32-1:0]    xcom_tx_do    ,
+   output logic [21-1:0]    xcom_status_do,
+   output logic [32-1:0]    xcom_debug_do 
 );
 
 // SIGNAL DECLARATION
 ///////////////////////////////////////////////////////////////////////////////
-logic  [ 3:0] board_id_r; // BOARD ID
+logic  [ 4-1:0] board_id_r; // BOARD ID
+logic s_tx_ready;
+logic  [10-1:0]  s_rx_dbg_state;
+logic  [2-1:0]  s_tx_dbg_state;
 
-// TRANSMIT NET COMMAND
-///////////////////////////////////////////////////////////////////////////////
-logic cmd_net_ack;
-always_ff @(posedge x_clk_i) begin
-   if      ( !x_rst_ni)                    cmd_net_ack <= 1'b0;
-   else if ( cmd_net_req_i & !cmd_net_ack & tx_rdy) cmd_net_ack <= 1'b1;
-   else if ( !cmd_net_req_i & cmd_net_ack & tx_rdy) cmd_net_ack <= 1'b0;
-end
+logic  [6-1:0]  loc_cmd_ds;   
+logic  [10-1:0]  net_cmd_ds;
+logic  [9-1:0]  rx_cmd_ds;
 
-
-tx_cmd # (.CH(CH)) TX_CMD (
-   .x_clk_i     ( x_clk_i       ),
-   .x_rst_ni    ( x_rst_ni      ),
-   .pulse_sync_i( pulse_sync_i  ),
-   .tick_cfg_i  ( xcom_cfg_i    ),
-   .tx_req_i    ( cmd_net_req_i ),
-   .tx_rdy_o    ( tx_rdy        ),
-   .tx_hd_i     ( cmd_op_i      ),
-   .tx_dt_i     ( cmd_dt_i      ),
-   .tx_dt_o     ( tx_dt_o       ),
-   .tx_ck_o     ( tx_ck_o       ),
-   .tx_st_do    ( tx_st_ds      ));
-
-//FIXME: aca se esta usando el rango 7:4 de cmd_op. Los bits 6:5 se usan para
-//determinar la longitud de los datos a transmitir. Hay que revisar si eso no
-//entra en conflicto con el uso que se le da aca.n
-assign tx_auto_id = cmd_net_req_i & cmd_op_i[7:4] == 4'b1001;
-
-// RX COMMAND
-///////////////////////////////////////////////////////////////////////////////
-logic [ 3:0] rx_cmd_id, rx_cmd_op ;
-logic [31:0] rx_cmd_dt ;
-
-rx_cmd # (.CH(CH)) RX_CMD ( 
-   .c_clk_i      ( c_clk_i     ),
-   .c_rst_ni     ( c_rst_ni    ),
-   .x_clk_i      ( x_clk_i     ),
-   .x_rst_ni     ( x_rst_ni    ),
-   .port_id_i    ( board_id_r  ),
-   .rx_dt_i      ( rx_dt_i     ),
-   .rx_ck_i      ( rx_ck_i     ),
-   .cmd_vld_o    ( rx_cmd_vld  ),
-   .cmd_op_o     ( rx_cmd_op   ),
-   .cmd_dt_o     ( rx_cmd_dt   ),
-   .cmd_id_o     ( rx_cmd_id   ),
-   .cmd_st_do    ( cmd_st_ds   ),
-   .rx_st_do     ( rx_st_ds    )
-);
-
-// RX Decoding
-///////////////////////////////////////////////////////////////////////////////
 logic rx_no_dt, rx_wflg, rx_wreg, rx_wmem ;
 logic rx_wflg_en, rx_wreg_en, rx_wmem_en;
 logic rx_qsync, rx_qctrl, rx_auto_id; 
 
-assign rx_no_dt   = ~|rx_cmd_op[2:1];
-assign rx_wflg    =  !rx_cmd_op[3] & rx_no_dt ; //000X
-assign rx_wreg    =  !rx_cmd_op[3] & !rx_no_dt; //001X-010X-011X
-assign rx_wmem    =   rx_cmd_op[3] & !rx_no_dt & ~rx_cmd_op[0]; //000X
+logic        flag_dt_s;
+logic [32-1:0] reg_dt_s;
+logic [ 4-1:0] mem_addr;
+logic         flag_dt, wreg_r ;
+logic  [32-1:0] reg1_dt, reg2_dt;
+logic  [32-1:0] mem_dt [15];
 
-assign rx_wflg_en   = rx_cmd_vld & rx_wflg; 
-assign rx_wreg_en   = rx_cmd_vld & rx_wreg;
-assign rx_wmem_en   = rx_cmd_vld & rx_wmem;
+logic loc_set_id, loc_wflg, loc_wreg, loc_wmem;
+logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en, cmd_execute;
+logic [ 4-1:0] loc_cmd_op  ;
 
-assign rx_auto_id   = rx_cmd_vld & rx_cmd_op == 4'b1001 ;
+logic s_ack_net;
 
-assign rx_qsync     = rx_cmd_vld & rx_cmd_op == 4'b1000 ;
-assign rx_qctrl     = rx_cmd_vld & rx_cmd_op == 4'b1011 ;
+// TRANSMIT NET COMMAND
+///////////////////////////////////////////////////////////////////////////////
+always_ff @(posedge i_clk) begin
+   if      ( !i_rstn)                           s_ack_net <= 1'b0;
+   else if ( i_req & !s_ack_net & s_tx_ready) s_ack_net <= 1'b1;
+   else if ( !i_req & s_ack_net & s_tx_ready) s_ack_net <= 1'b0;
+end
+
+tx_cmd u_tx_cmd(
+    .i_clk      ( i_clk          ),
+    .i_rstn     ( i_rstn         ),
+    .i_sync     ( i_sync         ),
+    .i_cfg_tick ( i_cfg_tick     ),
+    .i_req      ( i_req          ),
+    .i_header   ( i_header       ),
+    .i_data     ( i_data         ),
+    .o_ready    ( s_tx_ready     ),
+    .o_data     ( o_xcom_data    ),
+    .o_clk      ( o_xcom_clk     ),
+    .o_dbg_state( s_tx_dbg_state )
+);
+
+//FIXME: aca se esta usando el rango 7:4 de cmd_op. Los bits 6:5 se usan para
+//determinar la longitud de los datos a transmitir. Hay que revisar si eso no
+//entra en conflicto con el uso que se le da aca.n
+   assign tx_auto_id = i_req & i_header[7:4] == XCOM_AUTO_ID; //4'b1001;
+
+// RX COMMAND
+///////////////////////////////////////////////////////////////////////////////
+logic [ 4-1:0] s_rx_chid, s_rx_op ;
+logic [32-1:0] s_rx_data ;
+
+rx_cmd#(.NCH(NCH)) u_rx_cmd(
+  .i_clk           ( i_clk             ),
+  .i_rstn          ( i_rstn            ),
+  .i_id            ( board_id_r        ),
+  .i_xcom_data     ( i_xcom_data       ),
+  .i_xcom_clk      ( i_xcom_clk        ),
+  .o_valid         ( s_rx_valid        ),
+  .o_op            ( s_rx_op           ),
+  .o_data          ( s_rx_data         ),
+  .o_chid          ( s_rx_chid         ),
+  .o_dbg_state     ( tb_o_dbg_state    )
+);
+
+// RX Decoding
+///////////////////////////////////////////////////////////////////////////////
+assign rx_no_dt   = ~|s_rx_op[2:1];
+assign rx_wflg    =  !s_rx_op[3] & rx_no_dt ; //000X
+assign rx_wreg    =  !s_rx_op[3] & !rx_no_dt; //001X-010X-011X
+assign rx_wmem    =   s_rx_op[3] & !rx_no_dt & ~s_rx_op[0]; //000X
+
+assign rx_wflg_en   = s_rx_valid & rx_wflg; 
+assign rx_wreg_en   = s_rx_valid & rx_wreg;
+assign rx_wmem_en   = s_rx_valid & rx_wmem;
+
+assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;//4'b1001 ;
+
+assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QSYNC;//4'b1000 ;
+assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
          
 // LOC COMMAND
 ///////////////////////////////////////////////////////////////////////////////
-logic cmd_loc_ack;
+logic s_ack_loc;
 always_ff @(posedge c_clk_i) begin
-   if      ( !c_rst_ni)                    cmd_loc_ack <= 1'b0;
-   else if ( cmd_loc_req_i & !cmd_loc_ack) cmd_loc_ack <= 1'b1;
-   else if ( !cmd_loc_req_i & cmd_loc_ack) cmd_loc_ack <= 1'b0;
+   if      ( !c_rst_ni)                    s_ack_loc <= 1'b0;
+   else if ( i_req_loc & !s_ack_loc) s_ack_loc <= 1'b1;
+   else if ( !i_req_loc & s_ack_loc) s_ack_loc <= 1'b0;
 end
 
 // LOC Decoding
 ///////////////////////////////////////////////////////////////////////////////
-logic loc_set_id, loc_wflg, loc_wreg, loc_wmem;
-logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en, cmd_execute;
-logic [ 3:0] loc_cmd_op  ;
+assign loc_cmd_op  = i_header[7:4];
+assign loc_set_id  = loc_cmd_op == XCOM_SET_ID;//4'b0000 ; 
+assign loc_wflg    = loc_cmd_op == XCOM_WRITE_FLAG;//4'b0001 ;
+assign loc_wreg    = loc_cmd_op == XCOM_WRITE_REG;//4'b0010 ;
+assign loc_wmem    = loc_cmd_op == XCOM_WRITE_MEM;//4'b0011 ;
 
-assign loc_cmd_op  = cmd_op_i[7:4];
-assign loc_set_id  = loc_cmd_op == 4'b0000 ; 
-assign loc_wflg    = loc_cmd_op == 4'b0001 ;
-assign loc_wreg    = loc_cmd_op == 4'b0010 ;
-assign loc_wmem    = loc_cmd_op == 4'b0011 ;
-
-assign cmd_execute = cmd_loc_req_i & !cmd_loc_ack;
+assign cmd_execute = i_req_loc & !s_ack_loc;
 
 assign loc_id_en   = cmd_execute & loc_set_id;
 assign loc_wflg_en = cmd_execute & loc_wflg; 
@@ -209,20 +223,13 @@ assign loc_wmem_en = cmd_execute & loc_wmem;
    
 // Write Register
 ///////////////////////////////////////////////////////////////////////////////
-logic        flag_dt_s;
-logic [31:0] reg_dt_s;
-logic [ 3:0] mem_addr;
-logic         flag_dt, wreg_r ;
-logic  [31:0] reg1_dt, reg2_dt;
-logic  [31:0] mem_dt [15];
-
 assign wflg_en = loc_wflg_en | rx_wflg_en ;
 assign wreg_en = loc_wreg_en | rx_wreg_en ;
 assign wmem_en = loc_wmem_en | rx_wmem_en ;
 
-assign flag_dt_s = cmd_execute ? cmd_op_i[0]   : rx_cmd_op[0];
-assign reg_dt_s  = cmd_execute ? cmd_dt_i      : rx_cmd_dt;
-assign mem_addr  = cmd_execute ? cmd_op_i[3:0] : rx_cmd_id+1'b1 ;
+assign flag_dt_s = cmd_execute ? i_header[0]   : s_rx_op[0];
+assign reg_dt_s  = cmd_execute ? i_data        : s_rx_data;
+assign mem_addr  = cmd_execute ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
    if (!c_rst_ni) begin
@@ -250,16 +257,16 @@ end
 logic set_id_en ;
 
 always_ff @ (posedge c_clk_i) begin
-   if      ( !c_rst_ni ) begin  
+   if ( !c_rst_ni ) begin  
       board_id_r  <= 0;
       set_id_en   <= 0;
    end else if ( loc_id_en )
-      board_id_r  <= cmd_op_i[3:0];
+      board_id_r  <= i_header[3:0];
    else if (tx_auto_id)
       set_id_en <= 1'b1;
    else if ( rx_auto_id & set_id_en) begin
       set_id_en   <= 1'b0;
-      board_id_r  <= rx_cmd_id+1'b1;
+      board_id_r  <= s_rx_chid+1'b1;
   end
 end
 
@@ -276,9 +283,9 @@ generate
          .c_rst_ni     ( c_rst_ni     ),
          .t_clk_i      ( t_clk_i      ),
          .t_rst_ni     ( t_rst_ni     ),
-         .pulse_sync_i ( pulse_sync_i ),
+         .pulse_sync_i ( i_sync       ),
          .qctrl_req_i  ( rx_qctrl     ),
-         .qctrl_dt_i   ( rx_cmd_dt[2:0]),
+         .qctrl_dt_i   ( s_rx_data[2:0]),
          .qsync_req_i  ( rx_qsync     ),
          .p_start_o    ( p_start_o    ),
          .p_stop_o     ( p_stop_o     ),
@@ -292,26 +299,18 @@ endgenerate
 
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-logic  [3:0]  cmd_st_ds;   
-logic  [9:0]  rx_st_ds;
-logic  [1:0]  tx_st_ds;
+assign loc_cmd_ds = {loc_wmem, loc_wreg, loc_wflg, loc_set_id, s_ack_loc, i_req_loc};
+assign net_cmd_ds = {i_header, s_ack_net, i_req};
+assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 
-logic  [5:0]  loc_cmd_ds;   
-logic  [9:0]  net_cmd_ds;
-logic  [8:0]  rx_cmd_ds;
-
-assign loc_cmd_ds = {loc_wmem, loc_wreg, loc_wflg, loc_set_id, cmd_loc_ack, cmd_loc_req_i};
-assign net_cmd_ds = {cmd_op_i, cmd_net_ack, cmd_net_req_i};
-assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, rx_cmd_op};
-
-assign xcom_rx_do    = rx_cmd_dt;
-assign xcom_tx_do    = cmd_dt_i;
-assign xcom_status_do = {board_id_r, tx_rdy, rx_st_ds, cmd_st_ds, tx_st_ds};
-assign xcom_debug_do  = {xcom_cfg_i, rx_cmd_id, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
+assign xcom_rx_do    = s_rx_data;
+assign xcom_tx_do    = i_data;
+assign xcom_status_do = {board_id_r, s_tx_ready, s_rx_dbg_state, 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds
+assign xcom_debug_do  = {i_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
 
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////
-assign qp_rdy_o    = tx_rdy & ~cmd_loc_req_i & ~cmd_loc_ack;
+assign qp_rdy_o    = s_tx_ready & ~i_req_loc & ~s_ack_loc;
 assign qp_flag_o   = flag_dt;
 assign qp_vld_o    = wreg_r;
 assign qp_dt1_o    = reg1_dt;
@@ -321,7 +320,7 @@ assign xcom_mem_o  = mem_dt;
 
 assign t_updt_dt_o = reg1_dt;
 
-assign cmd_loc_ack_o = cmd_loc_ack ;
-assign cmd_net_ack_o = cmd_net_ack;
+assign o_ack_loc = s_ack_loc ;
+assign o_ack_net = s_ack_net;
 
 endmodule
