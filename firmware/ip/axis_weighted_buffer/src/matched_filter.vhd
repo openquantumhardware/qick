@@ -30,8 +30,12 @@ entity matched_filter is
     N : natural := 10
     );
   port (
-    rstn : in std_logic;
+    -- clock+reset for readout data path
     clk  : in std_logic;
+
+    -- clock+reset for writing weights
+    write_rstn : in std_logic;
+    write_clk  : in std_logic;
 
     trigger_i : in  std_logic;
     trigger_o : out std_logic;
@@ -98,14 +102,14 @@ architecture rtl of matched_filter is
   end component;
 begin
 
-    data_writer_i : entity work.data_writer
+  data_writer_i : entity work.data_writer
     generic map (
       NT => 1,
       N  => N,
       B  => 2*B)
     port map (
-      rstn           => rstn,
-      clk            => clk,
+      rstn           => write_rstn,
+      clk            => write_clk,
       s_axis_tready  => s_axis_tready,
       s_axis_tdata   => s_axis_tdata,
       s_axis_tvalid  => s_axis_tvalid,
@@ -121,7 +125,7 @@ begin
       N => N,
       B => B)
     port map (
-      clka  => clk,
+      clka  => write_clk,
       clkb  => clk,
       ena   => '1',
       enb   => '1',
@@ -139,7 +143,7 @@ begin
       N => N,
       B => B)
     port map (
-      clka  => clk,
+      clka  => write_clk,
       clkb  => clk,
       ena   => '1',
       enb   => '1',

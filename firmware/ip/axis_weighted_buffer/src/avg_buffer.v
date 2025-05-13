@@ -2,9 +2,13 @@
 // I: lower B bits.
 // Q: upper B bits.
 module avg_buffer (
-                   // Reset and clock for s.
+                   // Reset and clock for readout data path
                    s_axis_aclk ,
                    s_axis_aresetn ,
+
+                   // Reset and clock for writing weights
+                   s_axi_aclk ,
+                   s_axi_aresetn ,
 
                    // Trigger input.
                    trigger ,
@@ -66,6 +70,7 @@ module avg_buffer (
    // Memory depth.
    parameter N_AVG = 14;
    parameter N_BUF = 14;
+   parameter N_WGT = 14;
 
    // Number of bits.
    parameter B = 16;
@@ -75,6 +80,9 @@ module avg_buffer (
    ///////////
    input s_axis_aclk;
    input s_axis_aresetn;
+
+   input s_axi_aclk;
+   input s_axi_aresetn;
 
    input trigger;
 
@@ -119,7 +127,7 @@ module avg_buffer (
    input [N_BUF-1:0] BUF_DR_ADDR_REG;
    input [N_BUF-1:0] BUF_DR_LEN_REG;
 
-   input[N_AVG-1:0] FILTER_START_ADDR_REG;
+   input [N_WGT-1:0] FILTER_START_ADDR_REG;
    input FILTER_WE_REG;
 
 
@@ -151,13 +159,15 @@ module avg_buffer (
 
    matched_filter
      #(
-       .N (N_AVG),
+       .N (N_WGT),
        .B (B)
        )
    matchfilt_i
      (
-      .rstn (s_axis_aresetn),
       .clk (s_axis_aclk),
+
+      .write_rstn (s_axi_aresetn),
+      .write_clk (s_axi_aclk),
 
       .trigger_i (trigger_resync),
       .trigger_o (trigger_dsp_latency_compensated),
