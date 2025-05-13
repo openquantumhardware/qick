@@ -8,8 +8,10 @@ filesets:
       - hdl/xcom_txrx.sv
     file_type: systemVerilogSource
     depend:
-       - fnal:qick:xcom_link_tx
        - fnal:qick:qick_pkg
+       - fnal:qick:tx_cmd
+       - fnal:qick:rx_cmd
+       - fnal:qick:xcom_qctrl
 
 
   tb:
