@@ -1,0 +1,32 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed May 14 19:37:50 2025
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_utils_rising_edge_det_1.0.0/test-xsim/rising_edge_det.vcd"
+[dumpfile_mtime] "Wed May 14 19:25:08 2025"
+[dumpfile_size] 3686
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/rising_edge_det/data/rising_edge_det.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-13.973933 116000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.rising_edge_det_ut.
+[sst_width] 206
+[signals_width] 94
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_clk
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_rstn
+[color] 3
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.i_strobe
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.delay_r
+@29
+[color] 6
+testrunner.__ts.rising_edge_det_ut.u_rising_edge_det.o_pulse
+[pattern_trace] 1
+[pattern_trace] 0
