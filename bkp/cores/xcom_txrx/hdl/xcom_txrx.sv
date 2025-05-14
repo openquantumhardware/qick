@@ -100,7 +100,6 @@ module xcom_txrx import qick_pkg::*;
 
 // SIGNAL DECLARATION
 ///////////////////////////////////////////////////////////////////////////////
-logic  [4-1:0] board_id_r; // BOARD ID
 logic  [5-1:0] s_rx_dbg_state [NCH];
 logic  [2-1:0] s_tx_dbg_state;
 
@@ -108,15 +107,14 @@ logic  [6-1:0] loc_cmd_ds;
 logic [10-1:0] net_cmd_ds;
 logic  [9-1:0] rx_cmd_ds;
 
-logic          s_tx_ready;
 logic          rx_no_dt, rx_wflg, rx_wreg, rx_wmem ;
 logic          rx_wflg_en, rx_wreg_en, rx_wmem_en;
 logic          rx_qsync, rx_qctrl, rx_auto_id; 
 
-logic          flag_dt_s;
+logic          s_data_flag;
+logic          data_flag, wreg_r ;
 logic [32-1:0] reg_dt_s;
 logic [ 4-1:0] mem_addr;
-logic          flag_dt, wreg_r ;
 logic [32-1:0] reg1_dt, reg2_dt;
 logic [32-1:0] mem_dt [15];
 
@@ -124,13 +122,21 @@ logic loc_set_id, loc_wflg, loc_wreg, loc_wmem;
 logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en, cmd_execute;
 logic [ 4-1:0] loc_cmd_op  ;
 
-logic s_ack_net;
-logic s_ack_loc;
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
 logic [32-1:0] s_rx_data ;
 
 logic [NCH-1:0][5-1:0] s_rx_dbg;
 
+//TX related signals
+logic s_ack_net;
+logic s_ack_loc;
+logic          s_tx_ready;
+
+//RX related signals
+logic [4-1:0] board_id_r; 
+logic         set_id_en ;
+
+//Transmission
 // TRANSMIT NET COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge i_clk) begin
@@ -153,7 +159,26 @@ tx_cmd u_tx_cmd(
     .o_dbg_state( s_tx_dbg_state )
 );
 
-assign tx_auto_id = i_req_net & i_header[7:4] == XCOM_AUTO_ID; 
+assign tx_auto_id = i_req_net & (i_header[7:4] == XCOM_AUTO_ID); 
+
+//end Transmission
+//
+// Reception
+// Write ID
+///////////////////////////////////////////////////////////////////////////////
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn ) begin  
+      board_id_r  <= 0;
+      set_id_en   <= 0;
+   end else if ( loc_id_en )
+      board_id_r  <= i_header[3:0];
+   else if (tx_auto_id)
+      set_id_en <= 1'b1;
+   else if ( rx_auto_id & set_id_en) begin
+      set_id_en   <= 1'b0;
+      board_id_r  <= s_rx_chid+1'b1;
+  end
+end
 
 // RX COMMAND
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,6 +211,8 @@ assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;//4'b1001 ;
 assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QRST_SYNC;//4'b1000 ;
 assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
          
+//end Reception
+//
 // LOC COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge i_clk) begin
@@ -219,13 +246,13 @@ assign wflg_en = loc_wflg_en | rx_wflg_en ;
 assign wreg_en = loc_wreg_en | rx_wreg_en ;
 assign wmem_en = loc_wmem_en | rx_wmem_en ;
 
-assign flag_dt_s = cmd_execute ? i_header[0]   : s_rx_op[0];
-assign reg_dt_s  = cmd_execute ? i_data        : s_rx_data;
-assign mem_addr  = cmd_execute ? i_header[3:0] : s_rx_chid+1'b1 ;
+assign s_data_flag = cmd_execute ? i_header[0]   : s_rx_op[0];
+assign reg_dt_s    = cmd_execute ? i_data        : s_rx_data;
+assign mem_addr    = cmd_execute ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
-      flag_dt    <= 1'b0; 
+      data_flag    <= 1'b0; 
       reg1_dt    <= '{default:'0} ; 
       reg2_dt    <= '{default:'0} ;
       mem_dt     <= '{default:'0} ;
@@ -233,33 +260,15 @@ always_ff @ (posedge i_clk) begin
    end else begin 
       wreg_r <= wreg_en ;
       if ( wflg_en )
-         flag_dt <= flag_dt_s; // FLAG
+         data_flag <= s_data_flag; // FLAG
       else if ( wreg_en )
-         case ( flag_dt_s )
+         case ( s_data_flag )
             1'b0 : reg1_dt <= reg_dt_s;      // Reg_dt1
             1'b1 : reg2_dt <= reg_dt_s;      // Reg_dt2
          endcase
       else if ( wmem_en )
          mem_dt[mem_addr]  <= reg_dt_s;
    end
-end
-
-// Write ID
-///////////////////////////////////////////////////////////////////////////////
-logic set_id_en ;
-
-always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) begin  
-      board_id_r  <= 0;
-      set_id_en   <= 0;
-   end else if ( loc_id_en )
-      board_id_r  <= i_header[3:0];
-   else if (tx_auto_id)
-      set_id_en <= 1'b1;
-   else if ( rx_auto_id & set_id_en) begin
-      set_id_en   <= 1'b0;
-      board_id_r  <= s_rx_chid+1'b1;
-  end
 end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -296,17 +305,13 @@ assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
-//for (int i = 0; i < NCH; i++) begin
-//   s_rx_dbg[i*5 +: 5] = s_rx_dbg_state[i]; 
-//end
-
 assign o_dbg_status  = {board_id_r, s_tx_ready, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
 assign o_dbg_data    = {i_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
 
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////
 assign o_qp_ready  = s_tx_ready & ~i_req_loc & ~s_ack_loc;
-assign o_qp_flag   = flag_dt;
+assign o_qp_flag   = data_flag;
 assign o_qp_valid  = wreg_r;
 assign o_qp_data1  = reg1_dt;
 assign o_qp_data2  = reg2_dt;

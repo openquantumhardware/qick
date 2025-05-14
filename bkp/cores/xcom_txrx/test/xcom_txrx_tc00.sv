@@ -3,6 +3,8 @@
 
 module xcom_txrx_unit_test;
 import svunit_pkg::svunit_testcase;
+import qick_pkg::*;
+
 
   string name = "xcom_txrx_ut";
   svunit_testcase svunit_ut;
@@ -37,14 +39,52 @@ import svunit_pkg::svunit_testcase;
   logic [4-1:0]  tb_i_cfg_tick  = 1'b0;
   logic [ 4-1:0] tb_o_xcom_id         ;
   logic [32-1:0] tb_o_xcom_mem [15]   ;
-  logic [NCH-1:0]tb_i_xcom_data       ;
-  logic [NCH-1:0]tb_i_xcom_clk        ;
+//  logic [NCH-1:0]tb_i_xcom_data       ;
+//  logic [NCH-1:0]tb_i_xcom_clk        ;
   logic          tb_o_xcom_data       ;
   logic          tb_o_xcom_clk        ;
   logic [32-1:0] tb_o_dbg_rx_data     ;
   logic [32-1:0] tb_o_dbg_tx_data     ;
   logic [21-1:0] tb_o_dbg_status      ;                                                                                                                                                                                              
   logic [32-1:0] tb_o_dbg_data        ;
+
+  //tx
+  logic [ 4-1:0] tb_i_cfg_tick_tx  = '0;
+  logic          tb_i_valid_tx  [NCH] = '{default:0};
+  logic [ 8-1:0] tb_i_header_tx [NCH] = '{default:0};
+  logic [32-1:0] tb_i_data_tx   [NCH] = '{default:0};
+  logic          tb_o_ready_tx  [NCH]               ;
+
+  logic  [8-1:0]  s_header ;
+  logic [32-1:0]  s_data   ;
+
+  logic [NCH-1:0] tb_xcom_data = '0;
+  logic [NCH-1:0] tb_xcom_clk  = '0;
+
+  xcom_opcode_t s_op = '{
+       rst         : 5'b1_1111  ,//LOC command
+       write_mem   : 5'b1_0011  ,//LOC command
+       write_reg   : 5'b1_0010  ,//LOC command
+       write_flag  : 5'b1_0001  ,//LOC command
+       set_id      : 5'b1_0000  ,//LOC command
+       rfu2        : 5'b0_1111  ,
+       rfu1        : 5'b0_1101  ,
+       qctrl       : 5'b0_1011  ,
+       update_dt32 : 5'b0_1110  ,
+       update_dt16 : 5'b0_1100  ,
+       update_dt8  : 5'b0_1010  ,
+       auto_id     : 5'b0_1001  ,
+       qrst_sync   : 5'b0_1000  ,
+       send_32bit_2: 5'b0_0111  ,
+       send_32bit_1: 5'b0_0110  ,
+       send_16bit_2: 5'b0_0101  ,
+       send_16bit_1: 5'b0_0100  ,
+       send_8bit_2 : 5'b0_0011  ,
+       send_8bit_1 : 5'b0_0010  ,
+       set_flag    : 5'b0_0001  ,
+       clear_flag  : 5'b0_0000
+  };
+
 
 initial begin
   $dumpfile("xcom_txrx.vcd");
@@ -70,8 +110,13 @@ clocking tb_cb @(posedge tb_clk);
   output  tb_i_header      ;
   output  tb_i_data        ;
   output  tb_i_cfg_tick    ;
-  output  tb_i_xcom_data   ;
-  output  tb_i_xcom_clk    ;
+//  output  tb_i_xcom_data   ;
+//  output  tb_i_xcom_clk    ;
+  output  tb_i_cfg_tick_tx    ;
+  output  tb_i_valid_tx       ;
+  output  tb_i_header_tx      ;
+  output  tb_i_data_tx        ;
+
 
   input   tb_o_ack_loc         ;
   input   tb_o_ack_net         ;
@@ -95,6 +140,9 @@ clocking tb_cb @(posedge tb_clk);
   input   tb_o_dbg_tx_data     ;
   input   tb_o_dbg_status      ;
   input   tb_o_dbg_data        ;
+
+  input   tb_o_ready_tx         ;
+
 endclocking
 
 initial begin
@@ -110,10 +158,10 @@ for (ind_tx=0; ind_tx < NCH ; ind_tx=ind_tx+1) begin: TX
         .i_clk      (tb_clk        ),
         .i_rstn     (tb_rstn       ),
         .i_cfg_tick (tb_i_cfg_tick ),
-        .i_valid    (tb_i_valid  [ind_tx]  ),
-        .i_header   (tb_i_header [ind_tx]  ),
-        .i_data     (tb_i_data   [ind_tx]  ), 
-        .o_ready    (tb_o_ready  [ind_tx]  ),
+        .i_valid    (tb_i_valid_tx  [ind_tx]  ),
+        .i_header   (tb_i_header_tx [ind_tx]  ),
+        .i_data     (tb_i_data_tx   [ind_tx]  ), 
+        .o_ready    (tb_o_ready_tx  [ind_tx]  ),
         .o_data     (tb_xcom_data[ind_tx]  ),
         .o_clk      (tb_xcom_clk [ind_tx]  )
         );
@@ -156,8 +204,8 @@ u_xcom_txrx
   .i_cfg_tick        ( tb_i_cfg_tick         ),
   .o_xcom_id         ( tb_o_xcom_id          ),
   .o_xcom_mem        ( tb_o_xcom_mem         ),
-  .i_xcom_data       ( tb_i_xcom_data        ),
-  .i_xcom_clk        ( tb_i_xcom_clk         ),
+  .i_xcom_data       ( tb_xcom_data          ),
+  .i_xcom_clk        ( tb_xcom_clk           ),
   .o_xcom_data       ( tb_o_xcom_data        ),
   .o_xcom_clk        ( tb_o_xcom_clk         ),
   .o_dbg_rx_data     ( tb_o_dbg_rx_data      ),
@@ -179,13 +227,18 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
+    //tx
+    tb_cb.tb_i_cfg_tick_tx <= '0;
+    tb_cb.tb_i_valid_tx    <= '{default:0};
+    tb_cb.tb_i_header_tx   <= '{default:0};
+    tb_cb.tb_i_data_tx     <= '{default:0};
+
+
     tb_cb.tb_i_req_loc  <= 1'b0;
     tb_cb.tb_i_req_net  <= 1'b0;
     tb_cb.tb_i_header   <= '0;
     tb_cb.tb_i_data     <= '0;
-    tb_cb.tb_i_cfg_tick <= 1'b0;
-    tb_cb.tb_i_xcom_data<= 1'b0;
-    tb_cb.tb_i_xcom_clk <= 1'b0;
+    tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
 
     @(tb_cb);
     tb_cb.tb_rstn    <= 1'b0;
@@ -216,6 +269,63 @@ endtask
 //     <test code>
 //   `SVTEST_END
 //===================================
+
+ task SIM_TX (); begin
+   $display("SIM TX");
+   @(tb_cb);
+   s_header <= {s_op.auto_id[3:0],4'b0010}; //no data, should trigger timeout. cmd=AUTO_ID, addr     board=2
+   s_data   <= 32'd8;
+   repeat(10)@(tb_cb);
+   TX_ALL();
+
+   repeat(20)@(tb_cb);
+   s_header <= {s_op.update_dt8[3:0],4'b0010};//8-bit data. cmd=Update DT8, addr board=2
+   s_data   <= 32'd16;
+   repeat(10)@(tb_cb);
+   TX_ALL();
+
+   repeat(20)@(tb_cb);
+   s_header <= {s_op.update_dt16[3:0],4'b0001};//16-bit data. cmd=Update DT16, addr board=1
+   s_data   <= 32'd24;
+   repeat(10)@(tb_cb);
+   TX_ALL();
+
+   repeat(20)@(tb_cb);
+   s_header <= {s_op.update_dt32[3:0],4'b0010};//32-bit data. cmd=Update DT32, addr board=10
+   s_data   <= 32'd40;
+   repeat(10)@(tb_cb);
+   TX_ALL();
+
+   repeat(20)@(tb_cb);
+   s_header <= {s_op.qrst_sync[3:0],4'b0000};//no data, should trigger timeout. cmd=QRST_SYNC, a    ddr board= broadcast
+   s_data   <= 32'd40;
+   repeat(10)@(tb_cb);
+   TX_ALL();
+   repeat(50)@(tb_cb);
+end
+endtask
+
+task TX_ALL ; begin
+   $display("TX_ALL");
+   for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: STX
+      tb_cb.tb_i_header_tx[ind_ch] <= s_header;
+      tb_cb.tb_i_data_tx[ind_ch]   <= s_data;
+      TX_DT(ind_ch);
+   end
+   repeat(100)@(tb_cb);
+end
+endtask
+
+task TX_DT (input int channel); begin
+   $display("TX_DT %d", channel);
+   wait (tb_cb.tb_o_ready_tx[channel] == 1'b1);
+   @ (tb_cb);
+   tb_cb.tb_i_valid_tx[channel]     <= 1;
+   wait (tb_cb.tb_o_ready_tx[channel] == 1'b0);
+   @ (tb_cb);
+   tb_cb.tb_i_valid_tx[channel]     <= 0;
+end
+endtask
 
 `SVUNIT_TESTS_BEGIN
 `include "tests.sv"
