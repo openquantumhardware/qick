@@ -6,15 +6,14 @@
 // Module: xcom_txrx.sv
 // Project: QICK 
 // Description: 
-// Transmitter interface wrapper for the XCOM block. Synchronizes the
-// xcom_link_tx block through the external i_sync signal.
+// Transmitter and Receiver interface wrapper for the XCOM block. 
 // 
 //Inputs:
 // - i_clk      clock signal
 // - i_rstn     active low reset signal
 // - i_sync     synchronization signal. Lets the XCOM synchronize with an
 //              external signal. Actuates in coordination with the 
-//              QRST_SYNC command.
+//              XCOM_QRST_SYNC command.
 // - i_cfg_tick this input is connected to the AXI_CFG register and 
 //              determines the duration of the xcom_clk output signal.
 //              xcom_clk will be either in state 1 or 0 for CFG_AXI clock 
@@ -58,43 +57,43 @@ module xcom_txrx import qick_pkg::*;
    parameter NCH  = 2 ,
    parameter SYNC = 1 
 )(
-   input  logic             i_clk         ,
-   input  logic             i_rstn        ,
-   input  logic             i_sync        ,
+   input  logic             i_clk              ,
+   input  logic             i_rstn             ,
+   input  logic             i_sync             ,
 // COMMAND INTERFACE
-   input  logic             i_req_loc     ,
-   input  logic             i_req_net     ,
-   input  logic [ 8-1:0]    i_header      ,
-   input  logic [32-1:0]    i_data        ,
-   output logic             o_ack_loc     ,
-   output logic             o_ack_net     ,
+   input  logic             i_req_loc          ,
+   input  logic             i_req_net          ,
+   input  logic [ 8-1:0]    i_header           ,
+   input  logic [32-1:0]    i_data             ,
+   output logic             o_ack_loc          ,
+   output logic             o_ack_net          ,
 // QICK INTERFACE
-   output logic             o_qp_ready      ,
-   output logic             o_qp_valid      ,
-   output logic             o_qp_flag     ,
-   output logic [32-1:0]    o_qp_data1      ,
-   output logic [32-1:0]    o_qp_data2      ,
+   output logic             o_qp_ready         ,
+   output logic             o_qp_valid         ,
+   output logic             o_qp_flag          ,
+   output logic [32-1:0]    o_qp_data1         ,
+   output logic [32-1:0]    o_qp_data2         ,
 // QICK PROCESSOR CONTROL
-   output logic             o_proc_start     ,
-   output logic             o_proc_stop      ,
-   output logic             o_time_rst       ,
+   output logic             o_proc_start       ,
+   output logic             o_proc_stop        ,
+   output logic             o_time_rst         ,
    output logic             o_time_update      ,
-   output logic [32-1:0]    o_time_update_data   ,
-   output logic             o_core_start     ,
-   output logic             o_core_stop      ,
+   output logic [32-1:0]    o_time_update_data ,
+   output logic             o_core_start       ,
+   output logic             o_core_stop        ,
 // XCOM CFG
-   input  logic [4-1:0]     i_cfg_tick    ,
-   output logic [ 4-1:0]    o_xcom_id     ,
-   output logic [32-1:0]    o_xcom_mem[15],
+   input  logic [4-1:0]     i_cfg_tick         ,
+   output logic [ 4-1:0]    o_xcom_id          ,
+   output logic [32-1:0]    o_xcom_mem[15]     ,
 // Xlogic COM
-   input  logic [NCH-1:0]   i_xcom_data   ,
-   input  logic [NCH-1:0]   i_xcom_clk    ,
-   output logic             o_xcom_data   ,
-   output logic             o_xcom_clk    ,
+   input  logic [NCH-1:0]   i_xcom_data        ,
+   input  logic [NCH-1:0]   i_xcom_clk         ,
+   output logic             o_xcom_data        ,
+   output logic             o_xcom_clk         ,
 // DEBUG
-   output logic [32-1:0]    o_dbg_rx_data    ,
-   output logic [32-1:0]    o_dbg_tx_data    ,
-   output logic [21-1:0]    o_dbg_status,
+   output logic [32-1:0]    o_dbg_rx_data      ,
+   output logic [32-1:0]    o_dbg_tx_data      ,
+   output logic [21-1:0]    o_dbg_status       ,
    output logic [32-1:0]    o_dbg_data 
 );
 
