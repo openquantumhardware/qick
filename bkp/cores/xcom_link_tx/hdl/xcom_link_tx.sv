@@ -127,7 +127,7 @@ module xcom_link_tx (
             end
             2'b10  : begin // 16-bit DATA
                 s_tx_pkt_size = 23;
-                tx_buff      = {i_header, i_data[15:0], 16'd0};
+                tx_buff      = {i_header, i_data[16-1:0], 16'd0};
             end
             2'b11  : begin //32-bit DATA
                 s_tx_pkt_size = 39;
