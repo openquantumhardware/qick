@@ -9,13 +9,13 @@ import svunit_pkg::svunit_testcase;
 
   localparam CLOCK_FREQUENCY = 250e6; //[Hz]
 
-  localparam NB         = 1; //[Hz]
+  localparam NB             = 8; //[Hz]
 
-  logic      tb_clk     = 1'b0;
-  logic      tb_rstn    = 1'b1;
+  logic          tb_clk     = 1'b0;
+  logic          tb_rstn    = 1'b1;
 
-  logic      tb_i_data  = 1'b0;
-  logic      tb_o_data  = 1'b0;
+  logic [NB-1:0] tb_i_data  = 1'b0;
+  logic [NB-1:0] tb_o_data  = 1'b0;
 
 initial begin
   $dumpfile("synchronizer.vcd");
@@ -34,6 +34,9 @@ u_clk_gen
 
 
 default clocking cb @(posedge tb_clk);
+output tb_rstn   ;
+output tb_i_data ;
+input  tb_o_data ;
 endclocking
 
 //===================================
@@ -66,13 +69,13 @@ endfunction
 //===================================
 task setup();
   svunit_ut.setup();
-  tb_i_data  = '0;
+  cb.tb_i_data  <= '0;
   
-  @(negedge tb_clk);
-  tb_rstn             <= 1'b0;
-  repeat(2) @(negedge tb_clk);
-  tb_rstn             <= 1'b1;
-  repeat(5) @(negedge tb_clk);
+  @(cb);
+  cb.tb_rstn             <= 1'b0;
+  repeat(2) @(cb);
+  cb.tb_rstn             <= 1'b1;
+  repeat(5) @(cb);
 
 endtask
 

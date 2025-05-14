@@ -1,0 +1,34 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed May 14 13:40:26 2025
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_utils_synchronizer_1.0.0/test-xsim/synchronizer.vcd"
+[dumpfile_mtime] "Wed May 14 13:40:10 2025"
+[dumpfile_size] 7452
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/synchronizer/data/synchronizer.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-15.661450 28000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.synchronizer_ut.
+[sst_width] 206
+[signals_width] 126
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.synchronizer_ut.u_synchronizer.i_clk
+[color] 3
+testrunner.__ts.synchronizer_ut.u_synchronizer.i_rstn
+@22
+[color] 3
+testrunner.__ts.synchronizer_ut.u_synchronizer.i_async[7:0]
+testrunner.__ts.synchronizer_ut.u_synchronizer.meta_r[7:0]
+testrunner.__ts.synchronizer_ut.u_synchronizer.sync_r[7:0]
+@23
+[color] 6
+testrunner.__ts.synchronizer_ut.u_synchronizer.o_sync[7:0]
+[pattern_trace] 1
+[pattern_trace] 0
