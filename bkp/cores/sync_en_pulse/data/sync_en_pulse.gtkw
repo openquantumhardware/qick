@@ -1,0 +1,67 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Wed May 14 21:21:23 2025
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_utils_sync_en_pulse_1.0.0/test-xsim/sync_en_pulse.vcd"
+[dumpfile_mtime] "Wed May 14 21:17:46 2025"
+[dumpfile_size] 4220
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/sync_en_pulse/data/sync_en_pulse.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-14.040746 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.sync_en_pulse_ut.
+[treeopen] testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.
+[sst_width] 206
+[signals_width] 166
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@800200
+-sync_en_pulse
+@28
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.i_clk
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.i_rstn
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.i_en
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.en_strobe
+[color] 6
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.o_en
+@1000200
+-sync_en_pulse
+@800200
+-rising_edge_det
+@28
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.i_clk
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.i_rstn
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.i_strobe
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.delay_n
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.delay_r
+[color] 6
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_rising_edge_det.o_pulse
+@1000200
+-rising_edge_det
+@800200
+-synchronizer
+@28
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.i_clk
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.i_rstn
+[color] 3
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.i_async[0]
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.meta_r[0]
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.sync_r[0]
+@29
+[color] 6
+testrunner.__ts.sync_en_pulse_ut.u_sync_en_pulse.u_synchronizer.o_sync[0]
+@1000200
+-synchronizer
+[pattern_trace] 1
+[pattern_trace] 0
