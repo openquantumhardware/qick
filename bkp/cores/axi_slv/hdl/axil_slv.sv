@@ -27,20 +27,20 @@ module axi_lite_slave #(
     output logic                            s_axi_rvalid,   // Read data valid
     input  logic                            s_axi_rready    // Read data ready
     // Registers.
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_ctrl,    //: out std_logic_vector ( 5 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_cfg,     //: out std_logic_vector ( 3 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_dt1,      //: out std_logic_vector (31 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_dt2,      //  : out std_logic_vector (31 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_addr,     //  : out std_logic_vector ( 3 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_board_id,     //   : in  std_logic_vector ( 3 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_flag,    //   : in  std_logic ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_dt1,     // : in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_dt2,     //  : in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_mem,     // : in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_rx_dt,   //  : in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_tx_dt,   //  : in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_status,  //  : in  std_logic_vector (28 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_debug    //: in  std_logic_vector (31 downto 0) );
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_ctrl,    //out std_logic_vector ( 5 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_cfg,     //out std_logic_vector ( 3 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_dt1,      //out std_logic_vector (31 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_dt2,      //out std_logic_vector (31 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_addr,     //out std_logic_vector ( 3 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_board_id,     //in  std_logic_vector ( 3 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_flag,    //in  std_logic ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_dt1,     //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_dt2,     //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_mem,     //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_rx_dt,   //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_tx_dt,   //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_status,  //in  std_logic_vector (28 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_debug    //in  std_logic_vector (31 downto 0) );
 );
 
     //-------------------------------------------------------------------------
@@ -403,4 +403,3 @@ module axi_lite_slave #(
     end
 
 endmodule
-
