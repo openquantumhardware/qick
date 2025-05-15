@@ -1,0 +1,33 @@
+[*]
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu May 15 15:44:40 2025
+[*]
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_utils_narrow_en_signal_1.0.0/test-xsim/narrow_en_signal.vcd"
+[dumpfile_mtime] "Thu May 15 15:42:22 2025"
+[dumpfile_size] 8611
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/narrow_en_signal/data/narrow_en_signal.gtkw"
+[timestart] 0
+[size] 1920 1140
+[pos] -1 -1
+*-15.639410 164000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.narrow_en_signal_ut.
+[treeopen] testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.
+[sst_width] 206
+[signals_width] 102
+[sst_expanded] 1
+[sst_vpaned_height] 400
+@28
+[color] 3
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.i_clk
+[color] 3
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.i_rstn
+[color] 3
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.i_en
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.en_q
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.en_strobe
+[color] 6
+testrunner.__ts.narrow_en_signal_ut.u_narrow_en_signal.o_en
+[pattern_trace] 1
+[pattern_trace] 0
