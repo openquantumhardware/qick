@@ -32,7 +32,7 @@ module narrow_en_signal(
 
     //slow enable pulse generator
     synchronizer#(
-       .NB(32)
+       .NB(1)
        ) u_sync(
           .i_clk      ( i_clk        ),
           .i_rstn     ( i_rstn       ),
