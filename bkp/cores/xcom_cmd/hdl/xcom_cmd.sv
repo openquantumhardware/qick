@@ -11,10 +11,10 @@
 //Inputs:
 // - i_clk        clock signal
 // - i_rstn       active low reset signal
-// - i_tproc_en   data valid signal coming from the tproc processor. Indicates
+// - i_core_en    data valid signal coming from the core processor. Indicates
 //                a valid data is ready for transmission.
-// - i_tproc_op   opcode from the tproc. See xcom opcodes in qick_pkg 
-// - i_tproc_data transmission requirement signal. Signal indicating a new
+// - i_core_op    opcode from the core. See xcom opcodes in qick_pkg 
+// - i_core_data  transmission requirement signal. Signal indicating a new
 //                data transmission starts.  
 // - i ps_ctrl    port used to send opcode and data valid signal from Python. 
 //                bits [5:1] determines the operation to be done. See xcom
@@ -44,9 +44,9 @@ module xcom_cmd (
    input  logic                  i_clk            ,
    input  logic                  i_rstn           ,
    // Command from tProcessor
-   input  logic                  i_tproc_en       ,
-   input  logic [ 5-1:0]         i_tproc_op       ,
-   input  logic [2-1:0][32-1:0]  i_tproc_data     ,
+   input  logic                  i_core_en       ,
+   input  logic [ 5-1:0]         i_core_op       ,
+   input  logic [2-1:0][32-1:0]  i_core_data     ,
    // Command from Python
    input  logic [ 6-1:0]         i_ps_ctrl        ,
    input  logic [2-1:0][32-1:0]  i_ps_data        ,
@@ -66,10 +66,10 @@ logic  [4-1:0] s_addr;
 logic [32-1:0] s_data; 
 
     //I/O selection
-    assign s_valid = i_ps_ctrl[0]      | i_tproc_en;
-    assign s_op    = i_ps_ctrl[5:1]    | i_tproc_op;
-    assign s_addr  = i_ps_data[0][3:0] | i_tproc_data[0][3:0];
-    assign s_data  = i_ps_data[1]      | i_tproc_data[1];
+    assign s_valid = i_ps_ctrl[0]      | i_core_en;
+    assign s_op    = i_ps_ctrl[5:1]    | i_core_op;
+    assign s_addr  = i_ps_data[0][3:0] | i_core_data[0][3:0];
+    assign s_data  = i_ps_data[1]      | i_core_data[1];
 
     assign s_ack   = i_ack_loc         | i_ack_net;
 

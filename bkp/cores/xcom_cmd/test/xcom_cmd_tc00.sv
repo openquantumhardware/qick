@@ -15,10 +15,10 @@ import qick_pkg::*;
 
   logic          tb_clk          = 1'b0;
   logic          tb_rstn         = 1'b1;
-  logic          tb_i_tproc_en   = 1'b0;
-  logic [ 5-1:0] tb_i_tproc_op   = '0;
-  logic [NB-1:0] tb_i_tproc_data = '0;
-  logic [NB-1:0] tb_i_tproc_addr = '0;
+  logic          tb_i_core_en    = 1'b0;
+  logic [ 5-1:0] tb_i_core_op    = '0;
+  logic [NB-1:0] tb_i_core_data  = '0;
+  logic [NB-1:0] tb_i_core_addr  = '0;
   logic [NB-1:0] tb_i_ps_ctrl    = '0;
   logic [NB-1:0] tb_i_ps_data    = '0;
   logic [NB-1:0] tb_i_ps_addr    = '0;
@@ -30,7 +30,7 @@ import qick_pkg::*;
   logic [NB-1:0] tb_o_data       ;
   logic  [4-1:0] tb_o_data_cntr  ;
 
-  logic  [2-1:0][NB-1:0] s_tproc_data    ;
+  logic  [2-1:0][NB-1:0] s_core_data    ;
   logic  [2-1:0][NB-1:0] s_ps_data       ;
 
   logic [NB-1:0] random_data;
@@ -77,10 +77,10 @@ u_clk_gen
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
-  output  tb_i_tproc_en    ;
-  output  tb_i_tproc_op    ;
-  output  tb_i_tproc_data  ;
-  output  tb_i_tproc_addr  ;
+  output  tb_i_core_en     ;
+  output  tb_i_core_op     ;
+  output  tb_i_core_data   ;
+  output  tb_i_core_addr   ;
   output  tb_i_ps_ctrl     ;
   output  tb_i_ps_data     ;
   output  tb_i_ps_addr     ;
@@ -94,7 +94,7 @@ clocking tb_cb @(posedge tb_clk);
   input   tb_o_data_cntr   ;
 endclocking
 
-assign s_tproc_data = {tb_i_tproc_data,tb_i_tproc_addr};
+assign s_core_data = {tb_i_core_data,tb_i_core_addr};
 assign s_ps_data    = {tb_i_ps_data,tb_i_ps_addr};
 
 //===================================
@@ -103,20 +103,20 @@ assign s_ps_data    = {tb_i_ps_data,tb_i_ps_addr};
 //===================================
 
 xcom_cmd u_xcom_cmd(
-  .i_clk            ( tb_clk         ),
-  .i_rstn           ( tb_rstn        ),
-  .i_tproc_en       ( tb_i_tproc_en  ),
-  .i_tproc_op       ( tb_i_tproc_op  ),
-  .i_tproc_data     ( s_tproc_data   ),
-  .i_ps_ctrl        ( tb_i_ps_ctrl   ),
-  .i_ps_data        ( s_ps_data      ), 
-  .o_req_loc        ( tb_o_req_loc   ),
-  .i_ack_loc        ( tb_i_ack_loc   ),
-  .o_req_net        ( tb_o_req_net   ),
-  .i_ack_net        ( tb_i_ack_net   ),
-  .o_op             ( tb_o_op        ),
-  .o_data           ( tb_o_data      ),
-  .o_data_cntr      ( tb_o_data_cntr )
+  .i_clk           ( tb_clk         ),
+  .i_rstn          ( tb_rstn        ),
+  .i_core_en       ( tb_i_core_en   ),
+  .i_core_op       ( tb_i_core_op   ),
+  .i_core_data     ( s_core_data    ),
+  .i_ps_ctrl       ( tb_i_ps_ctrl   ),
+  .i_ps_data       ( s_ps_data      ), 
+  .o_req_loc       ( tb_o_req_loc   ),
+  .i_ack_loc       ( tb_i_ack_loc   ),
+  .o_req_net       ( tb_o_req_net   ),
+  .i_ack_net       ( tb_i_ack_net   ),
+  .o_op            ( tb_o_op        ),
+  .o_data          ( tb_o_data      ),
+  .o_data_cntr     ( tb_o_data_cntr )
   );
 
 //===================================
@@ -133,15 +133,15 @@ endfunction
 task setup();
   svunit_ut.setup();
   random_data = $urandom();
-  tb_cb.tb_i_tproc_en   <= 1'b0;
-  tb_cb.tb_i_tproc_op   <= '0;   
-  tb_cb.tb_i_tproc_data <= '0;   
-  tb_cb.tb_i_tproc_addr <= '0;   
-  tb_cb.tb_i_ps_ctrl    <= '0;
-  tb_cb.tb_i_ps_data    <= '0;
-  tb_cb.tb_i_ps_addr    <= '0;
-  tb_cb.tb_i_ack_loc    <= 1'b0;
-  tb_cb.tb_i_ack_net    <= 1'b0;
+  tb_cb.tb_i_core_en   <= 1'b0;
+  tb_cb.tb_i_core_op   <= '0;   
+  tb_cb.tb_i_core_data <= '0;   
+  tb_cb.tb_i_core_addr <= '0;   
+  tb_cb.tb_i_ps_ctrl   <= '0;
+  tb_cb.tb_i_ps_data   <= '0;
+  tb_cb.tb_i_ps_addr   <= '0;
+  tb_cb.tb_i_ack_loc   <= 1'b0;
+  tb_cb.tb_i_ack_net   <= 1'b0;
 
   @(tb_cb);
   tb_cb.tb_rstn    <= 1'b0;
@@ -194,15 +194,15 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
     end   
 endtask   
 
-task automatic write_tproc(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
+task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
    $display("PS writing LOC...");
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
-        tb_cb.tb_i_tproc_en   <= 1'b1;
-        tb_cb.tb_i_tproc_op   <= in_op;
-        tb_cb.tb_i_tproc_addr <= 32'd2;//$urandom_range(0,15);
-        tb_cb.tb_i_tproc_data <= in_data + i;
+        tb_cb.tb_i_core_en   <= 1'b1;
+        tb_cb.tb_i_core_op   <= in_op;
+        tb_cb.tb_i_core_addr <= 32'd2;//$urandom_range(0,15);
+        tb_cb.tb_i_core_data <= in_data + i;
         @(tb_cb);
-        tb_cb.tb_i_tproc_en   <= 1'b0;
+        tb_cb.tb_i_core_en   <= 1'b0;
         tb_cb.tb_i_ack_net    <= 1'b1;
         @(tb_cb);
         tb_cb.tb_i_ack_net    <= 1'b0;
