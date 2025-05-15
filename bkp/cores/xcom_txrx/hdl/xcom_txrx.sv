@@ -38,10 +38,14 @@
 //                         ID in the XCOM hierarchy 
 // - i_data     the data to be transmitted 
 //Outputs:
-// - o_ready    signal indicating the ip is ready to receive new data to
+//QICK interface:
+// - o_qp_ready signal indicating the ip is ready to receive new data to
 //              transmit
-// - o_data     serial data transmitted. This is the general output of the
-//              XCOM block
+// - o_qp_valid signal indicating the ip has valid data to write into the
+//              local board
+// - o_qp_flag  signal indicating to write flag into the core
+// - o_qp_data1 data1 to core
+// - o_qp_data2 data2 to core
 // - o_clk      serial clock for transmission. This is the general output of
 //              the XCOM block
 // - o_dbg_state debug port for monitoring the state of the internal FSM
@@ -251,13 +255,13 @@ assign mem_addr    = cmd_execute ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
-      data_flag    <= 1'b0; 
-      reg1_dt    <= '{default:'0} ; 
-      reg2_dt    <= '{default:'0} ;
-      mem_dt     <= '{default:'0} ;
-      wreg_r  <= 1'b0; 
+      data_flag <= 1'b0; 
+      reg1_dt   <= '{default:'0} ; 
+      reg2_dt   <= '{default:'0} ;
+      mem_dt    <= '{default:'0} ;
+      wreg_r    <= 1'b0; 
    end else begin 
-      wreg_r <= wreg_en ;
+      wreg_r    <= wreg_en ;
       if ( wflg_en )
          data_flag <= s_data_flag; // FLAG
       else if ( wreg_en )
