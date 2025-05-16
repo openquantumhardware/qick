@@ -40,16 +40,6 @@ u_clk_gen
   .o_clk      ( tb_clk            )
 );
 
-//clk_gen
-//#(
-//  .FREQ       ( SYNC_PULSE_FREQ   )
-//)
-//u_sync_pulse
-//(
-//  .i_enable   ( 1'b1              ),
-//  .o_clk      ( tb_i_sync         )
-//);
-
 clocking cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
@@ -78,21 +68,45 @@ end
 // running the Unit Tests on
 //===================================
 
-xcom_axil_slv
-u_xcom_axil_slv
-(
-  .i_clk      ( tb_clk         ),
-  .i_rstn     ( tb_rstn        ),
-  .i_sync     ( tb_i_sync      ),
-  .i_cfg_tick ( tb_i_cfg_tick  ),
-  .i_req      ( tb_i_req       ),
-  .i_header   ( tb_i_header    ),
-  .i_data     ( tb_i_data      ), 
-  .o_ready    ( tb_o_ready     ),
-  .o_data     ( tb_o_data      ),
-  .o_clk      ( tb_o_clk       ),
-  .o_dbg_state( tb_o_dbg_state )
-);
+xcom_axil_slv#(
+    .C_S_AXI_ADDR_WIDTH ( 6  ),  
+    .C_S_AXI_DATA_WIDTH ( 32 )  
+) u_xcom_axil_slv(
+   .clk            ( tb_i_clk           ),  
+   .reset_n        ( tb_i_rstn          ),  
+   .s_axi_awaddr   ( ),  
+   .s_axi_awvalid  ( ),  
+   .s_axi_awready  ( ),  
+   .s_axi_wdata    ( ),  
+   .s_axi_wstrb    ( ),  
+   .s_axi_wvalid   ( ),  
+   .s_axi_wready   ( ),  
+   .s_axi_bresp    ( ),  
+   .s_axi_bvalid   ( ),  
+   .s_axi_bready   ( ),  
+   .s_axi_araddr   ( ),  
+   .s_axi_arvalid  ( ),  
+   .s_axi_arready  ( ),  
+   .s_axi_rdata    ( ),  
+   .s_axi_rresp    ( ),  
+   .s_axi_rvalid   ( ),  
+   .s_axi_rready   ( ),  
+   .o_xcom_ctrl    ( ),  
+   .o_xcom_cfg     ( ),  
+   .o_axi_data1    ( ),  
+   .o_axi_data2    ( ),  
+   .o_axi_addr     ( ),  
+   .i_board_id     ( ),  
+   .i_xcom_flag    ( ),  
+   .i_xcom_data1   ( ),  
+   .i_xcom_data2   ( ),  
+   .i_xcom_mem     ( ),  
+   .i_xcom_rx_data ( ),  
+   .i_xcom_tx_data ( ),  
+   .i_xcom_status  ( ),
+   .i_xcom_debug   ( )   
+   );  
+
 
 //===================================
 // Build
