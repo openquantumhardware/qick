@@ -60,8 +60,8 @@ module avg_buffer (
                    BUF_DR_START_REG ,
                    BUF_DR_ADDR_REG ,
                    BUF_DR_LEN_REG,
-                   FILTER_START_ADDR_REG,
-                   FILTER_WE_REG
+                   WGT_DW_ADDR_REG,
+                   WGT_DW_START_REG
                    );
 
    ////////////////
@@ -127,8 +127,8 @@ module avg_buffer (
    input [N_BUF-1:0] BUF_DR_ADDR_REG;
    input [N_BUF-1:0] BUF_DR_LEN_REG;
 
-   input [N_WGT-1:0] FILTER_START_ADDR_REG;
-   input FILTER_WE_REG;
+   input [N_WGT-1:0] WGT_DW_ADDR_REG;
+   input WGT_DW_START_REG;
 
 
    //////////////////////
@@ -182,8 +182,8 @@ module avg_buffer (
       .dout_valid_o (s_axis_filtered_tvalid),
       .dout_o (s_axis_filtered_tdata),
 
-      .START_ADDR_REG(FILTER_START_ADDR_REG),
-      .WE_REG(FILTER_WE_REG),
+      .DW_ADDR_REG(WGT_DW_ADDR_REG),
+      .WE_REG(WGT_DW_START_REG),
       .LEN_REG(AVG_LEN_REG)
       );
 

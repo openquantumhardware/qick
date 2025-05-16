@@ -58,8 +58,8 @@ entity axi_slv is
 		BUF_DR_START_REG: out std_logic;
 		BUF_DR_ADDR_REG	: out std_logic_vector (31 downto 0);
 		BUF_DR_LEN_REG	: out std_logic_vector (31 downto 0);
-		FILTER_START_ADDR_REG : out std_logic_vector (31 downto 0);
-		FILTER_WE_REG : out std_logic
+		WGT_DW_ADDR_REG : out std_logic_vector (31 downto 0);
+		WGT_DW_START_REG: out std_logic
 	);
 end axi_slv;
 
@@ -537,8 +537,8 @@ begin
 	AVG_PHOTON_MODE_REG <= slv_reg10(0);
 	AVG_H_THRSH_REG     <= slv_reg11;
 	AVG_L_THRSH_REG     <= slv_reg12;
-	FILTER_START_ADDR_REG <= slv_reg13;
-	FILTER_WE_REG <= slv_reg3(2);
+	WGT_DW_ADDR_REG     <= slv_reg13;
+	WGT_DW_START_REG    <= slv_reg3(2);
 
 end rtl;
 

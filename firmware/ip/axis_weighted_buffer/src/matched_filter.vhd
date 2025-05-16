@@ -52,8 +52,10 @@ entity matched_filter is
     dout_valid_o : out std_logic;
 
     -- Configuration registers
+    -- active length of the weights buffer (how many samples of incoming data will be weighted)
     LEN_REG        : in std_logic_vector (31 downto 0);
-    START_ADDR_REG : in std_logic_vector(31 downto 0);
+    -- data writer start address and write-enable
+    DW_ADDR_REG    : in std_logic_vector(31 downto 0);
     WE_REG         : in std_logic
     );
 end matched_filter;
@@ -82,7 +84,7 @@ architecture rtl of matched_filter is
 
   -- Read address
   signal cnt       : unsigned (N-1 downto 0) := to_unsigned(0, N);
-  signal read_addr : unsigned (N-1 downto 0) := to_unsigned(0, N);
+  --signal read_addr : unsigned (N-1 downto 0) := to_unsigned(0, N);
   signal length    : unsigned (N-1 downto 0) := to_unsigned(0, N);
 
   type fsm_state is (INIT_ST,
@@ -117,7 +119,7 @@ begin
       mem_we         => mem_envelope_wea,
       mem_addr       => mem_envelope_addra,
       mem_di         => mem_envelope_dia,
-      START_ADDR_REG => START_ADDR_REG,
+      START_ADDR_REG => DW_ADDR_REG,
       WE_REG         => WE_REG);
 
   bram_envelope_ii : entity work.bram_dp
@@ -215,10 +217,10 @@ begin
       if (state = READ_ST) then
         if (din_valid_i = '1') then
           cnt       <= cnt + 1;
-          read_addr <= read_addr + 1;
+          --read_addr <= read_addr + 1;
         end if;
       else
-        read_addr <= unsigned(START_ADDR_REG(N-1 downto 0));
+        --read_addr <= unsigned(START_ADDR_REG(N-1 downto 0));
         cnt       <= to_unsigned(0, N);
       end if;
     end if;
@@ -257,7 +259,7 @@ begin
   trigger_o    <= trigger_reg(DSP_LATENCY - 1);
   dout_valid_o <= dout_valid_reg(DSP_LATENCY - 1);
 
-  mem_envelope_addrb <= std_logic_vector(read_addr);
+  mem_envelope_addrb <= std_logic_vector(cnt);
 
   ac_signed <= signed(ac(2*B-1 downto 0));
   bd_signed <= signed(bd(2*B-1 downto 0));

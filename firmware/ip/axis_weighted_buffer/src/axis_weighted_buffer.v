@@ -160,8 +160,8 @@ module axis_weighted_buffer
    wire BUF_DR_START_REG;
    wire [N_BUF-1:0] BUF_DR_ADDR_REG;
    wire [N_BUF-1:0] BUF_DR_LEN_REG;
-   wire [N_AVG-1:0] FILTER_START_ADDR_REG;
-   wire FILTER_WE_REG;
+   wire [N_WGT-1:0] WGT_DW_ADDR_REG;
+   wire WGT_DW_START_REG;
 
 
 
@@ -219,8 +219,8 @@ module axis_weighted_buffer
       .BUF_DR_START_REG (BUF_DR_START_REG ),
       .BUF_DR_ADDR_REG (BUF_DR_ADDR_REG ),
       .BUF_DR_LEN_REG (BUF_DR_LEN_REG ),
-      .FILTER_START_ADDR_REG (FILTER_START_ADDR_REG ),
-      .FILTER_WE_REG (FILTER_WE_REG)
+      .WGT_DW_ADDR_REG (WGT_DW_ADDR_REG ),
+      .WGT_DW_START_REG (WGT_DW_START_REG)
       );
 
    // Averager + Buffer Top.
@@ -291,8 +291,8 @@ module axis_weighted_buffer
       .BUF_DR_START_REG (BUF_DR_START_REG ),
       .BUF_DR_ADDR_REG (BUF_DR_ADDR_REG[N_BUF-1:0] ),
       .BUF_DR_LEN_REG (BUF_DR_LEN_REG[N_BUF-1:0] ),
-      .FILTER_START_ADDR_REG (FILTER_START_ADDR_REG[N_AVG-1:0] ),
-      .FILTER_WE_REG (FILTER_WE_REG)
+      .WGT_DW_ADDR_REG (WGT_DW_ADDR_REG[N_WGT-1:0] ),
+      .WGT_DW_START_REG (WGT_DW_START_REG)
       );
 
 endmodule

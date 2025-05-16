@@ -2,6 +2,7 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dsp_macro_0",
+    "cell_name": "avg_buffer_i/matchfilt_i/matched_filter_mult_ac",
     "component_reference": "xilinx.com:ip:dsp_macro:1.0",
     "ip_revision": "3",
     "gen_directory": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_2_project/axis_weighted_buffer_v1_2_project.gen/sources_1/ip/dsp_macro_0",
@@ -172,7 +173,7 @@
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
-        "SYNTHESISFLOW": [ { "value": "OUT_OF_CONTEXT" } ]
+        "SYNTHESISFLOW": [ { "value": "GLOBAL" } ]
       }
     },
     "boundary": {
