@@ -169,7 +169,7 @@ logic [32-1:0] s_xcom_dbg_data;
 ///////////////////////////////////////////////////////////////////////////////
 // AXI Registers
 ///////////////////////////////////////////////////////////////////////////////
-xcom_axil_slv #(
+xcom_axil_slv#(
     .C_S_AXI_ADDR_WIDTH = 6,               // Address width.  Adjust as needed.
     .C_S_AXI_DATA_WIDTH = 32               // Data width (32 or 64).
 ) u_xcom_axil_slv(
@@ -208,25 +208,55 @@ xcom_axil_slv #(
    .i_xcom_debug   ( xreg_debug         )
    ); 
 
-qick_xcom_cmd QICK_CMD(
-   .ps_clk_i      ( i_ps_clk      ),
-   .ps_rst_ni     ( i_ps_rstn  ),
-   .c_clk_i       ( i_core_clk       ),
-   .c_rst_ni      ( i_core_rstn   ),
-   .x_clk_i       ( i_time_clk       ),
-   .x_rst_ni      ( i_time_rstn   ),
-   .c_en_i        ( i_core_en     ),
-   .c_op_i        ( i_core_op     ),
-   .c_dt_i        ( c_dt        ),
-   .p_ctrl_i      ( p_ctrl      ),
-   .p_dt_i        ( p_dt        ),
-   .cmd_loc_req_o ( cmd_loc_req ),
-   .cmd_loc_ack_i ( cmd_loc_ack ),
-   .cmd_net_req_o ( cmd_net_req ),
-   .cmd_net_ack_i ( cmd_net_ack ),
-   .cmd_op_o      ( cmd_op      ),
-   .cmd_dt_o      ( cmd_dt      ),
-   .cmd_cnt_do    ( cmd_cnt_ds     ));
+xcom_cdc#(
+   .CH           ( 2 ),
+   .SYNC         ( 1 ),
+   .DEBUG        ( 1 ) 
+) u_xcom_cdc(
+   .i_ps_clk           ( tb_clk         ),
+   .i_ps_rstn          ( tb_rstn        ),  
+   .i_core_clk         (),
+   .i_core_rstn        (), 
+   .i_time_clk         (), 
+   .i_time_rstn        (), 
+   .i_core_en          (), 
+   .i_core_op          (),
+   .i_core_data1       (), 
+   .i_core_data2       (), 
+   .o_core_en_sync     (), 
+   .o_core_op_sync     (), 
+   .o_core_data1_sync  (), 
+   .o_core_data2_sync  (), 
+   .i_core_ready       (), 
+   .i_core_valid       (), 
+   .i_core_flag        (), 
+   .o_core_ready_sync  (), 
+   .o_core_valid_sync  (), 
+   .o_core_flag_sync   (), 
+   .i_ack_loc          (),
+   .i_ack_net          (),
+   .i_xcom_id          (),
+   .o_xcom_id_sync     (), 
+   .i_xcom_ctrl        (), 
+   .i_xcom_cfg         (),
+   .i_axi_data1        (), 
+   .i_axi_data2        (),
+   .o_xcom_ctrl_sync   (), 
+   .o_xcom_cfg_sync    (), 
+   .o_axi_data1_sync   (), 
+   .o_axi_data2_sync   (), 
+   .o_xcom_flag_sync   (), 
+   .o_xcom_data1_sync  (), 
+   .o_xcom_data2_sync  (), 
+   .i_xcom_rx_data     (), 
+   .i_xcom_tx_data     (), 
+   .i_xcom_status      (), 
+   .i_xcom_debug       (),
+   .o_xcom_rx_data_sync(),
+   .o_xcom_tx_data_sync(),
+   .o_xcom_status_sync (), 
+   .o_xcom_debug_sync  ()  
+);
 
 xcom_cmd u_xcom_cmd(
    .i_clk           ( i_time_clk     ),
@@ -244,39 +274,6 @@ xcom_cmd u_xcom_cmd(
    .o_data          ( s_data      ),
    .o_data_cntr     ( s_data_cntr )
    );
-
-
-qick_xcom # (
-   .CH    ( CH   ),
-   .SYNC  ( SYNC )
-) XCOM (
-   .cmd_loc_req_i  ( cmd_loc_req    ),
-   .cmd_loc_ack_o  ( cmd_loc_ack    ),
-   .cmd_net_req_i  ( cmd_net_req    ),
-   .cmd_net_ack_o  ( cmd_net_ack    ),
-   .cmd_op_i       ( cmd_op         ),
-   .cmd_dt_i       ( cmd_dt         ),
-   .qp_rdy_o       ( s_core_ready       ),
-   .qp_vld_o       ( s_core_valid       ),
-   .qp_flag_o      ( s_core_flag      ),
-   .qp_dt1_o       ( s_core_data1       ),
-   .qp_dt2_o       ( s_core_data2       ),
-   .p_start_o      ( o_proc_start   ),
-   .p_stop_o       ( o_proc_stop    ),
-   .t_rst_o        ( o_time_rst     ),
-   .t_updt_o       ( o_time_update    ),
-   .t_updt_dt_o    ( o_time_update_data ),
-   .c_start_o      ( o_core_start   ),
-   .c_stop_o       ( o_core_stop    ),
-   .rx_dt_i        ( i_xcom_data      ),
-   .rx_ck_i        ( i_xcom_clk      ),
-   .tx_dt_o        ( tx_dt_s        ),
-   .tx_ck_o        ( tx_ck_s        ),
-   .xcom_rx_do     ( xcom_rx_ds     ),
-   .xcom_tx_do     ( xcom_tx_ds     ),
-   .xcom_status_do ( xcom_status_ds ),
-   .xcom_debug_do  ( xcom_debug_ds  )
-);   
 
 xcom_txrx#(
    .NCH(NCH),
