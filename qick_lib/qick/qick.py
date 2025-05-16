@@ -12,7 +12,7 @@ import logging
 from collections import OrderedDict, defaultdict
 from fractions import Fraction
 from . import bitfile_path, obtain, get_version
-from .ip import SocIp, QickMetadata
+from .ip import SocIP, QickMetadata
 from .parser import parse_to_bin
 from .streamer import DataStreamer
 from .qick_asm import QickConfig
@@ -25,7 +25,7 @@ from .drivers.tproc import *
 logger = logging.getLogger(__name__)
 
 
-class AxisSwitch(SocIp):
+class AxisSwitch(SocIP):
     """
     AxisSwitch class to control Xilinx AXI-Stream switch IP
 
@@ -36,19 +36,15 @@ class AxisSwitch(SocIp):
     """
     bindto = ['xilinx.com:ip:axis_switch:1.1']
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
+    def _init_config(self, description):
         # Number of slave interfaces.
         self.NSL = int(description['parameters']['NUM_SI'])
         # Number of master interfaces.
         self.NMI = int(description['parameters']['NUM_MI'])
 
-        super().__init__(description)
-
         self.REGISTERS = {'ctrl': 0x0, 'mix_mux': 0x040}
 
+    def _init_firmware(self):
         # Init axis_switch.
         self.ctrl = 0
         self.disable_ports()
@@ -93,8 +89,7 @@ class AxisSwitch(SocIp):
         # Enable register update.
         self.ctrl = 2
 
-
-class RFDC(xrfdc.RFdc, SocIp):
+class RFDC(SocIP, xrfdc.RFdc):
     """
     Extends the xrfdc driver.
     Calling xrfdc functions is slow (typically ~8 ms per call).
@@ -117,8 +112,7 @@ class RFDC(xrfdc.RFdc, SocIp):
                       'TSCB': (XRFDC_CAL_BLOCK_TSCB, 8),
                       }
 
-    def __init__(self, description):
-        super().__init__(description)
+    def _init_config(self, description):
         # Nyquist zone for each channel
         self.nqz_dict = {'dac': {}, 'adc': {}}
         # Rounded NCO frequency for each channel
@@ -1188,17 +1182,15 @@ class QickSoc(Overlay, QickConfig):
         buf.readout.set_all_int(ro_regs)
 
     def config_avg(
-        self, ch, address=0, length=1, enable=True,
+        self, ch, address=0, length=1,
         edge_counting=False, high_threshold=1000, low_threshold=0):
-        """Configure and optionally enable accumulation buffer
+        """Configure accumulated buffer; must then enable using enable_buf()
         :param ch: Channel to configure
         :type ch: int
         :param address: Starting address of buffer
         :type address: int
         :param length: length of buffer (how many samples to take)
         :type length: int
-        :param enable: True to enable buffer
-        :type enable: bool
         """
         avg_buf = self.avg_bufs[ch]
         if avg_buf['has_edge_counter']:
@@ -1207,24 +1199,31 @@ class QickSoc(Overlay, QickConfig):
                 edge_counting=edge_counting, high_threshold=high_threshold, low_threshold=low_threshold)
         else:
             avg_buf.config_avg(address, length)
-        if enable:
-            avg_buf.enable_avg()
 
-    def config_buf(self, ch, address=0, length=1, enable=True):
-        """Configure and optionally enable decimation buffer
+    def config_buf(self, ch, address=0, length=1):
+        """Configure decimated buffer; must then enable using enable_buf()
         :param ch: Channel to configure
         :type ch: int
         :param address: Starting address of buffer
         :type address: int
         :param length: length of buffer (how many samples to take)
         :type length: int
-        :param enable: True to enable buffer
-        :type enable: bool
         """
         avg_buf = self.avg_bufs[ch]
         avg_buf.config_buf(address, length)
-        if enable:
-            avg_buf.enable_buf()
+
+    def enable_buf(self, ch, enable_avg=True, enable_buf=True):
+        """Enable capture of accumulated and/or decimated data for a buffer
+
+        Parameters
+        ----------
+        enable_avg : bool
+            Enable accumulated data capture
+        enable_buf : bool
+            Enable decimated data capture
+        """
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.enable(avg=enable_avg, buf=enable_buf)
 
     def get_avg_max_length(self, ch=0):
         """Get accumulation buffer length for channel

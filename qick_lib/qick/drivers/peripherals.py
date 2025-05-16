@@ -4,10 +4,10 @@ Drivers for qick_processor Peripherals.
 """
 from pynq.buffer import allocate
 import numpy as np
-from qick import SocIp
+from qick import SocIP
 import re
 
-class QICK_Time_Tagger(SocIp):
+class QICK_Time_Tagger(SocIP):
     """
     QICK_Time_Tagger class
     """
@@ -19,6 +19,16 @@ class QICK_Time_Tagger(SocIp):
         """
         super().__init__(description)
         
+        # list of connected ADCs
+        self.cfg['adcs'] = []
+
+        # DMA block
+        self.dma = None
+
+        # DMA buffer
+        self.buff_rd = None
+
+    def _init_config(self, description):
         self.REGISTERS = {
             'qtt_ctrl'     :0 ,
             'qtt_cfg'      :1 ,
@@ -56,26 +66,18 @@ class QICK_Time_Tagger(SocIp):
             self.cfg[param] = int(description['parameters'][param.upper()])
         self.cfg['debug']  = int(description['parameters']['DEBUG'])
 
+    def _init_firmware(self):
         # Initial Values 
         self.qtt_ctrl = 0
         self.qtt_cfg  = 0
         self.dma_cfg  = 0 + 16* 1
         self.axi_dt1  = 0
 
-        # list of connected ADCs
-        self.cfg['adcs'] = []
-
-        # DMA block
-        self.dma = None
-
-        # DMA buffer
-        self.buff_rd = None
-
     # Configure this driver with links to its memory and DMA.
     def configure_connections(self, soc):
-        self.cfg['f_fabric'] = soc.metadata.get_fclk(self.fullpath, 'adc_clk')
+        self.cfg['f_fabric'] = soc.metadata.get_fclk(self['fullpath'], 'adc_clk')
 
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, "m_axis_dma")
+        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], "m_axis_dma")
         self.dma = soc._get_block(block)
 
         dma_maxlen = 2**int(self.dma.description["parameters"]["c_sg_length_width"])//4 - 1
@@ -85,7 +87,7 @@ class QICK_Time_Tagger(SocIp):
 
         for iADC in range(4):
             try:
-                block, port, _ = soc.metadata.trace_back(self.fullpath, "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
+                block, port, _ = soc.metadata.trace_back(self['fullpath'], "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
                 # port names are of the form 'm02_axis' where the block number is always even
                 adc = port[1:3]
                 self.cfg['adcs'].append([adc, soc._describe_adc(adc)])
@@ -274,7 +276,7 @@ class QICK_Time_Tagger(SocIp):
 
 
 
-class QICK_Com(SocIp):
+class QICK_Com(SocIP):
     """
     QICK_Comm class
 
@@ -294,12 +296,7 @@ class QICK_Com(SocIp):
     """
     bindto = ['Fermi:user:qick_com:1.0']
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-
+    def _init_config(self, description):
         self.REGISTERS = {
             'qcom_ctrl'     :0 ,
             'qcom_cfg'      :1 ,
@@ -313,6 +310,7 @@ class QICK_Com(SocIp):
             'debug'    :15
         }    
 
+    def _init_firmware(self):
     # Initial Values 
         self.qcom_ctrl = 0
         self.qcom_cfg  = 10
@@ -389,7 +387,7 @@ class QICK_Com(SocIp):
         print( ' tx_header    : ' + debug_bin[17:20]  )            
 
             
-class QICK_Net(SocIp):
+class QICK_Net(SocIP):
     """
     QICK_Net class
 
@@ -417,24 +415,6 @@ class QICK_Net(SocIp):
     """
     bindto = ['Fermi:user:qick_network:1.0']
 
-    REGISTERS = {
-        'tnet_ctrl'     :0 ,
-        'tnet_cfg'      :1 ,
-        'tnet_addr'     :2 ,
-        'tnet_len'      :3 ,
-        'raxi_dt1'      :4 ,
-        'raxi_dt2'      :5 ,
-        'raxi_dt3'      :6 ,
-        'nn_id'         :7 ,
-        'rtd'           :8,
-        'tnet_w_dt1'    :9,
-        'tnet_w_dt2'    :10,
-        'rx_status'     :11,
-        'tx_status'     :12,
-        'status'        :13,
-        'debug'         :14,
-        'hist'          :15
-    }
 
     main_list = ['M_NOT_READY','M_IDLE','M_LOC_CMD','M_NET_CMD','M_WRESP','M_WACK','M_NET_RESP','M_NET_ANSW','M_CMD_EXEC','M_ERROR']
     task_list = ['T_NOT_READY','T_IDLE','T_LOC_CMD','T_LOC_WSYNC','T_LOC_SEND','T_LOC_WnREQ','T_NET_CMD', 'T_NET_SEND']
@@ -445,13 +425,27 @@ class QICK_Net(SocIp):
     link_list = ['NOT_READY','IDLE','RX','PROCESS','PROPAGATE','TX_H','TX_D','WAIT_nREQ']
     ctrl_list = ['X','IDLE','CHECK_TIME1','CHECK_TIME2','WAIT_TIME','WAIT_SYNC','EXECUTE','ERROR']
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
-        super().__init__(description)
-
+    def _init_config(self, description):
+        self.REGISTERS = {
+                'tnet_ctrl'     :0 ,
+                'tnet_cfg'      :1 ,
+                'tnet_addr'     :2 ,
+                'tnet_len'      :3 ,
+                'raxi_dt1'      :4 ,
+                'raxi_dt2'      :5 ,
+                'raxi_dt3'      :6 ,
+                'nn_id'         :7 ,
+                'rtd'           :8,
+                'tnet_w_dt1'    :9,
+                'tnet_w_dt2'    :10,
+                'rx_status'     :11,
+                'tx_status'     :12,
+                'status'        :13,
+                'debug'         :14,
+                'hist'          :15
+                }
        
+    def _init_firmware(self):
         # Initial Values 
         self.tnet_ctrl = 0
         self.tnet_cfg  = 0

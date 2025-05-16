@@ -5,29 +5,83 @@ from pynq.overlay import DefaultIP
 import numpy as np
 import logging
 from qick import obtain
-from .qick_asm import DummyIp
 
-class SocIp(DefaultIP, DummyIp):
+class DummyIP:
+    """Dummy superclass for firmware IP blocks without register access (i.e. that don't inherit from SocIP or DefaultIP).
+    Those classes should inherit from (QickIP, DummyIP) in that order.
+    THis ensures that this class is last in the method resolution order.
+
+    The purpose of this class is to eat the ``description`` parameter before the MRO reaches ``object.__init__()``.
+    Inspired by https://stackoverflow.com/questions/74350679/python-mixins-how-to-deal-with-args-kwargs-when-calling-super
     """
-    Base class for firmware IP drivers.
-    Registers are accessed as attributes.
+    def __init__(self, description):
+        super().__init__()
+
+class QickIP:
+    """Stores the configuration constants for a firmware IP block.
     Configuration constants are accessed as dictionary items.
+    """
+    def __init__(self, description):
+        # config dictionary for QickConfig
+        self._cfg = {}
+        # this block's type
+        self.cfg['type'] = description['type'].split(':')[-2]
+        # this block's unique identifier in the firmware
+        self.cfg['fullpath'] = description['fullpath']
+        # logger for messages associated with this block
+        self.logger = logging.getLogger(self['type'])
+
+        super().__init__(description)
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
+    def configure_connections(self, soc):
+        """Use the HWH metadata to figure out what connects to this IP block.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The overlay object, used to look up metadata and dereference driver names.
+        """
+        self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
+        self.cfg['version'] = soc.metadata.mod2version(self['fullpath'])
+
+class SocIP(QickIP, DefaultIP):
+    """
+    Base class for firmware IP drivers (classes that provide access to IP registers).
+    Registers are accessed as attributes.
+
+    Classes that extend a Xilinx driver will inherit from both this class and the Xilinx class.
+    They should inherit from (SocIP, XilinxDriver) in that order.
+    This ensures that DefaultIP (which does not support cooperative multiple inheritance) is last in the method resolution order.
     """
 
     def __init__(self, description):
-        """
-        Constructor method
-        """
-        # this block's register map: to be defined by subclass
+        # this block's register map: to be defined in _init_config()
         self.REGISTERS = {}
 
-        DefaultIP.__init__(self, description)
+        super().__init__(description)
 
-        # this block's unique identifier in the firmware
-        self.fullpath = description['fullpath']
-        # this block's type
-        self.type = description['type'].split(':')[-2]
-        DummyIp.__init__(self, self.type, self.fullpath)
+        self._init_config(description)
+        self._init_firmware()
+
+    def _init_config(self, description):
+        """
+        Read the IP description and fill the driver's config dictionary.
+        Define the register map.
+        """
+        pass
+
+    def _init_firmware(self):
+        """
+        Do any initial configuration of the IP.
+        """
+        pass
 
     def __setattr__(self, a, v):
         """
@@ -38,6 +92,7 @@ class SocIp(DefaultIP, DummyIp):
         :param v: value to be written
         :type v: int
         """
+        # don't try to index into self.REGISTERS if we're trying to access self.REGISTERS or self.REGISTERS has not yet been initialized
         if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             self.mmio.array[index] = np.uint32(obtain(v))

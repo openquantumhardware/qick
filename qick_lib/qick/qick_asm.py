@@ -893,35 +893,6 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         return int(np.floor(gencfg['maxv']*gencfg['maxv_scale']))
 
-
-class DummyIp:
-    """Stores the configuration constants for a firmware IP block.
-    """
-    def __init__(self, iptype, fullpath):
-        # config dictionary for QickConfig
-        self._cfg = {'type': iptype,
-                    'fullpath': fullpath}
-        # logger for messages associated with this block
-        self.logger = logging.getLogger(self['type'])
-
-    @property
-    def cfg(self):
-        return self._cfg
-
-    def __getitem__(self, key):
-        return self._cfg[key]
-
-    def configure_connections(self, soc):
-        """Use the HWH metadata to figure out what connects to this IP block.
-
-        Parameters
-        ----------
-        soc : QickSoc
-            The overlay object, used to look up metadata and dereference driver names.
-        """
-        self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
-        self.cfg['version'] = soc.metadata.mod2version(self['fullpath'])
-
 class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
     QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
@@ -1230,12 +1201,13 @@ class AbsQickProgram(ABC):
         for ch, cfg in self.ro_chs.items():
             if enable_avg:
                 soc.config_avg(
-                    ch, address=0, length=cfg['length'], enable=True,
+                    ch, address=0, length=cfg['length'],
                     edge_counting=cfg['edge_counting'],
                     high_threshold=cfg['high_threshold'],
                     low_threshold=cfg['low_threshold'])
             if enable_buf:
-                soc.config_buf(ch, address=0, length=cfg['length'], enable=True)
+                soc.config_buf(ch, address=0, length=cfg['length'])
+            soc.enable_buf(ch, enable_avg=enable_avg, enable_buf=enable_buf)
 
     def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, mux_phases=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
