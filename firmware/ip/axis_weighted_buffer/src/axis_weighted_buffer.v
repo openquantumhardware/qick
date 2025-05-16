@@ -3,7 +3,7 @@
 // s_axis_aclk : clock for s_axis_*
 // m_axis_aclk : clock for m0_axis_* and m1_axis_*
 //
-module axis_matchfilt_buffer
+module axis_weighted_buffer
   (
     // AXI Slave I/F for configuration.
     s_axi_aclk ,
@@ -76,6 +76,7 @@ module axis_matchfilt_buffer
    // Memory depth.
    parameter N_AVG = 14;
    parameter N_BUF = 14;
+   parameter N_WGT = 14;
 
    // Number of bits.
    parameter B = 16;
@@ -227,13 +228,18 @@ module axis_matchfilt_buffer
      #(
        .N_AVG (N_AVG ),
        .N_BUF (N_BUF ),
+       .N_WGT (N_WGT ),
        .B (B )
        )
    avg_buffer_i
      (
-      // Reset and clock for s.
+      // Reset and clock for readout data path
       .s_axis_aclk (s_axis_aclk ),
       .s_axis_aresetn (s_axis_aresetn ),
+
+      // Reset and clock for writing weights
+      .s_axi_aclk (s_axi_aclk ),
+      .s_axi_aresetn (s_axi_aresetn ),
 
       // Trigger input.
       .trigger (trigger ),
