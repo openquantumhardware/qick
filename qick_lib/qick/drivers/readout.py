@@ -883,6 +883,7 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     bindto = ['user.org:user:axis_weighted_buffer:1.2']
     RO_PORT = 's_axis'
+    #TODO: check config length against weight length?
 
     def __init__(self, description):
         # Init IP.
@@ -901,14 +902,14 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
                           'dr_start_reg': 3,
                           'avg_dr_addr_reg': 4,
                           'avg_dr_len_reg': 5,
-                          'buf_addr_reg': 7,
-                          'buf_len_reg': 8,
-                          'buf_dr_addr_reg': 10,
-                          'buf_dr_len_reg': 11,
-                          'avg_photon_mode_reg': 12,
-                          'avg_h_threshold_reg': 13,
-                          'avg_l_threshold_reg': 14,
-                          'filter_start_addr_reg': 15,
+                          'buf_addr_reg': 6,
+                          'buf_len_reg': 7,
+                          'buf_dr_addr_reg': 8,
+                          'buf_dr_len_reg': 9,
+                          'avg_photon_mode_reg': 10,
+                          'avg_h_threshold_reg': 11,
+                          'avg_l_threshold_reg': 12,
+                          'filter_start_addr_reg': 13,
                           }
 
         self.N_WGT = int(description['parameters']['N_WGT'])
@@ -921,8 +922,6 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         super().configure_connections(soc)
         ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 's1_axis_weights')
         blocktype = soc.metadata.mod2type(block)
-        #block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's1_axis_envelope_program', ["axi_dma", "axis_switch"])
-        #print(block, port, blocktype)
         if blocktype == 'axi_dma':
             self.dma = soc._get_block(block)
         else:
