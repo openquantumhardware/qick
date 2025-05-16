@@ -54,7 +54,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 module xcom import qick_pkg::*;
 # (
-   parameter CH           = 2 ,
+   parameter NCH          = 2 ,
    parameter SYNC         = 1 ,
    parameter DEBUG        = 1
 )(
@@ -86,8 +86,8 @@ module xcom import qick_pkg::*;
 // XCOM 
    output logic  [ 4-1:0]   o_xcom_id          ,
 // IO XCOM (i_time_clk)
-   input  logic  [CH-1:0]   i_xcom_clk         ,
-   input  logic  [CH-1:0]   i_xcom_data        ,
+   input  logic  [NCH-1:0]   i_xcom_clk         ,
+   input  logic  [NCH-1:0]   i_xcom_data        ,
    output logic             o_xcom_clk         ,
    output logic             o_xcom_data        ,
 // AXI-Lite DATA Slave I/F (i_ps_clk)
@@ -114,14 +114,12 @@ module xcom import qick_pkg::*;
 
 // Signal Declaration 
 ///////////////////////////////////////////////////////////////////////////////
-
-// XCOM Control (From Python and tProc)
 logic [ 8-1:0] s_op ;
 logic [32-1:0] s_data;
 logic [ 4-1:0] s_data_ctr;
 
-logic [32-1:0] s_xcom_ctrl ;//6
-logic [6-1:0]  s_xcom_ctrl_sync ;//6
+logic [32-1:0] s_xcom_ctrl ;
+logic [6-1:0]  s_xcom_ctrl_sync ;
 logic [32-1:0] s_xcom_cfg ;
 logic [4-1:0]  s_xcom_cfg_sync ;
 logic [4-1:0]  xcom_cfg;
@@ -130,13 +128,10 @@ logic [32-1:0] s_axi_data1_sync;
 logic [32-1:0] s_axi_data2 ;
 logic [32-1:0] s_axi_data2_sync;
 logic [ 4-1:0] s_axi_addr ;
-
 logic          s_core_en;
 logic [ 5-1:0] s_core_op;
-
-logic [32-1:0] core_data [2]; 
-logic [32-1:0] ps_data [2]; 
-
+logic [2-1:0][32-1:0] s_core_data ; 
+logic [2-1:0][32-1:0] s_ps_data   ; 
 logic          s_req_loc;
 logic          s_ack_loc;
 logic          s_req_net;
@@ -145,33 +140,38 @@ logic          s_ack_net;
 logic          s_core_ready;
 logic          s_core_valid;
 logic          s_core_flag;
+logic          s_xcom_flag_ps;
 logic [32-1:0] s_core_data1;
-logic [32-1:0] core_data1_sync_r;
-logic [32-1:0] core_data1_sync_n;
+logic [32-1:0] s_core_data1_sync;
 logic [32-1:0] s_core_data2;
-logic [32-1:0] core_data2_sync_r;
-logic [32-1:0] core_data2_sync_n;
+logic [32-1:0] s_core_data2_sync;
 logic [32-1:0] s_core_data1_ps;
 logic [32-1:0] s_core_data2_ps;
 
 logic [32-1:0] xcom_mem_data [15];
-logic [32-1:0] axi_mem_dt;
+logic [32-1:0] axi_mem_data;
 
 logic [32-1:0] xreg_debug;
 logic [32-1:0] xreg_status;
 logic [32-1:0] xreg_status_sync_r;
 logic [32-1:0] xreg_status_sync_n;
-logic [32-1:0] xcom_rx_ds ;
-logic [32-1:0] xcom_tx_ds ;
-logic [21-1:0] s_xcom_dbg_status;
-logic [32-1:0] s_xcom_dbg_data;
+
+logic [32-1:0] s_dbg_rx_data      ;
+logic [32-1:0] s_dbg_tx_data      ;
+logic [21-1:0] s_dbg_status       ;
+logic [32-1:0] s_dbg_data         ;
+logic [32-1:0] s_dbg_rx_data_ps   ;
+logic [32-1:0] s_dbg_tx_data_ps   ;
+logic [21-1:0] s_dbg_status_ps    ;
+logic [32-1:0] s_dbg_data_ps      ;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // AXI Registers
 ///////////////////////////////////////////////////////////////////////////////
 xcom_axil_slv#(
-    .C_S_AXI_ADDR_WIDTH = 6,               // Address width.  Adjust as needed.
-    .C_S_AXI_DATA_WIDTH = 32               // Data width (32 or 64).
+    .C_S_AXI_ADDR_WIDTH ( 6  ),   
+    .C_S_AXI_DATA_WIDTH ( 32 )   
 ) u_xcom_axil_slv(
    .clk            ( i_ps_clk           ), 
    .reset_n        ( i_ps_rstn          ), 
@@ -197,87 +197,95 @@ xcom_axil_slv#(
    .o_axi_data1    ( s_axi_data1        ),
    .o_axi_data2    ( s_axi_data2        ),
    .o_axi_addr     ( s_axi_addr         ),
-   .i_board_id     ( o_xcom_id          ),
-   .i_xcom_flag    ( o_core_flag        ),
+   .i_board_id     ( s_xcom_id_ps       ),
+   .i_xcom_flag    ( s_xcom_flag_ps     ),
    .i_xcom_data1   ( s_core_data1_ps    ),
    .i_xcom_data2   ( s_core_data2_ps    ),
-   .i_xcom_mem     ( axi_mem_dt         ),
-   .i_xcom_rx_data ( xcom_rx_ds         ),
-   .i_xcom_tx_data ( xcom_tx_ds         ),
-   .i_xcom_status  ( xreg_status_sync_r ),
-   .i_xcom_debug   ( xreg_debug         )
+   .i_xcom_mem     ( axi_mem_data       ),
+   .i_xcom_rx_data ( s_dbg_rx_data_ps   ),
+   .i_xcom_tx_data ( s_dbg_tx_data_ps   ),
+   .i_xcom_status  ( xreg_status_sync_r ),//s_dbg_status_ps    ),
+   .i_xcom_debug   ( xreg_debug         ) //s_dbg_debug_ps     )
    ); 
 
+assign axi_mem_data = xcom_mem_data[s_axi_addr];
+
 xcom_cdc#(
-   .CH           ( 2 ),
-   .SYNC         ( 1 ),
-   .DEBUG        ( 1 ) 
+   .NCH          ( NCH   ),
+   .SYNC         ( SYNC  ),
+   .DEBUG        ( DEBUG ) 
 ) u_xcom_cdc(
-   .i_ps_clk           ( tb_clk         ),
-   .i_ps_rstn          ( tb_rstn        ),  
-   .i_core_clk         (),
-   .i_core_rstn        (), 
-   .i_time_clk         (), 
-   .i_time_rstn        (), 
-   .i_core_en          (), 
-   .i_core_op          (),
-   .i_core_data1       (), 
-   .i_core_data2       (), 
-   .o_core_en_sync     (), 
-   .o_core_op_sync     (), 
-   .o_core_data1_sync  (), 
-   .o_core_data2_sync  (), 
-   .i_core_ready       (), 
-   .i_core_valid       (), 
-   .i_core_flag        (), 
-   .o_core_ready_sync  (), 
-   .o_core_valid_sync  (), 
-   .o_core_flag_sync   (), 
-   .i_ack_loc          (),
-   .i_ack_net          (),
-   .i_xcom_id          (),
-   .o_xcom_id_sync     (), 
-   .i_xcom_ctrl        (), 
-   .i_xcom_cfg         (),
-   .i_axi_data1        (), 
-   .i_axi_data2        (),
-   .o_xcom_ctrl_sync   (), 
-   .o_xcom_cfg_sync    (), 
-   .o_axi_data1_sync   (), 
-   .o_axi_data2_sync   (), 
-   .o_xcom_flag_sync   (), 
-   .o_xcom_data1_sync  (), 
-   .o_xcom_data2_sync  (), 
-   .i_xcom_rx_data     (), 
-   .i_xcom_tx_data     (), 
-   .i_xcom_status      (), 
-   .i_xcom_debug       (),
-   .o_xcom_rx_data_sync(),
-   .o_xcom_tx_data_sync(),
-   .o_xcom_status_sync (), 
-   .o_xcom_debug_sync  ()  
+   .i_ps_clk           ( i_ps_clk         ),
+   .i_ps_rstn          ( i_ps_rstn        ),  
+   .i_core_clk         ( i_core_clk       ),
+   .i_core_rstn        ( i_core_rstn      ), 
+   .i_time_clk         ( i_time_clk       ), 
+   .i_time_rstn        ( i_time_rstn      ), 
+   //core domain - time domain
+   .i_core_en          ( i_core_en        ), 
+   .i_core_op          ( i_core_op        ),
+   .i_core_data1       ( i_core_data1     ), 
+   .i_core_data2       ( i_core_data2     ), 
+   .o_core_en_sync     ( s_core_en        ), 
+   .o_core_op_sync     ( s_core_op        ), 
+   .o_core_data1_sync  ( s_core_data1_sync), 
+   .o_core_data2_sync  ( s_core_data2_sync), 
+   .i_core_ready       ( s_core_ready     ), 
+   .i_core_valid       ( s_core_valid     ), 
+   .i_core_flag        ( s_core_flag      ), 
+   .o_core_ready_sync  ( o_core_ready     ), 
+   .o_core_valid_sync  ( o_core_valid     ), 
+   .o_core_flag_sync   ( o_core_flag      ), 
+   //PS domain - time domain 
+   .i_ack_loc          ( s_ack_loc        ),
+   .i_ack_net          ( s_ack_net        ),
+   .i_xcom_id          ( s_xcom_id        ),
+   .o_xcom_id_sync     ( s_xcom_id_ps     ), 
+   .i_xcom_ctrl        ( s_xcom_ctrl      ), 
+   .i_xcom_cfg         ( s_xcom_cfg       ),
+   .i_axi_data1        ( s_axi_data1      ), 
+   .i_axi_data2        ( s_axi_data2      ),
+   .o_xcom_ctrl_sync   ( s_xcom_ctrl_sync ), 
+   .o_xcom_cfg_sync    ( s_xcom_cfg_sync  ), 
+   .o_axi_data1_sync   ( s_axi_data1_sync ), 
+   .o_axi_data2_sync   ( s_axi_data2_sync ), 
+   .o_xcom_flag_sync   ( s_xcom_flag_ps   ), 
+   .o_xcom_data1_sync  ( s_core_data1_ps  ), 
+   .o_xcom_data2_sync  ( s_core_data2_ps  ), 
+   .i_xcom_rx_data     ( s_dbg_rx_data    ), 
+   .i_xcom_tx_data     ( s_dbg_tx_data    ), 
+   .i_xcom_status      ( s_dbg_status     ), 
+   .i_xcom_debug       ( s_dbg_debug      ),
+   .o_xcom_rx_data_sync( s_dbg_rx_data_ps ),
+   .o_xcom_tx_data_sync( s_dbg_tx_data_ps ),
+   .o_xcom_status_sync ( s_dbg_status_ps  ), 
+   .o_xcom_debug_sync  ( s_dbg_debug_ps   )  
 );
 
+assign s_core_data  = {s_core_data2_sync, s_core_data1_sync};
+assign xcom_cfg     = {s_xcom_cfg_sync[3-1:0]+1'b1, 1'b0};
+assign s_ps_data    = {s_axi_data2_sync, s_axi_data1_sync};
+
 xcom_cmd u_xcom_cmd(
-   .i_clk           ( i_time_clk     ),
-   .i_rstn          ( i_time_rstn    ),
-   .i_core_en       ( s_core_en      ),
-   .i_core_op       ( s_core_op      ),
-   .i_core_data     ( s_core_data    ),
+   .i_clk           ( i_time_clk       ),
+   .i_rstn          ( i_time_rstn      ),
+   .i_core_en       ( s_core_en        ),
+   .i_core_op       ( s_core_op        ),
+   .i_core_data     ( s_core_data      ),
    .i_ps_ctrl       ( s_xcom_ctrl_sync ),
-   .i_ps_data       ( s_ps_data      ), 
-   .o_req_loc       ( s_req_loc      ),
-   .i_ack_loc       ( s_ack_loc   ),
-   .o_req_net       ( s_req_net   ),
-   .i_ack_net       ( s_ack_net   ),
-   .o_op            ( s_op        ),
-   .o_data          ( s_data      ),
-   .o_data_cntr     ( s_data_cntr )
+   .i_ps_data       ( s_ps_data        ), 
+   .o_req_loc       ( s_req_loc        ),
+   .i_ack_loc       ( s_ack_loc        ),
+   .o_req_net       ( s_req_net        ),
+   .i_ack_net       ( s_ack_net        ),
+   .o_op            ( s_op             ),
+   .o_data          ( s_data           ),
+   .o_data_cntr     ( s_data_cntr      )
    );
 
 xcom_txrx#(
-   .NCH(NCH),
-   .SYNC(1'b1)
+   .NCH  ( NCH  ),
+   .SYNC ( 1'b1 )
    ) u_xcom_txrx(
   .i_clk             ( i_time_clk         ),
   .i_rstn            ( i_time_rstn        ),
@@ -288,11 +296,11 @@ xcom_txrx#(
   .i_data            ( s_data             ), 
   .o_ack_loc         ( s_ack_loc          ),
   .o_ack_net         ( s_ack_net          ),
-  .o_qp_ready        ( s_core_ready         ),
-  .o_qp_valid        ( s_core_valid         ),
-  .o_qp_flag         ( s_core_flag          ),
-  .o_qp_data1        ( s_core_data1         ),
-  .o_qp_data2        ( s_core_data2         ),
+  .o_qp_ready        ( s_core_ready       ),
+  .o_qp_valid        ( s_core_valid       ),
+  .o_qp_flag         ( s_core_flag        ),
+  .o_qp_data1        ( s_core_data1       ),
+  .o_qp_data2        ( s_core_data2       ),
   .o_proc_start      ( o_proc_start       ),
   .o_proc_stop       ( o_proc_stop        ),
   .o_time_rst        ( o_time_rst         ),
@@ -301,69 +309,36 @@ xcom_txrx#(
   .o_core_start      ( o_core_start       ),
   .o_core_stop       ( o_core_stop        ),
   .i_cfg_tick        ( xcom_cfg           ),
-  .o_xcom_id         ( o_xcom_id          ),//FIXME: cdc here, check
-  .o_xcom_mem        ( xcom_mem_data        ),//FIXME: review this because here we are crossing clock domains
-  .i_xcom_data       ( i_xcom_data          ),
-  .i_xcom_clk        ( i_xcom_clk           ),
-  .o_xcom_data       ( tb_o_xcom_data        ),
-  .o_xcom_clk        ( tb_o_xcom_clk         ),
-  .o_dbg_rx_data     ( tb_o_dbg_rx_data      ),
-  .o_dbg_tx_data     ( tb_o_dbg_tx_data      ),
-  .o_dbg_status      ( s_xcom_dbg_status     ),
-  .o_dbg_data        ( s_xcom_dbg_data       )                                                               
+  .o_xcom_id         ( s_xcom_id          ),
+  .o_xcom_mem        ( xcom_mem_data      ),//FIXME: review this because here we are crossing clock domains
+  .i_xcom_data       ( i_xcom_data        ),
+  .i_xcom_clk        ( i_xcom_clk         ),
+  .o_xcom_data       ( o_xcom_data        ),
+  .o_xcom_clk        ( o_xcom_clk         ),
+  .o_dbg_rx_data     ( s_dbg_rx_data      ),
+  .o_dbg_tx_data     ( s_dbg_tx_data      ),
+  .o_dbg_status      ( s_dbg_status       ),
+  .o_dbg_data        ( s_dbg_debug        )                                                               
 );
 
-assign xreg_status = { 8'h00,s_data_cntr, s_xcom_dbg_status};
+assign o_xcom_id   = s_xcom_id;
 
 //SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
 //Time domain -> PS domain
-synchronizer#(
-   .NB(6)
-   ) sync_xcom_ctrl(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( s_xcom_ctrl[6-1:0]),
-  .o_sync     ( s_xcom_ctrl_sync  )
-);
-
-synchronizer#(
-   .NB(4)
-   ) sync_xcom_cfg(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( s_xcom_cfg[4-1:0] ),
-  .o_sync     ( s_xcom_cfg_sync   )
-);
-assign   xcom_cfg = {s_xcom_cfg_sync[3-1:0]+1'b1, 1'b0};
-
-synchronizer#(
-   .NB(32)
-   ) sync_axi_data1(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( s_axi_data1       ),
-  .o_sync     ( s_axi_data1_sync  )
-);
-
-synchronizer#(
-   .NB(32)
-   ) sync_axi_data2(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( s_axi_data2       ),
-  .o_sync     ( s_axi_data2_sync  )
-);
-assign ps_data   = '{s_axi_data1_sync, s_axi_data2_sync};
-
 //let's synchronize some status signals coming from the time_clk
-synchronizer#(
-   .NB(2)
-   ) sync_req(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( {s_req_loc,s_req_net}),
-  .o_sync     ( {s_req_loc_sync,s_req_net_sync} )
+narrow_en_signal sync_req_loc(
+  .i_clk  ( i_ps_clk       ),
+  .i_rstn ( i_ps_rstn      ),
+  .i_en   ( s_req_loc      ),
+  .o_en   ( s_req_loc_sync )
+);
+
+narrow_en_signal sync_req_net(
+  .i_clk  ( i_ps_clk       ),
+  .i_rstn ( i_ps_rstn      ),
+  .i_en   ( s_req_neti     ),
+  .o_en   ( s_req_net_sync )
 );
 
 assign s_req_cmd = s_req_loc_sync | s_req_net_sync;
@@ -373,122 +348,19 @@ always_ff @ (posedge i_ps_clk) begin
    if (!i_ps_rstn) xreg_status_sync_r <= '0;
    else            xreg_status_sync_r <= xreg_status_sync_n;
 end
+
+assign xreg_status        = { 8'h00,s_data_cntr, s_dbg_status};
 assign xreg_status_sync_n = (s_req_cmd) ? xreg_status : xreg_status_sync_r;
-
-narrow_en_signal sync_core_valid(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( s_core_valid ),
-  .o_en   ( s_core_valid_sync )
-);
-assign o_core_valid = s_core_valid_sync;
-
-always_ff @ (posedge i_ps_clk) begin
-   if (!i_ps_rstn) begin
-      core_data1_ps_r <= '0;
-      core_data2_ps_r <= '0;
-   end else begin
-      core_data1_ps_r <= core_data1_ps_n;
-      core_data2_ps_r <= core_data2_ps_n;
-   end
-end
-
-assign core_data1_ps_n = (s_core_valid_sync) ? s_core_data1 : core_data1_ps_r;
-assign core_data2_ps_n = (s_core_valid_sync) ? s_core_data2 : core_data2_ps_r;
-
-//Core domain -> Time domain
-synchronizer#(
-   .NB(1)
-   ) sync_core_en(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_en         ),
-  .o_sync     ( s_core_en         )
-);
-
-synchronizer#(
-   .NB(5)
-   ) sync_core_op(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_op         ),
-  .o_sync     ( s_core_op         )
-);
-
-synchronizer#(
-   .NB(32)
-   ) sync_core_data1(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_data1      ),
-  .o_sync     ( s_core_data1      )
-);
-
-synchronizer#(
-   .NB(32)
-   ) sync_core_data2(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_data2      ),
-  .o_sync     ( s_core_data2      )
-);
-assign core_data   = '{s_core_data1, s_core_data2};
-
-//Time domain -> Core domain
-narrow_en_signal sync_core_ready(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( s_core_ready ),
-  .o_en   ( o_core_ready )
-);
-
-narrow_en_signal sync_core_valid(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( s_core_valid ),
-  .o_en   ( s_core_valid_sync )
-);
-assign o_core_valid = s_core_valid_sync;
-
-narrow_en_signal sync_core_flag(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( s_core_flag  ),
-  .o_en   ( o_core_flag  )
-);
-
-//Registers
-//now let's catch the data
-always_ff @ (posedge i_core_clk) begin
-   if (!i_core_rstn) begin
-      core_data1_sync_r <= '0;
-      core_data2_sync_r <= '0;
-   end else begin
-      core_data1_sync_r <= core_data1_sync_n;
-      core_data2_sync_r <= core_data2_sync_n;
-   end
-end
-
-assign core_data1_sync_n = (s_core_valid_sync) ? s_core_data1 : core_data1_sync_r;
-assign core_data2_sync_n = (s_core_valid_sync) ? s_core_data2 : core_data2_sync_r;
 
 //end of SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
-// OUTPUTS
-///////////////////////////////////////////////////////////////////////////////
-assign o_xcom_data = tx_dt_s;
-assign o_xcom_clk = tx_ck_s;
-assign axi_mem_dt = xcom_mem_data[s_axi_addr];
-
-///////////////////////////////////////////////////////////////////////////////
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-
 generate
    if (DEBUG == 0) begin : DEBUG_NO
       assign xreg_debug  = '{default:'0} ;
    end else if   (DEBUG == 1) begin : DEBUG_YES
-      assign xreg_debug  = xcom_debug_ds;
+      assign xreg_debug  = s_dbg_debug_ps;
    end
 endgenerate
 

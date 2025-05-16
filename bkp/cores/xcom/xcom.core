@@ -12,11 +12,11 @@ filesets:
        - fnal:qick:xcom_axil_slv
        - fnal:qick:xcom_cmd
        - fnal:qick:xcom_txrx
-
+       - fnal:qick:xcom_cdc
+       - fnal:utils:narrow_en_signal
 
   tb:
     files:
-      - data/states.txt: {file_type : user, copyto : states.txt}
       - test/xcom_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource
