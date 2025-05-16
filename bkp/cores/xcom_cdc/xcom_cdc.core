@@ -11,6 +11,7 @@ filesets:
        - fnal:qick:qick_pkg
        - fnal:utils:synchronizer
        - fnal:utils:narrow_en_signal
+       - fnal:utils:wide_en_signal
 
 
   tb:

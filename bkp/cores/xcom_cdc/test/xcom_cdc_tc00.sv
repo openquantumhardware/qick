@@ -103,7 +103,7 @@ assign s_ps_data    = {tb_i_ps_data,tb_i_ps_addr};
 //===================================
 
 xcom_cdc#(
-   .CH           ( 2 ),
+   .NCH           ( 2 ),
    .SYNC         ( 1 ),
    .DEBUG        ( 1 )
 ) u_xcom_cdc(

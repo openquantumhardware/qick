@@ -51,7 +51,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 module xcom_cdc
 # (
-   parameter CH           = 2 ,
+   parameter NCH          = 2 ,
    parameter SYNC         = 1 ,
    parameter DEBUG        = 1
 )(
@@ -111,7 +111,7 @@ logic          s_ack_loc_ps;
 logic          s_ack_net_ps;
 logic [ 4-1:0] s_id_r; 
 logic [ 4-1:0] s_id_n;
-logic          s_core_valid_sync;
+logic          s_core_en_sync;
 logic [32-1:0] core_data1_sync_r;
 logic [32-1:0] core_data1_sync_n;
 logic [32-1:0] core_data2_sync_r;
@@ -172,7 +172,7 @@ assign s_xcom_tx_data_n = (s_ack) ? i_xcom_tx_data : s_xcom_tx_data_r;
 assign s_xcom_status_n  = (s_ack) ? i_xcom_status  : s_xcom_status_r;
 assign s_xcom_debug_n   = (s_ack) ? i_xcom_debug   : s_xcom_debug_r;
 
-assign o_xcom_id_sync = s_id_r;
+assign o_xcom_id_sync      = s_id_r;
 assign o_xcom_rx_data_sync = s_xcom_rx_data_r;
 assign o_xcom_tx_data_sync = s_xcom_tx_data_r;
 assign o_xcom_status_sync  = s_xcom_status_r;
@@ -185,6 +185,8 @@ narrow_en_signal xcom_flag(
   .o_en   ( o_xcom_flag_sync )
 );
 
+///////////////////////////////////////////////////////////////////////////////
+//Core domain -> PS domain
 narrow_en_signal sync_core_valid_ps(
   .i_clk  ( i_ps_clk   ),
   .i_rstn ( i_ps_rstn  ),
@@ -211,83 +213,88 @@ assign o_xcom_data2_sync = core_data2_ps_r;
 
 ///////////////////////////////////////////////////////////////////////////////
 //PS domain -> Time domain
-synchronizer#(
-   .NB(6)
-   ) sync_xcom_ctrl(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_xcom_ctrl[6-1:0]),
-  .o_sync     ( o_xcom_ctrl_sync  )
-);
+genvar k;
+generate
+for (k=0; k < 6 ; k=k+1) begin
+   wide_en_signal sync_xcom_ctrl(
+      .i_clk  ( i_time_clk          ),
+      .i_rstn ( i_time_rstn         ),
+      .i_en   ( i_xcom_ctrl[k]      ),
+      .o_en   ( o_xcom_ctrl_sync[k] )
+      );
+   end
+endgenerate
 
-synchronizer#(
-   .NB(4)
-   ) sync_xcom_cfg(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_xcom_cfg[4-1:0] ),
-  .o_sync     ( o_xcom_cfg_sync   )
-);
-//assign   xcom_cfg = {s_xcom_cfg_sync[3-1:0]+1'b1, 1'b0}; FIXME: check if
-//this signal is in xcom
+genvar j;
+generate
+for (j=0; j < 4 ; j=j+1) begin
+   wide_en_signal sync_xcom_cfg(
+      .i_clk  ( i_time_clk         ),
+      .i_rstn ( i_time_rstn        ),
+      .i_en   ( i_xcom_cfg[j]      ),
+      .o_en   ( o_xcom_cfg_sync[j] )
+      );
+   end
+endgenerate
 
 synchronizer#(
    .NB(32)
    ) sync_axi_data1(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_axi_data1       ),
-  .o_sync     ( o_axi_data1_sync  )
+  .i_clk      ( i_time_clk       ),
+  .i_rstn     ( i_time_rstn      ),
+  .i_async    ( i_axi_data1      ),
+  .o_sync     ( o_axi_data1_sync )
 );
 
 synchronizer#(
    .NB(32)
    ) sync_axi_data2(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_axi_data2       ),
-  .o_sync     ( o_axi_data2_sync  )
+  .i_clk      ( i_time_clk       ),
+  .i_rstn     ( i_time_rstn      ),
+  .i_async    ( i_axi_data2      ),
+  .o_sync     ( o_axi_data2_sync )
 );
 
 
 ///////////////////////////////////////////////////////////////////////////////
 //Core domain -> Time domain
-synchronizer#(
-   .NB(1)
-   ) sync_core_en(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_en         ),
-  .o_sync     ( o_core_en_sync    )
-);
+wide_en_signal sync_core_en(
+   .i_clk  ( i_time_clk     ),
+   .i_rstn ( i_time_rstn    ),
+   .i_en   ( i_core_en      ),
+   .o_en   ( s_core_en_sync )
+   );
+assign o_core_en_sync = s_core_en_sync;
 
-synchronizer#(
-   .NB(5)
-   ) sync_core_op(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_op         ),
-  .o_sync     ( o_core_op_sync    )
-);
+genvar r;
+generate
+for (r=0; r < 5 ; r=r+1) begin
+   wide_en_signal sync_xcom_cfg(
+      .i_clk  ( i_time_clk        ),
+      .i_rstn ( i_time_rstn       ),
+      .i_en   ( i_core_op[r]      ),
+      .o_en   ( o_core_op_sync[r] )
+      );
+   end
+endgenerate
 
-synchronizer#(
-   .NB(32)
-   ) sync_core_data1(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_data1      ),
-  .o_sync     ( o_core_data1_sync )
-);
+//Registers
+//now let's catch the data
+always_ff @ (posedge i_time_clk) begin
+   if (!i_time_rstn) begin
+      core_data1_sync_r <= '0;
+      core_data2_sync_r <= '0;
+   end else begin
+      core_data1_sync_r <= core_data1_sync_n;
+      core_data2_sync_r <= core_data2_sync_n;
+   end
+end
 
-synchronizer#(
-   .NB(32)
-   ) sync_core_data2(
-  .i_clk      ( i_time_clk        ),
-  .i_rstn     ( i_time_rstn       ),
-  .i_async    ( i_core_data2      ),
-  .o_sync     ( o_core_data2_sync )
-);
+assign core_data1_sync_n = (s_core_en_sync) ? i_core_data1 : core_data1_sync_r;
+assign core_data2_sync_n = (s_core_en_sync) ? i_core_data2 : core_data2_sync_r;
 
+assign o_core_data1_sync = core_data1_sync_r; 
+assign o_core_data2_sync = core_data2_sync_r; 
 ///////////////////////////////////////////////////////////////////////////////
 //Time domain -> Core domain
 narrow_en_signal sync_core_ready(
@@ -297,35 +304,19 @@ narrow_en_signal sync_core_ready(
   .o_en   ( o_core_ready_sync )
 );
 
-narrow_en_signal sync_core_valid(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( i_core_valid ),
-  .o_en   ( s_core_valid_sync )
-);
-assign o_core_valid_sync = s_core_valid_sync;
-
 narrow_en_signal sync_core_flag(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( i_core_flag  ),
+  .i_clk  ( i_core_clk        ),
+  .i_rstn ( i_core_rstn       ),
+  .i_en   ( i_core_flag       ),
   .o_en   ( o_core_flag_sync  )
 );
 
-//Registers
-//now let's catch the data
-always_ff @ (posedge i_core_clk) begin
-   if (!i_core_rstn) begin
-      core_data1_sync_r <= '0;
-      core_data2_sync_r <= '0;
-   end else begin
-      core_data1_sync_r <= core_data1_sync_n;
-      core_data2_sync_r <= core_data2_sync_n;
-   end
-end
-
-assign core_data1_sync_n = (s_core_valid_sync) ? i_core_data1 : core_data1_sync_r;
-assign core_data2_sync_n = (s_core_valid_sync) ? i_core_data2 : core_data2_sync_r;
+narrow_en_signal sync_core_valid(
+  .i_clk  ( i_core_clk        ),
+  .i_rstn ( i_core_rstn       ),
+  .i_en   ( i_core_valid      ),
+  .o_en   ( o_core_valid_sync )
+);
 
 //end of SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
