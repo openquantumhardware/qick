@@ -102,22 +102,55 @@ assign s_ps_data    = {tb_i_ps_data,tb_i_ps_addr};
 // running the Unit Tests on
 //===================================
 
-xcom_cmd u_xcom_cmd(
-  .i_clk           ( tb_clk         ),
-  .i_rstn          ( tb_rstn        ),
-  .i_core_en       ( tb_i_core_en   ),
-  .i_core_op       ( tb_i_core_op   ),
-  .i_core_data     ( s_core_data    ),
-  .i_ps_ctrl       ( tb_i_ps_ctrl   ),
-  .i_ps_data       ( s_ps_data      ), 
-  .o_req_loc       ( tb_o_req_loc   ),
-  .i_ack_loc       ( tb_i_ack_loc   ),
-  .o_req_net       ( tb_o_req_net   ),
-  .i_ack_net       ( tb_i_ack_net   ),
-  .o_op            ( tb_o_op        ),
-  .o_data          ( tb_o_data      ),
-  .o_data_cntr     ( tb_o_data_cntr )
-  );
+xcom_cdc#(
+   .CH           ( 2 ),
+   .SYNC         ( 1 ),
+   .DEBUG        ( 1 )
+) u_xcom_cdc(
+   .i_ps_clk           ( tb_clk         ),
+   .i_ps_rstn          ( tb_rstn        ),
+   .i_core_clk         (),
+   .i_core_rstn        (),
+   .i_time_clk         (),
+   .i_time_rstn        (),
+   .i_core_en          (),
+   .i_core_op          (),
+   .i_core_data1       (),
+   .i_core_data2       (),
+   .o_core_en_sync     (),
+   .o_core_op_sync     (),
+   .o_core_data1_sync  (),
+   .o_core_data2_sync  (),
+   .i_core_ready       (),
+   .i_core_valid       (),
+   .i_core_flag        (),
+   .o_core_ready_sync  (),
+   .o_core_valid_sync  (),
+   .o_core_flag_sync   (),
+   .i_ack_loc          (),
+   .i_ack_net          (),
+   .i_xcom_id          (),
+   .o_xcom_id_sync     (),
+   .i_xcom_ctrl        (),
+   .i_xcom_cfg         (),
+   .i_axi_data1        (),
+   .i_axi_data2        (),
+   .o_xcom_ctrl_sync   (),
+   .o_xcom_cfg_sync    (),
+   .o_axi_data1_sync   (),
+   .o_axi_data2_sync   (),
+   .o_xcom_flag_sync   (),
+   .o_xcom_data1_sync  (),
+   .o_xcom_data2_sync  (),
+   .i_xcom_rx_data     (),
+   .i_xcom_tx_data     (),
+   .i_xcom_status      (),
+   .i_xcom_debug       (),
+   .o_xcom_rx_data_sync(),
+   .o_xcom_tx_data_sync(),
+   .o_xcom_status_sync (),
+   .o_xcom_debug_sync  ()
+);
 
 //===================================
 // Build

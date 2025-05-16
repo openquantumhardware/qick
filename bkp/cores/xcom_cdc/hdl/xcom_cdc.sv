@@ -71,19 +71,15 @@ module xcom_cdc
    output logic [32-1:0]  o_core_data1_sync  , 
    output logic [32-1:0]  o_core_data2_sync  , 
    input  logic           i_core_ready       , 
-   input  logic [32-1:0]  i_core_data1       , 
-   input  logic [32-1:0]  i_core_data2       , 
    input  logic           i_core_valid       , 
-   output logic           i_core_flag        , 
+   input  logic           i_core_flag        , 
    output logic           o_core_ready_sync  , 
-   output logic [32-1:0]  o_core_data1_sync  , 
-   output logic [32-1:0]  o_core_data2_sync  , 
    output logic           o_core_valid_sync  , 
    output logic           o_core_flag_sync   , 
 // XCOM 
    input  logic           i_ack_loc          , 
    input  logic           i_ack_net          , 
-   output logic [ 4-1:0]  i_xcom_id          ,
+   input  logic [ 4-1:0]  i_xcom_id          ,
    output logic [ 4-1:0]  o_xcom_id_sync     ,
 // AXI-Lite DATA Slave I/F (i_ps_clk)
    input  logic [32-1:0]  i_xcom_ctrl        ,
@@ -95,67 +91,45 @@ module xcom_cdc
    output logic [32-1:0]  o_axi_data1_sync   ,
    output logic [32-1:0]  o_axi_data2_sync   ,
 
-   input  logic [32-1:0]  i_xcom_data1       ,
-   input  logic [32-1:0]  i_xcom_data2       ,
    output logic [32-1:0]  o_xcom_flag_sync   ,
    output logic [32-1:0]  o_xcom_data1_sync  ,
-   output logic [32-1:0]  o_xcom_data2_sync  
+   output logic [32-1:0]  o_xcom_data2_sync  ,
+
+   input  logic [32-1:0]   i_xcom_rx_data    , 
+   input  logic [32-1:0]   i_xcom_tx_data    , 
+   input  logic [32-1:0]   i_xcom_status     , 
+   input  logic [32-1:0]   i_xcom_debug      ,
+   output logic [32-1:0]   o_xcom_rx_data_sync, 
+   output logic [32-1:0]   o_xcom_tx_data_sync, 
+   output logic [32-1:0]   o_xcom_status_sync , 
+   output logic [32-1:0]   o_xcom_debug_sync  
 ); 
 
 // Signal Declaration 
 ///////////////////////////////////////////////////////////////////////////////
-
-logic             s_ack_loc_ps;
-logic             s_ack_net_ps;
-logic  [ 4-1:0]   s_id_r; 
-logic  [ 4-1:0]   s_id_n;
-
-
-
-// XCOM Control (From Python and tProc)
-logic [ 8-1:0] s_op ;
-logic [32-1:0] s_data;
-logic [ 4-1:0] s_data_ctr;
-
-logic [32-1:0] s_xcom_ctrl ;//6
-logic [6-1:0]  s_xcom_ctrl_sync ;//6
-logic [32-1:0] s_axi_data1;
-logic [32-1:0] s_axi_data1_sync;
-logic [32-1:0] s_axi_data2 ;
-logic [32-1:0] s_axi_data2_sync;
-logic [ 4-1:0] s_axi_addr ;
-
-logic          s_core_en;
-logic [ 5-1:0] s_core_op;
-
-logic          s_req_loc;
-logic          s_ack_loc;
-logic          s_req_net;
-logic          s_ack_net;
-
-logic          s_core_ready;
+logic          s_ack_loc_ps;
+logic          s_ack_net_ps;
+logic [ 4-1:0] s_id_r; 
+logic [ 4-1:0] s_id_n;
 logic          s_core_valid_sync;
-logic          s_core_flag;
-logic [32-1:0] s_core_data1;
 logic [32-1:0] core_data1_sync_r;
 logic [32-1:0] core_data1_sync_n;
-logic [32-1:0] s_core_data2;
 logic [32-1:0] core_data2_sync_r;
 logic [32-1:0] core_data2_sync_n;
-logic [32-1:0] s_core_data1_ps;
-logic [32-1:0] s_core_data2_ps;
 
-logic [32-1:0] xcom_mem_data [15];
-logic [32-1:0] axi_mem_dt;
+logic [32-1:0] core_data1_ps_r;
+logic [32-1:0] core_data1_ps_n;
+logic [32-1:0] core_data2_ps_r;
+logic [32-1:0] core_data2_ps_n;
 
-logic [32-1:0] xreg_debug;
-logic [32-1:0] xreg_status;
-logic [32-1:0] xreg_status_sync_r;
-logic [32-1:0] xreg_status_sync_n;
-logic [32-1:0] xcom_rx_ds ;
-logic [32-1:0] xcom_tx_ds ;
-logic [21-1:0] s_xcom_dbg_status;
-logic [32-1:0] s_xcom_dbg_data;
+logic [32-1:0] s_xcom_rx_data_r;
+logic [32-1:0] s_xcom_rx_data_n;
+logic [32-1:0] s_xcom_tx_data_r;
+logic [32-1:0] s_xcom_tx_data_n;
+logic [32-1:0] s_xcom_status_r;
+logic [32-1:0] s_xcom_status_n;
+logic [32-1:0] s_xcom_debug_r;
+logic [32-1:0] s_xcom_debug_n;
 
 //SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
@@ -178,11 +152,31 @@ assign s_ack = s_ack_loc_ps | s_ack_net_ps;
 //Registers
 //now let's catch the counter
 always_ff @ (posedge i_ps_clk) begin
-   if (!i_ps_rstn) s_id_r <= '0;
-   else            s_id_r <= s_id_n;
+    if (!i_ps_rstn) begin
+        s_id_r <= '0;
+        s_xcom_rx_data_r <= '0;
+        s_xcom_tx_data_r <= '0;
+        s_xcom_status_r <= '0;
+        s_xcom_debug_r <= '0;
+    end else begin
+        s_id_r <= s_id_n;
+        s_xcom_rx_data_r <= s_xcom_rx_data_n;
+        s_xcom_tx_data_r <= s_xcom_tx_data_n;
+        s_xcom_status_r  <= s_xcom_status_n;
+        s_xcom_debug_r   <= s_xcom_debug_n;
+    end
 end
-assign s_id_n         = (s_ack) ? i_xcom_id : s_id_r;
+assign s_id_n           = (s_ack) ? i_xcom_id : s_id_r;
+assign s_xcom_rx_data_n = (s_ack) ? i_xcom_rx_data : s_xcom_rx_data_r;
+assign s_xcom_tx_data_n = (s_ack) ? i_xcom_tx_data : s_xcom_tx_data_r;
+assign s_xcom_status_n  = (s_ack) ? i_xcom_status  : s_xcom_status_r;
+assign s_xcom_debug_n   = (s_ack) ? i_xcom_debug   : s_xcom_debug_r;
+
 assign o_xcom_id_sync = s_id_r;
+assign o_xcom_rx_data_sync = s_xcom_rx_data_r;
+assign o_xcom_tx_data_sync = s_xcom_tx_data_r;
+assign o_xcom_status_sync  = s_xcom_status_r;
+assign o_xcom_debug_sync   = s_xcom_debug_r;
 
 narrow_en_signal xcom_flag(
   .i_clk  ( i_ps_clk     ),
@@ -297,9 +291,9 @@ synchronizer#(
 ///////////////////////////////////////////////////////////////////////////////
 //Time domain -> Core domain
 narrow_en_signal sync_core_ready(
-  .i_clk  ( i_core_clk   ),
-  .i_rstn ( i_core_rstn  ),
-  .i_en   ( i_core_ready ),
+  .i_clk  ( i_core_clk        ),
+  .i_rstn ( i_core_rstn       ),
+  .i_en   ( i_core_ready      ),
   .o_en   ( o_core_ready_sync )
 );
 
