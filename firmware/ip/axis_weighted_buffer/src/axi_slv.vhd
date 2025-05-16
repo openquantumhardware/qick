@@ -529,15 +529,15 @@ begin
 	AVG_DR_ADDR_REG		<= slv_reg4;
 	AVG_DR_LEN_REG		<= slv_reg5;
 	BUF_START_REG		<= slv_reg0(1);
-	BUF_ADDR_REG		<= slv_reg7;
-	BUF_LEN_REG			<= slv_reg8;
+	BUF_ADDR_REG		<= slv_reg6;
+	BUF_LEN_REG			<= slv_reg7;
 	BUF_DR_START_REG	<= slv_reg3(1);
-	BUF_DR_ADDR_REG		<= slv_reg10;
-	BUF_DR_LEN_REG		<= slv_reg11;
-	AVG_PHOTON_MODE_REG <= slv_reg12(0);
-	AVG_H_THRSH_REG     <= slv_reg13;
-	AVG_L_THRSH_REG     <= slv_reg14;
-	FILTER_START_ADDR_REG <= slv_reg15;
+	BUF_DR_ADDR_REG		<= slv_reg8;
+	BUF_DR_LEN_REG		<= slv_reg9;
+	AVG_PHOTON_MODE_REG <= slv_reg10(0);
+	AVG_H_THRSH_REG     <= slv_reg11;
+	AVG_L_THRSH_REG     <= slv_reg12;
+	FILTER_START_ADDR_REG <= slv_reg13;
 	FILTER_WE_REG <= slv_reg3(2);
 
 end rtl;

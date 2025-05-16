@@ -2,10 +2,9 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dsp_macro_0",
-    "cell_name": "avg_buffer_i/avg_top_i/avg_i/matched_filter_mult_ii",
     "component_reference": "xilinx.com:ip:dsp_macro:1.0",
     "ip_revision": "3",
-    "gen_directory": "../../../../projects/qick_tprocv2_111_standard/top/top.tmp/axis_matchfilt_buffer_v1_1_project/axis_matchfilt_buffer_v1_1_project.gen/sources_1/ip/dsp_macro_0",
+    "gen_directory": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_2_project/axis_weighted_buffer_v1_2_project.gen/sources_1/ip/dsp_macro_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "dsp_macro_0", "resolve_type": "user", "usage": "all" } ],
@@ -101,7 +100,7 @@
       "model_parameters": {
         "C_VERBOSITY": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_MODEL_TYPE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_XDEVICEFAMILY": [ { "value": "virtex7", "resolve_type": "generated", "usage": "all" } ],
+        "C_XDEVICEFAMILY": [ { "value": "zynquplus", "resolve_type": "generated", "usage": "all" } ],
         "C_HAS_CE": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_HAS_INDEP_CE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_HAS_CED": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
@@ -148,28 +147,28 @@
         "C_HAS_PCOUT": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_CONSTANT_1": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
         "C_LATENCY": [ { "value": "-1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
-        "C_OPMODES": [ { "value": "000000000011010100000000", "resolve_type": "generated", "usage": "all" } ],
+        "C_OPMODES": [ { "value": "000100111000010100000000", "resolve_type": "generated", "usage": "all" } ],
         "C_REG_CONFIG": [ { "value": "00000000000011100011100011000100", "resolve_type": "generated", "usage": "all" } ],
         "C_TEST_CORE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ]
       },
       "project_parameters": {
-        "ARCHITECTURE": [ { "value": "virtex7" } ],
-        "BASE_BOARD_PART": [ { "value": "" } ],
+        "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
+        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu111:part0:1.4" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
-        "DEVICE": [ { "value": "xc7vx485t" } ],
-        "PACKAGE": [ { "value": "ffg1157" } ],
+        "DEVICE": [ { "value": "xczu28dr" } ],
+        "PACKAGE": [ { "value": "ffvg1517" } ],
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
-        "SPEEDGRADE": [ { "value": "-1" } ],
+        "SPEEDGRADE": [ { "value": "-2" } ],
         "STATIC_POWER": [ { "value": "" } ],
-        "TEMPERATURE_GRADE": [ { "value": "" } ]
+        "TEMPERATURE_GRADE": [ { "value": "E" } ]
       },
       "runtime_parameters": {
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "3" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_111_standard/top/top.tmp/axis_matchfilt_buffer_v1_1_project/axis_matchfilt_buffer_v1_1_project.gen/sources_1/ip/dsp_macro_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_2_project/axis_weighted_buffer_v1_2_project.gen/sources_1/ip/dsp_macro_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
