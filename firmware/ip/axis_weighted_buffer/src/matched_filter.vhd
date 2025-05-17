@@ -64,6 +64,7 @@ architecture rtl of matched_filter is
   signal mem_envelope_wea, mem_envelope_ena     : std_logic := '0';
   signal mem_envelope_addra, mem_envelope_addrb : std_logic_vector(N-1 downto 0);
   signal mem_envelope_dia                       : std_logic_vector(2*B-1 downto 0);
+  signal envelope_iq                            : std_logic_vector(2*B-1 downto 0);
   signal envelope_ii, envelope_qq               : std_logic_vector (B-1 downto 0);
 
   signal ac, bd, ad, bc                             : std_logic_vector(47 downto 0);
@@ -77,14 +78,19 @@ architecture rtl of matched_filter is
   -- Higher precision
   signal dfiltered_ii, dfiltered_qq : std_logic_vector (2*N-1 downto 0);
 
+  -- Compensate memory latency for data
+  constant WGT_LATENCY  : natural := 3;
   -- Compensate DSP latency for trigger & valid
   constant DSP_LATENCY  : natural := 3;
-  signal trigger_reg    : std_logic_vector(0 to DSP_LATENCY-1);
-  signal dout_valid_reg : std_logic_vector(0 to DSP_LATENCY-1);
+  
+  type reg_t is array (WGT_LATENCY-1 downto 0) of std_logic_vector (2*B-1 downto 0);
+  signal din_reg        : reg_t;
+  
+  signal trigger_reg    : std_logic_vector(0 to WGT_LATENCY+DSP_LATENCY-1);
+  signal dout_valid_reg : std_logic_vector(0 to WGT_LATENCY+DSP_LATENCY-1);
 
   -- Read address
   signal cnt       : unsigned (N-1 downto 0) := to_unsigned(0, N);
-  --signal read_addr : unsigned (N-1 downto 0) := to_unsigned(0, N);
   signal length    : unsigned (N-1 downto 0) := to_unsigned(0, N);
 
   type fsm_state is (INIT_ST,
@@ -122,10 +128,10 @@ begin
       START_ADDR_REG => DW_ADDR_REG,
       WE_REG         => WE_REG);
 
-  bram_envelope_ii : entity work.bram_dp
+  bram_envelope_iq : entity work.bram_dp
     generic map (
       N => N,
-      B => B)
+      B => 2*B)
     port map (
       clka  => write_clk,
       clkb  => clk,
@@ -135,28 +141,11 @@ begin
       web   => '0',
       addra => mem_envelope_addra,
       addrb => mem_envelope_addrb,
-      dia   => mem_envelope_dia(B-1 downto 0),
+      dia   => mem_envelope_dia,
       dib   => (others => '0'),
       doa   => open,
-      dob   => envelope_ii);
+      dob   => envelope_iq);
 
-  bram_envelope_qq : entity work.bram_dp
-    generic map (
-      N => N,
-      B => B)
-    port map (
-      clka  => write_clk,
-      clkb  => clk,
-      ena   => '1',
-      enb   => '1',
-      wea   => mem_envelope_wea,
-      web   => '0',
-      addra => mem_envelope_addra,
-      addrb => mem_envelope_addrb,
-      dia   => mem_envelope_dia(2*B-1 downto B),
-      dib   => (others => '0'),
-      doa   => open,
-      dob   => envelope_qq);
 
   matched_filter_mult_ac : dsp_macro_0
     port map (
@@ -198,13 +187,17 @@ begin
       P   => bc
       );
 
-  dsp_latency_compepnsation : process (clk) is
+  latency_compensation : process (clk) is
     variable i : integer;
   begin
     if (rising_edge(clk)) then
+      din_reg(0)        <= din_i;
       trigger_reg(0)    <= trigger_i;
       dout_valid_reg(0) <= din_valid_i;
-      for i in 1 to DSP_LATENCY-1 loop
+      for i in 1 to WGT_LATENCY-1 loop
+        din_reg(i)        <= din_reg(i-1);
+      end loop;
+      for i in 1 to WGT_LATENCY+DSP_LATENCY-1 loop
         trigger_reg(i)    <= trigger_reg(i-1);
         dout_valid_reg(i) <= dout_valid_reg(i-1);
       end loop;
@@ -217,10 +210,8 @@ begin
       if (state = READ_ST) then
         if (din_valid_i = '1') then
           cnt       <= cnt + 1;
-          --read_addr <= read_addr + 1;
         end if;
       else
-        --read_addr <= unsigned(START_ADDR_REG(N-1 downto 0));
         cnt       <= to_unsigned(0, N);
       end if;
     end if;
@@ -253,13 +244,16 @@ begin
     end if;
   end process;
 
-  din_ii <= din_i(2*B-1 downto B);
-  din_qq <= din_i(B-1 downto 0);
+  din_ii <= din_reg(WGT_LATENCY-1)(2*B-1 downto B);
+  din_qq <= din_reg(WGT_LATENCY-1)(B-1 downto 0);
 
-  trigger_o    <= trigger_reg(DSP_LATENCY - 1);
-  dout_valid_o <= dout_valid_reg(DSP_LATENCY - 1);
+  trigger_o    <= trigger_reg(WGT_LATENCY+DSP_LATENCY - 1);
+  dout_valid_o <= dout_valid_reg(WGT_LATENCY+DSP_LATENCY - 1);
 
   mem_envelope_addrb <= std_logic_vector(cnt);
+  envelope_ii <= envelope_iq(2*B-1 downto B);
+  envelope_qq <= envelope_iq(B-1 downto 0);
+
 
   ac_signed <= signed(ac(2*B-1 downto 0));
   bd_signed <= signed(bd(2*B-1 downto 0));
