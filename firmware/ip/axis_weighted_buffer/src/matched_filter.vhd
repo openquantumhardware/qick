@@ -62,7 +62,8 @@ end matched_filter;
 
 architecture rtl of matched_filter is
   signal mem_envelope_wea, mem_envelope_ena     : std_logic := '0';
-  signal mem_envelope_addra, mem_envelope_addrb : std_logic_vector(N-1 downto 0);
+  signal mem_envelope_addra                     : std_logic_vector(N-1 downto 0);
+  signal mem_envelope_addrb                     : std_logic_vector(31 downto 0);
   signal mem_envelope_dia                       : std_logic_vector(2*B-1 downto 0);
   signal envelope_iq                            : std_logic_vector(2*B-1 downto 0);
   signal envelope_ii, envelope_qq               : std_logic_vector (B-1 downto 0);
@@ -90,8 +91,8 @@ architecture rtl of matched_filter is
   signal dout_valid_reg : std_logic_vector(0 to WGT_LATENCY+DSP_LATENCY-1);
 
   -- Read address
-  signal cnt       : unsigned (N-1 downto 0) := to_unsigned(0, N);
-  signal length    : unsigned (N-1 downto 0) := to_unsigned(0, N);
+  signal cnt       : unsigned (31 downto 0) := to_unsigned(0, 32);
+  signal length    : unsigned (31 downto 0) := to_unsigned(0, 32);
 
   type fsm_state is (INIT_ST,
                      WAIT_ST,
@@ -140,7 +141,7 @@ begin
       wea   => mem_envelope_wea,
       web   => '0',
       addra => mem_envelope_addra,
-      addrb => mem_envelope_addrb,
+      addrb => mem_envelope_addrb(N-1 downto 0),
       dia   => mem_envelope_dia,
       dib   => (others => '0'),
       doa   => open,
@@ -212,7 +213,7 @@ begin
           cnt       <= cnt + 1;
         end if;
       else
-        cnt       <= to_unsigned(0, N);
+        cnt       <= to_unsigned(0, 32);
       end if;
     end if;
   end process;
@@ -270,7 +271,7 @@ begin
   dout_o(2*B-1 downto B) <= filt_ii_quant_r;
   dout_o(B-1 downto 0)   <= filt_qq_quant_r;
 
-  length <= unsigned(LEN_REG(N-1 downto 0));
+  length <= unsigned(LEN_REG);
 
 
 end rtl;
