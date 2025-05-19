@@ -9,6 +9,8 @@ import qick_pkg::*;
   svunit_testcase svunit_ut;
 
     localparam T_FREQ          = 440.08e6; //[Hz]
+    localparam CORE_FREQ       = 200e6;    //200e6 [Hz]
+    localparam PS_FREQ         = 100e6;    //100e6 [Hz]
     localparam CORE_PERIOD     = 5;        //200e6 [Hz]
     localparam PS_PERIOD       = 10;       //100e6 [Hz]
     localparam SYNC_PERIOD     = 200;      //5e6 [Hz]
@@ -110,16 +112,6 @@ initial begin
   forever # (SYNC_PERIOD/2) tb_i_sync <= ~tb_i_sync;
 end
 
-initial begin
-  tb_core_clk <= 1'b0;
-  forever #(CORE_PERIOD/2) tb_core_clk = ~tb_core_clk; 
-end
-
-initial begin
-  tb_ps_clk <= 1'b0;
-  forever #(PS_PERIOD/2) tb_ps_clk = ~tb_ps_clk;
-end
-
 clk_gen
 #(
   .FREQ       ( T_FREQ   )
@@ -130,23 +122,45 @@ u_clk_gen
   .o_clk      ( tb_time_clk       )
 );
 
+clk_gen
+#(
+  .FREQ       ( CORE_FREQ   )
+)
+u_clk_gen_core
+(
+  .i_enable   ( 1'b1              ),
+  .o_clk      ( tb_core_clk       )
+);
+
+clk_gen
+#(
+  .FREQ       ( PS_FREQ   )
+)
+u_clk_gen_ps
+(
+  .i_enable   ( 1'b1              ),
+  .o_clk      ( tb_ps_clk         )
+);
 
 clocking cb @(posedge tb_time_clk);
   default input #1step output #2;
   output  tb_time_rstn     ;
-  output  tb_ps_rstn       ;
-  output  tb_i_core_addr   ;
-  output  tb_i_ps_ctrl     ;
-  output  tb_i_ps_data     ;
-  output  tb_i_ps_addr     ;
-  output  tb_i_ack_loc     ;
-  output  tb_i_ack_net     ;
+  output  tb_i_core_valid  ;
+  output  tb_i_core_ready  ;
+endclocking
 
-  input   tb_o_req_loc     ;
-  input   tb_o_req_net     ;
-  input   tb_o_op          ;
-  input   tb_o_data        ;
-  input   tb_o_data_cntr   ;
+clocking cb_core @(posedge tb_core_clk);
+  default input #1step output #2;
+  output  tb_core_rstn     ;
+  output  tb_i_core_en     ;
+  output  tb_i_core_op     ;
+  output  tb_i_core_data1  ;
+  output  tb_i_core_data2  ;
+endclocking
+
+clocking cb_ps @(posedge tb_ps_clk);
+  default input #1step output #2;
+  output  tb_ps_rstn     ;
 endclocking
 
 assign s_core_data = {tb_i_core_data1,tb_i_core_addr};
@@ -182,8 +196,6 @@ xcom_cdc#(
    .o_core_ready_sync  ( tb_o_core_ready_sync  ),
    .o_core_valid_sync  ( tb_o_core_valid_sync  ),
    .o_core_flag_sync   ( tb_o_core_flag_sync   ),
-   .i_ack_loc          ( tb_i_ack_loc          ),
-   .i_ack_net          ( tb_i_ack_net          ),
    .i_xcom_id          ( tb_i_xcom_id          ),
    .o_xcom_id_sync     ( tb_o_xcom_id_sync     ),
    .i_xcom_ctrl        ( tb_i_xcom_ctrl        ),
@@ -221,25 +233,31 @@ endfunction
 task setup();
   svunit_ut.setup();
   random_data = $urandom();
-  tb_i_core_en   <= 1'b0;
-  tb_i_core_op   <= '0;   
+  tb_i_core_en    <= 1'b0;
+  tb_i_core_op    <= '0;   
   tb_i_core_data1 <= '0;   
   tb_i_core_data2 <= '0;   
-  cb.tb_i_core_addr <= '0;   
-  cb.tb_i_ps_ctrl   <= '0;
-  cb.tb_i_ps_data   <= '0;
-  cb.tb_i_ps_addr   <= '0;
-  cb.tb_i_ack_loc   <= 1'b0;
-  cb.tb_i_ack_net   <= 1'b0;
+  tb_i_core_valid <= 1'b0;
+  tb_i_core_ready <= 1'b0;
+  tb_i_core_flag  <= '0;   
+  tb_i_xcom_id    <= '0;   
+
+  @(cb_core);
+  tb_core_rstn    <= 1'b0;
+  repeat(2) @(cb_core);
+  tb_core_rstn    <= 1'b1;
+  repeat(5) @(cb_core);
+
+  @(cb_ps);
+  tb_ps_rstn      <= 1'b0;
+  repeat(2) @(cb_ps);
+  tb_ps_rstn      <= 1'b1;
+  repeat(5) @(cb_ps);
 
   @(cb);
-  cb.tb_time_rstn    <= 1'b0;
-  tb_core_rstn    <= 1'b0;
-  tb_ps_rstn      <= 1'b0;
+  tb_time_rstn    <= 1'b0;
   repeat(2) @(cb);
-  cb.tb_time_rstn    <= 1'b1;
-  tb_core_rstn    <= 1'b1;
-  tb_ps_rstn      <= 1'b1;
+  tb_time_rstn    <= 1'b1;
   repeat(5) @(cb);
 
 endtask
@@ -274,15 +292,15 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
     end
 
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
-        cb.tb_i_ps_ctrl[0]   <= 1'b1;
-        cb.tb_i_ps_ctrl[5:1] <= in_op;
-        cb.tb_i_ps_addr      <= 32'd2;//$urandom_range(0,15);
-        cb.tb_i_ps_data      <= in_data + i;
+        tb_i_ps_ctrl[0]   <= 1'b1;
+        tb_i_ps_ctrl[5:1] <= in_op;
+        tb_i_ps_addr      <= 32'd2;//$urandom_range(0,15);
+        tb_i_ps_data      <= in_data + i;
         @(cb);
-        cb.tb_i_ps_ctrl[0]   <= 1'b0;
-        cb.tb_i_ack_loc      <= 1'b1;
+        tb_i_ps_ctrl[0]   <= 1'b0;
+        tb_i_ack_loc      <= 1'b1;
         @(cb);
-        cb.tb_i_ack_loc      <= 1'b0;
+        tb_i_ack_loc      <= 1'b0;
         repeat($urandom_range(1,5))@(cb);
     end   
 endtask   
@@ -298,7 +316,7 @@ task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_o
         tb_i_core_en   <= 1'b0;
         tb_i_ack_net    <= 1'b1;
         @(cb);
-        cb.tb_i_ack_net    <= 1'b0;
+        tb_i_ack_net    <= 1'b0;
         repeat($urandom_range(1,5))@(cb);
     end   
 endtask   
