@@ -236,9 +236,7 @@ xcom_cdc#(
    .o_core_ready_sync  ( o_core_ready     ), 
    .o_core_valid_sync  ( o_core_valid     ), 
    .o_core_flag_sync   ( o_core_flag      ), 
-   //PS domain - time domain 
-   .i_ack_loc          ( s_ack_loc        ),
-   .i_ack_net          ( s_ack_net        ),
+   //time domain - PS time domain
    .i_xcom_id          ( s_xcom_id        ),
    .o_xcom_id_sync     ( s_xcom_id_ps     ), 
    .i_xcom_ctrl        ( s_xcom_ctrl      ), 
