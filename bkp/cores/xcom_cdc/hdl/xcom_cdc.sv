@@ -6,11 +6,23 @@
 // Module: xcom_cdc.sv
 // Project: QICK 
 // Description: 
-// XCOM clock domain crossing synchronizer. 
+// XCOM clock domain crossing synchronizer. Assumption here is that 
+// time_clk > core_clk > ps_clk
 // 
+//Parameters:
+// - NCH        number of Rx channels. One QICK board typically has 1 Tx 
+//              channels and at least 1 Rx channel.
+// - SYNC       wether to enable (1) the external synchronization signal 
+//              or not (0). The external synchronization signal can came 
+//              from a GPS.
+// -DEBUG       wether to enable (1) the debug port or not (0).
 //Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
+// - i_ps_clk    clock signal synchronous to the PS
+// - i_ps_rstn   active low reset signal synchronous to the PS
+// - i_core_clk  clock signal synchronous to the core
+// - i_core_rstn active low reset signal synchronous to the core
+// - i_time_clk  clock signal synchronous to the time clock domain
+// - i_time_rstn active low reset signal synchronous to the time clock domain
 // - i_sync     synchronization signal. Lets the XCOM synchronize with an
 //              external signal. Actuates in coordination with the 
 //              XCOM_QRST_SYNC command.
@@ -224,6 +236,7 @@ for (k=0; k < 6 ; k=k+1) begin
       );
    end
 endgenerate
+assign o_xcom_ctrl_sync[32-1:6] = '0;
 
 genvar j;
 generate
@@ -236,6 +249,7 @@ for (j=0; j < 4 ; j=j+1) begin
       );
    end
 endgenerate
+assign o_xcom_cfg_sync[32-1:4] = '0;
 
 synchronizer#(
    .NB(32)
@@ -266,17 +280,15 @@ wide_en_signal sync_core_en(
    );
 assign o_core_en_sync = s_core_en_sync;
 
-genvar r;
-generate
-for (r=0; r < 5 ; r=r+1) begin
-   wide_en_signal sync_xcom_cfg(
-      .i_clk  ( i_time_clk        ),
-      .i_rstn ( i_time_rstn       ),
-      .i_en   ( i_core_op[r]      ),
-      .o_en   ( o_core_op_sync[r] )
-      );
-   end
-endgenerate
+synchronizer#(
+   .NB(5)
+   ) sync_core_op(
+  .i_clk      ( i_time_clk       ),
+  .i_rstn     ( i_time_rstn      ),
+  .i_async    ( i_core_op        ),
+  .o_sync     ( o_core_op_sync   )
+);
+
 
 //Registers
 //now let's catch the data
