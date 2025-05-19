@@ -1,0 +1,206 @@
+[*]
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Mon May 19 03:54:47 2025
+[*]
+[dumpfile] "/home/arnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_cdc_0.1.0/test-xsim/xcom_cmd.vcd"
+[dumpfile_mtime] "Mon May 19 03:50:00 2025"
+[dumpfile_size] 29329
+[savefile] "/home/arnaldi/git/qick_internal/bkp/cores/xcom_cdc/data/xcom_cdc.gtkw"
+[timestart] 102560
+[size] 2049 1103
+[pos] -1 -1
+*-11.675690 118144 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] testrunner.
+[treeopen] testrunner.__ts.
+[treeopen] testrunner.__ts.xcom_cmd_ut.
+[treeopen] testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.
+[sst_width] 364
+[signals_width] 317
+[sst_expanded] 1
+[sst_vpaned_height] 332
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_time_clk
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_time_rstn
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_clk
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_rstn
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_op[4:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_op_sync[4:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_data1[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_data1_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_data2[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_data2_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.core_data1_sync_r[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.core_data2_sync_r[31:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_ps_clk
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_ps_rstn
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.core_data2_ps_r[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.core_data1_ps_r[31:0]
+@23
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_data2_sync[31:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_ack_loc
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_ack_net
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_axi_data1[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_axi_data2[31:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_en
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_flag
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_ready
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_core_valid
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_cfg[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_ctrl[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_debug[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_id[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_rx_data[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_status[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.i_xcom_tx_data[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_axi_data1_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_axi_data2_sync[31:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_en_sync
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_flag_sync
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_ready_sync
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_core_valid_sync
+@c00022
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+@28
+(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(4)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(5)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(6)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(7)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(8)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(9)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(10)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(11)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(12)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(13)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(14)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(15)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(16)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(17)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(18)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(19)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(20)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(21)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(22)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(23)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(24)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(25)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(26)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(27)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(28)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(29)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(30)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+(31)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_cfg_sync[31:0]
+@1401200
+-group_end
+@c00022
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+@28
+(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(4)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(5)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(6)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(7)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(8)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(9)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(10)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(11)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(12)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(13)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(14)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(15)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(16)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(17)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(18)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(19)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(20)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(21)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(22)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(23)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(24)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(25)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(26)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(27)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(28)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(29)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(30)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+(31)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_ctrl_sync[31:0]
+@1401200
+-group_end
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_data1_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_debug_sync[31:0]
+@c00022
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+@28
+(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(4)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(5)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(6)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(7)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(8)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(9)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(10)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(11)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(12)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(13)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(14)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(15)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(16)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(17)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(18)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(19)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(20)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(21)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(22)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(23)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(24)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(25)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(26)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(27)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(28)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(29)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(30)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+(31)testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_flag_sync[31:0]
+@1401200
+-group_end
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_id_sync[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_rx_data_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_status_sync[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.o_xcom_tx_data_sync[31:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_ack
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_ack_loc_ps
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_ack_net_ps
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_core_en_sync
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_core_valid_ps
+@22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_id_n[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_id_r[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_debug_n[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_debug_r[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_rx_data_n[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_rx_data_r[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_status_n[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_status_r[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_tx_data_n[31:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cdc.s_xcom_tx_data_r[31:0]
+[pattern_trace] 1
+[pattern_trace] 0
