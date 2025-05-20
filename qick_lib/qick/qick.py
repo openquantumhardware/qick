@@ -1523,7 +1523,6 @@ class QickSoc(Overlay, QickConfig):
             prog.end()
         elif self.TPROC_VERSION == 2:
             prog = QickProgramV2(self)
-            prog.add_raw_pulse("dummypulse", ["dummy"], gen_ch=gen_chs)
             for gen in gen_chs:
                 prog.pulse(ch=gen, name="dummypulse", t=0)
             prog.end()

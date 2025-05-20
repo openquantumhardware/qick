@@ -1390,7 +1390,6 @@ class AsmV2:
         self.append_macro(Resync(t=t, tag=tag))
 
     # pulses and triggers
-
     def pulse(self, ch, name, t=0, tag=None):
         """Play a pulse.
 
@@ -1400,11 +1399,15 @@ class AsmV2:
             generator channel (index in 'gens' list)
         name : str
             pulse name (as used in add_pulse())
+            If you use the special name "dummypulse", a zero-gain pulse will be added for you, for stopping periodic pulses from repeating.
         t : float, QickParam, or "auto"
             time (us), or the end of the last pulse on this generator
         tag: str
             arbitrary name for use with get_time_param()
         """
+        if name=='dummypulse' and name not in self.pulses:
+            gen_chs = [i for i, chmgr in enumerate(self._gen_mgrs) if isinstance(chmgr, StandardGenManager)]
+            self.add_raw_pulse("dummypulse", ["dummy"], gen_ch=gen_chs)
         self.append_macro(Pulse(ch=ch, name=name, t=t, tag=tag))
 
     def send_readoutconfig(self, ch, name, t=0, tag=None):
@@ -1580,8 +1583,6 @@ class AbsGenManager(AbsRegisterManager):
             Scalar numeric parameters are converted to QickParam, QickParams are copied.
         """
         style = params['style']
-        required = set(self.PARAMS_REQUIRED[style])
-        allowed = required | set(self.PARAMS_OPTIONAL[style])
         check_keys(params.keys(), self.PARAMS_REQUIRED[style], self.PARAMS_OPTIONAL[style])
 
         pulse_params = {}
@@ -1766,7 +1767,7 @@ class MultiplexedGenManager(AbsGenManager):
         return pulse
 
 class ReadoutManager(AbsRegisterManager):
-    """Manages the envelope and pulse information for a signal generator channel.
+    """Manages the configurations for a dynamically configured readout channel.
     """
     PARAMS_REQUIRED = ['freq']
     PARAMS_OPTIONAL = ['length', 'phase', 'phrst', 'mode', 'outsel', 'gen_ch']
@@ -1779,6 +1780,9 @@ class ReadoutManager(AbsRegisterManager):
         self.tproc_ch = chcfg['tproc_ctrl']
         self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_output']
+
+        # a hashable value that can be used to check whether different readouts are of the same type+configuration
+        self.cfg_hash = (self.chcfg['ro_type'], self.chcfg['fs'])
 
     def check_params(self, params):
         """Check whether the parameters defined for a pulse are supported and sufficient for this generator and pulse type.
@@ -2237,9 +2241,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             for a muxed signal generator, the list of tones to enable for this pulse
         """
         if isinstance(ch, Number):
-            pulse = self._gen_mgrs[ch].make_pulse(kwargs)
-            pulse.gen_chs = [ch]
-            self._register_pulse(pulse, name)
+            ch = [ch]
         else: # list of channels
             distinct_cfgs = len(set([self._gen_mgrs[x].cfg_hash for x in ch]))
             if distinct_cfgs != 1:
@@ -2247,9 +2249,12 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             distinct_pars = len(set([self._gen_mgrs[x].param_hash(kwargs) for x in ch]))
             if distinct_pars != 1:
                 raise RuntimeError("tried to define a pulse for generators %s, but they can't all use the same pulse definition: if you're using an envelope, maybe it is not the same length or at the same address in all gens?"%(ch))
-            pulse = self._gen_mgrs[ch[0]].make_pulse(kwargs)
-            pulse.gen_chs = ch
-            self._register_pulse(pulse, name)
+        prog_chs = set(self.gen_chs.keys())
+        if set(ch) - prog_chs:
+            raise RuntimeError("pulse %s is defined for generator(s) %s, but only generators %s are declared"%(name, ch, prog_chs))
+        pulse = self._gen_mgrs[ch[0]].make_pulse(kwargs)
+        pulse.gen_chs = ch
+        self._register_pulse(pulse, name)
 
     def add_readoutconfig(self, ch, name, **kwargs):
         """Add a readout config to the program's pulse library.
@@ -2257,8 +2262,10 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         Parameters
         ----------
-        ch : int
-            readout channel (index in 'readouts' list)
+        ch : int or list of int
+            Readout channel (index in 'readouts' list).
+            The use of one readoutconfig for multiple readouts is experimental.
+            The readouts must be of the same type and running at the same sampling frequency.
         name : str
             name of the config
         freq : float or QickParam
@@ -2276,7 +2283,16 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         gen_ch : int
             generator channel (use None if you don't want the downconversion frequency to be rounded to a valid DAC frequency or be offset by the DAC mixer frequency)
         """
-        pulse = self._ro_mgrs[ch].make_pulse(kwargs)
+        if isinstance(ch, Number):
+            ch = [ch]
+        else: # list of channels
+            distinct_cfgs = len(set([self._ro_mgrs[x].cfg_hash for x in ch]))
+            if distinct_cfgs != 1:
+                raise RuntimeError("tried to define a pulse for generators %s, but they have different types or sampling freqs"%(ch))
+        prog_chs = set(self.ro_chs.keys())
+        if set(ch) - prog_chs:
+            raise RuntimeError("readoutconfig %s is defined for readout(s) %s, but only readouts %s are declared"%(name, ch, prog_chs))
+        pulse = self._ro_mgrs[ch[0]].make_pulse(kwargs)
         pulse.ro_chs = [ch]
         self._register_pulse(pulse, name)
 
