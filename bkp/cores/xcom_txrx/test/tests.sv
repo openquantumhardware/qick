@@ -14,7 +14,7 @@ end
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test01_rx_data)
    
-   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0001};//set auto ID
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0101};//set auto ID
    tb_cb.tb_i_req_loc <= 1'b1;
    @(tb_cb);
    tb_cb.tb_i_req_loc <= 1'b0;
