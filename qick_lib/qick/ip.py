@@ -344,6 +344,52 @@ class QickMetadata:
         in_max = vco_max/vco_mult
         return in_min, in_max
 
+    def trace_dma(self, direction, start_block, start_port):
+        """Trace back the data path for a block that is fed by a DMA, possibly through a switch.
+
+        Parameters
+        ----------
+        direction : str
+            'forward' or 'backward'
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the clock input port to start tracing from.
+
+        Returns
+        -------
+        str
+            fullpath for the DMA block
+        str
+            fullpath for the switch block, None if there is no switch
+        int
+            switch port, None if there is no switch
+        """
+        # when going backward, the DMA is connected to S00_AXIS and the data consumers are Mxx_AXIS
+        # when going forward, the DMA is connected to M00_AXIS and the data sources are Sxx_AXIS
+        if direction == 'forward':
+            switch_common = "M00_AXIS"
+        elif direction == 'backward':
+            switch_common = "S00_AXIS"
+        else:
+            raise RuntimeError("trace_dma direction must be 'forward' or 'backward', got %s"%(direction))
+        ((block, port),) = self.trace_bus(start_block, start_port)
+        blocktype = self.mod2type(block)
+        if blocktype == 'axi_dma':
+            dma_path = block
+            return dma_path, None, None
+        elif blocktype == 'axis_switch':
+            switch_path = block
+            switch_ch = int(port.split('_')[0][1:])
+            ((block, port),) = self.trace_bus(block, switch_common)
+            blocktype = self.mod2type(block)
+            if blocktype != 'axi_dma':
+                raise RuntimeError("tracing port %s from block %s: expected to find axi_dma after axis_switch, found %s instead"%(start_port, start_block, blocktype))
+            dma_path = block
+            return dma_path, switch_path, switch_ch
+        else:
+            raise RuntimeError("tracing port %s from block %s: expected to find axi_dma or axis_switch, found %s instead"%(start_port, start_block, blocktype))
+
     def trace_clk_back(self, start_block, start_port):
         """Follow the clock backwards from a given block and port.
         Compute the clock source, the frequency, and any limits imposed by the clock path.

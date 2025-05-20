@@ -97,6 +97,16 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
+    def __init__(self, description):
+        # Preallocated memory buffer for DMA transfers
+        self.buff = None
+
+        self.dma = None
+        self.switch = None
+        self.switch_ch = None
+
+        super().__init__(description)
+
     def configure(self, ch, rf):
         # Define buffer.
         self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
@@ -106,13 +116,10 @@ class AbsArbSignalGen(AbsSignalGen):
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
-        # what switch port drives this generator?
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], self.WAVEFORM_PORT)
-        self.switch = soc._get_block(block)
-        # port names are of the form 'M01_AXIS'
-        self.switch_ch = int(port.split('_')[0][1:])
-        ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-        self.dma = soc._get_block(block)
+        dma_path, switch_path, self.switch_ch = soc.metadata.trace_dma('backward', self['fullpath'], self.WAVEFORM_PORT)
+        self.dma = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch = soc._get_block(switch_path)
 
     # Load waveforms.
     def load(self, xin, addr=0):
@@ -137,7 +144,8 @@ class AbsArbSignalGen(AbsSignalGen):
         #    raise RuntimeError("Buffer transfer length must be even number.")
 
         # Route switch to channel.
-        self.switch.sel(mst=self.switch_ch)
+        if self.switch is not None:
+            self.switch.sel(mst=self.switch_ch)
 
         #print(self['fullpath'], xin.shape, addr, self.switch_ch)
 

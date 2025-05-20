@@ -544,6 +544,12 @@ class AxisAvgBuffer(SocIP):
         self.avg_buff = None
         self.buf_buff = None
 
+        self.dma_avg = None
+        self.dma_buf = None
+        self.switch_avg = None
+        self.switch_buf = None
+        self.switch_ch = None
+
         super().__init__(description)
 
     def _init_config(self, description):
@@ -601,24 +607,20 @@ class AxisAvgBuffer(SocIP):
                 self.cfg['pfb_port'] = self.readoutport
 
         # which switch_avg port does this buffer drive?
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 'm0_axis')
-        self.switch_avg = soc._get_block(block)
-        # port names are of the form 'S01_AXIS'
-        switch_avg_ch = int(port.split('_')[0][1:], 10)
-        ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.dma_avg = soc._get_block(block)
+        dma_path, switch_path, switch_avg_ch = soc.metadata.trace_dma('forward', self['fullpath'], 'm0_axis')
+        self.dma_avg = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch_avg = soc._get_block(switch_path)
 
         # which switch_buf port does this buffer drive?
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 'm1_axis')
-        self.switch_buf = soc._get_block(block)
-        # port names are of the form 'S01_AXIS'
-        switch_buf_ch = int(port.split('_')[0][1:], 10)
-        ((block, port),) = soc.metadata.trace_bus(block, 'M00_AXIS')
-        self.dma_buf = soc._get_block(block)
+        dma_path, switch_path, switch_buf_ch = soc.metadata.trace_dma('forward', self['fullpath'], 'm1_axis')
+        self.dma_buf = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch_buf = soc._get_block(switch_path)
+            if switch_avg_ch != switch_buf_ch:
+                raise RuntimeError(
+                    "switch_avg and switch_buf port numbers do not match:", self['fullpath'])
 
-        if switch_avg_ch != switch_buf_ch:
-            raise RuntimeError(
-                "switch_avg and switch_buf port numbers do not match:", self['fullpath'])
         self.switch_ch = switch_avg_ch
 
         self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self['fullpath'])
@@ -729,7 +731,8 @@ class AxisAvgBuffer(SocIP):
         transferlen = length + (length % 2)
 
         # Route switch to channel.
-        self.switch_avg.sel(slv=self.switch_ch)
+        if self.switch_avg is not None:
+            self.switch_avg.sel(slv=self.switch_ch)
 
         # Set averager data reader address and length.
         self.avg_dr_addr_reg = address
@@ -800,7 +803,8 @@ class AxisAvgBuffer(SocIP):
         transferlen = length + (length % 2)
 
         # Route switch to channel.
-        self.switch_buf.sel(slv=self.switch_ch)
+        if self.switch_buf is not None:
+            self.switch_buf.sel(slv=self.switch_ch)
 
         # time.sleep(0.050)
 
@@ -882,16 +886,15 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     bindto = ['user.org:user:axis_weighted_buffer:1.2']
-    RO_PORT = 's_axis'
     #TODO: check config length against weight length?
 
     def __init__(self, description):
-        # Init IP.
-        super().__init__(description)
+        self.wgt_buff = None
+        self.dma_wgt = None
+        self.switch_wgt = None
+        self.switch_wgt_ch = None
 
-        self.dma = None
-        self.switch = None
-        self.switch_ch = None
+        super().__init__(description)
 
     def _init_config(self, description):
         super()._init_config(description)
@@ -909,7 +912,7 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
                           'avg_photon_mode_reg': 10,
                           'avg_h_threshold_reg': 11,
                           'avg_l_threshold_reg': 12,
-                          'filter_start_addr_reg': 13,
+                          'wgt_dw_addr_reg': 13,
                           }
 
         self.N_WGT = int(description['parameters']['N_WGT'])
@@ -920,16 +923,10 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 's1_axis_weights')
-        blocktype = soc.metadata.mod2type(block)
-        if blocktype == 'axi_dma':
-            self.dma = soc._get_block(block)
-        else:
-            self.switch = soc._get_block(block)
-            # port names are of the form 'M01_AXIS'
-            self.switch_ch = int(port.split('_')[0][1:])
-            ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-            self.dma = soc._get_block(block)
+        dma_path, switch_path, self.switch_wgt_ch = soc.metadata.trace_dma('backward', self['fullpath'], 's1_axis_weights')
+        self.dma_wgt = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch_wgt = soc._get_block(switch_path)
 
     def enable(self, avg=True, buf=True):
         """
@@ -967,7 +964,7 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         self.dr_start_reg = 0
 
     # Load waveforms.
-    def load(self, xin):
+    def load(self, xin, addr=0):
         """
         Load waveform into I,Q envelope
 
@@ -989,8 +986,8 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         #    raise RuntimeError("Buffer transfer length must be even number.")
 
         # Route switch to channel.
-        if self.switch is not None:
-            self.switch.sel(mst=self.switch_ch)
+        if self.switch_wgt is not None:
+            self.switch_wgt.sel(mst=self.switch_wgt_ch)
 
         #print(self['fullpath'], xin.shape, addr, self.switch_ch)
 
@@ -1005,12 +1002,12 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         ### Load I/Q ###
         ################
         # Enable writes.
-        self.filter_start_addr_reg = 0
+        self.wgt_dw_addr_reg = addr
         self._start_transfer('wgt')
 
         # DMA data.
-        self.dma.sendchannel.transfer(self.wgt_buff, nbytes=int(length*4))
-        self.dma.sendchannel.wait()
+        self.dma_wgt.sendchannel.transfer(self.wgt_buff, nbytes=int(length*4))
+        self.dma_wgt.sendchannel.wait()
 
         # Disable writes.
         self._stop_transfer()
