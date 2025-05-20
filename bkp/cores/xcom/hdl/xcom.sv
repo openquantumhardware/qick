@@ -164,6 +164,7 @@ logic [32-1:0] s_dbg_rx_data_ps   ;
 logic [32-1:0] s_dbg_tx_data_ps   ;
 logic [21-1:0] s_dbg_status_ps    ;
 logic [32-1:0] s_dbg_data_ps      ;
+logic [32-1:0] s_dbg_debug_ps     ;
 
 
 ///////////////////////////////////////////////////////////////////////////////

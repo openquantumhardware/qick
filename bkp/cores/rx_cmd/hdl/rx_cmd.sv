@@ -59,17 +59,17 @@ typedef enum logic [2-1:0]{ IDLE = 2'b00,
 } state_t;
 state_t state_r, state_n;
 
-logic [NCH-1:0] s_req       ;
-logic [NCH-1:0] s_ack       ;
-logic  [ 4-1:0] s_cmd  [NCH];
-logic  [32-1:0] s_data [NCH];
-logic [NCH-1:0] s_channel   ;
-logic           s_valid     ;
-logic           s_cmd_req   ;
-logic [NCH-1:0] s_cmd_chid  ;
-logic           cmd_ack_r   ;
-logic           cmd_ack_n   ;
-logic [5-1:0]   s_dbg_state [NCH];
+logic [NCH-1:0]         s_req       ;
+logic [NCH-1:0]         s_ack       ;
+logic  [ 4-1:0]         s_cmd  [NCH];
+logic  [32-1:0]         s_data [NCH];
+logic [$clog2(NCH)-1:0] s_channel   ;
+logic                   s_valid     ;
+logic                   s_cmd_req   ;
+logic [NCH-1:0]         s_cmd_chid  ;
+logic                   cmd_ack_r   ;
+logic                   cmd_ack_n   ;
+logic [5-1:0]           s_dbg_state [NCH];
 
 // LINK RECEIVERS 
 /////////////////////////////////////////////////////////////////////////////
@@ -98,7 +98,24 @@ endgenerate
 /////////////////////////////////////////////////////////////////////////////
 assign s_valid = |s_req;
 
-assign s_channel = $clog2(s_req);
+always_comb begin
+    s_channel = 0; // Default: clog2(1) = 0
+    if (s_req > 1)     s_channel = 1;
+    if (s_req > 2)     s_channel = 2;
+    if (s_req > 4)     s_channel = 3;
+    if (s_req > 8)     s_channel = 4;
+    if (s_req > 16)    s_channel = 5;
+    if (s_req > 32)    s_channel = 6;
+    if (s_req > 64)    s_channel = 7;
+    if (s_req > 128)   s_channel = 8;
+    if (s_req > 256)   s_channel = 9;
+    if (s_req > 512)   s_channel = 10;
+    if (s_req > 1024)  s_channel = 11;
+    if (s_req > 2048)  s_channel = 12;
+    if (s_req > 4096)  s_channel = 13;
+    if (s_req > 8192)  s_channel = 14;
+    if (s_req > 16384) s_channel = 15;
+end
 
 // RX Caller ID
 /////////////////////////////////////////////////////////////////////////////
