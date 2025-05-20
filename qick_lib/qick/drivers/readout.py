@@ -534,6 +534,7 @@ class AxisAvgBuffer(SocIP):
     bindto = ['user.org:user:axis_avg_buffer:1.0']
 
     EDGE_COUNTER = False
+    WEIGHTS = False
     RO_PORT = 's_axis'
 
     def __init__(self, description):
@@ -575,6 +576,7 @@ class AxisAvgBuffer(SocIP):
         self.cfg['avg_maxlen'] = 2**self.N_AVG
         self.cfg['buf_maxlen'] = 2**self.N_BUF
         self.cfg['has_edge_counter'] = self.EDGE_COUNTER
+        self.cfg['has_weights'] = self.WEIGHTS
 
         self.avg_buff = allocate(shape=self['avg_maxlen'], dtype=np.int64)
         self.buf_buff = allocate(shape=self['buf_maxlen'], dtype=np.int32)
@@ -886,7 +888,8 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     bindto = ['user.org:user:axis_weighted_buffer:1.2']
-    #TODO: check config length against weight length?
+
+    WEIGHTS = True
 
     def __init__(self, description):
         self.wgt_buff = None
@@ -963,23 +966,24 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     def _stop_transfer(self):
         self.dr_start_reg = 0
 
-    # Load waveforms.
-    def load(self, xin, addr=0):
+    def load_weights(self, data, addr=0):
         """
-        Load waveform into I,Q envelope
+        Load weights array
 
-        :param xin: array of 16-bit (I, Q) values for pulse envelope
-        :type xin: numpy.ndarray of int
-        :param addr: starting address
-        :type addr: int
+        Parameters
+        ----------
+        data : numpy.ndarray of int16
+            array of 16-bit (I, Q) values for weights
+        addr : int
+            starting address
         """
-        length = xin.shape[0]
-        assert xin.dtype==np.int16
+        length = data.shape[0]
+        assert data.dtype==np.int16
 
         # Check for max length.
-        if length > self['avg_maxlen']:
+        if length > self['wgt_maxlen']:
             raise RuntimeError("tried to load %d samples, which exceeds the buffer size (%d)." %
-                  (length, self['avg_maxlen']))
+                  (length, self['wgt_maxlen']))
 
         # Check for even transfer size.
         #if length % 2 != 0:
@@ -996,7 +1000,7 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         # -> higher 16 bits: Q value.
         # Format and copy data.
         np.copyto(self.wgt_buff[:length],
-                np.frombuffer(xin, dtype=np.int32))
+                np.frombuffer(data, dtype=np.int32))
 
         ################
         ### Load I/Q ###

@@ -1086,7 +1086,8 @@ class AbsQickProgram(ABC):
 
     def declare_readout(
         self, ch, length, freq=None, phase=0, sel='product', gen_ch=None,
-        edge_counting=False, high_threshold=0, low_threshold=0):
+        edge_counting=False, high_threshold=0, low_threshold=0,
+        weights=None):
         """Add a channel to the program's list of readouts.
         Duration units depend on the program type: tProc v1 programs use integer number of samples, tProc v2 programs use float us.
 
@@ -1110,6 +1111,11 @@ class AbsQickProgram(ABC):
             Sets the edge counting threshold level to go above to trigger a single count
         low_threshold : int
             Sets the edge counting threshold level to go below to reset the trigger for next count
+        weights : numpy.ndarray
+            Array of int16, shape (N, 2), representing an IQ array by which to multiply the readout window.
+            Can only be used if this readout channel has a weighted buffer.
+            If left as None, the weights will be set to [2**15-2, 0] (the maximum positive real value).
+            If used, N must equal the number of decimated samples in the readout window.
         """
         ro_cfg = self.soccfg['readouts'][ch]
         # the number of triggers per shot will be filled in later, by trigger() or set_read_per_shot()
@@ -1136,14 +1142,21 @@ class AbsQickProgram(ABC):
 
         if 'tproc_ctrl' not in ro_cfg: # readout is controlled by PYNQ
             if freq is None:
-                raise RuntimeError("frequency must be declared for a PYNQ-configured readout")
+                raise RuntimeError("readout %d is static (PYNQ-configured) - frequency must be set in declaration"%(ch))
             cfg['freq'] = freq
             cfg['gen_ch'] = gen_ch
             cfg['ro_config'] = self.soccfg.calc_ro_regs(ro_cfg, phase, sel)
         else: # readout is controlled by tProc
             if phase!=0 or sel!='product' or freq is not None or gen_ch is not None:
-                raise RuntimeError("this is a tProc-configured readout - freq/phase/sel parameters are set using tProc instructions")
+                raise RuntimeError("readout %d is dynamic (tProc-configured) - freq/phase/sel parameters are set using tProc instructions, not in declaration"%(ch))
 
+        if ro_cfg['has_weights']:
+            if weights is not None and len(weights) != cfg['length']:
+                raise RuntimeError("readout %d was declared with a weights array of length %d samples and a readout length of %d; these must match"%(ch, len(weights), cfg['length']))
+            cfg['weights'] = weights
+        else:
+            if weights is not None:
+                raise RuntimeError("readout %d was declared with weights, but this channel doesn't have a weighted buffer"%(ch))
         self.ro_chs[ch] = cfg
 
     def config_readouts(self, soc):
@@ -1199,14 +1212,23 @@ class AbsQickProgram(ABC):
             enable the decimated (waveform) buffer
         """
         for ch, cfg in self.ro_chs.items():
+            ro_cfg = self.soccfg['readouts'][ch]
+            if ro_cfg['has_weights']:
+                if cfg['weights'] is None:
+                    weights = np.zeros((min(cfg['length'], ro_cfg['wgt_maxlen']),2), dtype=np.int16)
+                    weights[:, 0] = 2**15-2
+                else:
+                    weights = cfg['weights']
+                soc.load_weights(ch, weights)
+
             if enable_avg:
                 soc.config_avg(
-                    ch, address=0, length=cfg['length'],
+                    ch, length=cfg['length'],
                     edge_counting=cfg['edge_counting'],
                     high_threshold=cfg['high_threshold'],
                     low_threshold=cfg['low_threshold'])
             if enable_buf:
-                soc.config_buf(ch, address=0, length=cfg['length'])
+                soc.config_buf(ch, length=cfg['length'])
             soc.enable_buf(ch, enable_avg=enable_avg, enable_buf=enable_buf)
 
     def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, mux_phases=None, ro_ch=None):

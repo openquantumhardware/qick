@@ -1185,12 +1185,15 @@ class QickSoc(Overlay, QickConfig):
         self, ch, address=0, length=1,
         edge_counting=False, high_threshold=1000, low_threshold=0):
         """Configure accumulated buffer; must then enable using enable_buf()
-        :param ch: Channel to configure
-        :type ch: int
-        :param address: Starting address of buffer
-        :type address: int
-        :param length: length of buffer (how many samples to take)
-        :type length: int
+
+        Parameters
+        ----------
+        ch : int
+            Readout channel to configure
+        address : int
+            Starting address of buffer
+        length : int
+            length of buffer (how many samples to integrate)
         """
         avg_buf = self.avg_bufs[ch]
         if avg_buf['has_edge_counter']:
@@ -1202,12 +1205,15 @@ class QickSoc(Overlay, QickConfig):
 
     def config_buf(self, ch, address=0, length=1):
         """Configure decimated buffer; must then enable using enable_buf()
-        :param ch: Channel to configure
-        :type ch: int
-        :param address: Starting address of buffer
-        :type address: int
-        :param length: length of buffer (how many samples to take)
-        :type length: int
+
+        Parameters
+        ----------
+        ch : int
+            Readout channel to configure
+        address : int
+            Starting address of buffer
+        length : int
+            length of buffer (how many samples to take)
         """
         avg_buf = self.avg_bufs[ch]
         avg_buf.config_buf(address, length)
@@ -1217,6 +1223,8 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
+        ch : int
+            Readout channel to configure
         enable_avg : bool
             Enable accumulated data capture
         enable_buf : bool
@@ -1225,14 +1233,20 @@ class QickSoc(Overlay, QickConfig):
         avg_buf = self.avg_bufs[ch]
         avg_buf.enable(avg=enable_avg, buf=enable_buf)
 
-    def get_avg_max_length(self, ch=0):
-        """Get accumulation buffer length for channel
-        :param ch: Channel
-        :type ch: int
-        :return: Length of accumulation buffer for channel 'ch'
-        :rtype: int
+    def load_weights(self, ch, data, address=0):
+        """Load weights array to a weighted buffer.
+
+        Parameters
+        ----------
+        ch : int
+            Readout channel to configure
+        data : numpy.ndarray of int16
+            array of 16-bit (I, Q) values for weights
+        address : int
+            starting address
         """
-        return self['readouts'][ch]['avg_maxlen']
+        avg_buf = self.avg_bufs[ch]
+        avg_buf.load_weights(data, address)
 
     def load_pulse_data(self, ch, data, addr):
         """Load pulse data into signal generators
