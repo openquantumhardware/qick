@@ -122,7 +122,8 @@ logic [32-1:0] reg1_dt, reg2_dt;
 logic [32-1:0] mem_dt [15];
 
 logic loc_set_id, loc_wflg, loc_wreg, loc_wmem;
-logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en, cmd_execute;
+logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en;
+logic cmd_exec_r, cmd_exec_n;
 logic [ 4-1:0] loc_cmd_op  ;
 
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
@@ -131,13 +132,14 @@ logic [32-1:0] s_rx_data ;
 logic [NCH-1:0][5-1:0] s_rx_dbg;
 
 //TX related signals
-logic s_ack_net;
-logic s_ack_loc;
-logic          s_tx_ready;
+logic         s_ack_net;
+logic         s_ack_loc;
+logic         s_tx_ready;
 
 //RX related signals
-logic [4-1:0] board_id_r; 
-logic         set_id_en ;
+logic [4-1:0] board_id_r, board_id_n; 
+logic         set_id_r, set_id_n;
+
 
 //Transmission
 // TRANSMIT NET COMMAND
@@ -170,18 +172,27 @@ assign tx_auto_id = i_req_net & (i_header[7:4] == XCOM_AUTO_ID);
 // Write ID
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) begin  
-      board_id_r  <= 0;
-      set_id_en   <= 0;
-   end else if ( loc_id_en )
-      board_id_r  <= i_header[3:0];
-   else if (tx_auto_id)
-      set_id_en <= 1'b1;
-   else if ( rx_auto_id & set_id_en) begin
-      set_id_en   <= 1'b0;
-      board_id_r  <= s_rx_chid+1'b1;
-  end
+   if ( !i_rstn ) board_id_r <= '0;
+   else           board_id_r <= board_id_n;
 end
+//next-state logic
+always_comb begin
+   if      ( loc_id_en )             board_id_n = i_header[4-1:0];
+   else if ( rx_auto_id & set_id_r ) board_id_n = s_rx_chid + 1'b1;
+   else                              board_id_n = board_id_r;
+end
+
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn ) set_id_r <= '0;
+   else           set_id_r <= set_id_n;
+end
+//next-state logic
+always_comb begin
+   if      ( tx_auto_id )            set_id_n = 1'b1;
+   else if ( rx_auto_id & set_id_r ) set_id_n = 1'b0;
+   else                              set_id_n = set_id_r;
+end
+
 
 // RX COMMAND
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,6 +235,12 @@ always_ff @(posedge i_clk) begin
    else if ( !i_req_loc & s_ack_loc) s_ack_loc <= 1'b0;
 end
 
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn ) cmd_exec_r <= 1'b0;
+   else           cmd_exec_r <= cmd_exec_n;
+end
+assign cmd_exec_n = i_req_loc & !s_ack_loc;
+ 
 // LOC Decoding
 ///////////////////////////////////////////////////////////////////////////////
 assign loc_cmd_op  = i_header[7:4];
@@ -232,12 +249,10 @@ assign loc_wflg    = loc_cmd_op == XCOM_WRITE_FLAG;//4'b0001 ;
 assign loc_wreg    = loc_cmd_op == XCOM_WRITE_REG;//4'b0010 ;
 assign loc_wmem    = loc_cmd_op == XCOM_WRITE_MEM;//4'b0011 ;
 
-assign cmd_execute = i_req_loc & !s_ack_loc;
-
-assign loc_id_en   = cmd_execute & loc_set_id;
-assign loc_wflg_en = cmd_execute & loc_wflg; 
-assign loc_wreg_en = cmd_execute & loc_wreg;
-assign loc_wmem_en = cmd_execute & loc_wmem;
+assign loc_id_en   = cmd_exec_r & loc_set_id;
+assign loc_wflg_en = cmd_exec_r & loc_wflg; 
+assign loc_wreg_en = cmd_exec_r & loc_wreg;
+assign loc_wmem_en = cmd_exec_r & loc_wmem;
 
 
 // EXECUTE COMMANDS
@@ -249,9 +264,9 @@ assign wflg_en = loc_wflg_en | rx_wflg_en ;
 assign wreg_en = loc_wreg_en | rx_wreg_en ;
 assign wmem_en = loc_wmem_en | rx_wmem_en ;
 
-assign s_data_flag = cmd_execute ? i_header[0]   : s_rx_op[0];
-assign reg_dt_s    = cmd_execute ? i_data        : s_rx_data;
-assign mem_addr    = cmd_execute ? i_header[3:0] : s_rx_chid+1'b1 ;
+assign s_data_flag = cmd_exec_r ? i_header[0]   : s_rx_op[0];
+assign reg_dt_s    = cmd_exec_r ? i_data        : s_rx_data;
+assign mem_addr    = cmd_exec_r ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
@@ -308,7 +323,7 @@ assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
-assign o_dbg_status  = {board_id_r, s_tx_ready, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
+assign o_dbg_status  = {board_id_r, 2'b00, s_tx_ready, s_rx_dbg_state[0], 2'b00, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
 assign o_dbg_data    = {i_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
 
 // OUT SIGNALS
