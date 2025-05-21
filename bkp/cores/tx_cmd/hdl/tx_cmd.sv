@@ -115,7 +115,6 @@ always_comb begin
                state_n = WSYNC;     
             else begin
                state_n    = WRDY;     
-               s_tx_valid = 1'b1;
             end
       end
       WSYNC:  begin
@@ -125,6 +124,7 @@ always_comb begin
          end
       end
       WRDY:  begin
+         s_tx_valid = 1'b1;
          if ( !i_req & s_ready ) state_n = IDLE;     
       end
       default: state_n = state_r;
