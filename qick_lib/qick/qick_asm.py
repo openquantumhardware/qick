@@ -1023,7 +1023,7 @@ class AbsQickProgram(ABC):
             for name, env in envdict['envs'].items():
                 env['data'] = decode_array(env['data'])
 
-    def config_all(self, soc, load_pulses=True, reset=False, load_mem=True):
+    def config_all(self, soc, load_envelopes=True, reset=False, load_mem=True):
         """
         Load the waveform memory, gens, ROs, and program memory as specified for this program.
         The decimated+accumulated buffers are not configured, since those should be re-configured for each acquisition.
@@ -1047,8 +1047,8 @@ class AbsQickProgram(ABC):
         soc.stop_tproc(lazy=not reset)
 
         # Load the pulses from the program into the soc
-        if load_pulses:
-            self.load_pulses(soc)
+        if load_envelopes:
+            self.load_envelopes(soc)
 
         # Configure signal generators
         self.config_gens(soc)
@@ -1059,7 +1059,7 @@ class AbsQickProgram(ABC):
         # Load the program into the tProc
         soc.load_bin_program(self.binprog, load_mem=load_mem)
 
-    def run(self, soc, load_prog=True, load_pulses=True, start_src="internal"):
+    def run(self, soc, load_prog=True, load_envelopes=True, start_src="internal"):
         """Load the program into the tProcessor and start it.
         Because there is in general no way to tell when a program is done running, there is no guarantee that the program will be done before this method returns.
         If you want that guarantee, use run_rounds().
@@ -1070,14 +1070,14 @@ class AbsQickProgram(ABC):
             The QickSoc that will execute this program.
         load_prog : bool
             Load the program before starting the tProc.
-        load_pulses : bool
+        load_envelopes : bool
             Load the generator envelopes before starting the tProc.
-            If load_prog is False, load_pulses is ignored.
+            If load_prog is False, load_envelopes is ignored.
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger).
         """
         if load_prog:
-            self.config_all(soc, load_pulses=load_pulses)
+            self.config_all(soc, load_envelopes=load_envelopes)
         # configure tproc for internal/external start
         soc.start_src(start_src)
         # run the assembly program
@@ -1151,8 +1151,12 @@ class AbsQickProgram(ABC):
                 raise RuntimeError("readout %d is dynamic (tProc-configured) - freq/phase/sel parameters are set using tProc instructions, not in declaration"%(ch))
 
         if ro_cfg['has_weights']:
-            if weights is not None and len(weights) != cfg['length']:
-                raise RuntimeError("readout %d was declared with a weights array of length %d samples and a readout length of %d; these must match"%(ch, len(weights), cfg['length']))
+            if weights is not None:
+                if len(weights) != cfg['length']:
+                    raise RuntimeError("readout %d was declared with a weights array of length %d samples and a readout length of %d; these must match"%(ch, len(weights), cfg['length']))
+                maxwgt = 2**15-2
+                if np.abs(weights).max() > maxwgt:
+                    raise RuntimeError("readout %d was declared with a weights array that exceeds the maximum absoluate value of %d"%(ch, maxwgt))
             cfg['weights'] = weights
         else:
             if weights is not None:
@@ -1212,15 +1216,6 @@ class AbsQickProgram(ABC):
             enable the decimated (waveform) buffer
         """
         for ch, cfg in self.ro_chs.items():
-            ro_cfg = self.soccfg['readouts'][ch]
-            if ro_cfg['has_weights']:
-                if cfg['weights'] is None:
-                    weights = np.zeros((min(cfg['length'], ro_cfg['wgt_maxlen']),2), dtype=np.int16)
-                    weights[:, 0] = 2**15-2
-                else:
-                    weights = cfg['weights']
-                soc.load_weights(ch, weights)
-
             if enable_avg:
                 soc.config_avg(
                     ch, length=cfg['length'],
@@ -1523,23 +1518,34 @@ class AbsQickProgram(ABC):
 
         self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
 
-    def load_pulses(self, soc):
-        """Loads pulses that were added using add_envelope into the SoC's signal generator memories.
+    def load_envelopes(self, soc):
+        """Loads envelopes that were added using add_envelope into the SoC's signal generator memories.
+        Also load weight arrays for weighted buffers.
 
         Parameters
         ----------
         soc : QickSoc
             Qick object
-
         """
         # for pyro compatibility, convert numpy arrays to Python lists
         for iCh, pulses in enumerate(self.envelopes):
             for name, pulse in pulses['envs'].items():
                 data = pulse['data']
                 assert data.dtype==np.int16
-                soc.load_pulse_data(iCh,
+                soc.load_envelope(iCh,
                         data=data.tolist(),
                         addr=pulse['addr'])
+
+        for ch, cfg in self.ro_chs.items():
+            ro_cfg = self.soccfg['readouts'][ch]
+            if ro_cfg['has_weights']:
+                if cfg['weights'] is None:
+                    weights = np.zeros((min(cfg['length'], ro_cfg['wgt_maxlen']),2), dtype=np.int16)
+                    weights[:, 0] = 2**15-2
+                else:
+                    weights = cfg['weights']
+                assert weights.dtype==np.int16
+                soc.load_weights(ch, weights.tolist())
 
     def reset_timestamps(self, gen_t0=None):
         # used by init and sync_all()
@@ -1704,7 +1710,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True):
+    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1713,7 +1719,7 @@ class AcquireMixin:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        load_pulses : bool
+        load_envelopes : bool
             if True, load pulse envelopes
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
@@ -1743,7 +1749,7 @@ class AcquireMixin:
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
         # don't load memories now, we'll do that later
-        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -1975,7 +1981,7 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
-    def run_rounds(self, soc, rounds=1, load_pulses=True, start_src="internal", progress=True):
+    def run_rounds(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True):
         """Run the program and wait until it completes, once or multiple times.
         No data will be saved.
 
@@ -1985,15 +1991,15 @@ class AcquireMixin:
             Qick object
         rounds : int
             number of times to rerun the program
-        load_pulses : bool
-            if True, load pulse envelopes
+        load_envelopes : bool
+            if True, load pulse envelopes and buffer weights
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
         """
         # don't load memories now, we'll do that later
-        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
@@ -2031,7 +2037,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs=1, load_pulses=True, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2040,8 +2046,8 @@ class AcquireMixin:
             Qick object
         soft_avgs : int
             number of times to rerun the program, averaging results in software (aka "rounds")
-        load_pulses : bool
-            if True, load pulse envelopes
+        load_envelopes : bool
+            if True, load pulse envelopes and buffer weights
         start_src: str
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
@@ -2058,7 +2064,7 @@ class AcquireMixin:
             multi-rep and multi-read: (n_reps, n_reads, length, 2)
         """
         # don't load memories now, we'll do that later
-        self.config_all(soc, load_pulses=load_pulses, load_mem=False)
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")

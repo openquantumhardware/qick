@@ -1233,7 +1233,7 @@ class QickSoc(Overlay, QickConfig):
         avg_buf = self.avg_bufs[ch]
         avg_buf.enable(avg=enable_avg, buf=enable_buf)
 
-    def load_weights(self, ch, data, address=0):
+    def load_weights(self, ch, data, addr=0):
         """Load weights array to a weighted buffer.
 
         Parameters
@@ -1245,11 +1245,12 @@ class QickSoc(Overlay, QickConfig):
         address : int
             starting address
         """
-        avg_buf = self.avg_bufs[ch]
-        avg_buf.load_weights(data, address)
+        # we may have converted to list for pyro compatiblity, so convert back to ndarray
+        data = np.array(data, dtype=np.int16)
+        self.avg_bufs[ch].load_weights(data, addr)
 
-    def load_pulse_data(self, ch, data, addr):
-        """Load pulse data into signal generators
+    def load_envelope(self, ch, data, addr):
+        """Load envelope data into signal generators
         :param ch: Channel
         :type ch: int
         :param data: array of (I, Q) values for pulse envelope
@@ -1259,7 +1260,7 @@ class QickSoc(Overlay, QickConfig):
         """
         # we may have converted to list for pyro compatiblity, so convert back to ndarray
         data = np.array(data, dtype=np.int16)
-        return self.gens[ch].load(xin=data, addr=addr)
+        self.gens[ch].load(xin=data, addr=addr)
 
     def set_nyquist(self, ch, nqz, force=False):
         """
