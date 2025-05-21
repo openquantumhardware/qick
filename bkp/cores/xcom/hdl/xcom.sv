@@ -336,7 +336,7 @@ narrow_en_signal sync_req_loc(
 narrow_en_signal sync_req_net(
   .i_clk  ( i_ps_clk       ),
   .i_rstn ( i_ps_rstn      ),
-  .i_en   ( s_req_neti     ),
+  .i_en   ( s_req_net      ),
   .o_en   ( s_req_net_sync )
 );
 
