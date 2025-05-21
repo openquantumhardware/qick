@@ -104,7 +104,7 @@ class DataStreamer():
 
                 # how many shots worth of data to transfer at a time
                 if stride is None:
-                    shots = [self.soc['readouts'][ch]['avg_maxlen']/reads_per_count[ch] for ch in ch_list]
+                    shots = [self.soc['readouts'][ch]['avg_maxlen']/reads_per_count[i] for i, ch in enumerate(ch_list)]
                     stride = int(0.1 * min(shots))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
