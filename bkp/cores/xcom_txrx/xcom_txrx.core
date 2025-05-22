@@ -12,9 +12,10 @@ filesets:
        - fnal:qick:tx_cmd
        - fnal:qick:rx_cmd
        - fnal:qick:xcom_qctrl
+       - fnal:qick:xcom_cmd
 
 
-  tb:
+  tb_alone:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
       - test/xcom_txrx_tc00.sv
@@ -23,6 +24,14 @@ filesets:
     depend: 
       - pynq_fused:common:sim_base
 
+  tb_cmd:
+    files:
+      - data/states.txt: {file_type : user, copyto : states.txt}
+      - test/xcom_txrx_tc01.sv
+      - test/tests_cmd.sv: {is_include_file: true}
+    file_type: systemVerilogSource
+    depend: 
+      - pynq_fused:common:sim_base
 
   pynq_z2:
     files:
@@ -33,7 +42,8 @@ generate:
     generator: svunit_gen
     parameters:
         test_files: 
-          - test/xcom_txrx_tc00.sv
+          #- test/xcom_txrx_tc00.sv
+          - test/xcom_txrx_tc01.sv
 
 targets:
   default: &default
@@ -46,7 +56,25 @@ targets:
   test:
     <<: *default
     description: Simulate the design
-    filesets_append: [tb]
+    filesets_append: [tb_alone]
+    default_tool: xsim
+    generate: [testrunner_gen]
+    toplevel: testrunner
+    tools:
+      xsim:
+        xelab_options: [-debug all -L XPM]
+        xsim_options: [-testplusarg SVUNIT_FILTER="*" -onerror stop]
+      icarus:
+        iverilog_options:
+          - -g2012 # Use SystemVerilog-2012
+      modelsim:
+        vlog_options:
+          - -timescale=1ns/1ns
+
+  test_cmd:
+    <<: *default
+    description: Simulate the design
+    filesets_append: [tb_cmd]
     default_tool: xsim
     generate: [testrunner_gen]
     toplevel: testrunner

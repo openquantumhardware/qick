@@ -14,6 +14,10 @@
 // - i_sync     synchronization signal. Lets the XCOM synchronize with an
 //              external signal. Actuates in coordination with the 
 //              XCOM_QRST_SYNC command.
+// - i_req_loc  local command requirement signal. Signal indicating a new
+//              data is available to write locally (in the local board).  
+// - i_req_net  transmission requirement signal. Signal indicating a new
+//              data transmission starts.  
 // - i_cfg_tick this input is connected to the AXI_CFG register and 
 //              determines the duration of the xcom_clk output signal.
 //              xcom_clk will be either in state 1 or 0 for CFG_AXI clock 
@@ -21,8 +25,6 @@
 //              0 equal to two clock cycles and 7 equal to 15 clock 
 //              cycles. As an example, if i_cfg_tick = 2 and 
 //              i_clk = 500 MHz, then xcom_clk would be ~125 MHz.
-// - i_req_net      transmission requirement signal. Signal indicating a new
-//              data transmission starts.  
 // - i header   this is the header to be sent to the slaves. 
 //              bit 7      is sometimes used to indicate a 
 //                         synchronization in other places in the 
@@ -129,8 +131,6 @@ logic [ 4-1:0] loc_cmd_op  ;
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
 logic [32-1:0] s_rx_data ;
 
-logic [NCH-1:0][5-1:0] s_rx_dbg;
-
 //TX related signals
 logic         s_ack_net;
 logic         s_ack_loc;
@@ -138,16 +138,16 @@ logic         s_tx_ready;
 
 //RX related signals
 logic [4-1:0] board_id_r, board_id_n; 
-logic         set_id_r, set_id_n;
+logic         rx_set_id_r, rx_set_id_n;
 
 
 //Transmission
 // TRANSMIT NET COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge i_clk) begin
-   if      ( !i_rstn )                            s_ack_net <= 1'b0;
-   else if ( i_req_net & !s_ack_net & s_tx_ready) s_ack_net <= 1'b1;
-   else if ( !i_req_net & s_ack_net & s_tx_ready) s_ack_net <= 1'b0;
+   if      ( !i_rstn )               s_ack_net <= 1'b0;
+   else if ( i_req_net & s_tx_ready) s_ack_net <= 1'b1;
+   else                              s_ack_net <= 1'b0;
 end
 
 tx_cmd u_tx_cmd(
@@ -177,20 +177,20 @@ always_ff @ (posedge i_clk) begin
 end
 //next-state logic
 always_comb begin
-   if      ( loc_id_en )             board_id_n = i_header[4-1:0];
-   else if ( rx_auto_id & set_id_r ) board_id_n = s_rx_chid + 1'b1;
-   else                              board_id_n = board_id_r;
+   if      ( loc_id_en )                board_id_n = i_header[4-1:0];
+   else if ( rx_auto_id & rx_set_id_r ) board_id_n = s_rx_chid + 1'b1;
+   else                                 board_id_n = board_id_r;
 end
 
 always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) set_id_r <= '0;
-   else           set_id_r <= set_id_n;
+   if ( !i_rstn ) rx_set_id_r <= '0;
+   else           rx_set_id_r <= rx_set_id_n;
 end
 //next-state logic
 always_comb begin
-   if      ( tx_auto_id )            set_id_n = 1'b1;
-   else if ( rx_auto_id & set_id_r ) set_id_n = 1'b0;
-   else                              set_id_n = set_id_r;
+   if      ( tx_auto_id )               rx_set_id_n = 1'b1;
+   else if ( rx_auto_id & rx_set_id_r ) rx_set_id_n = 1'b0;
+   else                                 rx_set_id_n = rx_set_id_r;
 end
 
 
@@ -230,9 +230,9 @@ assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
 // LOC COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge i_clk) begin
-   if      ( !i_rstn )               s_ack_loc <= 1'b0;
-   else if ( i_req_loc & !s_ack_loc) s_ack_loc <= 1'b1;
-   else if ( !i_req_loc & s_ack_loc) s_ack_loc <= 1'b0;
+   if      ( !i_rstn )   s_ack_loc <= 1'b0;
+   else if ( i_req_loc ) s_ack_loc <= 1'b1;
+   else                  s_ack_loc <= 1'b0;
 end
 
 always_ff @ (posedge i_clk) begin
