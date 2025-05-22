@@ -229,7 +229,6 @@ synchronizer#(
   .o_sync     ( o_axi_data2_sync )
 );
 
-
 ///////////////////////////////////////////////////////////////////////////////
 //Core domain -> Time domain
 wide_en_signal sync_core_en(

@@ -1,11 +1,11 @@
 `include "svunit_defines.svh"
 `include "svunit_assert_macros.svh"
 
-module xcom_cmd_unit_test;
+module xcom_cdc_unit_test;
 import svunit_pkg::svunit_testcase;
 import qick_pkg::*;
 
-  string name = "xcom_cmd_ut";
+  string name = "xcom_cdc_ut";
   svunit_testcase svunit_ut;
 
     localparam T_FREQ          = 440.08e6; //[Hz]
@@ -67,43 +67,14 @@ import qick_pkg::*;
   logic [NB-1:0] tb_i_ps_ctrl           = '0;
   logic [NB-1:0] tb_i_ps_data           = '0;
   logic [NB-1:0] tb_i_ps_addr           = '0;
-  logic          tb_o_req_loc           ; 
-  logic          tb_o_req_net           ;
-  logic  [8-1:0] tb_o_op                ; 
-  logic [NB-1:0] tb_o_data              ;
-  logic  [4-1:0] tb_o_data_cntr         ;
 
   logic  [2-1:0][NB-1:0] s_core_data    ;
   logic  [2-1:0][NB-1:0] s_ps_data       ;
 
   logic [NB-1:0] random_data;
 
-  xcom_opcode_t s_op = '{
-      rst         : 5'b1_1111  ,//LOC command 
-      write_mem   : 5'b1_0011  ,//LOC command  
-      write_reg   : 5'b1_0010  ,//LOC command  
-      write_flag  : 5'b1_0001  ,//LOC command  
-      set_id      : 5'b1_0000  ,//LOC command  
-      rfu2        : 5'b0_1111  ,
-      rfu1        : 5'b0_1101  ,
-      qctrl       : 5'b0_1011  ,
-      update_dt32 : 5'b0_1110  ,
-      update_dt16 : 5'b0_1100  ,
-      update_dt8  : 5'b0_1010  ,
-      auto_id     : 5'b0_1001  ,
-      qrst_sync   : 5'b0_1000  ,
-      send_32bit_2: 5'b0_0111  ,
-      send_32bit_1: 5'b0_0110  ,
-      send_16bit_2: 5'b0_0101  ,
-      send_16bit_1: 5'b0_0100  ,
-      send_8bit_2 : 5'b0_0011  ,
-      send_8bit_1 : 5'b0_0010  ,
-      set_flag    : 5'b0_0001  ,
-      clear_flag  : 5'b0_0000  
- };
-
 initial begin
-  $dumpfile("xcom_cmd.vcd");
+  $dumpfile("xcom_cdc.vcd");
   $dumpvars();
 end
 

@@ -56,23 +56,14 @@
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test02_core_to_ps)
 
-    @(cb);
+    @(cb_core);
     tb_i_core_data1 <= 32'h0000_0002;     
     tb_i_core_data2 <= 32'h0000_0004;     
-    tb_i_core_valid <= 1'b1;     
-    repeat(2)@(cb);
-    tb_i_core_valid <= 1'b0;     
-    repeat(8)@(cb);
+    repeat(8)@(cb_core);
     for (integer k = 0; k < 10; k = k + 1) begin
-        tb_i_core_valid <= 1'b1;     
         tb_i_core_data1 <= k;
         tb_i_core_data2 <= k+1;
-        @(cb);
-        tb_i_core_valid <= 1'b0;     
-        repeat(10)@(cb);
-        
-        //if (k > 1) 
-        //    `ASSERT_IMMEDIATE(tb_o_data  == k-1);     
+        repeat(10)@(cb_core);
     end
     repeat(50) @(cb_core);
      
