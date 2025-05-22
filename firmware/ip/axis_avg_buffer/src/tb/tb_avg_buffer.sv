@@ -32,7 +32,7 @@ wire				m1_axis_tlast;
 
 reg					AVG_START_REG;
 reg		[N_AVG-1:0]	AVG_ADDR_REG;
-reg		[N_AVG-1:0]	AVG_LEN_REG;
+reg		[31:0]	    AVG_LEN_REG;
 reg					AVG_DR_START_REG;
 reg		[N_AVG-1:0]	AVG_DR_ADDR_REG;
 reg		[N_AVG-1:0]	AVG_DR_LEN_REG;
@@ -42,6 +42,7 @@ reg		[N_BUF-1:0]	BUF_LEN_REG;
 reg					BUF_DR_START_REG;
 reg		[N_BUF-1:0]	BUF_DR_ADDR_REG;
 reg		[N_BUF-1:0]	BUF_DR_LEN_REG;
+reg		[N_BUF-1:0]	DEBUG_REG;
 
 // Input data.
 reg		[B-1:0]		di_r,dq_r;
@@ -87,6 +88,9 @@ avg_buffer
 		.AVG_START_REG		(AVG_START_REG		),
 		.AVG_ADDR_REG		(AVG_ADDR_REG		),
 		.AVG_LEN_REG		(AVG_LEN_REG		),
+        .AVG_PHOTON_MODE_REG('d0                ),
+        .AVG_H_THRSH_REG    ('d0                ),
+        .AVG_L_THRSH_REG    ('d0                ),
 		.AVG_DR_START_REG	(AVG_DR_START_REG	),
 		.AVG_DR_ADDR_REG	(AVG_DR_ADDR_REG	),
 		.AVG_DR_LEN_REG		(AVG_DR_LEN_REG		),
@@ -95,7 +99,8 @@ avg_buffer
 		.BUF_LEN_REG		(BUF_LEN_REG		),
 		.BUF_DR_START_REG	(BUF_DR_START_REG	),
 		.BUF_DR_ADDR_REG	(BUF_DR_ADDR_REG	),
-		.BUF_DR_LEN_REG		(BUF_DR_LEN_REG		)
+		.BUF_DR_LEN_REG		(BUF_DR_LEN_REG		),
+		.DEBUG_REG          (DEBUG_REG          )
 	);
 
 assign s_axis_tdata = {dq_r,di_r};
@@ -103,7 +108,7 @@ assign s_axis_tdata = {dq_r,di_r};
 initial begin
 	s_axis_aresetn		<= 0;
 	trigger				<= 0;
-	s_axis_tvalid		<= 1;
+	s_axis_tvalid		<= 0;
 	di_r				<= 0;
 	dq_r				<= 0;
 	AVG_START_REG		<= 0;
@@ -118,7 +123,7 @@ initial begin
 	#200;
 
 	@(posedge s_axis_aclk);
-	AVG_ADDR_REG		<= 0;
+	AVG_ADDR_REG		<= 5;
 	AVG_LEN_REG			<= 10;
 	BUF_ADDR_REG		<= 0;
 	BUF_LEN_REG			<= 10;
@@ -131,7 +136,9 @@ initial begin
 
 	#1000;
 
-	for (int i=0; i<10; i = i + 1) begin
+    s_axis_tvalid <= 1;
+    
+	for (int i=1; i<=10; i = i + 1) begin
 		@(posedge s_axis_aclk);
 		di_r		<= 2*i;
 		dq_r		<= -5*i;
@@ -159,13 +166,14 @@ initial begin
 	BUF_DR_START_REG	<= 0;
 	BUF_DR_ADDR_REG		<= 0;
 	BUF_DR_LEN_REG		<= 0;
+	DEBUG_REG           <= 0;
 	#200;
 	m_axis_aresetn	<= 1;
 
 	#20000;
 
 	@(posedge m_axis_aclk);
-	AVG_DR_ADDR_REG		<= 0;
+	AVG_DR_ADDR_REG		<= 5;
 	AVG_DR_LEN_REG		<= 10;
 	BUF_DR_ADDR_REG		<= 0;
 	BUF_DR_LEN_REG		<= 100;

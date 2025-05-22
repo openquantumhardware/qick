@@ -105,8 +105,6 @@ signal fifo_empty   : std_logic;
 signal fifo_dout_r  : std_logic_vector (B-1 downto 0);
 signal fifo_empty_r : std_logic;
 
-signal mem_dout_r   : std_logic_vector (B-1 downto 0);
-
 signal dlast_i      : std_logic;
 
 begin
@@ -141,7 +139,7 @@ fifo_i : fifo_axi
     
 -- Fifo connections.
 fifo_wr_en  <= write_state;
-fifo_din	<= mem_dout_r;
+fifo_din	<= mem_dout;
 fifo_rd_en  <=  dready when read_en = '1' else
                 '0';    
                 
@@ -158,7 +156,6 @@ begin
 			-- Counter for memory address and samples.
 			cnt				<= (others => '0');
             addr_cnt        <= (others => '0');
-            mem_dout_r      <= (others => '0');
 
 			-- Length register.
 			len_r			<= (others => '0');
@@ -172,7 +169,6 @@ begin
 
 			-- Memory address and data.
             if ( init_state = '1' ) then
-                mem_dout_r      <= (others => '0');
 				cnt				<= (others => '0');
                 addr_cnt        <= (others => '0');
 				len_r			<= (others => '0');
@@ -181,7 +177,6 @@ begin
 				addr_cnt		<= unsigned(ADDR_REG);
 				len_r			<= unsigned(LEN_REG);
             elsif ( read_state = '1' ) then
-                mem_dout_r      <= mem_dout;
 				cnt				<= cnt + 1;
                 addr_cnt        <= addr_cnt + 1;
             end if;            
