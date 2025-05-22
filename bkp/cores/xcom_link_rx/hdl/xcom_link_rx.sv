@@ -175,7 +175,7 @@ end
 assign bit_cntr_n     = (s_new_data) ? bit_cntr_r + 1'b1 : (s_rx_idle) ? 6'b00_0001 :  bit_cntr_r; 
 assign timeout_cntr_n = (s_new_data) ? '0                : (s_rx_idle) ? '0         :  timeout_cntr_r + 1'b1; 
 
-assign s_no_data     = (s_header_shreg [6:5] == 2'b00) ; //
+assign s_no_data     = (s_header_shreg [5:4] == 2'b00) ; //
 assign s_header_last = s_new_data & (bit_cntr_r == 5'd8) ; // Last Header bit
 assign s_data_last   = s_new_data & (bit_cntr_r == s_rx_pack_size ) ; // Last Data Received
 assign s_broadcast   = (s_header_shreg[3:0] == 4'd0); //broadcast
