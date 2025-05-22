@@ -534,6 +534,8 @@ class AxisAvgBuffer(SocIp):
 
     EDGE_COUNTER = False
 
+    FIRST_OUT_SAMPLE_BUG_FIX = False   # Bug is present in IP version <= 1.1
+
     def __init__(self, description):
         """
         Constructor method
@@ -703,6 +705,12 @@ class AxisAvgBuffer(SocIp):
         # Route switch to channel.
         self.switch_avg.sel(slv=self.switch_ch)
 
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+            # we work around this by requesting an extra 2 samples at the beginning
+            address = (address-2) % self['avg_maxlen']
+            transferlen = transferlen + 2
+
         # Set averager data reader address and length.
         self.avg_dr_addr_reg = address
         self.avg_dr_len_reg = transferlen
@@ -726,10 +734,15 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = np.frombuffer(buff[:length], dtype=np.int32).reshape((-1,2))
+        data = np.frombuffer(buff[:transferlen], dtype=np.int32).reshape((-1,2))
+
+        # realign returned data with true request
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            data = data[2:]
+        else:
+            data = data[:length]
 
         # data is a view into the data buffer, so copy it before returning
-
         return data.copy()
 
     def enable_avg(self):
@@ -786,7 +799,11 @@ class AxisAvgBuffer(SocIp):
         # Route switch to channel.
         self.switch_buf.sel(slv=self.switch_ch)
 
-        # time.sleep(0.050)
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+            # we work around this by requesting an extra 2 samples at the beginning
+            address = (address-2) % self['buf_maxlen']
+            transferlen = transferlen + 2
 
         # Set buffer data reader address and length.
         self.buf_dr_addr_reg = address
@@ -811,7 +828,13 @@ class AxisAvgBuffer(SocIp):
         # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = np.frombuffer(buff[:length], dtype=np.int16).reshape((-1,2))
+        data = np.frombuffer(buff[:transferlen], dtype=np.int16).reshape((-1,2))
+
+        # realign returned data with true request
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            data = data[2:]
+        else:
+            data = data[:length]
 
         # data is a view into the data buffer, so copy it before returning
         return data.copy()
@@ -874,6 +897,15 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
             self.avg_h_threshold_reg = high_threshold
             self.avg_l_threshold_reg = low_threshold
 
+class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
+    """
+    AxisAvgBufferV1pt2 class
+
+    Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
+    """
+    bindto = ['user.org:user:axis_avg_buffer:1.2']
+
+    FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.2
 
 class MrBufferEt(SocIp):
     # Registers.
