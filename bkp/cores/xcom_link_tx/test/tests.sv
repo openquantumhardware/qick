@@ -14,10 +14,10 @@ end
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test01_8bit_data)
 
-tb_cb.tb_i_data   <= $urandom();     
-//tb_cb.tb_i_data   <= 32'h0000_0003;     
+//tb_cb.tb_i_data   <= $urandom();     
+tb_cb.tb_i_data   <= 32'h0000_FF0F;     
 tb_cb.tb_i_valid  <= 1'b1;
-tb_cb.tb_i_header <= 8'b0010_1010;//8-bit data witdth     
+tb_cb.tb_i_header <= 8'b0010_1010;//8-bit data width     
 //N clock cycles in 1/0. Invalid values here 0 and 1. Bit LSB is always 0     
 tb_cb.tb_i_cfg_tick <= 4'b0010;   
 @(tb_cb);
