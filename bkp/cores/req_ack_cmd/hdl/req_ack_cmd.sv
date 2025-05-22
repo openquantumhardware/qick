@@ -19,7 +19,7 @@
 //               is 1 and a network (remote) operation (NET_REQ) when it is 0.  
 // - i_addr      addr of register to work on.  
 // - i data      data port. 
-// - i_ack       acknowledgement port. The tproc/Python side should acknowledge
+// - i_ack       acknowledgement port. The xcom_txrx core side should acknowledge
 //               the command processing requirement 
 //Outputs:
 // - o_req_loc   local command requirement signal. Indicates a local command
