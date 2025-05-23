@@ -148,10 +148,15 @@ class QickConfig():
                     lines.append("\t%d:\t%s - configured by PYNQ" % (iReadout, readout['ro_type']))
                 lines.append("\t\tfs=%.3f Msps, decimated=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
                              (adc['fs'], readout['f_output'], readout['b_dds'], readout['f_dds']))
-                lines.append("\t\t%s v%s (%s edge counter)" % (
-                    readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']]))
-                lines.append("\t\tmaxlen %d accumulated, %d decimated (%.3f us)" % (
+                lines.append("\t\t%s v%s (%s edge counter, %s weights)" % (
+                    readout['avgbuf_type'], readout['avgbuf_version'], {False:"no",True:"has"}[readout['has_edge_counter']], {False:"no",True:"has"}[readout['has_weights']]))
+                lines.append("\t\tmemory %d accumulated, %d decimated (%.3f us)" % (
                     readout['avg_maxlen'], readout['buf_maxlen'], buflen))
+                if readout['has_weights']:
+                    wgtlen = readout['wgt_maxlen']/readout['f_output']
+                    lines[-1] += ", %d weights (%.3f us)" % (readout['wgt_maxlen'], wgtlen)
+                    #lines.append("\t\tmaxlen %d weights (%.3f us)" % (
+                    #    readout['wgt_maxlen'], wgtlen))
                 lines.append("\t\ttriggered by %s %d, pin %d, feedback to tProc input %d" % (
                     readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
                 lines.append("\t\t" + self._describe_adc(adcname))
