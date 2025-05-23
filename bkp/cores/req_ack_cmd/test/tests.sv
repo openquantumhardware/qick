@@ -15,34 +15,29 @@ end
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test01_net_req)
 
-tb_cb.tb_i_op <= 5'b1000_0;
-tb_cb.tb_i_data  <= 1'b1;     
-tb_cb.tb_i_valid <= 1'b1;
-@(tb_cb);
-tb_cb.tb_i_valid <= 1'b0;
-repeat(5) @(tb_cb);
-
-@(tb_cb);
-for (integer k = 0; k < 10; k = k + 1) begin
-    tb_cb.tb_i_data <= k;
+    //random_data  = $urandom_range(0,32);     
+    random_data  = 32'd8;
     @(tb_cb);
-
-    //if (k > 1) 
-    //    `ASSERT_IMMEDIATE(tb_o_data  == k-1);     
-end
-repeat(5) @(tb_cb);
-
+    for (int j=0;j<16;j=j+1) begin
+        write_loc(random_data,j);
+    end
+ 
+    //`ASSERT_IMMEDIATE(tb_o_data  == k);     
+    repeat(10) @(tb_cb);
+ 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test02_loc_req)
 
-    //random_data  = $urandom();     
-    random_data  = 32'd8;     
+    random_data  = $urandom_range(0,32);     
+    //random_data  = 32'd8;
     @(tb_cb);
-    write_loc(random_data);
-
+    for (int j=16;j<32;j=j+1) begin
+        write_loc(random_data,j);
+    end
+ 
     //`ASSERT_IMMEDIATE(tb_o_data  == k);     
     repeat(10) @(tb_cb);
-     
+ 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//

@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Wed May  7 14:09:44 2025
+[*] Fri May 23 15:24:20 2025
 [*]
-[dumpfile] "/home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_req_ack_cmd_0.1.0/test-xsim/req_ack_cmd.vcd"
-[dumpfile_mtime] "Wed May  7 14:06:23 2025"
-[dumpfile_size] 12095
-[savefile] "/home/larnaldi/git/lharnaldi/pynq_fused/cores/req_ack_cmd/data/req_ack_cmd.gtkw"
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_qick_req_ack_cmd_0.1.0/test-xsim/req_ack_cmd.vcd"
+[dumpfile_mtime] "Fri May 23 15:09:57 2025"
+[dumpfile_size] 154132
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/req_ack_cmd/data/req_ack_cmd.gtkw"
 [timestart] 0
 [size] 1920 1140
-[pos] -1 -1
-*-15.827576 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -541
+*-19.993883 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.req_ack_cmd_ut.
 [sst_width] 206
 [signals_width] 158
 [sst_expanded] 1
-[sst_vpaned_height] 400
+[sst_vpaned_height] 767
 @29
 [color] 3
 testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.i_clk
@@ -38,7 +38,7 @@ testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_cnt_r[3:0]
 testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_dt_r[31:0]
 testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.cmd_op_r[7:0]
 @2028
-^1 /home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_req_ack_cmd_0.1.0/test-xsim/states.txt
+^1 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_req_ack_cmd_0.1.0/test-xsim/states.txt
 testrunner.__ts.req_ack_cmd_ut.u_req_ack_cmd.state_r[1:0]
 @22
 [color] 6

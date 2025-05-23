@@ -130,14 +130,15 @@ endtask
 //   `SVTEST_END
 //===================================
 
-task automatic write_loc(input logic [NB-1:0] in_data);
+task automatic write_loc(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
         tb_cb.tb_i_valid <= 1'b1;
-        tb_cb.tb_i_op    <= 5'b0_1000;
+        tb_cb.tb_i_op    <= in_op;
         tb_cb.tb_i_addr  <= $urandom_range(0,15);
         tb_cb.tb_i_data  <= in_data + i;
         @(tb_cb);
         tb_cb.tb_i_valid <= 1'b0;
+        @(tb_cb);
         tb_cb.tb_i_ack   <= 1'b1;
         @(tb_cb);
         tb_cb.tb_i_ack   <= 1'b0;
