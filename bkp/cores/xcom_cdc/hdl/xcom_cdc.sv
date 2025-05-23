@@ -9,13 +9,6 @@
 // XCOM clock domain crossing synchronizer. Assumption here is that 
 // time_clk > core_clk > ps_clk
 // 
-//Parameters:
-// - NCH        number of Rx channels. One QICK board typically has 1 Tx 
-//              channels and at least 1 Rx channel.
-// - SYNC       wether to enable (1) the external synchronization signal 
-//              or not (0). The external synchronization signal can came 
-//              from a GPS.
-// -DEBUG       wether to enable (1) the debug port or not (0).
 //Inputs:
 // - i_ps_clk    clock signal synchronous to the PS
 // - i_ps_rstn   active low reset signal synchronous to the PS
@@ -62,11 +55,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 module xcom_cdc
-# (
-   parameter NCH          = 2 ,
-   parameter SYNC         = 1 ,
-   parameter DEBUG        = 1
-)(
+(
    input  logic           i_ps_clk           ,
    input  logic           i_ps_rstn          ,  
    input  logic           i_core_clk         ,
