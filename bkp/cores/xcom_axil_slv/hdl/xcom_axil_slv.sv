@@ -13,48 +13,48 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 module xcom_axil_slv #(
-    parameter integer C_S_AXI_ADDR_WIDTH = 6,               // Address width.  Adjust as needed.
-    parameter integer C_S_AXI_DATA_WIDTH = 32               // Data width (32 or 64).
+    parameter integer C_S_AXI_ADDR_WIDTH = 6,                 // Address width.  Adjust as needed.
+    parameter integer C_S_AXI_DATA_WIDTH = 32                 // Data width (32 or 64).
 ) (
-    input  logic                            clk,            // System clock
-    input  logic                            reset_n,        // Active-low reset
+    input  logic                            clk,              // System clock
+    input  logic                            reset_n,          // Active-low reset
     // Write address channel signals
-    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_awaddr,   // Write address
-    input  logic                            s_axi_awvalid,  // Write address valid
-    output logic                            s_axi_awready,  // Write address ready
+    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_awaddr,     // Write address
+    input  logic                            s_axi_awvalid,    // Write address valid
+    output logic                            s_axi_awready,    // Write address ready
     // Write data channel signals
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   s_axi_wdata,    // Write data
-    input  logic [C_S_AXI_DATA_WIDTH/8-1:0] s_axi_wstrb,    // Write strobes
-    input  logic                            s_axi_wvalid,   // Write data valid
-    output logic                            s_axi_wready,   // Write data ready
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   s_axi_wdata,      // Write data
+    input  logic [C_S_AXI_DATA_WIDTH/8-1:0] s_axi_wstrb,      // Write strobes
+    input  logic                            s_axi_wvalid,     // Write data valid
+    output logic                            s_axi_wready,     // Write data ready
     // Write response channel signals
-    output logic [1:0]                      s_axi_bresp,    // Write response
-    output logic                            s_axi_bvalid,   // Write response valid
-    input  logic                            s_axi_bready,   // Write response ready
+    output logic [1:0]                      s_axi_bresp,      // Write response
+    output logic                            s_axi_bvalid,     // Write response valid
+    input  logic                            s_axi_bready,     // Write response ready
     // Read address channel signals
-    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_araddr,   // Read address
-    input  logic                            s_axi_arvalid,  // Read address valid
-    output logic                            s_axi_arready,  // Read address ready
+    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_araddr,     // Read address
+    input  logic                            s_axi_arvalid,    // Read address valid
+    output logic                            s_axi_arready,    // Read address ready
     // Read data channel signals
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   s_axi_rdata,    // Read data
-    output logic [1:0]                      s_axi_rresp,    // Read response
-    output logic                            s_axi_rvalid,   // Read data valid
-    input  logic                            s_axi_rready,   // Read data ready
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   s_axi_rdata,      // Read data
+    output logic [1:0]                      s_axi_rresp,      // Read response
+    output logic                            s_axi_rvalid,     // Read data valid
+    input  logic                            s_axi_rready,     // Read data ready
     // Registers.
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_ctrl,    //out std_logic_vector ( 5 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_cfg,     //out std_logic_vector ( 3 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_data1,    //out std_logic_vector (31 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_data2,    //out std_logic_vector (31 downto 0) ;
-    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_axi_addr,     //out std_logic_vector ( 3 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_board_id,     //in  std_logic_vector ( 3 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_flag,    //in  std_logic ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_data1,   //in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_data2,   //in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_mem,     //in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_rx_data, //in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_tx_data, //in  std_logic_vector (31 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_status,  //in  std_logic_vector (28 downto 0) ;
-    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_debug    //in  std_logic_vector (31 downto 0) );
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_ctrl,      //out std_logic_vector ( 5 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_cfg,       //out std_logic_vector ( 3 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_axi_data1, //out std_logic_vector (31 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_axi_data2, //out std_logic_vector (31 downto 0) ;
+    output logic [C_S_AXI_DATA_WIDTH-1:0]   o_xcom_axi_addr,  //out std_logic_vector ( 3 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_board_id,       //in  std_logic_vector ( 3 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_flag,      //in  std_logic ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_data1,     //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_data2,     //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_mem,       //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_rx_data,   //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_tx_data,   //in  std_logic_vector (31 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_status,    //in  std_logic_vector (28 downto 0) ;
+    input  logic [C_S_AXI_DATA_WIDTH-1:0]   i_xcom_debug      //in  std_logic_vector (31 downto 0) );
 );
 
     //-------------------------------------------------------------------------

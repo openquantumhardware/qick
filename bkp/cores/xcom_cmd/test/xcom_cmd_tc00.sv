@@ -195,7 +195,11 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
 endtask   
 
 task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
-   $display("PS writing LOC...");
+    if (in_op < 16) begin
+        $display("CORE writing NET...");
+    end else begin
+        $display("CORE writing LOC...");
+    end
     for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
         tb_cb.tb_i_core_en   <= 1'b1;
         tb_cb.tb_i_core_op   <= in_op;

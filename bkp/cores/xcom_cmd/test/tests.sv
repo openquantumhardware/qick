@@ -14,8 +14,8 @@ end
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test02_ps_write_net)
  
-    random_data  = $urandom_range(0,32);     
-    //random_data  = 32'd8;
+    //random_data  = $urandom_range(0,32);     
+    random_data  = 32'd8;
     @(tb_cb);
     for (int j=0;j<16;j=j+1) begin
         write_ps(random_data,j);
@@ -47,7 +47,7 @@ end
     //random_data  = 32'd8;
     @(tb_cb);
     for (int j=0;j<16;j=j+1) begin
-        write_tproc(random_data,j);
+        write_core(random_data,j);
     end
  
     //`ASSERT_IMMEDIATE(tb_o_data  == k);     
@@ -61,7 +61,7 @@ end
     //random_data  = 32'd8;
     @(tb_cb);
     for (int j=16;j<32;j=j+1) begin
-        write_tproc(random_data,j);
+        write_core(random_data,j);
     end
  
     //`ASSERT_IMMEDIATE(tb_o_data  == k);     

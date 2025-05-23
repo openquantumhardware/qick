@@ -323,7 +323,7 @@ assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
-assign o_dbg_status  = {board_id_r, 2'b00, s_tx_ready, s_rx_dbg_state[0], 2'b00, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
+assign o_dbg_status  = {board_id_r, s_tx_ready, 5'b0_0000, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
 assign o_dbg_data    = {i_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
 
 // OUT SIGNALS

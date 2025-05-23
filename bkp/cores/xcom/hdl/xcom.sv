@@ -116,7 +116,7 @@ module xcom import qick_pkg::*;
 ///////////////////////////////////////////////////////////////////////////////
 logic [ 8-1:0] s_op ;
 logic [32-1:0] s_data;
-logic [ 4-1:0] s_data_ctr;
+logic [ 4-1:0] s_data_cntr;
 
 logic [32-1:0] s_xcom_ctrl ;
 logic [6-1:0]  s_xcom_ctrl_sync ;
@@ -174,48 +174,44 @@ xcom_axil_slv#(
     .C_S_AXI_ADDR_WIDTH ( 6  ),   
     .C_S_AXI_DATA_WIDTH ( 32 )   
 ) u_xcom_axil_slv(
-   .clk            ( i_ps_clk           ), 
-   .reset_n        ( i_ps_rstn          ), 
-   .s_axi_awaddr   ( s_axi_awaddr [6-1:0] ), 
-   .s_axi_awvalid  ( s_axi_awvalid      ),
-   .s_axi_awready  ( s_axi_awready      ), 
-   .s_axi_wdata    ( s_axi_wdata        ), 
-   .s_axi_wstrb    ( s_axi_wstrb        ), 
-   .s_axi_wvalid   ( s_axi_wvalid       ), 
-   .s_axi_wready   ( s_axi_wready       ), 
-   .s_axi_bresp    ( s_axi_bresp        ), 
-   .s_axi_bvalid   ( s_axi_bvalid       ), 
-   .s_axi_bready   ( s_axi_bready       ), 
-   .s_axi_araddr   ( s_axi_araddr       ), 
-   .s_axi_arvalid  ( s_axi_arvalid      ),
-   .s_axi_arready  ( s_axi_arready      ), 
-   .s_axi_rdata    ( s_axi_rdata        ), 
-   .s_axi_rresp    ( s_axi_rresp        ), 
-   .s_axi_rvalid   ( s_axi_rvalid       ), 
-   .s_axi_rready   ( s_axi_rready       ), 
-   .o_xcom_ctrl    ( s_xcom_ctrl        ), 
-   .o_xcom_cfg     ( s_xcom_cfg         ), 
-   .o_axi_data1    ( s_axi_data1        ),
-   .o_axi_data2    ( s_axi_data2        ),
-   .o_axi_addr     ( s_axi_addr         ),
-   .i_board_id     ( s_xcom_id_ps       ),
-   .i_xcom_flag    ( s_xcom_flag_ps     ),
-   .i_xcom_data1   ( s_core_data1_ps    ),
-   .i_xcom_data2   ( s_core_data2_ps    ),
-   .i_xcom_mem     ( axi_mem_data       ),
-   .i_xcom_rx_data ( s_dbg_rx_data_ps   ),
-   .i_xcom_tx_data ( s_dbg_tx_data_ps   ),
-   .i_xcom_status  ( xreg_status_sync_r ),//s_dbg_status_ps    ),
-   .i_xcom_debug   ( xreg_debug         ) //s_dbg_debug_ps     )
+   .clk             ( i_ps_clk           ), 
+   .reset_n         ( i_ps_rstn          ), 
+   .s_axi_awaddr    ( s_axi_awaddr [6-1:0] ), 
+   .s_axi_awvalid   ( s_axi_awvalid      ),
+   .s_axi_awready   ( s_axi_awready      ), 
+   .s_axi_wdata     ( s_axi_wdata        ), 
+   .s_axi_wstrb     ( s_axi_wstrb        ), 
+   .s_axi_wvalid    ( s_axi_wvalid       ), 
+   .s_axi_wready    ( s_axi_wready       ), 
+   .s_axi_bresp     ( s_axi_bresp        ), 
+   .s_axi_bvalid    ( s_axi_bvalid       ), 
+   .s_axi_bready    ( s_axi_bready       ), 
+   .s_axi_araddr    ( s_axi_araddr       ), 
+   .s_axi_arvalid   ( s_axi_arvalid      ),
+   .s_axi_arready   ( s_axi_arready      ), 
+   .s_axi_rdata     ( s_axi_rdata        ), 
+   .s_axi_rresp     ( s_axi_rresp        ), 
+   .s_axi_rvalid    ( s_axi_rvalid       ), 
+   .s_axi_rready    ( s_axi_rready       ), 
+   .o_xcom_ctrl     ( s_xcom_ctrl        ), 
+   .o_xcom_cfg      ( s_xcom_cfg         ), 
+   .o_xcom_axi_data1( s_axi_data1        ),
+   .o_xcom_axi_data2( s_axi_data2        ),
+   .o_xcom_axi_addr ( s_axi_addr         ),
+   .i_board_id      ( s_xcom_id_ps       ),
+   .i_xcom_flag     ( s_xcom_flag_ps     ),
+   .i_xcom_data1    ( s_core_data1_ps    ),
+   .i_xcom_data2    ( s_core_data2_ps    ),
+   .i_xcom_mem      ( axi_mem_data       ),
+   .i_xcom_rx_data  ( s_dbg_rx_data_ps   ),
+   .i_xcom_tx_data  ( s_dbg_tx_data_ps   ),
+   .i_xcom_status   ( xreg_status_sync_r ),//s_dbg_status_ps    ),
+   .i_xcom_debug    ( xreg_debug         ) //s_dbg_debug_ps     )
    ); 
 
 assign axi_mem_data = xcom_mem_data[s_axi_addr];
 
-xcom_cdc#(
-   .NCH          ( NCH   ),
-   .SYNC         ( SYNC  ),
-   .DEBUG        ( DEBUG ) 
-) u_xcom_cdc(
+xcom_cdc u_xcom_cdc(
    .i_ps_clk           ( i_ps_clk         ),
    .i_ps_rstn          ( i_ps_rstn        ),  
    .i_core_clk         ( i_core_clk       ),
@@ -348,7 +344,7 @@ always_ff @ (posedge i_ps_clk) begin
    else            xreg_status_sync_r <= xreg_status_sync_n;
 end
 
-assign xreg_status        = { 8'h00,s_data_cntr, s_dbg_status};
+assign xreg_status        = { 8'h00,s_data_cntr, s_dbg_status_ps};
 assign xreg_status_sync_n = (s_req_cmd) ? xreg_status : xreg_status_sync_r;
 
 //end of SYNC STAGES

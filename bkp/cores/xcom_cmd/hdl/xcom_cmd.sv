@@ -14,12 +14,11 @@
 // - i_core_en    data valid signal coming from the core processor. Indicates
 //                a valid data is ready for transmission.
 // - i_core_op    opcode from the core. See xcom opcodes in qick_pkg 
-// - i_core_data  transmission requirement signal. Signal indicating a new
-//                data transmission starts.  
+// - i_core_data  data to be transmitted, coming from the core processor.  
 // - i ps_ctrl    port used to send opcode and data valid signal from Python. 
 //                bits [5:1] determines the operation to be done. See xcom
 //                           opcodes in qick_pkg.
-//                bit 0 data valid signal coming from Python. Indicates
+//                bit 0      data valid signal coming from Python. Indicates
 //                           a valid data is ready for transmission.
 // - i_ps_data    the data to be transmitted, coming from Python 
 // - i_ack_loc    acknowledge signal to LOCAL commands. This signal is
@@ -30,7 +29,7 @@
 //Outputs:
 // - o_req_loc    signal requesting a LOCAL command.
 // - o_req_net    signal requesting a NETWORK command.
-// - o_op         opcode trasnmitted
+// - o_op         opcode transmitted
 // - o_data       data transmittted 
 // - o_data_cntr  data counter for debug 
 //
