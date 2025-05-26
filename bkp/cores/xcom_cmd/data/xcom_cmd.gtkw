@@ -1,15 +1,15 @@
 [*]
-[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Thu May  8 19:12:25 2025
+[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
+[*] Mon May 26 03:12:01 2025
 [*]
-[dumpfile] "/home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/xcom_cmd.vcd"
-[dumpfile_mtime] "Thu May  8 17:35:24 2025"
-[dumpfile_size] 334887
-[savefile] "/home/larnaldi/git/lharnaldi/pynq_fused/cores/xcom_cmd/data/xcom_cmd.gtkw"
-[timestart] 0
-[size] 1920 1140
+[dumpfile] "/home/arnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/xcom_cmd.vcd"
+[dumpfile_mtime] "Mon May 26 02:56:41 2025"
+[dumpfile_size] 340027
+[savefile] "/home/arnaldi/git/qick_internal/bkp/cores/xcom_cmd/data/xcom_cmd.gtkw"
+[timestart] 6491100
+[size] 2049 1103
 [pos] -1 -1
-*-20.869415 6922000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-14.761546 6596000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.xcom_cmd_ut.
@@ -31,7 +31,7 @@ testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ack_net
 (5)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0]
 @c02028
 [color] 2
-^1 /home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/opcodes.txt
+^1 /home/arnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/opcodes.txt
 #{opcode} (0)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0] (1)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0] (2)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0] (3)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0] (4)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0]
 @28
 (0)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0]
@@ -183,82 +183,35 @@ testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_data[63:0]
 -group_end
 @22
 [color] 3
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_data[63:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_core_data[63:0]
 @28
 [color] 3
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_en
-@c02029
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_core_en
+@23
 [color] 3
-^1 /home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/opcodes.txt
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-@28
-[color] 3
-(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-[color] 3
-(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-[color] 3
-(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-[color] 3
-(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-[color] 3
-(4)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_tproc_op[4:0]
-@1401209
--group_end
-@28
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_ack
-@24
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_addr[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_core_op[4:0]
 @22
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_data[31:0]
-@28
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_valid
-[color] 6
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_req_net
-[color] 6
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_req_loc
-@24
+[color] 3
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_ctrl[5:0]
+[color] 3
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.i_ps_data[63:0]
 [color] 6
 testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data[31:0]
-@c00022
+[color] 6
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
 [color] 6
 testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
 @28
 [color] 6
-(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_req_loc
 [color] 6
-(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(4)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(5)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(6)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-[color] 6
-(7)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_op[7:0]
-@1401200
--group_end
-@c00024
-[color] 6
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
-@28
-[color] 6
-(0)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
-[color] 6
-(1)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
-[color] 6
-(2)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
-[color] 6
-(3)testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_data_cntr[3:0]
-@1401200
--group_end
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.o_req_net
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_ack
 @22
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_addr[3:0]
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_data[31:0]
 testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_op[4:0]
-@2028
-^2 /home/larnaldi/git/lharnaldi/pynq_fused/build/fnal_qick_xcom_cmd_1.1.0/test-xsim/states.txt
-testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.u_req_ack_cmd.state_r[1:0]
+@28
+testrunner.__ts.xcom_cmd_ut.u_xcom_cmd.s_valid
 [pattern_trace] 1
 [pattern_trace] 0

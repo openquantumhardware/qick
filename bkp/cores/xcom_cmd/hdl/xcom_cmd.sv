@@ -65,12 +65,18 @@ logic  [4-1:0] s_addr;
 logic [32-1:0] s_data; 
 
     //I/O selection
-    assign s_valid = i_ps_ctrl[0]      | i_core_en;
     assign s_op    = i_ps_ctrl[5:1]    | i_core_op;
     assign s_addr  = i_ps_data[0][3:0] | i_core_data[0][3:0];
     assign s_data  = i_ps_data[1]      | i_core_data[1];
 
     assign s_ack   = i_ack_loc         | i_ack_net;
+
+rising_edge_det u_rising_edge_det (
+  .i_clk      ( i_clk                    ),
+  .i_rstn     ( i_rstn                   ),
+  .i_strobe   ( i_ps_ctrl[0] | i_core_en ),
+  .o_pulse    ( s_valid                  )
+);
 
 // Command Request 
 ///////////////////////////////////////////////////////////////////////////////
