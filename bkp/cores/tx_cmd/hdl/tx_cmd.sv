@@ -79,8 +79,9 @@ logic s_xcmd_sync;
 logic s_sync;
 
 typedef enum logic [2-1:0]{ IDLE  = 2'b00, 
-                            WSYNC = 2'b01, 
-                            WRDY  = 2'b10 
+                            WVLD  = 2'b01, 
+                            WSYNC = 2'b10, 
+                            WRDY  = 2'b11 
 } state_t;
 state_t state_r, state_n;
 
@@ -110,12 +111,17 @@ always_comb begin
    s_tx_valid  = 1'b0;
    case (state_r)
       IDLE:  begin
-         if ( i_req )
-            if ( s_xcmd_sync )
+         if ( i_req ) begin
+            if ( s_xcmd_sync ) begin
                state_n = WSYNC;     
-            else begin
-               state_n    = WRDY;     
+            end else begin
+               state_n    = WVLD;     
             end
+         end
+      end
+      WVLD: begin
+         s_tx_valid = 1'b1;
+         state_n    = WRDY;
       end
       WSYNC:  begin
          if ( s_sync ) begin 
@@ -124,7 +130,6 @@ always_comb begin
          end
       end
       WRDY:  begin
-         s_tx_valid = 1'b1;
          if ( !i_req & s_ready ) state_n = IDLE;     
       end
       default: state_n = state_r;
@@ -146,8 +151,6 @@ u_xcom_link_tx
 );
 
 // OUTPUTS
-///////////////////////////////////////////////////////////////////////////////
-assign o_dbg_state = state_r;
 assign o_ready     = s_ready;
 
 endmodule
