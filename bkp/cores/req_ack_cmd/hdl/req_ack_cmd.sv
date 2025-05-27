@@ -36,6 +36,7 @@
 //                          - the sync_n core was removed to sync all signals
 //                          in one place (external).
 //                 05/07/25 - Added header documentation @lharnaldi
+//                 05/27/25 - @lharnaldi Modify the FSM
 //
 ///////////////////////////////////////////////////////////////////////////////
 module req_ack_cmd 
@@ -56,14 +57,17 @@ module req_ack_cmd
     output logic [ 4-1:0] o_data_cntr
 );
 
+    logic [ 8-1:0]   s_cmd_op;
+    logic            s_new_cmd;
     logic [ 8-1:0]   cmd_op_r, cmd_op_n;
     logic [32-1:0]   cmd_dt_r, cmd_dt_n;
     logic [ 4-1:0]   cmd_cnt_r, cmd_cnt_n;
 
-    typedef enum logic [2-1:0] {IDLE    = 2'b00, 
-                                LOC_REQ = 2'b01, 
-                                NET_REQ = 2'b10, 
-                                ACK     = 2'b11
+    typedef enum logic [3-1:0] {IDLE    = 3'b000, 
+                                CHK_OP  = 3'b001, 
+                                LOC_REQ = 3'b010, 
+                                NET_REQ = 3'b011, 
+                                ACK     = 3'b100
     } state_t;
     
     state_t state_r, state_n;
@@ -79,9 +83,18 @@ module req_ack_cmd
         state_n   = state_r; 
         o_req_loc = 1'b0;
         o_req_net = 1'b0;
+        s_new_cmd = 1'b0;
         case (state_r)
             IDLE: begin
                if( i_valid )  begin
+                  state_n = CHK_OP;
+               end else begin
+                  state_n = IDLE;
+               end
+            end
+            CHK_OP:
+               if (cmd_op_r != s_cmd_op) begin
+                  s_new_cmd = 1'b1;
                   if (i_op[4]) begin
                      state_n   = LOC_REQ;
                   end else begin
@@ -90,7 +103,6 @@ module req_ack_cmd
                end else begin
                   state_n = IDLE;
                end
-            end
             LOC_REQ:  begin
                o_req_loc = 1'b1;
                if (i_ack) state_n = ACK;
@@ -112,18 +124,19 @@ module req_ack_cmd
 
     always_ff @(posedge i_clk) 
         if (!i_rstn) begin
-            cmd_op_r   <= '0;
-            cmd_dt_r   <= '0;
-            cmd_cnt_r  <= '0;
+            cmd_op_r      <= '0;
+            cmd_dt_r      <= '0;
+            cmd_cnt_r     <= '0;
         end else begin
-            cmd_op_r   <= cmd_op_n;
-            cmd_dt_r   <= cmd_dt_n;
-            cmd_cnt_r  <= cmd_cnt_n;
+            cmd_op_r      <= cmd_op_n;
+            cmd_dt_r      <= cmd_dt_n;
+            cmd_cnt_r     <= cmd_cnt_n;
         end
     //next state logic
-    assign cmd_op_n  = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
-    assign cmd_dt_n  = i_valid ? i_data              : cmd_dt_r;
-    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
+    assign s_cmd_op  = {i_op[3:0], i_addr};
+    assign cmd_op_n  = s_new_cmd ? {i_op[3:0], i_addr} : cmd_op_r;
+    assign cmd_dt_n  = s_new_cmd ? i_data              : cmd_dt_r;
+    assign cmd_cnt_n = s_new_cmd ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
 
     // OUTPUTS
     ///////////////////////////////////////////////////////////////////////////////
