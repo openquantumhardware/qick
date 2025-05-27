@@ -18,28 +18,20 @@
 //              data is available to write locally (in the local board).  
 // - i_req_net  transmission requirement signal. Signal indicating a new
 //              data transmission starts.  
-// - i_cfg_tick this input is connected to the AXI_CFG register and 
-//              determines the duration of the xcom_clk output signal.
-//              xcom_clk will be either in state 1 or 0 for CFG_AXI clock 
-//              cycles (i_clk). Possible values ranges from 0 to 7 with 
-//              0 equal to two clock cycles and 7 equal to 15 clock 
-//              cycles. As an example, if i_cfg_tick = 2 and 
-//              i_clk = 500 MHz, then xcom_clk would be ~125 MHz.
 // - i header   this is the header to be sent to the slaves. 
-//              bit 7      is sometimes used to indicate a 
-//                         synchronization in other places in the 
-//                         XCOM hierarchy
-//              bits [6:5] determines the data length to transmit:
-//                         00 no data
-//                         01 8-bit data
-//                         10 16-bit data
-//                         11 32-bit data
-//              bit 4      not used in this block
-//              bits [3:0] not used in this block. Sometimes used 
-//                         as mem_id and sometimes used as board 
-//                         ID in the XCOM hierarchy 
-// - i_data     the data to be transmitted 
+//              It is used by the tx_cmd instance here. See the 
+//              documentation in that core.
+// - i_data     the data to be transmitted. It is used by the tx_cmd 
+//              instance here and for some LOC commands. 
+// - i_cfg_tick this input is connected to the AXI_CFG register and
+//              determines the duration of the xcom_clk output signal.
+//              It is used by the tx_cmd instance here. See the 
+//              documentation in that core.
+//
 //Outputs:
+// - o_ack_loc  acknowledge signal to LOC commands.
+// - o_ack_net  acknowledge signal to NET commands.
+//
 //QICK interface:
 // - o_qp_ready signal indicating the ip is ready to receive new data to
 //              transmit
@@ -48,8 +40,18 @@
 // - o_qp_flag  signal indicating to write flag into the core
 // - o_qp_data1 data1 to core
 // - o_qp_data2 data2 to core
-// - o_clk      serial clock for transmission. This is the general output of
-//              the XCOM block
+//
+//TPROC CONTROL INTERFACE
+// - o_proc_start       start signal to the tproc
+// - o_proc_stop        stop signal to the tproc
+// - o_time_rst         reset the time reference in processor
+// - o_time_update      update the time in processor
+// - o_time_update_data data to update the time in processor
+// - o_core_start       start signal to the core in tproc
+// - o_core_stop        stop signal to the core in tproc
+//
+// XCOM CONFIG
+// - o_xcom_id board ID. This is a signal to see the board ID in external LEDs.
 // - o_dbg_state debug port for monitoring the state of the internal FSM
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
