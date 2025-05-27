@@ -58,6 +58,7 @@ module req_ack_cmd
 );
 
     logic [ 8-1:0]   s_cmd_op;
+    logic [32-1:0]   s_cmd_dt;
     logic            s_new_cmd;
     logic [ 8-1:0]   cmd_op_r, cmd_op_n;
     logic [32-1:0]   cmd_dt_r, cmd_dt_n;
@@ -93,7 +94,7 @@ module req_ack_cmd
                end
             end
             CHK_OP:
-               if (cmd_op_r != s_cmd_op) begin
+               if ((cmd_op_r != s_cmd_op) | (cmd_dt_r != s_cmd_dt)) begin
                   s_new_cmd = 1'b1;
                   if (i_op[4]) begin
                      state_n   = LOC_REQ;
@@ -134,6 +135,7 @@ module req_ack_cmd
         end
     //next state logic
     assign s_cmd_op  = {i_op[3:0], i_addr};
+    assign s_cmd_dt  = i_data;
     assign cmd_op_n  = s_new_cmd ? {i_op[3:0], i_addr} : cmd_op_r;
     assign cmd_dt_n  = s_new_cmd ? i_data              : cmd_dt_r;
     assign cmd_cnt_n = s_new_cmd ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
