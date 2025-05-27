@@ -187,9 +187,17 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
         tb_cb.tb_i_ps_data      <= in_data + i;
         @(tb_cb);
         tb_cb.tb_i_ps_ctrl[0]   <= 1'b0;
-        tb_cb.tb_i_ack_loc      <= 1'b1;
+        if (in_op < 16) begin
+            tb_cb.tb_i_ack_net      <= 1'b1;
+        end else begin
+            tb_cb.tb_i_ack_loc      <= 1'b1;
+        end
         @(tb_cb);
-        tb_cb.tb_i_ack_loc      <= 1'b0;
+        if (in_op < 16) begin
+            tb_cb.tb_i_ack_net      <= 1'b0;
+        end else begin
+            tb_cb.tb_i_ack_loc      <= 1'b0;
+        end
         repeat($urandom_range(1,5))@(tb_cb);
     end   
 endtask   
@@ -207,9 +215,17 @@ task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_o
         tb_cb.tb_i_core_data <= in_data + i;
         @(tb_cb);
         tb_cb.tb_i_core_en   <= 1'b0;
-        tb_cb.tb_i_ack_net    <= 1'b1;
+        if (in_op < 16) begin
+            tb_cb.tb_i_ack_net      <= 1'b1;
+        end else begin
+            tb_cb.tb_i_ack_loc      <= 1'b1;
+        end
         @(tb_cb);
-        tb_cb.tb_i_ack_net    <= 1'b0;
+        if (in_op < 16) begin
+            tb_cb.tb_i_ack_net      <= 1'b0;
+        end else begin
+            tb_cb.tb_i_ack_loc      <= 1'b0;
+        end
         repeat($urandom_range(1,5))@(tb_cb);
     end   
 endtask   

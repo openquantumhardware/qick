@@ -9,7 +9,6 @@ filesets:
       - hdl/xcom_cmd.sv
     file_type: systemVerilogSource
     depend:
-       - fnal:utils:rising_edge_det
        - fnal:qick:req_ack_cmd
 
 
