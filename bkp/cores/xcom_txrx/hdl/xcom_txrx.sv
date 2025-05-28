@@ -237,9 +237,9 @@ assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
 // LOC COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @(posedge i_clk) begin
-   if      ( !i_rstn )   s_ack_loc <= 1'b0;
-   else if ( i_req_loc ) s_ack_loc <= 1'b1;
-   else                  s_ack_loc <= 1'b0;
+   if      ( !i_rstn )                s_ack_loc <= 1'b0;
+   else if ( i_req_loc & !s_ack_loc ) s_ack_loc <= 1'b1;
+   else                               s_ack_loc <= 1'b0;
 end
 
 always_ff @ (posedge i_clk) begin
