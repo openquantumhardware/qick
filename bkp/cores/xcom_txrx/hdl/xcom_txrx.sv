@@ -51,7 +51,9 @@
 // - o_core_stop        stop signal to the core in tproc
 //
 // XCOM CONFIG
-// - o_xcom_id board ID. This is a signal to see the board ID in external LEDs.
+// - o_xcom_id  board ID. This is a signal to see the board ID into external 
+//              LEDs.
+// - o_xcom_mem internal 16-word memory port
 // - o_dbg_state debug port for monitoring the state of the internal FSM
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
@@ -107,6 +109,7 @@ module xcom_txrx import qick_pkg::*;
 
 // SIGNAL DECLARATION
 ///////////////////////////////////////////////////////////////////////////////
+logic  [4-1:0] s_cfg_tick;
 logic  [5-1:0] s_rx_dbg_state [NCH];
 logic  [2-1:0] s_tx_dbg_state;
 
@@ -146,6 +149,8 @@ logic         rx_set_id_r, rx_set_id_n;
 //Transmission
 // TRANSMIT NET COMMAND
 ///////////////////////////////////////////////////////////////////////////////
+assign s_cfg_tick = {i_cfg_tick[3-1:0]+1'b1, 1'b0};
+
 always_ff @(posedge i_clk) begin
    if      ( !i_rstn )               s_ack_net <= 1'b0;
    else if ( i_req_net & s_tx_ready) s_ack_net <= 1'b1;
@@ -156,7 +161,7 @@ tx_cmd u_tx_cmd(
     .i_clk      ( i_clk          ),
     .i_rstn     ( i_rstn         ),
     .i_sync     ( i_sync         ),
-    .i_cfg_tick ( i_cfg_tick     ),
+    .i_cfg_tick ( s_cfg_tick     ),
     .i_req      ( i_req_net      ),
     .i_header   ( i_header       ),
     .i_data     ( i_data         ),
@@ -326,7 +331,7 @@ assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
 assign o_dbg_status  = {board_id_r, s_tx_ready, 5'b0_0000, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
-assign o_dbg_data    = {i_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
+assign o_dbg_data    = {s_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
 
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////

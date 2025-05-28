@@ -122,7 +122,6 @@ logic [32-1:0] s_xcom_ctrl ;
 logic [6-1:0]  s_xcom_ctrl_sync ;
 logic [32-1:0] s_xcom_cfg ;
 logic [4-1:0]  s_xcom_cfg_sync ;
-logic [4-1:0]  xcom_cfg;
 logic [32-1:0] s_axi_data1;
 logic [32-1:0] s_axi_data1_sync;
 logic [32-1:0] s_axi_data2 ;
@@ -258,7 +257,6 @@ xcom_cdc u_xcom_cdc(
 );
 
 assign s_core_data  = {s_core_data2_sync, s_core_data1_sync};
-assign xcom_cfg     = {s_xcom_cfg_sync[3-1:0]+1'b1, 1'b0};
 assign s_ps_data    = {s_axi_data2_sync, s_axi_data1_sync};
 
 xcom_cmd u_xcom_cmd(
@@ -303,7 +301,7 @@ xcom_txrx#(
   .o_time_update_data( o_time_update_data ),
   .o_core_start      ( o_core_start       ),
   .o_core_stop       ( o_core_stop        ),
-  .i_cfg_tick        ( xcom_cfg           ),
+  .i_cfg_tick        ( s_xcom_cfg_sync    ),
   .o_xcom_id         ( s_xcom_id          ),
   .o_xcom_mem        ( xcom_mem_data      ),//FIXME: review this because here we are crossing clock domains
   .i_xcom_data       ( i_xcom_data        ),
