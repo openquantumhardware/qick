@@ -118,6 +118,8 @@ logic [ 8-1:0] s_op ;
 logic [32-1:0] s_data;
 logic [ 4-1:0] s_data_cntr;
 
+logic [ 4-1:0] s_xcom_id;
+logic [ 4-1:0] s_xcom_id_ps;
 logic [32-1:0] s_xcom_ctrl ;
 logic [6-1:0]  s_xcom_ctrl_sync ;
 logic [32-1:0] s_xcom_cfg ;
@@ -197,7 +199,7 @@ xcom_axil_slv#(
    .o_xcom_axi_data1( s_axi_data1        ),
    .o_xcom_axi_data2( s_axi_data2        ),
    .o_xcom_axi_addr ( s_axi_addr         ),
-   .i_board_id      ( s_xcom_id_ps       ),
+   .i_board_id      ( {28'h000_0000,s_xcom_id_ps} ),
    .i_xcom_flag     ( s_xcom_flag_ps     ),
    .i_xcom_data1    ( s_core_data1_ps    ),
    .i_xcom_data2    ( s_core_data2_ps    ),

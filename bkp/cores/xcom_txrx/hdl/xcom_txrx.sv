@@ -251,10 +251,10 @@ assign cmd_exec_n = i_req_loc & !s_ack_loc;
 // LOC Decoding
 ///////////////////////////////////////////////////////////////////////////////
 assign loc_cmd_op  = i_header[7:4];
-assign loc_set_id  = loc_cmd_op == XCOM_SET_ID;//4'b0000 ; 
-assign loc_wflg    = loc_cmd_op == XCOM_WRITE_FLAG;//4'b0001 ;
-assign loc_wreg    = loc_cmd_op == XCOM_WRITE_REG;//4'b0010 ;
-assign loc_wmem    = loc_cmd_op == XCOM_WRITE_MEM;//4'b0011 ;
+assign loc_set_id  = cmd_exec_r & loc_cmd_op == XCOM_SET_ID;//4'b0000 ; 
+assign loc_wflg    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_FLAG;//4'b0001 ;
+assign loc_wreg    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_REG;//4'b0010 ;
+assign loc_wmem    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_MEM;//4'b0011 ;
 
 assign loc_id_en   = cmd_exec_r & loc_set_id;
 assign loc_wflg_en = cmd_exec_r & loc_wflg; 

@@ -152,6 +152,7 @@ u_xcom_link_tx
 
 // OUTPUTS
 assign o_ready     = s_ready;
+assign o_dbg_state = state_r;
 
 endmodule
 

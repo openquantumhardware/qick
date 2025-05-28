@@ -274,7 +274,7 @@ task setup();
     tb_cb.tb_i_req_net  <= 1'b0;
     tb_cb.tb_i_header   <= '0;
     tb_cb.tb_i_data     <= '0;
-    tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
+    tb_cb.tb_i_cfg_tick  <= '0;       //one bit every 2 clock cycles
 
 //xcom_cmd
   random_data = $urandom();
@@ -393,7 +393,9 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
         tb_cb.tb_i_ps_ctrl[0]   <= 1'b0;
         wait(tb_o_ack_loc | tb_o_ack_net);
         @(tb_cb);
-        repeat($urandom_range(1,5))@(tb_cb);
+        $display("crossing %d",i);
+        //repeat($urandom_range(1,5))@(tb_cb);
+        repeat(5)@(tb_cb);
     end   
 endtask   
 
