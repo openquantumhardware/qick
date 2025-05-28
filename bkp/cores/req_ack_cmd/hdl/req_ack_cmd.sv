@@ -65,10 +65,11 @@ module req_ack_cmd
     logic [ 4-1:0]   cmd_cnt_r, cmd_cnt_n;
 
     typedef enum logic [3-1:0] {IDLE    = 3'b000, 
-                                CHK_OP  = 3'b001, 
-                                LOC_REQ = 3'b010, 
-                                NET_REQ = 3'b011, 
-                                ACK     = 3'b100
+                                CHK_TYP = 3'b001, 
+                                CHK_OP  = 3'b010, 
+                                LOC_REQ = 3'b011, 
+                                NET_REQ = 3'b100, 
+                                ACK     = 3'b101
     } state_t;
     
     state_t state_r, state_n;
@@ -93,17 +94,21 @@ module req_ack_cmd
                   state_n = IDLE;
                end
             end
-            CHK_OP:
+            CHK_OP: begin
                if ((cmd_op_r != s_cmd_op) | (cmd_dt_r != s_cmd_dt)) begin
-                  s_new_cmd = 1'b1;
-                  if (i_op[4]) begin
-                     state_n   = LOC_REQ;
-                  end else begin
-                     state_n   = NET_REQ;
-                  end
+                  state_n   = CHK_TYP;
                end else begin
-                  state_n = IDLE;
+                  state_n   = IDLE;
                end
+            end
+            CHK_TYP: begin
+               s_new_cmd = 1'b1;
+               if (i_op[4]) begin
+                  state_n   = LOC_REQ;
+               end else begin
+                  state_n   = NET_REQ;
+               end
+            end
             LOC_REQ:  begin
                o_req_loc = 1'b1;
                if (i_ack) state_n = ACK;
