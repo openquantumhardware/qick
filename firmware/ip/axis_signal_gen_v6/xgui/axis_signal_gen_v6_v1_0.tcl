@@ -9,6 +9,24 @@ proc init_gui { IPINST } {
 
 }
 
+proc update_PARAM_VALUE.ENVELOPE_TYPE { PARAM_VALUE.ENVELOPE_TYPE } {
+	# Procedure called to update ENVELOPE_TYPE when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.ENVELOPE_TYPE { PARAM_VALUE.ENVELOPE_TYPE } {
+	# Procedure called to validate ENVELOPE_TYPE
+	return true
+}
+
+proc update_PARAM_VALUE.GEN_DDS { PARAM_VALUE.GEN_DDS } {
+	# Procedure called to update GEN_DDS when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.GEN_DDS { PARAM_VALUE.GEN_DDS } {
+	# Procedure called to validate GEN_DDS
+	return true
+}
+
 proc update_PARAM_VALUE.N { PARAM_VALUE.N } {
 	# Procedure called to update N when any of the dependent parameters in the arguments change
 }
@@ -36,5 +54,15 @@ proc update_MODELPARAM_VALUE.N { MODELPARAM_VALUE.N PARAM_VALUE.N } {
 proc update_MODELPARAM_VALUE.N_DDS { MODELPARAM_VALUE.N_DDS PARAM_VALUE.N_DDS } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.N_DDS}] ${MODELPARAM_VALUE.N_DDS}
+}
+
+proc update_MODELPARAM_VALUE.GEN_DDS { MODELPARAM_VALUE.GEN_DDS PARAM_VALUE.GEN_DDS } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.GEN_DDS}] ${MODELPARAM_VALUE.GEN_DDS}
+}
+
+proc update_MODELPARAM_VALUE.ENVELOPE_TYPE { MODELPARAM_VALUE.ENVELOPE_TYPE PARAM_VALUE.ENVELOPE_TYPE } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.ENVELOPE_TYPE}] ${MODELPARAM_VALUE.ENVELOPE_TYPE}
 }
 

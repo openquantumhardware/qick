@@ -45,7 +45,7 @@ module ctrl (
 parameter N = 16;
 
 // Number of parallel dds blocks.
-parameter [31:0] N_DDS = 16;
+parameter N_DDS = 16;
 
 // Ports.
 input					rstn;

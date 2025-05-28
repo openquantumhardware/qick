@@ -33,7 +33,13 @@ module signal_gen_top
 parameter N = 16;
 
 // Number of parallel dds blocks.
-parameter [31:0] N_DDS = 16;
+parameter N_DDS = 16;
+
+// True: Generate DDS for Envelope Upconversion. False: Remove DDS for Baseband Envelope only
+parameter GEN_DDS = "TRUE";
+
+// COMPLEX: Allow Complex Envelope generation. REAL: Allow only Real envelope generation
+parameter ENVELOPE_TYPE = "COMPLEX";
 
 /*********/
 /* Ports */
@@ -144,7 +150,7 @@ data_writer
     );
 
 generate
-genvar i;
+	genvar i;
 	for (i=0; i<N_DDS; i=i+1) begin : GEN_mem
 		/***********************/
 		/* Block instantiation */
@@ -173,30 +179,35 @@ genvar i;
 		        .dob     (mem_dob_real[i*16 +: 16]	)
 		    );
 
-		// Memory for Imaginary Part.
-		bram_dp
-		    #(
-		        // Memory address size.
-		        .N	(N),
-		        // Data width.
-		        .B	(16)
-		    )
-		    mem_imag_i
-			( 
-				.clka    (s0_axis_aclk				),
-		        .clkb    (aclk						),
-		        .ena     (mem_ena[i]				),
-		        .enb     (1'b1						),
-		        .wea     (mem_wea					),
-		        .web     (1'b0						),
-		        .addra   (mem_addra					),
-		        .addrb   (mem_addrb					),
-		        .dia     (mem_dia[31:16]			),
-		        .dib     (16'h0000					),
-		        .doa     (							),
-		        .dob     (mem_dob_imag[i*16 +: 16]	)
-		    );
-
+        if (ENVELOPE_TYPE == "COMPLEX") begin
+            // Memory for Imaginary Part.
+            bram_dp
+                #(
+                    // Memory address size.
+                    .N	(N),
+                    // Data width.
+                    .B	(16)
+                )
+                mem_imag_i
+                ( 
+                    .clka    (s0_axis_aclk				),
+                    .clkb    (aclk						),
+                    .ena     (mem_ena[i]				),
+                    .enb     (1'b1						),
+                    .wea     (mem_wea					),
+                    .web     (1'b0						),
+                    .addra   (mem_addra					),
+                    .addrb   (mem_addrb					),
+                    .dia     (mem_dia[31:16]			),
+                    .dib     (16'h0000					),
+                    .doa     (							),
+                    .dob     (mem_dob_imag[i*16 +: 16]	)
+                );
+        end
+        else begin
+            assign mem_dob_imag[i*16 +: 16] = {16{1'b0}}; 
+        end
+    
 		/*************/
 		/* Registers */
 		/*************/
@@ -210,8 +221,9 @@ endgenerate
 // Signal gen. 
 signal_gen 
 	#(
-		.N		(N		),
-		.N_DDS	(N_DDS	)
+		.N					(N					),
+		.N_DDS				(N_DDS				),
+		.GEN_DDS			(GEN_DDS			)
 	)
 	signal_gen_i
 	(

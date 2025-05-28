@@ -1,0 +1,1189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="axi_vip_pkg" />
+            <top_module name="glbl" />
+            <top_module name="std" />
+            <top_module name="tb" />
+            <top_module name="xil_common_vip_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="101.000001 us"></ZoomEndTime>
+      <Cursor1Time time="12.180022 us"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="200"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="21" />
+   <wave_markers>
+      <marker label="" time="12190000" />
+   </wave_markers>
+   <wvobject type="group" fp_name="group143">
+      <obj_property name="label">LOAD_MEMORY</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/tb_load_mem">
+         <obj_property name="ElementShortName">tb_load_mem</obj_property>
+         <obj_property name="ObjectShortName">tb_load_mem</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tready">
+         <obj_property name="ElementShortName">s0_axis_tready</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tvalid">
+         <obj_property name="ElementShortName">s0_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/s0_axis_tdata">
+         <obj_property name="ElementShortName">s0_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus705">
+         <obj_property name="label">New Virtual Bus 13</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[15]">
+            <obj_property name="ElementShortName">[15]</obj_property>
+            <obj_property name="ObjectShortName">[15]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[14]">
+            <obj_property name="ElementShortName">[14]</obj_property>
+            <obj_property name="ObjectShortName">[14]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[13]">
+            <obj_property name="ElementShortName">[13]</obj_property>
+            <obj_property name="ObjectShortName">[13]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[12]">
+            <obj_property name="ElementShortName">[12]</obj_property>
+            <obj_property name="ObjectShortName">[12]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[11]">
+            <obj_property name="ElementShortName">[11]</obj_property>
+            <obj_property name="ObjectShortName">[11]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[10]">
+            <obj_property name="ElementShortName">[10]</obj_property>
+            <obj_property name="ObjectShortName">[10]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[9]">
+            <obj_property name="ElementShortName">[9]</obj_property>
+            <obj_property name="ObjectShortName">[9]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[8]">
+            <obj_property name="ElementShortName">[8]</obj_property>
+            <obj_property name="ObjectShortName">[8]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[7]">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">[7]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[6]">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">[6]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[5]">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">[5]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[4]">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">[4]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[3]">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">[3]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[2]">
+            <obj_property name="ElementShortName">[2]</obj_property>
+            <obj_property name="ObjectShortName">[2]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[1]">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">[1]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[0]">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">[0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus688">
+         <obj_property name="label">New Virtual Bus 12</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[31]">
+            <obj_property name="ElementShortName">[31]</obj_property>
+            <obj_property name="ObjectShortName">[31]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[30]">
+            <obj_property name="ElementShortName">[30]</obj_property>
+            <obj_property name="ObjectShortName">[30]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[29]">
+            <obj_property name="ElementShortName">[29]</obj_property>
+            <obj_property name="ObjectShortName">[29]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[28]">
+            <obj_property name="ElementShortName">[28]</obj_property>
+            <obj_property name="ObjectShortName">[28]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[27]">
+            <obj_property name="ElementShortName">[27]</obj_property>
+            <obj_property name="ObjectShortName">[27]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[26]">
+            <obj_property name="ElementShortName">[26]</obj_property>
+            <obj_property name="ObjectShortName">[26]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[25]">
+            <obj_property name="ElementShortName">[25]</obj_property>
+            <obj_property name="ObjectShortName">[25]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[24]">
+            <obj_property name="ElementShortName">[24]</obj_property>
+            <obj_property name="ObjectShortName">[24]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[23]">
+            <obj_property name="ElementShortName">[23]</obj_property>
+            <obj_property name="ObjectShortName">[23]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[22]">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">[22]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[21]">
+            <obj_property name="ElementShortName">[21]</obj_property>
+            <obj_property name="ObjectShortName">[21]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[20]">
+            <obj_property name="ElementShortName">[20]</obj_property>
+            <obj_property name="ObjectShortName">[20]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[19]">
+            <obj_property name="ElementShortName">[19]</obj_property>
+            <obj_property name="ObjectShortName">[19]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[18]">
+            <obj_property name="ElementShortName">[18]</obj_property>
+            <obj_property name="ObjectShortName">[18]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[17]">
+            <obj_property name="ElementShortName">[17]</obj_property>
+            <obj_property name="ObjectShortName">[17]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/s0_axis_tdata[16]">
+            <obj_property name="ElementShortName">[16]</obj_property>
+            <obj_property name="ObjectShortName">[16]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/tb_load_mem_done">
+         <obj_property name="ElementShortName">tb_load_mem_done</obj_property>
+         <obj_property name="ObjectShortName">tb_load_mem_done</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group153">
+      <obj_property name="label">LOAD_WAVEFORM</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/tb_load_wave">
+         <obj_property name="ElementShortName">tb_load_wave</obj_property>
+         <obj_property name="ObjectShortName">tb_load_wave</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/freq_r">
+         <obj_property name="ElementShortName">freq_r[31:0]</obj_property>
+         <obj_property name="ObjectShortName">freq_r[31:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/phase_r">
+         <obj_property name="ElementShortName">phase_r[31:0]</obj_property>
+         <obj_property name="ObjectShortName">phase_r[31:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/addr_r">
+         <obj_property name="ElementShortName">addr_r[15:0]</obj_property>
+         <obj_property name="ObjectShortName">addr_r[15:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/gain_r">
+         <obj_property name="ElementShortName">gain_r[15:0]</obj_property>
+         <obj_property name="ObjectShortName">gain_r[15:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/nsamp_r">
+         <obj_property name="ElementShortName">nsamp_r[15:0]</obj_property>
+         <obj_property name="ObjectShortName">nsamp_r[15:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/outsel_r">
+         <obj_property name="ElementShortName">outsel_r[1:0]</obj_property>
+         <obj_property name="ObjectShortName">outsel_r[1:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/mode_r">
+         <obj_property name="ElementShortName">mode_r</obj_property>
+         <obj_property name="ObjectShortName">mode_r</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/stdysel_r">
+         <obj_property name="ElementShortName">stdysel_r</obj_property>
+         <obj_property name="ObjectShortName">stdysel_r</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/phrst_r">
+         <obj_property name="ElementShortName">phrst_r</obj_property>
+         <obj_property name="ObjectShortName">phrst_r</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s1_axis_tready">
+         <obj_property name="ElementShortName">s1_axis_tready</obj_property>
+         <obj_property name="ObjectShortName">s1_axis_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s1_axis_tvalid">
+         <obj_property name="ElementShortName">s1_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s1_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/s1_axis_tdata">
+         <obj_property name="ElementShortName">s1_axis_tdata[159:0]</obj_property>
+         <obj_property name="ObjectShortName">s1_axis_tdata[159:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/tb_load_wave_done">
+         <obj_property name="ElementShortName">tb_load_wave_done</obj_property>
+         <obj_property name="ObjectShortName">tb_load_wave_done</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/tb_write_out">
+      <obj_property name="ElementShortName">tb_write_out</obj_property>
+      <obj_property name="ObjectShortName">tb_write_out</obj_property>
+   </wvobject>
+   <wvobject type="group" fp_name="group122">
+      <obj_property name="label">SG_DATA_WRITER</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/data_writer_i/rstn">
+         <obj_property name="ElementShortName">rstn</obj_property>
+         <obj_property name="ObjectShortName">rstn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/data_writer_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="other" fp_name="/tb/DUT/signal_gen_top_i/data_writer_i/state">
+         <obj_property name="ElementShortName">state</obj_property>
+         <obj_property name="ObjectShortName">state</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group131">
+      <obj_property name="label">SG_FIFO_IN</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/rstn">
+         <obj_property name="ElementShortName">rstn</obj_property>
+         <obj_property name="ObjectShortName">rstn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/wr_en">
+         <obj_property name="ElementShortName">wr_en</obj_property>
+         <obj_property name="ObjectShortName">wr_en</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/din">
+         <obj_property name="ElementShortName">din[159:0]</obj_property>
+         <obj_property name="ObjectShortName">din[159:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/full">
+         <obj_property name="ElementShortName">full</obj_property>
+         <obj_property name="ObjectShortName">full</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/rd_en">
+         <obj_property name="ElementShortName">rd_en</obj_property>
+         <obj_property name="ObjectShortName">rd_en</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/dout">
+         <obj_property name="ElementShortName">dout[159:0]</obj_property>
+         <obj_property name="ObjectShortName">dout[159:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/fifo_i/empty">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/\GEN_dds[0].mem_real_latency_reg_i /dout">
+      <obj_property name="ElementShortName">dout[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/\GEN_dds[0].mem_imag_latency_reg_i /dout">
+      <obj_property name="ElementShortName">dout[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dout[15:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+   </wvobject>
+   <wvobject type="group" fp_name="group306">
+      <obj_property name="label">DDSs_COMPILER</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="group" fp_name="group375">
+         <obj_property name="label">DDS_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/s_axis_phase_tvalid">
+            <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
+            <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/s_axis_phase_tdata">
+            <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
+            <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tvalid">
+            <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata">
+            <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="vbus" fp_name="vbus356">
+            <obj_property name="label">New Virtual Bus 3</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[15]">
+               <obj_property name="ElementShortName">[15]</obj_property>
+               <obj_property name="ObjectShortName">[15]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[14]">
+               <obj_property name="ElementShortName">[14]</obj_property>
+               <obj_property name="ObjectShortName">[14]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[13]">
+               <obj_property name="ElementShortName">[13]</obj_property>
+               <obj_property name="ObjectShortName">[13]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[12]">
+               <obj_property name="ElementShortName">[12]</obj_property>
+               <obj_property name="ObjectShortName">[12]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[11]">
+               <obj_property name="ElementShortName">[11]</obj_property>
+               <obj_property name="ObjectShortName">[11]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[10]">
+               <obj_property name="ElementShortName">[10]</obj_property>
+               <obj_property name="ObjectShortName">[10]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[9]">
+               <obj_property name="ElementShortName">[9]</obj_property>
+               <obj_property name="ObjectShortName">[9]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[8]">
+               <obj_property name="ElementShortName">[8]</obj_property>
+               <obj_property name="ObjectShortName">[8]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[7]">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">[7]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[6]">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">[6]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[5]">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">[5]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[4]">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">[4]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[3]">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">[3]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[2]">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">[2]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[1]">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">[1]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[0]">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">[0]</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject type="vbus" fp_name="vbus339">
+            <obj_property name="label">New Virtual Bus 2</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[31]">
+               <obj_property name="ElementShortName">[31]</obj_property>
+               <obj_property name="ObjectShortName">[31]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[30]">
+               <obj_property name="ElementShortName">[30]</obj_property>
+               <obj_property name="ObjectShortName">[30]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[29]">
+               <obj_property name="ElementShortName">[29]</obj_property>
+               <obj_property name="ObjectShortName">[29]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[28]">
+               <obj_property name="ElementShortName">[28]</obj_property>
+               <obj_property name="ObjectShortName">[28]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[27]">
+               <obj_property name="ElementShortName">[27]</obj_property>
+               <obj_property name="ObjectShortName">[27]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[26]">
+               <obj_property name="ElementShortName">[26]</obj_property>
+               <obj_property name="ObjectShortName">[26]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[25]">
+               <obj_property name="ElementShortName">[25]</obj_property>
+               <obj_property name="ObjectShortName">[25]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[24]">
+               <obj_property name="ElementShortName">[24]</obj_property>
+               <obj_property name="ObjectShortName">[24]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[23]">
+               <obj_property name="ElementShortName">[23]</obj_property>
+               <obj_property name="ObjectShortName">[23]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[22]">
+               <obj_property name="ElementShortName">[22]</obj_property>
+               <obj_property name="ObjectShortName">[22]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[21]">
+               <obj_property name="ElementShortName">[21]</obj_property>
+               <obj_property name="ObjectShortName">[21]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[20]">
+               <obj_property name="ElementShortName">[20]</obj_property>
+               <obj_property name="ObjectShortName">[20]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[19]">
+               <obj_property name="ElementShortName">[19]</obj_property>
+               <obj_property name="ObjectShortName">[19]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[18]">
+               <obj_property name="ElementShortName">[18]</obj_property>
+               <obj_property name="ObjectShortName">[18]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[17]">
+               <obj_property name="ElementShortName">[17]</obj_property>
+               <obj_property name="ObjectShortName">[17]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[0].dds_i/m_axis_data_tdata[16]">
+               <obj_property name="ElementShortName">[16]</obj_property>
+               <obj_property name="ObjectShortName">[16]</obj_property>
+            </wvobject>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group376">
+         <obj_property name="label">DDS_1</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[1].dds_i/m_axis_data_tvalid">
+            <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[1].dds_i/m_axis_data_tdata">
+            <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group377">
+         <obj_property name="label">DDS_2</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[2].dds_i/m_axis_data_tvalid">
+            <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[2].dds_i/m_axis_data_tdata">
+            <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group378">
+         <obj_property name="label">DDS_3</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[3].dds_i/m_axis_data_tvalid">
+            <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/GEN_dds[3].dds_i/m_axis_data_tdata">
+            <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+            <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/prod_y_r2">
+      <obj_property name="ElementShortName">prod_y_r2[0:3][15:0]</obj_property>
+      <obj_property name="ObjectShortName">prod_y_r2[0:3][15:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/prod_y_r2[0]">
+         <obj_property name="ElementShortName">[0][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/prod_y_r2[1]">
+         <obj_property name="ElementShortName">[1][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[1][15:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/prod_y_r2[2]">
+         <obj_property name="ElementShortName">[2][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[2][15:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/prod_y_r2[3]">
+         <obj_property name="ElementShortName">[3][15:0]</obj_property>
+         <obj_property name="ObjectShortName">[3][15:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group297">
+      <obj_property name="label">M_AXIS_OUT</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/m_axis_tready_i">
+         <obj_property name="ElementShortName">m_axis_tready_i</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tready_i</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/m_axis_tvalid_o">
+         <obj_property name="ElementShortName">m_axis_tvalid_o</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tvalid_o</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/m_axis_tdata_o">
+         <obj_property name="ElementShortName">m_axis_tdata_o[63:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tdata_o[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/dout_ii">
+         <obj_property name="ElementShortName">dout_ii[0:3][15:0]</obj_property>
+         <obj_property name="ObjectShortName">dout_ii[0:3][15:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="array" fp_name="/tb/dout_ii[0]">
+            <obj_property name="ElementShortName">[0][15:0]</obj_property>
+            <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/dout_ii[1]">
+            <obj_property name="ElementShortName">[1][15:0]</obj_property>
+            <obj_property name="ObjectShortName">[1][15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/dout_ii[2]">
+            <obj_property name="ElementShortName">[2][15:0]</obj_property>
+            <obj_property name="ObjectShortName">[2][15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb/dout_ii[3]">
+            <obj_property name="ElementShortName">[3][15:0]</obj_property>
+            <obj_property name="ObjectShortName">[3][15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_addr_o">
+      <obj_property name="ElementShortName">mem_addr_o[9:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_addr_o[9:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i">
+      <obj_property name="ElementShortName">mem_dout_real_i[63:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_dout_real_i[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus497">
+      <obj_property name="label">New Virtual Bus 7</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[15]">
+         <obj_property name="ElementShortName">[15]</obj_property>
+         <obj_property name="ObjectShortName">[15]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[14]">
+         <obj_property name="ElementShortName">[14]</obj_property>
+         <obj_property name="ObjectShortName">[14]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[13]">
+         <obj_property name="ElementShortName">[13]</obj_property>
+         <obj_property name="ObjectShortName">[13]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[12]">
+         <obj_property name="ElementShortName">[12]</obj_property>
+         <obj_property name="ObjectShortName">[12]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[11]">
+         <obj_property name="ElementShortName">[11]</obj_property>
+         <obj_property name="ObjectShortName">[11]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[10]">
+         <obj_property name="ElementShortName">[10]</obj_property>
+         <obj_property name="ObjectShortName">[10]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[9]">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">[9]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[8]">
+         <obj_property name="ElementShortName">[8]</obj_property>
+         <obj_property name="ObjectShortName">[8]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[7]">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">[7]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[6]">
+         <obj_property name="ElementShortName">[6]</obj_property>
+         <obj_property name="ObjectShortName">[6]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[5]">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">[5]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[4]">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">[4]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[3]">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">[3]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[2]">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">[2]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[1]">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">[1]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[0]">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">[0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus480">
+      <obj_property name="label">New Virtual Bus 6</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[31]">
+         <obj_property name="ElementShortName">[31]</obj_property>
+         <obj_property name="ObjectShortName">[31]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[30]">
+         <obj_property name="ElementShortName">[30]</obj_property>
+         <obj_property name="ObjectShortName">[30]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[29]">
+         <obj_property name="ElementShortName">[29]</obj_property>
+         <obj_property name="ObjectShortName">[29]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[28]">
+         <obj_property name="ElementShortName">[28]</obj_property>
+         <obj_property name="ObjectShortName">[28]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[27]">
+         <obj_property name="ElementShortName">[27]</obj_property>
+         <obj_property name="ObjectShortName">[27]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[26]">
+         <obj_property name="ElementShortName">[26]</obj_property>
+         <obj_property name="ObjectShortName">[26]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[25]">
+         <obj_property name="ElementShortName">[25]</obj_property>
+         <obj_property name="ObjectShortName">[25]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[24]">
+         <obj_property name="ElementShortName">[24]</obj_property>
+         <obj_property name="ObjectShortName">[24]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[23]">
+         <obj_property name="ElementShortName">[23]</obj_property>
+         <obj_property name="ObjectShortName">[23]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[22]">
+         <obj_property name="ElementShortName">[22]</obj_property>
+         <obj_property name="ObjectShortName">[22]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[21]">
+         <obj_property name="ElementShortName">[21]</obj_property>
+         <obj_property name="ObjectShortName">[21]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[20]">
+         <obj_property name="ElementShortName">[20]</obj_property>
+         <obj_property name="ObjectShortName">[20]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[19]">
+         <obj_property name="ElementShortName">[19]</obj_property>
+         <obj_property name="ObjectShortName">[19]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[18]">
+         <obj_property name="ElementShortName">[18]</obj_property>
+         <obj_property name="ObjectShortName">[18]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[17]">
+         <obj_property name="ElementShortName">[17]</obj_property>
+         <obj_property name="ObjectShortName">[17]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[16]">
+         <obj_property name="ElementShortName">[16]</obj_property>
+         <obj_property name="ObjectShortName">[16]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus463">
+      <obj_property name="label">New Virtual Bus 5</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[47]">
+         <obj_property name="ElementShortName">[47]</obj_property>
+         <obj_property name="ObjectShortName">[47]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[46]">
+         <obj_property name="ElementShortName">[46]</obj_property>
+         <obj_property name="ObjectShortName">[46]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[45]">
+         <obj_property name="ElementShortName">[45]</obj_property>
+         <obj_property name="ObjectShortName">[45]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[44]">
+         <obj_property name="ElementShortName">[44]</obj_property>
+         <obj_property name="ObjectShortName">[44]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[43]">
+         <obj_property name="ElementShortName">[43]</obj_property>
+         <obj_property name="ObjectShortName">[43]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[42]">
+         <obj_property name="ElementShortName">[42]</obj_property>
+         <obj_property name="ObjectShortName">[42]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[41]">
+         <obj_property name="ElementShortName">[41]</obj_property>
+         <obj_property name="ObjectShortName">[41]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[40]">
+         <obj_property name="ElementShortName">[40]</obj_property>
+         <obj_property name="ObjectShortName">[40]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[39]">
+         <obj_property name="ElementShortName">[39]</obj_property>
+         <obj_property name="ObjectShortName">[39]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[38]">
+         <obj_property name="ElementShortName">[38]</obj_property>
+         <obj_property name="ObjectShortName">[38]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[37]">
+         <obj_property name="ElementShortName">[37]</obj_property>
+         <obj_property name="ObjectShortName">[37]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[36]">
+         <obj_property name="ElementShortName">[36]</obj_property>
+         <obj_property name="ObjectShortName">[36]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[35]">
+         <obj_property name="ElementShortName">[35]</obj_property>
+         <obj_property name="ObjectShortName">[35]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[34]">
+         <obj_property name="ElementShortName">[34]</obj_property>
+         <obj_property name="ObjectShortName">[34]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[33]">
+         <obj_property name="ElementShortName">[33]</obj_property>
+         <obj_property name="ObjectShortName">[33]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[32]">
+         <obj_property name="ElementShortName">[32]</obj_property>
+         <obj_property name="ObjectShortName">[32]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus446">
+      <obj_property name="label">New Virtual Bus 4</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[63]">
+         <obj_property name="ElementShortName">[63]</obj_property>
+         <obj_property name="ObjectShortName">[63]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[62]">
+         <obj_property name="ElementShortName">[62]</obj_property>
+         <obj_property name="ObjectShortName">[62]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[61]">
+         <obj_property name="ElementShortName">[61]</obj_property>
+         <obj_property name="ObjectShortName">[61]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[60]">
+         <obj_property name="ElementShortName">[60]</obj_property>
+         <obj_property name="ObjectShortName">[60]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[59]">
+         <obj_property name="ElementShortName">[59]</obj_property>
+         <obj_property name="ObjectShortName">[59]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[58]">
+         <obj_property name="ElementShortName">[58]</obj_property>
+         <obj_property name="ObjectShortName">[58]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[57]">
+         <obj_property name="ElementShortName">[57]</obj_property>
+         <obj_property name="ObjectShortName">[57]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[56]">
+         <obj_property name="ElementShortName">[56]</obj_property>
+         <obj_property name="ObjectShortName">[56]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[55]">
+         <obj_property name="ElementShortName">[55]</obj_property>
+         <obj_property name="ObjectShortName">[55]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[54]">
+         <obj_property name="ElementShortName">[54]</obj_property>
+         <obj_property name="ObjectShortName">[54]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[53]">
+         <obj_property name="ElementShortName">[53]</obj_property>
+         <obj_property name="ObjectShortName">[53]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[52]">
+         <obj_property name="ElementShortName">[52]</obj_property>
+         <obj_property name="ObjectShortName">[52]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[51]">
+         <obj_property name="ElementShortName">[51]</obj_property>
+         <obj_property name="ObjectShortName">[51]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[50]">
+         <obj_property name="ElementShortName">[50]</obj_property>
+         <obj_property name="ObjectShortName">[50]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[49]">
+         <obj_property name="ElementShortName">[49]</obj_property>
+         <obj_property name="ObjectShortName">[49]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_real_i[48]">
+         <obj_property name="ElementShortName">[48]</obj_property>
+         <obj_property name="ObjectShortName">[48]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i">
+      <obj_property name="ElementShortName">mem_dout_imag_i[63:0]</obj_property>
+      <obj_property name="ObjectShortName">mem_dout_imag_i[63:0]</obj_property>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus629">
+      <obj_property name="label">New Virtual Bus 11</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[15]">
+         <obj_property name="ElementShortName">[15]</obj_property>
+         <obj_property name="ObjectShortName">[15]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[14]">
+         <obj_property name="ElementShortName">[14]</obj_property>
+         <obj_property name="ObjectShortName">[14]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[13]">
+         <obj_property name="ElementShortName">[13]</obj_property>
+         <obj_property name="ObjectShortName">[13]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[12]">
+         <obj_property name="ElementShortName">[12]</obj_property>
+         <obj_property name="ObjectShortName">[12]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[11]">
+         <obj_property name="ElementShortName">[11]</obj_property>
+         <obj_property name="ObjectShortName">[11]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[10]">
+         <obj_property name="ElementShortName">[10]</obj_property>
+         <obj_property name="ObjectShortName">[10]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[9]">
+         <obj_property name="ElementShortName">[9]</obj_property>
+         <obj_property name="ObjectShortName">[9]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[8]">
+         <obj_property name="ElementShortName">[8]</obj_property>
+         <obj_property name="ObjectShortName">[8]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[7]">
+         <obj_property name="ElementShortName">[7]</obj_property>
+         <obj_property name="ObjectShortName">[7]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[6]">
+         <obj_property name="ElementShortName">[6]</obj_property>
+         <obj_property name="ObjectShortName">[6]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[5]">
+         <obj_property name="ElementShortName">[5]</obj_property>
+         <obj_property name="ObjectShortName">[5]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[4]">
+         <obj_property name="ElementShortName">[4]</obj_property>
+         <obj_property name="ObjectShortName">[4]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[3]">
+         <obj_property name="ElementShortName">[3]</obj_property>
+         <obj_property name="ObjectShortName">[3]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[2]">
+         <obj_property name="ElementShortName">[2]</obj_property>
+         <obj_property name="ObjectShortName">[2]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[1]">
+         <obj_property name="ElementShortName">[1]</obj_property>
+         <obj_property name="ObjectShortName">[1]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[0]">
+         <obj_property name="ElementShortName">[0]</obj_property>
+         <obj_property name="ObjectShortName">[0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus612">
+      <obj_property name="label">New Virtual Bus 10</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[31]">
+         <obj_property name="ElementShortName">[31]</obj_property>
+         <obj_property name="ObjectShortName">[31]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[30]">
+         <obj_property name="ElementShortName">[30]</obj_property>
+         <obj_property name="ObjectShortName">[30]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[29]">
+         <obj_property name="ElementShortName">[29]</obj_property>
+         <obj_property name="ObjectShortName">[29]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[28]">
+         <obj_property name="ElementShortName">[28]</obj_property>
+         <obj_property name="ObjectShortName">[28]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[27]">
+         <obj_property name="ElementShortName">[27]</obj_property>
+         <obj_property name="ObjectShortName">[27]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[26]">
+         <obj_property name="ElementShortName">[26]</obj_property>
+         <obj_property name="ObjectShortName">[26]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[25]">
+         <obj_property name="ElementShortName">[25]</obj_property>
+         <obj_property name="ObjectShortName">[25]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[24]">
+         <obj_property name="ElementShortName">[24]</obj_property>
+         <obj_property name="ObjectShortName">[24]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[23]">
+         <obj_property name="ElementShortName">[23]</obj_property>
+         <obj_property name="ObjectShortName">[23]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[22]">
+         <obj_property name="ElementShortName">[22]</obj_property>
+         <obj_property name="ObjectShortName">[22]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[21]">
+         <obj_property name="ElementShortName">[21]</obj_property>
+         <obj_property name="ObjectShortName">[21]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[20]">
+         <obj_property name="ElementShortName">[20]</obj_property>
+         <obj_property name="ObjectShortName">[20]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[19]">
+         <obj_property name="ElementShortName">[19]</obj_property>
+         <obj_property name="ObjectShortName">[19]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[18]">
+         <obj_property name="ElementShortName">[18]</obj_property>
+         <obj_property name="ObjectShortName">[18]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[17]">
+         <obj_property name="ElementShortName">[17]</obj_property>
+         <obj_property name="ObjectShortName">[17]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[16]">
+         <obj_property name="ElementShortName">[16]</obj_property>
+         <obj_property name="ObjectShortName">[16]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus595">
+      <obj_property name="label">New Virtual Bus 9</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[47]">
+         <obj_property name="ElementShortName">[47]</obj_property>
+         <obj_property name="ObjectShortName">[47]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[46]">
+         <obj_property name="ElementShortName">[46]</obj_property>
+         <obj_property name="ObjectShortName">[46]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[45]">
+         <obj_property name="ElementShortName">[45]</obj_property>
+         <obj_property name="ObjectShortName">[45]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[44]">
+         <obj_property name="ElementShortName">[44]</obj_property>
+         <obj_property name="ObjectShortName">[44]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[43]">
+         <obj_property name="ElementShortName">[43]</obj_property>
+         <obj_property name="ObjectShortName">[43]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[42]">
+         <obj_property name="ElementShortName">[42]</obj_property>
+         <obj_property name="ObjectShortName">[42]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[41]">
+         <obj_property name="ElementShortName">[41]</obj_property>
+         <obj_property name="ObjectShortName">[41]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[40]">
+         <obj_property name="ElementShortName">[40]</obj_property>
+         <obj_property name="ObjectShortName">[40]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[39]">
+         <obj_property name="ElementShortName">[39]</obj_property>
+         <obj_property name="ObjectShortName">[39]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[38]">
+         <obj_property name="ElementShortName">[38]</obj_property>
+         <obj_property name="ObjectShortName">[38]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[37]">
+         <obj_property name="ElementShortName">[37]</obj_property>
+         <obj_property name="ObjectShortName">[37]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[36]">
+         <obj_property name="ElementShortName">[36]</obj_property>
+         <obj_property name="ObjectShortName">[36]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[35]">
+         <obj_property name="ElementShortName">[35]</obj_property>
+         <obj_property name="ObjectShortName">[35]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[34]">
+         <obj_property name="ElementShortName">[34]</obj_property>
+         <obj_property name="ObjectShortName">[34]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[33]">
+         <obj_property name="ElementShortName">[33]</obj_property>
+         <obj_property name="ObjectShortName">[33]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[32]">
+         <obj_property name="ElementShortName">[32]</obj_property>
+         <obj_property name="ObjectShortName">[32]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="vbus" fp_name="vbus578">
+      <obj_property name="label">New Virtual Bus 8</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[63]">
+         <obj_property name="ElementShortName">[63]</obj_property>
+         <obj_property name="ObjectShortName">[63]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[62]">
+         <obj_property name="ElementShortName">[62]</obj_property>
+         <obj_property name="ObjectShortName">[62]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[61]">
+         <obj_property name="ElementShortName">[61]</obj_property>
+         <obj_property name="ObjectShortName">[61]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[60]">
+         <obj_property name="ElementShortName">[60]</obj_property>
+         <obj_property name="ObjectShortName">[60]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[59]">
+         <obj_property name="ElementShortName">[59]</obj_property>
+         <obj_property name="ObjectShortName">[59]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[58]">
+         <obj_property name="ElementShortName">[58]</obj_property>
+         <obj_property name="ObjectShortName">[58]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[57]">
+         <obj_property name="ElementShortName">[57]</obj_property>
+         <obj_property name="ObjectShortName">[57]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[56]">
+         <obj_property name="ElementShortName">[56]</obj_property>
+         <obj_property name="ObjectShortName">[56]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[55]">
+         <obj_property name="ElementShortName">[55]</obj_property>
+         <obj_property name="ObjectShortName">[55]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[54]">
+         <obj_property name="ElementShortName">[54]</obj_property>
+         <obj_property name="ObjectShortName">[54]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[53]">
+         <obj_property name="ElementShortName">[53]</obj_property>
+         <obj_property name="ObjectShortName">[53]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[52]">
+         <obj_property name="ElementShortName">[52]</obj_property>
+         <obj_property name="ObjectShortName">[52]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[51]">
+         <obj_property name="ElementShortName">[51]</obj_property>
+         <obj_property name="ObjectShortName">[51]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[50]">
+         <obj_property name="ElementShortName">[50]</obj_property>
+         <obj_property name="ObjectShortName">[50]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[49]">
+         <obj_property name="ElementShortName">[49]</obj_property>
+         <obj_property name="ObjectShortName">[49]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/signal_gen_top_i/signal_gen_i/mem_dout_imag_i[48]">
+         <obj_property name="ElementShortName">[48]</obj_property>
+         <obj_property name="ObjectShortName">[48]</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

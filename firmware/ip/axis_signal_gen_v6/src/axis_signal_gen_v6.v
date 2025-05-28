@@ -58,10 +58,20 @@ module axis_signal_gen_v6
 /**************/
 /* Parameters */
 /**************/
+// Envelope Table Memory Size (in 2**N words)
 parameter N		= 12;
 
-// Number of parallel dds blocks.
-parameter [31:0] N_DDS = 16;
+// Number of parallel DDS blocks.
+parameter N_DDS = 16;
+
+// True: Generate DDS for Envelope Upconversion. False: Remove DDS for Baseband Envelope only
+parameter GEN_DDS = "TRUE";
+//parameter GEN_DDS = "FALSE";
+
+// COMPLEX: Allow Complex Envelope generation. REAL: Allow only Real envelope generation
+//parameter ENVELOPE_TYPE = "REAL";
+parameter ENVELOPE_TYPE = "COMPLEX";
+
 
 /*********/
 /* Ports */
@@ -163,8 +173,10 @@ axi_slv axi_slv_i
 
 signal_gen_top
 	#(
-		.N		(N		),
-		.N_DDS	(N_DDS	)
+		.N					(N					),
+		.N_DDS				(N_DDS				),
+		.GEN_DDS			(GEN_DDS			),
+		.ENVELOPE_TYPE		(ENVELOPE_TYPE		)
 	)
 	signal_gen_top_i
 	(

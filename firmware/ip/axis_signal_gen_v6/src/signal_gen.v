@@ -26,7 +26,13 @@ module signal_gen (
 parameter N = 16;
 
 // Number of parallel dds blocks.
-parameter [31:0] N_DDS = 16;
+parameter N_DDS = 16;
+
+// True: Generate DDS for Envelope Upconversion. False: Remove DDS for Baseband Envelope only
+parameter GEN_DDS = "TRUE";
+
+// // COMPLEX: Allow Complex Envelope generation. REAL: Allow only Real envelope generation
+// parameter ENVELOPE_TYPE;
 
 /*********/
 /* Ports */
@@ -80,15 +86,16 @@ wire signed [31:0]			prod_y_full_real_a	[0:N_DDS-1];
 wire signed [31:0]			prod_y_full_real_b	[0:N_DDS-1];
 reg	 signed [31:0]			prod_y_full_real_a_r[0:N_DDS-1];
 reg  signed [31:0]			prod_y_full_real_b_r[0:N_DDS-1];
-wire signed [31:0]			prod_y_full_imag_a	[0:N_DDS-1];
-wire signed [31:0]			prod_y_full_imag_b	[0:N_DDS-1];
-reg  signed [31:0]			prod_y_full_imag_a_r[0:N_DDS-1];
-reg  signed [31:0]			prod_y_full_imag_b_r[0:N_DDS-1];
+//wire signed [31:0]			prod_y_full_imag_a	[0:N_DDS-1];
+//wire signed [31:0]			prod_y_full_imag_b	[0:N_DDS-1];
+//reg  signed [31:0]			prod_y_full_imag_a_r[0:N_DDS-1];
+//reg  signed [31:0]			prod_y_full_imag_b_r[0:N_DDS-1];
 wire signed [31:0]			prod_y_full_real	[0:N_DDS-1];
 wire 		[15:0]			prod_y_real			[0:N_DDS-1];
 wire		[15:0] 			prod_y				[0:N_DDS-1];
 reg			[15:0]			prod_y_r1			[0:N_DDS-1];
 reg			[15:0]			prod_y_r2			[0:N_DDS-1];
+wire        [15:0]          prod_y_mux          [0:N_DDS-1];
 
 // Muxed output.
 wire		[15:0]			dout_mux			[0:N_DDS-1];
@@ -164,213 +171,233 @@ ctrl
 
 generate
 genvar i;
-	for (i=0; i<N_DDS; i=i+1) begin : GEN_dds
-		/***********************/
-		/* Block instantiation */
-		/***********************/
-		// DDS.
-		// Latency: 10.
-		dds_compiler_0 dds_i 
-			(
-		  		.aclk					(clk						),
-		  		.s_axis_phase_tvalid	(dds_tvalid_r				),
-		  		.s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
-		  		.m_axis_data_tvalid		(							),
-		  		.m_axis_data_tdata		(dds_dout[i]				)
-			);
+    for (i=0; i<N_DDS; i=i+1) begin : GEN_dds
+    
+        if (GEN_DDS == "TRUE") begin
+            /***********************/
+            /* Block instantiation */
+            /***********************/
+            // DDS.
+            // Latency: 10.
+            dds_compiler_0 dds_i 
+                (
+                    .aclk					(clk						),
+                    .s_axis_phase_tvalid	(dds_tvalid_r				),
+                    .s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
+                    .m_axis_data_tvalid		(							),
+                    .m_axis_data_tdata		(dds_dout[i]				)
+                );
+                
+            // Latency for dds_dout (product).
+            latency_reg
+                #(
+                    .N(1),
+                    .B(32)
+                )
+                dds_dout_latency_reg_i
+                (
+                    .rstn	(rstn			),
+                    .clk	(clk			),
+            
+                    .din	(dds_dout_r1[i]	),
+                    .dout	(dds_dout_la[i]	)
+                );
 
-		// Latency for real memory data (product).
-		latency_reg
-			#(
-				.N(10),
-				.B(16)
-			)
-			mem_real_latency_reg_i
-			(
-				.rstn	(rstn			),
-				.clk	(clk			),
-		
-				.din	(mem_real_r1[i]	),
-				.dout	(mem_real_la[i]	)
-			);
+            // Latency for dds_dout (mux).
+            latency_reg
+                #(
+                    .N(3),
+                    .B(16)
+                )
+                dds_mux_latency_reg_i
+                (
+                    .rstn	(rstn					),
+                    .clk	(clk					),
+            
+                    .din	(dds_dout_la[i][15:0]	),
+                    .dout	(dds_la_mux[i]			)
+                );
+        end
 
-		// Latency for imaginary memory data (product).
-		latency_reg
-			#(
-				.N(10),
-				.B(16)
-			)
-			mem_imag_latency_reg_i
-			(
-				.rstn	(rstn			),
-				.clk	(clk			),
-		
-				.din	(mem_imag_r1[i]	),
-				.dout	(mem_imag_la[i]	)
-			);
+        // Latency for real memory data (product).
+        latency_reg
+            #(
+                .N(10),
+                .B(16)
+            )
+            mem_real_latency_reg_i
+            (
+                .rstn	(rstn			),
+                .clk	(clk			),
+        
+                .din	(mem_real_r1[i]	),
+                .dout	(mem_real_la[i]	)
+            );
 
-		// Latency for dds_dout (product).
-		latency_reg
-			#(
-				.N(1),
-				.B(32)
-			)
-			dds_dout_latency_reg_i
-			(
-				.rstn	(rstn			),
-				.clk	(clk			),
-		
-				.din	(dds_dout_r1[i]	),
-				.dout	(dds_dout_la[i]	)
-			);
+        // Latency for imaginary memory data (product).
+        latency_reg
+            #(
+                .N(10),
+                .B(16)
+            )
+            mem_imag_latency_reg_i
+            (
+                .rstn	(rstn			),
+                .clk	(clk			),
+        
+                .din	(mem_imag_r1[i]	),
+                .dout	(mem_imag_la[i]	)
+            );
+    
+        // Latency for real memory data (mux).
+        latency_reg
+            #(
+                .N(3),
+                .B(16)
+            )
+            mem_mux_latency_reg_i
+            (
+                .rstn	(rstn			),
+                .clk	(clk			),
+        
+                .din	(mem_real_la[i]	),
+                .dout	(mem_la_mux[i]	)
+            );
 
-		// Latency for real memory data (mux).
-		latency_reg
-			#(
-				.N(3),
-				.B(16)
-			)
-			mem_mux_latency_reg_i
-			(
-				.rstn	(rstn			),
-				.clk	(clk			),
-		
-				.din	(mem_real_la[i]	),
-				.dout	(mem_la_mux[i]	)
-			);
+        // Latency dout_mux (envelope x dds).
+        latency_reg
+            #(
+                .N(2),
+                .B(16)
+            )
+            dout_mux_latency_reg_i
+            (
+                .rstn	(rstn			),
+                .clk	(clk			),
+        
+                .din	(dout_mux[i]	),
+                .dout	(dout_mux_la[i]	)
+            );
 
-		// Latency for dds_dout (mux).
-		latency_reg
-			#(
-				.N(3),
-				.B(16)
-			)
-			dds_mux_latency_reg_i
-			(
-				.rstn	(rstn					),
-				.clk	(clk					),
-		
-				.din	(dds_dout_la[i][15:0]	),
-				.dout	(dds_la_mux[i]			)
-			);
+        /*************/
+        /* Registers */
+        /*************/
+        if (GEN_DDS == "TRUE") begin
+            always @(posedge clk) begin
+                if (~rstn) begin
+                    // DDS output.
+                    dds_dout_r1				[i]	<= 0;
 
-		// Latency dout_mux (envelope x dds).
-		latency_reg
-			#(
-				.N(2),
-				.B(16)
-			)
-			dout_mux_latency_reg_i
-			(
-				.rstn	(rstn			),
-				.clk	(clk			),
-		
-				.din	(dout_mux[i]	),
-				.dout	(dout_mux_la[i]	)
-			);
+                    // Product.
+                    prod_y_full_real_a_r	[i]	<= 0;
+                    prod_y_full_real_b_r	[i]	<= 0;
+//                    prod_y_full_imag_a_r	[i]	<= 0;
+//                    prod_y_full_imag_b_r	[i]	<= 0;
+                    prod_y_r1				[i]	<= 0;
+                    prod_y_r2				[i]	<= 0;
 
-		/*************/
-		/* Registers */
-		/*************/
-		always @(posedge clk) begin
-			if (~rstn) begin
-				// DDS output.
-				dds_dout_r1				[i]	<= 0;
+                end
+                else begin
+                    // DDS output.
+                    dds_dout_r1				[i]	<= dds_dout				[i];
 
-				// Memory data.
-				mem_real_r1				[i]	<= 0;
-				mem_imag_r1				[i]	<= 0;
+                    // Product.
+                    prod_y_full_real_a_r	[i]	<= prod_y_full_real_a	[i];
+                    prod_y_full_real_b_r	[i]	<= prod_y_full_real_b	[i];
+//                    prod_y_full_imag_a_r	[i]	<= prod_y_full_imag_a	[i];
+//                    prod_y_full_imag_b_r	[i]	<= prod_y_full_imag_b	[i];
+                    prod_y_r1				[i]	<= prod_y				[i];
+                    prod_y_r2				[i]	<= prod_y_r1			[i];
+    
+                end
+            end
+        end
 
-				// Product.
-				prod_y_full_real_a_r	[i]	<= 0;
-				prod_y_full_real_b_r	[i]	<= 0;
-				prod_y_full_imag_a_r	[i]	<= 0;
-				prod_y_full_imag_b_r	[i]	<= 0;
-				prod_y_r1				[i]	<= 0;
-				prod_y_r2				[i]	<= 0;
+        always @(posedge clk) begin
+            if (~rstn) begin   
+                // Memory data.
+                mem_real_r1				[i]	<= 0;
+                mem_imag_r1				[i]	<= 0;
 
-				// Product with Gain.
-				prodg_y_full_real_r		[i] <= 0;
+                // Product with Gain.
+                prodg_y_full_real_r		[i] <= 0;
 
-				// Rounding.
-				round_r					[i]	<= 0;
+                // Rounding.
+                round_r					[i]	<= 0;
 
-				// Last sample register.
-				last_r					[i]	<= 0;
-			end
-			else begin
-				// DDS output.
-				dds_dout_r1				[i]	<= dds_dout				[i];
+                // Last sample register.
+                last_r					[i]	<= 0;
+            end
+            else begin   
+                // Memory data.
+                mem_real_r1				[i]	<= mem_dout_real_i		[i*16 +: 16];
+                mem_imag_r1				[i]	<= mem_dout_imag_i		[i*16 +: 16];
 
-				// Memory data.
-				mem_real_r1				[i]	<= mem_dout_real_i		[i*16 +: 16];
-				mem_imag_r1				[i]	<= mem_dout_imag_i		[i*16 +: 16];
+                // Product with gain.
+                prodg_y_full_real_r		[i] <= prodg_y_full_real	[i];
 
-				// Product.
-				prod_y_full_real_a_r	[i]	<= prod_y_full_real_a	[i];
-				prod_y_full_real_b_r	[i]	<= prod_y_full_real_b	[i];
-				prod_y_full_imag_a_r	[i]	<= prod_y_full_imag_a	[i];
-				prod_y_full_imag_b_r	[i]	<= prod_y_full_imag_b	[i];
-				prod_y_r1				[i]	<= prod_y				[i];
-				prod_y_r2				[i]	<= prod_y_r1			[i];
+                // Rounding.
+                round_r					[i] <= round				[i];
 
-				// Product with gain.
-				prodg_y_full_real_r		[i] <= prodg_y_full_real	[i];
+                // Last sample register.
+                if (en_la)
+                    last_r [i]	<= round[N_DDS-1];
+            end
+        end
 
-				// Rounding.
-				round_r					[i] <= round				[i];
+        /*****************************/
+        /* Combinatorial assignments */
+        /*****************************/
+        // Product.
+        // Inputs.
+        if (GEN_DDS == "TRUE") begin
+            assign prod_a_real[i]			= dds_dout_la[i][15:0];
+            assign prod_a_imag[i]			= dds_dout_la[i][31:16];
+            assign prod_b_real[i]			= mem_real_la[i];
+            assign prod_b_imag[i]			= mem_imag_la[i];
 
-				// Last sample register.
-				if (en_la)
-					last_r [i]	<= round[N_DDS-1];
-			end
-		end
+            // Partial products.
+            assign prod_y_full_real_a[i]	= prod_a_real[i]*prod_b_real[i];
+            assign prod_y_full_real_b[i]	= prod_a_imag[i]*prod_b_imag[i];
+    //            assign prod_y_full_imag_a[i]	= prod_a_real[i]*prod_b_imag[i];
+    //            assign prod_y_full_imag_b[i]	= prod_a_imag[i]*prod_b_real[i];
 
-		/*****************************/
-		/* Combinatorial assignments */
-		/*****************************/
-		// Product.
-		// Inputs.
-		assign prod_a_real[i]			= dds_dout_la[i][15:0];
-		assign prod_a_imag[i]			= dds_dout_la[i][31:16];
-		assign prod_b_real[i]			= mem_real_la[i];
-		assign prod_b_imag[i]			= mem_imag_la[i];
+            // Addition or partial products.
+            assign prod_y_full_real[i]		= prod_y_full_real_a_r[i] - prod_y_full_real_b_r[i];
+            
+            // Quantization.	
+            assign prod_y_real[i]			= prod_y_full_real[i][31:16];
+            assign prod_y[i]				= prod_y_real[i];
 
-		// Partial products.
-		assign prod_y_full_real_a[i]	= prod_a_real[i]*prod_b_real[i];
-		assign prod_y_full_real_b[i]	= prod_a_imag[i]*prod_b_imag[i];
-		assign prod_y_full_imag_a[i]	= prod_a_real[i]*prod_b_imag[i];
-		assign prod_y_full_imag_b[i]	= prod_a_imag[i]*prod_b_real[i];
+            assign prod_y_mux[i]            = prod_y_r2[i];
+        end
+        else begin
+            assign prod_y_mux[i]            = mem_la_mux[i];
+            assign dds_la_mux[i]            = 16'h0000;
+        end
 
-		// Addition or partial products.
-		assign prod_y_full_real[i]		= prod_y_full_real_a_r[i] - prod_y_full_real_b_r[i];
-		
-		// Quantization.	
-		assign prod_y_real[i]			= prod_y_full_real[i][31:16];
-		assign prod_y[i]				= prod_y_real[i];
+        // Muxed output.
+        assign dout_mux[i] 			=	(src_la == 0)? prod_y_mux[i]	:
+                                        (src_la == 1)? dds_la_mux[i]	:
+                                        (src_la == 2)? mem_la_mux[i]	:
+                                        16'h0000;
+        // Product with Gain.
+        assign prodg_a_real[i]		= dout_mux_la[i];
+        assign prodg_y_full_real[i]	= prodg_a_real[i]*gain_la;
 
-		// Muxed output.
-		assign dout_mux[i] 			=	(src_la == 0)? prod_y_r2[i]		: 
-										(src_la == 1)? dds_la_mux[i]	:
-										(src_la == 2)? mem_la_mux[i]	:
-										16'h0000;
-		// Product with Gain.
-		assign prodg_a_real[i]		= dout_mux_la[i];
-		assign prodg_y_full_real[i]	= prodg_a_real[i]*gain_la;
+        // Rounding.
+        assign round[i]				= prodg_y_full_real_r[i][30 -: 16];
 
-		// Rounding.
-		assign round[i]				= prodg_y_full_real_r[i][30 -: 16];
-
-		/***********/
-		/* Outputs */
-		/***********/
-		assign m_axis_tdata_o[i*16 +: 16] =	(en_la_r == 1'b1)? round_r[i] 	: 
-											(stdy_la == 1'b0)? last_r[i]	:
-											16'h0000;
-
-	end
-endgenerate 
-
+        /***********/
+        /* Outputs */
+        /***********/
+        assign m_axis_tdata_o[i*16 +: 16] =	(en_la_r == 1'b1)? round_r[i] 	: 
+                                            (stdy_la == 1'b0)? last_r[i]	:
+                                            16'h0000;
+    
+    end
+endgenerate
+    
 // Latency for source selection.
 latency_reg
 	#(
@@ -420,7 +447,7 @@ latency_reg
 latency_reg
 	#(
 		.N(19),
-		.B(16)
+		.B(1)
 	)
 	en_latency_reg_i
 	(
@@ -432,14 +459,26 @@ latency_reg
 	);
 
 // Registers.
+generate
+if (GEN_DDS == "TRUE") begin
+    always @(posedge clk) begin
+        if (~rstn) begin
+            // DDS intput control.
+            dds_tvalid_r	<= 0;
+            dds_ctrl_int_r	<= 0;
+        end
+        else begin
+            // DDS intput control.
+            dds_tvalid_r	<= 1;
+            dds_ctrl_int_r	<= dds_ctrl_int;
+        end
+    end
+end
+endgenerate
 always @(posedge clk) begin
 	if (~rstn) begin
 		// Memory address.
 		mem_addr_int_r	<= 0;
-
-		// DDS intput control.
-		dds_tvalid_r	<= 0;
-		dds_ctrl_int_r	<= 0;
 
 		// Output enable.
 		en_la_r			<= 0;
@@ -447,10 +486,6 @@ always @(posedge clk) begin
 	else begin
 		// Memory address.
 		mem_addr_int_r	<= mem_addr_int;
-
-		// DDS intput control.
-		dds_tvalid_r	<= 1;
-		dds_ctrl_int_r	<= dds_ctrl_int;
 
 		// Output enable.
 		en_la_r			<= en_la;

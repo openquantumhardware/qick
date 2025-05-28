@@ -123,8 +123,10 @@ axi_mst_0 axi_mst_0_i
 axis_signal_gen_v6
     #
     (
-		.N		(N		),
-		.N_DDS	(N_DDS	)
+		.N				(N				),
+		.N_DDS			(N_DDS			),
+		.GEN_DDS 		("TRUE"			),
+		.ENVELOPE_TYPE	("COMPLEX"		)
     )
 	DUT 
 	( 
@@ -241,16 +243,18 @@ initial begin
 	tb_write_out	<= 1;
 	wait (tb_load_wave_done);
 
-	#30000;
+	#10us;
 
 	// Stop writing output data.
 	tb_write_out 	<= 0;
 
-	#20000;
+	#5us;
+	
+	$finish();
 
 end
 
-// Load data into memroy.
+// Load pulse data into memory.
 initial begin
     int fd,vali,valq;
 	bit signed [15:0] ii,qq;
@@ -260,7 +264,8 @@ initial begin
 	
 	wait (tb_load_mem);
 
-	fd = $fopen("../../../../../tb/gauss.txt","r");
+//	fd = $fopen("../../../../../tb/gauss.txt","r");
+	fd = $fopen("/home/dmartin2/Projects/qick_internal/firmware/ip/axis_signal_gen_v6/src/tb/gauss.txt","r");
 
 	wait (s0_axis_tready);
 
@@ -326,7 +331,7 @@ initial begin
 	@(posedge aclk);
 	s1_axis_tvalid	<= 0;
 
-	#5000;
+	#5us;
 
 	@(posedge aclk);
 	$display("t = %0t", $time);
@@ -394,7 +399,8 @@ initial begin
 	shortint real_d;
 
 	// Output file.
-	fd = $fopen("../../../../../tb/dout.csv","w");
+//	fd = $fopen("../../../../../tb/dout.csv","w");
+	fd = $fopen("/home/dmartin2/Projects/qick_internal/firmware/ip/axis_signal_gen_v6/src/tb/dout.csv","w");
 
 	// Data format.
 	$fdisplay(fd, "valid, idx, real");
