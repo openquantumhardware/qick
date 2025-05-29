@@ -113,8 +113,8 @@ logic  [4-1:0] s_cfg_tick;
 logic  [5-1:0] s_rx_dbg_state [NCH];
 logic  [2-1:0] s_tx_dbg_state;
 
-logic  [6-1:0] loc_cmd_ds;   
-logic [10-1:0] net_cmd_ds;
+logic  [6-1:0] s_loc_dbg_status;   
+logic [10-1:0] s_net_dbg_status;
 logic  [9-1:0] rx_cmd_ds;
 
 logic          rx_no_dt, rx_wflg, rx_wreg, rx_wmem ;
@@ -128,41 +128,149 @@ logic [ 4-1:0] mem_addr;
 logic [32-1:0] reg1_dt, reg2_dt;
 logic [32-1:0] mem_dt [15];
 
-logic loc_set_id, loc_wflg, loc_wreg, loc_wmem;
-logic loc_id_en, loc_wflg_en, loc_wreg_en, loc_wmem_en;
-logic cmd_exec_r, cmd_exec_n;
+logic set_id_flg, wflg_flg, wreg_flg, wmem_flg;
+logic s_loc_sid; //local set ID
+logic s_wflg, s_wreg, s_wmem, s_rst;
 logic [ 4-1:0] loc_cmd_op  ;
 
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
 logic [32-1:0] s_rx_data ;
 
 //TX related signals
-logic         s_ack_net;
-logic         s_ack_loc;
+logic         s_nack;
+logic         s_lack;
 logic         s_tx_ready;
+logic         s_req_net;
 
 //RX related signals
 logic [4-1:0] board_id_r, board_id_n; 
-logic         rx_set_id_r, rx_set_id_n;
 
+   typedef enum logic [4-1:0] {IDLE    = 4'b0000, 
+                               ST_LOC  = 4'b0001, 
+                               ST_NET  = 4'b0010, 
+                               ST_SID  = 4'b0011, 
+                               ST_WFLG = 4'b0100, 
+                               ST_WREG = 4'b0101, 
+                               ST_WMEM = 4'b0110, 
+                               ST_RST  = 4'b0111, 
+                               ST_WNET = 4'b1000, 
+                               ST_LACK = 4'b1001,
+                               ST_NACK = 4'b1010
+    } state_t;
+    
+    state_t state_r, state_n;
+ 
+    //State register
+    always_ff @ (posedge i_clk) begin
+        if ( !i_rstn ) state_r <= IDLE;
+        else           state_r <= state_n;
+    end 
+ 
+    //next state logic
+    always_comb begin
+        state_n   = state_r; 
+        s_loc_sid = 1'b0;
+        s_wflg    = 1'b0;
+        s_wreg    = 1'b0;
+        s_wmem    = 1'b0;
+        s_rst     = 1'b0;
+        s_lack    = 1'b0;
+        s_nack    = 1'b0;
+        s_req_net = 1'b0;
+        case (state_r)
+            IDLE: begin
+               if( i_req_loc )  begin
+                  state_n = ST_LOC;
+               end else if ( i_req_net ) begin
+                  state_n = ST_NET;
+               end else begin
+                  state_n = IDLE;
+               end 
+            end 
+            ST_LOC: begin
+               if ( set_id_flg ) begin
+                  state_n = ST_SID;
+               end else if ( wflg_flg ) begin
+                  state_n = ST_WFLG;
+               end else if ( wreg_flg ) begin
+                  state_n = ST_WREG;
+               end else if ( wmem_flg ) begin
+                  state_n = ST_WMEM;
+               end else if ( rst_flg ) begin
+                  state_n = ST_RST;
+               end else begin
+                  state_n = IDLE;
+               end
+            end
+            ST_SID: begin
+               s_loc_sid = 1'b1;
+               state_n   = ST_LACK;
+            end 
+            ST_WFLG: begin
+               s_wflg  = 1'b1;
+               state_n = ST_LACK;
+            end 
+            ST_WREG: begin
+               s_wreg  = 1'b1;
+               state_n = ST_LACK;
+            end 
+            ST_WMEM: begin
+               s_wmem  = 1'b1;
+               state_n = ST_LACK;
+            end 
+            ST_RST: begin
+               s_rst   = 1'b1;
+               state_n = ST_LACK;
+            end 
+            ST_NET: begin
+               s_req_net = 1'b1;
+               if ( !s_tx_ready ) begin
+                  state_n = ST_WNET;
+               end else begin
+                  state_n = ST_NET;
+               end
+            end
+            ST_WNET:  begin 
+               if ( s_tx_ready ) begin 
+                  state_n = ST_NACK; 
+               end else begin
+                  state_n = ST_WNET;
+               end
+            end
+            ST_LACK:  begin
+               s_lack  = 1'b1;
+               state_n = IDLE;  
+            end
+            ST_NACK:  begin
+               s_nack  = 1'b1;
+               state_n = IDLE;  
+            end
+            default: 
+                state_n = state_r;
+        endcase
+    end
+
+// LOC COMMAND
+// LOC Decoding
+///////////////////////////////////////////////////////////////////////////////
+assign loc_cmd_op = i_header[7:4];
+assign set_id_flg = (loc_cmd_op == XCOM_SET_ID     );
+assign wflg_flg    = (loc_cmd_op == XCOM_WRITE_FLAG );
+assign wreg_flg   = (loc_cmd_op == XCOM_WRITE_REG  );
+assign wmem_flg   = (loc_cmd_op == XCOM_WRITE_MEM  );
+assign rst_flg    = (loc_cmd_op == XCOM_RST        );
 
 //Transmission
 // TRANSMIT NET COMMAND
 ///////////////////////////////////////////////////////////////////////////////
 assign s_cfg_tick = {i_cfg_tick[3-1:0]+1'b1, 1'b0};
 
-always_ff @(posedge i_clk) begin
-   if      ( !i_rstn )               s_ack_net <= 1'b0;
-   else if ( i_req_net & s_tx_ready) s_ack_net <= 1'b1;
-   else                              s_ack_net <= 1'b0;
-end
-
 tx_cmd u_tx_cmd(
     .i_clk      ( i_clk          ),
     .i_rstn     ( i_rstn         ),
     .i_sync     ( i_sync         ),
     .i_cfg_tick ( s_cfg_tick     ),
-    .i_req      ( i_req_net      ),
+    .i_req      ( s_req_net      ),
     .i_header   ( i_header       ),
     .i_data     ( i_data         ),
     .o_ready    ( s_tx_ready     ),
@@ -171,7 +279,7 @@ tx_cmd u_tx_cmd(
     .o_dbg_state( s_tx_dbg_state )
 );
 
-assign tx_auto_id = i_req_net & (i_header[7:4] == XCOM_AUTO_ID); 
+assign tx_auto_id = s_req_net & (i_header[7:4] == XCOM_AUTO_ID); 
 
 //end Transmission
 //
@@ -184,22 +292,10 @@ always_ff @ (posedge i_clk) begin
 end
 //next-state logic
 always_comb begin
-   if      ( loc_id_en )                board_id_n = i_header[4-1:0];
-   else if ( rx_auto_id & rx_set_id_r ) board_id_n = s_rx_chid + 1'b1;
-   else                                 board_id_n = board_id_r;
+   if      ( s_loc_sid  ) board_id_n = i_header[4-1:0];
+   else if ( rx_auto_id ) board_id_n = s_rx_chid + 1'b1;
+   else                   board_id_n = board_id_r;
 end
-
-always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) rx_set_id_r <= '0;
-   else           rx_set_id_r <= rx_set_id_n;
-end
-//next-state logic
-always_comb begin
-   if      ( tx_auto_id )               rx_set_id_n = 1'b1;
-   else if ( rx_auto_id & rx_set_id_r ) rx_set_id_n = 1'b0;
-   else                                 rx_set_id_n = rx_set_id_r;
-end
-
 
 // RX COMMAND
 ///////////////////////////////////////////////////////////////////////////////
@@ -234,32 +330,6 @@ assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
          
 //end Reception
 //
-// LOC COMMAND
-///////////////////////////////////////////////////////////////////////////////
-always_ff @(posedge i_clk) begin
-   if      ( !i_rstn )                s_ack_loc <= 1'b0;
-   else if ( i_req_loc & !s_ack_loc ) s_ack_loc <= 1'b1;
-   else                               s_ack_loc <= 1'b0;
-end
-
-always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) cmd_exec_r <= 1'b0;
-   else           cmd_exec_r <= cmd_exec_n;
-end
-assign cmd_exec_n = i_req_loc & !s_ack_loc;
- 
-// LOC Decoding
-///////////////////////////////////////////////////////////////////////////////
-assign loc_cmd_op  = i_header[7:4];
-assign loc_set_id  = cmd_exec_r & loc_cmd_op == XCOM_SET_ID;//4'b0000 ; 
-assign loc_wflg    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_FLAG;//4'b0001 ;
-assign loc_wreg    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_REG;//4'b0010 ;
-assign loc_wmem    = cmd_exec_r & loc_cmd_op == XCOM_WRITE_MEM;//4'b0011 ;
-
-assign loc_id_en   = cmd_exec_r & loc_set_id;
-assign loc_wflg_en = cmd_exec_r & loc_wflg; 
-assign loc_wreg_en = cmd_exec_r & loc_wreg;
-assign loc_wmem_en = cmd_exec_r & loc_wmem;
 
 
 // EXECUTE COMMANDS
@@ -267,13 +337,13 @@ assign loc_wmem_en = cmd_exec_r & loc_wmem;
    
 // Write Register
 ///////////////////////////////////////////////////////////////////////////////
-assign wflg_en = loc_wflg_en | rx_wflg_en ;
-assign wreg_en = loc_wreg_en | rx_wreg_en ;
-assign wmem_en = loc_wmem_en | rx_wmem_en ;
+assign wflg_en = s_wflg | rx_wflg_en ;
+assign wreg_en = s_wreg | rx_wreg_en ;
+assign wmem_en = s_wmem | rx_wmem_en ;
 
-assign s_data_flag = cmd_exec_r ? i_header[0]   : s_rx_op[0];
-assign reg_dt_s    = cmd_exec_r ? i_data        : s_rx_data;
-assign mem_addr    = cmd_exec_r ? i_header[3:0] : s_rx_chid+1'b1 ;
+assign s_data_flag = wflg_en ? i_header[0]   : s_rx_op[0];
+assign reg_dt_s    = wreg_en ? i_data        : s_rx_data;
+assign mem_addr    = wmem_en ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge i_clk) begin
    if (!i_rstn) begin
@@ -323,19 +393,19 @@ endgenerate
 
 // DEBUG
 ///////////////////////////////////////////////////////////////////////////////
-assign loc_cmd_ds = {loc_wmem, loc_wreg, loc_wflg, loc_set_id, s_ack_loc, i_req_loc};
-assign net_cmd_ds = {i_header, s_ack_net, i_req_net};
+assign s_loc_dbg_status = {wmem_flg, wreg_flg, wflg_flg, set_id_flg, s_lack, i_req_loc};
+assign s_net_dbg_status = {i_header, s_nack, i_req_net};
 assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 
 assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
 assign o_dbg_status  = {board_id_r, s_tx_ready, 5'b0_0000, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
-assign o_dbg_data    = {s_cfg_tick, s_rx_chid, rx_cmd_ds, net_cmd_ds, loc_cmd_ds};
+assign o_dbg_data    = {s_cfg_tick, s_rx_chid, rx_cmd_ds, s_net_dbg_status, s_loc_dbg_status};
 
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////
-assign o_qp_ready  = s_tx_ready & ~i_req_loc & ~s_ack_loc;
+assign o_qp_ready  = s_tx_ready & ~i_req_loc & ~s_lack;
 assign o_qp_flag   = data_flag;
 assign o_qp_valid  = wreg_r;
 assign o_qp_data1  = reg1_dt;
@@ -345,7 +415,7 @@ assign o_xcom_mem  = mem_dt;
 
 assign o_time_update_data = reg1_dt;
 
-assign o_ack_loc = s_ack_loc ;
-assign o_ack_net = s_ack_net;
+assign o_ack_loc = s_lack ;
+assign o_ack_net = s_nack;
 
 endmodule

@@ -1,13 +1,10 @@
 `SVTEST(test00_reset)
 
-//`ASSERT_IMMEDIATE(tb_cb.tb_o_data  == '0);     
-//repeat(5) @(tb_cb);
 for (integer k = 0; k < 10; k = k + 1) begin
     tb_cb.tb_rstn <= 1'b0;
     @(tb_cb);
     tb_cb.tb_rstn <= 1'b1;
     @(tb_cb);
-    //`ASSERT_IMMEDIATE(tb_cb.tb_o_data  == '0);     
 end
 
 `SVTEST_END
@@ -30,6 +27,11 @@ repeat(5) @(tb_cb);
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test02_set_net_id)
    
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0101};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(20)@(tb_cb);
    tb_cb.tb_i_header  <= {XCOM_AUTO_ID,4'b0101};//set auto ID
    tb_cb.tb_i_req_net <= 1'b1;
    @(tb_cb);
@@ -62,7 +64,7 @@ repeat(5) @(tb_cb);
  
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test01_8bit_data)
+`SVTEST(test04_8bit_data)
 
 tb_cb.tb_i_data   <= $urandom();
 //tb_cb.tb_i_data   <= 32'h0000_0003;     
@@ -75,7 +77,7 @@ repeat(50) @(tb_cb);
 `SVTEST_END
 //----------------------------------------------------------------------------------------------    ---//
 
-`SVTEST(test02_16bit_data)
+`SVTEST(test05_16bit_data)
 
 tb_cb.tb_i_data   <= $urandom();     
 //tb_cb.tb_i_data   <= 32'h0000_0003;     
@@ -87,7 +89,7 @@ repeat(100) @(tb_cb);
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test03_32bit_data)
+`SVTEST(test06_32bit_data)
 
 tb_cb.tb_i_data   <= $urandom();     
 //tb_cb.tb_i_data   <= 32'h0000_0003;     
@@ -99,7 +101,7 @@ repeat(100) @(tb_cb);
 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
-`SVTEST(test04_cmd_sync)
+`SVTEST(test07_cmd_sync)
 
 tb_cb.tb_i_data   <= $urandom();     
 //tb_cb.tb_i_data   <= 32'h0000_0003;     
@@ -109,5 +111,63 @@ tb_cb.tb_i_header <= 8'b1000_1010;//sync command
 tb_cb.tb_i_req_net <= 1'b0;
 repeat(200) @(tb_cb);
 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//
+//OK, now we test the reception of commands
+`SVTEST(test08_set_net_id)
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0111};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_AUTO_ID,4'b0101};//set ID 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test09_test_qsync)
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0111};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_QRST_SYNC,4'b0111};//QSYNC 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0101};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat($urandom_range(1,20))@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_QRST_SYNC,4'b0101};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//

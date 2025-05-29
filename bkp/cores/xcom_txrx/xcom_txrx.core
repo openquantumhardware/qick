@@ -18,6 +18,7 @@ filesets:
   tb_alone:
     files:
       - data/states.txt: {file_type : user, copyto : states.txt}
+      - data/opcodes.txt: {file_type : user, copyto : opcodes.txt}
       - test/xcom_txrx_tc00.sv
       - test/tests.sv: {is_include_file: true}
     file_type: systemVerilogSource

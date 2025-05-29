@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
-[*] Wed May 28 14:41:22 2025
+[*] Thu May 29 19:38:00 2025
 [*]
 [dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test_cmd-xsim/xcom_txrx_cmd.vcd"
-[dumpfile_mtime] "Wed May 28 14:36:06 2025"
-[dumpfile_size] 7309656
+[dumpfile_mtime] "Thu May 29 15:56:21 2025"
+[dumpfile_size] 441696
 [savefile] "/home/larnaldi/git/qick_internal/bkp/cores/xcom_txrx/data/xcom_txrx_cmd.gtkw"
-[timestart] 0
+[timestart] 8113000
 [size] 1920 1140
 [pos] -1 -1
-*-17.072115 146000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-19.476391 10544000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.xcom_txrx_ut.
@@ -88,54 +88,88 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_data[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.o_data_cntr[3:0]
 @1401200
 -xcom_cmd
-@c00201
+@c00200
 -req_ack_cmd
-@23
+@22
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.cmd_cnt_r[3:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.cmd_dt_r[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.cmd_op_r[7:0]
-@29
+@28
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_ack
-@23
+@22
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_addr[3:0]
-@29
+@28
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_clk
-@23
+@22
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_data[31:0]
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_op[4:0]
-@29
+@28
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_rstn
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.i_valid
-@23
+@22
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_data[31:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_data_cntr[3:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_op[7:0]
-@29
+@28
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_req_loc
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.o_req_net
-@23
+@22
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.s_cmd_dt[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.s_cmd_op[7:0]
-@29
+@28
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.s_new_cmd
-@2029
+@2028
 ^2 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_req_ack_cmd_0.1.0/test-xsim/states.txt
 testrunner.__ts.xcom_txrx_ut.u_xcom_cmd.u_req_ack_cmd.state_r[2:0]
-@1401201
+@1401200
 -req_ack_cmd
 @c00200
+-tx_cmd
+@28
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_clk
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_rstn
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_sync
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_req
+@22
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_data[31:0]
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_header[7:0]
+@28
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.i_sync_dly_r
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.o_clk
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.o_data
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.o_dbg_state[1:0]
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.o_ready
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.s_ready
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.s_sync
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.s_tx_valid
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.s_xcmd_sync
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.state_r[1:0]
+@1401200
+-tx_cmd
+@800200
 -xcom_txrx
 @28
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_clk
@@ -269,31 +303,32 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_tx_data[31:0]
 @28
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_status[20:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_ack_loc
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.cmd_exec_r
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_set_id
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_id_en
 @22
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.board_id_r[3:0]
 @28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wflg
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wflg_en
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_ready
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.tx_auto_id
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_req_net
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.set_id_flg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wflg_flg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_flg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wmem_flg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rst_flg
+@2029
+^3 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test_cmd-xsim/states.txt
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.state_r[3:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_nack
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wflg_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.data_flag
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wreg
 @22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_op[3:0]
 @28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wmem
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wmem_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wreg_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_r
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wmem_en
 @22
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.mem_addr[3:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.net_cmd_ds[9:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_data2[31:0]
 @28
@@ -328,7 +363,6 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wmem_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_set_id_r
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wreg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wreg_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_ack_net
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_data_flag
 @22
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
@@ -344,10 +378,7 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_dbg_state[1:0]
 (1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_dbg_state[1:0]
 @1401200
 -group_end
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_ready
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.tx_auto_id
-@1401200
+@1000200
 -xcom_txrx
 [pattern_trace] 1
 [pattern_trace] 0

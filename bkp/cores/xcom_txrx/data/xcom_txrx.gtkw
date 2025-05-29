@@ -1,15 +1,15 @@
 [*]
-[*] GTKWave Analyzer v3.3.104 (w)1999-2020 BSI
-[*] Wed May 14 03:40:42 2025
+[*] GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+[*] Thu May 29 19:38:05 2025
 [*]
-[dumpfile] "/home/arnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test-xsim/xcom_txrx.vcd"
-[dumpfile_mtime] "Wed May 14 03:31:02 2025"
-[dumpfile_size] 340492
-[savefile] "/home/arnaldi/git/qick_internal/bkp/cores/xcom_txrx/data/xcom_txrx.gtkw"
-[timestart] 8065000
-[size] 2049 1103
+[dumpfile] "/home/larnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test-xsim/xcom_txrx.vcd"
+[dumpfile_mtime] "Thu May 29 19:09:37 2025"
+[dumpfile_size] 921399
+[savefile] "/home/larnaldi/git/qick_internal/bkp/cores/xcom_txrx/data/xcom_txrx.gtkw"
+[timestart] 28346000
+[size] 1920 1140
 [pos] -1 -1
-*-18.522778 10204000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-18.075823 29260000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] testrunner.
 [treeopen] testrunner.__ts.
 [treeopen] testrunner.__ts.xcom_txrx_ut.
@@ -22,109 +22,131 @@
 [signals_width] 296
 [sst_expanded] 1
 [sst_vpaned_height] 400
-@800201
--xocm_txrx
-@29
+@800200
+-rx_cmd
+@28
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_clk
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_rstn
+@22
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_id[3:0]
+@800028
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_clk[1:0]
+@28
+[color] 3
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_clk[1:0]
+[color] 3
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_clk[1:0]
+@1001200
+-group_end
+@800028
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_data[1:0]
+@28
+[color] 3
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_data[1:0]
+[color] 3
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.i_xcom_data[1:0]
+@1001200
+-group_end
+@22
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.o_chid[3:0]
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.o_data[31:0]
+@28
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.o_op[3:0]
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.o_valid
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.cmd_ack_r
+@800028
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_ack[1:0]
+@28
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_ack[1:0]
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_ack[1:0]
+@1001200
+-group_end
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_channel[0]
+@c00028
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+@28
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+@1401200
+-group_end
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_req
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_req[1:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_valid
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.state_r[1:0]
+@1000200
+-rx_cmd
+@800200
+-xcom_txrx
+@28
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_clk
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_rstn
-@23
 [color] 3
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_cfg_tick[3:0]
-@29
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_sync
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_req_loc
-@23
-[color] 3
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_data[31:0]
-@c00023
-[color] 3
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-@28
-(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(2)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(3)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(4)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(5)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(6)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-(7)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
-@1401201
--group_end
-@29
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_req_net
 [color] 3
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_sync
-@c00029
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_header[7:0]
+@22
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_data[31:0]
+[color] 3
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_cfg_tick[3:0]
+@800028
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_clk[1:0]
 @28
+[color] 3
 (0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_clk[1:0]
+[color] 3
 (1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_clk[1:0]
-@1401201
+@1001200
 -group_end
-@c00029
+@800028
 [color] 3
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_data[1:0]
 @28
+[color] 3
 (0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_data[1:0]
+[color] 3
 (1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.i_xcom_data[1:0]
-@1401201
+@1001200
 -group_end
-@23
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.board_id_r[3:0]
-@29
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_valid
-@23
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_op[3:0]
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_data[31:0]
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
-@29
-[color] 5
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_dbg_state[1:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.cmd_execute
-@c00023
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
+@2028
+^1 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test-xsim/states.txt
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.state_r[3:0]
 @28
-(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-(2)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-(3)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-(4)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-(5)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_ds[5:0]
-@1401201
--group_end
-@23
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_op[3:0]
-@29
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_id_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_set_id
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wflg
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wflg_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wmem
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wmem_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wreg
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_wreg_en
-@23
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.mem_addr[3:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.net_cmd_ds[9:0]
-@29
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_ack_loc
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_ack_net
+@22
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_id[3:0]
+@28
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_clk
+[color] 6
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_data
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_core_start
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_core_stop
-@23
+@22
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_data[31:0]
 [color] 6
@@ -133,201 +155,110 @@ testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_rx_data[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_status[20:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_dbg_tx_data[31:0]
-@29
+@28
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_proc_start
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_proc_stop
-@23
+@22
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_data1[31:0]
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_data2[31:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_auto_id
+@2028
+^2 /home/larnaldi/git/qick_internal/bkp/build/fnal_qick_xcom_txrx_0.1.0/test-xsim/opcodes.txt
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_op[3:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_valid
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.tx_auto_id
 @29
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_qsync
+@c00028
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
+@28
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
+(2)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
+(3)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_chid[3:0]
+@1401200
+-group_end
+@c00028
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+@28
+(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.s_cmd_chid[1:0]
+@1401200
+-group_end
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.loc_cmd_op[3:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.board_id_r[3:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.mem_addr[3:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.data_flag
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_time_update_data[31:0]
+@28
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_flag
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_ready
 [color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_valid
-[color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_time_rst
 [color] 6
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_time_update
-@23
 [color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_time_update_data[31:0]
-@29
-[color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_clk
-[color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_data
-@23
-[color] 6
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_xcom_id[3:0]
-@29
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_ready
-@23
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.o_qp_valid
+@22
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.reg1_dt[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.reg2_dt[31:0]
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.reg_dt_s[31:0]
-@29
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_auto_id
-@23
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rst_flg
+@22
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_cmd_ds[8:0]
-@29
+@28
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_no_dt
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_qctrl
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_qsync
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wflg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wflg_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wmem
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wmem_en
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wreg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.rx_wreg_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_ack_loc
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_ack_net
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.set_id_en
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.tx_auto_id
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_cfg_tick[3:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_data_flag
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_lack
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_loc_dbg_status[5:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_loc_sid
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_nack
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_net_dbg_status[9:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_req_net
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rst
+@22
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_rx_data[31:0]
+@28
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_dbg_state[1:0]
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_tx_ready
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_wflg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_wmem
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.s_wreg
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.set_id_flg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wflg_en
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wflg_flg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wmem_en
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wmem_flg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_en
+testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_flg
 testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.wreg_r
-@1000201
--xocm_txrx
-@c00200
--rx_00
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_rstn
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.bit_cntr_r[5:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_ack
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_id[3:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_xcom_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.i_xcom_data
-@c00022
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
-@28
-(0)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
-(1)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
-(2)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
-(3)testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_cmd[7:4]
-@1401200
--group_end
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_data[63:32]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_dbg_state[9:5]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.o_req
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_broadcast
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_header_last
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_data_last
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_data_shreg[31:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_header_shreg[7:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_local_id
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_new_data
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_no_data
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_rx_header
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_rx_idle
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_rx_pack_size[5:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_rx_req
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.s_timeout
-@2028
-^1 /home/arnaldi/git/qick_internal/bkp/cores/xcom_link_rx/data/states.txt
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.state_r[2:0]
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[0].u_xcom_link_rx.timeout_cntr_r[4:0]
-@1401200
--rx_00
-@c00200
--rx_11
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_rstn
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.bit_cntr_r[5:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_ack
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_id[3:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_xcom_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.i_xcom_data
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.o_cmd[3:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.o_data[31:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.o_dbg_state[4:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.o_req
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_broadcast
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_data_last
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_data_shreg[31:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_header_last
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_header_shreg[7:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_local_id
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_new_data
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_no_data
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_rx_header
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_rx_idle
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_rx_pack_size[5:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_rx_req
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.s_timeout
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.state_r[2:0]
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_rx_cmd.RX[1].u_xcom_link_rx.timeout_cntr_r[4:0]
-@1401200
--rx_11
-@c00200
--tx
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_rstn
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_cfg_tick[3:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_data[31:0]
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_header[7:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.i_valid
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.o_clk
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.o_data
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.o_ready
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.s_last
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.s_ready
-@24
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.s_tx_pkt_size[5:0]
-@2028
-^2 /home/arnaldi/git/qick_internal/bkp/cores/xcom_link_tx/data/states.txt
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.state_r[1:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tick_clk
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tick_cnt[3:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tick_dt
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tick_en
-@24
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tx_bit_cnt_r[5:0]
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tx_buff[39:0]
-@28
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tx_clk_r
-@22
-testrunner.__ts.xcom_txrx_ut.u_xcom_txrx.u_tx_cmd.u_xcom_link_tx.tx_data_r[39:0]
-@1401200
--tx
+@1000200
+-xcom_txrx
 [pattern_trace] 1
 [pattern_trace] 0

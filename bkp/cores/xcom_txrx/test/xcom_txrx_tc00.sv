@@ -157,7 +157,7 @@ for (ind_tx=0; ind_tx < NCH ; ind_tx=ind_tx+1) begin: TX
     xcom_link_tx u_xcom_link_tx(
         .i_clk      (tb_clk        ),
         .i_rstn     (tb_rstn       ),
-        .i_cfg_tick (tb_i_cfg_tick ),
+        .i_cfg_tick (tb_i_cfg_tick_tx ),
         .i_valid    (tb_i_valid_tx  [ind_tx]  ),
         .i_header   (tb_i_header_tx [ind_tx]  ),
         .i_data     (tb_i_data_tx   [ind_tx]  ), 
@@ -228,7 +228,7 @@ endfunction
 task setup();
   svunit_ut.setup();
     //tx
-    tb_cb.tb_i_cfg_tick_tx <= '0;
+    tb_cb.tb_i_cfg_tick_tx <= 4'b0010;
     tb_cb.tb_i_valid_tx    <= '{default:0};
     tb_cb.tb_i_header_tx   <= '{default:0};
     tb_cb.tb_i_data_tx     <= '{default:0};
@@ -238,7 +238,7 @@ task setup();
     tb_cb.tb_i_req_net  <= 1'b0;
     tb_cb.tb_i_header   <= '0;
     tb_cb.tb_i_data     <= '0;
-    tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
+    tb_cb.tb_i_cfg_tick  <= '0;       //one bit every 2 clock cycles
 
     @(tb_cb);
     tb_cb.tb_rstn    <= 1'b0;
@@ -270,39 +270,41 @@ endtask
 //   `SVTEST_END
 //===================================
 
- task SIM_TX (); begin
+task SIM_TX (); begin
    $display("SIM TX");
+   tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
    @(tb_cb);
-   s_header <= {s_op.auto_id[3:0],4'b0010}; //no data, should trigger timeout. cmd=AUTO_ID, addr     board=2
+   s_header <= {XCOM_AUTO_ID,4'b0010}; //no data, should trigger timeout. cmd=AUTO_ID, addr board=2
    s_data   <= 32'd8;
    repeat(10)@(tb_cb);
    TX_ALL();
-
+        
    repeat(20)@(tb_cb);
-   s_header <= {s_op.update_dt8[3:0],4'b0010};//8-bit data. cmd=Update DT8, addr board=2
+   s_header <= {XCOM_UPDATE_DT8,4'b0010};//8-bit data. cmd=Update DT8, addr board=2
    s_data   <= 32'd16;
    repeat(10)@(tb_cb);
    TX_ALL();
-
+        
    repeat(20)@(tb_cb);
-   s_header <= {s_op.update_dt16[3:0],4'b0001};//16-bit data. cmd=Update DT16, addr board=1
+   s_header <= {XCOM_UPDATE_DT16,4'b0001};//16-bit data. cmd=Update DT16, addr board=1
    s_data   <= 32'd24;
    repeat(10)@(tb_cb);
    TX_ALL();
-
+        
    repeat(20)@(tb_cb);
-   s_header <= {s_op.update_dt32[3:0],4'b0010};//32-bit data. cmd=Update DT32, addr board=10
+   s_header <= {XCOM_UPDATE_DT32,4'b0010};//32-bit data. cmd=Update DT32, addr board=10
    s_data   <= 32'd40;
    repeat(10)@(tb_cb);
    TX_ALL();
-
+        
    repeat(20)@(tb_cb);
-   s_header <= {s_op.qrst_sync[3:0],4'b0000};//no data, should trigger timeout. cmd=QRST_SYNC, a    ddr board= broadcast
+   s_header <= {XCOM_QRST_SYNC,4'b0000};//no data, should trigger timeout. cmd=QRST_SYNC, addr board= broadcast
    s_data   <= 32'd40;
    repeat(10)@(tb_cb);
    TX_ALL();
    repeat(50)@(tb_cb);
-end
+        
+end  
 endtask
 
 task TX_ALL ; begin
