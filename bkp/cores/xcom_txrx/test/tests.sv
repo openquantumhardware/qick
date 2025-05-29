@@ -171,3 +171,71 @@ repeat(200) @(tb_cb);
  
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
+`SVTEST(test10_test_qctrl)
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0111};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_QCTRL,4'b0111};//QSYNC 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0101};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat($urandom_range(1,20))@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_QCTRL,4'b0101};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_QCTRL,4'b0101};//QSYNC 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test11_test_wflg)
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0001};//set ID locally
+   //tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_0000;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_BEBE;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_WRITE_FLAG,4'b0000};//WFLG 
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//

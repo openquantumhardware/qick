@@ -323,14 +323,11 @@ assign rx_wflg_en   = s_rx_valid & rx_wflg;
 assign rx_wreg_en   = s_rx_valid & rx_wreg;
 assign rx_wmem_en   = s_rx_valid & rx_wmem;
 
-assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;//4'b1001 ;
-
-assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QRST_SYNC;//4'b1000 ;
-assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;//4'b1011 ;
-         
+assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;
+assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QRST_SYNC;
+assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;
 //end Reception
 //
-
 
 // EXECUTE COMMANDS
 ///////////////////////////////////////////////////////////////////////////////
