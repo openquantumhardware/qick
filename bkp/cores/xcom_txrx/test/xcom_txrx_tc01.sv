@@ -39,8 +39,6 @@ import qick_pkg::*;
   logic [4-1:0]  tb_i_cfg_tick  = 1'b0;
   logic [ 4-1:0] tb_o_xcom_id         ;
   logic [32-1:0] tb_o_xcom_mem [15]   ;
-//  logic [NCH-1:0]tb_i_xcom_data       ;
-//  logic [NCH-1:0]tb_i_xcom_clk        ;
   logic          tb_o_xcom_data       ;
   logic          tb_o_xcom_clk        ;
   logic [32-1:0] tb_o_dbg_rx_data     ;
@@ -49,7 +47,6 @@ import qick_pkg::*;
   logic [32-1:0] tb_o_dbg_data        ;
 
   //tx
-  logic [ 4-1:0] tb_i_cfg_tick_tx  = '0;
   logic          tb_i_valid_tx  [NCH] = '{default:0};
   logic [ 8-1:0] tb_i_header_tx [NCH] = '{default:0};
   logic [32-1:0] tb_i_data_tx   [NCH] = '{default:0};
@@ -109,9 +106,6 @@ clocking tb_cb @(posedge tb_clk);
   output  tb_i_header      ;
   output  tb_i_data        ;
   output  tb_i_cfg_tick    ;
-//  output  tb_i_xcom_data   ;
-//  output  tb_i_xcom_clk    ;
-  output  tb_i_cfg_tick_tx    ;
   output  tb_i_valid_tx       ;
   output  tb_i_header_tx      ;
   output  tb_i_data_tx        ;
@@ -166,26 +160,6 @@ initial begin
   forever # (200) tb_i_sync <= ~tb_i_sync;  
 end 
 
-
-
-//tx
-genvar ind_tx;
-generate
-for (ind_tx=0; ind_tx < NCH ; ind_tx=ind_tx+1) begin: TX
-    xcom_link_tx u_xcom_link_tx(
-        .i_clk      (tb_clk        ),
-        .i_rstn     (tb_rstn       ),
-        .i_cfg_tick (tb_i_cfg_tick ),
-        .i_valid    (tb_i_valid_tx  [ind_tx]  ),
-        .i_header   (tb_i_header_tx [ind_tx]  ),
-        .i_data     (tb_i_data_tx   [ind_tx]  ), 
-        .o_ready    (tb_o_ready_tx  [ind_tx]  ),
-        .o_data     (tb_xcom_data[ind_tx]  ),
-        .o_clk      (tb_xcom_clk [ind_tx]  )
-        );
-    end
-    endgenerate
- 
 xcom_cmd u_xcom_cmd(
   .i_clk           ( tb_clk         ),
   .i_rstn          ( tb_rstn        ),
@@ -264,17 +238,14 @@ endfunction
 task setup();
   svunit_ut.setup();
     //tx
-    tb_cb.tb_i_cfg_tick_tx <= '0;
     tb_cb.tb_i_valid_tx    <= '{default:0};
     tb_cb.tb_i_header_tx   <= '{default:0};
     tb_cb.tb_i_data_tx     <= '{default:0};
-
 
     tb_cb.tb_i_req_loc  <= 1'b0;
     tb_cb.tb_i_req_net  <= 1'b0;
     tb_cb.tb_i_header   <= '0;
     tb_cb.tb_i_data     <= '0;
-    tb_cb.tb_i_cfg_tick  <= '0;       //one bit every 2 clock cycles
 
 //xcom_cmd
   random_data = $urandom();
@@ -319,64 +290,6 @@ endtask
 //   `SVTEST_END
 //===================================
 
- task SIM_TX (); begin
-   $display("SIM TX");
-   @(tb_cb);
-   s_header <= {XCOM_AUTO_ID,4'b0010}; //no data, should trigger timeout. cmd=AUTO_ID, addr     board=2
-   s_data   <= 32'd8;
-   repeat(10)@(tb_cb);
-   TX_ALL();
-
-   repeat(20)@(tb_cb);
-   s_header <= {XCOM_UPDATE_DT8,4'b0010};//8-bit data. cmd=Update DT8, addr board=2
-   s_data   <= 32'd16;
-   repeat(10)@(tb_cb);
-   TX_ALL();
-
-   repeat(20)@(tb_cb);
-   s_header <= {XCOM_UPDATE_DT16,4'b0001};//16-bit data. cmd=Update DT16, addr board=1
-   s_data   <= 32'd24;
-   repeat(10)@(tb_cb);
-   TX_ALL();
-
-   repeat(20)@(tb_cb);
-   s_header <= {XCOM_UPDATE_DT32[3:0],4'b0010};//32-bit data. cmd=Update DT32, addr board=10
-   s_data   <= 32'd40;
-   repeat(10)@(tb_cb);
-   TX_ALL();
-
-   repeat(20)@(tb_cb);
-   s_header <= {XCOM_QRST_SYNC,4'b0000};//no data, should trigger timeout. cmd=QRST_SYNC, a    ddr board= broadcast
-   s_data   <= 32'd40;
-   repeat(10)@(tb_cb);
-   TX_ALL();
-   repeat(50)@(tb_cb);
-end
-endtask
-
-task TX_ALL ; begin
-   $display("TX_ALL");
-   for (int ind_ch=0; ind_ch < NCH ; ind_ch=ind_ch+1) begin: STX
-      tb_cb.tb_i_header_tx[ind_ch] <= s_header;
-      tb_cb.tb_i_data_tx[ind_ch]   <= s_data;
-      TX_DT(ind_ch);
-   end
-   repeat(100)@(tb_cb);
-end
-endtask
-
-task TX_DT (input int channel); begin
-   $display("TX_DT %d", channel);
-   wait (tb_cb.tb_o_ready_tx[channel] == 1'b1);
-   @ (tb_cb);
-   tb_cb.tb_i_valid_tx[channel]     <= 1;
-   wait (tb_cb.tb_o_ready_tx[channel] == 1'b0);
-   @ (tb_cb);
-   tb_cb.tb_i_valid_tx[channel]     <= 0;
-end
-endtask
-
-
 task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
     if (in_op < 16) begin
         $display("PS writing NET...");
@@ -384,20 +297,25 @@ task automatic write_ps(input logic [NB-1:0] in_data, input logic [5-1:0] in_op)
         $display("PS writing LOC...");
     end
 
-    for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
-        tb_cb.tb_i_ps_ctrl[0]   <= 1'b1;
-        tb_cb.tb_i_ps_ctrl[5:1] <= in_op;
-        tb_cb.tb_i_ps_addr      <= 32'd2;//$urandom_range(0,15);
-        tb_cb.tb_i_ps_data      <= in_data + i;
-        @(tb_cb);
-        tb_cb.tb_i_ps_ctrl[0]   <= 1'b0;
-        wait(tb_o_ack_loc | tb_o_ack_net);
-        @(tb_cb);
-        $display("crossing %d",i);
-        //repeat($urandom_range(1,5))@(tb_cb);
-        repeat(5)@(tb_cb);
-    end   
-endtask   
+    tb_cb.tb_i_ps_ctrl[0]   <= 1'b1;
+    tb_cb.tb_i_ps_ctrl[5:1] <= in_op;
+    tb_cb.tb_i_ps_addr      <= $urandom_range(0,15);
+    tb_cb.tb_i_ps_data      <= $urandom();
+    repeat($urandom_range(1,100))@(tb_cb);
+    //tb_cb.tb_i_ps_ctrl[0]   <= 1'b0;
+    if (in_op < 16) begin
+        tb_cb.tb_i_ack_net  <= 1'b1;
+    end else begin
+        tb_cb.tb_i_ack_loc  <= 1'b1;
+    end
+    repeat($urandom_range(1,10))@(tb_cb);
+    if (in_op < 16) begin
+        tb_cb.tb_i_ack_net      <= 1'b0;
+    end else begin
+        tb_cb.tb_i_ack_loc      <= 1'b0;
+    end
+    repeat($urandom_range(1,5))@(tb_cb);
+endtask
 
 task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_op);
     if (in_op < 16) begin
@@ -405,19 +323,26 @@ task automatic write_core(input logic [NB-1:0] in_data, input logic [5-1:0] in_o
     end else begin
         $display("CORE writing LOC...");
     end
-    //for ( int i = 0 ; i < 10 ; i = i + 1 ) begin
-        tb_cb.tb_i_core_en   <= 1'b1;
-        tb_cb.tb_i_core_op   <= in_op;
-        tb_cb.tb_i_core_addr <= 32'd2;//$urandom_range(0,15);
-        tb_cb.tb_i_core_data <= in_data + 1'b1;
-        repeat(2)@(tb_cb);
-        tb_cb.tb_i_core_en   <= 1'b0;
-        $display("CORE waiting LOC...");
-        wait(tb_o_ack_loc | tb_o_ack_net);
-        @(tb_cb);
-        repeat($urandom_range(1,5))@(tb_cb);
-    //end   
-endtask   
+    tb_cb.tb_i_core_en   <= 1'b1;
+    tb_cb.tb_i_core_op   <= in_op;
+    tb_cb.tb_i_core_addr <= $urandom_range(0,15);
+    tb_cb.tb_i_core_data <= $urandom();
+    repeat($urandom_range(1,100))@(tb_cb);
+    tb_cb.tb_i_core_en   <= 1'b0;
+    if (in_op < 16) begin
+        tb_cb.tb_i_ack_net      <= 1'b1;
+    end else begin
+        tb_cb.tb_i_ack_loc      <= 1'b1;
+    end
+    repeat($urandom_range(1,10))@(tb_cb);
+    if (in_op < 16) begin
+        tb_cb.tb_i_ack_net      <= 1'b0;
+    end else begin
+        tb_cb.tb_i_ack_loc      <= 1'b0;
+    end
+    repeat($urandom_range(1,5))@(tb_cb);
+
+endtask
 
 `SVUNIT_TESTS_BEGIN
 `include "tests_cmd.sv"
