@@ -40,16 +40,6 @@ u_clk_gen
   .o_clk      ( tb_clk            )
 );
 
-//clk_gen
-//#(
-//  .FREQ       ( SYNC_PULSE_FREQ   )
-//)
-//u_sync_pulse
-//(
-//  .i_enable   ( 1'b1              ),
-//  .o_clk      ( tb_i_sync         )
-//);
-
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
   output  tb_rstn          ;
@@ -70,8 +60,6 @@ initial begin
   tb_i_sync <= 1'b0;
   forever # (200) tb_i_sync <= ~tb_i_sync;  
 end 
-
-
 
 //===================================
 // This is the UUT that we're
