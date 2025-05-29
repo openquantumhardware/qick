@@ -206,7 +206,7 @@ xcom_axil_slv#(
    .i_xcom_mem      ( axi_mem_data       ),
    .i_xcom_rx_data  ( s_dbg_rx_data_ps   ),
    .i_xcom_tx_data  ( s_dbg_tx_data_ps   ),
-   .i_xcom_status   ( xreg_status_sync_r ),//s_dbg_status_ps    ),
+   .i_xcom_status   ( xreg_status        ),//s_dbg_status_ps    ),
    .i_xcom_debug    ( xreg_debug         ) //s_dbg_debug_ps     )
    ); 
 
@@ -317,35 +317,7 @@ xcom_txrx#(
 );
 
 assign o_xcom_id   = s_xcom_id;
-
-//SYNC STAGES
-///////////////////////////////////////////////////////////////////////////////
-//Time domain -> PS domain
-//let's synchronize some status signals coming from the time_clk
-narrow_en_signal sync_req_loc(
-  .i_clk  ( i_ps_clk       ),
-  .i_rstn ( i_ps_rstn      ),
-  .i_en   ( s_req_loc      ),
-  .o_en   ( s_req_loc_sync )
-);
-
-narrow_en_signal sync_req_net(
-  .i_clk  ( i_ps_clk       ),
-  .i_rstn ( i_ps_rstn      ),
-  .i_en   ( s_req_net      ),
-  .o_en   ( s_req_net_sync )
-);
-
-assign s_req_cmd = s_req_loc_sync | s_req_net_sync;
-//Registers
-//now let's catch the counter
-always_ff @ (posedge i_ps_clk) begin
-   if (!i_ps_rstn) xreg_status_sync_r <= '0;
-   else            xreg_status_sync_r <= xreg_status_sync_n;
-end
-
-assign xreg_status        = { 8'h00,s_data_cntr, s_dbg_status_ps};
-assign xreg_status_sync_n = (s_req_cmd) ? xreg_status : xreg_status_sync_r;
+assign xreg_status        = { 7'd0,s_data_cntr, s_dbg_status_ps};
 
 //end of SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
