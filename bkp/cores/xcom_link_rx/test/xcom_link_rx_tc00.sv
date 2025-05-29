@@ -3,6 +3,7 @@
 
 module xcom_link_rx_unit_test;
 import svunit_pkg::svunit_testcase;
+import qick_pkg::*;
 
   string name = "xcom_link_rx_ut";
   svunit_testcase svunit_ut;
@@ -31,6 +32,9 @@ import svunit_pkg::svunit_testcase;
 
   logic          tb_xcom_data   ; 
   logic          tb_xcom_clk    ; 
+  logic  [8-1:0] s_header       ;
+  logic [32-1:0] s_data         ;
+
 
 initial begin
   $dumpfile("xcom_link_rx.vcd");
@@ -161,38 +165,39 @@ endtask
 
 task SIM_TX (); begin
    $display("SIM TX");
+   tb_cb.tb_i_cfg_tick  <= 2;       //one bit every 2 clock cycles
    @(tb_cb);
-   tb_cb.tb_i_header <= 8'b1001_1010;//no data, should trigger timeout. cmd=AUTO_ID
+   tb_cb.tb_i_header <= {XCOM_AUTO_ID,4'b0010}; //no data, should trigger timeout. cmd=AUTO_ID, addr board=2
    tb_cb.tb_i_data   <= 32'd8;
    repeat(100)@(tb_cb);
    TX_DT();
-   
+        
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1010_1010;//8-bit data. cmd=Updata DT8
+   tb_cb.tb_i_header <= {XCOM_UPDATE_DT8,4'b0010};//8-bit data. cmd=Update DT8, addr board=2
    tb_cb.tb_i_data   <= 32'd16;
    repeat(100)@(tb_cb);
    TX_DT();
- 
+        
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1100_1010;//16-bit data. cmd=Updata DT16
+   tb_cb.tb_i_header <= {XCOM_UPDATE_DT16,4'b0001};//16-bit data. cmd=Update DT16, addr board=1
    tb_cb.tb_i_data   <= 32'd24;
    repeat(100)@(tb_cb);
    TX_DT();
- 
+        
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1110_1010;//32-bit data. cmd=Updata DT32
+   tb_cb.tb_i_header <= {XCOM_UPDATE_DT32,4'b0010};//32-bit data. cmd=Update DT32, addr board=10
    tb_cb.tb_i_data   <= 32'd40;
    repeat(100)@(tb_cb);
    TX_DT();
- 
+        
    repeat(200)@(tb_cb);
-   tb_cb.tb_i_header <= 8'b1000_0000;//no data, should trigger timeout. cmd=QRST_SYNC
+   tb_cb.tb_i_header <= {XCOM_QRST_SYNC,4'b0000};//no data, should trigger timeout. cmd=QRST_SYNC, addr board= broadcast
    tb_cb.tb_i_data   <= 32'd40;
    repeat(100)@(tb_cb);
    TX_DT();
    repeat(500)@(tb_cb);
- 
-end
+        
+end  
 endtask
  
 task TX_DT (); begin

@@ -49,7 +49,7 @@ module xcom_link_tx (
     input  logic          i_clk      ,
     input  logic          i_rstn     ,
     // Config 
-    input  logic [ 4-1:0] i_cfg_tick , //
+    input  logic [ 4-1:0] i_cfg_tick , 
     // Transmittion 
     input  logic          i_valid    ,
     input  logic [ 8-1:0] i_header   ,

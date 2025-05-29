@@ -19,6 +19,7 @@ filesets:
     file_type: systemVerilogSource
     depend: 
       - pynq_fused:common:sim_base
+      - fnal:qick:qick_pkg
       - fnal:qick:xcom_link_tx
 
   tb_alone:
