@@ -316,8 +316,8 @@ rx_cmd#(.NCH(NCH)) u_rx_cmd(
 ///////////////////////////////////////////////////////////////////////////////
 assign rx_no_dt   = ~|s_rx_op[2:1];
 assign rx_wflg    =  !s_rx_op[3] & rx_no_dt ; //000X
-assign rx_wreg    =  !s_rx_op[3] & !rx_no_dt; //001X-010X-011X
-assign rx_wmem    =   s_rx_op[3] & !rx_no_dt & ~s_rx_op[0]; //000X
+assign rx_wreg    =  !s_rx_op[3] & !rx_no_dt & ~s_rx_op[0]; //001X-010X-011X
+assign rx_wmem    =  !s_rx_op[3] & !rx_no_dt & s_rx_op[0]; //000X
 
 assign rx_wflg_en   = s_rx_valid & rx_wflg; 
 assign rx_wreg_en   = s_rx_valid & rx_wreg;

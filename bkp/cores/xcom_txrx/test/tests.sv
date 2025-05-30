@@ -239,3 +239,45 @@ repeat(200) @(tb_cb);
  
 `SVTEST_END
 //-------------------------------------------------------------------------------------------------//
+`SVTEST(test12_test_wreg)
+   tb_cb.tb_i_data    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0010};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_0010;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_0011;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_WRITE_REG,4'b0010};//WREG header[3:0]=0 broadcast
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//
+`SVTEST(test13_test_wmem)
+   tb_cb.tb_i_data    <= 32'h0000_FF0F;     
+   tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b0010};//set ID locally
+   tb_cb.tb_i_req_loc <= 1'b1;
+   @(tb_cb);
+   tb_cb.tb_i_req_loc <= 1'b0;
+   repeat(5)@(tb_cb);
+
+   tb_cb.tb_i_data_tx[0]    <= 32'h0000_0010;     
+   tb_cb.tb_i_data_tx[1]    <= 32'h0000_0011;     
+   tb_cb.tb_i_header_tx[0]  <= {XCOM_WRITE_MEM,4'b1000};//WMEM header[3:0]=0 broadcast
+   tb_cb.tb_i_header_tx[1]  <= {XCOM_AUTO_ID,4'b0111};//set ID 
+   tb_cb.tb_i_valid_tx[0]   <= 1'b1;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   @(tb_cb);
+   tb_cb.tb_i_valid_tx[0]   <= 1'b0;
+   tb_cb.tb_i_valid_tx[1]   <= 1'b0;
+   repeat(200)@(tb_cb);
+ 
+`SVTEST_END
+//-------------------------------------------------------------------------------------------------//
