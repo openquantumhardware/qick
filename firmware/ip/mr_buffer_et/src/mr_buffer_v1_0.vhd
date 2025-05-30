@@ -13,7 +13,10 @@ entity mr_buffer_v1_0 is
 
 		-- Parameters of Axi Slave Bus Interface S00_AXI
 		C_S00_AXI_DATA_WIDTH	: integer	:= 32;
-		C_S00_AXI_ADDR_WIDTH	: integer	:= 6
+		C_S00_AXI_ADDR_WIDTH	: integer	:= 6;
+
+		-- Enable Debug
+		DEBUG	: Integer := 0
 	);
 	port (
 		-- Trigger.
@@ -58,7 +61,12 @@ entity mr_buffer_v1_0 is
 		m00_axis_tdata	: out std_logic_vector(B-1 downto 0);
 		m00_axis_tstrb	: out std_logic_vector((B/8)-1 downto 0);
 		m00_axis_tlast	: out std_logic;
-		m00_axis_tready	: in std_logic
+		m00_axis_tready	: in std_logic;
+		
+        -- Debug Output Probes
+        s_dbg_probe         : out std_logic_vector(31 downto 0);
+        m_dbg_probe         : out std_logic_vector(31 downto 0)
+
 	);
 end mr_buffer_v1_0;
 
@@ -121,9 +129,16 @@ architecture arch_imp of mr_buffer_v1_0 is
 			M_AXIS_TDATA	: out std_logic_vector(B-1 downto 0);
 			M_AXIS_TSTRB	: out std_logic_vector((B/8)-1 downto 0);
 			M_AXIS_TLAST	: out std_logic;
-			M_AXIS_TREADY	: in std_logic
+			M_AXIS_TREADY	: in std_logic;
+			
+	        -- Debug Output Probes
+            s_dbg_probe         : out std_logic_vector(31 downto 0);
+            m_dbg_probe         : out std_logic_vector(31 downto 0)
 		);
 	end component mr_buffer_v1_0_S00_AXI;
+
+	signal s_dbg_probe_int	: std_logic_vector(31 downto 0);
+	signal m_dbg_probe_int	: std_logic_vector(31 downto 0);
 
 begin
 
@@ -179,8 +194,20 @@ mr_buffer_v1_0_S00_AXI_inst : mr_buffer_v1_0_S00_AXI
 		M_AXIS_TDATA	=> m00_axis_tdata,
 		M_AXIS_TSTRB	=> m00_axis_tstrb,
 		M_AXIS_TLAST	=> m00_axis_tlast,
-		M_AXIS_TREADY	=> m00_axis_tready
+		M_AXIS_TREADY	=> m00_axis_tready,
+		
+		s_dbg_probe   => s_dbg_probe_int,
+		m_dbg_probe   => m_dbg_probe_int
 	);
 
+DEBUG_GEN: if DEBUG = 1 generate
+    -- Debug ILA probe
+	s_dbg_probe		<= s_dbg_probe_int;
+	m_dbg_probe		<= m_dbg_probe_int;
+end generate;
+DEBUG_NOGEN: if DEBUG /= 1 generate
+	s_dbg_probe		<= (others => '0');
+	m_dbg_probe		<= (others => '0');
+end generate;
 end arch_imp;
 

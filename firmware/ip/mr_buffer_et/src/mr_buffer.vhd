@@ -37,8 +37,13 @@ entity mr_buffer is
         
         -- Registers.
 		DW_CAPTURE_REG		: in std_logic;
-		DR_START_REG		: in std_logic
+		DR_START_REG		: in std_logic;
+		DEBUG_REG			: in std_logic_vector(31 downto 0);
 		
+		-- Debug Output Probes
+        s_dbg_probe         : out std_logic_vector(31 downto 0);
+		m_dbg_probe         : out std_logic_vector(31 downto 0)
+
     );
 end mr_buffer;
 
@@ -153,6 +158,7 @@ end component;
 -- Re-sync trigger and registers.
 signal DW_CAPTURE_REG_resync: std_logic;
 signal DR_START_REG_resync	: std_logic;
+signal trigger_or_dbg		: std_logic;
 signal trigger_resync		: std_logic;
 
 -- ena/enb/wea/web.
@@ -185,7 +191,18 @@ signal s_axis_tdata_i  : tdata_array_t;
 signal s_axis_tvalid_i : std_logic_vector (NM-1 downto 0);
 signal s_axis_tready_i : std_logic_vector (NM-1 downto 0);
 
+signal dtvalid		: std_logic;
+signal dtlast		: std_logic;
+signal dtdata       : std_logic_vector(B-1 downto 0);
+
+-- Debug signals
+signal trigger_dbg          : std_logic;
+signal s_axis_tready_force  : std_logic;
+
 begin
+
+    trigger_dbg         <= DEBUG_REG(0);
+    s_axis_tready_force <= DEBUG_REG(1);
 
 -- DW_CAPTURE_REG_resync.
 DW_CAPTURE_REG_resync_i :  synchronizer
@@ -211,6 +228,8 @@ DR_START_REG_resync_i :  synchronizer
 		data_out	=> DR_START_REG_resync
 	);
 
+	trigger_or_dbg <= trigger or trigger_dbg;
+
 -- trigger_resync.
 trigger_resync_i :  synchronizer
 	generic map (
@@ -219,7 +238,7 @@ trigger_resync_i :  synchronizer
 	port map (
 		rstn	 	=> s_axis_aresetn,
 		clk 		=> s_axis_aclk,
-		data_in		=> trigger,
+		data_in		=> trigger_or_dbg,
 		data_out	=> trigger_resync
 	);
 
@@ -317,18 +336,35 @@ Port map
     mem_dout    		=> dob_c,
     
     -- Data out.
-    dout        		=> m_axis_tdata,
     dready      		=> m_axis_tready,
-    dvalid      		=> m_axis_tvalid,
-    dlast               => m_axis_tlast,
+    dout        		=> dtdata,
+    dvalid      		=> dtvalid,
+    dlast               => dtlast,
     
     -- Registers.
     START_REG   		=> DR_START_REG_resync
 );
 
 -- Output assignment.
-s_axis_tready     <= s_axis_tready_i(0); 
+s_axis_tready     <= s_axis_tready_i(0) or s_axis_tready_force; 
 m_axis_tstrobe    <= (others => '1');
+
+m_axis_tvalid       <= dtvalid;
+m_axis_tlast        <= dtlast;
+m_axis_tdata        <= dtdata;
+
+
+-- Debug ILA probe
+s_dbg_probe(7 downto 0) <= "000" & DW_CAPTURE_REG_resync & trigger_resync & wea(0) & s_axis_tvalid_i(0) & s_axis_tready_i(0);
+s_dbg_probe(15 downto 8) <= s_axis_tdata_i(0)(7 downto 0);
+s_dbg_probe(23 downto 16) <= std_logic_vector(resize(unsigned(addra(0)),8));
+s_dbg_probe(31 downto 24) <= dia(0)(7 downto 0);
+
+
+m_dbg_probe(7 downto 0) <= "000" & DR_START_REG_resync & web & dtlast & dtvalid & m_axis_tready;
+m_dbg_probe(15 downto 8) <= dtdata(7 downto 0);
+m_dbg_probe(23 downto 16) <= std_logic_vector(resize(unsigned(addrb),8));
+m_dbg_probe(31 downto 24) <= dob_c(7 downto 0);
 
 end Behavioral;
 

@@ -59,7 +59,11 @@ entity mr_buffer_v1_0_S00_AXI is
 		M_AXIS_TDATA	: out std_logic_vector(B-1 downto 0);
 		M_AXIS_TSTRB	: out std_logic_vector((B/8)-1 downto 0);
 		M_AXIS_TLAST	: out std_logic;
-		M_AXIS_TREADY	: in std_logic
+		M_AXIS_TREADY	: in std_logic;
+		
+		-- Debug Output Probes
+        s_dbg_probe         : out std_logic_vector(31 downto 0);
+		m_dbg_probe         : out std_logic_vector(31 downto 0)
 	);
 end mr_buffer_v1_0_S00_AXI;
 
@@ -145,8 +149,12 @@ architecture arch_imp of mr_buffer_v1_0_S00_AXI is
         
         -- Registers.
 		DW_CAPTURE_REG		: in std_logic;
-		DR_START_REG		: in std_logic
+		DR_START_REG		: in std_logic;
+		DEBUG_REG			: in std_logic_vector(31 downto 0);
 		
+        -- Debug Output Probes
+        s_dbg_probe         : out std_logic_vector(31 downto 0);
+        m_dbg_probe         : out std_logic_vector(31 downto 0)		
     );
     end component;
 
@@ -594,8 +602,11 @@ begin
         
         -- Registers.
 		DW_CAPTURE_REG		=> slv_reg0(0),
-		DR_START_REG		=> slv_reg1(0)
+		DR_START_REG		=> slv_reg1(0),
+		DEBUG_REG			=> slv_reg15,
 		
+        s_dbg_probe   => s_dbg_probe,
+		m_dbg_probe   => m_dbg_probe		
     );	
 
 end arch_imp;
