@@ -220,7 +220,7 @@ initial begin
 	axi_mst_0_agent.AXI4LITE_WRITE_BURST(addr_we, prot, data_wr, resp);
 	#10;	
 	
-	// Load Table.
+	// Load Envelope Table Memory.
 	tb_load_mem 	<= 1;
 	wait (tb_load_mem_done);
 	
@@ -264,8 +264,8 @@ initial begin
 	
 	wait (tb_load_mem);
 
-//	fd = $fopen("../../../../../tb/gauss.txt","r");
-	fd = $fopen("/home/dmartin2/Projects/qick_internal/firmware/ip/axis_signal_gen_v6/src/tb/gauss.txt","r");
+    // File must be in the same directory from where the simulation is run
+	fd = $fopen("./gauss.txt","r");
 
 	wait (s0_axis_tready);
 
@@ -283,8 +283,8 @@ initial begin
 	
 	$fclose(fd);
 	tb_load_mem_done <= 1;
-
 end
+
 
 // Load waveforms.
 initial begin
@@ -315,36 +315,36 @@ initial begin
 	stdysel_r		<= 0;	// 0: last, 1: zero.
 	phrst_r			<= 0;
 
-	@(posedge aclk);
-	$display("t = %0t", $time);
-	s1_axis_tvalid	<= 1;
-	freq_r			<= freq_calc(100, N_DDS, 4);	// 120 MHz.
-	phase_r			<= 0;
-	addr_r			<= 22;
-	gain_r			<= 12000;
-	nsamp_r			<= 123;
-	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
-	mode_r			<= 0;	// 0: nsamp, 1: periodic
-	stdysel_r		<= 0;	// 0: last, 1: zero.
-	phrst_r			<= 1;
-
-	@(posedge aclk);
-	s1_axis_tvalid	<= 0;
-
-	#5us;
-
-	@(posedge aclk);
-	$display("t = %0t", $time);
-	s1_axis_tvalid	<= 1;
-	freq_r			<= freq_calc(100, N_DDS, 13);
-	phase_r			<= 0;
-	addr_r			<= 0;
-	gain_r			<= 30000;
-	nsamp_r			<= 400/N_DDS;
-	outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
-	mode_r			<= 0;	// 0: nsamp, 1: periodic
-	stdysel_r		<= 1;	// 0: last, 1: zero.
-	phrst_r			<= 0;
+                //	@(posedge aclk);
+                //	$display("t = %0t", $time);
+                //	s1_axis_tvalid	<= 1;
+                //	freq_r			<= freq_calc(100, N_DDS, 4);	// 120 MHz.
+                //	phase_r			<= 0;
+                //	addr_r			<= 22;
+                //	gain_r			<= 12000;
+                //	nsamp_r			<= 123;
+                //	outsel_r		<= 1;	// 0: prod, 1: dds, 2: mem
+                //	mode_r			<= 0;	// 0: nsamp, 1: periodic
+                //	stdysel_r		<= 0;	// 0: last, 1: zero.
+                //	phrst_r			<= 1;
+                
+                //	@(posedge aclk);
+                //	s1_axis_tvalid	<= 0;
+                
+                //	#5us;
+                
+                //	@(posedge aclk);
+                //	$display("t = %0t", $time);
+                //	s1_axis_tvalid	<= 1;
+                //	freq_r			<= freq_calc(100, N_DDS, 13);
+                //	phase_r			<= 0;
+                //	addr_r			<= 0;
+                //	gain_r			<= 30000;
+                //	nsamp_r			<= 400/N_DDS;
+                //	outsel_r		<= 0;	// 0: prod, 1: dds, 2: mem
+                //	mode_r			<= 0;	// 0: nsamp, 1: periodic
+                //	stdysel_r		<= 1;	// 0: last, 1: zero.
+                //	phrst_r			<= 0;
 
 	//@(posedge aclk);
 	//$display("t = %0t", $time);
@@ -399,8 +399,7 @@ initial begin
 	shortint real_d;
 
 	// Output file.
-//	fd = $fopen("../../../../../tb/dout.csv","w");
-	fd = $fopen("/home/dmartin2/Projects/qick_internal/firmware/ip/axis_signal_gen_v6/src/tb/dout.csv","w");
+	fd = $fopen("./dout.csv","w");
 
 	// Data format.
 	$fdisplay(fd, "valid, idx, real");

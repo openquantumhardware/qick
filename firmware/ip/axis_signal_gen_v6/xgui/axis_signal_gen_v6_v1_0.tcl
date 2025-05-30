@@ -3,8 +3,11 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_param $IPINST -name "N" -parent ${Page_0}
+  set N [ipgui::add_param $IPINST -name "N" -parent ${Page_0}]
+  set_property tooltip {Envelope Memory Size in 2^N Words} ${N}
   ipgui::add_param $IPINST -name "N_DDS" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "GEN_DDS" -parent ${Page_0} -widget comboBox
+  ipgui::add_param $IPINST -name "ENVELOPE_TYPE" -parent ${Page_0} -widget comboBox
 
 
 }

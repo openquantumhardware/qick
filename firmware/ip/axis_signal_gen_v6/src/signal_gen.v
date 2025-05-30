@@ -31,8 +31,6 @@ parameter N_DDS = 16;
 // True: Generate DDS for Envelope Upconversion. False: Remove DDS for Baseband Envelope only
 parameter GEN_DDS = "TRUE";
 
-// // COMPLEX: Allow Complex Envelope generation. REAL: Allow only Real envelope generation
-// parameter ENVELOPE_TYPE;
 
 /*********/
 /* Ports */
@@ -189,12 +187,12 @@ genvar i;
                 );
                 
             // Latency for dds_dout (product).
-            latency_reg
+            latency_reg 
                 #(
                     .N(1),
                     .B(32)
                 )
-                dds_dout_latency_reg_i
+                dds_dout_latency_reg_i 
                 (
                     .rstn	(rstn			),
                     .clk	(clk			),
@@ -479,14 +477,12 @@ always @(posedge clk) begin
 	if (~rstn) begin
 		// Memory address.
 		mem_addr_int_r	<= 0;
-
 		// Output enable.
 		en_la_r			<= 0;
 	end
 	else begin
 		// Memory address.
 		mem_addr_int_r	<= mem_addr_int;
-
 		// Output enable.
 		en_la_r			<= en_la;
 	end
