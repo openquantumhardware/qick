@@ -119,14 +119,15 @@ logic  [9-1:0] rx_cmd_ds;
 
 logic          rx_no_dt, rx_wflg, rx_wreg, rx_wmem ;
 logic          rx_wflg_en, rx_wreg_en, rx_wmem_en;
-logic          rx_qsync, rx_qctrl, rx_auto_id; 
+logic          rx_qsync, rx_qctrl, rx_auto_id, rx_rst; 
 
 logic          s_data_flag;
 logic          data_flag, wreg_r ;
 logic [32-1:0] reg_dt_s;
 logic [ 4-1:0] mem_addr;
 logic [32-1:0] reg1_dt, reg2_dt;
-logic [32-1:0] mem_dt [15];
+logic [32-1:0] mem_data [15];
+logic          s_cmd_exec;
 
 logic set_id_flg, wflg_flg, wreg_flg, wmem_flg;
 logic s_loc_sid; //local set ID
@@ -255,10 +256,11 @@ logic [4-1:0] board_id_r, board_id_n;
 ///////////////////////////////////////////////////////////////////////////////
 assign loc_cmd_op = i_header[7:4];
 assign set_id_flg = (loc_cmd_op == XCOM_SET_ID     );
-assign wflg_flg    = (loc_cmd_op == XCOM_WRITE_FLAG );
+assign wflg_flg   = (loc_cmd_op == XCOM_WRITE_FLAG );
 assign wreg_flg   = (loc_cmd_op == XCOM_WRITE_REG  );
 assign wmem_flg   = (loc_cmd_op == XCOM_WRITE_MEM  );
 assign rst_flg    = (loc_cmd_op == XCOM_RST        );
+assign s_cmd_exec = s_loc_sid | s_wflg | s_wreg | s_wmem | s_rst;
 
 //Transmission
 // TRANSMIT NET COMMAND
@@ -287,8 +289,8 @@ assign tx_auto_id = s_req_net & (i_header[7:4] == XCOM_AUTO_ID);
 // Write ID
 ///////////////////////////////////////////////////////////////////////////////
 always_ff @ (posedge i_clk) begin
-   if ( !i_rstn ) board_id_r <= '0;
-   else           board_id_r <= board_id_n;
+   if ( !i_rstn | s_rst | rx_rst ) board_id_r <= '0;
+   else                            board_id_r <= board_id_n;
 end
 //next-state logic
 always_comb begin
@@ -326,6 +328,7 @@ assign rx_wmem_en   = s_rx_valid & rx_wmem;
 assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;
 assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QRST_SYNC;
 assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;
+assign rx_rst       = s_rx_valid & s_rx_op == XCOM_RST;
 //end Reception
 //
 
@@ -338,16 +341,16 @@ assign wflg_en = s_wflg | rx_wflg_en ;
 assign wreg_en = s_wreg | rx_wreg_en ;
 assign wmem_en = s_wmem | rx_wmem_en ;
 
-assign s_data_flag = wflg_en ? i_header[0]   : s_rx_op[0];
-assign reg_dt_s    = wreg_en ? i_data        : s_rx_data;
-assign mem_addr    = wmem_en ? i_header[3:0] : s_rx_chid+1'b1 ;
+assign s_data_flag = s_cmd_exec ? i_header[0]   : s_rx_op[0];
+assign reg_dt_s    = s_cmd_exec ? i_data        : s_rx_data;
+assign mem_addr    = s_cmd_exec ? i_header[3:0] : s_rx_chid+1'b1 ;
 
 always_ff @ (posedge i_clk) begin
-   if (!i_rstn) begin
+   if (!i_rstn | s_rst | rx_rst ) begin
       data_flag <= 1'b0; 
       reg1_dt   <= '{default:'0} ; 
       reg2_dt   <= '{default:'0} ;
-      mem_dt    <= '{default:'0} ;
+      mem_data  <= '{default:'0} ;
       wreg_r    <= 1'b0; 
    end else begin 
       wreg_r    <= wreg_en ;
@@ -359,7 +362,7 @@ always_ff @ (posedge i_clk) begin
             1'b1 : reg2_dt <= reg_dt_s;      // Reg_dt2
          endcase
       else if ( wmem_en )
-         mem_dt[mem_addr]  <= reg_dt_s;
+         mem_data[mem_addr]  <= reg_dt_s;
    end
 end
 
@@ -408,7 +411,7 @@ assign o_qp_valid  = wreg_r;
 assign o_qp_data1  = reg1_dt;
 assign o_qp_data2  = reg2_dt;
 assign o_xcom_id   = board_id_r;
-assign o_xcom_mem  = mem_dt;
+assign o_xcom_mem  = mem_data;
 
 assign o_time_update_data = reg1_dt;
 
