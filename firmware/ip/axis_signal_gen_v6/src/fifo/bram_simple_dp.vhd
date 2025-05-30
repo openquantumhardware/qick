@@ -10,7 +10,7 @@ entity bram_simple_dp is
         B       : Integer := 16
     );
     Port ( 
-        clk    	: in STD_LOGIC;
+        clk       : in STD_LOGIC;
         ena     : in STD_LOGIC;
         enb     : in STD_LOGIC;
         wea     : in STD_LOGIC;
