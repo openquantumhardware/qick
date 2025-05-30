@@ -122,7 +122,7 @@ axi4stream_vip_0 axis_slv_vip_i (
 
 // Instantiate DUT.
 mr_buffer_v1_0
-        #(.NM(4), .N(4), .B(8))
+        #(.NM(8), .N(4), .B(8))
         DUT (
 		.trigger(trigger),
 		.s00_axi_aclk(aclk),
@@ -149,7 +149,7 @@ mr_buffer_v1_0
 		.s00_axis_aclk(s_axis_aclk),
 		.s00_axis_aresetn(s_axis_aresetn),
 		.s00_axis_tready(s_axis_tready),
-		.s00_axis_tdata(s_axis_tdata),
+		.s00_axis_tdata({s_axis_tdata^s_axis_tdata,s_axis_tdata}),
 		.s00_axis_tstrb(),
 		.s00_axis_tlast(),
 		.s00_axis_tvalid(s_axis_tvalid),
@@ -225,23 +225,23 @@ initial begin
     aresetn = 0;
     m_axis_aresetn = 0;
     s_axis_aresetn = 0;
-    #200;
+    #200ns;
     aresetn = 1;
     m_axis_aresetn = 1;
     s_axis_aresetn = 1;
-    #200;
+    #200ns;
     
     // Write DW_CAPTURE_REG.
     data_wr = 1;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
 
 	// Send data.
 	fork
 		gen_0(8,10);
 	join_none
     
-    #1000;
+    #1us;
 
 	// Trigger.
 	trigger <= 1;
@@ -251,63 +251,65 @@ initial begin
 		gen_0(8,0);
 	join
 
-	#1000
+	#1us;
 	trigger <= 0;
     
      // Write DW_CAPTURE_REG.
     data_wr = 0;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
-    #1000;
+    #1us;
     
      // Write DW_CAPTURE_REG.
     data_wr = 1;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
-    #200;
+    #200ns;
     
      // Write DW_CAPTURE_REG.
     data_wr = 0;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
 	// Send data.
 	fork
 		gen_0(16,10);
 	join_none
     
-    #100;
+    #100ns;
 	trigger <= 1;
     
-    #1000;    
+    #1us;    
     
      // Write DR_START_REG.
     data_wr = 1;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
     // Write DR_START_REG.
     data_wr = 0;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
-    #2000;
+    #2us;
     
     axis_slv_agent.driver.send_tready(ready_gen);
     
     // Write DR_START_REG.
     data_wr = 1;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
     // Write DR_START_REG.
     data_wr = 0;
     mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200;
+    #200ns;
     
-    #1000;    
+    #1us;
+    
+    $finish();    
 end
 
 // aclk.
