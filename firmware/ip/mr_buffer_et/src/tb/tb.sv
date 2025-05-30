@@ -226,6 +226,9 @@ initial begin
     m_axis_aresetn = 0;
     s_axis_aresetn = 0;
     #200ns;
+
+    repeat(16) @(negedge aclk);
+    
     aresetn = 1;
     m_axis_aresetn = 1;
     s_axis_aresetn = 1;
@@ -333,13 +336,15 @@ task gen_0(input bit [31:0] cnt, input bit [31:0] delay);
     wr_transaction = axis_mst_agent.driver.create_transaction("Master 0 VIP write transaction");
     
     // Set transaction parameters.
-    wr_transaction.set_xfer_alignment(XIL_AXI4STREAM_XFER_RANDOM);
+    WR_TRANSACTION_FAIL: assert(wr_transaction.randomize());
+//    wr_transaction.set_xfer_alignment(XIL_AXI4STREAM_XFER_RANDOM);
+    wr_transaction.set_xfer_alignment(XIL_AXI4STREAM_XFER_ALL_SET);
     wr_transaction.set_delay(0);
     
-    // Send transactions.
+     // Send transactions.
     for (int i=0; i < cnt; i++)
     begin
-        WR_TRANSACTION_FAIL: assert(wr_transaction.randomize());
+        wr_transaction.set_data('{8'h11*(i+1),8'h22*(i+1),8'h33*(i+1),8'h44*(i+1)});
         axis_mst_agent.driver.send(wr_transaction);
     end
 endtask    
