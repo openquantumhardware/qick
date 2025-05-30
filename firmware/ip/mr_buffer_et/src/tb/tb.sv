@@ -234,83 +234,89 @@ initial begin
     s_axis_aresetn = 1;
     #200ns;
     
-    // Write DW_CAPTURE_REG.
-    data_wr = 1;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200ns;
+    repeat(2) begin
 
-	// Send data.
-	fork
-		gen_0(8,10);
-	join_none
+        // Write DW_CAPTURE_REG.
+        data_wr = 1;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
+        #200ns;
     
-    #1us;
-
-	// Trigger.
-	trigger <= 1;
+    //	// Send data.
+    //	fork
+    //		gen_0(8,10);
+    //	join_none
+        
+    //    #1us;
     
-	// Send data.
-	fork
-		gen_0(8,0);
-	join
-
-	#1us;
-	trigger <= 0;
+        // Trigger.
+        trigger <= 1;
+        
+        // Send data.
+        fork
+            gen_0(8,0);
+        join
     
-     // Write DW_CAPTURE_REG.
-    data_wr = 0;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200ns;
+        #1us;
+        trigger <= 0;
+        
+         // Write DW_CAPTURE_REG.
+        data_wr = 0;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
+        #200ns;
+        
+        #1us;
+        
+         // Write DW_CAPTURE_REG.
+        data_wr = 1;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
+        #200ns;
+        
+        #200ns;
+        
+         // Write DW_CAPTURE_REG.
+        data_wr = 0;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
+        #200ns;
+        
+        // Send data.
+        fork
+            gen_0(16,10);
+        join_none
+        
+        #100ns;
+        trigger <= 1;
+        
+        #1us;    
+        
+         // Write DR_START_REG.
+        data_wr = 1;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
+        #200ns;
+        
+        // Write DR_START_REG.
+        data_wr = 0;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
+        #200ns;
+        
+        #2us;
+        
+        axis_slv_agent.driver.send_tready(ready_gen);
+        
+        // Write DR_START_REG.
+        data_wr = 1;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
+        #200ns;
+        
+        // Write DR_START_REG.
+        data_wr = 0;
+        mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
+        #200ns;
+        
+        trigger <= 0;
     
-    #1us;
-    
-     // Write DW_CAPTURE_REG.
-    data_wr = 1;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200ns;
-    
-    #200ns;
-    
-     // Write DW_CAPTURE_REG.
-    data_wr = 0;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
-    #200ns;
-    
-	// Send data.
-	fork
-		gen_0(16,10);
-	join_none
-    
-    #100ns;
-	trigger <= 1;
-    
-    #1us;    
-    
-     // Write DR_START_REG.
-    data_wr = 1;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200ns;
-    
-    // Write DR_START_REG.
-    data_wr = 0;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200ns;
-    
-    #2us;
-    
-    axis_slv_agent.driver.send_tready(ready_gen);
-    
-    // Write DR_START_REG.
-    data_wr = 1;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200ns;
-    
-    // Write DR_START_REG.
-    data_wr = 0;
-    mst_agent.AXI4LITE_WRITE_BURST(addr_DR_START_REG,prot,data_wr,resp);
-    #200ns;
-    
-    #1us;
+        #1us;
+        
+    end
     
     $finish();    
 end
@@ -336,7 +342,6 @@ task gen_0(input bit [31:0] cnt, input bit [31:0] delay);
     wr_transaction = axis_mst_agent.driver.create_transaction("Master 0 VIP write transaction");
     
     // Set transaction parameters.
-    WR_TRANSACTION_FAIL: assert(wr_transaction.randomize());
 //    wr_transaction.set_xfer_alignment(XIL_AXI4STREAM_XFER_RANDOM);
     wr_transaction.set_xfer_alignment(XIL_AXI4STREAM_XFER_ALL_SET);
     wr_transaction.set_delay(0);
@@ -344,6 +349,7 @@ task gen_0(input bit [31:0] cnt, input bit [31:0] delay);
      // Send transactions.
     for (int i=0; i < cnt; i++)
     begin
+        // WR_TRANSACTION_FAIL: assert(wr_transaction.randomize());
         wr_transaction.set_data('{8'h11*(i+1),8'h22*(i+1),8'h33*(i+1),8'h44*(i+1)});
         axis_mst_agent.driver.send(wr_transaction);
     end
