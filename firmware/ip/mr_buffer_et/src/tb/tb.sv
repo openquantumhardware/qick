@@ -63,7 +63,7 @@ wire [7:0] m_axis_tdata;
 reg s_axis_aclk = 0;
 reg s_axis_aresetn;
 wire s_axis_tready;
-wire [31:0] s_axis_tdata;		
+wire [31:0] s_axis_tdata;     
 wire s_axis_tvalid;
 
 axi4stream_transaction wr_transaction;
@@ -124,42 +124,42 @@ axi4stream_vip_0 axis_slv_vip_i (
 mr_buffer_v1_0
         #(.NM(4), .N(4), .B(8))
         DUT (
-		.trigger(trigger),
-		.s00_axi_aclk(aclk),
-		.s00_axi_aresetn(aresetn),
-		.s00_axi_awaddr(m_axi_awaddr),
-		.s00_axi_awprot(m_axi_awprot),
-		.s00_axi_awvalid(m_axi_awvalid),
-		.s00_axi_awready(m_axi_awready),
-		.s00_axi_wdata(m_axi_wdata),
-		.s00_axi_wstrb(m_axi_wstrb),
-		.s00_axi_wvalid(m_axi_wvalid),
-		.s00_axi_wready(m_axi_wready),
-		.s00_axi_bresp(m_axi_bresp),
-		.s00_axi_bvalid(m_axi_bvalid),
-		.s00_axi_bready(m_axi_bready),
-		.s00_axi_araddr(m_axi_araddr),
-		.s00_axi_arprot(m_axi_arprot),
-		.s00_axi_arvalid(m_axi_arvalid),
-		.s00_axi_arready(m_axi_arready),
-		.s00_axi_rdata(m_axi_rdata),
-		.s00_axi_rresp(m_axi_rresp),
-		.s00_axi_rvalid(m_axi_rvalid),
-		.s00_axi_rready(m_axi_rready),
-		.s00_axis_aclk(s_axis_aclk),
-		.s00_axis_aresetn(s_axis_aresetn),
-		.s00_axis_tready(s_axis_tready),
-		.s00_axis_tdata({s_axis_tdata^s_axis_tdata,s_axis_tdata}),
-		.s00_axis_tstrb(),
-		.s00_axis_tlast(),
-		.s00_axis_tvalid(s_axis_tvalid),
-		.m00_axis_aclk(m_axis_aclk),
-		.m00_axis_aresetn(m_axis_aresetn),
-		.m00_axis_tvalid(m_axis_tvalid),
-		.m00_axis_tdata(m_axis_tdata),
-		.m00_axis_tstrb(),
-		.m00_axis_tlast(),
-		.m00_axis_tready(m_axis_tready));
+      .trigger(trigger),
+      .s00_axi_aclk(aclk),
+      .s00_axi_aresetn(aresetn),
+      .s00_axi_awaddr(m_axi_awaddr),
+      .s00_axi_awprot(m_axi_awprot),
+      .s00_axi_awvalid(m_axi_awvalid),
+      .s00_axi_awready(m_axi_awready),
+      .s00_axi_wdata(m_axi_wdata),
+      .s00_axi_wstrb(m_axi_wstrb),
+      .s00_axi_wvalid(m_axi_wvalid),
+      .s00_axi_wready(m_axi_wready),
+      .s00_axi_bresp(m_axi_bresp),
+      .s00_axi_bvalid(m_axi_bvalid),
+      .s00_axi_bready(m_axi_bready),
+      .s00_axi_araddr(m_axi_araddr),
+      .s00_axi_arprot(m_axi_arprot),
+      .s00_axi_arvalid(m_axi_arvalid),
+      .s00_axi_arready(m_axi_arready),
+      .s00_axi_rdata(m_axi_rdata),
+      .s00_axi_rresp(m_axi_rresp),
+      .s00_axi_rvalid(m_axi_rvalid),
+      .s00_axi_rready(m_axi_rready),
+      .s00_axis_aclk(s_axis_aclk),
+      .s00_axis_aresetn(s_axis_aresetn),
+      .s00_axis_tready(s_axis_tready),
+      .s00_axis_tdata({s_axis_tdata^s_axis_tdata,s_axis_tdata}),
+      .s00_axis_tstrb(),
+      .s00_axis_tlast(),
+      .s00_axis_tvalid(s_axis_tvalid),
+      .m00_axis_aclk(m_axis_aclk),
+      .m00_axis_aresetn(m_axis_aresetn),
+      .m00_axis_tvalid(m_axis_tvalid),
+      .m00_axis_tdata(m_axis_tdata),
+      .m00_axis_tstrb(),
+      .m00_axis_tlast(),
+      .m00_axis_tready(m_axis_tready));
 
 // Declare AXI master VIP agent.
 axi_vip_0_mst_t mst_agent;
@@ -199,13 +199,13 @@ initial begin
     -> 0 : disable capture.
     -> 1 : enable capture.
  
-    DR_START_REG	: 1 bit.
+    DR_START_REG  : 1 bit.
     -> 0 : stop.
     -> 1 : start.
 
-	trigger			: 1 bit.
-	-> 0 : wait.
-	-> 1 : start capture.
+   trigger        : 1 bit.
+   -> 0 : wait.
+   -> 1 : start capture.
     */
     
     // Start the agent.
@@ -219,7 +219,7 @@ initial begin
     ready_gen.set_low_time(4);
     ready_gen.set_event_count(25);            
 
-	trigger <= 0;
+   trigger <= 0;
             
     // Reset sequence.
     aresetn = 0;
@@ -241,10 +241,10 @@ initial begin
         mst_agent.AXI4LITE_WRITE_BURST(addr_DW_CAPTURE_REG,prot,data_wr,resp);
         #200ns;
     
-    //	// Send data.
-    //	fork
-    //		gen_0(8,10);
-    //	join_none
+    //   // Send data.
+    //   fork
+    //      gen_0(8,10);
+    //   join_none
         
     //    #1us;
     
