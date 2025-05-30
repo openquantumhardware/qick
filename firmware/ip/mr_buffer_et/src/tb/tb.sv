@@ -122,7 +122,7 @@ axi4stream_vip_0 axis_slv_vip_i (
 
 // Instantiate DUT.
 mr_buffer_v1_0
-        #(.NM(8), .N(4), .B(8))
+        #(.NM(4), .N(4), .B(8))
         DUT (
 		.trigger(trigger),
 		.s00_axi_aclk(aclk),
@@ -250,6 +250,7 @@ initial begin
     
         // Trigger.
         trigger <= 1;
+        #1us;
         
         // Send data.
         fork
@@ -336,7 +337,8 @@ always begin
     #3; s_axis_aclk = ~s_axis_aclk;
 end
 
-task gen_0(input bit [31:0] cnt, input bit [31:0] delay);        
+task gen_0(input bit [31:0] cnt, input bit [31:0] delay);
+    static int data_val_cnt = 0;
     // Create transaction.
     axi4stream_transaction wr_transaction;
     wr_transaction = axis_mst_agent.driver.create_transaction("Master 0 VIP write transaction");
@@ -350,8 +352,9 @@ task gen_0(input bit [31:0] cnt, input bit [31:0] delay);
     for (int i=0; i < cnt; i++)
     begin
         // WR_TRANSACTION_FAIL: assert(wr_transaction.randomize());
-        wr_transaction.set_data('{8'h11*(i+1),8'h22*(i+1),8'h33*(i+1),8'h44*(i+1)});
+        wr_transaction.set_data('{data_val_cnt+1,data_val_cnt+2,data_val_cnt+3,data_val_cnt+4});
         axis_mst_agent.driver.send(wr_transaction);
+        data_val_cnt += 4;
     end
 endtask    
 
