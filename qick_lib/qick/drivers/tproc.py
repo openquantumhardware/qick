@@ -507,8 +507,15 @@ class Axis_QICK_Proc(SocIP):
         self.logger.info('TIME_UPDATE')
         self.tproc_ctrl      = 2
     def start(self):
-        self.logger.info('PROCESSOR_START')
-        self.tproc_ctrl      = 4
+        """
+        If tProc is configured for internal start, start the tProc.
+        If configured for external start, just do a reset.
+        """
+        if self.tproc_cfg & (1 << 10):
+            self.reset()
+        else:
+            self.logger.info('PROCESSOR_START')
+            self.tproc_ctrl      = 4
     def stop(self):
         self.logger.info('PROCESSOR_STOP')
         self.tproc_ctrl      = 8
@@ -545,6 +552,26 @@ class Axis_QICK_Proc(SocIP):
     def clr_axi_flg(self):
         self.logger.info('CLEAR CONDITION')
         self.tproc_ctrl      = 16384
+    def start_src(self, src):
+        """
+        Sets the start source of tProc
+
+        :param src: start source "internal" or "external"
+        :type src: str
+        """
+        # set internal-start register to "init"
+        # otherwise we might start the tProc on a transition from external to internal start
+        #self.start_reg = 0
+        #self.start_src_reg = {"internal": 0, "external": 1}[src]
+        self.stop()
+        if src=='internal':
+            self.tproc_cfg &= ~(1 << 10)
+        elif src=='external':
+            if self['revision'] < 23:
+                raise RuntimeError("external start requires tProc revision 23 or newer")
+            self.tproc_cfg |=  (1 << 10)
+        else:
+            raise RuntimeError("start_src must be internal or external, got %s"%(src))
 
     def __str__(self):
         lines = []

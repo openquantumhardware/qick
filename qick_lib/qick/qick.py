@@ -1433,9 +1433,7 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: str
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.start_src(src)
-        # TODO: not implemented for tproc v2
+        self.tproc.start_src(src)
 
     def start_tproc(self):
         """
