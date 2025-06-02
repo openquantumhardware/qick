@@ -27,6 +27,10 @@
 //              determines the duration of the xcom_clk output signal.
 //              It is used by the tx_cmd instance here. See the 
 //              documentation in that core.
+// - i xcom_data serial data received. This is the general data input of the
+//               XCOM block
+// - i_xcom_clk  serial clock for reception. This is the general clock input of
+//               the XCOM block
 //
 //Outputs:
 // - o_ack_loc  acknowledge signal to LOC commands.
@@ -54,7 +58,10 @@
 // - o_xcom_id  board ID. This is a signal to see the board ID into external 
 //              LEDs.
 // - o_xcom_mem internal 16-word memory port
+// - o_dbg_rx_data debug port for monitoring the rx data
+// - o_dbg_tx_data debug port for monitoring the tx data
 // - o_dbg_state debug port for monitoring the state of the internal FSM
+// - o_dbg_data  debug port for monitoring the internal data state
 //
 // Change history: 09/20/24 - v1 Started by @mdifederico
 //                 05/13/25 - Refactored by @lharnaldi
