@@ -9,42 +9,54 @@
 // Transmitter and Receiver interface for the XCOM block. 
 // 
 //Inputs:
-// - i_clk      clock signal
-// - i_rstn     active low reset signal
-// - i_sync     synchronization signal. Lets the XCOM synchronize with an
-//              external signal. Actuates in coordination with the 
-//              XCOM_QRST_SYNC command.
-// - i_cfg_tick this input is connected to the AXI_CFG register and 
-//              determines the duration of the xcom_clk output signal.
-//              xcom_clk will be either in state 1 or 0 for CFG_AXI clock 
-//              cycles (i_clk). Possible values ranges from 0 to 7 with 
-//              0 equal to two clock cycles and 7 equal to 15 clock 
-//              cycles. As an example, if i_cfg_tick = 2 and 
-//              i_clk = 500 MHz, then xcom_clk would be ~125 MHz.
-// - i_req_net      transmission requirement signal. Signal indicating a new
-//              data transmission starts.  
-// - i header   this is the header to be sent to the slaves. 
-//              bit 7      is sometimes used to indicate a 
-//                         synchronization in other places in the 
-//                         XCOM hierarchy
-//              bits [6:5] determines the data length to transmit:
-//                         00 no data
-//                         01 8-bit data
-//                         10 16-bit data
-//                         11 32-bit data
-//              bit 4      not used in this block
-//              bits [3:0] not used in this block. Sometimes used 
-//                         as mem_id and sometimes used as board 
-//                         ID in the XCOM hierarchy 
-// - i_data     the data to be transmitted 
+// - i_ps_clk     clock signal sync to PS
+// - i_ps_rstn    active low reset signal sync to PS
+// - i_core_clk   clock signal sync to CORE
+// - i_core_rstn  active low reset signal sync to CORE
+// - i_time_clk   clock signal sync to TIME
+// - i_time_rstn  active low reset signal sync to TIME
+// QICK PERIPHERAL INTERFACE (i_core_clk)
+// - i_core_en    data valid signal coming from the core processor. Indicates
+//                a valid data is ready for transmission.
+// - i_core_op    opcode from the core. See xcom opcodes in qick_pkg 
+// - i_core_data1 data1 to be transmitted, coming from the core processor.  
+// - i_core_data2 data2 to be transmitted, coming from the core processor.  
+// Qick CONTROL
+// - i_sync       synchronization signal. Lets the XCOM synchronize with an
+//                external signal. Actuates in coordination with the 
+//                XCOM_QRST_SYNC command.
+// - i xcom_data  serial data received. This is the general data input of the
+//                XCOM block
+// - i_xcom_clk   serial clock for reception. This is the general clock input of
+//                the XCOM block
+//
 //Outputs:
-// - o_ready    signal indicating the ip is ready to receive new data to
-//              transmit
-// - o_data     serial data transmitted. This is the general output of the
-//              XCOM block
-// - o_clk      serial clock for transmission. This is the general output of
-//              the XCOM block
-// - o_dbg_state debug port for monitoring the state of the internal FSM
+// QICK PERIPHERAL INTERFACE (i_core_clk)
+// - o_core_ready signal indicating the ip is ready to receive new data to
+//                transmit
+// - o_core_data1 data1 to core
+// - o_core_data2 data2 to core
+// - o_core_valid signal indicating the ip has valid data to write into the
+//                local board
+// - o_core_flag  signal indicating to write flag into the core
+// Qick CONTROL
+// - o_proc_start       start signal to the tproc
+// - o_proc_stop        stop signal to the tproc
+// - o_time_rst         reset the time reference in processor
+// - o_time_update      update the time in processor
+// - o_time_update_data data to update the time in processor
+// - o_core_start       start signal to the core in tproc
+// - o_core_stop        stop signal to the core in tproc
+// XCOM 
+// - o_xcom_id  board ID. This is a signal to see the board ID 
+//              into external LEDs.
+// IO XCOM (i_time_clk)
+// - o xcom_data serial data transmitted. This is the general data output of the                                                                                                                                                         
+//               XCOM block                                                     
+// - o_xcom_clk  serial clock for transmission. This is the general clock output of
+//               the XCOM block  /
+// AXI-Lite DATA Slave I/F (i_ps_clk)
+// - s_axi      signals of the AXI4-Lite interface to PS
 //
 // Change history: 10/20/24 - v2 Started by @mdifederico
 //                 05/13/25 - Refactored by @lharnaldi

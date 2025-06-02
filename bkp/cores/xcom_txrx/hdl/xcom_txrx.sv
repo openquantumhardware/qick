@@ -55,6 +55,10 @@
 // - o_core_stop        stop signal to the core in tproc
 //
 // XCOM CONFIG
+// - o xcom_data serial data transmitted. This is the general data output of the
+//               XCOM block
+// - o_xcom_clk  serial clock for transmission. This is the general clock output of
+//               the XCOM block
 // - o_xcom_id  board ID. This is a signal to see the board ID into external 
 //              LEDs.
 // - o_xcom_mem internal 16-word memory port
