@@ -130,7 +130,7 @@ user.org:user:axis_register_slice_nb:1.0\
 user.org:user:axis_sg_mixmux8_v1:1.0\
 user.org:user:axis_signal_gen_v6:1.0\
 user.org:user:axis_tmux_v1:1.0\
-user.org:user:mr_buffer_et:1.0\
+user.org:user:mr_buffer_et:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 user.org:user:sg_translator:1.0\
 xilinx.com:ip:xlconcat:2.1\
@@ -690,7 +690,7 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.0 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [list \
     CONFIG.B {32} \
     CONFIG.N {10} \

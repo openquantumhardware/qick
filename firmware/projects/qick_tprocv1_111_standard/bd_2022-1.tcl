@@ -150,7 +150,7 @@ xilinx.com:ip:axis_switch:1.1\
 user.org:user:axis_tproc64x32_x8:1.0\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:ddr4:2.2\
-user.org:user:mr_buffer_et:1.0\
+user.org:user:mr_buffer_et:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:usp_rf_data_converter:2.6\
 xilinx.com:ip:xlconcat:2.1\
@@ -549,7 +549,7 @@ proc create_root_design { parentCell } {
  ] $ddr4_0
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.0 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [ list \
    CONFIG.B {32} \
    CONFIG.N {10} \

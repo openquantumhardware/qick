@@ -1062,7 +1062,8 @@ class MrBufferEt(SocIP):
     # DW_CAPTURE_REG needs to be de-asserted and asserted again to allow a new capture.
     # DR_START_REG needs to be de-assereted and asserted again to allow a new transfer.
     #
-    bindto = ['user.org:user:mr_buffer_et:1.0']
+    bindto = ['user.org:user:mr_buffer_et:1.0',
+              'user.org:user:mr_buffer_et:1.1']
 
     def __init__(self, description):
         super().__init__(description)
@@ -1083,7 +1084,11 @@ class MrBufferEt(SocIP):
 
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
-        self.cfg['junk_len'] = 8
+
+        if description['type'] == 'user.org:user:mr_buffer_et:1.0':
+            self.cfg['junk_len'] = 8    # Firmware Bug present and junk data samples are returned from buffer
+        else:
+            self.cfg['junk_len'] = 0    # Firmware Bug was fixed so no need for this value anymore
 
         # Preallocate memory buffers for DMA transfers.
         self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)
