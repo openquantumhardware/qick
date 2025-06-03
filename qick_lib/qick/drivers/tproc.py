@@ -4,9 +4,9 @@ Drivers for the QICK Timed Processor (tProc).
 """
 from pynq.buffer import allocate
 import numpy as np
-from qick import SocIp
+from qick.ip import SocIP
 
-class AxisTProc64x32_x8(SocIp):
+class AxisTProc64x32_x8(SocIP):
     """
     AxisTProc64x32_x8 class
 
@@ -56,13 +56,16 @@ class AxisTProc64x32_x8(SocIp):
         """
         Constructor method
         """
+        super().__init__(description)
+        # the currently loaded program - cached here so it can be reloaded after a tProc reset
+        self.binprog = None
+
+    def _init_config(self, description):
         # Generics.
         # data memory address size (log2 of the number of 32-bit words)
         self.DMEM_N = int(description['parameters']['DMEM_N'])
         # program memory address size (log2 of the number of 64-bit words, though the actual memory is usually smaller)
         self.PMEM_N = int(description['parameters']['PMEM_N'])
-
-        super().__init__(description)
 
         self.REGISTERS = {'start_src_reg': 0,
                           'start_reg': 1,
@@ -71,6 +74,9 @@ class AxisTProc64x32_x8(SocIp):
                           'mem_addr_reg': 4,
                           'mem_len_reg': 5}
 
+        self.cfg['dmem_size'] = 2**self.DMEM_N
+
+    def _init_firmware(self):
         # Default registers.
         # start_src_reg = 0   : internal start.
         # start_reg     = 0   : stopped.
@@ -84,11 +90,6 @@ class AxisTProc64x32_x8(SocIp):
         self.mem_start_reg = 0
         self.mem_addr_reg = 0
         self.mem_len_reg = 100
-
-        self.cfg['dmem_size'] = 2**self.DMEM_N
-
-        # the currently loaded program - cached here so it can be reloaded after a tProc reset
-        self.binprog = None
 
     # Configure this driver with links to its memory and DMA.
     def configure(self, mem, axi_dma):
@@ -105,7 +106,7 @@ class AxisTProc64x32_x8(SocIp):
         This is run as part of configure_connections(), but can be run separately to plan RFDC sampling rate changes.
         """
         self.cfg['clk_srcs'] = {}
-        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self.fullpath, 'aclk')
+        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self['fullpath'], 'aclk')
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -116,10 +117,10 @@ class AxisTProc64x32_x8(SocIp):
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
         self.cfg['clk_srcs'] = {}
-        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self.fullpath, 'aclk')
-        self.cfg['f_time'] = soc.metadata.get_fclk(self.fullpath, "aclk")
+        self.cfg['clk_srcs']['clock'] = soc.metadata.trace_clk_back(self['fullpath'], 'aclk')
+        self.cfg['f_time'] = soc.metadata.get_fclk(self['fullpath'], "aclk")
         try:
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'start')
+            ((port),) = soc.metadata.trace_sig(self['fullpath'], 'start')
             # check if the start pin is driven by a port of the top-level design
             if len(port)==1:
                 self.cfg['start_pin'] = port[0]
@@ -130,7 +131,7 @@ class AxisTProc64x32_x8(SocIp):
             # what block does this output drive?
             # add 1, because output 0 goes to the DMA
             try:
-                ((block, port),) = soc.metadata.trace_bus(self.fullpath, 'm%d_axis' % (iPort+1))
+                ((block, port),) = soc.metadata.trace_bus(self['fullpath'], 'm%d_axis' % (iPort+1))
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "axis_set_reg":
@@ -296,7 +297,7 @@ class AxisTProc64x32_x8(SocIp):
         return buff
 
 
-class Axis_QICK_Proc(SocIp):
+class Axis_QICK_Proc(SocIP):
     """
     Axis_QICK_Proc class
     
@@ -358,6 +359,10 @@ class Axis_QICK_Proc(SocIp):
         """
         super().__init__(description)
 
+        # the currently loaded program - cached here to make it easy to reload the memories
+        self.binprog = None
+
+    def _init_config(self, description):
         self.REGISTERS = {
             'tproc_ctrl'    :0 ,
             'tproc_cfg'     :1 ,
@@ -374,7 +379,7 @@ class Axis_QICK_Proc(SocIp):
             'time_usr'      :13,
             'tproc_status'  :14,
             'tproc_debug'   :15
-        }
+            }
 
         # Parameters
         #self.cfg['dual_core'] = = int(description['parameters']['DUAL_CORE'])
@@ -397,6 +402,10 @@ class Axis_QICK_Proc(SocIp):
         self.cfg['call_depth']  = int(description['parameters']['CALL_DEPTH'])
         self.cfg['debug']  = int(description['parameters']['DEBUG'])
 
+        #Compatible with previous Version
+        self.DMEM_N = int(description['parameters']['DMEM_AW']) 
+
+    def _init_firmware(self):
         # Initial Values 
         self.tproc_ctrl  = 0
         self.tproc_cfg   = 0
@@ -407,12 +416,6 @@ class Axis_QICK_Proc(SocIp):
         self.axi_w_dt2 = 0
         self.core_cfg    = 0
         self.read_sel    = 0
-
-        #Compatible with previous Version
-        self.DMEM_N = int(description['parameters']['DMEM_AW']) 
-   
-        # the currently loaded program - cached here to make it easy to reload the memories
-        self.binprog = None
 
     # Configure this driver with links to its memory and DMA.
     def configure(self, axi_dma):
@@ -429,23 +432,23 @@ class Axis_QICK_Proc(SocIp):
         This is run as part of configure_connections(), but can be run separately to plan RFDC sampling rate changes.
         """
         self.cfg['clk_srcs'] = {}
-        self.cfg['clk_srcs']['core clock'] = soc.metadata.trace_clk_back(self.fullpath, 'c_clk_i')
-        self.cfg['clk_srcs']['timing clock'] = soc.metadata.trace_clk_back(self.fullpath, 't_clk_i')
+        self.cfg['clk_srcs']['core clock'] = soc.metadata.trace_clk_back(self['fullpath'], 'c_clk_i')
+        self.cfg['clk_srcs']['timing clock'] = soc.metadata.trace_clk_back(self['fullpath'], 't_clk_i')
     
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
         self.trace_clocks(soc)
-        self.cfg['f_core'] = self.cfg['clk_srcs']['core clock']['f_clk']
-        self.cfg['f_time'] = self.cfg['clk_srcs']['timing clock']['f_clk']
+        self.cfg['f_core'] = self['clk_srcs']['core clock']['f_clk']
+        self.cfg['f_time'] = self['clk_srcs']['timing clock']['f_clk']
 
         self.cfg['output_pins'] = []
         self.cfg['start_pin'] = None
         self.cfg['stop_pin'] = None
         try:
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_start_i')
+            ((port),) = soc.metadata.trace_sig(self['fullpath'], 'proc_start_i')
             self.cfg['start_pin'] = port[0]
-            ((port),) = soc.metadata.trace_sig(self.fullpath, 'proc_stop_i')
+            ((port),) = soc.metadata.trace_sig(self['fullpath'], 'proc_stop_i')
             self.cfg['stop_pin'] = port[0]
         except:
             pass
@@ -455,7 +458,7 @@ class Axis_QICK_Proc(SocIp):
         ## Number of data ports  is in ther parameter 'out_dport_qty', the MAX is 4
         for iPin in range(self['out_trig_qty']):
             try:
-                ports = soc.metadata.trace_sig(self.fullpath, "trig_%d_o"%(iPin))
+                ports = soc.metadata.trace_sig(self['fullpath'], "trig_%d_o"%(iPin))
                 if len(ports)==1 and len(ports[0])==1:
                     # it's an FPGA pin, save it
                     pinname = ports[0][0]
@@ -466,7 +469,7 @@ class Axis_QICK_Proc(SocIp):
         for iPort in range(self['out_dport_qty']):
             # what block does this output drive?
             try:
-                ((block, port),) = soc.metadata.trace_sig(self.fullpath, 'port_%d_dt_o' % (iPort))
+                ((block, port),) = soc.metadata.trace_sig(self['fullpath'], 'port_%d_dt_o' % (iPort))
             except: # skip disconnected tProc outputs
                 continue
             if soc.metadata.mod2type(block) == "qick_vec2bit":

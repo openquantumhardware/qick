@@ -1,3 +1,13 @@
+// Description: 
+// AVG block is a FSM that receives an input stream of samples (din), and controls the interface to a memory to capture and store them. It has two different work modes.
+// If PHOTON_MODE=0, the data stored is the accumulated value of the input data during a determined number of samples.
+// If PHOTON_MODE=1, the data stored is the number of times the data has gone over and below configurable thresholds (H & L THRSH REGs) - edge counter mode
+// Capturing is initiated by an external trigger after the buffer has been enabled. Number of processed samples and address where to store them are configurable.
+// When number of captured samples is reached, it can be triggered again.
+//
+// Parameters: 
+// N: memory depth as 2**N; B: memory data width
+
 // Data is I,Q.
 // I: lower B bits.
 // Q: upper B bits.

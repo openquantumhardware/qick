@@ -1,3 +1,12 @@
+// Description: 
+// AVG_TOP block receives an input stream of samples (s_axis), captures and stores them in an internal memory when indicated and generates two output streams, one with averaged data stored in internal memory (m0_axis) and one with averaged data as soon as it's calculated prior to internal memory (m1_axis) 
+// Capturing flow is controlled by the AVG FSM block and is initiated by an external trigger after the buffer has been enabled. Number of captured samples and address where to store them are configurable. 
+// Captured samples are internally stored in BRAM memory. 
+// Output stream is generated and controlled from the DATA_READER FSM block. Address to start reading and number of samples are configurable. It can be interfaced with an AXIS DMA module.
+//
+// Parameters:
+// N: memory depth as 2**N; B: memory data width
+//
 module avg_top (
 	// Reset and clock.
 	rstn			,
@@ -10,7 +19,7 @@ module avg_top (
 	din_valid_i		,
 	din_i			,
 
-	// Reset and clock for M_AXIS_*
+	// Reset and clock for m0_axis and m1_axis
 	m_axis_aclk		,
 	m_axis_aresetn	,
 

@@ -145,9 +145,24 @@ BRAM: 8 tiles for DDSes, 4 tiles for our typical N=12
 
 ### standard buffer (`axis_avg_buffer`):
 
+* s_axis input: decimated data stream from readout
+* m0_axis output: accumulated buffer to DMA, typically through a switch
+* m1_axis output: decimated buffer to DMA, typically through a switch
+* m2_axis output: individual accumulated data points to tProc input (for fast feedback), typically through a clock converter
+
 buffer settings: N_AVG and N_BUF are up to you, setting the accumulated and decimated buffer lengths (buffer size will be `2^N`)
 
 BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile for decimated at typical N_BUF=10
+
+### weighted buffer (`axis_weighted_buffer`):
+
+same configuration as the standard buffer, adds the following port:
+
+* s1_axis_weights: weights from DMA, typically through a switch (this can be the same switch that is used for generator envelopes)
+
+buffer settings: N_AVG, N_BUF, N_WGT are up to you, setting the accumulated and decimated buffer lengths and the weights memory (size will be `2^N`)
+
+BRAM: 28.5 tiles for accumulated at typical N_AVG=14, 1 tile each for decimated and weights at typical N_BUF=N_WGT=10
 
 ### multi-rate buffer (`mr_buffer_et`):
 

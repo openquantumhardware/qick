@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="glbl" />
+            <top_module name="tb" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="20,146.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="20,647.501 ns"></ZoomEndTime>
+      <Cursor1Time time="20,252.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="196"></NameColumnWidth>
+      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="6" />
+   <wvobject type="group" fp_name="group2917">
+      <obj_property name="label">Input AXIS</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/s_axis_aclk">
+         <obj_property name="ElementShortName">s_axis_aclk</obj_property>
+         <obj_property name="ObjectShortName">s_axis_aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s_axis_aresetn">
+         <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
+         <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/s_axis_tvalid">
+         <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/s_axis_tdata">
+         <obj_property name="ElementShortName">s_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tdata[31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb/DUT/trigger">
+      <obj_property name="ElementShortName">trigger</obj_property>
+      <obj_property name="ObjectShortName">trigger</obj_property>
+   </wvobject>
+   <wvobject type="group" fp_name="group2937">
+      <obj_property name="label">AVG_FSM</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/AVG_START_REG">
+         <obj_property name="ElementShortName">AVG_START_REG</obj_property>
+         <obj_property name="ObjectShortName">AVG_START_REG</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/AVG_ADDR_REG">
+         <obj_property name="ElementShortName">AVG_ADDR_REG[9:0]</obj_property>
+         <obj_property name="ObjectShortName">AVG_ADDR_REG[9:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/AVG_LEN_REG">
+         <obj_property name="ElementShortName">AVG_LEN_REG[31:0]</obj_property>
+         <obj_property name="ObjectShortName">AVG_LEN_REG[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/avg_i/state">
+         <obj_property name="ElementShortName">state[31:0]</obj_property>
+         <obj_property name="ObjectShortName">state[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/avg_i/cnt">
+         <obj_property name="ElementShortName">cnt[31:0]</obj_property>
+         <obj_property name="ObjectShortName">cnt[31:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/avg_i/mem_we_o">
+         <obj_property name="ElementShortName">mem_we_o</obj_property>
+         <obj_property name="ObjectShortName">mem_we_o</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/avg_i/mem_addr_o">
+         <obj_property name="ElementShortName">mem_addr_o[9:0]</obj_property>
+         <obj_property name="ObjectShortName">mem_addr_o[9:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/avg_i/mem_di_o">
+         <obj_property name="ElementShortName">mem_di_o[63:0]</obj_property>
+         <obj_property name="ObjectShortName">mem_di_o[63:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group2928">
+      <obj_property name="label">AVG_MEMORY</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/bram_i/clka">
+         <obj_property name="ElementShortName">clka</obj_property>
+         <obj_property name="ObjectShortName">clka</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/bram_i/clkb">
+         <obj_property name="ElementShortName">clkb</obj_property>
+         <obj_property name="ObjectShortName">clkb</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/bram_i/wea">
+         <obj_property name="ElementShortName">wea</obj_property>
+         <obj_property name="ObjectShortName">wea</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/bram_i/web">
+         <obj_property name="ElementShortName">web</obj_property>
+         <obj_property name="ObjectShortName">web</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/bram_i/addra">
+         <obj_property name="ElementShortName">addra[9:0]</obj_property>
+         <obj_property name="ObjectShortName">addra[9:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/bram_i/addrb">
+         <obj_property name="ElementShortName">addrb[9:0]</obj_property>
+         <obj_property name="ObjectShortName">addrb[9:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/bram_i/dia">
+         <obj_property name="ElementShortName">dia[63:0]</obj_property>
+         <obj_property name="ObjectShortName">dia[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/bram_i/doa">
+         <obj_property name="ElementShortName">doa[63:0]</obj_property>
+         <obj_property name="ObjectShortName">doa[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/bram_i/dob">
+         <obj_property name="ElementShortName">dob[63:0]</obj_property>
+         <obj_property name="ObjectShortName">dob[63:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group2943">
+      <obj_property name="label">DATA_READ_FSM</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/START_REG">
+         <obj_property name="ElementShortName">START_REG</obj_property>
+         <obj_property name="ObjectShortName">START_REG</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/ADDR_REG">
+         <obj_property name="ElementShortName">ADDR_REG[9:0]</obj_property>
+         <obj_property name="ObjectShortName">ADDR_REG[9:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/LEN_REG">
+         <obj_property name="ElementShortName">LEN_REG[9:0]</obj_property>
+         <obj_property name="ObjectShortName">LEN_REG[9:0]</obj_property>
+      </wvobject>
+      <wvobject type="other" fp_name="/tb/DUT/avg_top_i/data_reader_i/current_state">
+         <obj_property name="ElementShortName">current_state</obj_property>
+         <obj_property name="ObjectShortName">current_state</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/mem_en">
+         <obj_property name="ElementShortName">mem_en</obj_property>
+         <obj_property name="ObjectShortName">mem_en</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/mem_we">
+         <obj_property name="ElementShortName">mem_we</obj_property>
+         <obj_property name="ObjectShortName">mem_we</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/mem_addr">
+         <obj_property name="ElementShortName">mem_addr[9:0]</obj_property>
+         <obj_property name="ObjectShortName">mem_addr[9:0]</obj_property>
+         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/mem_dout">
+         <obj_property name="ElementShortName">mem_dout[63:0]</obj_property>
+         <obj_property name="ObjectShortName">mem_dout[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_wr_en">
+         <obj_property name="ElementShortName">fifo_wr_en</obj_property>
+         <obj_property name="ObjectShortName">fifo_wr_en</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_din">
+         <obj_property name="ElementShortName">fifo_din[63:0]</obj_property>
+         <obj_property name="ObjectShortName">fifo_din[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/dready">
+         <obj_property name="ElementShortName">dready</obj_property>
+         <obj_property name="ObjectShortName">dready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/dvalid">
+         <obj_property name="ElementShortName">dvalid</obj_property>
+         <obj_property name="ObjectShortName">dvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/dout">
+         <obj_property name="ElementShortName">dout[63:0]</obj_property>
+         <obj_property name="ObjectShortName">dout[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/dlast">
+         <obj_property name="ElementShortName">dlast</obj_property>
+         <obj_property name="ObjectShortName">dlast</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group2961">
+      <obj_property name="label">DATA_READ_FIFO</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/wr_en">
+         <obj_property name="ElementShortName">wr_en</obj_property>
+         <obj_property name="ObjectShortName">wr_en</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/din">
+         <obj_property name="ElementShortName">din[63:0]</obj_property>
+         <obj_property name="ObjectShortName">din[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/full">
+         <obj_property name="ElementShortName">full</obj_property>
+         <obj_property name="ObjectShortName">full</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/rd_en">
+         <obj_property name="ElementShortName">rd_en</obj_property>
+         <obj_property name="ObjectShortName">rd_en</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/rd_en_i">
+         <obj_property name="ElementShortName">rd_en_i</obj_property>
+         <obj_property name="ObjectShortName">rd_en_i</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/dout">
+         <obj_property name="ElementShortName">dout[63:0]</obj_property>
+         <obj_property name="ObjectShortName">dout[63:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb/DUT/avg_top_i/data_reader_i/fifo_i/empty">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>
