@@ -771,7 +771,7 @@ class AxisAvgBuffer(SocIP):
 
         # realign returned data with true request
         if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
-            data = data[2:]
+            data = data[2:length]
         else:
             data = data[:length]
 
@@ -854,7 +854,7 @@ class AxisAvgBuffer(SocIP):
 
         # realign returned data with true request
         if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
-            data = data[2:]
+            data = data[2:length]
         else:
             data = data[:length]
 
