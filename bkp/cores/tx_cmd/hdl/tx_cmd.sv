@@ -73,7 +73,7 @@ module tx_cmd(
    );
 
 logic s_ready;
-logic i_sync_dly_r, i_sync_dly_n;
+logic sync_dly_r, sync_dly_n;
 logic s_tx_valid;
 logic s_xcmd_sync;
 logic s_sync;
@@ -91,12 +91,12 @@ state_t state_r, state_n;
 assign s_xcmd_sync  = ( i_header[7:4] == 4'b1000 ); // Sync Command
 
 always_ff@(posedge i_clk) begin
-    if (!i_rstn) i_sync_dly_r <= 1'b0;
-    else         i_sync_dly_r <= i_sync_dly_n;
+    if (!i_rstn) sync_dly_r <= 1'b0;
+    else         sync_dly_r <= sync_dly_n;
 end
     
-assign i_sync_dly_n = i_sync;
-assign s_sync = !i_sync_dly_r & i_sync ;
+assign sync_dly_n = i_sync;
+assign s_sync = !sync_dly_r & i_sync ;
 
 
 // TX Control state

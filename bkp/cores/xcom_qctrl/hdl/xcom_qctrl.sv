@@ -56,7 +56,7 @@ logic         qctrl_pulse_end;
 logic         s_proc_start, s_proc_stop;
 logic         s_core_start, s_core_stop;
 logic         s_time_rst, s_time_update;
-logic         i_sync_dly ;
+logic         sync_dly_r, sync_dly_n;
 logic         s_sync ;
 
 typedef enum logic [2-1:0]{ IDLE      = 2'b00, 
@@ -68,12 +68,13 @@ state_t state_r, state_n;
 
 // PULSE SYNC 
 ///////////////////////////////////////////////////////////////////////////////
-always_ff @ (posedge i_clk) begin
-   if (!i_rstn) i_sync_dly <= 1'b0; 
-   else         i_sync_dly <= i_sync;
-end
-
-assign s_sync = !i_sync_dly & i_sync ;
+always_ff@(posedge i_clk) begin
+    if (!i_rstn) sync_dly_r <= 1'b0;
+    else         sync_dly_r <= sync_dly_n;
+end          
+          
+assign sync_dly_n = i_sync;
+assign s_sync = !sync_dly_r & i_sync ;
 
 assign qctrl_pulse_end = (qctrl_cnt == '1);
 

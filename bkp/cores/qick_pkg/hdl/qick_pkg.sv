@@ -132,10 +132,6 @@ package qick_pkg;
     localparam repr_t interp_beam_repr = '{1, 16, 15};
     typedef logic signed [interp_beam_repr.nb-1:0] interp_beam_t [2];
 
-    //////////// SD FIFO     ///////////////////
-    localparam TX_FIFO_DEPTH = 512;
-    typedef logic [N_CHN_DAC-1:0][1:0][interp_beam_repr.nb-1:0] packed_sd_fifo_data_t;
-
     //////////// MIXER /////////////////
     localparam repr_t mixed_tx_sample_full_repr = get_repr(
         get_repr(interp_beam_repr, dds_freq_repr, MULT),
