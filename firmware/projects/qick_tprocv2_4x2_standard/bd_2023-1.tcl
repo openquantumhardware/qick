@@ -129,7 +129,7 @@ user.org:user:axis_cdcsync_v1:1.0\
 user.org:user:axis_dyn_readout_v1:1.0\
 user.org:user:axis_register_slice_nb:1.0\
 user.org:user:axis_signal_gen_v6:1.0\
-user.org:user:mr_buffer_et:1.0\
+user.org:user:mr_buffer_et:1.1\
 Fermi:user:qick_processor:2.0\
 xilinx.com:ip:proc_sys_reset:5.0\
 user.org:user:sg_translator:1.0\
@@ -401,7 +401,7 @@ proc create_root_design { parentCell } {
   set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.0 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [list \
     CONFIG.B {32} \
     CONFIG.N {10} \
