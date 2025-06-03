@@ -5,34 +5,34 @@ use IEEE.NUMERIC_STD.ALL;
 entity data_writer is
     Generic
     (
-		-- Number of memories.
-		NM	: Integer := 8;
-		-- Address map of each memory.
-		N	: Integer := 8;
-		-- Data width.
-		B	: Integer := 16
+        -- Number of memories.
+        NM : Integer := 8;
+        -- Address map of each memory.
+        N  : Integer := 8;
+        -- Data width.
+        B  : Integer := 16
     );
     Port
     (
         rstn            : in std_logic;
         clk             : in std_logic;
 
-		-- Trigger.
-		trigger			: in std_logic;
+        -- Trigger.
+        trigger        : in std_logic;
         
         -- AXI Stream I/F.
-        s_axis_tready	: out std_logic;
-		s_axis_tdata	: in std_logic_vector(B-1 downto 0);				
-		s_axis_tvalid	: in std_logic;
-		
-		-- Memory I/F.
-		mem_en          : out std_logic;
-		mem_we          : out std_logic;
-		mem_addr        : out std_logic_vector (N-1 downto 0);
-		mem_di          : out std_logic_vector (B-1 downto 0);
-		
-		-- Registers.
-		CAPTURE_REG		: in std_logic
+        s_axis_tready   : out std_logic;
+        s_axis_tdata   : in std_logic_vector(B-1 downto 0);            
+        s_axis_tvalid  : in std_logic;
+      
+        -- Memory I/F.
+        mem_en          : out std_logic;
+        mem_we          : out std_logic;
+        mem_addr        : out std_logic_vector (N-1 downto 0);
+        mem_di          : out std_logic_vector (B-1 downto 0);
+      
+        -- Registers.
+        CAPTURE_REG    : in std_logic
     );
 end entity;
 
@@ -71,7 +71,7 @@ end component;
 
 -- State machine.
 type fsm_state is ( INIT_ST,
-					TRIGGER_ST,
+                    TRIGGER_ST,
                     CAPTURE_ST,
                     END_ST);
 signal current_state, next_state : fsm_state;
@@ -90,7 +90,7 @@ signal addr_cnt     : unsigned (N-1 downto 0);
                     
 begin
 
--- Fifo to interfase with AXI stream.
+-- Fifo to interface with AXI stream.
 fifo_i : fifo
     Generic map
     (
@@ -123,7 +123,7 @@ fifo_wr_en <=   s_axis_tvalid when write_en = '1' else
                 '0';    
                 
 -- fifo_rd_en.
-fifo_rd_en <= write_en;
+fifo_rd_en <= not fifo_empty;
                 
 -- Registers.
 process (clk)
@@ -134,20 +134,20 @@ begin
         else
             current_state <= next_state;
             
-            -- Address counter.
-            if ( init_state = '1' ) then
-                addr_cnt <= (others => '0');
-            else
-                if ( write_en  = '1' and fifo_empty = '0' ) then
+            -- Address counter
+            if ( write_en = '1' ) then
+                if ( fifo_rd_en = '1' and fifo_empty = '0' ) then
                     addr_cnt <= addr_cnt + 1;
                 end if; 
+            else
+                addr_cnt <= (others => '0');
             end if;
         end if;
     end if;
 end process;
 
 -- Next state logic.
-process (current_state, CAPTURE_REG, trigger, addr_cnt)
+process (current_state, CAPTURE_REG, trigger, addr_cnt, fifo_rd_en, fifo_empty)
 begin
     case current_state is
         when INIT_ST =>
@@ -157,25 +157,26 @@ begin
                 next_state <= TRIGGER_ST;
             end if;
 
-		when TRIGGER_ST =>
-			if (trigger = '0') then
-				next_state <= TRIGGER_ST;
-			else
-				next_state <= CAPTURE_ST;
-			end if;
+      when TRIGGER_ST =>
+            if (trigger = '0') then
+                next_state <= TRIGGER_ST;
+            else
+                next_state <= CAPTURE_ST;
+            end if;
             
         when CAPTURE_ST =>
-            if ( addr_cnt < to_unsigned(NPOW-1,addr_cnt'length) ) then
-                next_state <= CAPTURE_ST;
-            else
+            if ( addr_cnt = to_unsigned(NPOW-1,addr_cnt'length) and fifo_rd_en = '1' and fifo_empty = '0' ) then 
                 next_state <= END_ST;
+            else
+                next_state <= CAPTURE_ST;
             end if;            
         
         when END_ST =>
-            if ( CAPTURE_REG = '1' ) then
-                next_state <= END_ST;
-            else
+            if ( CAPTURE_REG = '0' and fifo_empty = '1') then
+                -- Wait until input FIFO is flushed out
                 next_state <= INIT_ST;
+            else
+                next_state <= END_ST;
             end if;
     end case;
 end process;
@@ -183,8 +184,8 @@ end process;
 -- Output logic.
 process (current_state)
 begin
-init_state  <= '0';
-write_en    <= '0';
+    init_state  <= '0';
+    write_en    <= '0';
     case current_state is
         when INIT_ST =>
             init_state  <= '1';

@@ -537,6 +537,8 @@ class AxisAvgBuffer(SocIP):
     WEIGHTS = False
     RO_PORT = 's_axis'
 
+    FIRST_OUT_SAMPLE_BUG_FIX = False   # Bug is present in IP version <= 1.1
+
     def __init__(self, description):
         """
         Constructor method
@@ -736,6 +738,12 @@ class AxisAvgBuffer(SocIP):
         if self.switch_avg is not None:
             self.switch_avg.sel(slv=self.switch_ch)
 
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+            # we work around this by requesting an extra 2 samples at the beginning
+            address = (address-2) % self['avg_maxlen']
+            transferlen = transferlen + 2
+
         # Set averager data reader address and length.
         self.avg_dr_addr_reg = address
         self.avg_dr_len_reg = transferlen
@@ -759,10 +767,15 @@ class AxisAvgBuffer(SocIP):
         # Format:
         # -> lower 32 bits: I value.
         # -> higher 32 bits: Q value.
-        data = np.frombuffer(buff[:length], dtype=np.int32).reshape((-1,2))
+        data = np.frombuffer(buff[:transferlen], dtype=np.int32).reshape((-1,2))
+
+        # realign returned data with true request
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            data = data[2:length+2]
+        else:
+            data = data[:length]
 
         # data is a view into the data buffer, so copy it before returning
-
         return data.copy()
 
     def config_buf(self, address=0, length=100):
@@ -808,7 +821,11 @@ class AxisAvgBuffer(SocIP):
         if self.switch_buf is not None:
             self.switch_buf.sel(slv=self.switch_ch)
 
-        # time.sleep(0.050)
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            # there is a bug which causes the first sample of a transfer to always be the sample at address 0
+            # we work around this by requesting an extra 2 samples at the beginning
+            address = (address-2) % self['buf_maxlen']
+            transferlen = transferlen + 2
 
         # Set buffer data reader address and length.
         self.buf_dr_addr_reg = address
@@ -833,7 +850,13 @@ class AxisAvgBuffer(SocIP):
         # Format:
         # -> lower 16 bits: I value.
         # -> higher 16 bits: Q value.
-        data = np.frombuffer(buff[:length], dtype=np.int16).reshape((-1,2))
+        data = np.frombuffer(buff[:transferlen], dtype=np.int16).reshape((-1,2))
+
+        # realign returned data with true request
+        if (not self.FIRST_OUT_SAMPLE_BUG_FIX):
+            data = data[2:length+2]
+        else:
+            data = data[:length]
 
         # data is a view into the data buffer, so copy it before returning
         return data.copy()
@@ -885,6 +908,16 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
         if edge_counting:
             self.avg_h_threshold_reg = high_threshold
             self.avg_l_threshold_reg = low_threshold
+
+class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
+    """
+    AxisAvgBufferV1pt2 class
+
+    Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
+    """
+    bindto = ['user.org:user:axis_avg_buffer:1.2']
+
+    FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.2
 
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     bindto = ['user.org:user:axis_weighted_buffer:1.2']
@@ -1029,7 +1062,8 @@ class MrBufferEt(SocIP):
     # DW_CAPTURE_REG needs to be de-asserted and asserted again to allow a new capture.
     # DR_START_REG needs to be de-assereted and asserted again to allow a new transfer.
     #
-    bindto = ['user.org:user:mr_buffer_et:1.0']
+    bindto = ['user.org:user:mr_buffer_et:1.0',
+              'user.org:user:mr_buffer_et:1.1']
 
     def __init__(self, description):
         super().__init__(description)
@@ -1050,7 +1084,11 @@ class MrBufferEt(SocIP):
 
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
-        self.cfg['junk_len'] = 8
+
+        if description['type'] == 'user.org:user:mr_buffer_et:1.0':
+            self.cfg['junk_len'] = 8    # Firmware Bug present and junk data samples are returned from buffer
+        else:
+            self.cfg['junk_len'] = 0    # Firmware Bug was fixed so no need for this value anymore
 
         # Preallocate memory buffers for DMA transfers.
         self.buff = allocate(shape=2*self['maxlen'], dtype=np.int16)

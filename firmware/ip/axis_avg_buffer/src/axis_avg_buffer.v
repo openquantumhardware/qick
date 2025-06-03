@@ -1,12 +1,15 @@
-// AXIS AVG BUFFER.
-// s_axi_aclk	: clock for s_axi_*
-// s_axis_aclk	: clock for s_axis_*
-// m_axis_aclk	: clock for m0_axis_* and m1_axis_*
+// Description:
+// AXIS_AVG_BUFFER is a block that receives an input stream of samples (s_axis) and generates three output streams, one with processed averaged data (m0_axis) and one with raw captured data (m1_axis) and one with averaged data but prior to be stored in internal memory (sent to tProc register) (m2_axis) Captured samples are internally stored in PL memory.
+// Capture is initiated by an external trigger after the buffer has been enabled. Number of captured samples and address where to store them are configurable.
+// Output stream generation is controlled with a register where the address to start reading data and the number of samples can be configured. Output stream can be interfaced to an AXIS-DMA module
+//
+// Parameters:
+// N_AVG & N_BUF: memory depth as 2**N; B: memory data width
 //
 module axis_avg_buffer
 	( 
 		// AXI Slave I/F for configuration.
-		s_axi_aclk			,
+		s_axi_aclk			,	// clock for s_axi_*
 		s_axi_aresetn		,
 
 		s_axi_awaddr		,
@@ -37,14 +40,14 @@ module axis_avg_buffer
 		trigger				,
 
 		// AXIS Slave for input data.
-		s_axis_aclk			,
+		s_axis_aclk			,	// clock for s_axis_*
 		s_axis_aresetn		,
 		s_axis_tvalid		,
 		s_axis_tready		,
 		s_axis_tdata		,
 
 		// Reset and clock for m0 and m1.
-		m_axis_aclk			,
+		m_axis_aclk			,	// clock for m0_axis_* and m1_axis_* and m2_axis_*
 		m_axis_aresetn		,
 
 		// AXIS Master for averaged output.
@@ -62,7 +65,7 @@ module axis_avg_buffer
 		// AXIS Master for register output.
 		m2_axis_tvalid		,
 		m2_axis_tready		,
-		m2_axis_tdata
+		m2_axis_tdata        
 	);
 
 /**************/
