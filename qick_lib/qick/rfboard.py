@@ -1,7 +1,7 @@
 import os
-from .qick import SocIp, QickSoc
+from .qick import QickSoc
+from .ip import SocIP
 from .qick_asm import QickConfig
-from pynq.overlay import Overlay, DefaultIP
 from pynq.buffer import allocate
 import xrfclk
 import numpy as np
@@ -13,7 +13,7 @@ from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
 logger = logging.getLogger(__name__)
 
-class AxisSignalGenV3(SocIp):
+class AxisSignalGenV3(SocIP):
     # AXIS Table Registers.
     # START_ADDR_REG
     #
@@ -88,7 +88,7 @@ class AxisSignalGenV3(SocIp):
         self.we_reg = 0
 
 
-class AxisSignalGenV3Ctrl(SocIp):
+class AxisSignalGenV3Ctrl(SocIP):
     # Signal Generator V3 Control registers.
     # ADDR_REG
     bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0']
@@ -157,7 +157,7 @@ class AxisSignalGenV3Ctrl(SocIp):
     def set_fs(self, fs):
         self.fs = fs
 
-class AxisSignalGenV6Ctrl(SocIp):
+class AxisSignalGenV6Ctrl(SocIP):
     # Signal Generator V6 Control registers.
     # FREQ_REG      : 32-bit.
 
@@ -258,7 +258,7 @@ class AxisSignalGenV6Ctrl(SocIp):
         self.we_reg = 1
         self.we_reg = 0
 
-class AxisDdsMrSwitch(SocIp):
+class AxisDdsMrSwitch(SocIP):
     # AXIS DDS MR SWITCH registers.
     # DDS_REAL_IMAG_REG
     # * 0 : real part.
@@ -287,7 +287,7 @@ class AxisDdsMrSwitch(SocIp):
         self.config(1)
 
 
-class AxisSwitchV1(SocIp):
+class AxisSwitchV1(SocIP):
     bindto = ['user.org:user:axis_switch_v1:1.0']
 
     def __init__(self, description):
@@ -312,7 +312,7 @@ class AxisSwitchV1(SocIp):
         self.channel_reg = mst
 
 
-class spi(DefaultIP):
+class spi(SocIP):
 
     bindto = ['xilinx.com:ip:axi_quad_spi:3.2']
     SPI_REGLIST = ['DGIER', 'IPISR', 'IPIER', 'SRR', 'SPICR', 'SPISR', 'SPI_DTR', 'SPI_DRR', 'SPI_SSR', 'SPI_TXFIFO_OR', 'SPI_RXFIFO_OR']
