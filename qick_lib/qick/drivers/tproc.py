@@ -636,7 +636,7 @@ class Axis_QICK_Proc(SocIP):
         self.mem_dt_i = data
         self.tproc_cfg         &= ~63
 
-    def load_mem(self, mem_sel, buff_in, addr=0):
+    def load_mem(self, mem_sel, buff_in, addr=0, check=True):
         """
         Writes tProc Selected memory using DMA
 
@@ -652,6 +652,7 @@ class Axis_QICK_Proc(SocIP):
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:
             raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
+        self.logger.info('tProc %s: loading data'%(mem_sel))
 
         # Length.
         length = len(buff_in)
@@ -675,6 +676,13 @@ class Axis_QICK_Proc(SocIP):
         
         # End Operation
         self.tproc_cfg       &= ~63
+
+        if check:
+            readback = self.read_mem(mem_sel, length=length)
+            if ( (np.max(readback - buff_in) )  == 0):
+                self.logger.info('tProc %s: readback OK'%(mem_sel))
+            else:
+                raise RuntimeError("tProc %s: readback does not match what was just loaded"%(mem_sel))
 
     def read_mem(self, mem_sel, length, addr=0):
         """
@@ -718,19 +726,6 @@ class Axis_QICK_Proc(SocIP):
         else:
             return np.array(self.buff_rd[:length], copy=True)
 
-    def Load_PMEM(self, p_mem, check=True):
-        length = len(p_mem)
-
-        self.logger.info('Loading Program in PMEM')
-        self.load_mem('pmem', p_mem)
-
-        if check:
-            readback = self.read_mem('pmem', length=length)
-            if ( (np.max(readback - p_mem) )  == 0):
-                self.logger.info('Program Loaded OK')
-            else:
-                self.logger.error('Error Loading Program')
-
     def reload_mem(self):
         """Reload the waveform and data memory from the most recently written program.
         This undoes any changes made by running the program.
@@ -745,7 +740,7 @@ class Axis_QICK_Proc(SocIP):
         Write the program to the tProc program memory.
         """
         self.binprog = binprog
-        self.Load_PMEM(self.binprog['pmem'])
+        self.load_mem('pmem', self.binprog['pmem'])
         if load_mem: self.reload_mem()
 
     def print_axi_regs(self):
