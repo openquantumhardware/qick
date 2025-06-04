@@ -159,14 +159,14 @@ module xcom_link_tx (
                     state_n = TX_DATA;
                 end     
             end
-            TX_CLK:  begin
-                if ( tick_clk ) state_n = TX_DATA;
-            end
             TX_DATA:  begin
                 if ( tick_dt ) begin
                     if ( s_last ) state_n = TX_END;
                     else          state_n = TX_CLK;
                 end
+            end
+            TX_CLK:  begin
+                if ( tick_clk ) state_n = TX_DATA;
             end
             TX_END    :  begin
                 if ( tick_clk ) state_n = TX_IDLE;
