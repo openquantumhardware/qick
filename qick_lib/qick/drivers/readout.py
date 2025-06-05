@@ -351,10 +351,10 @@ class AxisPFBReadoutV3(AbsPFBReadout):
     HAS_OUTSEL = False
 
     def _init_config(self, description):
-        super()._init_config(description)
-
         # Generics.
         self.NCH = int(description['parameters']['N'])
+
+        super()._init_config(description)
 
         # define the register map
         self.REGISTERS = {}
