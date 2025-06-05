@@ -1373,7 +1373,7 @@ class QickSoc(Overlay, QickConfig):
         elif self.TPROC_VERSION == 2:
             for mem_sel in ['pmem', 'dmem', 'wmem']:
                 if binprog[mem_sel] is not None:
-                    binprog[mem_sel] = np.array(binprog[mem_sel], dtype=int32)
+                    binprog[mem_sel] = np.array(binprog[mem_sel], dtype=np.int32)
         self.tproc.load_bin_program(binprog, load_mem=load_mem)
 
     def reload_mem(self):
