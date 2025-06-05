@@ -126,7 +126,7 @@ if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_intc:4.1\
 user.org:user:axis_signal_gen_v6:1.0\
-user.org:user:mr_buffer_et:1.0\
+user.org:user:mr_buffer_et:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 user.org:user:sg_translator:1.0\
 xilinx.com:ip:xlconcat:2.1\
@@ -136,13 +136,13 @@ xilinx.com:ip:axis_broadcaster:1.1\
 xilinx.com:ip:axis_clock_converter:1.1\
 xilinx.com:ip:axis_switch:1.1\
 xilinx.com:ip:clk_wiz:6.0\
+Fermi:user:qick_processor:2.0\
 xilinx.com:ip:usp_rf_data_converter:2.6\
 xilinx.com:ip:zynq_ultra_ps_e:3.5\
 user.org:user:axis_dyn_readout_v1:1.0\
 user.org:user:axis_cdcsync_v1:1.0\
 xilinx.com:ip:axis_register_slice:1.1\
-user.org:user:axis_avg_buffer:1.1\
-Fermi:user:qick_processor:2.0\
+user.org:user:axis_avg_buffer:1.2\
 xilinx.com:ip:ddr4:2.2\
 user.org:user:axis_buffer_ddr_v1:1.0\
 xilinx.com:ip:axis_dwidth_converter:1.1\
@@ -420,7 +420,7 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.0 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [list \
     CONFIG.B {32} \
     CONFIG.N {10} \
@@ -1803,7 +1803,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   create_hier_cell_ddr4 [current_bd_instance .] ddr4
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {12} \
@@ -1811,7 +1811,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {12} \
@@ -1819,7 +1819,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: axis_avg_buffer_2, and set properties
-  set axis_avg_buffer_2 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_2 ]
+  set axis_avg_buffer_2 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_2 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {12} \
@@ -1827,7 +1827,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: axis_avg_buffer_3, and set properties
-  set axis_avg_buffer_3 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.1 axis_avg_buffer_3 ]
+  set axis_avg_buffer_3 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_3 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {12} \

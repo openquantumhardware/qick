@@ -1,3 +1,12 @@
+// Description: 
+// BUFFER_TOP block receives an input stream of samples (s_axis), captures and stores them in an internal memory when indicated and generates one output stream with raw captured data (m_axis)
+// Capturing flow is controlled by the BUFFER FSM block and is initiated by an external trigger after the buffer has been enabled. Number of captured samples and address where to store them are configurable. 
+// Captured samples are internally stored in BRAM memory. 
+// Output stream is generated and controlled from the DATA_READER FSM block. Address to start reading and number of samples are configurable. It can be interfaced with an AXIS DMA module.
+//
+// Parameters:
+// N: memory depth as 2**N; B: memory data width
+//
 module buffer_top (
 	// Reset and clock.
 	rstn			,
@@ -130,6 +139,7 @@ buffer
 	);
 
 // Dual port BRAM.
+// BRAM depth is 2**N. BRAM word with is B.
 bram_dp
     #(
 		.N	(N	),

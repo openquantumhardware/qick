@@ -27,33 +27,33 @@ use IEEE.NUMERIC_STD.ALL;
 entity data_reader is
     Generic
     (
-		-- Number of memories.
-		NM	: Integer := 8;
-		-- Address map of each memory.
-		N	: Integer := 8;
-		-- Data width.
-		B	: Integer := 16
+        -- Number of memories.
+        NM : Integer := 8;
+        -- Address map of each memory.
+        N  : Integer := 8;
+        -- Data width.
+        B  : Integer := 16
     );
     Port
     (
         -- Reset and clock.
-        rstn        		: in std_logic;
-        clk         		: in std_logic;
+        rstn            : in std_logic;
+        clk             : in std_logic;
         
         -- Memory I/F.
-        mem_en      		: out std_logic;
-        mem_we      		: out std_logic;
-        mem_addr    		: out std_logic_vector (N-1 downto 0);
-        mem_dout    		: in std_logic_vector (NM*B-1 downto 0);        
+        mem_en          : out std_logic;
+        mem_we          : out std_logic;
+        mem_addr        : out std_logic_vector (N-1 downto 0);
+        mem_dout        : in std_logic_vector (NM*B-1 downto 0);        
         
         -- Data out.
-        dout        		: out std_logic_vector (B-1 downto 0);
-        dready      		: in std_logic;
-        dvalid      		: out std_logic;
-        dlast               : out std_logic;
+        dout            : out std_logic_vector (B-1 downto 0);
+        dready          : in std_logic;
+        dvalid          : out std_logic;
+        dlast           : out std_logic;
 
         -- Registers.
-		START_REG			: in std_logic
+        START_REG       : in std_logic
     );
 end entity;
 
@@ -268,11 +268,11 @@ end process;
 -- Output logic.
 process (current_state)
 begin
-init_state  <= '0';
-read_state  <= '0';
-write_state <= '0';
-fifo_state  <= '0';
-read_en     <= '0';
+    init_state  <= '0';
+    read_state  <= '0';
+    write_state <= '0';
+    fifo_state  <= '0';
+    read_en     <= '0';
     case current_state is
         when INIT_ST =>
             init_state  <= '1';
