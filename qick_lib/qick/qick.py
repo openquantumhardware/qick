@@ -1374,7 +1374,7 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 2:
             self.tproc.reload_mem()
 
-    def load_mem(self, buff, mem_sel='dmem', addr=0):
+    def load_mem(self, data, mem_sel='dmem', addr=0):
         """
         Write a block of the selected tProc memory.
         For tProc v1 only the data memory ("dmem") is valid.
@@ -1382,7 +1382,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        buff_in : numpy.ndarray of int
+        data : numpy.ndarray of int
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         mem_sel : str
@@ -1390,13 +1390,14 @@ class QickSoc(Overlay, QickConfig):
         addr : int
             Starting write address
         """
+        data = np.array(data, dtype=np.int32)
         if self.TPROC_VERSION == 1:
             if mem_sel=='dmem':
-                self.tproc.load_dmem(buff, addr)
+                self.tproc.load_dmem(data, addr)
             else:
                 raise RuntimeError("invalid mem_sel: %s"%(mem_sel))
         elif self.TPROC_VERSION == 2:
-            self.tproc.load_mem(mem_sel, buff, addr)
+            self.tproc.load_mem(mem_sel, data, addr)
 
     def read_mem(self, length, mem_sel='dmem', addr=0):
         """
