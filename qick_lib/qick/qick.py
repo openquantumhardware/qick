@@ -1366,7 +1366,15 @@ class QickSoc(Overlay, QickConfig):
         load_mem : bool
             write waveform and data memory now (can do this later with reload_mem())
         """
-        self.tproc.load_bin_program(obtain(binprog), load_mem=load_mem)
+        binprog = obtain(binprog)
+        # cast to ndarray
+        if self.TPROC_VERSION == 1:
+            binprog = np.array(binprog, dtype=np.uint64)
+        elif self.TPROC_VERSION == 2:
+            for mem_sel in ['pmem', 'dmem', 'wmem']:
+                if binprog[mem_sel] is not None:
+                    binprog[mem_sel] = np.array(binprog[mem_sel], dtype=int32)
+        self.tproc.load_bin_program(binprog, load_mem=load_mem)
 
     def reload_mem(self):
         """Reload the waveform and data memory, overwriting any changes made by running the program.
