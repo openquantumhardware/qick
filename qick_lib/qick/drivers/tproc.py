@@ -649,6 +649,8 @@ class Axis_QICK_Proc(SocIP):
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         addr : int
             Starting write address
+        check : bool
+            do a readback to check that the data was written correctly
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:
             raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
@@ -678,15 +680,17 @@ class Axis_QICK_Proc(SocIP):
         self.tproc_cfg       &= ~63
 
         if check:
-            readback = self.read_mem(mem_sel, length=length)
-            if ( (np.max(readback - buff_in) )  == 0):
+            readback = self.read_mem(mem_sel, length=length, truncate=False)
+            width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
+            if np.array_equal(buff_in[:,:width], readback[:,:width]):
                 self.logger.info('tProc %s: readback OK'%(mem_sel))
             else:
                 raise RuntimeError("tProc %s: readback does not match what was just loaded"%(mem_sel))
 
-    def read_mem(self, mem_sel, length, addr=0):
+    def read_mem(self, mem_sel, length, addr=0, truncate=True):
         """
-        Read tProc Selected memory using DMA
+        Read selected tProc memory using DMA.
+        The DMA transfer width is 256 bits (8 x int32), but the memories are smaller.
 
         Parameters
         ----------
@@ -696,11 +700,13 @@ class Axis_QICK_Proc(SocIP):
             Number of words to read
         addr : int
             Starting read address
+        truncate : bool
+            Trim columns that have no data in them
 
         Returns
         -------
         numpy.ndarray
-            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
+            32-bit array of shape (n, 8) if not truncating; otherwise (n, 3) for pmem, (n, 6) for wmem, (n) for dmem
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:
             raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
@@ -720,11 +726,14 @@ class Axis_QICK_Proc(SocIP):
         # End Operation
         self.tproc_cfg         &= ~63
 
+        data = np.array(self.buff_rd[:length], copy=True)
         # truncate, copy, convert PynqBuffer to ndarray
-        if mem_sel=='dmem':
-            return np.array(self.buff_rd[:length, 0], copy=True)
-        else:
-            return np.array(self.buff_rd[:length], copy=True)
+        if truncate:
+            width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
+            data = data[:, :width]
+            if mem_sel=='dmem':
+                return data.flatten()
+        return data
 
     def reload_mem(self):
         """Reload the waveform and data memory from the most recently written program.
