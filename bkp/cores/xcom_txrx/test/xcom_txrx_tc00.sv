@@ -39,8 +39,6 @@ import qick_pkg::*;
   logic [4-1:0]  tb_i_cfg_tick  = 1'b0;
   logic [ 4-1:0] tb_o_xcom_id         ;
   logic [32-1:0] tb_o_xcom_mem [15]   ;
-//  logic [NCH-1:0]tb_i_xcom_data       ;
-//  logic [NCH-1:0]tb_i_xcom_clk        ;
   logic          tb_o_xcom_data       ;
   logic          tb_o_xcom_clk        ;
   logic [32-1:0] tb_o_dbg_rx_data     ;
@@ -61,31 +59,6 @@ import qick_pkg::*;
   logic [NCH-1:0] tb_xcom_data = '0;
   logic [NCH-1:0] tb_xcom_clk  = '0;
 
-  xcom_opcode_t s_op = '{
-       rst         : 5'b1_1111  ,//LOC command
-       write_mem   : 5'b1_0011  ,//LOC command
-       write_reg   : 5'b1_0010  ,//LOC command
-       write_flag  : 5'b1_0001  ,//LOC command
-       set_id      : 5'b1_0000  ,//LOC command
-       rfu2        : 5'b0_1111  ,
-       rfu1        : 5'b0_1101  ,
-       qctrl       : 5'b0_1011  ,
-       update_dt32 : 5'b0_1110  ,
-       update_dt16 : 5'b0_1100  ,
-       update_dt8  : 5'b0_1010  ,
-       auto_id     : 5'b0_1001  ,
-       qrst_sync   : 5'b0_1000  ,
-       send_32bit_2: 5'b0_0111  ,
-       send_32bit_1: 5'b0_0110  ,
-       send_16bit_2: 5'b0_0101  ,
-       send_16bit_1: 5'b0_0100  ,
-       send_8bit_2 : 5'b0_0011  ,
-       send_8bit_1 : 5'b0_0010  ,
-       set_flag    : 5'b0_0001  ,
-       clear_flag  : 5'b0_0000
-  };
-
-
 initial begin
   $dumpfile("xcom_txrx.vcd");
   $dumpvars();
@@ -103,19 +76,17 @@ u_clk_gen
 
 clocking tb_cb @(posedge tb_clk);
   default input #1step output #2;
-  output  tb_rstn          ;
-  output  tb_i_sync        ;
-  output  tb_i_req_loc     ;
-  output  tb_i_req_net     ;
-  output  tb_i_header      ;
-  output  tb_i_data        ;
-  output  tb_i_cfg_tick    ;
-//  output  tb_i_xcom_data   ;
-//  output  tb_i_xcom_clk    ;
-  output  tb_i_cfg_tick_tx    ;
-  output  tb_i_valid_tx       ;
-  output  tb_i_header_tx      ;
-  output  tb_i_data_tx        ;
+  output  tb_rstn              ;
+  output  tb_i_sync            ;
+  output  tb_i_req_loc         ;
+  output  tb_i_req_net         ;
+  output  tb_i_header          ;
+  output  tb_i_data            ;
+  output  tb_i_cfg_tick        ;
+  output  tb_i_cfg_tick_tx     ;
+  output  tb_i_valid_tx        ;
+  output  tb_i_header_tx       ;
+  output  tb_i_data_tx         ;
 
 
   input   tb_o_ack_loc         ;
