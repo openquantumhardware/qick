@@ -1629,10 +1629,13 @@ class AcquireMixin:
         self.rounds_buf = None
 
         # measurements from the most recent round
-        # raw I/Q data without normalizing to window length or averaging over reps
+        # raw accumulated data without normalizing to window length or averaging over reps
         self.acc_buf = None
         # shot-by-shot threshold classification
         self.shots = None
+
+        # progress bars
+        self.rounds_pbar = None
 
     def _init_declarations(self):
         super()._init_declarations()
@@ -1777,11 +1780,6 @@ class AcquireMixin:
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
 
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
-
-        n_ro = len(self.ro_chs)
-
         total_count = functools.reduce(operator.mul, self.loop_dims)
         reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
@@ -1802,6 +1800,10 @@ class AcquireMixin:
         # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
         #avg_d = None
         for ir in tqdm(range(soft_avgs), disable=hiderounds):
+            # initialize the raw data buffer
+            for b in self.acc_buf:
+                np.copyto(b, 0)
+
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
@@ -1810,7 +1812,7 @@ class AcquireMixin:
 
             count = 0
             with tqdm(total=total_count, disable=hidereps) as pbar:
-                soc.start_readout(total_count, counter_addr=self.counter_addr,
+                soc.start_readout(start_src, total_count, counter_addr=self.counter_addr,
                                        ch_list=list(self.ro_chs), reads_per_shot=reads_per_shot)
                 while count<total_count:
                     new_data = obtain(soc.poll_data())
@@ -2057,7 +2059,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True):
+    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2089,9 +2091,6 @@ class AcquireMixin:
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
 
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
-
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # Initialize data buffers
@@ -2102,36 +2101,58 @@ class AcquireMixin:
             if ro['length']*ro['trigs']*total_count > maxlen:
                 raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
 
+        self.rounds_pbar = tqdm(range(soft_avgs), disable=not progress)
         # for each soft average, run and acquire decimated data
-        for ii in tqdm(range(soft_avgs), disable=not progress):
-            dec_buf = []
-            # buffer for accumulated data (for convenience/debug)
-            self.acc_buf = []
-
-            # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=True)
-
-            # Reload data memory.
-            soc.reload_mem()
-
-            # make sure count variable is reset to 0
-            soc.set_tproc_counter(addr=self.counter_addr, val=0)
-
-            # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every round
-            soc.start_tproc()
-
-            count = 0
-            while count < total_count:
-                count = soc.get_tproc_counter(addr=self.counter_addr)
-
-            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-                dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
-                self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
-            self.rounds_buf.append(self._process_decimated(dec_buf, remove_offset))
+        while self._step_round(soc, start_src, remove_offset):
+            pass
 
         result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
         return result
+
+    def _step_round(self, soc, start_src, remove_offset):
+        self._prepare_round(soc, start_src)
+        return self._finish_round(soc, remove_offset)
+
+    def _prepare_round(self, soc, start_src):
+        # initialize buffers
+        # accumulated data (for convenience/debug)
+        self.acc_buf = []
+
+        # Configure and enable buffer capture.
+        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+        # Reload data memory.
+        soc.reload_mem()
+
+        # make sure count variable is reset to 0
+        soc.set_tproc_counter(addr=self.counter_addr, val=0)
+
+        # configure tproc for internal/external start
+        soc.start_src(start_src)
+
+        # run the assembly program
+        # if start_src="external", you must pulse the trigger input once for every round
+        soc.start_tproc()
+
+    def _finish_round(self, soc, remove_offset):
+        total_count = functools.reduce(operator.mul, self.loop_dims)
+
+        # decimated data
+        dec_buf = []
+
+        count = 0
+        while count < total_count:
+            count = soc.get_tproc_counter(addr=self.counter_addr)
+
+        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+            dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
+            self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
+        self.rounds_buf.append(self._process_decimated(dec_buf, remove_offset))
+        self.rounds_pbar.update()
+        done = self.rounds_pbar.n >= self.rounds_pbar.total
+        if done:
+            self.rounds_pbar.close()
+        return not done
 
     def _process_decimated(self, dec_buf, remove_offset):
         total_count = functools.reduce(operator.mul, self.loop_dims)

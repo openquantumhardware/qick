@@ -559,10 +559,6 @@ class Axis_QICK_Proc(SocIP):
         :param src: start source "internal" or "external"
         :type src: str
         """
-        # set internal-start register to "init"
-        # otherwise we might start the tProc on a transition from external to internal start
-        #self.start_reg = 0
-        #self.start_src_reg = {"internal": 0, "external": 1}[src]
         self.stop()
         if src=='internal':
             self.tproc_cfg &= ~(1 << 10)

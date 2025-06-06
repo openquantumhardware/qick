@@ -96,7 +96,7 @@ class DataStreamer():
         while True:
             try:
                 # wait for a job
-                total_shots, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
+                start_src, total_shots, counter_addr, ch_list, reads_per_count, stride = self.job_queue.get(block=True)
                 #print("streamer loop: start", total_count)
 
                 shots = 0
@@ -113,6 +113,9 @@ class DataStreamer():
                 stats = []
 
                 t_start = time.time()
+
+                # configure tproc for internal/external start
+                self.soc.start_src(start_src)
 
                 # if the tproc is configured for internal start, this will start the program
                 # for external start, the program will not start until a start pulse is received

@@ -1522,7 +1522,7 @@ class QickSoc(Overlay, QickConfig):
         # this should always run with internal trigger
         prog.run(self, start_src="internal")
 
-    def start_readout(self, total_shots, counter_addr=1, ch_list=None, reads_per_shot=1, stride=None):
+    def start_readout(self, start_src, total_shots, counter_addr=1, ch_list=None, reads_per_shot=1, stride=None):
         """
         Start a streaming readout of the accumulated buffers.
 
@@ -1574,7 +1574,7 @@ class QickSoc(Overlay, QickConfig):
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((total_shots, counter_addr, ch_list, reads_per_shot, stride))
+        streamer.job_queue.put((start_src, total_shots, counter_addr, ch_list, reads_per_shot, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """
