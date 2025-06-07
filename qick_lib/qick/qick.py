@@ -1574,7 +1574,7 @@ class QickSoc(Overlay, QickConfig):
         streamer.count = 0
 
         streamer.done_flag.clear()
-        streamer.job_queue.put((start_src, total_shots, counter_addr, ch_list, reads_per_shot, stride))
+        streamer.job_queue.put((total_shots, counter_addr, ch_list, reads_per_shot, stride))
 
     def poll_data(self, totaltime=0.1, timeout=None):
         """

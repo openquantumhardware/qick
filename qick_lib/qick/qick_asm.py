@@ -1779,7 +1779,7 @@ class AcquireMixin:
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
         self.acquire_params = {
-                'type': 'decimated',
+                'type': 'accumulated',
                 'soc': soc,
                 'start_src': start_src,
                 'remove_offset': remove_offset,
