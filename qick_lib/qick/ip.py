@@ -316,6 +316,9 @@ class QickMetadata:
                 to_check.append((block, "M_AXIS"))
             elif blocktype == "axis_register_slice_nb":
                 to_check.append((block, "m_axis"))
+            elif blocktype == "qick_xtalk" and port == 'wave_i':
+                # we only want to trace the "primary" xtalk port
+                to_check.append((block, "wave_o"))
             else:
                 dead_ends.append(block)
         if len(found) != 1:
