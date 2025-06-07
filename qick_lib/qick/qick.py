@@ -1432,11 +1432,7 @@ class QickSoc(Overlay, QickConfig):
         """
         Start the tProc.
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.start()
-        elif self.TPROC_VERSION == 2:
-            self.tproc.stop()
-            self.tproc.start()
+        self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """

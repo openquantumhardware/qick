@@ -509,10 +509,10 @@ class Axis_QICK_Proc(SocIP):
     def start(self):
         """
         If tProc is configured for internal start, start the tProc.
-        If configured for external start, just do a reset.
+        If configured for external start, do nothing.
         """
         if self.tproc_cfg & (1 << 10):
-            self.reset()
+            pass
         else:
             self.logger.info('PROCESSOR_START')
             self.tproc_ctrl      = 4
