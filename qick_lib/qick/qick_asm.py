@@ -1634,8 +1634,9 @@ class AcquireMixin:
         # shot-by-shot threshold classification
         self.shots = None
 
-        # progress bars
+        # progress bar
         self.rounds_pbar = None
+        self.acquire_params = None
 
     def _init_declarations(self):
         super()._init_declarations()
@@ -1736,7 +1737,7 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True):
+    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1764,6 +1765,9 @@ class AcquireMixin:
         remove_offset: bool
             Some readouts (muxed and tProc-configured) introduce a small fixed offset to the I and Q values of every decimated sample.
             This subtracts that offset, if any, before returning the averaged IQ values or rotating to apply software thresholding.
+        step_rounds: bool
+            Return after setting up the acquisition and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
 
         Returns
         -------
@@ -1774,6 +1778,16 @@ class AcquireMixin:
             dimensions for a simple averaging program: (n_ch, n_reads, 2)
             dimensions for a program with multiple expts/steps: (n_ch, n_reads, n_expts, 2)
         """
+        self.acquire_params = {
+                'type': 'decimated',
+                'soc': soc,
+                'start_src': start_src,
+                'remove_offset': remove_offset,
+                'hidereps': True,
+                'threshold': threshold,
+                'angle': angle,
+                }
+
         # don't load memories now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
@@ -1790,60 +1804,22 @@ class AcquireMixin:
 
         # select which tqdm progress bar to show
         hiderounds = True
-        hidereps = True
         if progress:
             if soft_avgs>1:
                 hiderounds = False
             else:
-                hidereps = False
+                self.acquire_params['hidereps'] = False
 
-        # avg_d doesn't have a specific shape here, so that it's easier for child programs to write custom _average_buf
-        #avg_d = None
-        for ir in tqdm(range(soft_avgs), disable=hiderounds):
-            # initialize the raw data buffer
-            for b in self.acc_buf:
-                np.copyto(b, 0)
+        self.rounds_pbar = tqdm(range(soft_avgs), disable=hiderounds)
+        self.prepare_round()
 
-            # Configure and enable buffer capture.
-            self.config_bufs(soc, enable_avg=True, enable_buf=False)
+        if step_rounds: return
 
-            # Reload data memory.
-            soc.reload_mem()
+        # for each soft average, run and acquire decimated data
+        while self.finish_round():
+            self.prepare_round()
 
-            count = 0
-            with tqdm(total=total_count, disable=hidereps) as pbar:
-                soc.start_readout(start_src, total_count, counter_addr=self.counter_addr,
-                                       ch_list=list(self.ro_chs), reads_per_shot=reads_per_shot)
-                while count<total_count:
-                    new_data = obtain(soc.poll_data())
-                    for new_points, (d, s) in new_data:
-                        for ii, nreads in enumerate(reads_per_shot):
-                            #print(count, new_points, nreads, d[ii].shape, total_count)
-                            if new_points*nreads != d[ii].shape[0]:
-                                logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
-                            if count+new_points > total_count:
-                                logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
-                            # use reshape to view the acc_buf array in a shape that matches the raw data
-                            self.acc_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
-                        count += new_points
-                        self.stats.append(s)
-                        pbar.update(new_points)
-
-            # if we're thresholding, apply the threshold before averaging
-            if threshold is None:
-                d_reps = self.acc_buf
-                round_d = self._average_buf(d_reps, length_norm=True, remove_offset=remove_offset)
-            else:
-                d_reps = [np.zeros_like(d) for d in self.acc_buf]
-                self.shots = self._apply_threshold(self.acc_buf, threshold, angle, remove_offset=remove_offset)
-                for i, ch_shot in enumerate(self.shots):
-                    d_reps[i][...,0] = ch_shot
-                round_d = self._average_buf(d_reps, length_norm=False)
-
-            self.rounds_buf.append(round_d)
-
-        result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
-        return result
+        return self.finish_acquire()
 
     def _ro_offset(self, ch, chcfg):
         """Computes the IQ offset expected from this readout.
@@ -2076,6 +2052,9 @@ class AcquireMixin:
             if true, displays progress bar
         remove_offset: bool
             Subtract the readout's IQ offset, if any.
+        step_rounds: bool
+            Return after setting up the acquisition and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
 
         Returns
         -------
@@ -2085,6 +2064,13 @@ class AcquireMixin:
             multi-rep or multi-read: (n_reps*n_reads, length, 2)
             multi-rep and multi-read: (n_reps, n_reads, length, 2)
         """
+        self.acquire_params = {
+                'type': 'decimated',
+                'soc': soc,
+                'start_src': start_src,
+                'remove_offset': remove_offset,
+                }
+
         # don't load memories now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
@@ -2102,57 +2088,114 @@ class AcquireMixin:
                 raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
 
         self.rounds_pbar = tqdm(range(soft_avgs), disable=not progress)
+        self.prepare_round()
+
+        if step_rounds: return
+
         # for each soft average, run and acquire decimated data
-        while self._step_round(soc, start_src, remove_offset):
-            pass
+        while self.finish_round():
+            self.prepare_round()
 
-        result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
-        return result
+        return self.finish_acquire()
 
-    def _step_round(self, soc, start_src, remove_offset):
-        self._prepare_round(soc, start_src)
-        return self._finish_round(soc, remove_offset)
+    def prepare_round(self):
+        soc = self.acquire_params['soc']
 
-    def _prepare_round(self, soc, start_src):
-        # initialize buffers
-        # accumulated data (for convenience/debug)
-        self.acc_buf = []
+        if self.acquire_params['type'] == 'decimated':
+            # initialize buffers
+            # accumulated data (for convenience/debug)
+            self.acc_buf = []
 
-        # Configure and enable buffer capture.
-        self.config_bufs(soc, enable_avg=True, enable_buf=True)
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=True)
+
+            # make sure count variable is reset to 0
+            soc.set_tproc_counter(addr=self.counter_addr, val=0)
+
+        else: # accumulated
+            # initialize the raw data buffer
+            for b in self.acc_buf:
+                np.copyto(b, 0)
+
+            # Configure and enable buffer capture.
+            self.config_bufs(soc, enable_avg=True, enable_buf=False)
 
         # Reload data memory.
         soc.reload_mem()
 
-        # make sure count variable is reset to 0
-        soc.set_tproc_counter(addr=self.counter_addr, val=0)
-
         # configure tproc for internal/external start
-        soc.start_src(start_src)
+        soc.start_src(self.acquire_params['start_src'])
 
-        # run the assembly program
-        # if start_src="external", you must pulse the trigger input once for every round
-        soc.start_tproc()
-
-    def _finish_round(self, soc, remove_offset):
+    def finish_round(self):
+        soc = self.acquire_params['soc']
         total_count = functools.reduce(operator.mul, self.loop_dims)
-
-        # decimated data
-        dec_buf = []
+        reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
         count = 0
-        while count < total_count:
-            count = soc.get_tproc_counter(addr=self.counter_addr)
+        if self.acquire_params['type'] == 'decimated':
+            # run the assembly program
+            # if start_src="external", you must pulse the trigger input once for every round
+            soc.start_tproc()
 
-        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
-            self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
-        self.rounds_buf.append(self._process_decimated(dec_buf, remove_offset))
+            # decimated data
+            dec_buf = []
+
+            while count < total_count:
+                count = soc.get_tproc_counter(addr=self.counter_addr)
+
+            for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+                dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
+                self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
+            self.rounds_buf.append(self._process_decimated(dec_buf, self.acquire_params['remove_offset']))
+
+        else: # accumulated
+            with tqdm(total=total_count, disable=self.acquire_params['hidereps']) as pbar:
+                soc.start_readout(total_count, counter_addr=self.counter_addr,
+                                       ch_list=list(self.ro_chs), reads_per_shot=reads_per_shot)
+                while count<total_count:
+                    new_data = obtain(soc.poll_data())
+                    for new_points, (d, s) in new_data:
+                        for ii, nreads in enumerate(reads_per_shot):
+                            #print(count, new_points, nreads, d[ii].shape, total_count)
+                            if new_points*nreads != d[ii].shape[0]:
+                                logger.error("data size mismatch: new_points=%d, nreads=%d, data shape %s"%(new_points, nreads, d[ii].shape))
+                            if count+new_points > total_count:
+                                logger.error("got too much data: count=%d, new_points=%d, total_count=%d"%(count, new_points, total_count))
+                            # use reshape to view the acc_buf array in a shape that matches the raw data
+                            self.acc_buf[ii].reshape((-1,2))[count*nreads:(count+new_points)*nreads] = d[ii]
+                        count += new_points
+                        self.stats.append(s)
+                        pbar.update(new_points)
+
+            # if we're thresholding, apply the threshold before averaging
+            if self.acquire_params['threshold'] is None:
+                d_reps = self.acc_buf
+                round_d = self._average_buf(d_reps, length_norm=True, remove_offset=self.acquire_params['remove_offset'])
+            else:
+                d_reps = [np.zeros_like(d) for d in self.acc_buf]
+                self.shots = self._apply_threshold(self.acc_buf,
+                                                   self.acquire_params['threshold'],
+                                                   self.acquire_params['angle'],
+                                                   self.acquire_params['remove_offset'])
+                for i, ch_shot in enumerate(self.shots):
+                    d_reps[i][...,0] = ch_shot
+                round_d = self._average_buf(d_reps, length_norm=False)
+
+            self.rounds_buf.append(round_d)
+
         self.rounds_pbar.update()
         done = self.rounds_pbar.n >= self.rounds_pbar.total
         if done:
             self.rounds_pbar.close()
         return not done
+
+    def finish_acquire(self):
+        if self.acquire_params['type'] == 'decimated':
+            result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
+            return result
+        else: # accumulated
+            result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
+            return result
 
     def _process_decimated(self, dec_buf, remove_offset):
         total_count = functools.reduce(operator.mul, self.loop_dims)
