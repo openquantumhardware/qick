@@ -21,6 +21,7 @@ from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
+from .drivers.peripherals import *
 
 logger = logging.getLogger(__name__)
 
