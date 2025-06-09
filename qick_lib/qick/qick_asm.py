@@ -1737,7 +1737,64 @@ class AcquireMixin:
         """
         return self.shots
 
-    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False):
+    def get_time_axis(self, ro_index, length_only=False):
+        """Get an array usable as the time axis for plotting decimated data.
+
+        Parameters
+        ----------
+        ro_index : int
+            Index of the readout channel in this program.
+            The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
+        length_only : bool
+            Just return the number of decimated points.
+            Useful for normalizing raw data.
+
+        Returns
+        -------
+        numpy.ndarray of float, or int
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
+            If length_only=True, an int is returned.
+        """
+        ch, ro = list(self.ro_chs.items())[ro_index]
+        n = ro['length']
+        if length_only: return n
+        else: return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(n))
+
+    def get_time_axis_ddr4(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting DDR4 data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : numpy.ndarray
+            DDR4 data array, the returned array will have the same length.
+
+        Returns
+        -------
+        numpy.ndarray of float
+            An array starting at 0 and spaced by the time (in us) per decimated sample.
+        """
+        return self.soccfg.cycles2us(ro_ch=ro_ch, cycles=np.arange(data.shape[0]))
+
+    def get_time_axis_mr(self, ro_ch, data):
+        """Get an array usable as the time axis for plotting MR data.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+        data : numpy.ndarray
+            MR data array, the returned array will have the same length.
+
+        Returns
+        -------
+        numpy.ndarray of float
+            An array starting at 0 and spaced by the time (in us) per MR sample.
+        """
+        return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
+
+    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1787,9 +1844,9 @@ class AcquireMixin:
                 'threshold': threshold,
                 'angle': angle,
                 }
-
-        # don't load memories now, we'll do that later
-        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+        # any unrecognized keyword arguments get inserted in the acquire_params
+        # this is for subclasses that override the data-processing methods and need to supply special arguments
+        self.acquire_params.update(kwargs)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -1810,16 +1867,37 @@ class AcquireMixin:
             else:
                 self.acquire_params['hidereps'] = False
 
+        # don't load data memory now, we'll do that later
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+
         self.rounds_pbar = tqdm(range(soft_avgs), disable=hiderounds)
         self.prepare_round()
 
+        # if user code is going to step through the rounds, this is where we stop
         if step_rounds: return
 
-        # for each soft average, run and acquire decimated data
+        # for each round, run and acquire data
         while self.finish_round():
             self.prepare_round()
 
         return self.finish_acquire()
+
+    def _process_accumulated(self, acc_buf):
+        if self.acquire_params['threshold'] is None:
+            d_reps = acc_buf
+            return self._average_buf(d_reps, length_norm=True, remove_offset=self.acquire_params['remove_offset'])
+        else:
+            d_reps = [np.zeros_like(d) for d in acc_buf]
+            self.shots = self._apply_threshold(acc_buf,
+                                               self.acquire_params['threshold'],
+                                               self.acquire_params['angle'],
+                                               self.acquire_params['remove_offset'])
+            for i, ch_shot in enumerate(self.shots):
+                d_reps[i][...,0] = ch_shot
+            return self._average_buf(d_reps, length_norm=False)
+
+    def _summarize_accumulated(self, rounds_buf):
+        return [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
 
     def _ro_offset(self, ch, chcfg):
         """Computes the IQ offset expected from this readout.
@@ -1922,63 +2000,6 @@ class AcquireMixin:
             shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
-    def get_time_axis(self, ro_index, length_only=False):
-        """Get an array usable as the time axis for plotting decimated data.
-
-        Parameters
-        ----------
-        ro_index : int
-            Index of the readout channel in this program.
-            The first readout declared in your program has index 0 and it will have index 0 in the output array, etc.
-        length_only : bool
-            Just return the number of decimated points.
-            Useful for normalizing raw data.
-
-        Returns
-        -------
-        numpy.ndarray of float, or int
-            An array starting at 0 and spaced by the time (in us) per decimated sample.
-            If length_only=True, an int is returned.
-        """
-        ch, ro = list(self.ro_chs.items())[ro_index]
-        n = ro['length']
-        if length_only: return n
-        else: return self.soccfg.cycles2us(ro_ch=ch, cycles=np.arange(n))
-
-    def get_time_axis_ddr4(self, ro_ch, data):
-        """Get an array usable as the time axis for plotting DDR4 data.
-
-        Parameters
-        ----------
-        ro_ch : int
-            readout channel (index in 'readouts' list)
-        data : numpy.ndarray
-            DDR4 data array, the returned array will have the same length.
-
-        Returns
-        -------
-        numpy.ndarray of float
-            An array starting at 0 and spaced by the time (in us) per decimated sample.
-        """
-        return self.soccfg.cycles2us(ro_ch=ro_ch, cycles=np.arange(data.shape[0]))
-
-    def get_time_axis_mr(self, ro_ch, data):
-        """Get an array usable as the time axis for plotting MR data.
-
-        Parameters
-        ----------
-        ro_ch : int
-            readout channel (index in 'readouts' list)
-        data : numpy.ndarray
-            MR data array, the returned array will have the same length.
-
-        Returns
-        -------
-        numpy.ndarray of float
-            An array starting at 0 and spaced by the time (in us) per MR sample.
-        """
-        return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
-
     def run_rounds(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True):
         """Run the program and wait until it completes, once or multiple times.
         No data will be saved.
@@ -1996,11 +2017,11 @@ class AcquireMixin:
         progress: bool
             if true, displays progress bar
         """
-        # don't load memories now, we'll do that later
-        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
-
         if any([x is None for x in [self.counter_addr, self.loop_dims]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
+
+        # don't load data memory now, we'll do that later
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
         # configure tproc for internal/external start
         soc.start_src(start_src)
@@ -2035,7 +2056,7 @@ class AcquireMixin:
                     pbar.update(newcount-count)
                     count = newcount
 
-    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False):
+    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2070,33 +2091,60 @@ class AcquireMixin:
                 'start_src': start_src,
                 'remove_offset': remove_offset,
                 }
-
-        # don't load memories now, we'll do that later
-        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+        # any unrecognized keyword arguments get inserted in the acquire_params
+        # this is for subclasses that override the data-processing methods and need to supply special arguments
+        self.acquire_params.update(kwargs)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
-        # Initialize data buffers
-        # buffer for decimated data
-        self.rounds_buf = []
+        # check that the data will fit in the buffers
         for ch, ro in self.ro_chs.items():
             maxlen = self.soccfg['readouts'][ch]['buf_maxlen']
             if ro['length']*ro['trigs']*total_count > maxlen:
                 raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
 
+        self.rounds_buf = []
+
+        # load the program - don't load data memory now, we'll do that later
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+
         self.rounds_pbar = tqdm(range(soft_avgs), disable=not progress)
         self.prepare_round()
 
+        # if user code is going to step through the rounds, this is where we stop
         if step_rounds: return
 
-        # for each soft average, run and acquire decimated data
+        # for each soft average, run and acquire data
         while self.finish_round():
             self.prepare_round()
 
         return self.finish_acquire()
+
+    def _process_decimated(self, dec_buf):
+        total_count = functools.reduce(operator.mul, self.loop_dims)
+        onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
+        result = []
+        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
+            d = dec_buf[ii].astype(float)
+            if self.acquire_params['remove_offset']:
+                d -= self._ro_offset(ch, ro.get('ro_config'))
+            if total_count == 1 and onetrig:
+                # simple case: data is 1D (one rep and one shot), just average over rounds
+                result.append(d)
+            else:
+                # split the data into the individual reps
+                if onetrig or total_count==1:
+                    d_reshaped = d.reshape(total_count*ro['trigs'], -1, 2)
+                else:
+                    d_reshaped = d.reshape(total_count, ro['trigs'], -1, 2)
+                result.append(d_reshaped)
+        return result
+
+    def _summarize_decimated(self, rounds_buf):
+        return [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
 
     def prepare_round(self):
         soc = self.acquire_params['soc']
@@ -2146,7 +2194,7 @@ class AcquireMixin:
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
                 self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
-            self.rounds_buf.append(self._process_decimated(dec_buf, self.acquire_params['remove_offset']))
+            self.rounds_buf.append(self._process_decimated(dec_buf))
 
         else: # accumulated
             with tqdm(total=total_count, disable=self.acquire_params['hidereps']) as pbar:
@@ -2166,22 +2214,7 @@ class AcquireMixin:
                         count += new_points
                         self.stats.append(s)
                         pbar.update(new_points)
-
-            # if we're thresholding, apply the threshold before averaging
-            if self.acquire_params['threshold'] is None:
-                d_reps = self.acc_buf
-                round_d = self._average_buf(d_reps, length_norm=True, remove_offset=self.acquire_params['remove_offset'])
-            else:
-                d_reps = [np.zeros_like(d) for d in self.acc_buf]
-                self.shots = self._apply_threshold(self.acc_buf,
-                                                   self.acquire_params['threshold'],
-                                                   self.acquire_params['angle'],
-                                                   self.acquire_params['remove_offset'])
-                for i, ch_shot in enumerate(self.shots):
-                    d_reps[i][...,0] = ch_shot
-                round_d = self._average_buf(d_reps, length_norm=False)
-
-            self.rounds_buf.append(round_d)
+            self.rounds_buf.append(self._process_accumulated(self.acc_buf))
 
         self.rounds_pbar.update()
         done = self.rounds_pbar.n >= self.rounds_pbar.total
@@ -2191,28 +2224,6 @@ class AcquireMixin:
 
     def finish_acquire(self):
         if self.acquire_params['type'] == 'decimated':
-            result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
-            return result
+            return self._summarize_decimated(self.rounds_buf)
         else: # accumulated
-            result = [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
-            return result
-
-    def _process_decimated(self, dec_buf, remove_offset):
-        total_count = functools.reduce(operator.mul, self.loop_dims)
-        onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
-        result = []
-        for ii, (ch, ro) in enumerate(self.ro_chs.items()):
-            d = dec_buf[ii].astype(float)
-            if remove_offset:
-                d -= self._ro_offset(ch, ro.get('ro_config'))
-            if total_count == 1 and onetrig:
-                # simple case: data is 1D (one rep and one shot), just average over rounds
-                result.append(d)
-            else:
-                # split the data into the individual reps
-                if onetrig or total_count==1:
-                    d_reshaped = d.reshape(total_count*ro['trigs'], -1, 2)
-                else:
-                    d_reshaped = d.reshape(total_count, ro['trigs'], -1, 2)
-                result.append(d_reshaped)
-        return result
+            return self._summarize_accumulated(self.rounds_buf)

@@ -102,15 +102,20 @@ class AveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
+        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
-
+    def _process_accumulated(self, acc_buf):
+        buf = super()._process_accumulated(acc_buf)
+        raw = [d.reshape((-1,2)) for d in buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        raw = [d.reshape((-1,2)) for d in self.get_raw()]
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
+        return raw
 
+    def _summarize_accumulated(self, rounds_buf):
+        avg_d = super()._summarize_accumulated(rounds_buf)
+        save_experiments = self.acquire_params['save_experiments']
         n_ro = len(self.ro_chs)
         if save_experiments is None:
             avg_di = [d[:, 0] for d in avg_d]
@@ -125,6 +130,10 @@ class AveragerProgram(AcquireProgram):
 
         return avg_di, avg_dq
 
+    def _process_decimated(self, dec_buf):
+        buf = super()._process_decimated(dec_buf)
+        # move the I/Q axis from last to second-last
+        return np.moveaxis(buf, -1, -2)
 
     def acquire_decimated(self, soc, readouts_per_experiment=None, load_pulses=True, **kwargs):
         """
@@ -159,9 +168,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        buf = super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
-        # move the I/Q axis from last to second-last
-        return np.moveaxis(buf, -1, -2)
+        return super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
 
 class RAveragerProgram(AcquireProgram):
     """
@@ -279,15 +286,20 @@ class RAveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
+        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
-
+    def _process_accumulated(self, acc_buf):
+        buf = super()._process_accumulated(acc_buf)
+        raw = [d.reshape((-1,2)) for d in buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        raw = [d.reshape((-1,2)) for d in self.get_raw()]
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
+        return raw
 
+    def _summarize_accumulated(self, rounds_buf):
+        avg_d = super()._summarize_accumulated(rounds_buf)
+        save_experiments = self.acquire_params['save_experiments']
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
@@ -556,15 +568,20 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
+        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
-        avg_d = super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
-
+    def _process_accumulated(self, acc_buf):
+        buf = super()._process_accumulated(acc_buf)
+        raw = [d.reshape((-1,2)) for d in buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
-        raw = [d.reshape((-1,2)) for d in self.get_raw()]
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
+        return raw
 
+    def _summarize_accumulated(self, rounds_buf):
+        avg_d = super()._summarize_accumulated(rounds_buf)
+        save_experiments = self.acquire_params['save_experiments']
         expt_pts = self.get_expt_pts()
 
         n_ro = len(self.ro_chs)
