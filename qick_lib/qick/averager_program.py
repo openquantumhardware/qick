@@ -170,6 +170,26 @@ class AveragerProgram(AcquireProgram):
             self.set_reads_per_shot(readouts_per_experiment)
         return super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
 
+    def run_rounds(self, soc, readouts_per_experiment=None, load_pulses=True, **kwargs):
+        """Run the program and wait until it completes, once or multiple times.
+        No data will be saved.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        load_pulses : bool
+            if True, load pulse envelopes and buffer weights
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        step_rounds: bool
+            Return after setting up and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        """
+        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
+
 class RAveragerProgram(AcquireProgram):
     """
     RAveragerProgram class, for qubit experiments that sweep over a variable (whose value is stored in expt_pts).
@@ -315,6 +335,26 @@ class RAveragerProgram(AcquireProgram):
                     avg_dq[i_ch][nn] = avg_d[i_ch][ii, ..., 1]
 
         return expt_pts, avg_di, avg_dq
+
+    def run_rounds(self, soc, readouts_per_experiment=None, load_pulses=True, **kwargs):
+        """Run the program and wait until it completes, once or multiple times.
+        No data will be saved.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        load_pulses : bool
+            if True, load pulse envelopes and buffer weights
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        step_rounds: bool
+            Return after setting up and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        """
+        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
 
 
 class AbsQickSweep:
@@ -598,3 +638,22 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
         return expt_pts, avg_di, avg_dq
 
+    def run_rounds(self, soc, readouts_per_experiment=None, load_pulses=True, **kwargs):
+        """Run the program and wait until it completes, once or multiple times.
+        No data will be saved.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object
+        load_pulses : bool
+            if True, load pulse envelopes and buffer weights
+        start_src: str
+            "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
+        progress: bool
+            if true, displays progress bar
+        step_rounds: bool
+            Return after setting up and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        """
+        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)

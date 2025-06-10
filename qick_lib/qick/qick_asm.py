@@ -1867,10 +1867,10 @@ class AcquireMixin:
             else:
                 self.acquire_params['hidereps'] = False
 
-        # don't load data memory now, we'll do that later
+        # load the program - don't load data memory now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-        self.rounds_pbar = tqdm(range(soft_avgs), disable=hiderounds)
+        self.rounds_pbar = tqdm(total=soft_avgs, disable=hiderounds)
         self.prepare_round()
 
         # if user code is going to step through the rounds, this is where we stop
@@ -2000,7 +2000,7 @@ class AcquireMixin:
             shots.append(np.heaviside(rotated - thresholds[i_ch], 0))
         return shots
 
-    def run_rounds(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True):
+    def run_rounds(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, step_rounds=False):
         """Run the program and wait until it completes, once or multiple times.
         No data will be saved.
 
@@ -2016,45 +2016,44 @@ class AcquireMixin:
             "internal" (tProc starts immediately) or "external" (each round waits for an external trigger)
         progress: bool
             if true, displays progress bar
+        step_rounds: bool
+            Return after setting up and preparing the first round.
+            You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
         """
+        self.acquire_params = {
+                'type': 'run_rounds',
+                'soc': soc,
+                'start_src': start_src,
+                'hidereps': True,
+                }
+
         if any([x is None for x in [self.counter_addr, self.loop_dims]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling run_rounds()")
-
-        # don't load data memory now, we'll do that later
-        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
-
-        # configure tproc for internal/external start
-        soc.start_src(start_src)
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # select which tqdm progress bar to show
         hiderounds = True
-        hidereps = True
         if progress:
             if rounds>1:
                 hiderounds = False
             else:
-                hidereps = False
+                self.acquire_params['hidereps'] = False
 
-        # run each round
-        for ii in tqdm(range(rounds), disable=hiderounds):
-            # make sure count variable is reset to 0
-            soc.set_tproc_counter(addr=self.counter_addr, val=0)
+        # load the program - don't load data memory now, we'll do that later
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-            # Reload data memory.
-            soc.reload_mem()
+        self.rounds_pbar = tqdm(total=rounds, disable=hiderounds)
+        self.prepare_round()
 
-            # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every round
-            soc.start_tproc()
+        # if user code is going to step through the rounds, this is where we stop
+        if step_rounds: return
 
-            count = 0
-            with tqdm(total=total_count, disable=hidereps) as pbar:
-                while count < total_count:
-                    newcount = soc.get_tproc_counter(addr=self.counter_addr)
-                    pbar.update(newcount-count)
-                    count = newcount
+        # for each round, run and acquire data
+        while self.finish_round():
+            self.prepare_round()
+
+        return self.finish_acquire()
 
     def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the decimating readout.
@@ -2111,7 +2110,7 @@ class AcquireMixin:
         # load the program - don't load data memory now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-        self.rounds_pbar = tqdm(range(soft_avgs), disable=not progress)
+        self.rounds_pbar = tqdm(total=soft_avgs, disable=not progress)
         self.prepare_round()
 
         # if user code is going to step through the rounds, this is where we stop
@@ -2124,6 +2123,8 @@ class AcquireMixin:
         return self.finish_acquire()
 
     def _process_decimated(self, dec_buf):
+        """convert raw decimated data to the format returned by acquire_decimated()
+        """
         total_count = functools.reduce(operator.mul, self.loop_dims)
         onetrig = all([ro['trigs']==1 for ro in self.ro_chs.values()])
         result = []
@@ -2144,6 +2145,8 @@ class AcquireMixin:
         return result
 
     def _summarize_decimated(self, rounds_buf):
+        """aggregate the data from all rounds
+        """
         return [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
 
     def prepare_round(self):
@@ -2156,10 +2159,8 @@ class AcquireMixin:
 
             # Configure and enable buffer capture.
             self.config_bufs(soc, enable_avg=True, enable_buf=True)
-
-            # make sure count variable is reset to 0
-            soc.set_tproc_counter(addr=self.counter_addr, val=0)
-
+        elif self.acquire_params['type'] == 'run_rounds':
+            pass
         else: # accumulated
             # initialize the raw data buffer
             for b in self.acc_buf:
@@ -2170,7 +2171,8 @@ class AcquireMixin:
 
         # Reload data memory.
         soc.reload_mem()
-
+        # make sure count variable is reset to 0
+        soc.set_tproc_counter(addr=self.counter_addr, val=0)
         # configure tproc for internal/external start
         soc.start_src(self.acquire_params['start_src'])
 
@@ -2179,23 +2181,30 @@ class AcquireMixin:
         total_count = functools.reduce(operator.mul, self.loop_dims)
         reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
 
+        # if start_src="external", you must pulse the trigger input once for every round
+
         count = 0
         if self.acquire_params['type'] == 'decimated':
-            # run the assembly program
-            # if start_src="external", you must pulse the trigger input once for every round
-            soc.start_tproc()
-
             # decimated data
             dec_buf = []
 
+            soc.start_tproc()
             while count < total_count:
                 count = soc.get_tproc_counter(addr=self.counter_addr)
+            soc.start_src("internal")
 
             for ii, (ch, ro) in enumerate(self.ro_chs.items()):
                 dec_buf.append(obtain(soc.get_decimated(ch=ch, address=0, length=ro['length']*ro['trigs']*total_count)))
                 self.acc_buf.append(obtain(soc.get_accumulated(ch=ch, address=0, length=ro['trigs']*total_count).reshape((*self.loop_dims, ro['trigs'], 2))))
             self.rounds_buf.append(self._process_decimated(dec_buf))
-
+        elif self.acquire_params['type'] == 'run_rounds':
+            soc.start_tproc()
+            with tqdm(total=total_count, disable=self.acquire_params['hidereps']) as pbar:
+                while count < total_count:
+                    new_count = soc.get_tproc_counter(addr=self.counter_addr)
+                    pbar.update(new_count-count)
+                    count = new_count
+            soc.start_src("internal")
         else: # accumulated
             with tqdm(total=total_count, disable=self.acquire_params['hidereps']) as pbar:
                 soc.start_readout(total_count, counter_addr=self.counter_addr,
@@ -2217,7 +2226,10 @@ class AcquireMixin:
             self.rounds_buf.append(self._process_accumulated(self.acc_buf))
 
         self.rounds_pbar.update()
-        done = self.rounds_pbar.n >= self.rounds_pbar.total
+        if self.rounds_pbar.total > 1:
+            done = self.rounds_pbar.n >= self.rounds_pbar.total
+        else:
+            done = True
         if done:
             self.rounds_pbar.close()
         return not done
@@ -2225,5 +2237,7 @@ class AcquireMixin:
     def finish_acquire(self):
         if self.acquire_params['type'] == 'decimated':
             return self._summarize_decimated(self.rounds_buf)
+        elif self.acquire_params['type'] == 'run_rounds':
+            pass
         else: # accumulated
             return self._summarize_accumulated(self.rounds_buf)
