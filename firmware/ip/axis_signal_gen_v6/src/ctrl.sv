@@ -4,42 +4,43 @@
 // |------------|-------|---------|------|------------|------------|------------|-----------|----------|----------|----------|---------|
 // |       xxxx | phrst | stdysel | mode |     outsel |      nsamp |       xxxx |      gain |     xxxx |     addr |    phase |    freq |
 // |------------|-------|---------|------|------------|------------|------------|-----------|----------|----------|----------|---------|
-// freq  : 32 bits
+// freq     : 32 bits
 // phase    : 32 bits
-// addr  : 16 bits
-// gain  : 16 bits
+// addr     : 16 bits
+// gain     : 16 bits
 // nsamp    : 16 bits
 // outsel   : 2 bits
-// mode  : 1 bit
+// mode     : 1 bit
 // stdysel  : 1 bit
-// phrst : 1 bit
+// phrst    : 1 bit
 module ctrl (
    // Reset and clock.
-   rstn        ,
-   clk            ,
+   rstn,
+   clk,
 
    // Fifo interface.
-   fifo_rd_en_o   ,
-   fifo_empty_i   ,
-   fifo_dout_i    ,
+   fifo_rd_en_o,
+   fifo_empty_i,
+   fifo_dout_i,
 
    // dds control.
-   dds_ctrl_o     ,
+   dds_ctrl_o,
 
    // memory control.
-   mem_addr_o     ,
+   mem_addr_o,
 
    // gain.
-   gain_o         ,
+   gain_o,
 
    // Output source selection.
-   src_o       ,
+   src_o,
 
    // Steady value selection.
-   stdy_o         ,
+   stdy_o,
    
    // Output enable.
-   en_o        );
+   en_o
+);
 
 // Memory address size.
 parameter N = 16;
@@ -48,65 +49,65 @@ parameter N = 16;
 parameter N_DDS = 16;
 
 // Ports.
-input             rstn;
-input             clk;
-output               fifo_rd_en_o;
-input             fifo_empty_i;
-input [159:0]        fifo_dout_i;
+input                   rstn;
+input                   clk;
+output                  fifo_rd_en_o;
+input                   fifo_empty_i;
+input    [159:0]        fifo_dout_i;
 output   [N_DDS*72-1:0] dds_ctrl_o;
 output   [N-1:0]        mem_addr_o;
 output   [15:0]         gain_o;
-output   [1:0]       src_o;
-output               stdy_o;
-output               en_o;
+output   [1:0]          src_o;
+output                  stdy_o;
+output                  en_o;
 
 // States.
 typedef enum   {  READ_ST  ,
-               CNT_ST
-            } state_t;
+                  CNT_ST
+               } state_t;
 
 // State register.
 (* fsm_encoding = "one_hot" *) state_t state;
 
 // Fifo dout register.
-reg      [159:0]  fifo_dout_r;
+reg   [159:0]  fifo_dout_r;
 
 // Non-stop counter for time calculation (adds N_DDS samples each clock tick).
-reg      [31:0]   cnt_n;
-reg      [31:0]   cnt_n_reg;
+reg   [31:0]   cnt_n;
+reg   [31:0]   cnt_n_reg;
 
 // Pinc/phase.
 wire  [31:0]   pinc_int;
-reg      [31:0]   pinc_r1;
-reg      [31:0]   pinc_r2;
+reg   [31:0]   pinc_r1;
+reg   [31:0]   pinc_r2;
 wire  [31:0]   pinc_N;
-reg      [31:0]   pinc_N_r1;
-reg      [31:0]   pinc_N_r2;
-reg      [31:0]   pinc_N_r3;
-reg      [31:0]   pinc_N_r4;
-reg      [31:0]   pinc_N_r5;
+reg   [31:0]   pinc_N_r1;
+reg   [31:0]   pinc_N_r2;
+reg   [31:0]   pinc_N_r3;
+reg   [31:0]   pinc_N_r4;
+reg   [31:0]   pinc_N_r5;
 wire  [31:0]   pinc_Nm;
-reg      [31:0]   pinc_Nm_r1;
-reg      [31:0]   pinc_Nm_r2;
-reg      [31:0]   pinc_Nm_r3;
+reg   [31:0]   pinc_Nm_r1;
+reg   [31:0]   pinc_Nm_r2;
+reg   [31:0]   pinc_Nm_r3;
 
 wire  [31:0]   phase_int;
-reg      [31:0]   phase_r1; 
-reg      [31:0]   phase_r2; 
-reg      [31:0]   phase_r3; 
-reg      [31:0]   phase_r4; 
-reg      [31:0]   phase_r5; 
+reg   [31:0]   phase_r1; 
+reg   [31:0]   phase_r2; 
+reg   [31:0]   phase_r3; 
+reg   [31:0]   phase_r4; 
+reg   [31:0]   phase_r5; 
 wire  [31:0]   phase_0;
-reg      [31:0]   phase_0_r1;
+reg   [31:0]   phase_0_r1;
 
 // Phase vectors.
 wire  [31:0]   phase_v0    [0:N_DDS-1];
-reg      [31:0]   phase_v0_r1 [0:N_DDS-1];
-reg      [31:0]   phase_v0_r2 [0:N_DDS-1];
-reg      [31:0]   phase_v0_r3 [0:N_DDS-1];
-reg      [31:0]   phase_v0_r4 [0:N_DDS-1];
+reg   [31:0]   phase_v0_r1 [0:N_DDS-1];
+reg   [31:0]   phase_v0_r2 [0:N_DDS-1];
+reg   [31:0]   phase_v0_r3 [0:N_DDS-1];
+reg   [31:0]   phase_v0_r4 [0:N_DDS-1];
 wire  [31:0]   phase_v1    [0:N_DDS-1];
-reg      [31:0]   phase_v1_r1 [0:N_DDS-1];
+reg   [31:0]   phase_v1_r1 [0:N_DDS-1];
 
 // sync.
 reg            sync_reg;
@@ -120,42 +121,42 @@ reg            sync_reg_r7;
 
 // Address.
 wire  [15:0]   addr_int;
-reg      [15:0]   addr_cnt;
-reg      [15:0]   addr_cnt_r1;
-reg      [15:0]   addr_cnt_r2;
-reg      [15:0]   addr_cnt_r3;
-reg      [15:0]   addr_cnt_r4;
-reg      [15:0]   addr_cnt_r5;
-reg      [15:0]   addr_cnt_r6;
+reg   [15:0]   addr_cnt;
+reg   [15:0]   addr_cnt_r1;
+reg   [15:0]   addr_cnt_r2;
+reg   [15:0]   addr_cnt_r3;
+reg   [15:0]   addr_cnt_r4;
+reg   [15:0]   addr_cnt_r5;
+reg   [15:0]   addr_cnt_r6;
 
 // Gain.
 wire  [15:0]   gain_int;
-reg      [15:0]   gain_r1;
-reg      [15:0]   gain_r2;
-reg      [15:0]   gain_r3;
-reg      [15:0]   gain_r4;
-reg      [15:0]   gain_r5;
-reg      [15:0]   gain_r6;
-reg      [15:0]   gain_r7;
+reg   [15:0]   gain_r1;
+reg   [15:0]   gain_r2;
+reg   [15:0]   gain_r3;
+reg   [15:0]   gain_r4;
+reg   [15:0]   gain_r5;
+reg   [15:0]   gain_r6;
+reg   [15:0]   gain_r7;
 
 // Number of samples.
 wire  [15:0]   nsamp_int;
 
 // Output selection.
-wire  [1:0] outsel_int;
-reg      [1:0] outsel_r1;
-reg      [1:0] outsel_r2;
-reg      [1:0] outsel_r3;
-reg      [1:0] outsel_r4;
-reg      [1:0] outsel_r5;
-reg      [1:0] outsel_r6;
-reg      [1:0] outsel_r7;
+wire  [1:0]    outsel_int;
+reg   [1:0]    outsel_r1;
+reg   [1:0]    outsel_r2;
+reg   [1:0]    outsel_r3;
+reg   [1:0]    outsel_r4;
+reg   [1:0]    outsel_r5;
+reg   [1:0]    outsel_r6;
+reg   [1:0]    outsel_r7;
 
 // Mode.
-wire        mode_int;
+wire           mode_int;
 
 // Steady value selection.
-wire        stdysel_int;
+wire           stdysel_int;
 reg            stdysel_r1;
 reg            stdysel_r2;
 reg            stdysel_r3;
@@ -165,19 +166,19 @@ reg            stdysel_r6;
 reg            stdysel_r7;
 
 // Phase reset.
-wire        phrst_int;
+wire           phrst_int;
 
 // Load enable flag.
-wire        load_int;
+wire           load_int;
 reg            load_r;
 
 // Fifo Read Enable.
-reg             rd_en_int;
+reg            rd_en_int;
 reg            rd_en_r1;
 reg            rd_en_r2;
 
 // Counter.
-reg      [31:0]   cnt;
+reg   [31:0]   cnt;
 
 // Output enable register.
 reg            en_reg;
@@ -200,7 +201,7 @@ always @(posedge clk) begin
       fifo_dout_r    <= 0;
 
       // Non-stop counter for time calculation.
-      cnt_n       <= 0;
+      cnt_n          <= 0;
       cnt_n_reg      <= 0;
 
       // Pinc/phase/sync.
@@ -215,14 +216,14 @@ always @(posedge clk) begin
       pinc_Nm_r2     <= 0;
       pinc_Nm_r3     <= 0;
 
-      phase_r1    <= 0;
-      phase_r2    <= 0;
-      phase_r3    <= 0;
-      phase_r4    <= 0;
-      phase_r5    <= 0;
+      phase_r1       <= 0;
+      phase_r2       <= 0;
+      phase_r3       <= 0;
+      phase_r4       <= 0;
+      phase_r5       <= 0;
       phase_0_r1     <= 0;
 
-      sync_reg    <= 0;
+      sync_reg       <= 0;
       sync_reg_r1    <= 0;
       sync_reg_r2    <= 0;
       sync_reg_r3    <= 0;
@@ -232,7 +233,7 @@ always @(posedge clk) begin
       sync_reg_r7    <= 0;
 
       // Address.
-      addr_cnt    <= 0;
+      addr_cnt       <= 0;
       addr_cnt_r1    <= 0;
       addr_cnt_r2    <= 0;
       addr_cnt_r3    <= 0;
@@ -271,8 +272,8 @@ always @(posedge clk) begin
       load_r         <= 0;
 
       // Fifo Read Enable.
-      rd_en_r1    <= 0;
-      rd_en_r2    <= 0;
+      rd_en_r1       <= 0;
+      rd_en_r2       <= 0;
 
       // Counter.
       cnt            <= 0;
@@ -324,14 +325,14 @@ always @(posedge clk) begin
       pinc_Nm_r2     <= pinc_Nm_r1;
       pinc_Nm_r3     <= pinc_Nm_r2;
 
-      phase_r1    <= phase_int;
-      phase_r2    <= phase_r1;
-      phase_r3    <= phase_r2;
-      phase_r4    <= phase_r3;
-      phase_r5    <= phase_r4;
+      phase_r1       <= phase_int;
+      phase_r2       <= phase_r1;
+      phase_r3       <= phase_r2;
+      phase_r4       <= phase_r3;
+      phase_r5       <= phase_r4;
       phase_0_r1     <= phase_0;
 
-      sync_reg    <= load_r;
+      sync_reg       <= load_r;
       sync_reg_r1    <= sync_reg;
       sync_reg_r2    <= sync_reg_r1;
       sync_reg_r3    <= sync_reg_r2;
@@ -384,8 +385,8 @@ always @(posedge clk) begin
       load_r         <= load_int;
 
       // Fifo Read Enable.
-      rd_en_r1    <= rd_en_int;
-      rd_en_r2    <= rd_en_r1;
+      rd_en_r1       <= rd_en_int;
+      rd_en_r2       <= rd_en_r1;
 
       // Counter.
       if (rd_en_int)
@@ -427,14 +428,14 @@ end
 
 // Fifo output fields.
 assign pinc_int      = fifo_dout_r[31:0];
-assign phase_int  = fifo_dout_r[63:32];
+assign phase_int     = fifo_dout_r[63:32];
 assign addr_int      = fifo_dout_r[79:64];
 assign gain_int      = fifo_dout_r[111:96];
-assign nsamp_int  = fifo_dout_r[143:128];
-assign outsel_int = fifo_dout_r[145:144];
+assign nsamp_int     = fifo_dout_r[143:128];
+assign outsel_int    = fifo_dout_r[145:144];
 assign mode_int      = fifo_dout_r[146];
 assign stdysel_int   = fifo_dout_r[147];
-assign phrst_int  = fifo_dout_r[148];
+assign phrst_int     = fifo_dout_r[148];
 
 // Frequency calculation.
 assign pinc_N     = pinc_r2*N_DDS;
@@ -451,13 +452,13 @@ genvar i;
       always @(posedge clk) begin
          if (~rstn) begin
             // v0.
-            phase_v0_r1[i] <= 0; 
-            phase_v0_r2[i] <= 0; 
-            phase_v0_r3[i] <= 0; 
-            phase_v0_r4[i] <= 0; 
+            phase_v0_r1[i]    <= 0; 
+            phase_v0_r2[i]    <= 0; 
+            phase_v0_r3[i]    <= 0; 
+            phase_v0_r4[i]    <= 0; 
 
             // v1.
-            phase_v1_r1[i] <= 0;
+            phase_v1_r1[i]    <= 0;
          end
          else begin
             // v0.
@@ -467,7 +468,7 @@ genvar i;
             phase_v0_r4[i]    <= phase_v0_r3[i];   
 
             // v1.
-            phase_v1_r1[i] <= phase_v1[i];
+            phase_v1_r1[i]    <= phase_v1[i];
          end
       end
 
@@ -483,15 +484,15 @@ genvar i;
 endgenerate
 
 // load_int.
-assign load_int   = rd_en_int & ~fifo_empty_i;
+assign load_int      = rd_en_int & ~fifo_empty_i;
 
 // Assign outputs.
 assign fifo_rd_en_o  = rd_en_int;
-assign mem_addr_o = addr_cnt_r6;
-assign gain_o     = gain_r7;
-assign src_o      = outsel_r7;
-assign stdy_o     = stdysel_r7;
-assign en_o       = en_reg_r8;
+assign mem_addr_o    = addr_cnt_r6;
+assign gain_o        = gain_r7;
+assign src_o         = outsel_r7;
+assign stdy_o        = stdysel_r7;
+assign en_o          = en_reg_r8;
 
 endmodule
 
