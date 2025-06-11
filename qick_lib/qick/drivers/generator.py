@@ -97,6 +97,8 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
+    ENVELOPE_TYPE = 'COMPLEX'  # Default
+
     def __init__(self, description):
         # Preallocated memory buffer for DMA transfers
         self.buff = None
@@ -112,6 +114,8 @@ class AbsArbSignalGen(AbsSignalGen):
         self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
 
         super().configure(ch, rf)
+
+        self.cfg['envelope_type'] = self.ENVELOPE_TYPE
 
     def configure_connections(self, soc):
         super().configure_connections(soc)
@@ -142,6 +146,11 @@ class AbsArbSignalGen(AbsSignalGen):
         # Check for even transfer size.
         #if length % 2 != 0:
         #    raise RuntimeError("Buffer transfer length must be even number.")
+
+        # Check Waveform is Real if Complex envelope is not supported
+        if (self.ENVELOPE_TYPE == 'REAL'):
+            if not np.isreal(xin).all():
+                raise NotImplementedError("This channel does not support Complex Envelopes.")
 
         # Route switch to channel.
         if self.switch is not None:
@@ -189,10 +198,12 @@ class AbsPulsedSignalGen(AbsSignalGen):
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
     B_PHASE = None
+    GEN_DDS = 'TRUE'    # Default
 
     def configure(self, ch, rf):
         super().configure(ch, rf)
         # DDS sampling frequency.
+        self.cfg['has_dds'] = self.GEN_DDS == 'TRUE'
         self.cfg['maxlen'] = self.MAX_LENGTH
         self.cfg['b_dds'] = self.B_DDS
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
@@ -239,6 +250,12 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
         # Generics
         self.N = int(description['parameters']['N'])
         self.NDDS = int(description['parameters']['N_DDS'])
+
+        if 'GEN_DDS' in description['parameters']:
+            self.GEN_DDS = description['parameters']['GEN_DDS']
+
+        if 'ENVELOPE_TYPE' in description['parameters']:
+            self.ENVELOPE_TYPE = description['parameters']['ENVELOPE_TYPE']
 
         self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
 

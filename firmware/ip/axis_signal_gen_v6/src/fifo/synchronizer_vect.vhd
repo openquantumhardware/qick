@@ -8,19 +8,19 @@ use ieee.numeric_std.all;
 -- in corrupted re-sync data.
 
 entity synchronizer_vect is 
-	generic (
-		-- Sync stages.
-		N : Integer := 2;
+   generic (
+      -- Sync stages.
+      N : Integer := 2;
 
-		-- Data width.
-		B : Integer := 8
-	);
-	port (
-		rstn	    : in std_logic;
-		clk 		: in std_logic;
-		data_in		: in std_logic_vector (B-1 downto 0);
-		data_out	: out std_logic_vector (B-1 downto 0)
-	);
+      -- Data width.
+      B : Integer := 8
+   );
+   port (
+      rstn      : in std_logic;
+      clk      : in std_logic;
+      data_in     : in std_logic_vector (B-1 downto 0);
+      data_out : out std_logic_vector (B-1 downto 0)
+   );
 end synchronizer_vect;
 
 architecture rtl of synchronizer_vect is
@@ -33,13 +33,13 @@ begin
 
 process(clk)
 begin
-	if (rising_edge(clk)) then
-		if (rstn = '0') then
-			data_int_reg <= (others => (others => '0')); -- 1 FF.
-		else
-			data_int_reg <= data_int_reg(N-2 downto 0) & data_in;
-		end if;
-	end if;
+   if (rising_edge(clk)) then
+      if (rstn = '0') then
+         data_int_reg <= (others => (others => '0')); -- 1 FF.
+      else
+         data_int_reg <= data_int_reg(N-2 downto 0) & data_in;
+      end if;
+   end if;
 end process;
 
 -- Assign output.

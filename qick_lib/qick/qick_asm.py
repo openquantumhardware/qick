@@ -121,10 +121,18 @@ class QickConfig():
                 dacname = gen['dac']
                 dac = self['rf']['dacs'][dacname]
                 buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
-                lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
-                             (iGen, gen['type'], gen['maxlen'], buflen))
-                lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
-                             (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
+                if hasattr(self.gens[iGen], 'ENVELOPE_TYPE'):
+                    lines.append("\t%d:\t%s - envelope memory: type %s; %d samples (%.3f us)" %
+                                    (iGen, gen['type'], self.gens[iGen].ENVELOPE_TYPE, gen['maxlen'], buflen))
+                else:
+                    lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
+                                (iGen, gen['type'], gen['maxlen'], buflen))
+                if self.gens[iGen].GEN_DDS == 'TRUE':
+                    lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
+                                (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
+                else:
+                    lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, NO DDS" %
+                                (dac['fs'], gen['f_fabric']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
         with suppress(KeyError): # self['iqs'] may not exist
