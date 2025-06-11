@@ -144,15 +144,15 @@ xilinx.com:ip:ddr4:2.2\
 xilinx.com:ip:axi_quad_spi:3.2\
 xilinx.com:ip:xlconstant:1.1\
 user.org:user:axis_register_slice_nb:1.0\
-user.org:user:axis_signal_gen_v6:1.0\
 user.org:user:sg_translator:1.0\
 xilinx.com:ip:axis_register_slice:1.1\
+user.org:user:axis_signal_gen_v6:1.0\
 user.org:user:axis_avg_buffer:1.2\
 xilinx.com:ip:axis_broadcaster:1.1\
 user.org:user:axis_dyn_readout_v1:1.0\
-user.org:user:axis_pfb_readout_v4:1.0\
 user.org:user:axis_cdcsync_v1:1.0\
 user.org:user:mr_buffer_et:1.1\
+user.org:user:axis_pfb_readout_v4:1.0\
 "
 
    set list_ips_missing ""
@@ -446,9 +446,6 @@ proc create_hier_cell_readout_wrapper { parentCell nameHier } {
   # Create instance: axis_clk_cnvrt_avg_0, and set properties
   set axis_clk_cnvrt_avg_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_clock_converter:1.1 axis_clk_cnvrt_avg_0 ]
 
-  # Create instance: axis_pfb_readout_v4_0, and set properties
-  set axis_pfb_readout_v4_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_pfb_readout_v4:1.0 axis_pfb_readout_v4_0 ]
-
   # Create instance: axis_clk_cnvrt_avg_1, and set properties
   set axis_clk_cnvrt_avg_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_clock_converter:1.1 axis_clk_cnvrt_avg_1 ]
 
@@ -579,6 +576,9 @@ proc create_hier_cell_readout_wrapper { parentCell nameHier } {
   set_property CONFIG.OUT_TYPE {3} $sg_translator_16
 
 
+  # Create instance: axis_pfb_readout_v4_0, and set properties
+  set axis_pfb_readout_v4_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_pfb_readout_v4:1.0 axis_pfb_readout_v4_0 ]
+
   # Create interface connections
   connect_bd_intf_net -intf_net axis_avg_buffer_0_m0_axis [get_bd_intf_pins m0_axis5] [get_bd_intf_pins axis_avg_buffer_0/m0_axis]
   connect_bd_intf_net -intf_net axis_avg_buffer_0_m1_axis [get_bd_intf_pins m1_axis4] [get_bd_intf_pins axis_avg_buffer_0/m1_axis]
@@ -700,13 +700,13 @@ proc create_hier_cell_readout_wrapper { parentCell nameHier } {
   connect_bd_net -net qick_processor_0_trig_6_o [get_bd_pins trigger2] [get_bd_pins axis_avg_buffer_8/trigger]
   connect_bd_net -net qick_processor_0_trig_7_o [get_bd_pins trigger3] [get_bd_pins axis_avg_buffer_9/trigger]
   connect_bd_net -net qick_processor_0_trig_8_o [get_bd_pins trigger11] [get_bd_pins mr_buffer_et_0/trigger]
-  connect_bd_net -net rst_adc_peripheral_aresetn [get_bd_pins m_axis_aresetn1] [get_bd_pins axis_cdcsync_v1_2/m_axis_aresetn] [get_bd_pins axis_broadcaster_0/aresetn] [get_bd_pins axis_broadcaster_1/aresetn] [get_bd_pins axis_broadcaster_2/aresetn] [get_bd_pins axis_broadcaster_3/aresetn] [get_bd_pins axis_broadcaster_4/aresetn] [get_bd_pins axis_broadcaster_5/aresetn] [get_bd_pins axis_broadcaster_6/aresetn] [get_bd_pins axis_broadcaster_7/aresetn] [get_bd_pins axis_broadcaster_8/aresetn] [get_bd_pins axis_broadcaster_9/aresetn] [get_bd_pins axis_dyn_readout_v1_0/aresetn] [get_bd_pins axis_dyn_readout_v1_1/aresetn] [get_bd_pins axis_pfb_readout_v4_0/aresetn] [get_bd_pins axis_dyn_readout_v1_2/aresetn] [get_bd_pins axis_broadcaster_10/aresetn] [get_bd_pins axis_avg_buffer_0/s_axis_aresetn] [get_bd_pins axis_avg_buffer_1/s_axis_aresetn] [get_bd_pins axis_avg_buffer_2/s_axis_aresetn] [get_bd_pins axis_avg_buffer_3/s_axis_aresetn] [get_bd_pins axis_avg_buffer_4/s_axis_aresetn] [get_bd_pins axis_avg_buffer_5/s_axis_aresetn] [get_bd_pins axis_avg_buffer_6/s_axis_aresetn] [get_bd_pins axis_avg_buffer_7/s_axis_aresetn] [get_bd_pins axis_avg_buffer_8/s_axis_aresetn] [get_bd_pins axis_avg_buffer_9/s_axis_aresetn] [get_bd_pins mr_buffer_et_0/s00_axis_aresetn] [get_bd_pins axis_avg_buffer_10/s_axis_aresetn] [get_bd_pins sg_translator_16/aresetn] [get_bd_pins sg_translator_18/aresetn] [get_bd_pins sg_translator_17/aresetn]
+  connect_bd_net -net rst_adc_peripheral_aresetn [get_bd_pins m_axis_aresetn1] [get_bd_pins axis_cdcsync_v1_2/m_axis_aresetn] [get_bd_pins axis_broadcaster_0/aresetn] [get_bd_pins axis_broadcaster_1/aresetn] [get_bd_pins axis_broadcaster_2/aresetn] [get_bd_pins axis_broadcaster_3/aresetn] [get_bd_pins axis_broadcaster_4/aresetn] [get_bd_pins axis_broadcaster_5/aresetn] [get_bd_pins axis_broadcaster_6/aresetn] [get_bd_pins axis_broadcaster_7/aresetn] [get_bd_pins axis_broadcaster_8/aresetn] [get_bd_pins axis_broadcaster_9/aresetn] [get_bd_pins axis_dyn_readout_v1_0/aresetn] [get_bd_pins axis_dyn_readout_v1_1/aresetn] [get_bd_pins axis_dyn_readout_v1_2/aresetn] [get_bd_pins axis_broadcaster_10/aresetn] [get_bd_pins axis_avg_buffer_0/s_axis_aresetn] [get_bd_pins axis_avg_buffer_1/s_axis_aresetn] [get_bd_pins axis_avg_buffer_2/s_axis_aresetn] [get_bd_pins axis_avg_buffer_3/s_axis_aresetn] [get_bd_pins axis_avg_buffer_4/s_axis_aresetn] [get_bd_pins axis_avg_buffer_5/s_axis_aresetn] [get_bd_pins axis_avg_buffer_6/s_axis_aresetn] [get_bd_pins axis_avg_buffer_7/s_axis_aresetn] [get_bd_pins axis_avg_buffer_8/s_axis_aresetn] [get_bd_pins axis_avg_buffer_9/s_axis_aresetn] [get_bd_pins mr_buffer_et_0/s00_axis_aresetn] [get_bd_pins axis_avg_buffer_10/s_axis_aresetn] [get_bd_pins sg_translator_16/aresetn] [get_bd_pins sg_translator_18/aresetn] [get_bd_pins sg_translator_17/aresetn] [get_bd_pins axis_pfb_readout_v4_0/aresetn]
   connect_bd_net -net rst_core_peripheral_aresetn [get_bd_pins m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_0/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_1/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_2/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_3/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_4/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_5/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_6/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_8/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_9/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_10/m_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_7/m_axis_aresetn]
   connect_bd_net -net rst_dac3_peripheral_aresetn [get_bd_pins s_axis_aresetn1] [get_bd_pins axis_cdcsync_v1_2/s_axis_aresetn]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_0/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_1/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_2/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_3/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_4/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_5/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_6/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_8/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_9/s_axis_aresetn] [get_bd_pins axis_pfb_readout_v4_0/s_axi_aresetn] [get_bd_pins axis_clk_cnvrt_avg_10/s_axis_aresetn] [get_bd_pins axis_avg_buffer_0/s_axi_aresetn] [get_bd_pins axis_avg_buffer_0/m_axis_aresetn] [get_bd_pins axis_avg_buffer_10/s_axi_aresetn] [get_bd_pins axis_avg_buffer_10/m_axis_aresetn] [get_bd_pins axis_avg_buffer_1/s_axi_aresetn] [get_bd_pins axis_avg_buffer_1/m_axis_aresetn] [get_bd_pins axis_avg_buffer_2/s_axi_aresetn] [get_bd_pins axis_avg_buffer_2/m_axis_aresetn] [get_bd_pins axis_avg_buffer_3/s_axi_aresetn] [get_bd_pins axis_avg_buffer_3/m_axis_aresetn] [get_bd_pins axis_avg_buffer_4/s_axi_aresetn] [get_bd_pins axis_avg_buffer_4/m_axis_aresetn] [get_bd_pins axis_avg_buffer_5/s_axi_aresetn] [get_bd_pins axis_avg_buffer_5/m_axis_aresetn] [get_bd_pins axis_avg_buffer_6/s_axi_aresetn] [get_bd_pins axis_avg_buffer_6/m_axis_aresetn] [get_bd_pins axis_avg_buffer_7/s_axi_aresetn] [get_bd_pins axis_avg_buffer_7/m_axis_aresetn] [get_bd_pins axis_avg_buffer_8/s_axi_aresetn] [get_bd_pins axis_avg_buffer_8/m_axis_aresetn] [get_bd_pins axis_avg_buffer_9/s_axi_aresetn] [get_bd_pins axis_avg_buffer_9/m_axis_aresetn] [get_bd_pins mr_buffer_et_0/s00_axi_aresetn] [get_bd_pins mr_buffer_et_0/m00_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_7/s_axis_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_clk_adc2 [get_bd_pins m_axis_aclk1] [get_bd_pins axis_cdcsync_v1_2/m_axis_aclk] [get_bd_pins axis_broadcaster_0/aclk] [get_bd_pins axis_broadcaster_1/aclk] [get_bd_pins axis_broadcaster_2/aclk] [get_bd_pins axis_broadcaster_3/aclk] [get_bd_pins axis_broadcaster_4/aclk] [get_bd_pins axis_broadcaster_5/aclk] [get_bd_pins axis_broadcaster_6/aclk] [get_bd_pins axis_broadcaster_7/aclk] [get_bd_pins axis_broadcaster_8/aclk] [get_bd_pins axis_broadcaster_9/aclk] [get_bd_pins axis_dyn_readout_v1_0/aclk] [get_bd_pins axis_dyn_readout_v1_1/aclk] [get_bd_pins axis_pfb_readout_v4_0/aclk] [get_bd_pins axis_dyn_readout_v1_2/aclk] [get_bd_pins axis_broadcaster_10/aclk] [get_bd_pins axis_avg_buffer_0/s_axis_aclk] [get_bd_pins axis_avg_buffer_1/s_axis_aclk] [get_bd_pins axis_avg_buffer_2/s_axis_aclk] [get_bd_pins axis_avg_buffer_3/s_axis_aclk] [get_bd_pins axis_avg_buffer_4/s_axis_aclk] [get_bd_pins axis_avg_buffer_5/s_axis_aclk] [get_bd_pins axis_avg_buffer_6/s_axis_aclk] [get_bd_pins axis_avg_buffer_7/s_axis_aclk] [get_bd_pins axis_avg_buffer_8/s_axis_aclk] [get_bd_pins axis_avg_buffer_9/s_axis_aclk] [get_bd_pins mr_buffer_et_0/s00_axis_aclk] [get_bd_pins axis_avg_buffer_10/s_axis_aclk] [get_bd_pins sg_translator_16/aclk] [get_bd_pins sg_translator_18/aclk] [get_bd_pins sg_translator_17/aclk]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_0/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_1/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_2/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_3/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_4/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_5/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_6/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_8/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_9/s_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_10/s_axis_aresetn] [get_bd_pins axis_avg_buffer_0/s_axi_aresetn] [get_bd_pins axis_avg_buffer_0/m_axis_aresetn] [get_bd_pins axis_avg_buffer_10/s_axi_aresetn] [get_bd_pins axis_avg_buffer_10/m_axis_aresetn] [get_bd_pins axis_avg_buffer_1/s_axi_aresetn] [get_bd_pins axis_avg_buffer_1/m_axis_aresetn] [get_bd_pins axis_avg_buffer_2/s_axi_aresetn] [get_bd_pins axis_avg_buffer_2/m_axis_aresetn] [get_bd_pins axis_avg_buffer_3/s_axi_aresetn] [get_bd_pins axis_avg_buffer_3/m_axis_aresetn] [get_bd_pins axis_avg_buffer_4/s_axi_aresetn] [get_bd_pins axis_avg_buffer_4/m_axis_aresetn] [get_bd_pins axis_avg_buffer_5/s_axi_aresetn] [get_bd_pins axis_avg_buffer_5/m_axis_aresetn] [get_bd_pins axis_avg_buffer_6/s_axi_aresetn] [get_bd_pins axis_avg_buffer_6/m_axis_aresetn] [get_bd_pins axis_avg_buffer_7/s_axi_aresetn] [get_bd_pins axis_avg_buffer_7/m_axis_aresetn] [get_bd_pins axis_avg_buffer_8/s_axi_aresetn] [get_bd_pins axis_avg_buffer_8/m_axis_aresetn] [get_bd_pins axis_avg_buffer_9/s_axi_aresetn] [get_bd_pins axis_avg_buffer_9/m_axis_aresetn] [get_bd_pins mr_buffer_et_0/s00_axi_aresetn] [get_bd_pins mr_buffer_et_0/m00_axis_aresetn] [get_bd_pins axis_clk_cnvrt_avg_7/s_axis_aresetn] [get_bd_pins axis_pfb_readout_v4_0/s_axi_aresetn]
+  connect_bd_net -net usp_rf_data_converter_0_clk_adc2 [get_bd_pins m_axis_aclk1] [get_bd_pins axis_cdcsync_v1_2/m_axis_aclk] [get_bd_pins axis_broadcaster_0/aclk] [get_bd_pins axis_broadcaster_1/aclk] [get_bd_pins axis_broadcaster_2/aclk] [get_bd_pins axis_broadcaster_3/aclk] [get_bd_pins axis_broadcaster_4/aclk] [get_bd_pins axis_broadcaster_5/aclk] [get_bd_pins axis_broadcaster_6/aclk] [get_bd_pins axis_broadcaster_7/aclk] [get_bd_pins axis_broadcaster_8/aclk] [get_bd_pins axis_broadcaster_9/aclk] [get_bd_pins axis_dyn_readout_v1_0/aclk] [get_bd_pins axis_dyn_readout_v1_1/aclk] [get_bd_pins axis_dyn_readout_v1_2/aclk] [get_bd_pins axis_broadcaster_10/aclk] [get_bd_pins axis_avg_buffer_0/s_axis_aclk] [get_bd_pins axis_avg_buffer_1/s_axis_aclk] [get_bd_pins axis_avg_buffer_2/s_axis_aclk] [get_bd_pins axis_avg_buffer_3/s_axis_aclk] [get_bd_pins axis_avg_buffer_4/s_axis_aclk] [get_bd_pins axis_avg_buffer_5/s_axis_aclk] [get_bd_pins axis_avg_buffer_6/s_axis_aclk] [get_bd_pins axis_avg_buffer_7/s_axis_aclk] [get_bd_pins axis_avg_buffer_8/s_axis_aclk] [get_bd_pins axis_avg_buffer_9/s_axis_aclk] [get_bd_pins mr_buffer_et_0/s00_axis_aclk] [get_bd_pins axis_avg_buffer_10/s_axis_aclk] [get_bd_pins sg_translator_16/aclk] [get_bd_pins sg_translator_18/aclk] [get_bd_pins sg_translator_17/aclk] [get_bd_pins axis_pfb_readout_v4_0/aclk]
   connect_bd_net -net usp_rf_data_converter_0_clk_dac2 [get_bd_pins m_axis_aclk2] [get_bd_pins axis_cdcsync_v1_2/s_axis_aclk]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_0/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_1/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_2/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_3/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_4/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_5/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_6/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_8/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_9/s_axis_aclk] [get_bd_pins axis_pfb_readout_v4_0/s_axi_aclk] [get_bd_pins axis_clk_cnvrt_avg_10/s_axis_aclk] [get_bd_pins axis_avg_buffer_0/s_axi_aclk] [get_bd_pins axis_avg_buffer_0/m_axis_aclk] [get_bd_pins axis_avg_buffer_10/s_axi_aclk] [get_bd_pins axis_avg_buffer_10/m_axis_aclk] [get_bd_pins axis_avg_buffer_1/s_axi_aclk] [get_bd_pins axis_avg_buffer_1/m_axis_aclk] [get_bd_pins axis_avg_buffer_2/s_axi_aclk] [get_bd_pins axis_avg_buffer_2/m_axis_aclk] [get_bd_pins axis_avg_buffer_3/s_axi_aclk] [get_bd_pins axis_avg_buffer_3/m_axis_aclk] [get_bd_pins axis_avg_buffer_4/s_axi_aclk] [get_bd_pins axis_avg_buffer_4/m_axis_aclk] [get_bd_pins axis_avg_buffer_5/s_axi_aclk] [get_bd_pins axis_avg_buffer_5/m_axis_aclk] [get_bd_pins axis_avg_buffer_6/s_axi_aclk] [get_bd_pins axis_avg_buffer_6/m_axis_aclk] [get_bd_pins axis_avg_buffer_7/s_axi_aclk] [get_bd_pins axis_avg_buffer_7/m_axis_aclk] [get_bd_pins axis_avg_buffer_8/s_axi_aclk] [get_bd_pins axis_avg_buffer_8/m_axis_aclk] [get_bd_pins axis_avg_buffer_9/s_axi_aclk] [get_bd_pins axis_avg_buffer_9/m_axis_aclk] [get_bd_pins mr_buffer_et_0/s00_axi_aclk] [get_bd_pins mr_buffer_et_0/m00_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_7/s_axis_aclk]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_0/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_1/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_2/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_3/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_4/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_5/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_6/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_8/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_9/s_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_10/s_axis_aclk] [get_bd_pins axis_avg_buffer_0/s_axi_aclk] [get_bd_pins axis_avg_buffer_0/m_axis_aclk] [get_bd_pins axis_avg_buffer_10/s_axi_aclk] [get_bd_pins axis_avg_buffer_10/m_axis_aclk] [get_bd_pins axis_avg_buffer_1/s_axi_aclk] [get_bd_pins axis_avg_buffer_1/m_axis_aclk] [get_bd_pins axis_avg_buffer_2/s_axi_aclk] [get_bd_pins axis_avg_buffer_2/m_axis_aclk] [get_bd_pins axis_avg_buffer_3/s_axi_aclk] [get_bd_pins axis_avg_buffer_3/m_axis_aclk] [get_bd_pins axis_avg_buffer_4/s_axi_aclk] [get_bd_pins axis_avg_buffer_4/m_axis_aclk] [get_bd_pins axis_avg_buffer_5/s_axi_aclk] [get_bd_pins axis_avg_buffer_5/m_axis_aclk] [get_bd_pins axis_avg_buffer_6/s_axi_aclk] [get_bd_pins axis_avg_buffer_6/m_axis_aclk] [get_bd_pins axis_avg_buffer_7/s_axi_aclk] [get_bd_pins axis_avg_buffer_7/m_axis_aclk] [get_bd_pins axis_avg_buffer_8/s_axi_aclk] [get_bd_pins axis_avg_buffer_8/m_axis_aclk] [get_bd_pins axis_avg_buffer_9/s_axi_aclk] [get_bd_pins axis_avg_buffer_9/m_axis_aclk] [get_bd_pins mr_buffer_et_0/s00_axi_aclk] [get_bd_pins mr_buffer_et_0/m00_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_7/s_axis_aclk] [get_bd_pins axis_pfb_readout_v4_0/s_axi_aclk]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1010,150 +1010,6 @@ proc create_hier_cell_signal_gen_wrapper { parentCell nameHier } {
   ] $axis_register_slice_nb_15
 
 
-  # Create instance: axis_signal_gen_v6_0, and set properties
-  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {COMPLEX} \
-    CONFIG.GEN_DDS {TRUE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_0
-
-
-  # Create instance: axis_signal_gen_v6_1, and set properties
-  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {COMPLEX} \
-    CONFIG.GEN_DDS {TRUE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_1
-
-
-  # Create instance: axis_signal_gen_v6_2, and set properties
-  set axis_signal_gen_v6_2 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_2 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_2
-
-
-  # Create instance: axis_signal_gen_v6_3, and set properties
-  set axis_signal_gen_v6_3 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_3 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_3
-
-
-  # Create instance: axis_signal_gen_v6_4, and set properties
-  set axis_signal_gen_v6_4 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_4 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_4
-
-
-  # Create instance: axis_signal_gen_v6_5, and set properties
-  set axis_signal_gen_v6_5 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_5 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_5
-
-
-  # Create instance: axis_signal_gen_v6_6, and set properties
-  set axis_signal_gen_v6_6 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_6 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_6
-
-
-  # Create instance: axis_signal_gen_v6_7, and set properties
-  set axis_signal_gen_v6_7 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_7 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_7
-
-
-  # Create instance: axis_signal_gen_v6_8, and set properties
-  set axis_signal_gen_v6_8 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_8 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_8
-
-
-  # Create instance: axis_signal_gen_v6_9, and set properties
-  set axis_signal_gen_v6_9 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_9 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_9
-
-
-  # Create instance: axis_signal_gen_v6_10, and set properties
-  set axis_signal_gen_v6_10 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_10 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_10
-
-
-  # Create instance: axis_signal_gen_v6_11, and set properties
-  set axis_signal_gen_v6_11 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_11 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_11
-
-
-  # Create instance: axis_signal_gen_v6_12, and set properties
-  set axis_signal_gen_v6_12 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_12 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_12
-
-
-  # Create instance: axis_signal_gen_v6_13, and set properties
-  set axis_signal_gen_v6_13 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_13 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_13
-
-
-  # Create instance: axis_signal_gen_v6_14, and set properties
-  set axis_signal_gen_v6_14 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_14 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_14
-
-
-  # Create instance: axis_signal_gen_v6_15, and set properties
-  set axis_signal_gen_v6_15 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_15 ]
-  set_property -dict [list \
-    CONFIG.ENVELOPE_TYPE {REAL} \
-    CONFIG.GEN_DDS {FALSE} \
-    CONFIG.N {12} \
-  ] $axis_signal_gen_v6_15
-
-
   # Create instance: sg_translator_0, and set properties
   set sg_translator_0 [ create_bd_cell -type ip -vlnv user.org:user:sg_translator:1.0 sg_translator_0 ]
 
@@ -1308,6 +1164,150 @@ proc create_hier_cell_signal_gen_wrapper { parentCell nameHier } {
   set_property CONFIG.REG_CONFIG {8} $axis_register_slice_15
 
 
+  # Create instance: axis_signal_gen_v6_0, and set properties
+  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {COMPLEX} \
+    CONFIG.GEN_DDS {TRUE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_0
+
+
+  # Create instance: axis_signal_gen_v6_10, and set properties
+  set axis_signal_gen_v6_10 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_10 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_10
+
+
+  # Create instance: axis_signal_gen_v6_11, and set properties
+  set axis_signal_gen_v6_11 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_11 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_11
+
+
+  # Create instance: axis_signal_gen_v6_12, and set properties
+  set axis_signal_gen_v6_12 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_12 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_12
+
+
+  # Create instance: axis_signal_gen_v6_13, and set properties
+  set axis_signal_gen_v6_13 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_13 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_13
+
+
+  # Create instance: axis_signal_gen_v6_14, and set properties
+  set axis_signal_gen_v6_14 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_14 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_14
+
+
+  # Create instance: axis_signal_gen_v6_15, and set properties
+  set axis_signal_gen_v6_15 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_15 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_15
+
+
+  # Create instance: axis_signal_gen_v6_1, and set properties
+  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {COMPLEX} \
+    CONFIG.GEN_DDS {TRUE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_1
+
+
+  # Create instance: axis_signal_gen_v6_2, and set properties
+  set axis_signal_gen_v6_2 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_2 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_2
+
+
+  # Create instance: axis_signal_gen_v6_3, and set properties
+  set axis_signal_gen_v6_3 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_3 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_3
+
+
+  # Create instance: axis_signal_gen_v6_4, and set properties
+  set axis_signal_gen_v6_4 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_4 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_4
+
+
+  # Create instance: axis_signal_gen_v6_5, and set properties
+  set axis_signal_gen_v6_5 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_5 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_5
+
+
+  # Create instance: axis_signal_gen_v6_6, and set properties
+  set axis_signal_gen_v6_6 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_6 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_6
+
+
+  # Create instance: axis_signal_gen_v6_7, and set properties
+  set axis_signal_gen_v6_7 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_7 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_7
+
+
+  # Create instance: axis_signal_gen_v6_8, and set properties
+  set axis_signal_gen_v6_8 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_8 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_8
+
+
+  # Create instance: axis_signal_gen_v6_9, and set properties
+  set axis_signal_gen_v6_9 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_9 ]
+  set_property -dict [list \
+    CONFIG.ENVELOPE_TYPE {REAL} \
+    CONFIG.GEN_DDS {FALSE} \
+    CONFIG.N {12} \
+  ] $axis_signal_gen_v6_9
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins axis_signal_gen_v6_4/s0_axis] [get_bd_intf_pins s0_axis4]
   connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins axis_signal_gen_v6_6/s0_axis] [get_bd_intf_pins s0_axis5]
@@ -1423,10 +1423,10 @@ proc create_hier_cell_signal_gen_wrapper { parentCell nameHier } {
   connect_bd_intf_net -intf_net sg_translator_9_m_gen_v6_axis [get_bd_intf_pins sg_translator_9/m_gen_v6_axis] [get_bd_intf_pins axis_register_slice_9/S_AXIS]
 
   # Create port connections
-  connect_bd_net -net rst_dac2_peripheral_aresetn [get_bd_pins aresetn] [get_bd_pins axis_register_slice_nb_0/aresetn] [get_bd_pins axis_register_slice_nb_1/aresetn] [get_bd_pins axis_register_slice_nb_2/aresetn] [get_bd_pins axis_register_slice_nb_3/aresetn] [get_bd_pins axis_signal_gen_v6_0/aresetn] [get_bd_pins axis_signal_gen_v6_1/aresetn] [get_bd_pins axis_signal_gen_v6_2/aresetn] [get_bd_pins axis_signal_gen_v6_3/aresetn] [get_bd_pins sg_translator_1/aresetn] [get_bd_pins sg_translator_2/aresetn] [get_bd_pins sg_translator_3/aresetn] [get_bd_pins axis_register_slice_0/aresetn] [get_bd_pins axis_register_slice_1/aresetn] [get_bd_pins axis_register_slice_2/aresetn] [get_bd_pins axis_register_slice_3/aresetn] [get_bd_pins sg_translator_0/aresetn] [get_bd_pins axis_register_slice_nb_4/aresetn] [get_bd_pins axis_register_slice_nb_5/aresetn] [get_bd_pins axis_register_slice_nb_6/aresetn] [get_bd_pins axis_register_slice_nb_7/aresetn] [get_bd_pins axis_register_slice_nb_8/aresetn] [get_bd_pins axis_register_slice_nb_9/aresetn] [get_bd_pins axis_register_slice_nb_10/aresetn] [get_bd_pins axis_register_slice_nb_11/aresetn] [get_bd_pins axis_register_slice_nb_12/aresetn] [get_bd_pins axis_register_slice_nb_13/aresetn] [get_bd_pins axis_register_slice_nb_14/aresetn] [get_bd_pins axis_register_slice_nb_15/aresetn] [get_bd_pins axis_register_slice_4/aresetn] [get_bd_pins axis_register_slice_5/aresetn] [get_bd_pins axis_register_slice_6/aresetn] [get_bd_pins axis_register_slice_7/aresetn] [get_bd_pins axis_register_slice_8/aresetn] [get_bd_pins axis_register_slice_9/aresetn] [get_bd_pins axis_register_slice_10/aresetn] [get_bd_pins axis_register_slice_11/aresetn] [get_bd_pins axis_register_slice_12/aresetn] [get_bd_pins axis_register_slice_13/aresetn] [get_bd_pins axis_register_slice_14/aresetn] [get_bd_pins axis_register_slice_15/aresetn] [get_bd_pins sg_translator_5/aresetn] [get_bd_pins sg_translator_6/aresetn] [get_bd_pins sg_translator_7/aresetn] [get_bd_pins axis_signal_gen_v6_4/aresetn] [get_bd_pins axis_signal_gen_v6_5/aresetn] [get_bd_pins axis_signal_gen_v6_6/aresetn] [get_bd_pins sg_translator_4/aresetn] [get_bd_pins axis_signal_gen_v6_7/aresetn] [get_bd_pins axis_signal_gen_v6_9/aresetn] [get_bd_pins axis_signal_gen_v6_15/aresetn] [get_bd_pins axis_signal_gen_v6_10/aresetn] [get_bd_pins axis_signal_gen_v6_11/aresetn] [get_bd_pins axis_signal_gen_v6_12/aresetn] [get_bd_pins axis_signal_gen_v6_13/aresetn] [get_bd_pins axis_signal_gen_v6_14/aresetn] [get_bd_pins axis_signal_gen_v6_8/aresetn] [get_bd_pins sg_translator_12/aresetn] [get_bd_pins sg_translator_13/aresetn] [get_bd_pins sg_translator_14/aresetn] [get_bd_pins sg_translator_15/aresetn] [get_bd_pins sg_translator_8/aresetn] [get_bd_pins sg_translator_9/aresetn] [get_bd_pins sg_translator_10/aresetn] [get_bd_pins sg_translator_11/aresetn]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_0/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_4/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_4/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_5/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_5/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_6/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_6/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_1/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_1/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_2/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_2/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_3/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_3/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_7/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_9/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_9/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_15/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_15/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_10/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_10/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_11/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_11/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_12/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_12/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_13/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_13/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_14/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_14/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_8/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_8/s_axi_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_clk_dac2 [get_bd_pins aclk] [get_bd_pins axis_register_slice_nb_0/aclk] [get_bd_pins axis_register_slice_nb_1/aclk] [get_bd_pins axis_register_slice_nb_2/aclk] [get_bd_pins axis_register_slice_nb_3/aclk] [get_bd_pins axis_signal_gen_v6_0/aclk] [get_bd_pins axis_signal_gen_v6_1/aclk] [get_bd_pins axis_signal_gen_v6_2/aclk] [get_bd_pins axis_signal_gen_v6_3/aclk] [get_bd_pins axis_signal_gen_v6_9/aclk] [get_bd_pins axis_signal_gen_v6_15/aclk] [get_bd_pins axis_signal_gen_v6_10/aclk] [get_bd_pins axis_signal_gen_v6_11/aclk] [get_bd_pins axis_signal_gen_v6_12/aclk] [get_bd_pins axis_signal_gen_v6_13/aclk] [get_bd_pins axis_signal_gen_v6_14/aclk] [get_bd_pins axis_signal_gen_v6_8/aclk] [get_bd_pins sg_translator_1/aclk] [get_bd_pins sg_translator_2/aclk] [get_bd_pins sg_translator_3/aclk] [get_bd_pins axis_register_slice_0/aclk] [get_bd_pins axis_register_slice_1/aclk] [get_bd_pins axis_register_slice_2/aclk] [get_bd_pins axis_register_slice_3/aclk] [get_bd_pins axis_register_slice_4/aclk] [get_bd_pins axis_register_slice_5/aclk] [get_bd_pins axis_register_slice_6/aclk] [get_bd_pins axis_register_slice_7/aclk] [get_bd_pins axis_register_slice_8/aclk] [get_bd_pins axis_register_slice_9/aclk] [get_bd_pins axis_register_slice_10/aclk] [get_bd_pins axis_register_slice_11/aclk] [get_bd_pins axis_register_slice_12/aclk] [get_bd_pins axis_register_slice_13/aclk] [get_bd_pins axis_register_slice_14/aclk] [get_bd_pins axis_register_slice_15/aclk] [get_bd_pins sg_translator_0/aclk] [get_bd_pins sg_translator_12/aclk] [get_bd_pins sg_translator_13/aclk] [get_bd_pins sg_translator_14/aclk] [get_bd_pins sg_translator_15/aclk] [get_bd_pins sg_translator_8/aclk] [get_bd_pins sg_translator_9/aclk] [get_bd_pins sg_translator_10/aclk] [get_bd_pins sg_translator_11/aclk] [get_bd_pins axis_register_slice_nb_4/aclk] [get_bd_pins axis_register_slice_nb_5/aclk] [get_bd_pins axis_register_slice_nb_6/aclk] [get_bd_pins axis_register_slice_nb_7/aclk] [get_bd_pins axis_register_slice_nb_8/aclk] [get_bd_pins axis_register_slice_nb_9/aclk] [get_bd_pins axis_register_slice_nb_10/aclk] [get_bd_pins axis_register_slice_nb_11/aclk] [get_bd_pins axis_register_slice_nb_12/aclk] [get_bd_pins axis_register_slice_nb_13/aclk] [get_bd_pins axis_register_slice_nb_14/aclk] [get_bd_pins axis_register_slice_nb_15/aclk] [get_bd_pins sg_translator_5/aclk] [get_bd_pins sg_translator_6/aclk] [get_bd_pins sg_translator_7/aclk] [get_bd_pins axis_signal_gen_v6_4/aclk] [get_bd_pins axis_signal_gen_v6_5/aclk] [get_bd_pins axis_signal_gen_v6_6/aclk] [get_bd_pins sg_translator_4/aclk] [get_bd_pins axis_signal_gen_v6_7/aclk]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_0/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_4/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_4/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_5/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_5/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_6/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_6/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_1/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_1/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_2/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_2/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_3/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_3/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_7/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_9/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_9/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_15/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_15/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_10/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_10/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_11/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_11/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_12/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_12/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_13/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_13/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_14/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_14/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_8/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_8/s_axi_aclk]
+  connect_bd_net -net rst_dac2_peripheral_aresetn [get_bd_pins aresetn] [get_bd_pins axis_register_slice_nb_0/aresetn] [get_bd_pins axis_register_slice_nb_1/aresetn] [get_bd_pins axis_register_slice_nb_2/aresetn] [get_bd_pins axis_register_slice_nb_3/aresetn] [get_bd_pins sg_translator_1/aresetn] [get_bd_pins sg_translator_2/aresetn] [get_bd_pins sg_translator_3/aresetn] [get_bd_pins axis_register_slice_0/aresetn] [get_bd_pins axis_register_slice_1/aresetn] [get_bd_pins axis_register_slice_2/aresetn] [get_bd_pins axis_register_slice_3/aresetn] [get_bd_pins sg_translator_0/aresetn] [get_bd_pins axis_register_slice_nb_4/aresetn] [get_bd_pins axis_register_slice_nb_5/aresetn] [get_bd_pins axis_register_slice_nb_6/aresetn] [get_bd_pins axis_register_slice_nb_7/aresetn] [get_bd_pins axis_register_slice_nb_8/aresetn] [get_bd_pins axis_register_slice_nb_9/aresetn] [get_bd_pins axis_register_slice_nb_10/aresetn] [get_bd_pins axis_register_slice_nb_11/aresetn] [get_bd_pins axis_register_slice_nb_12/aresetn] [get_bd_pins axis_register_slice_nb_13/aresetn] [get_bd_pins axis_register_slice_nb_14/aresetn] [get_bd_pins axis_register_slice_nb_15/aresetn] [get_bd_pins axis_register_slice_4/aresetn] [get_bd_pins axis_register_slice_5/aresetn] [get_bd_pins axis_register_slice_6/aresetn] [get_bd_pins axis_register_slice_7/aresetn] [get_bd_pins axis_register_slice_8/aresetn] [get_bd_pins axis_register_slice_9/aresetn] [get_bd_pins axis_register_slice_10/aresetn] [get_bd_pins axis_register_slice_11/aresetn] [get_bd_pins axis_register_slice_12/aresetn] [get_bd_pins axis_register_slice_13/aresetn] [get_bd_pins axis_register_slice_14/aresetn] [get_bd_pins axis_register_slice_15/aresetn] [get_bd_pins sg_translator_5/aresetn] [get_bd_pins sg_translator_6/aresetn] [get_bd_pins sg_translator_7/aresetn] [get_bd_pins sg_translator_4/aresetn] [get_bd_pins sg_translator_12/aresetn] [get_bd_pins sg_translator_13/aresetn] [get_bd_pins sg_translator_14/aresetn] [get_bd_pins sg_translator_15/aresetn] [get_bd_pins sg_translator_8/aresetn] [get_bd_pins sg_translator_9/aresetn] [get_bd_pins sg_translator_10/aresetn] [get_bd_pins sg_translator_11/aresetn] [get_bd_pins axis_signal_gen_v6_0/aresetn] [get_bd_pins axis_signal_gen_v6_10/aresetn] [get_bd_pins axis_signal_gen_v6_11/aresetn] [get_bd_pins axis_signal_gen_v6_12/aresetn] [get_bd_pins axis_signal_gen_v6_13/aresetn] [get_bd_pins axis_signal_gen_v6_14/aresetn] [get_bd_pins axis_signal_gen_v6_15/aresetn] [get_bd_pins axis_signal_gen_v6_1/aresetn] [get_bd_pins axis_signal_gen_v6_2/aresetn] [get_bd_pins axis_signal_gen_v6_3/aresetn] [get_bd_pins axis_signal_gen_v6_4/aresetn] [get_bd_pins axis_signal_gen_v6_5/aresetn] [get_bd_pins axis_signal_gen_v6_6/aresetn] [get_bd_pins axis_signal_gen_v6_7/aresetn] [get_bd_pins axis_signal_gen_v6_8/aresetn] [get_bd_pins axis_signal_gen_v6_9/aresetn]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_0/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_10/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_10/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_11/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_11/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_12/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_12/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_13/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_13/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_14/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_14/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_15/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_15/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_1/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_1/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_2/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_2/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_3/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_3/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_4/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_4/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_5/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_5/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_6/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_6/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_7/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_8/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_8/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_9/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_9/s0_axis_aresetn]
+  connect_bd_net -net usp_rf_data_converter_0_clk_dac2 [get_bd_pins aclk] [get_bd_pins axis_register_slice_nb_0/aclk] [get_bd_pins axis_register_slice_nb_1/aclk] [get_bd_pins axis_register_slice_nb_2/aclk] [get_bd_pins axis_register_slice_nb_3/aclk] [get_bd_pins sg_translator_1/aclk] [get_bd_pins sg_translator_2/aclk] [get_bd_pins sg_translator_3/aclk] [get_bd_pins axis_register_slice_0/aclk] [get_bd_pins axis_register_slice_1/aclk] [get_bd_pins axis_register_slice_2/aclk] [get_bd_pins axis_register_slice_3/aclk] [get_bd_pins axis_register_slice_4/aclk] [get_bd_pins axis_register_slice_5/aclk] [get_bd_pins axis_register_slice_6/aclk] [get_bd_pins axis_register_slice_7/aclk] [get_bd_pins axis_register_slice_8/aclk] [get_bd_pins axis_register_slice_9/aclk] [get_bd_pins axis_register_slice_10/aclk] [get_bd_pins axis_register_slice_11/aclk] [get_bd_pins axis_register_slice_12/aclk] [get_bd_pins axis_register_slice_13/aclk] [get_bd_pins axis_register_slice_14/aclk] [get_bd_pins axis_register_slice_15/aclk] [get_bd_pins sg_translator_0/aclk] [get_bd_pins sg_translator_12/aclk] [get_bd_pins sg_translator_13/aclk] [get_bd_pins sg_translator_14/aclk] [get_bd_pins sg_translator_15/aclk] [get_bd_pins sg_translator_8/aclk] [get_bd_pins sg_translator_9/aclk] [get_bd_pins sg_translator_10/aclk] [get_bd_pins sg_translator_11/aclk] [get_bd_pins axis_register_slice_nb_4/aclk] [get_bd_pins axis_register_slice_nb_5/aclk] [get_bd_pins axis_register_slice_nb_6/aclk] [get_bd_pins axis_register_slice_nb_7/aclk] [get_bd_pins axis_register_slice_nb_8/aclk] [get_bd_pins axis_register_slice_nb_9/aclk] [get_bd_pins axis_register_slice_nb_10/aclk] [get_bd_pins axis_register_slice_nb_11/aclk] [get_bd_pins axis_register_slice_nb_12/aclk] [get_bd_pins axis_register_slice_nb_13/aclk] [get_bd_pins axis_register_slice_nb_14/aclk] [get_bd_pins axis_register_slice_nb_15/aclk] [get_bd_pins sg_translator_5/aclk] [get_bd_pins sg_translator_6/aclk] [get_bd_pins sg_translator_7/aclk] [get_bd_pins sg_translator_4/aclk] [get_bd_pins axis_signal_gen_v6_0/aclk] [get_bd_pins axis_signal_gen_v6_10/aclk] [get_bd_pins axis_signal_gen_v6_11/aclk] [get_bd_pins axis_signal_gen_v6_12/aclk] [get_bd_pins axis_signal_gen_v6_13/aclk] [get_bd_pins axis_signal_gen_v6_14/aclk] [get_bd_pins axis_signal_gen_v6_15/aclk] [get_bd_pins axis_signal_gen_v6_1/aclk] [get_bd_pins axis_signal_gen_v6_2/aclk] [get_bd_pins axis_signal_gen_v6_3/aclk] [get_bd_pins axis_signal_gen_v6_4/aclk] [get_bd_pins axis_signal_gen_v6_5/aclk] [get_bd_pins axis_signal_gen_v6_6/aclk] [get_bd_pins axis_signal_gen_v6_7/aclk] [get_bd_pins axis_signal_gen_v6_8/aclk] [get_bd_pins axis_signal_gen_v6_9/aclk]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_0/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_10/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_10/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_11/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_11/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_12/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_12/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_13/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_13/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_14/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_14/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_15/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_15/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_1/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_1/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_2/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_2/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_3/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_3/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_4/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_4/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_5/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_5/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_6/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_6/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_7/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_8/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_8/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_9/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_9/s0_axis_aclk]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -2079,25 +2079,25 @@ proc create_root_design { parentCell } {
     CONFIG.ADC_Slice23_Enable {false} \
     CONFIG.ADC_Slice30_Enable {false} \
     CONFIG.DAC0_Clock_Source {6} \
-    CONFIG.DAC0_Outclk_Freq {599.040} \
+    CONFIG.DAC0_Outclk_Freq {537.600} \
     CONFIG.DAC0_PLL_Enable {true} \
     CONFIG.DAC0_Refclk_Freq {245.760} \
-    CONFIG.DAC0_Sampling_Rate {9.58464} \
+    CONFIG.DAC0_Sampling_Rate {8.6016} \
     CONFIG.DAC1_Clock_Source {6} \
-    CONFIG.DAC1_Outclk_Freq {599.040} \
+    CONFIG.DAC1_Outclk_Freq {537.600} \
     CONFIG.DAC1_PLL_Enable {true} \
     CONFIG.DAC1_Refclk_Freq {245.760} \
-    CONFIG.DAC1_Sampling_Rate {9.58464} \
+    CONFIG.DAC1_Sampling_Rate {8.6016} \
     CONFIG.DAC2_Clock_Dist {1} \
-    CONFIG.DAC2_Outclk_Freq {599.040} \
+    CONFIG.DAC2_Outclk_Freq {537.600} \
     CONFIG.DAC2_PLL_Enable {true} \
     CONFIG.DAC2_Refclk_Freq {245.760} \
-    CONFIG.DAC2_Sampling_Rate {9.58464} \
+    CONFIG.DAC2_Sampling_Rate {8.6016} \
     CONFIG.DAC3_Clock_Source {6} \
-    CONFIG.DAC3_Outclk_Freq {599.040} \
+    CONFIG.DAC3_Outclk_Freq {537.600} \
     CONFIG.DAC3_PLL_Enable {true} \
     CONFIG.DAC3_Refclk_Freq {245.760} \
-    CONFIG.DAC3_Sampling_Rate {9.58464} \
+    CONFIG.DAC3_Sampling_Rate {8.6016} \
     CONFIG.DAC_Coarse_Mixer_Freq00 {3} \
     CONFIG.DAC_Coarse_Mixer_Freq01 {3} \
     CONFIG.DAC_Coarse_Mixer_Freq02 {3} \
