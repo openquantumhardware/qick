@@ -1219,7 +1219,7 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst_0/axi_mst_0.xci</spirit:name>
+        <spirit:name>src/tb/axi_mst_0/axi_mst_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
       </spirit:file>
       <spirit:file>
