@@ -862,11 +862,13 @@ class QickSoc(Overlay, QickConfig):
     def _get_block(self, fullpath):
         """Return the IP block specified by its full path.
         """
-        #return getattr(self, fullpath.replace('/','_'))
         block = self
-        # recurse into hierarchies, if present
-        for x in fullpath.split('/'):
-            block = getattr(block, x)
+        # # recurse into hierarchies, if present
+        # for x in fullpath.split('/'):
+        #     block = getattr(block, x)
+        if fullpath == "ddr4/ddr4_0":
+            fullpath = "ddr4ddr4_0" # fix inconsistency in ddr4 module name; traced back to PYNQ change in https://github.com/Xilinx/PYNQ/pull/913/commits/d2e72cb52de87118f47d6e1c0d177063f5c5e6d6
+        block = getattr(block, fullpath)
         return block
 
     def map_signal_paths(self):
@@ -921,7 +923,10 @@ class QickSoc(Overlay, QickConfig):
 
         # Find the MR buffer, if present.
         try:
-            self.mr_buf = self.mr_buffer_et_0
+            if hasattr(self, 'readout_wrapper'):
+                self.mr_buf = self._get_block('readout_wrapper/mr_buffer_et_0')
+            else:
+                self.mr_buf = self.mr_buffer_et_0
             self['mr_buf'] = self.mr_buf.cfg
         except:
             pass
@@ -929,9 +934,9 @@ class QickSoc(Overlay, QickConfig):
         # Find the DDR4 controller and buffer, if present.
         try:
             if hasattr(self, 'ddr4'):
-                self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
+                self.ddr4_buf = self._get_block('ddr4/axis_buffer_ddr_v1_0')
             else:
-                self.ddr4_buf = self.axis_buffer_ddr_v1_0
+                self.ddr4_buf = self._get_block('axis_buffer_ddr_v1_0')
             self['ddr4_buf'] = self.ddr4_buf.cfg
         except:
             pass

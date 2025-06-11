@@ -1246,6 +1246,7 @@ class AxisBufferDdrV1(SocIP):
         self.ddr4_mem = soc._get_block(block)
         self.ddr4_array = self.ddr4_mem.mmio.array.view('uint32')
         self.cfg['maxlen'] = self.ddr4_array.shape[0]
+        # self.cfg['maxlen'] = self.ddr4_mem.size // 4  ## FIXME-DMM: review with Sho, why 4?
 
         # Typical: buffer_ddr -> clock_converter -> dwidth_converter -> switch (optional) -> broadcaster
         # the broadcaster will feed this block and a regular avg_buf
