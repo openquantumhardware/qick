@@ -1794,15 +1794,15 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
-    def acquire(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the accumulated readout.
 
         Parameters
         ----------
         soc : QickSoc
             Qick object
-        soft_avgs : int
-            number of times to rerun the program, averaging results in software (aka "rounds")
+        rounds : int
+            number of times to rerun the program, averaging results in software (aka "soft averages")
         load_envelopes : bool
             if True, load pulse envelopes
         start_src: str
@@ -1862,7 +1862,7 @@ class AcquireMixin:
         # select which tqdm progress bar to show
         hiderounds = True
         if progress:
-            if soft_avgs>1:
+            if rounds>1:
                 hiderounds = False
             else:
                 self.acquire_params['hidereps'] = False
@@ -1870,7 +1870,7 @@ class AcquireMixin:
         # load the program - don't load data memory now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-        self.rounds_pbar = tqdm(total=soft_avgs, disable=hiderounds)
+        self.rounds_pbar = tqdm(total=rounds, disable=hiderounds)
         self.prepare_round()
 
         # if user code is going to step through the rounds, this is where we stop
@@ -2055,15 +2055,15 @@ class AcquireMixin:
 
         return self.finish_acquire()
 
-    def acquire_decimated(self, soc, soft_avgs=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the decimating readout.
 
         Parameters
         ----------
         soc : QickSoc
             Qick object
-        soft_avgs : int
-            number of times to rerun the program, averaging results in software (aka "rounds")
+        rounds : int
+            number of times to rerun the program, averaging results in software (aka "soft averages")
         load_envelopes : bool
             if True, load pulse envelopes and buffer weights
         start_src: str
@@ -2110,7 +2110,7 @@ class AcquireMixin:
         # load the program - don't load data memory now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-        self.rounds_pbar = tqdm(total=soft_avgs, disable=not progress)
+        self.rounds_pbar = tqdm(total=rounds, disable=not progress)
         self.prepare_round()
 
         # if user code is going to step through the rounds, this is where we stop

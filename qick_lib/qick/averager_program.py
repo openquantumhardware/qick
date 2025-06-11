@@ -27,11 +27,11 @@ class AveragerProgram(AcquireProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.make_program()
-        self.soft_avgs = 1
+        self.rounds = 1
         if "soft_avgs" in cfg:
-            self.soft_avgs = cfg['soft_avgs']
+            self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
-            self.soft_avgs = cfg['rounds']
+            self.rounds = cfg['rounds']
         # this is a 1-D loop
         loop_dims = [self.cfg['reps']]
         # average over the reps axis
@@ -102,7 +102,7 @@ class AveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
@@ -168,7 +168,7 @@ class AveragerProgram(AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire_decimated(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
+        return super().acquire_decimated(soc, rounds=self.rounds, load_envelopes=load_pulses, **kwargs)
 
     def run_rounds(self, soc, readouts_per_experiment=None, load_pulses=True, **kwargs):
         """Run the program and wait until it completes, once or multiple times.
@@ -188,7 +188,7 @@ class AveragerProgram(AcquireProgram):
             Return after setting up and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
         """
-        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
+        super().run_rounds(soc, rounds=self.rounds, load_envelopes=load_pulses, **kwargs)
 
 class RAveragerProgram(AcquireProgram):
     """
@@ -208,9 +208,11 @@ class RAveragerProgram(AcquireProgram):
         super().__init__(soccfg)
         self.cfg = cfg
         self.make_program()
-        self.soft_avgs = 1
+        self.rounds = 1
+        if "soft_avgs" in cfg:
+            self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
-            self.soft_avgs = cfg['rounds']
+            self.rounds = cfg['rounds']
         # expts loop is the outer loop, reps loop is the inner loop
         loop_dims = [self.cfg['expts'], self.cfg['reps']]
         # average over the reps axis
@@ -306,7 +308,7 @@ class RAveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
@@ -354,7 +356,7 @@ class RAveragerProgram(AcquireProgram):
             Return after setting up and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
         """
-        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
+        super().run_rounds(soc, rounds=self.rounds, load_envelopes=load_pulses, **kwargs)
 
 
 class AbsQickSweep:
@@ -496,11 +498,11 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
         self.qick_sweeps: List[AbsQickSweep] = []
         self.sweep_axes = []
         self.make_program()
-        self.soft_avgs = 1
+        self.rounds = 1
         if "soft_avgs" in cfg:
-            self.soft_avgs = cfg['soft_avgs']
+            self.rounds = cfg['soft_avgs']
         if "rounds" in cfg:
-            self.soft_avgs = cfg['rounds']
+            self.rounds = cfg['rounds']
         # reps loop is the outer loop, first-added sweep is innermost loop
         loop_dims = [cfg['reps'], *self.sweep_axes[::-1]]
         # average over the reps axis
@@ -608,7 +610,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, soft_avgs=self.soft_avgs, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
@@ -656,4 +658,4 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
             Return after setting up and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
         """
-        super().run_rounds(soc, rounds=self.soft_avgs, load_envelopes=load_pulses, **kwargs)
+        super().run_rounds(soc, rounds=self.rounds, load_envelopes=load_pulses, **kwargs)
