@@ -189,10 +189,16 @@ repeat(100) @(tb_cb);
 //-------------------------------------------------------------------------------------------------//
 `SVTEST(test10_cmd_sync)
 
+tb_cb.tb_i_header  <= {XCOM_SET_ID,4'b1111};//set ID locally
+tb_cb.tb_i_req_loc <= 1'b1;
+@(tb_cb);
+tb_cb.tb_i_req_loc <= 1'b0;
+repeat(15)@(tb_cb);
+
 tb_cb.tb_i_data   <= $urandom();     
 //tb_cb.tb_i_data   <= 32'h0000_0003;     
 tb_cb.tb_i_req_net  <= 1'b1;
-tb_cb.tb_i_header  <= {XCOM_QRST_SYNC,4'b1010};
+tb_cb.tb_i_header  <= {XCOM_QRST_SYNC,4'b1111};
 @(tb_cb);
 tb_cb.tb_i_req_net <= 1'b0;
 repeat(200) @(tb_cb);

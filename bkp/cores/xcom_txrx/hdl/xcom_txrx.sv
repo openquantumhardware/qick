@@ -148,6 +148,9 @@ logic [ 4-1:0] loc_cmd_op  ;
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
 logic [32-1:0] s_rx_data ;
 
+logic         tx_auto_id;
+logic         tx_qrst_sync;
+
 //TX related signals
 logic         s_nack;
 logic         s_lack;
@@ -292,7 +295,11 @@ tx_cmd u_tx_cmd(
     .o_dbg_state( s_tx_dbg_state )
 );
 
-assign tx_auto_id = s_req_net & (i_header[7:4] == XCOM_AUTO_ID); 
+assign tx_auto_id   = s_req_net & (loc_cmd_op == XCOM_AUTO_ID); 
+
+//logic to take into account the XCOM_QRST_SYNC command for board
+//synchronization
+assign tx_qrst_sync = s_nack & (loc_cmd_op == XCOM_QRST_SYNC); 
 
 //end Transmission
 //
@@ -337,7 +344,7 @@ assign rx_wreg_en   = s_rx_valid & rx_wreg;
 assign rx_wmem_en   = s_rx_valid & rx_wmem;
 
 assign rx_auto_id   = s_rx_valid & s_rx_op == XCOM_AUTO_ID;
-assign rx_qsync     = s_rx_valid & s_rx_op == XCOM_QRST_SYNC;
+assign rx_qsync     = (s_rx_valid & s_rx_op == XCOM_QRST_SYNC) | (tx_qrst_sync);
 assign rx_qctrl     = s_rx_valid & s_rx_op == XCOM_QCTRL;
 assign rx_rst       = s_rx_valid & s_rx_op == XCOM_RST;
 //end Reception
