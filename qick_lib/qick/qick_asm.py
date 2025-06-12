@@ -925,7 +925,7 @@ class AbsQickProgram(ABC):
                       'reg2freq', 'reg2freq_adc',
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg',
-                      'roundfreq']
+                      'roundfreq', 'get_maxv']
 
     # if true, duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
@@ -1634,9 +1634,10 @@ class AcquireMixin:
         # shot-by-shot threshold classification
         self.shots = None
 
+        # parameters for acquire/acquire_decimated/run_rounds
+        self.acquire_params = None
         # progress bar
         self.rounds_pbar = None
-        self.acquire_params = None
 
     def _init_declarations(self):
         super()._init_declarations()
@@ -1839,6 +1840,7 @@ class AcquireMixin:
                 'type': 'accumulated',
                 'soc': soc,
                 'start_src': start_src,
+                'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 'hidereps': True,
                 'threshold': threshold,
@@ -2024,6 +2026,7 @@ class AcquireMixin:
                 'type': 'run_rounds',
                 'soc': soc,
                 'start_src': start_src,
+                'rounds_remaining': rounds,
                 'hidereps': True,
                 }
 
@@ -2088,6 +2091,7 @@ class AcquireMixin:
                 'type': 'decimated',
                 'soc': soc,
                 'start_src': start_src,
+                'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 }
         # any unrecognized keyword arguments get inserted in the acquire_params
@@ -2226,10 +2230,8 @@ class AcquireMixin:
             self.rounds_buf.append(self._process_accumulated(self.acc_buf))
 
         self.rounds_pbar.update()
-        if self.rounds_pbar.total > 1:
-            done = self.rounds_pbar.n >= self.rounds_pbar.total
-        else:
-            done = True
+        self.acquire_params['rounds_remaining'] -= 1
+        done = (self.acquire_params['rounds_remaining'] <= 0)
         if done:
             self.rounds_pbar.close()
         return not done
