@@ -1,6 +1,6 @@
 
 ################################################################
-# This is a generated script based on design: xcom_simple
+# This is a generated script based on design: xcom_test
 #
 # Though there are limitations about the generated script,
 # the main purpose of this utility is to make learning
@@ -35,13 +35,13 @@ if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
 ################################################################
 
 # To test this script, run the following commands from Vivado Tcl console:
-# source xcom_simple_script.tcl
+# source xcom_test_script.tcl
 
 # If there is no project opened, this script will create a
 # project, but make sure you do not have an existing project
 # <./myproj/project_1.xpr> in the current working folder.
 
-set overlay_name xcom_simple
+set overlay_name xcom_test
 set list_projs [get_projects -quiet]
 if { $list_projs eq "" } {
    create_project  ${overlay_name} ${overlay_name} -part xczu49dr-ffvf1760-2-e
@@ -53,7 +53,7 @@ update_ip_catalog
 
 # CHANGE DESIGN NAME HERE
 variable design_name
-set design_name xcom_simple
+set design_name xcom_test
 
 # If you do not already have an existing IP Integrator design open,
 # you can create a design using the following command:
@@ -136,13 +136,8 @@ xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:zynq_ultra_ps_e:3.5\
 xilinx.com:ip:util_ds_buf:2.2\
 Fermi:user:qick_processor:2.0\
-xilinx.com:ip:xlconstant:1.1\
-xilinx.com:ip:system_ila:1.1\
-user.org:user:xcom_axil_slv:1.0\
-user.org:user:xcom_cdc:1.0\
-user.org:user:xcom_cmd:1.0\
-user.org:user:xcom_txrx:1.0\
 fnal:qick:xcom:1.0\
+xilinx.com:ip:system_ila:1.1\
 "
 
    set list_ips_missing ""
@@ -1386,57 +1381,12 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   ] $qick_processor_0
 
 
-  # Create instance: xlconcat_0, and set properties
-  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
-
-  # Create instance: xlconcat_1, and set properties
-  set xlconcat_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_1 ]
-
-  # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  # Create instance: xcom_0, and set properties
+  set xcom_0 [ create_bd_cell -type ip -vlnv fnal:qick:xcom:1.0 xcom_0 ]
   set_property -dict [list \
-    CONFIG.CONST_VAL {0} \
-    CONFIG.CONST_WIDTH {32} \
-  ] $xlconstant_0
-
-
-  # Create instance: system_ila_0, and set properties
-  set system_ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_0 ]
-  set_property -dict [list \
-    CONFIG.C_ADV_TRIGGER {true} \
-    CONFIG.C_EN_STRG_QUAL {1} \
-    CONFIG.C_MON_TYPE {NATIVE} \
-    CONFIG.C_NUM_OF_PROBES {12} \
-  ] $system_ila_0
-
-
-  # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
-  set_property CONFIG.CONST_VAL {0} $xlconstant_1
-
-
-  # Create instance: system_ila_1, and set properties
-  set system_ila_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_1 ]
-  set_property -dict [list \
-    CONFIG.C_ADV_TRIGGER {true} \
-    CONFIG.C_EN_STRG_QUAL {1} \
-    CONFIG.C_MON_TYPE {NATIVE} \
-    CONFIG.C_NUM_OF_PROBES {16} \
-  ] $system_ila_1
-
-
-  # Create instance: xcom_axil_slv_0, and set properties
-  set xcom_axil_slv_0 [ create_bd_cell -type ip -vlnv user.org:user:xcom_axil_slv:1.0 xcom_axil_slv_0 ]
-
-  # Create instance: xcom_cdc_0, and set properties
-  set xcom_cdc_0 [ create_bd_cell -type ip -vlnv user.org:user:xcom_cdc:1.0 xcom_cdc_0 ]
-
-  # Create instance: xcom_cmd_0, and set properties
-  set xcom_cmd_0 [ create_bd_cell -type ip -vlnv user.org:user:xcom_cmd:1.0 xcom_cmd_0 ]
-
-  # Create instance: xcom_txrx_0, and set properties
-  set xcom_txrx_0 [ create_bd_cell -type ip -vlnv user.org:user:xcom_txrx:1.0 xcom_txrx_0 ]
-  set_property CONFIG.NCH {2} $xcom_txrx_0
+    CONFIG.NCH {2} \
+    CONFIG.SYNC {1} \
+  ] $xcom_0
 
 
   # Create instance: xcom_1, and set properties
@@ -1445,6 +1395,16 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
     CONFIG.NCH {2} \
     CONFIG.SYNC {0} \
   ] $xcom_1
+
+
+  # Create instance: system_ila_0, and set properties
+  set system_ila_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:system_ila:1.1 system_ila_0 ]
+  set_property -dict [list \
+    CONFIG.C_MON_TYPE {NATIVE} \
+    CONFIG.C_NUM_OF_PROBES {16} \
+    CONFIG.C_TRIGIN_EN {false} \
+    CONFIG.C_TRIGOUT_EN {false} \
+  ] $system_ila_0
 
 
   # Create interface connections
@@ -1458,9 +1418,13 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M00_AXI [get_bd_intf_pins ps8_0_axi_periph/M00_AXI] [get_bd_intf_pins xcom_1/s_axi]
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M01_AXI [get_bd_intf_pins ps8_0_axi_periph/M01_AXI] [get_bd_intf_pins axi_dma_tproc/S_AXI_LITE]
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M02_AXI [get_bd_intf_pins ps8_0_axi_periph/M02_AXI] [get_bd_intf_pins qick_processor_0/s_axi]
-  connect_bd_intf_net -intf_net ps8_0_axi_periph_M03_AXI [get_bd_intf_pins ps8_0_axi_periph/M03_AXI] [get_bd_intf_pins xcom_axil_slv_0/s_axi]
+  connect_bd_intf_net -intf_net ps8_0_axi_periph_M03_AXI [get_bd_intf_pins xcom_0/s_axi] [get_bd_intf_pins ps8_0_axi_periph/M03_AXI]
+  connect_bd_intf_net -intf_net qick_processor_0_QPeriphA [get_bd_intf_pins qick_processor_0/QPeriphA] [get_bd_intf_pins xcom_0/QICK_PERIPHERAL]
   connect_bd_intf_net -intf_net qick_processor_0_QPeriphB [get_bd_intf_pins xcom_1/QICK_PERIPHERAL] [get_bd_intf_pins qick_processor_0/QPeriphB]
   connect_bd_intf_net -intf_net qick_processor_0_m_dma_axis_o [get_bd_intf_pins axi_dma_tproc/S_AXIS_S2MM] [get_bd_intf_pins qick_processor_0/m_dma_axis_o]
+  connect_bd_intf_net -intf_net xcom_2_CORE_CTRL [get_bd_intf_pins xcom_0/CORE_CTRL] [get_bd_intf_pins qick_processor_0/CORE_CTRL]
+  connect_bd_intf_net -intf_net xcom_2_PROC_CTRL [get_bd_intf_pins xcom_0/PROC_CTRL] [get_bd_intf_pins qick_processor_0/PROC_CTRL]
+  connect_bd_intf_net -intf_net xcom_2_TIME_CTRL [get_bd_intf_pins xcom_0/TIME_CTRL] [get_bd_intf_pins qick_processor_0/TIME_CTRL]
   connect_bd_intf_net -intf_net xcom_cko_buf1_CLK_OUT_D3 [get_bd_intf_ports XCOM_CKO1] [get_bd_intf_pins xcom_cko_buf1/CLK_OUT_D3]
   connect_bd_intf_net -intf_net xcom_cko_buf_CLK_OUT_D3 [get_bd_intf_ports XCOM_CKO] [get_bd_intf_pins xcom_cko_buf/CLK_OUT_D3]
   connect_bd_intf_net -intf_net xcom_dto_buf1_CLK_OUT_D3 [get_bd_intf_ports XCOM_DTO1] [get_bd_intf_pins xcom_dto_buf1/CLK_OUT_D3]
@@ -1468,79 +1432,33 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_FPD [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_FPD] [get_bd_intf_pins ps8_0_axi_periph/S00_AXI]
 
   # Create port connections
-  connect_bd_net -net Net [get_bd_pins cat_dt/dout] [get_bd_pins system_ila_1/probe12] [get_bd_pins xcom_txrx_0/i_xcom_data] [get_bd_pins xcom_1/i_xcom_data]
-  connect_bd_net -net Net1 [get_bd_pins rst_tproc/peripheral_aresetn] [get_bd_pins axis_constant_0/m_axis_aresetn] [get_bd_pins qick_processor_0/c_resetn] [get_bd_pins xcom_cdc_0/i_core_rstn] [get_bd_pins xcom_1/i_core_rstn]
-  connect_bd_net -net cat_ck_dout [get_bd_pins cat_ck/dout] [get_bd_pins system_ila_1/probe13] [get_bd_pins xcom_txrx_0/i_xcom_clk] [get_bd_pins xcom_1/i_xcom_clk]
+  connect_bd_net -net Net [get_bd_pins cat_dt/dout] [get_bd_pins xcom_0/i_xcom_data] [get_bd_pins xcom_1/i_xcom_data] [get_bd_pins system_ila_0/probe1]
+  connect_bd_net -net Net1 [get_bd_pins rst_tproc/peripheral_aresetn] [get_bd_pins axis_constant_0/m_axis_aresetn] [get_bd_pins qick_processor_0/c_resetn] [get_bd_pins xcom_0/i_core_rstn] [get_bd_pins xcom_1/i_core_rstn]
+  connect_bd_net -net cat_ck_dout [get_bd_pins cat_ck/dout] [get_bd_pins xcom_0/i_xcom_clk] [get_bd_pins xcom_1/i_xcom_clk] [get_bd_pins system_ila_0/probe0]
   connect_bd_net -net clk_adc2_x2_locked [get_bd_pins clk_t_clk/locked] [get_bd_pins rst_adc2_x2/dcm_locked]
   connect_bd_net -net clk_c_clk_locked [get_bd_pins clk_c_clk/locked] [get_bd_pins rst_tproc/dcm_locked]
-  connect_bd_net -net clk_t_clk [get_bd_pins clk_t_clk/clk_out1] [get_bd_pins rst_adc2_x2/slowest_sync_clk] [get_bd_pins qick_processor_0/t_clk_i] [get_bd_pins system_ila_0/clk] [get_bd_pins system_ila_1/clk] [get_bd_pins xcom_cdc_0/i_time_clk] [get_bd_pins xcom_cmd_0/i_clk] [get_bd_pins xcom_txrx_0/i_clk] [get_bd_pins xcom_1/i_time_clk]
-  connect_bd_net -net qick_processor_0_qp1_a_dt_o [get_bd_pins qick_processor_0/qp1_a_dt_o] [get_bd_pins xcom_cdc_0/i_core_data1]
-  connect_bd_net -net qick_processor_0_qp1_b_dt_o [get_bd_pins qick_processor_0/qp1_b_dt_o] [get_bd_pins xcom_cdc_0/i_core_data2]
-  connect_bd_net -net qick_processor_0_qp1_en_o [get_bd_pins qick_processor_0/qp1_en_o] [get_bd_pins xcom_cdc_0/i_core_en]
-  connect_bd_net -net qick_processor_0_qp1_op_o [get_bd_pins qick_processor_0/qp1_op_o] [get_bd_pins xcom_cdc_0/i_core_op]
+  connect_bd_net -net clk_t_clk [get_bd_pins clk_t_clk/clk_out1] [get_bd_pins rst_adc2_x2/slowest_sync_clk] [get_bd_pins qick_processor_0/t_clk_i] [get_bd_pins xcom_0/i_time_clk] [get_bd_pins xcom_1/i_time_clk] [get_bd_pins system_ila_0/clk]
   connect_bd_net -net qick_processor_0_trig_0_o [get_bd_pins qick_processor_0/trig_0_o] [get_bd_ports PMOD0_0]
   connect_bd_net -net qick_processor_0_trig_1_o [get_bd_pins qick_processor_0/trig_1_o] [get_bd_ports PMOD0_1]
-  connect_bd_net -net rst_adc2_x2_peripheral_aresetn [get_bd_pins rst_adc2_x2/peripheral_aresetn] [get_bd_pins qick_processor_0/t_resetn] [get_bd_pins xcom_cdc_0/i_time_rstn] [get_bd_pins xcom_cmd_0/i_rstn] [get_bd_pins xcom_txrx_0/i_rstn] [get_bd_pins xcom_1/i_time_rstn]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_100/peripheral_aresetn] [get_bd_pins axi_dma_tproc/axi_resetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins qick_processor_0/ps_resetn] [get_bd_pins xcom_axil_slv_0/reset_n] [get_bd_pins xcom_cdc_0/i_ps_rstn] [get_bd_pins xcom_1/i_ps_rstn]
-  connect_bd_net -net usp_rf_data_converter_0_clk_adc0 [get_bd_pins clk_c_clk/clk_out1] [get_bd_pins axis_constant_0/m_axis_aclk] [get_bd_pins rst_tproc/slowest_sync_clk] [get_bd_pins qick_processor_0/c_clk_i] [get_bd_pins xcom_cdc_0/i_core_clk] [get_bd_pins xcom_1/i_core_clk]
-  connect_bd_net -net xcom_2_o_xcom_clk [get_bd_pins xcom_1/o_xcom_clk] [get_bd_pins cat_ck/In1]
-  connect_bd_net -net xcom_2_o_xcom_data [get_bd_pins xcom_1/o_xcom_data] [get_bd_pins cat_dt/In1]
-  connect_bd_net -net xcom_axil_slv_0_o_axi_data1 [get_bd_pins xcom_axil_slv_0/o_xcom_axi_data1] [get_bd_pins system_ila_0/probe2] [get_bd_pins xcom_cdc_0/i_axi_data1]
-  connect_bd_net -net xcom_axil_slv_0_o_axi_data2 [get_bd_pins xcom_axil_slv_0/o_xcom_axi_data2] [get_bd_pins system_ila_0/probe3] [get_bd_pins xcom_cdc_0/i_axi_data2]
-  connect_bd_net -net xcom_axil_slv_0_o_xcom_cfg [get_bd_pins xcom_axil_slv_0/o_xcom_cfg] [get_bd_pins system_ila_0/probe1] [get_bd_pins xcom_cdc_0/i_xcom_cfg]
-  connect_bd_net -net xcom_axil_slv_0_o_xcom_ctrl [get_bd_pins xcom_axil_slv_0/o_xcom_ctrl] [get_bd_pins system_ila_0/probe0] [get_bd_pins xcom_cdc_0/i_xcom_ctrl]
-  connect_bd_net -net xcom_cdc_0_o_axi_data1_sync [get_bd_pins xcom_cdc_0/o_axi_data1_sync] [get_bd_pins xlconcat_1/In0]
-  connect_bd_net -net xcom_cdc_0_o_axi_data2_sync [get_bd_pins xcom_cdc_0/o_axi_data2_sync] [get_bd_pins xlconcat_1/In1]
-  connect_bd_net -net xcom_cdc_0_o_core_data1_sync [get_bd_pins xcom_cdc_0/o_core_data1_sync] [get_bd_pins xlconcat_0/In0]
-  connect_bd_net -net xcom_cdc_0_o_core_data2_sync [get_bd_pins xcom_cdc_0/o_core_data2_sync] [get_bd_pins xlconcat_0/In1]
-  connect_bd_net -net xcom_cdc_0_o_core_en_sync [get_bd_pins xcom_cdc_0/o_core_en_sync] [get_bd_pins xcom_cmd_0/i_core_en]
-  connect_bd_net -net xcom_cdc_0_o_core_flag_sync [get_bd_pins xcom_cdc_0/o_core_flag_sync] [get_bd_pins qick_processor_0/qp1_flag_i]
-  connect_bd_net -net xcom_cdc_0_o_core_op_sync [get_bd_pins xcom_cdc_0/o_core_op_sync] [get_bd_pins xcom_cmd_0/i_core_op]
-  connect_bd_net -net xcom_cdc_0_o_core_ready_sync [get_bd_pins xcom_cdc_0/o_core_ready_sync] [get_bd_pins qick_processor_0/qp1_rdy_i]
-  connect_bd_net -net xcom_cdc_0_o_core_valid_sync [get_bd_pins xcom_cdc_0/o_core_valid_sync] [get_bd_pins qick_processor_0/qp1_vld_i]
-  connect_bd_net -net xcom_cdc_0_o_xcom_cfg_sync [get_bd_pins xcom_cdc_0/o_xcom_cfg_sync] [get_bd_pins system_ila_1/probe11] [get_bd_pins xcom_txrx_0/i_cfg_tick]
-  connect_bd_net -net xcom_cdc_0_o_xcom_ctrl_sync [get_bd_pins xcom_cdc_0/o_xcom_ctrl_sync] [get_bd_pins xcom_cmd_0/i_ps_ctrl]
-  connect_bd_net -net xcom_cdc_0_o_xcom_data1_sync [get_bd_pins xcom_cdc_0/o_xcom_data1_sync] [get_bd_pins system_ila_0/probe6] [get_bd_pins xcom_axil_slv_0/i_xcom_data1]
-  connect_bd_net -net xcom_cdc_0_o_xcom_data2_sync [get_bd_pins xcom_cdc_0/o_xcom_data2_sync] [get_bd_pins system_ila_0/probe7] [get_bd_pins xcom_axil_slv_0/i_xcom_data2]
-  connect_bd_net -net xcom_cdc_0_o_xcom_debug_sync [get_bd_pins xcom_cdc_0/o_xcom_debug_sync] [get_bd_pins system_ila_0/probe11] [get_bd_pins xcom_axil_slv_0/i_xcom_debug]
-  connect_bd_net -net xcom_cdc_0_o_xcom_flag_sync [get_bd_pins xcom_cdc_0/o_xcom_flag_sync] [get_bd_pins system_ila_0/probe5] [get_bd_pins xcom_axil_slv_0/i_xcom_flag]
-  connect_bd_net -net xcom_cdc_0_o_xcom_id_sync [get_bd_pins xcom_cdc_0/o_xcom_id_sync] [get_bd_pins system_ila_0/probe4] [get_bd_pins xcom_axil_slv_0/i_board_id]
-  connect_bd_net -net xcom_cdc_0_o_xcom_rx_data_sync [get_bd_pins xcom_cdc_0/o_xcom_rx_data_sync] [get_bd_pins system_ila_0/probe8] [get_bd_pins xcom_axil_slv_0/i_xcom_rx_data]
-  connect_bd_net -net xcom_cdc_0_o_xcom_status_sync [get_bd_pins xcom_cdc_0/o_xcom_status_sync] [get_bd_pins system_ila_0/probe10] [get_bd_pins xcom_axil_slv_0/i_xcom_status]
-  connect_bd_net -net xcom_cdc_0_o_xcom_tx_data_sync [get_bd_pins xcom_cdc_0/o_xcom_tx_data_sync] [get_bd_pins system_ila_0/probe9] [get_bd_pins xcom_axil_slv_0/i_xcom_tx_data]
-  connect_bd_net -net xcom_cki_buf_IBUF_OUT [get_bd_pins xcom_cki_buf/IBUF_OUT] [get_bd_pins cat_ck/In0]
-  connect_bd_net -net xcom_cmd_0_o_data [get_bd_pins xcom_cmd_0/o_data] [get_bd_pins xcom_txrx_0/i_data]
-  connect_bd_net -net xcom_cmd_0_o_data_cntr [get_bd_pins xcom_cmd_0/o_data_cntr] [get_bd_pins system_ila_1/probe15]
-  connect_bd_net -net xcom_cmd_0_o_op [get_bd_pins xcom_cmd_0/o_op] [get_bd_pins system_ila_1/probe14] [get_bd_pins xcom_txrx_0/i_header]
-  connect_bd_net -net xcom_cmd_0_o_req_loc [get_bd_pins xcom_cmd_0/o_req_loc] [get_bd_pins system_ila_1/probe9] [get_bd_pins xcom_txrx_0/i_req_loc]
-  connect_bd_net -net xcom_cmd_0_o_req_net [get_bd_pins xcom_cmd_0/o_req_net] [get_bd_pins system_ila_1/probe10] [get_bd_pins xcom_txrx_0/i_req_net]
-  connect_bd_net -net xcom_dti_buf_IBUF_OUT [get_bd_pins xcom_dti_buf/IBUF_OUT] [get_bd_pins cat_dt/In0]
-  connect_bd_net -net xcom_txrx_0_o_ack_loc [get_bd_pins xcom_txrx_0/o_ack_loc] [get_bd_pins system_ila_1/probe0] [get_bd_pins xcom_cmd_0/i_ack_loc]
-  connect_bd_net -net xcom_txrx_0_o_ack_net [get_bd_pins xcom_txrx_0/o_ack_net] [get_bd_pins system_ila_1/probe1] [get_bd_pins xcom_cmd_0/i_ack_net]
-  connect_bd_net -net xcom_txrx_0_o_core_start [get_bd_pins xcom_txrx_0/o_core_start] [get_bd_pins qick_processor_0/core_start_i]
-  connect_bd_net -net xcom_txrx_0_o_core_stop [get_bd_pins xcom_txrx_0/o_core_stop] [get_bd_pins qick_processor_0/core_stop_i]
-  connect_bd_net -net xcom_txrx_0_o_dbg_data [get_bd_pins xcom_txrx_0/o_dbg_data] [get_bd_pins system_ila_1/probe8] [get_bd_pins xcom_cdc_0/i_xcom_debug]
-  connect_bd_net -net xcom_txrx_0_o_dbg_rx_data [get_bd_pins xcom_txrx_0/o_dbg_rx_data] [get_bd_pins system_ila_1/probe5] [get_bd_pins xcom_cdc_0/i_xcom_rx_data]
-  connect_bd_net -net xcom_txrx_0_o_dbg_status [get_bd_pins xcom_txrx_0/o_dbg_status] [get_bd_pins system_ila_1/probe7] [get_bd_pins xcom_cdc_0/i_xcom_status]
-  connect_bd_net -net xcom_txrx_0_o_dbg_tx_data [get_bd_pins xcom_txrx_0/o_dbg_tx_data] [get_bd_pins system_ila_1/probe6] [get_bd_pins xcom_cdc_0/i_xcom_tx_data]
-  connect_bd_net -net xcom_txrx_0_o_proc_start [get_bd_pins xcom_txrx_0/o_proc_start] [get_bd_pins qick_processor_0/proc_start_i]
-  connect_bd_net -net xcom_txrx_0_o_proc_stop [get_bd_pins xcom_txrx_0/o_proc_stop] [get_bd_pins qick_processor_0/proc_stop_i]
-  connect_bd_net -net xcom_txrx_0_o_qp_data1 [get_bd_pins xcom_txrx_0/o_qp_data1] [get_bd_pins qick_processor_0/qp1_dt1_i]
-  connect_bd_net -net xcom_txrx_0_o_qp_data2 [get_bd_pins xcom_txrx_0/o_qp_data2] [get_bd_pins qick_processor_0/qp1_dt2_i]
-  connect_bd_net -net xcom_txrx_0_o_qp_flag [get_bd_pins xcom_txrx_0/o_qp_flag] [get_bd_pins xcom_cdc_0/i_core_flag]
-  connect_bd_net -net xcom_txrx_0_o_qp_ready [get_bd_pins xcom_txrx_0/o_qp_ready] [get_bd_pins xcom_cdc_0/i_core_ready]
-  connect_bd_net -net xcom_txrx_0_o_qp_valid [get_bd_pins xcom_txrx_0/o_qp_valid] [get_bd_pins xcom_cdc_0/i_core_valid]
-  connect_bd_net -net xcom_txrx_0_o_time_rst [get_bd_pins xcom_txrx_0/o_time_rst] [get_bd_pins qick_processor_0/time_rst_i]
-  connect_bd_net -net xcom_txrx_0_o_time_update [get_bd_pins xcom_txrx_0/o_time_update] [get_bd_pins qick_processor_0/time_updt_i]
-  connect_bd_net -net xcom_txrx_0_o_time_update_data [get_bd_pins xcom_txrx_0/o_time_update_data] [get_bd_pins qick_processor_0/time_dt_i]
-  connect_bd_net -net xcom_txrx_0_o_xcom_clk [get_bd_pins xcom_txrx_0/o_xcom_clk] [get_bd_pins xcom_cko_buf1/OBUF_IN] [get_bd_pins xcom_cko_buf/OBUF_IN] [get_bd_pins system_ila_1/probe4]
-  connect_bd_net -net xcom_txrx_0_o_xcom_data [get_bd_pins xcom_txrx_0/o_xcom_data] [get_bd_pins xcom_dto_buf/OBUF_IN] [get_bd_pins xcom_dto_buf1/OBUF_IN] [get_bd_pins system_ila_1/probe3]
-  connect_bd_net -net xcom_txrx_0_o_xcom_id [get_bd_pins xcom_txrx_0/o_xcom_id] [get_bd_ports xcom_id_o_0] [get_bd_pins system_ila_1/probe2] [get_bd_pins xcom_cdc_0/i_xcom_id]
-  connect_bd_net -net xlconcat_0_dout [get_bd_pins xlconcat_0/dout] [get_bd_pins xcom_cmd_0/i_core_data]
-  connect_bd_net -net xlconcat_1_dout [get_bd_pins xlconcat_1/dout] [get_bd_pins xcom_cmd_0/i_ps_data]
-  connect_bd_net -net xlconstant_0_dout [get_bd_pins xlconstant_0/dout] [get_bd_pins xcom_axil_slv_0/i_xcom_mem]
-  connect_bd_net -net xlconstant_1_dout [get_bd_pins xlconstant_1/dout] [get_bd_pins xcom_txrx_0/i_sync]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins axi_dma_tproc/s_axi_lite_aclk] [get_bd_pins axi_dma_tproc/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/m_axi_s2mm_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins clk_c_clk/clk_in1] [get_bd_pins clk_t_clk/clk_in1] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins rst_100/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/saxihpc0_fpd_aclk] [get_bd_pins qick_processor_0/ps_clk_i] [get_bd_pins xcom_axil_slv_0/clk] [get_bd_pins xcom_cdc_0/i_ps_clk] [get_bd_pins xcom_1/i_ps_clk]
+  connect_bd_net -net qick_xcom_0_xcom_ck_o [get_bd_pins xcom_0/o_xcom_clk] [get_bd_pins xcom_cko_buf/OBUF_IN] [get_bd_pins xcom_cko_buf1/OBUF_IN] [get_bd_pins system_ila_0/probe9]
+  connect_bd_net -net qick_xcom_0_xcom_dt_o [get_bd_pins xcom_0/o_xcom_data] [get_bd_pins xcom_dto_buf/OBUF_IN] [get_bd_pins xcom_dto_buf1/OBUF_IN] [get_bd_pins system_ila_0/probe10]
+  connect_bd_net -net rst_adc2_x2_peripheral_aresetn [get_bd_pins rst_adc2_x2/peripheral_aresetn] [get_bd_pins qick_processor_0/t_resetn] [get_bd_pins xcom_0/i_time_rstn] [get_bd_pins xcom_1/i_time_rstn]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_100/peripheral_aresetn] [get_bd_pins axi_dma_tproc/axi_resetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins qick_processor_0/ps_resetn] [get_bd_pins xcom_0/i_ps_rstn] [get_bd_pins xcom_1/i_ps_rstn]
+  connect_bd_net -net usp_rf_data_converter_0_clk_adc0 [get_bd_pins clk_c_clk/clk_out1] [get_bd_pins axis_constant_0/m_axis_aclk] [get_bd_pins rst_tproc/slowest_sync_clk] [get_bd_pins qick_processor_0/c_clk_i] [get_bd_pins xcom_0/i_core_clk] [get_bd_pins xcom_1/i_core_clk]
+  connect_bd_net -net xcom_0_o_core_start [get_bd_pins xcom_0/o_core_start] [get_bd_pins system_ila_0/probe4]
+  connect_bd_net -net xcom_0_o_core_stop [get_bd_pins xcom_0/o_core_stop] [get_bd_pins system_ila_0/probe5]
+  connect_bd_net -net xcom_0_o_proc_start [get_bd_pins xcom_0/o_proc_start] [get_bd_pins system_ila_0/probe2]
+  connect_bd_net -net xcom_0_o_proc_stop [get_bd_pins xcom_0/o_proc_stop] [get_bd_pins system_ila_0/probe3]
+  connect_bd_net -net xcom_0_o_time_rst [get_bd_pins xcom_0/o_time_rst] [get_bd_pins system_ila_0/probe7]
+  connect_bd_net -net xcom_0_o_time_update [get_bd_pins xcom_0/o_time_update] [get_bd_pins system_ila_0/probe8]
+  connect_bd_net -net xcom_0_o_time_update_data [get_bd_pins xcom_0/o_time_update_data] [get_bd_pins system_ila_0/probe6]
+  connect_bd_net -net xcom_1_o_xcom_id [get_bd_pins xcom_1/o_xcom_id] [get_bd_pins system_ila_0/probe13]
+  connect_bd_net -net xcom_2_o_xcom_clk [get_bd_pins xcom_1/o_xcom_clk] [get_bd_pins cat_ck/In1] [get_bd_pins system_ila_0/probe11]
+  connect_bd_net -net xcom_2_o_xcom_data [get_bd_pins xcom_1/o_xcom_data] [get_bd_pins cat_dt/In1] [get_bd_pins system_ila_0/probe12]
+  connect_bd_net -net xcom_2_o_xcom_id [get_bd_pins xcom_0/o_xcom_id] [get_bd_ports xcom_id_o_0]
+  connect_bd_net -net xcom_cki_buf_IBUF_OUT [get_bd_pins xcom_cki_buf/IBUF_OUT] [get_bd_pins cat_ck/In0] [get_bd_pins system_ila_0/probe14]
+  connect_bd_net -net xcom_dti_buf_IBUF_OUT [get_bd_pins xcom_dti_buf/IBUF_OUT] [get_bd_pins cat_dt/In0] [get_bd_pins system_ila_0/probe15]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins axi_dma_tproc/s_axi_lite_aclk] [get_bd_pins axi_dma_tproc/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/m_axi_s2mm_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins clk_c_clk/clk_in1] [get_bd_pins clk_t_clk/clk_in1] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins rst_100/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/saxihpc0_fpd_aclk] [get_bd_pins qick_processor_0/ps_clk_i] [get_bd_pins xcom_0/i_ps_clk] [get_bd_pins xcom_1/i_ps_clk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] [get_bd_pins clk_c_clk/resetn] [get_bd_pins clk_t_clk/resetn] [get_bd_pins rst_100/ext_reset_in] [get_bd_pins rst_adc2_x2/ext_reset_in] [get_bd_pins rst_tproc/ext_reset_in]
 
   # Create address segments
@@ -1548,8 +1466,8 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_dma_tproc/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP0/HPC0_DDR_LOW] -force
   assign_bd_address -offset 0xA0010000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs axi_dma_tproc/S_AXI_LITE/Reg] -force
   assign_bd_address -offset 0xA0020000 -range 0x00010000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs qick_processor_0/s_axi/reg0] -force
+  assign_bd_address -offset 0xA0000000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs xcom_0/s_axi/reg0] -force
   assign_bd_address -offset 0xA0001000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs xcom_1/s_axi/reg0] -force
-  assign_bd_address -offset 0xA0000000 -range 0x00001000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs xcom_axil_slv_0/s_axi/reg0] -force
 
   # Exclude Address Segments
   exclude_bd_addr_seg -offset 0x000800000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces axi_dma_tproc/Data_MM2S] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP0/HPC0_DDR_HIGH]
@@ -1560,144 +1478,94 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   # Perform GUI Layout
   regenerate_bd_layout -layout_string {
    "ActiveEmotionalView":"Default View",
-   "Default View_ScaleFactor":"0.585687",
-   "Default View_TopLeft":"1472,907",
+   "Default View_ScaleFactor":"0.619776",
+   "Default View_TopLeft":"2065,3",
    "ExpandedHierarchyInLayout":"",
    "guistr":"# # String gsaved with Nlview 7.5.8 2022-09-21 7111 VDI=41 GEI=38 GUI=JA:10.0 TLS
 #  -string -flagsOSRD
-preplace port XCOM_CK -pg 1 -lvl 0 -x -10 -y 2180 -defaultsOSRD
-preplace port XCOM_DT -pg 1 -lvl 0 -x -10 -y 2050 -defaultsOSRD
-preplace port XCOM_CKO -pg 1 -lvl 11 -x 4760 -y 1850 -defaultsOSRD
-preplace port XCOM_DTO -pg 1 -lvl 11 -x 4760 -y 2050 -defaultsOSRD
-preplace port XCOM_CKO1 -pg 1 -lvl 11 -x 4760 -y 1950 -defaultsOSRD
-preplace port XCOM_DTO1 -pg 1 -lvl 11 -x 4760 -y 2150 -defaultsOSRD
-preplace port port-id_PMOD0_0 -pg 1 -lvl 11 -x 4760 -y 2200 -defaultsOSRD
-preplace port port-id_PMOD0_1 -pg 1 -lvl 11 -x 4760 -y 2220 -defaultsOSRD
-preplace portBus xcom_id_o_0 -pg 1 -lvl 11 -x 4760 -y 1790 -defaultsOSRD
-preplace inst axi_dma_tproc -pg 1 -lvl 6 -x 2790 -y 1180 -defaultsOSRD
-preplace inst axi_smc -pg 1 -lvl 2 -x 550 -y 1800 -defaultsOSRD
-preplace inst axis_constant_0 -pg 1 -lvl 4 -x 1550 -y 1410 -defaultsOSRD
-preplace inst cat_dt -pg 1 -lvl 5 -x 2080 -y 2040 -defaultsOSRD
-preplace inst clk_c_clk -pg 1 -lvl 4 -x 1550 -y 1940 -defaultsOSRD
-preplace inst clk_t_clk -pg 1 -lvl 3 -x 1020 -y 1950 -defaultsOSRD
-preplace inst ps8_0_axi_periph -pg 1 -lvl 4 -x 1550 -y 1150 -defaultsOSRD
-preplace inst rst_100 -pg 1 -lvl 1 -x 200 -y 1840 -defaultsOSRD
-preplace inst rst_adc2_x2 -pg 1 -lvl 4 -x 1550 -y 1770 -defaultsOSRD
-preplace inst rst_tproc -pg 1 -lvl 5 -x 2080 -y 1890 -defaultsOSRD
-preplace inst cat_ck -pg 1 -lvl 5 -x 2080 -y 2190 -defaultsOSRD
-preplace inst zynq_ultra_ps_e_0 -pg 1 -lvl 3 -x 1020 -y 1770 -defaultsOSRD
-preplace inst xcom_cko_buf -pg 1 -lvl 10 -x 4600 -y 1850 -defaultsOSRD
-preplace inst xcom_dto_buf -pg 1 -lvl 10 -x 4600 -y 2050 -defaultsOSRD
-preplace inst xcom_cki_buf -pg 1 -lvl 4 -x 1550 -y 2180 -defaultsOSRD
-preplace inst xcom_dti_buf -pg 1 -lvl 4 -x 1550 -y 2050 -defaultsOSRD
-preplace inst xcom_cko_buf1 -pg 1 -lvl 10 -x 4600 -y 1950 -defaultsOSRD
-preplace inst xcom_dto_buf1 -pg 1 -lvl 10 -x 4600 -y 2150 -defaultsOSRD
-preplace inst qick_processor_0 -pg 1 -lvl 5 -x 2080 -y 1310 -defaultsOSRD
-preplace inst xlconcat_0 -pg 1 -lvl 7 -x 3260 -y 790 -defaultsOSRD
-preplace inst xlconcat_1 -pg 1 -lvl 7 -x 3260 -y 940 -defaultsOSRD
-preplace inst xlconstant_0 -pg 1 -lvl 4 -x 1550 -y 860 -defaultsOSRD
-preplace inst system_ila_0 -pg 1 -lvl 6 -x 2790 -y 180 -defaultsOSRD
-preplace inst xlconstant_1 -pg 1 -lvl 8 -x 3610 -y 1370 -defaultsOSRD
-preplace inst system_ila_1 -pg 1 -lvl 10 -x 4600 -y 1570 -defaultsOSRD
-preplace inst xcom_axil_slv_0 -pg 1 -lvl 5 -x 2080 -y 830 -defaultsOSRD
-preplace inst xcom_cdc_0 -pg 1 -lvl 6 -x 2790 -y 640 -defaultsOSRD
-preplace inst xcom_cmd_0 -pg 1 -lvl 8 -x 3610 -y 1130 -defaultsOSRD
-preplace inst xcom_txrx_0 -pg 1 -lvl 9 -x 4050 -y 1280 -defaultsOSRD
-preplace inst xcom_1 -pg 1 -lvl 6 -x 2790 -y 1840 -defaultsOSRD
-preplace netloc Net 1 5 5 2480 2040 3090J 1700 NJ 1700 3780 1690 4450J
-preplace netloc Net1 1 3 3 1370 1480 1840 1580 2420
-preplace netloc cat_ck_dout 1 5 5 2450 2070 3120J 1710 NJ 1710 3800 1700 4460J
-preplace netloc clk_adc2_x2_locked 1 3 1 1360 1810n
-preplace netloc clk_c_clk_locked 1 4 1 1880 1930n
-preplace netloc clk_t_clk 1 3 7 1340 1590 1820 1590 2380 1340 NJ 1340 3440 1280 3870 1560 4380J
-preplace netloc qick_processor_0_qp1_a_dt_o 1 5 1 2430 590n
-preplace netloc qick_processor_0_qp1_b_dt_o 1 5 1 2440 610n
-preplace netloc qick_processor_0_qp1_en_o 1 5 1 2390 550n
-preplace netloc qick_processor_0_qp1_op_o 1 5 1 2370 570n
-preplace netloc qick_processor_0_trig_0_o 1 5 6 NJ 1420 NJ 1420 3370J 1430 3760J 2210 NJ 2210 4740J
-preplace netloc qick_processor_0_trig_1_o 1 5 6 2300J 2220 NJ 2220 NJ 2220 NJ 2220 NJ 2220 NJ
-preplace netloc rst_adc2_x2_peripheral_aresetn 1 4 5 1760 1600 2500 1330 3120J 1310 3410 1270 3780J
-preplace netloc rst_ps8_0_99M_peripheral_aresetn 1 1 5 390 1270 NJ 1270 1340 960 1810 640 2480
-preplace netloc usp_rf_data_converter_0_clk_adc0 1 3 3 1360 1490 1770 1610 2490
-preplace netloc xcom_2_o_xcom_clk 1 4 3 1890 2110 NJ 2110 3020
-preplace netloc xcom_2_o_xcom_data 1 4 3 1880 2120 NJ 2120 2990
-preplace netloc xcom_axil_slv_0_o_axi_data1 1 5 1 2320 120n
-preplace netloc xcom_axil_slv_0_o_axi_data2 1 5 1 2330 140n
-preplace netloc xcom_axil_slv_0_o_xcom_cfg 1 5 1 2310 100n
-preplace netloc xcom_axil_slv_0_o_xcom_ctrl 1 5 1 2300 80n
-preplace netloc xcom_cdc_0_o_axi_data1_sync 1 6 1 3100 660n
-preplace netloc xcom_cdc_0_o_axi_data2_sync 1 6 1 3090 680n
-preplace netloc xcom_cdc_0_o_core_data1_sync 1 6 1 3120 500n
-preplace netloc xcom_cdc_0_o_core_data2_sync 1 6 1 3110 520n
-preplace netloc xcom_cdc_0_o_core_en_sync 1 6 2 NJ 460 3460
-preplace netloc xcom_cdc_0_o_core_flag_sync 1 5 2 2440 1300 3050
-preplace netloc xcom_cdc_0_o_core_op_sync 1 6 2 NJ 480 3450
-preplace netloc xcom_cdc_0_o_core_ready_sync 1 5 2 2400 1310 3070
-preplace netloc xcom_cdc_0_o_core_valid_sync 1 5 2 NJ 1380 3060
-preplace netloc xcom_cdc_0_o_xcom_cfg_sync 1 6 4 NJ 640 NJ 640 3840 1650 NJ
-preplace netloc xcom_cdc_0_o_xcom_ctrl_sync 1 6 2 NJ 620 3430
-preplace netloc xcom_cdc_0_o_xcom_data1_sync 1 4 3 1870 650 2510 910 3000
-preplace netloc xcom_cdc_0_o_xcom_data2_sync 1 4 3 1850 360 2370 360 2990
-preplace netloc xcom_cdc_0_o_xcom_debug_sync 1 4 3 1860 370 2390 370 3080
-preplace netloc xcom_cdc_0_o_xcom_flag_sync 1 4 3 1880 660 2460 920 3020
-preplace netloc xcom_cdc_0_o_xcom_id_sync 1 4 3 1890 630 2450 930 3040
-preplace netloc xcom_cdc_0_o_xcom_rx_data_sync 1 4 3 1890 1000 2340 960 3030
-preplace netloc xcom_cdc_0_o_xcom_status_sync 1 4 3 1870 1010 2360 950 2990
-preplace netloc xcom_cdc_0_o_xcom_tx_data_sync 1 4 3 1850 1030 2350 970 3010
-preplace netloc xcom_cki_buf_IBUF_OUT 1 4 1 NJ 2180
-preplace netloc xcom_cmd_0_o_data 1 8 1 3860 1150n
-preplace netloc xcom_cmd_0_o_data_cntr 1 8 2 3770 1730 NJ
-preplace netloc xcom_cmd_0_o_op 1 8 2 3810 1710 NJ
-preplace netloc xcom_cmd_0_o_req_loc 1 8 2 3850 1610 NJ
-preplace netloc xcom_cmd_0_o_req_net 1 8 2 3830 1630 NJ
-preplace netloc xcom_dti_buf_IBUF_OUT 1 4 1 1730J 2030n
-preplace netloc xcom_txrx_0_o_ack_loc 1 7 3 3460 1670 NJ 1670 4410
-preplace netloc xcom_txrx_0_o_ack_net 1 7 3 3430 1680 NJ 1680 4400
-preplace netloc xcom_txrx_0_o_core_start 1 4 6 1780 1790 2270J 2000 NJ 2000 NJ 2000 NJ 2000 4240
-preplace netloc xcom_txrx_0_o_core_stop 1 4 6 1830 1770 2280J 2050 NJ 2050 NJ 2050 NJ 2050 4270
-preplace netloc xcom_txrx_0_o_dbg_data 1 5 5 2580 1580 NJ 1580 NJ 1580 NJ 1580 4390
-preplace netloc xcom_txrx_0_o_dbg_rx_data 1 5 5 2570 1600 NJ 1600 NJ 1600 NJ 1600 4370
-preplace netloc xcom_txrx_0_o_dbg_status 1 5 5 2560 1620 NJ 1620 NJ 1620 NJ 1620 4360
-preplace netloc xcom_txrx_0_o_dbg_tx_data 1 5 5 2590 1550 NJ 1550 NJ 1550 3790J 1570 4350
-preplace netloc xcom_txrx_0_o_proc_start 1 4 6 1850 1760 2290J 2060 NJ 2060 NJ 2060 NJ 2060 4330
-preplace netloc xcom_txrx_0_o_proc_stop 1 4 6 1860 1750 2320J 2010 NJ 2010 NJ 2010 NJ 2010 4310
-preplace netloc xcom_txrx_0_o_qp_data1 1 5 5 2390J 1590 NJ 1590 NJ 1590 NJ 1590 4280
-preplace netloc xcom_txrx_0_o_qp_data2 1 5 5 NJ 1320 NJ 1320 3450J 1310 3820J 1550 4250
-preplace netloc xcom_txrx_0_o_qp_flag 1 5 5 2540 2020 NJ 2020 NJ 2020 NJ 2020 4300
-preplace netloc xcom_txrx_0_o_qp_ready 1 5 5 2520 940 3080J 870 NJ 870 NJ 870 4230
-preplace netloc xcom_txrx_0_o_qp_valid 1 5 5 2530 2030 NJ 2030 NJ 2030 NJ 2030 4320
-preplace netloc xcom_txrx_0_o_time_rst 1 4 6 1790 1780 2310J 1990 NJ 1990 NJ 1990 NJ 1990 4290
-preplace netloc xcom_txrx_0_o_time_update 1 4 6 1870 1660 NJ 1660 NJ 1660 NJ 1660 NJ 1660 4260
-preplace netloc xcom_txrx_0_o_time_update_data 1 4 6 1890 1640 NJ 1640 NJ 1640 NJ 1640 NJ 1640 4230
-preplace netloc xcom_txrx_0_o_xcom_clk 1 9 1 4340 1410n
-preplace netloc xcom_txrx_0_o_xcom_data 1 9 1 4430 1390n
-preplace netloc xcom_txrx_0_o_xcom_id 1 5 6 2550 1690 3070J 1720 NJ 1720 NJ 1720 4440 1790 NJ
-preplace netloc xlconcat_0_dout 1 7 1 3420 790n
-preplace netloc xlconcat_1_dout 1 7 1 3370 940n
-preplace netloc xlconstant_0_dout 1 4 1 N 860
-preplace netloc xlconstant_1_dout 1 8 1 3760J 1230n
-preplace netloc zynq_ultra_ps_e_0_pl_clk0 1 0 6 20 1940 400 1930 700 1870 1350 970 1800 620 2470
-preplace netloc zynq_ultra_ps_e_0_pl_resetn0 1 0 5 10 1950 NJ 1950 710 1880 1370 1870 N
-preplace netloc CLK_IN_D_0_1 1 0 4 NJ 2180 NJ 2180 NJ 2180 NJ
-preplace netloc CLK_IN_D_1_1 1 0 4 NJ 2050 NJ 2050 NJ 2050 NJ
-preplace netloc axi_dma_0_M_AXI_MM2S 1 1 6 400 950 NJ 950 NJ 950 1830J 1020 NJ 1020 3000
-preplace netloc axi_dma_0_M_AXI_S2MM 1 1 6 410 1570 NJ 1570 NJ 1570 NJ 1570 NJ 1570 3010
-preplace netloc axi_dma_tproc_M_AXIS_MM2S 1 4 3 1880 1560 NJ 1560 2990
-preplace netloc axi_smc_M00_AXI 1 2 1 690 1730n
-preplace netloc axis_constant_0_m_axis 1 4 1 1740 1130n
-preplace netloc ps8_0_axi_periph_M00_AXI 1 4 2 1740 1070 2410J
-preplace netloc ps8_0_axi_periph_M01_AXI 1 4 2 1750 1550 2460J
-preplace netloc ps8_0_axi_periph_M02_AXI 1 4 1 1790 1160n
-preplace netloc ps8_0_axi_periph_M03_AXI 1 4 1 1730 720n
-preplace netloc qick_processor_0_QPeriphB 1 5 1 2330 1400n
-preplace netloc qick_processor_0_m_dma_axis_o 1 5 1 2450 1150n
-preplace netloc xcom_cko_buf1_CLK_OUT_D3 1 10 1 NJ 1950
-preplace netloc xcom_cko_buf_CLK_OUT_D3 1 10 1 NJ 1850
-preplace netloc xcom_dto_buf1_CLK_OUT_D3 1 10 1 NJ 2150
-preplace netloc xcom_dto_buf_CLK_OUT_D3 1 10 1 NJ 2050
-preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM0_FPD 1 3 1 1330 1030n
-levelinfo -pg 1 -10 200 550 1020 1550 2080 2790 3260 3610 4050 4600 4760
-pagesize -pg 1 -db -bbox -sgen -130 0 4940 2260
+preplace port XCOM_CK -pg 1 -lvl 0 -x 0 -y 1090 -defaultsOSRD
+preplace port XCOM_DT -pg 1 -lvl 0 -x 0 -y 1210 -defaultsOSRD
+preplace port XCOM_CKO -pg 1 -lvl 9 -x 3790 -y 980 -defaultsOSRD
+preplace port XCOM_DTO -pg 1 -lvl 9 -x 3790 -y 1280 -defaultsOSRD
+preplace port XCOM_CKO1 -pg 1 -lvl 9 -x 3790 -y 1080 -defaultsOSRD
+preplace port XCOM_DTO1 -pg 1 -lvl 9 -x 3790 -y 1180 -defaultsOSRD
+preplace port port-id_PMOD0_0 -pg 1 -lvl 9 -x 3790 -y 310 -defaultsOSRD
+preplace port port-id_PMOD0_1 -pg 1 -lvl 9 -x 3790 -y 330 -defaultsOSRD
+preplace portBus xcom_id_o_0 -pg 1 -lvl 9 -x 3790 -y 1340 -defaultsOSRD
+preplace inst axi_dma_tproc -pg 1 -lvl 7 -x 3080 -y 860 -defaultsOSRD
+preplace inst axi_smc -pg 1 -lvl 2 -x 560 -y 510 -defaultsOSRD
+preplace inst axis_constant_0 -pg 1 -lvl 5 -x 2050 -y 120 -defaultsOSRD
+preplace inst cat_dt -pg 1 -lvl 4 -x 1560 -y 1220 -defaultsOSRD
+preplace inst clk_c_clk -pg 1 -lvl 3 -x 1020 -y 240 -defaultsOSRD
+preplace inst clk_t_clk -pg 1 -lvl 3 -x 1020 -y 380 -defaultsOSRD
+preplace inst ps8_0_axi_periph -pg 1 -lvl 4 -x 1560 -y 830 -defaultsOSRD
+preplace inst rst_100 -pg 1 -lvl 1 -x 210 -y 990 -defaultsOSRD
+preplace inst rst_adc2_x2 -pg 1 -lvl 4 -x 1560 -y 470 -defaultsOSRD
+preplace inst rst_tproc -pg 1 -lvl 4 -x 1560 -y 270 -defaultsOSRD
+preplace inst cat_ck -pg 1 -lvl 4 -x 1560 -y 1080 -defaultsOSRD
+preplace inst zynq_ultra_ps_e_0 -pg 1 -lvl 3 -x 1020 -y 550 -defaultsOSRD
+preplace inst xcom_cko_buf -pg 1 -lvl 8 -x 3610 -y 980 -defaultsOSRD
+preplace inst xcom_dto_buf -pg 1 -lvl 8 -x 3610 -y 1280 -defaultsOSRD
+preplace inst xcom_cki_buf -pg 1 -lvl 3 -x 1020 -y 1090 -defaultsOSRD
+preplace inst xcom_dti_buf -pg 1 -lvl 3 -x 1020 -y 1210 -defaultsOSRD
+preplace inst xcom_cko_buf1 -pg 1 -lvl 8 -x 3610 -y 1080 -defaultsOSRD
+preplace inst xcom_dto_buf1 -pg 1 -lvl 8 -x 3610 -y 1180 -defaultsOSRD
+preplace inst qick_processor_0 -pg 1 -lvl 6 -x 2560 -y 170 -defaultsOSRD
+preplace inst xcom_0 -pg 1 -lvl 5 -x 2050 -y 560 -defaultsOSRD
+preplace inst xcom_1 -pg 1 -lvl 7 -x 3080 -y 500 -defaultsOSRD
+preplace inst system_ila_0 -pg 1 -lvl 8 -x 3610 -y 720 -defaultsOSRD
+preplace netloc Net 1 4 4 1830 350 2360J 360 2900 260 3490J
+preplace netloc Net1 1 4 3 1760 240 2330 510 NJ
+preplace netloc cat_ck_dout 1 4 4 1840 360 2340J 380 2910 270 3480J
+preplace netloc clk_adc2_x2_locked 1 3 1 1330 390n
+preplace netloc clk_c_clk_locked 1 3 1 1310 250n
+preplace netloc clk_t_clk 1 3 5 1380 370 1820 320 2400 390 2920 280 3470J
+preplace netloc qick_processor_0_trig_0_o 1 6 3 NJ 190 NJ 190 3750J
+preplace netloc qick_processor_0_trig_1_o 1 6 3 NJ 210 NJ 210 3740J
+preplace netloc qick_xcom_0_xcom_ck_o 1 5 3 2390 650 2720J 290 3410
+preplace netloc qick_xcom_0_xcom_dt_o 1 5 3 N 680 NJ 680 3270
+preplace netloc rst_adc2_x2_peripheral_aresetn 1 4 3 1790 310 2370 550 NJ
+preplace netloc rst_ps8_0_99M_peripheral_aresetn 1 1 6 430 660 NJ 660 1380 570 1780 340 2410 400 2830
+preplace netloc usp_rf_data_converter_0_clk_adc0 1 3 4 1350 160 1810 220 2350 490 NJ
+preplace netloc xcom_0_o_core_start 1 5 3 NJ 520 2730J 250 3460
+preplace netloc xcom_0_o_core_stop 1 5 3 NJ 540 2850J 660 3320
+preplace netloc xcom_0_o_proc_start 1 5 3 2340 430 2850J 300 3450J
+preplace netloc xcom_0_o_proc_stop 1 5 3 2360J 450 2710J 310 3440
+preplace netloc xcom_0_o_time_rst 1 5 3 2390 570 2870J 320 3430J
+preplace netloc xcom_0_o_time_update 1 5 3 N 620 2700J 670 3300J
+preplace netloc xcom_0_o_time_update_data 1 5 3 2360 560 2880J 330 3420J
+preplace netloc xcom_1_o_xcom_id 1 7 1 3310 480n
+preplace netloc xcom_2_o_xcom_clk 1 3 5 1390 1300 NJ 1300 NJ 1300 NJ 1300 3280
+preplace netloc xcom_2_o_xcom_data 1 3 5 1380 1010 1860J 740 NJ 740 NJ 740 3290
+preplace netloc xcom_2_o_xcom_id 1 5 4 2240J 630 2840J 240 NJ 240 3730J
+preplace netloc xcom_cki_buf_IBUF_OUT 1 3 5 1350J 1150 N 1150 N 1150 N 1150 3470
+preplace netloc xcom_dti_buf_IBUF_OUT 1 3 5 1350J 1290 N 1290 N 1290 N 1290 3490
+preplace netloc zynq_ultra_ps_e_0_pl_clk0 1 0 7 40 640 420 640 730 650 1370 580 1770 330 2390 420 2820
+preplace netloc zynq_ultra_ps_e_0_pl_resetn0 1 0 4 30 370 NJ 370 720 310 1320
+preplace netloc CLK_IN_D_0_1 1 0 3 NJ 1090 NJ 1090 NJ
+preplace netloc CLK_IN_D_1_1 1 0 3 NJ 1210 NJ 1210 NJ
+preplace netloc axi_dma_0_M_AXI_MM2S 1 1 7 430 170 NJ 170 NJ 170 1770J 190 2260J 640 2840J 650 3240
+preplace netloc axi_dma_0_M_AXI_S2MM 1 1 7 420 40 NJ 40 NJ 40 NJ 40 2380J 350 NJ 350 3250
+preplace netloc axi_dma_tproc_M_AXIS_MM2S 1 5 3 2420 340 NJ 340 3260
+preplace netloc axi_smc_M00_AXI 1 2 1 N 510
+preplace netloc axis_constant_0_m_axis 1 5 1 2240 60n
+preplace netloc ps8_0_axi_periph_M00_AXI 1 4 3 1800J 380 2270J 410 N
+preplace netloc ps8_0_axi_periph_M01_AXI 1 4 3 NJ 820 NJ 820 2920
+preplace netloc ps8_0_axi_periph_M02_AXI 1 4 2 1730J 50 2250
+preplace netloc ps8_0_axi_periph_M03_AXI 1 4 1 1850 460n
+preplace netloc qick_processor_0_QPeriphA 1 4 3 1860 370 NJ 370 2700
+preplace netloc qick_processor_0_QPeriphB 1 6 1 2890 170n
+preplace netloc qick_processor_0_m_dma_axis_o 1 6 1 2860 130n
+preplace netloc xcom_2_CORE_CTRL 1 5 1 2290 160n
+preplace netloc xcom_2_PROC_CTRL 1 5 1 2250 120n
+preplace netloc xcom_2_TIME_CTRL 1 5 1 2280 140n
+preplace netloc xcom_cko_buf1_CLK_OUT_D3 1 8 1 NJ 1080
+preplace netloc xcom_cko_buf_CLK_OUT_D3 1 8 1 NJ 980
+preplace netloc xcom_dto_buf1_CLK_OUT_D3 1 8 1 NJ 1180
+preplace netloc xcom_dto_buf_CLK_OUT_D3 1 8 1 NJ 1280
+preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM0_FPD 1 3 1 1310 520n
+levelinfo -pg 1 0 210 560 1020 1560 2050 2560 3080 3610 3790
+pagesize -pg 1 -db -bbox -sgen -120 0 3970 1360
 "
 }
 
