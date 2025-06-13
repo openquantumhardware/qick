@@ -78,6 +78,7 @@ always_ff @(posedge c_clk_i)
       tproc_ctrl_r    <= 0 ;
       tproc_ctrl_2r   <= 0 ;
       tproc_cfg_rcd   <= 0 ;
+      TPROC_CFG       <= 0 ;
    end else begin 
       tproc_ctrl_rcd  <= PS_TPROC_CTRL    ;
       tproc_ctrl_r    <= tproc_ctrl_rcd  ;

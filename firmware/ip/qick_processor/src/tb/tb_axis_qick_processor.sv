@@ -439,6 +439,8 @@ reg qcom_rdy_i, qpb_rdy_i;
 
 initial begin
 
+   $display("*** Start Test ***");
+   
    $display("AXI_WDATA_WIDTH %d",  `AXI_WDATA_WIDTH);
 
    $display("LFSR %d",  `LFSR);
@@ -471,10 +473,11 @@ initial begin
    //AXIS_QPROC.QPROC.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    
    
-   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   //$readmemb("/home/mdifeder/IPs/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/tb/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+//   $readmemb("/home/mdifeder/IPs/qick_processor/src/tb/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemb("prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    
   	// Create agents.
 	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_axis_qick_processor.axi_mst_0_i.inst.IF);
@@ -510,7 +513,7 @@ initial begin
    m_dma_axis_tready_i = 1'b1; 
    max_value   = 0;
    #10;
-   @ (posedge s_ps_dma_aclk); #0.1;
+   repeat(16) @ (posedge s_ps_dma_aclk); #0.1;
 	rst_ni = 1'b1;
    #10;
 
@@ -557,7 +560,7 @@ initial begin
    WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
    WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
 
-   #10000;
+   #1000;
 
 /*
 // CONFIGURE LFSR
@@ -605,7 +608,8 @@ initial begin
 */
 
 
-
+   $display("*** End Test ***");
+   $finish();
 end
 
 
@@ -636,6 +640,7 @@ end
 
 reg [15:0] axis_dma_len;
 task TEST_SINGLE_READ_AXI (); begin
+   $display("Running TEST_SINGLE_READ_AXI Task");
 
    //DATA MEMORY READ
    /////////////////////////////////////////////
@@ -699,6 +704,8 @@ end
 endtask
 
 task TEST_DMA_AXI (); begin
+   $display("Running TEST_DMA_AXI Task");
+
    //PROGRAM MEMORY WRITE
    /////////////////////////////////////////////
    // DATA LEN
@@ -828,7 +835,7 @@ endtask
 
 
 task WRITE_AXI(integer PORT_AXI, DATA_AXI); begin
-   //$display("Write to AXI");
+   $display("Running WRITE_AXI() Task");
    //$display("PORT %d",  PORT_AXI);
    //$display("DATA %d",  DATA_AXI);
    @ (posedge s_ps_dma_aclk); #0.1;
@@ -837,6 +844,7 @@ task WRITE_AXI(integer PORT_AXI, DATA_AXI); begin
 endtask
 
 task READ_AXI(integer ADDR_AXI); begin
+    $display("Running READ_AXI() Task");
    @ (posedge s_ps_dma_aclk); #0.1;
    axi_mst_0_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
       $display("READ AXI_DATA %d",  DATA_RD);
@@ -844,14 +852,14 @@ task READ_AXI(integer ADDR_AXI); begin
 endtask
 
 task COND_CLEAR; begin
-   $display("COND CLEAR");
+   $display("Running COND CLEAR Task");
    @ (posedge s_ps_dma_aclk); #0.1;
    axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 2048, resp);
    end
 endtask
 
 task COND_SET; begin
-   $display("COND SET");
+   $display("Running COND SET Task");
    @ (posedge s_ps_dma_aclk); #0.1;
    axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 20481024, resp);
    end
@@ -863,7 +871,7 @@ integer axi_addr ;
 integer num;
 
 task TEST_STATES; begin
-   $display("TEST TPROC STATES");
+   $display("Running TPROC TEST_STATES Task");
 
 // PROCESSOR START
    #100;
@@ -940,7 +948,7 @@ endtask
 
 
 task TEST_AXI (); begin
-   $display("-----Writting AXI ");
+   $display("Running TEST_AXI Task");
    WRITE_AXI( REG_TPROC_CTRL , 1); //TIME_RST
    WRITE_AXI( REG_TPROC_CTRL , 2); //TIME_UPDT
    WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
@@ -979,8 +987,3 @@ gray_2_bin gray_2_bin_inst (count_gray , count_bin_o );
 */
 
 endmodule
-
-
-
-
-
