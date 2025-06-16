@@ -9,7 +9,7 @@ set_property PACKAGE_PIN AK16 [ get_ports "PMOD0_7" ]
 set_property IOSTANDARD LVCMOS18 [ get_ports "PMOD0*"]
 
 set_property PACKAGE_PIN AW13 [ get_ports "PMOD1_0" ]
-set_property PACKAGE_PIN AR13 [ get_ports "PMOD1_1" ]
+#set_property PACKAGE_PIN AR13 [ get_ports "PMOD1_1" ]
 #set_property PACKAGE_PIN AU13 [ get_ports "PMOD1_2" ]
 #set_property PACKAGE_PIN AV13 [ get_ports "PMOD1_3" ]
 #set_property PACKAGE_PIN AU15 [ get_ports "PMOD1_4" ]
