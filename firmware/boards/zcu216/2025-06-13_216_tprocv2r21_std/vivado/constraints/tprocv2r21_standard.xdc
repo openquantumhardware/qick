@@ -21,8 +21,8 @@ set_property IOSTANDARD LVCMOS18 [get_ports PMOD0_7_LS]
 #set_property IOSTANDARD LVCMOS18 [get_ports PMOD1_1_LS]
 #set_property PACKAGE_PIN M14       [get_ports "PMOD1_2_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L3N_AD13N_88
 #set_property IOSTANDARD  LVCMOS18  [get_ports "PMOD1_2_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L3N_AD13N_88
-set_property PACKAGE_PIN N14       [get_ports "XCOM_ISYNC"] ;# Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
-set_property IOSTANDARD  LVCMOS18  [get_ports "XCOM_ISYNC"] ;# Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
+set_property PACKAGE_PIN N14       [get_ports "XCOM_ISYNC"]; # Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
+set_property IOSTANDARD  LVCMOS18  [get_ports "XCOM_ISYNC"]; # Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
 #set_property PACKAGE_PIN M15       [get_ports "PMOD1_4_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L2N_AD14N_88
 #set_property IOSTANDARD  LVCMOS18  [get_ports "PMOD1_4_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L2N_AD14N_88
 #set_property PACKAGE_PIN N15       [get_ports "PMOD1_5_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L2P_AD14P_88
@@ -32,21 +32,21 @@ set_property IOSTANDARD  LVCMOS18  [get_ports "XCOM_ISYNC"] ;# Bank  88 VCCO - V
 #set_property PACKAGE_PIN N16       [get_ports "PMOD1_7_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L1P_AD15P_88
 #set_property IOSTANDARD  LVCMOS18  [get_ports "PMOD1_7_LS"] ;# Bank  88 VCCO - VCC1V8   - IO_L1P_AD15P_88
 
-set clk_axi [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/s_axi_aclk]]]
+set clk_axi [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/usp_rf_data_converter_0/s_axi_aclk]]]
 
 # tProc core
-set clk_core [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_core/clk_out1]]]
+set clk_core [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/clk_core/clk_out1]]]
 
 # ADC/DAC
-set clk_adc2  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_adc2]]]
-#set clk_adc2_x2 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_adc2_x2/clk_out1]]]
+set clk_adc2  [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/usp_rf_data_converter_0/clk_adc2]]]
+#set clk_adc2_x2 [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/clk_adc2_x2/clk_out1]]]
 
-#set clk_dac1 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_dac1]]]
-set clk_dac0 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_dac0]]]
+#set clk_dac1 [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/usp_rf_data_converter_0/clk_dac1]]]
+set clk_dac0 [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/usp_rf_data_converter_0/clk_dac0]]]
 # this is also tProc timing clock
-set clk_dac2 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_dac2]]]
+set clk_dac2 [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/usp_rf_data_converter_0/clk_dac2]]]
 
-set clk_ddr4  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/ddr4/ddr4_0/c0_ddr4_ui_clk]]]
+set clk_ddr4  [get_clocks -of_objects [get_nets -of_objects [get_pins tprocv2r21_standard_i/ddr4/ddr4_0/c0_ddr4_ui_clk]]]
 
 # AXI clock to data clocks
 set_clock_group -name clk_axi_to_adc2 -asynchronous \
@@ -119,12 +119,12 @@ set_clock_group -name clk_ddr4_to_adc2 -asynchronous \
 #    -group [get_clocks $clk_adc2_x2]
 
 # readout triggers
-#set_false_path -through [get_cells d_1_i/qick_vec2bit_1]
-set_false_path -through [get_pins d_1_i/qick_processor_0/trig_*_o]
+#set_false_path -through [get_cells tprocv2r21_standard_i/qick_vec2bit_1]
+set_false_path -through [get_pins tprocv2r21_standard_i/qick_processor_0/trig_*_o]
 
 # reset
-set_false_path -through [get_pins d_1_i/rst_dac2/peripheral_aresetn[0]]
-set_false_path -through [get_pins d_1_i/rst_dac0/peripheral_aresetn[0]]
+set_false_path -through [get_pins tprocv2r21_standard_i/rst_dac2/peripheral_aresetn[0]]
+set_false_path -through [get_pins tprocv2r21_standard_i/rst_dac0/peripheral_aresetn[0]]
 
 ## PMOD outputs
 #set_false_path -to [get_ports PMOD0_*]
