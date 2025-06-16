@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pynq_fused"
+name = "qick_fused"
 version = "0.0.1"
-description = "PYNQ_FUSED Python Package"
+description = "QICK_FUSED Python Package"
 dependencies = [
     "wheel",
     "numpy",
@@ -13,8 +13,8 @@ dependencies = [
     "fxpmath",
     "scipy",
     "pyxsi@git+https://github.com/ivanvig/pyxsi.git",
-    "edalize==0.5.1",
-    "fusesoc==2.2.1",
+    "edalize==0.6.1",
+    "fusesoc==2.4.3",
     "pyqt5",
     "vcdvcd",
     "pandas",
