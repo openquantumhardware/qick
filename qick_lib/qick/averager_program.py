@@ -111,7 +111,7 @@ class AveragerProgram(AcquireProgram):
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
-        return raw
+        return buf
 
     def _summarize_accumulated(self, rounds_buf):
         avg_d = super()._summarize_accumulated(rounds_buf)
@@ -317,7 +317,7 @@ class RAveragerProgram(AcquireProgram):
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
-        return raw
+        return buf
 
     def _summarize_accumulated(self, rounds_buf):
         avg_d = super()._summarize_accumulated(rounds_buf)
@@ -619,7 +619,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
         self.dq_buf = [d[:,1] for d in raw]
-        return raw
+        return buf
 
     def _summarize_accumulated(self, rounds_buf):
         avg_d = super()._summarize_accumulated(rounds_buf)
