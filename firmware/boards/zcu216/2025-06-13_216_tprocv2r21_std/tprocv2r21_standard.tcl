@@ -403,7 +403,7 @@ proc create_root_design { parentCell } {
   set PMOD0_5_LS [ create_bd_port -dir O PMOD0_5_LS ]
   set PMOD0_6_LS [ create_bd_port -dir O PMOD0_6_LS ]
   set PMOD0_7_LS [ create_bd_port -dir O PMOD0_7_LS ]
-  set XCOM_ISYNC [ create_bd_port -dir I XCOM_ISYNC ]
+  set ISYNC_XCOM [ create_bd_port -dir I ISYNC_XCOM ]
   set o_xcom_id_0 [ create_bd_port -dir O -from 3 -to 0 o_xcom_id_0 ]
 
   # Create instance: axi_intc_0, and set properties
@@ -2466,7 +2466,7 @@ Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD05000
   connect_bd_net -net clk_core_clk_out1 [get_bd_pins clk_core/clk_out1] [get_bd_pins rst_core/slowest_sync_clk] [get_bd_pins axis_clk_cnvrt_avg_0/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_1/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_2/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_3/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_4/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_5/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_6/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_7/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_8/m_axis_aclk] [get_bd_pins axis_clk_cnvrt_avg_9/m_axis_aclk] [get_bd_pins qick_processor_0/c_clk_i] [get_bd_pins xcom_0/i_core_clk]
   connect_bd_net -net clk_core_locked [get_bd_pins clk_core/locked] [get_bd_pins rst_core/dcm_locked]
   connect_bd_net -net ddr4_0_c0_ddr4_ui_clk [get_bd_pins ddr4/c0_ddr4_ui_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm1_fpd_aclk]
-  connect_bd_net -net i_sync_0_1 [get_bd_ports XCOM_ISYNC] [get_bd_pins xcom_0/i_sync]
+  connect_bd_net -net i_sync_0_1 [get_bd_ports ISYNC_XCOM] [get_bd_pins xcom_0/i_sync]
   connect_bd_net -net qick_processor_0_trig_0_o [get_bd_pins qick_processor_0/trig_0_o] [get_bd_ports PMOD0_0_LS]
   connect_bd_net -net qick_processor_0_trig_10_o [get_bd_pins qick_processor_0/trig_10_o] [get_bd_pins axis_avg_buffer_0/trigger]
   connect_bd_net -net qick_processor_0_trig_11_o [get_bd_pins qick_processor_0/trig_11_o] [get_bd_pins axis_avg_buffer_1/trigger]
