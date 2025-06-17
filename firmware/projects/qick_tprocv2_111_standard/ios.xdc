@@ -17,8 +17,8 @@ set_property IOSTANDARD  LVCMOS12 	[get_ports "PMOD0_7_LS"];
 
 set_property PACKAGE_PIN L14      	[get_ports "PMOD1_0_LS"];
 set_property IOSTANDARD  LVCMOS12 	[get_ports "PMOD1_0_LS"];
-set_property PACKAGE_PIN L15      	[get_ports "PMOD1_1_LS"];
-set_property IOSTANDARD  LVCMOS12 	[get_ports "PMOD1_1_LS"];
+#set_property PACKAGE_PIN L15      	[get_ports "PMOD1_1_LS"];
+#set_property IOSTANDARD  LVCMOS12 	[get_ports "PMOD1_1_LS"];
 #set_property PACKAGE_PIN M13      	[get_ports "PMOD1_2_LS"];
 #set_property IOSTANDARD  LVCMOS12 	[get_ports "PMOD1_2_LS"];
 #set_property PACKAGE_PIN N13      	[get_ports "PMOD1_3_LS"];
