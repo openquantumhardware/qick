@@ -2154,6 +2154,12 @@ class AcquireMixin:
         return [np.mean([round_d[i] for round_d in self.rounds_buf], axis=0) for i in range(len(self.ro_chs))]
 
     def prepare_round(self):
+        """Used with the step_rounds argument to acquire()/acquire_decimated()/run_rounds().
+
+        This sets up the round by preparing data structures and configuring the firmware, including arming the tProc for external start (if used).
+
+        The first round is prepared for you by acquire()/acquire_decimated()/run_rounds().
+        """
         soc = self.acquire_params['soc']
 
         if self.acquire_params['type'] == 'decimated':
@@ -2181,6 +2187,15 @@ class AcquireMixin:
         soc.start_src(self.acquire_params['start_src'])
 
     def finish_round(self):
+        """Used with the step_rounds argument to acquire()/acquire_decimated()/run_rounds().
+
+        This runs the round by starting the tProc (if using internal start), then collecting and processing the data.
+
+        Returns
+        -------
+        bool
+            True if more rounds remain to be run. This is meant to be used to control a while loop.
+        """
         soc = self.acquire_params['soc']
         total_count = functools.reduce(operator.mul, self.loop_dims)
         reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
@@ -2237,6 +2252,13 @@ class AcquireMixin:
         return not done
 
     def finish_acquire(self):
+        """Used with the step_rounds argument to acquire()/acquire_decimated()/run_rounds().
+
+        Returns
+        -------
+        list of numpy.ndarray
+            Data in the same format that would be returned by acquire()/acquire_decimated().
+        """
         if self.acquire_params['type'] == 'decimated':
             return self._summarize_decimated(self.rounds_buf)
         elif self.acquire_params['type'] == 'run_rounds':

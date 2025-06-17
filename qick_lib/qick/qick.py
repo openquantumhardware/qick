@@ -1234,13 +1234,16 @@ class QickSoc(Overlay, QickConfig):
         self.avg_bufs[ch].load_weights(data, addr)
 
     def load_envelope(self, ch, data, addr):
-        """Load envelope data into signal generators
-        :param ch: Channel
-        :type ch: int
-        :param data: array of (I, Q) values for pulse envelope
-        :type data: numpy.ndarray of int16
-        :param addr: address to start data at
-        :type addr: int
+        """Load envelope data into a signal generator.
+
+        Parameters
+        ----------
+        ch: int
+            Generator channel to configure
+        data: numpy.ndarray of int16
+            Array of (I, Q) values for pulse envelope
+        addr: int
+            Starting address
         """
         # we may have converted to list for pyro compatiblity, so convert back to ndarray
         data = np.array(data, dtype=np.int16)
