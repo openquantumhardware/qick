@@ -1239,13 +1239,16 @@ class QickSoc(Overlay, QickConfig):
         self.avg_bufs[ch].load_weights(data, addr)
 
     def load_envelope(self, ch, data, addr):
-        """Load envelope data into signal generators
-        :param ch: Channel
-        :type ch: int
-        :param data: array of (I, Q) values for pulse envelope
-        :type data: numpy.ndarray of int16
-        :param addr: address to start data at
-        :type addr: int
+        """Load envelope data into a signal generator.
+
+        Parameters
+        ----------
+        ch: int
+            Generator channel to configure
+        data: numpy.ndarray of int16
+            Array of (I, Q) values for pulse envelope
+        addr: int
+            Starting address
         """
         # we may have converted to list for pyro compatiblity, so convert back to ndarray
         data = np.array(data, dtype=np.int16)
@@ -1355,7 +1358,15 @@ class QickSoc(Overlay, QickConfig):
         load_mem : bool
             write waveform and data memory now (can do this later with reload_mem())
         """
-        self.tproc.load_bin_program(obtain(binprog), load_mem=load_mem)
+        binprog = obtain(binprog)
+        # cast to ndarray
+        if self.TPROC_VERSION == 1:
+            binprog = np.array(binprog, dtype=np.uint64)
+        elif self.TPROC_VERSION == 2:
+            for mem_sel in ['pmem', 'dmem', 'wmem']:
+                if binprog[mem_sel] is not None:
+                    binprog[mem_sel] = np.array(binprog[mem_sel], dtype=np.int32)
+        self.tproc.load_bin_program(binprog, load_mem=load_mem)
 
     def reload_mem(self):
         """Reload the waveform and data memory, overwriting any changes made by running the program.
@@ -1363,7 +1374,7 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 2:
             self.tproc.reload_mem()
 
-    def load_mem(self, buff, mem_sel='dmem', addr=0):
+    def load_mem(self, data, mem_sel='dmem', addr=0):
         """
         Write a block of the selected tProc memory.
         For tProc v1 only the data memory ("dmem") is valid.
@@ -1371,7 +1382,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        buff_in : numpy.ndarray of int
+        data : numpy.ndarray of int
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         mem_sel : str
@@ -1379,13 +1390,14 @@ class QickSoc(Overlay, QickConfig):
         addr : int
             Starting write address
         """
+        data = np.array(data, dtype=np.int32)
         if self.TPROC_VERSION == 1:
             if mem_sel=='dmem':
-                self.tproc.load_dmem(buff, addr)
+                self.tproc.load_dmem(data, addr)
             else:
                 raise RuntimeError("invalid mem_sel: %s"%(mem_sel))
         elif self.TPROC_VERSION == 2:
-            self.tproc.load_mem(mem_sel, buff, addr)
+            self.tproc.load_mem(mem_sel, data, addr)
 
     def read_mem(self, length, mem_sel='dmem', addr=0):
         """
@@ -1422,19 +1434,13 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: str
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.start_src(src)
-        # TODO: not implemented for tproc v2
+        self.tproc.start_src(src)
 
     def start_tproc(self):
         """
         Start the tProc.
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.start()
-        elif self.TPROC_VERSION == 2:
-            self.tproc.stop()
-            self.tproc.start()
+        self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """
