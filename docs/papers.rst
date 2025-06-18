@@ -10,6 +10,7 @@ QICK system
 
 Superconducting circuits - coherence
 ------------------------------------
+* `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
 * `Bland, M. et al. 2D transmons with lifetimes and coherence times exceeding 1 millisecond. (2025) <https://arxiv.org/abs/2503.14798>`_.
 * `Kumar, S. et al. Protomon: A Multimode Qubit in the Fluxonium Molecule. (2024) <https://arxiv.org/abs/2411.16648>`_.
 * `Chang, R.D. et al. Eliminating Surface Oxides of Superconducting Circuits with Noble Metal Encapsulation. (2024) <https://arxiv.org/abs/2408.13051>`_.
@@ -40,6 +41,7 @@ Superconducting circuits - parametric amplifiers
 
 Superconducting circuits – gates/couplers
 -----------------------------------------
+* `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 * `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
@@ -59,8 +61,14 @@ Superconducting circuits - quantum acoustic systems
 ---------------------------------------------------
 * `Undershute, C. et al. Decoherence of surface phonons in a quantum acoustic system. (2024) <https://arxiv.org/abs/2410.03005>`_.
 
+Neutral atoms
+------------
+* `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
+
 Spin defects
 ------------
+* `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
+* `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/pdf/2411.16835>`_.
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
 
