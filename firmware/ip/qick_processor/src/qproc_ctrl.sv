@@ -124,8 +124,6 @@ assign ctrl_c_step     = core_step_p ;
 ///////////////////////////////////////////////////////////////////////////////
 enum {C_RST_STOP=0, C_RST_STOP_WAIT=1, C_RST_RUN=2, C_RST_RUN_WAIT=3, C_STOP=4, C_RUN=5, C_STEP=6, C_END_STEP=7} core_st_nxt, core_st;
 
-//assign core_en = c_core_en  & fifo_ok; 
-
 // Sequential Stante Machine
 always_ff @(posedge c_clk_i)
    if (!c_rst_ni)   core_st  <= C_RST_STOP;
@@ -273,7 +271,7 @@ qproc_time_ctrl QTIME_CTRL (
    .updt_dt_i     ( time_updt_dt ) ,
    .time_abs_o    ( time_abs_o   ) );
    
-assign c_debug_do   = { 1'b0, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
+assign c_debug_do   = { 2'b00, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
 assign t_debug_do   = { ctrl_t_updt, 1'b0, ctrl_t_step, ctrl_t_stop, ctrl_t_run, ctrl_t_rst_run, ctrl_t_rst_stop }  ;
 
 ///////////////////////////////////////////////////////////////////////////////

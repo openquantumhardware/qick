@@ -1,7 +1,6 @@
 `include "_qproc_defines.svh"
    
 module qproc_dispatcher # (
-   parameter DEBUG          =  0 ,
    parameter FIFO_DEPTH     =  8 ,
    parameter IN_PORT_QTY    =  1 ,
    parameter OUT_TRIG_QTY   =  1 ,

@@ -706,7 +706,6 @@ wire [31:0] fifo_dt_ds, axi_fifo_ds;
 wire [15:0] c_fifo_ds, t_fifo_ds ;
 
 qproc_dispatcher # (
-   .DEBUG          ( DEBUG         ),
    .FIFO_DEPTH     ( FIFO_DEPTH    ),
    .IN_PORT_QTY    ( IN_PORT_QTY   ),
    .OUT_TRIG_QTY   ( OUT_TRIG_QTY  ),
@@ -870,10 +869,10 @@ generate
       assign c_time_usr_do       = c_time_usr ;
 
       assign c_debug_do[31:16]   = c_fifo_ds;
-      assign c_debug_do[15:13]   = { some_fifo_full, all_fifo_full } ;
+      assign c_debug_do[15:14]   = { some_fifo_full, all_fifo_full } ;
       assign c_debug_do[13:12]   = { 2'd0 } ;
-      assign c_debug_do[11: 10]   = { core_rst, core_en } ;
-      assign c_debug_do[ 9: 3]    = ctrl_c_ds;
+      assign c_debug_do[11:10]   = { core_rst, core_en } ;
+      assign c_debug_do[ 9: 3]   = ctrl_c_ds;
       assign c_debug_do[ 2: 0]   = { core_st_ds[2:0] };
 
       assign c_time_ref_do       = c_time_ref_dt ;
@@ -888,6 +887,7 @@ generate
       assign c_proc_do[10: 8]    = core0_src_dt[2:0] ;
       assign c_proc_do[ 7: 2]    = { int_flag_r, axi_flag_r, int_flag_clr, int_flag_set, axi_flag_clr, axi_flag_set } ;
       assign c_proc_do[ 1: 0]    = { time_ref_inc, time_ref_set } ;
+
       assign c_core_do           = core_ds ;
 
       assign time_ref_set    = ( int_time_pen & core_usr_operation[2]) ;

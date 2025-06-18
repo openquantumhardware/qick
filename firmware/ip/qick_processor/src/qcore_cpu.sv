@@ -254,7 +254,7 @@ always_comb
 //assign id_use_RA0 = id_AI;
 //assign id_use_RA1 = id_type_wmd | (id_type_wr & (~id_SO & id_TO));
 assign id_use_RD0 = id_DF != 2'b11;
-assign id_use_RD1 = id_DF  == 0'b01;
+assign id_use_RD1 = id_DF == 2'b01;
 
 assign id_type_wr_dmem = id_type_wr & (~id_SO & id_TO); // Write Data Register from DMEM
 
@@ -310,7 +310,7 @@ always_comb begin
 end
 
 
-// PC_ADDR CLACULATION
+// PC_ADDR CALCULATION
 /////////////////////////////////////////////////
 always_comb begin 
    cfg_pc_nxt  =  2'b00;                             // Move to Next Address
@@ -338,10 +338,10 @@ always @(posedge clk_i) begin
       PC_curr     <= 0;
       PC_prev     <= 0;
    end else begin
-   if (restart_i) begin
-      PC_curr     <= 0;
-      PC_prev     <= 0;
-   end else if (fetch_en) begin
+      if (restart_i) begin
+         PC_curr     <= 0;
+         PC_prev     <= 0;
+      end else if (fetch_en) begin
          PC_curr <= PC_nxt;
          PC_prev <= PC_curr;
       end
@@ -609,57 +609,57 @@ always_ff @ (posedge clk_i) begin
    end else begin
       if (~halt) begin
 
-/////////////////////////////////////////////////////////
-// STAGE > READ  
-if ( rd_stage_zero ) begin
-   rd_ctrl                 <= '{default:'0};
-   rd_reg                  <= '{default:'0};
-   r_id_pc_change          <= 1'b0;
-   r_id_imm_dt             <= '{default:'0};
-   r_id_imm_addr           <= '{default:'0};
-   r_id_rs_D_addr          <= '{default:'0};
-   r_id_rs_A_addr          <= '{default:'0};
-end else if ( rd_stage_keep ) begin
-   rd_ctrl                 <= rd_ctrl;
-   rd_reg                  <= rd_reg;
-   r_id_pc_change          <= r_id_pc_change;
-   r_id_imm_dt             <= r_id_imm_dt;
-   r_id_imm_addr           <= r_id_imm_addr;
-   r_id_rs_D_addr          <= r_id_rs_D_addr;
-   r_id_rs_A_addr          <= r_id_rs_A_addr;
-end else begin
-   //Control Signals
-   rd_ctrl                 <= id_ctrl            ;
-   rd_reg                  <= id_reg            ;
-   r_id_pc_change          <= id_pc_change ;
-   //Data Signals
-   r_id_imm_dt             <= id_imm_dt      ;
-   r_id_imm_addr           <= id_imm_addr    ;
-   r_id_rs_D_addr          <= id_rs_D_addr ;
-   r_id_rs_A_addr          <= id_rs_A_addr;
-end
+         /////////////////////////////////////////////////////////
+         // STAGE > READ  
+         if ( rd_stage_zero ) begin
+            rd_ctrl                 <= '{default:'0};
+            rd_reg                  <= '{default:'0};
+            r_id_pc_change          <= 1'b0;
+            r_id_imm_dt             <= '{default:'0};
+            r_id_imm_addr           <= '{default:'0};
+            r_id_rs_D_addr          <= '{default:'0};
+            r_id_rs_A_addr          <= '{default:'0};
+         end else if ( rd_stage_keep ) begin
+            rd_ctrl                 <= rd_ctrl;
+            rd_reg                  <= rd_reg;
+            r_id_pc_change          <= r_id_pc_change;
+            r_id_imm_dt             <= r_id_imm_dt;
+            r_id_imm_addr           <= r_id_imm_addr;
+            r_id_rs_D_addr          <= r_id_rs_D_addr;
+            r_id_rs_A_addr          <= r_id_rs_A_addr;
+         end else begin
+            //Control Signals
+            rd_ctrl                 <= id_ctrl            ;
+            rd_reg                  <= id_reg            ;
+            r_id_pc_change          <= id_pc_change ;
+            //Data Signals
+            r_id_imm_dt             <= id_imm_dt      ;
+            r_id_imm_addr           <= id_imm_addr    ;
+            r_id_rs_D_addr          <= id_rs_D_addr ;
+            r_id_rs_A_addr          <= id_rs_A_addr;
+         end
 
-/////////////////////////////////////////////////////////
-// STAGE > EXECUTE 1 
-if ( x1_stage_zero ) begin
-   x1_ctrl                 <= '{default:'0};
-   x1_reg                  <= '{default:'0};
-   r_rd_imm_dt             <= '{default:'0};
-   r_rd_imm_addr           <= '{default:'0};
-   r_rd_rsA1_addr          <= '{default:'0};
-end else begin
-   x1_ctrl                 <= rd_ctrl ;
-   x1_reg                  <= rd_reg ;
-   r_rd_imm_dt             <= r_id_imm_dt       ;
-   r_rd_imm_addr           <= r_id_imm_addr     ;
-   r_rd_rsA1_addr          <= r_id_rs_A_addr[1]   ;
-end
+         /////////////////////////////////////////////////////////
+         // STAGE > EXECUTE 1 
+         if ( x1_stage_zero ) begin
+            x1_ctrl                 <= '{default:'0};
+            x1_reg                  <= '{default:'0};
+            r_rd_imm_dt             <= '{default:'0};
+            r_rd_imm_addr           <= '{default:'0};
+            r_rd_rsA1_addr          <= '{default:'0};
+         end else begin
+            x1_ctrl                 <= rd_ctrl ;
+            x1_reg                  <= rd_reg ;
+            r_rd_imm_dt             <= r_id_imm_dt       ;
+            r_rd_imm_addr           <= r_id_imm_addr     ;
+            r_rd_rsA1_addr          <= r_id_rs_A_addr[1]   ;
+         end
 
-/////////////////////////////////////////////////////////
-// EXECUTE 2
+         /////////////////////////////////////////////////////////
+         // STAGE > EXECUTE 2
          //Control Signals
-         x2_ctrl                 <= x1_ctrl ;
-         x2_reg                  <= x1_reg         ;
+         x2_ctrl                    <= x1_ctrl ;
+         x2_reg                     <= x1_reg         ;
          //Data Signals
          r_x1_imm_dt                <= r_rd_imm_dt       ;
          r_x1_alu_dt                <= x1_alu_dt         ;
@@ -669,10 +669,12 @@ end
             alu_fZ_r                <= x1_alu_fZ         ;
             alu_fS_r                <= x1_alu_fS         ;
          end
-/////////////////////////////////////////////////////////
-// WRITE 
+
+         /////////////////////////////////////////////////////////
+         // STAGE > WRITE 
          //Control Signals
          wr_reg                  <= x2_reg ;
+
       end //(~HALT)
    end //NotRST
 end //ALWAYS
@@ -685,12 +687,12 @@ end //ALWAYS
 assign pmem_en_o        = fetch_en | r_mem_rst;
 assign pmem_addr_o      = PC_curr         ; // Disable next instruction with pc_jump
 
-//DATA MEMORY
+// DATA MEMORY
 assign dmem_we_o        = halt ? 0 : x1_ctrl.dmem_we;
 assign dmem_addr_o      = x1_mem_addr        ;
 assign dmem_w_dt_o      = x1_mem_w_dt        ;
 
-//WAVE MEMORY
+// WAVE MEMORY
 assign wmem_we_o        = halt ? 0 : x1_ctrl.wmem_we;
 assign wmem_addr_o      = x1_wave_addr      ;
 assign wmem_w_dt_o      = reg_wave_dt      ;
