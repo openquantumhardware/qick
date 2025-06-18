@@ -5,29 +5,83 @@ from pynq.overlay import DefaultIP
 import numpy as np
 import logging
 from qick import obtain
-from .qick_asm import DummyIp
 
-class SocIp(DefaultIP, DummyIp):
+class DummyIP:
+    """Dummy superclass for firmware IP blocks without register access (i.e. that don't inherit from SocIP or DefaultIP).
+    Those classes should inherit from (QickIP, DummyIP) in that order.
+    THis ensures that this class is last in the method resolution order.
+
+    The purpose of this class is to eat the ``description`` parameter before the MRO reaches ``object.__init__()``.
+    Inspired by https://stackoverflow.com/questions/74350679/python-mixins-how-to-deal-with-args-kwargs-when-calling-super
     """
-    Base class for firmware IP drivers.
-    Registers are accessed as attributes.
+    def __init__(self, description):
+        super().__init__()
+
+class QickIP:
+    """Stores the configuration constants for a firmware IP block.
     Configuration constants are accessed as dictionary items.
+    """
+    def __init__(self, description):
+        # config dictionary for QickConfig
+        self._cfg = {}
+        # this block's type
+        self.cfg['type'] = description['type'].split(':')[-2]
+        # this block's unique identifier in the firmware
+        self.cfg['fullpath'] = description['fullpath']
+        # logger for messages associated with this block
+        self.logger = logging.getLogger(self['type'])
+
+        super().__init__(description)
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    def __getitem__(self, key):
+        return self._cfg[key]
+
+    def configure_connections(self, soc):
+        """Use the HWH metadata to figure out what connects to this IP block.
+
+        Parameters
+        ----------
+        soc : QickSoc
+            The overlay object, used to look up metadata and dereference driver names.
+        """
+        self.cfg['revision'] = soc.metadata.mod2rev(self['fullpath'])
+        self.cfg['version'] = soc.metadata.mod2version(self['fullpath'])
+
+class SocIP(QickIP, DefaultIP):
+    """
+    Base class for firmware IP drivers (classes that provide access to IP registers).
+    Registers are accessed as attributes.
+
+    Classes that extend a Xilinx driver will inherit from both this class and the Xilinx class.
+    They should inherit from (SocIP, XilinxDriver) in that order.
+    This ensures that DefaultIP (which does not support cooperative multiple inheritance) is last in the method resolution order.
     """
 
     def __init__(self, description):
-        """
-        Constructor method
-        """
-        # this block's register map: to be defined by subclass
+        # this block's register map: to be defined in _init_config()
         self.REGISTERS = {}
 
-        DefaultIP.__init__(self, description)
+        super().__init__(description)
 
-        # this block's unique identifier in the firmware
-        self.fullpath = description['fullpath']
-        # this block's type
-        self.type = description['type'].split(':')[-2]
-        DummyIp.__init__(self, self.type, self.fullpath)
+        self._init_config(description)
+        self._init_firmware()
+
+    def _init_config(self, description):
+        """
+        Read the IP description and fill the driver's config dictionary.
+        Define the register map.
+        """
+        pass
+
+    def _init_firmware(self):
+        """
+        Do any initial configuration of the IP.
+        """
+        pass
 
     def __setattr__(self, a, v):
         """
@@ -38,6 +92,7 @@ class SocIp(DefaultIP, DummyIp):
         :param v: value to be written
         :type v: int
         """
+        # don't try to index into self.REGISTERS if we're trying to access self.REGISTERS or self.REGISTERS has not yet been initialized
         if a!='REGISTERS' and hasattr(self, 'REGISTERS') and a in self.REGISTERS:
             index = self.REGISTERS[a]
             self.mmio.array[index] = np.uint32(obtain(v))
@@ -70,38 +125,42 @@ class QickMetadata:
         self.systemgraph = None
         # root element of the HWH file
         self.xml = None
-        # parsers for signals and busses, using system graph or XML as appropriate
-        self.sigparser = None
-        self.busparser = None
+        # QIckSoc object, for getting RFDC clock freqs
+        self.soc = soc
 
         if hasattr(soc, 'systemgraph'):
             # PYNQ 3.0 and higher have a "system graph"
+            # this contains much of the information we need, but we don't use it because it has various quirks and we want to maintain compatibility with PYNQ 2.6/2.7
             self.systemgraph = soc.systemgraph
             self.xml = soc.systemgraph._root
         else:
-            self.sigparser = soc.parser
-            # Since the HWH parser doesn't parse buses, we also make our own BusParser.
             self.xml = soc.parser.root
+
+        # parsers for signals and busses
+        self.sigparser = SigParser(self.xml)
         # TODO: We shouldn't need to use BusParser for PYNQ 3.0, but we think there's a bug in how pynqmetadata handles axis_switch.
         self.busparser = BusParser(self.xml)
 
+        # info for IP blocks - this is largely the same information available in ip_dict at driver initialization, but includes IPs without AXI interfaces.
+        self.modinfo = {}
+        for module in self.xml.findall('./MODULES/MODULE'):
+            fullpath = module.get('FULLNAME').lstrip('/')
+            info = {'params':{}}
+            info['type'] = module.get('MODTYPE')
+            info['version'] = module.get('HWVERSION')
+            info['revision'] = int(module.get('COREREVISION'))
+            params = {}
+            for param in module.findall('./PARAMETERS/PARAMETER'):
+                info['params'][param.get('NAME')] = param.get('VALUE')
+            self.modinfo[fullpath] = info
+
+        # firmware build time
         self.timestamp = self.xml.get('TIMESTAMP')
 
     def get_systemgraph_block(self, blockname):
         return self.systemgraph.blocks[blockname.replace('/','_')]
 
     def trace_sig(self, blockname, portname):
-        if self.systemgraph is not None:
-            dests = self.get_systemgraph_block(blockname).ports[portname].destinations()
-            result = []
-            for port, block in dests.items():
-                blockname = block.parent().name
-                if blockname==self.systemgraph.name:
-                    result.append([port])
-                else:
-                    result.append([blockname, port])
-            return result
-
         return self._trace_net(self.sigparser, blockname, portname)
 
     def trace_bus(self, blockname, portname):
@@ -132,6 +191,7 @@ class QickMetadata:
     def get_fclk(self, blockname, portname):
         """
         Find the frequency of a clock port.
+        This returns whatever value is in the HWH file, and does not reflect software changes to the frequency after the bitstream was loaded.
 
         :param parser: HWH parser object (from Overlay.parser, or BusParser)
         :param blockname: the IP block of interest
@@ -142,10 +202,7 @@ class QickMetadata:
         :return: frequency in MHz
         :rtype: float
         """
-        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PORTS/PORT[@NAME='{1}']".format(
-            blockname, portname)
-        port = self.xml.find(xmlpath)
-        return float(port.get('CLKFREQUENCY'))/1e6
+        return self.sigparser.freqs[blockname + '/' + portname]/1e6
 
     def get_param(self, blockname, parname):
         """
@@ -160,21 +217,16 @@ class QickMetadata:
         :return: parameter value
         :rtype: str
         """
-        xmlpath = "./MODULES/MODULE[@FULLNAME='/{0}']/PARAMETERS/PARAMETER[@NAME='{1}']".format(
-            blockname, parname)
-        param = self.xml.find(xmlpath)
-        return param.get('VALUE')
+        return self.modinfo[blockname]['params'][parname]
 
     def mod2type(self, blockname):
-        if self.systemgraph is not None:
-            return self.get_systemgraph_block(blockname).vlnv.name
-        return self.busparser.mod2type[blockname]
-
-    def mod2rev(self, blockname):
-        return self.busparser.mod2rev[blockname]
+        return self.modinfo[blockname]['type']
 
     def mod2version(self, blockname):
-        return self.busparser.mod2version[blockname]
+        return self.modinfo[blockname]['version']
+
+    def mod2rev(self, blockname):
+        return self.modinfo[blockname]['revision']
 
     def trace_back(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus backwards from a given block and port.
@@ -270,6 +322,144 @@ class QickMetadata:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
         return found[0]
 
+    def _analyze_clkwiz(self, blockname):
+        """Compute the range of valid input frequencies to a clocking wizard, based on the VCO range.
+        """
+        # determine whether we're using an MMCM or PLL
+        primitive = self.get_param(blockname, 'PRIMITIVE')
+        if primitive == 'Auto':
+            primitive = self.get_param(blockname, 'AUTO_PRIMITIVE')
+        # grab the relevant mult/divide factors
+        if primitive == 'MMCM':
+            div = float(self.get_param(blockname, 'MMCM_DIVCLK_DIVIDE'))
+            mult = float(self.get_param(blockname, 'MMCM_CLKFBOUT_MULT_F'))
+        else:
+            div = float(self.get_param(blockname, 'PLL_DIVCLK_DIVIDE'))
+            mult = float(self.get_param(blockname, 'PLL_CLKFBOUT_MULT'))
+        vco_mult = mult/div
+        # grab the VCO range and compute the input clock range
+        vco_min = float(self.get_param(blockname, 'C_VCO_MIN'))
+        vco_max = float(self.get_param(blockname, 'C_VCO_MAX'))
+        in_min = vco_min/vco_mult
+        in_max = vco_max/vco_mult
+        return in_min, in_max
+
+    def trace_dma(self, direction, start_block, start_port):
+        """Trace back the data path for a block that is fed by a DMA, possibly through a switch.
+
+        Parameters
+        ----------
+        direction : str
+            'forward' or 'backward'
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the clock input port to start tracing from.
+
+        Returns
+        -------
+        str
+            fullpath for the DMA block
+        str
+            fullpath for the switch block, None if there is no switch
+        int
+            switch port, None if there is no switch
+        """
+        # when going backward, the DMA is connected to S00_AXIS and the data consumers are Mxx_AXIS
+        # when going forward, the DMA is connected to M00_AXIS and the data sources are Sxx_AXIS
+        if direction == 'forward':
+            switch_common = "M00_AXIS"
+        elif direction == 'backward':
+            switch_common = "S00_AXIS"
+        else:
+            raise RuntimeError("trace_dma direction must be 'forward' or 'backward', got %s"%(direction))
+        ((block, port),) = self.trace_bus(start_block, start_port)
+        blocktype = self.mod2type(block)
+        if blocktype == 'axi_dma':
+            dma_path = block
+            return dma_path, None, None
+        elif blocktype == 'axis_switch':
+            switch_path = block
+            switch_ch = int(port.split('_')[0][1:])
+            ((block, port),) = self.trace_bus(block, switch_common)
+            blocktype = self.mod2type(block)
+            if blocktype != 'axi_dma':
+                raise RuntimeError("tracing port %s from block %s: expected to find axi_dma after axis_switch, found %s instead"%(start_port, start_block, blocktype))
+            dma_path = block
+            return dma_path, switch_path, switch_ch
+        else:
+            raise RuntimeError("tracing port %s from block %s: expected to find axi_dma or axis_switch, found %s instead"%(start_port, start_block, blocktype))
+
+    def trace_clk_back(self, start_block, start_port):
+        """Follow the clock backwards from a given block and port.
+        Compute the clock source, the frequency, and any limits imposed by the clock path.
+        Because it traces the clock back to its source, the frequency accounts for software changes.
+
+        The clock source is assumed to be the Zynq PS or the RF data converter.
+        Raise an error if the clock can't be traced back to either of those sources.
+
+        The clock path may pass through clocking wizards, which multiply the clock and impose limits on the frequency range.
+
+        Parameters
+        ----------
+        start_block : str
+            The fullpath for the block to start tracing from.
+        start_port : str
+            The name of the clock input port to start tracing from.
+
+        Returns
+        -------
+        dict
+            source: The clock source ('PS', 'dac', 'adc'), and the channel number.
+            f_clk: The clock frequency that the block sees (MHz).
+            Accounts for clock multipliers between the source and the given block, and for software changes to the source frequency.
+            src_range: None, or bounds (MHz) on the source clock's frequency.
+        """
+        clk_mult = 1.0
+        src_range = None
+        next_block = start_block
+        next_port = start_port
+        while next_port is not None:
+            trace_result = self.trace_sig(next_block, next_port)
+            next_port = None
+            for block, port in trace_result:
+                next_type = self.mod2type(block)
+                if next_type == 'clk_wiz' and port.startswith('clk_out'):
+                    next_block = block
+                    next_port = 'clk_in1'
+                    f_out = self.get_fclk(block, port)
+                    f_in = self.get_fclk(block, next_port)
+                    clk_mult *= (f_out/f_in)
+                    if src_range is not None:
+                        src_range[0] /= (f_out/f_in)
+                        src_range[1] /= (f_out/f_in)
+
+                    in_min, in_max = self._analyze_clkwiz(block)
+                    if src_range is None:
+                        src_range = [in_min, in_max]
+                    else:
+                        src_range[0] = max(src_range[0], in_min)
+                        src_range[1] = min(src_range[1], in_max)
+                    continue
+                elif next_type == 'zynq_ultra_ps_e' and port.startswith('pl_clk'):
+                    f_clk = self.get_fclk(block, port)
+                    iClk = int(port[6:])
+                    return {
+                            'source': ('PS', iClk),
+                            'f_clk': float(f_clk*clk_mult),
+                            'src_range': src_range
+                            }
+                elif next_type == 'usp_rf_data_converter' and port.startswith('clk_'):
+                    tilename = port.split('_')[1]
+                    tiletype = tilename[:3]
+                    iTile = int(tilename[3:])
+                    f_clk = self.soc['rf']['tiles'][tiletype][iTile]['f_out']
+                    return {
+                            'source': (tiletype, iTile),
+                            'f_clk': float(f_clk*clk_mult),
+                            'src_range': src_range
+                            }
+        raise RuntimeError("tried to trace clock %s from IP block %s, but this clock doesn't seem to come from Zynq PS or RFDC"%(start_port, start_block))
 
 class BusParser:
     """Parses the HWH XML file to extract information on the buses connecting IP blocks.
@@ -286,14 +476,8 @@ class BusParser:
         """
         self.nets = {}
         self.pins = {}
-        self.mod2type = {}
-        self.mod2rev = {}
-        self.mod2version = {}
         for module in root.findall('./MODULES/MODULE'):
             fullpath = module.get('FULLNAME').lstrip('/')
-            self.mod2type[fullpath] = module.get('MODTYPE')
-            self.mod2rev[fullpath] = int(module.get('COREREVISION'))
-            self.mod2version[fullpath] = module.get('HWVERSION')
             for bus in module.findall('./BUSINTERFACES/BUSINTERFACE'):
                 port = fullpath + '/' + bus.get('NAME')
                 busname = bus.get('BUSNAME')
@@ -303,4 +487,32 @@ class BusParser:
                 else:
                     self.nets[busname] = set([port])
 
+class SigParser:
+    """Parses the HWH XML file to extract information on the nets connecting IP blocks.
+    This is mostly a copy of the PYNQ 2.7 HWH parser, but also grabs clock frequencies.
+    """
+    def __init__(self, root):
+        self.nets = {}
+        self.pins = {}
+        self.freqs = {}
+        for module in root.findall('./MODULES/MODULE'):
+            fullpath = module.get('FULLNAME').lstrip('/')
+            for netport in module.findall('./PORTS/PORT'):
+                netname = netport.get('SIGNAME')
+                portname = fullpath + '/' + netport.get('NAME')
+                if 'CLKFREQUENCY' in netport.attrib: self.freqs[portname] = float(netport.get('CLKFREQUENCY'))
+                self.pins[portname] = netname
+                if netname in self.nets:
+                    self.nets[netname] |= set([portname])
+                else:
+                    self.nets[netname] = set([portname])
+
+        for netport in root.findall('./EXTERNALPORTS/PORT'):
+            netname = netport.get('SIGNAME')
+            portname = netport.get('NAME')
+            self.pins[portname] = netname
+            if netname in self.nets:
+                self.nets[netname] |= set([portname])
+            else:
+                self.nets[netname] = set([portname])
 

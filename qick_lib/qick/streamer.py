@@ -104,11 +104,10 @@ class DataStreamer():
 
                 # how many shots worth of data to transfer at a time
                 if stride is None:
-                    stride = int(0.1 * self.soc.get_avg_max_length(0)/max(reads_per_count))
+                    shots = [self.soc['readouts'][ch]['avg_maxlen']/reads_per_count[i] for i, ch in enumerate(ch_list)]
+                    stride = int(0.1 * min(shots))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-                # make sure count variable is reset to 0 before starting processor
-                self.soc.set_tproc_counter(addr=counter_addr, val=0)
                 stats = []
 
                 t_start = time.time()
@@ -132,13 +131,14 @@ class DataStreamer():
                         # for each adc channel get the single shot data and add it to the buffer
                         for iCh, ch in enumerate(ch_list):
                             newpoints = newshots*reads_per_count[iCh]
-                            if newpoints >= self.soc.get_avg_max_length(ch):
+                            avg_maxlen = self.soc['readouts'][0]['avg_maxlen']
+                            if newpoints >= avg_maxlen:
                                 raise RuntimeError("Overflowed the averages buffer (%d unread samples >= buffer size %d)."
-                                                   % (newpoints, self.soc.get_avg_max_length(ch)) +
+                                                   % (newpoints, avg_maxlen) +
                                                    "\nYou need to slow down the tProc by increasing relax_delay." +
                                                    "\nIf the TQDM progress bar is enabled, disabling it may help.")
 
-                            addr = last_shots * reads_per_count[iCh] % self.soc.get_avg_max_length(ch)
+                            addr = last_shots * reads_per_count[iCh] % avg_maxlen
                             data = self.soc.get_accumulated(ch=ch, address=addr, length=newpoints)
                             acc_buf[iCh] = data
 

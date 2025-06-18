@@ -3,9 +3,9 @@ Drivers for signal generators: FPGA blocks that send data to DACs.
 """
 from pynq.buffer import allocate
 import numpy as np
-from qick import SocIp
+from qick.ip import SocIP
 
-class AbsSignalGen(SocIp):
+class AbsSignalGen(SocIP):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
@@ -29,8 +29,9 @@ class AbsSignalGen(SocIp):
         self.cfg['dac'] = self.dac
         self.cfg['has_mixer'] = self.HAS_MIXER
 
+        daccfg = self.rf['dacs'][self['dac']]
         for p in ['fs', 'fs_mult', 'fs_div', 'interpolation', 'f_fabric']:
-            self.cfg[p] = self.rf.daccfg[self['dac']][p]
+            self.cfg[p] = daccfg[p]
         # interpolation reduces the DDS range
         self.cfg['f_dds'] = self['fs']/self['interpolation']
         self.cfg['fdds_div'] = self['fs_div']*self['interpolation']
@@ -45,7 +46,7 @@ class AbsSignalGen(SocIp):
         # port names are of the form 's00_axis'
         self.dac = port[1:3]
 
-        #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self.fullpath, self.switch_ch, self.tproc_ch, *self.dac))
+        #print("%s: switch %d, tProc ch %d, DAC tile %s block %s"%(self['fullpath'], self.switch_ch, self.tproc_ch, *self.dac))
 
     def set_nyquist(self, nqz):
         """Set the Nyquist zone mode for the DAC linked to this generator.
@@ -96,6 +97,16 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
+    def __init__(self, description):
+        # Preallocated memory buffer for DMA transfers
+        self.buff = None
+
+        self.dma = None
+        self.switch = None
+        self.switch_ch = None
+
+        super().__init__(description)
+
     def configure(self, ch, rf):
         # Define buffer.
         self.buff = allocate(shape=self.MAX_LENGTH, dtype=np.int32)
@@ -105,13 +116,10 @@ class AbsArbSignalGen(AbsSignalGen):
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
-        # what switch port drives this generator?
-        ((block, port),) = soc.metadata.trace_bus(self.fullpath, self.WAVEFORM_PORT)
-        self.switch = soc._get_block(block)
-        # port names are of the form 'M01_AXIS'
-        self.switch_ch = int(port.split('_')[0][1:])
-        ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
-        self.dma = soc._get_block(block)
+        dma_path, switch_path, self.switch_ch = soc.metadata.trace_dma('backward', self['fullpath'], self.WAVEFORM_PORT)
+        self.dma = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch = soc._get_block(switch_path)
 
     # Load waveforms.
     def load(self, xin, addr=0):
@@ -136,9 +144,10 @@ class AbsArbSignalGen(AbsSignalGen):
         #    raise RuntimeError("Buffer transfer length must be even number.")
 
         # Route switch to channel.
-        self.switch.sel(mst=self.switch_ch)
+        if self.switch is not None:
+            self.switch.sel(mst=self.switch_ch)
 
-        #print(self.fullpath, xin.shape, addr, self.switch_ch)
+        #print(self['fullpath'], xin.shape, addr, self.switch_ch)
 
         # Pack the data into a single array; columns will be concatenated
         # -> lower 16 bits: I value.
@@ -226,25 +235,21 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     B_DDS = 32
     B_PHASE = 32
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
+    def _init_config(self, description):
         # Generics
         self.N = int(description['parameters']['N'])
         self.NDDS = int(description['parameters']['N_DDS'])
 
-        super().__init__(description)
-
         self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1, 'rndq_reg': 2}
 
+        # Maximum number of samples
+        self.MAX_LENGTH = 2**self.N*self.NDDS
+
+    def _init_firmware(self):
         # Default registers.
         self.start_addr_reg = 0
         self.we_reg = 0
         self.rndq_reg = 10
-
-        # Maximum number of samples
-        self.MAX_LENGTH = 2**self.N*self.NDDS
 
     def rndq(self, sel_):
         """
@@ -278,25 +283,21 @@ class AxisSgInt4V1(AbsArbSignalGen, AbsPulsedSignalGen):
     B_DDS = 16
     B_PHASE = 16
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
+    def _init_config(self, description):
         # Generics
         self.N = int(description['parameters']['N'])
         self.NDDS = 4  # Fixed by design, not accesible.
 
-        super().__init__(description)
-
         self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
-
-        # Default registers.
-        self.start_addr_reg = 0
-        self.we_reg = 0
 
         # Maximum number of samples
         # Table is interpolated. Length is given only by parameter N.
         self.MAX_LENGTH = 2**self.N
+
+    def _init_firmware(self):
+        # Default registers.
+        self.start_addr_reg = 0
+        self.we_reg = 0
 
 class AxisSgInt4V2(AbsArbSignalGen, AbsPulsedSignalGen):
     """
@@ -311,25 +312,21 @@ class AxisSgInt4V2(AbsArbSignalGen, AbsPulsedSignalGen):
     B_DDS = 32
     B_PHASE = 32
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
+    def _init_config(self, description):
         # Generics
         self.N = int(description['parameters']['N'])
         self.NDDS = 4  # Fixed by design, not accesible.
 
-        super().__init__(description)
-
         self.REGISTERS = {'start_addr_reg': 0, 'we_reg': 1}
-
-        # Default registers.
-        self.start_addr_reg = 0
-        self.we_reg = 0
 
         # Maximum number of samples
         # Table is interpolated. Length is given only by parameter N.
         self.MAX_LENGTH = 2**self.N
+
+    def _init_firmware(self):
+        # Default registers.
+        self.start_addr_reg = 0
+        self.we_reg = 0
 
 class AbsMuxSignalGen(AbsPulsedSignalGen):
     """
@@ -354,14 +351,9 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
     HAS_PHASE = None
     B_PHASE = None
 
-    def __init__(self, description):
-        """
-        Constructor method
-        """
+    def _init_config(self, description):
         # Generics
         self.NDDS = int(description['parameters']['N_DDS'])
-
-        super().__init__(description)
 
         # define the register map
         iReg = 0
@@ -383,6 +375,7 @@ class AbsMuxSignalGen(AbsPulsedSignalGen):
         self.switch_ch = -1
         self.MAX_LENGTH = 0
 
+    def _init_firmware(self):
         # Default registers.
         for i in range(self.N_TONES):
             setattr(self, 'pinc{}_reg'.format(i), 0)
@@ -524,12 +517,10 @@ class AxisConstantIQ(AbsSignalGen):
     bindto = ['user.org:user:axis_constant_iq:1.0']
     HAS_MIXER = True
 
-    def __init__(self, description):
-        # Initialize ip
-        super().__init__(description)
-
+    def _init_config(self, description):
         self.REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
 
+    def _init_firmware(self):
         # Default registers.
         self.real_reg = self.MAXV
         self.imag_reg = self.MAXV

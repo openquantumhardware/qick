@@ -20,7 +20,7 @@ Superconducting circuits - coherence
 * `Anferov, A. et al. Improved Coherence in Optically-Defined Niobium Trilayer Junction Qubits. (2023) <https://arxiv.org/abs/2306.05883>`_.
 
 Superconducting circuits - radiative loss
--------------------------------------------------
+-----------------------------------------
 * `De Dominicis, F. et al. Evaluating radiation impact on transmon qubits in above and underground facilities. (2024) <https://arxiv.org/abs/2405.18355>`_.
 * `Bratrud, G. et al. First Measurement of Correlated Charge Noise in Superconducting Qubits at an Underground Facility. (2024) <https://arxiv.org/abs/2405.04642>`_.
 * `Odeh, M. et al. Non-Markovian dynamics of a superconducting qubit in a phononic bandgap. (2023) <https://arxiv.org/abs/2312.01031>`_.
@@ -34,7 +34,7 @@ Superconducting circuits – readout
 * `Bryon, J. et al. Experimental verification of the treatment of time-dependent flux in circuit quantization. (2022) <https://arxiv.org/abs/2208.03738>`_.
 
 Superconducting circuits - parametric amplifiers
------------------------------------------
+------------------------------------------------
 * `Wang, J. et al. High-Efficiency, Low-Loss Floquet-Mode Traveling-Wave Parametric Amplifier. (2025) <https://arxiv.org/abs/2503.11812>`_.
 * `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
 
@@ -65,7 +65,7 @@ Spin defects
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
 
 Quantum dots
------
+------------
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
 MKIDs
