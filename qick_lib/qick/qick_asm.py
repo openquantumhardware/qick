@@ -116,36 +116,31 @@ class QickConfig():
             groupdescs.append('[' + ', '.join(groupnames) + ']')
         lines.append('\tGroups of related clocks: ' + ', '.join(groupdescs))
 
-        with suppress(KeyError): # self['gens'] may not exist
+        if 'gens' in self._cfg: # self['gens'] may not exist for a non-tproc firmware
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):
                 dacname = gen['dac']
                 dac = self['rf']['dacs'][dacname]
-                buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
-                if hasattr(self.gens[iGen], 'ENVELOPE_TYPE'):
-                    lines.append("\t%d:\t%s - envelope memory: type %s; %d samples (%.3f us)" %
-                                    (iGen, gen['type'], self.gens[iGen].ENVELOPE_TYPE, gen['maxlen'], buflen))
-                else:
-                    lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
-                                (iGen, gen['type'], gen['maxlen'], buflen))
-                if self.gens[iGen].GEN_DDS == 'TRUE':
-                    lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
-                                (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
-                else:
-                    lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, NO DDS" %
-                                (dac['fs'], gen['f_fabric']))
+                lines.append("\t%d:\t%s - fs=%.3f Msps, fabric=%.3f MHz" % (iGen, gen['type'], dac['fs'], gen['f_fabric']))
+                if 'maxlen' in gen:
+                    buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
+                    envtype = 'complex' if gen['complex_env'] else 'real'
+                    lines.append("\t\tenvelope memory: %d %s samples (%.3f us)" %
+                                    (gen['maxlen'], envtype, buflen))
+                if gen['has_dds']:
+                    lines.append("\t\t%d-bit DDS, range=%.3f MHz" %
+                                (gen['b_dds'], gen['f_dds']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
-        with suppress(KeyError): # self['iqs'] may not exist
-            if self['iqs']: # if there are no IQ generators, don't print this section
-                lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
-                for iIQ, iq in enumerate(self['iqs']):
-                    dacname = iq['dac']
-                    dac = self['rf']['dacs'][dacname]
-                    lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
-                    lines.append("\t\t" + self._describe_dac(dacname))
+        if 'iqs' in self._cfg and self['iqs']: # if there are no IQ generators, don't print this section
+            lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
+            for iIQ, iq in enumerate(self['iqs']):
+                dacname = iq['dac']
+                dac = self['rf']['dacs'][dacname]
+                lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
+                lines.append("\t\t" + self._describe_dac(dacname))
 
-        with suppress(KeyError): # self['readouts'] may not exist
+        if 'readouts' in self._cfg: # self['readouts'] may not exist for a non-tproc firmware
             lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
             for iReadout, readout in enumerate(self['readouts']):
                 adcname = readout['adc']
@@ -170,7 +165,7 @@ class QickConfig():
                     readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
                 lines.append("\t\t" + self._describe_adc(adcname))
 
-        with suppress(KeyError): # tproc may be an empty dict
+        if tproc: # tproc may be an empty dict
             lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
             for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
                 lines.append("\t%d:\t%s" % (iPin, name))
