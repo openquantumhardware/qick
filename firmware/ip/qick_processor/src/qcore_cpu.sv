@@ -452,9 +452,11 @@ qcore_ctrl_hazard ctrl_hzrd (
    .rd_periph_use    ( rd_ctrl.usr_ctrl[8]     ) ,
    .x1_periph_use    ( x1_ctrl.usr_ctrl[8]     ) ,
    .x2_periph_use    ( x2_ctrl.usr_ctrl[8]     ) ,
-
+   // Port Write
+   .id_type_wp       ( id_type_wp              ),
+   .port_we          ( rd_ctrl.port_we | x1_ctrl.port_we /*| x2_ctrl.port_we*/ ),
    // Wave Register 
-   .id_wmem_we   ( id_wmem_we       ) , //r_wave will be READ
+   .id_wmem_we       ( id_wmem_we       ) , //r_wave will be READ
    // FLAG 
    .id_flag_used     ( id_flag_used        ) , // SELECCIONAR CORRECTAMENTE WR/MEM_WR and JUMPD
    .flag_we          ( rd_ctrl.flag_we | x1_ctrl.flag_we       ) ,

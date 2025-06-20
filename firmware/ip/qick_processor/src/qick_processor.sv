@@ -213,7 +213,7 @@ qproc_ctrl # (
 );
 
 assign fifo_ok    = ~(some_fifo_full)  | xreg_TPROC_CFG[11] ;  // With 1 in TPROC_CFG[11] Continue
-assign core_en = core_en_s  & fifo_ok;
+assign core_en    = core_en_s  & fifo_ok;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processor STATUS 

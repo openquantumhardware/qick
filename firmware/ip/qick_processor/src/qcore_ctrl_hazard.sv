@@ -61,6 +61,9 @@ module qcore_ctrl_hazard (
    input   wire               x2_periph_use     ,
    // Wave Register
    input wire                 id_wmem_we        ,
+   // Port Write
+   input wire                 id_type_wp        ,
+   input wire                 port_we           ,
    // Flag 
    input wire                 id_flag_used      ,
    input wire                 flag_we           ,
@@ -87,6 +90,7 @@ module qcore_ctrl_hazard (
 
 // STALLING 
 reg         stall_id_w   ; // Give time to update R_WAVE 
+reg         stall_id_wp  ; // Give time to process PORT_WR
 reg         stall_id_f   ; // Give time to update FLAG
 reg         stall_id_j   ; // Give time to update S_ADDR when JUMP
 reg         stall_id_rand     ; // Gives time to update rand number
@@ -205,6 +209,15 @@ always_comb begin
          stall_id_w    = 1'b1    ; 
 end
 
+always_comb begin
+   stall_id_wp   = 1'b0    ;
+   if ( id_type_wp )
+      if ( port_we )
+         stall_id_wp    = 1'b1    ; 
+end
+
+
+
 // (D) CORE_R_DT
 ///////////////////////////////////////////////////////////////////////////////
 // 4) CORE_R_DT read after S_CONF Write 
@@ -303,7 +316,7 @@ always_ff @ (posedge clk_i, negedge rst_ni)
    
 assign reg_A_dt_o    = reg_A;
 assign reg_D_dt_o    = reg_D;
-assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w  | stall_id_rand;
+assign bubble_id_o   = stall_id_j | stall_id_f | stall_id_w | stall_id_wp | stall_id_rand;
 assign bubble_rd_o   = |stall_A_rd | |d_stall_D_rd | |w_stall_D_rd  | stall_rd_stime | stall_rd_status | stall_rd_port | stall_rd_core_rdt ;
 
 endmodule

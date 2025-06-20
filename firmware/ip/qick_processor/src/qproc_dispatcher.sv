@@ -148,7 +148,7 @@ always_ff @ (posedge c_clk_i, negedge c_rst_ni) begin
       c_fifo_trig_push_r     <= c_fifo_trig_push ;
       c_fifo_data_push_r     <= c_fifo_data_push ;
       c_fifo_wave_push_r     <= c_fifo_wave_push ;
-         if (c_fifo_trig_push | c_fifo_data_push | c_fifo_wave_push) begin
+      if (c_fifo_trig_push | c_fifo_data_push | c_fifo_wave_push) begin
          c_fifo_data_in_r       <= out_port_data.p_data ;
          //c_fifo_time_in_r       <= {16'd0, out_port_data.p_time} + c_time_ref_dt;
          c_fifo_time_in_r       <= { {16{out_port_data.p_time[31]}} , out_port_data.p_time} + c_time_ref_dt;

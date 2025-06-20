@@ -455,7 +455,7 @@ initial begin
    $display("OUT_WPORT_QTY %d",  `OUT_WPORT_QTY);
    
   
-//   AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM = '{default:'0} ;
+   AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM = '{default:'0} ;
    
@@ -478,7 +478,8 @@ initial begin
    $readmemh("prog_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
    //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemh("wave_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   
+   $readmemh("dmem_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+
 
 // INITIAL VALUES
 
