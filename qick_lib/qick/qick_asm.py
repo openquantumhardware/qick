@@ -1317,6 +1317,9 @@ class AbsQickProgram(ABC):
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the list of envelope waveforms available for this channel.
         The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
+        If either array is omitted, zeros will be used for that component.
+
+        If this channel uses a real-only envelope, qdata must be omitted or all zeros.
 
         Parameters
         ----------
@@ -1324,13 +1327,16 @@ class AbsQickProgram(ABC):
             generator channel (index in 'gens' list)
         name : str
             Name of the pulse
-        idata : numpy.ndarray
+        idata : numpy.ndarray or None
             I data
-        qdata : numpy.ndarray
+        qdata : numpy.ndarray or None
             Q data
 
         """
         gencfg = self.soccfg['gens'][ch]
+
+        if not gencfg['complex_env'] and qdata is not None and np.any(qdata):
+            raise RuntimeError("generator %d only supports real envelope, but nonzero qdata was supplied"%(ch))
 
         length = [len(d) for d in [idata, qdata] if d is not None]
         if len(length)==0:

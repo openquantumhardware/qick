@@ -156,8 +156,8 @@ class AbsArbSignalGen(AbsSignalGen):
 
         # Check Waveform is Real if Complex envelope is not supported
         if not self['complex_env']:
-            if not np.isreal(xin).all():
-                raise NotImplementedError("This channel does not support Complex Envelopes.")
+            if np.any(xin[:,1]):
+                raise NotImplementedError("This channel does not support complex envelopes.")
 
         # Route switch to channel.
         if self.switch is not None:
