@@ -7,7 +7,6 @@ import logging
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict, defaultdict
-from contextlib import suppress
 import operator
 import functools
 from numbers import Number

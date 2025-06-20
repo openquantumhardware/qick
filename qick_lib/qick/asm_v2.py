@@ -1554,7 +1554,6 @@ class AbsGenManager(AbsRegisterManager):
         self.tproc_ch = chcfg['tproc_ch']
         self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_fabric']
-        self.samps_per_clk = self.chcfg['samps_per_clk']
 
         # dictionary of defined envelopes
         self.envelopes = prog.envelopes[gen_ch]['envs']
@@ -1695,8 +1694,8 @@ class StandardGenManager(AbsGenManager):
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
-            env_length = env['data'].shape[0] // self.samps_per_clk
-            env_addr = env['addr'] // self.samps_per_clk
+            env_length = env['data'].shape[0] // self.chcfg['samps_per_clk']
+            env_addr = env['addr'] // self.chcfg['samps_per_clk']
 
         waves = []
         if par['style']=='const':

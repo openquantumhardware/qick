@@ -11,13 +11,12 @@ class AbsSignalGen(SocIP):
     """
     # The DAC channel has a mixer.
     HAS_MIXER = False
-    # Waveform samples per fabric clock.
-    SAMPS_PER_CLK = 1
-    # Maximum waveform amplitude.
+    # Maximum waveform amplitude. This is applied to pulse gain for the arb generators, and to the tone amplitude for the mux and const-IQ generators.
     MAXV = 2**15-2
 
     def _init_config(self, description):
         self.cfg['has_mixer'] = self.HAS_MIXER
+        self.cfg['maxv'] = self.MAXV
 
         super()._init_config(description)
 
@@ -57,7 +56,7 @@ class AbsSignalGen(SocIP):
             Nyquist zone (must be 1 or 2).
             Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
         """
-        self.rf.set_nyquist(self.dac, nqz)
+        self.rf.set_nyquist(self['dac'], nqz)
 
     def set_mixer_freq(self, f, ro_ch=None, phase_reset=True):
         """Set the mixer frequency for the DAC linked to this generator.
@@ -76,17 +75,17 @@ class AbsSignalGen(SocIP):
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
         if ro_ch is None:
-            self.rf.set_mixer_freq(self.dac, f, phase_reset=phase_reset)
+            self.rf.set_mixer_freq(self['dac'], f, phase_reset=phase_reset)
         else:
             mixercfg = self.soc._get_mixer_cfg(self.ch)
             rocfg = self.soc['readouts'][ro_ch]
             rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
-            self.rf.set_mixer_freq(self.dac, rounded_f, phase_reset=phase_reset)
+            self.rf.set_mixer_freq(self['dac'], rounded_f, phase_reset=phase_reset)
 
     def get_mixer_freq(self):
         if not self.HAS_MIXER:
             raise NotImplementedError("This channel does not have a mixer.")
-        return self.rf.get_mixer_freq(self.dac)
+        return self.rf.get_mixer_freq(self['dac'])
 
 class AbsArbSignalGen(AbsSignalGen):
     """
@@ -95,6 +94,8 @@ class AbsArbSignalGen(AbsSignalGen):
     # Name of the input driven by the waveform DMA (if applicable).
     WAVEFORM_PORT = 's0_axis'
 
+    # Waveform samples per fabric clock.
+    SAMPS_PER_CLK = 1
     # Scale factor between MAXV and the default maximum amplitude (necessary to avoid overshoot).
     MAXV_SCALE = 1.0
 
@@ -117,7 +118,6 @@ class AbsArbSignalGen(AbsSignalGen):
             self.cfg['complex_env'] = self.COMPLEX_ENVELOPE
 
         self.cfg['samps_per_clk'] = self.SAMPS_PER_CLK
-        self.cfg['maxv'] = self.MAXV
         self.cfg['maxv_scale'] = self.MAXV_SCALE
 
         # Define buffer.
@@ -155,7 +155,7 @@ class AbsArbSignalGen(AbsSignalGen):
         #    raise RuntimeError("Buffer transfer length must be even number.")
 
         # Check Waveform is Real if Complex envelope is not supported
-        if (self.ENVELOPE_TYPE == 'REAL'):
+        if not self['complex_env']:
             if not np.isreal(xin).all():
                 raise NotImplementedError("This channel does not support Complex Envelopes.")
 
