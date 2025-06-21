@@ -201,7 +201,6 @@ class AbsGenManager(AbsRegisterManager):
         self.gencfg = prog.soccfg['gens'][self.ch]
         tproc_ch = self.gencfg['tproc_ch']
         super().__init__(prog, tproc_ch, "generator %d"%(self.ch))
-        self.samps_per_clk = self.gencfg['samps_per_clk']
         self.tmux_ch = self.gencfg.get('tmux_ch') # default to None if undefined
 
         # dictionary of defined pulse envelopes
@@ -313,8 +312,8 @@ class FullSpeedGenManager(AbsGenManager):
                 self.set_reg(parname, params[parname], defaults=defaults)
         if 'waveform' in params:
             pinfo = self.envelopes[params['waveform']]
-            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
-            addr = pinfo['addr'] // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.gencfg['samps_per_clk']
+            addr = pinfo['addr'] // self.gencfg['samps_per_clk']
             self.set_reg('addr', addr, defaults=defaults)
         if not defaults:
             style = params['style']
@@ -404,8 +403,8 @@ class InterpolatedGenManager(AbsGenManager):
         addr = 0
         if 'waveform' in params:
             pinfo = self.envelopes[params['waveform']]
-            wfm_length = pinfo['data'].shape[0] // self.samps_per_clk
-            addr = pinfo['addr'] // self.samps_per_clk
+            wfm_length = pinfo['data'].shape[0] // self.gencfg['samps_per_clk']
+            addr = pinfo['addr'] // self.gencfg['samps_per_clk']
         if 'phase' in params and 'freq' in params:
             phase, freq = [params[x] for x in ['phase', 'freq']]
             self.set_reg('freq',  (phase << 16) | freq, f'phase = {phase} | freq = {freq}', defaults=defaults)

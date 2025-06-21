@@ -14,19 +14,19 @@ entity fifo_dc is
     );
     Port
     ( 
-        wr_rstn	: in std_logic;
-        wr_clk 	: in std_logic;
+        wr_rstn   : in std_logic;
+        wr_clk    : in std_logic;
 
-        rd_rstn	: in std_logic;
-        rd_clk 	: in std_logic;
+        rd_rstn   : in std_logic;
+        rd_clk    : in std_logic;
         
         -- Write I/F.
-        wr_en  	: in std_logic;
+        wr_en     : in std_logic;
         din     : in std_logic_vector (B-1 downto 0);
         
         -- Read I/F.
-        rd_en  	: in std_logic;
-        dout   	: out std_logic_vector (B-1 downto 0);
+        rd_en     : in std_logic;
+        dout      : out std_logic_vector (B-1 downto 0);
         
         -- Flags.
         full    : out std_logic;        
@@ -41,47 +41,47 @@ constant N_LOG2 : Integer := Integer(ceil(log2(real(N))));
 
 -- Binary to gray converter.
 component bin2gray is
-	Generic
-	(
-		-- Data width.
-		B : Integer := 8
-	);
-	Port
-	(
-		din	: in std_logic_vector (B-1 downto 0);
-		dout: out std_logic_vector (B-1 downto 0)
-	);
+   Generic
+   (
+      -- Data width.
+      B : Integer := 8
+   );
+   Port
+   (
+      din   : in std_logic_vector (B-1 downto 0);
+      dout: out std_logic_vector (B-1 downto 0)
+   );
 end component;
 
 -- Gray to binary converter.
 component gray2bin is
-	Generic
-	(
-		-- Data width.
-		B : Integer := 8
-	);
-	Port
-	(
-		din	: in std_logic_vector (B-1 downto 0);
-		dout: out std_logic_vector (B-1 downto 0)
-	);
+   Generic
+   (
+      -- Data width.
+      B : Integer := 8
+   );
+   Port
+   (
+      din   : in std_logic_vector (B-1 downto 0);
+      dout: out std_logic_vector (B-1 downto 0)
+   );
 end component;
 
 -- Vector synchronizer (only for gray coded).
 component synchronizer_vect is 
-	generic (
-		-- Sync stages.
-		N : Integer := 2;
+   generic (
+      -- Sync stages.
+      N : Integer := 2;
 
-		-- Data width.
-		B : Integer := 8
-	);
-	port (
-		rstn	    : in std_logic;
-		clk 		: in std_logic;
-		data_in		: in std_logic_vector (B-1 downto 0);
-		data_out	: out std_logic_vector (B-1 downto 0)
-	);
+      -- Data width.
+      B : Integer := 8
+   );
+   port (
+      rstn      : in std_logic;
+      clk      : in std_logic;
+      data_in     : in std_logic_vector (B-1 downto 0);
+      data_out : out std_logic_vector (B-1 downto 0)
+   );
 end component;
 
 -- Dual port BRAM.
@@ -109,20 +109,20 @@ component bram_dp is
 end component;
 
 -- Pointers.
-signal wptr   	: unsigned (N_LOG2-1 downto 0);
-signal wptr_g 	: std_logic_vector (N_LOG2-1 downto 0);
-signal wptr_gc 	: std_logic_vector (N_LOG2-1 downto 0);
-signal wptr_c  	: std_logic_vector (N_LOG2-1 downto 0);
-signal rptr   	: unsigned (N_LOG2-1 downto 0);
-signal rptr_g 	: std_logic_vector (N_LOG2-1 downto 0);
-signal rptr_gc 	: std_logic_vector (N_LOG2-1 downto 0);
-signal rptr_c  	: std_logic_vector (N_LOG2-1 downto 0);
+signal wptr    : unsigned (N_LOG2-1 downto 0);
+signal wptr_g  : std_logic_vector (N_LOG2-1 downto 0);
+signal wptr_gc    : std_logic_vector (N_LOG2-1 downto 0);
+signal wptr_c     : std_logic_vector (N_LOG2-1 downto 0);
+signal rptr    : unsigned (N_LOG2-1 downto 0);
+signal rptr_g  : std_logic_vector (N_LOG2-1 downto 0);
+signal rptr_gc    : std_logic_vector (N_LOG2-1 downto 0);
+signal rptr_c     : std_logic_vector (N_LOG2-1 downto 0);
 
 -- Memory signals.
-signal mem_wea	: std_logic;
-signal mem_dib	: std_logic_vector (B-1 downto 0);
-signal mem_doa	: std_logic_vector (B-1 downto 0);
-signal mem_dob	: std_logic_vector (B-1 downto 0);
+signal mem_wea : std_logic;
+signal mem_dib : std_logic_vector (B-1 downto 0);
+signal mem_doa : std_logic_vector (B-1 downto 0);
+signal mem_dob : std_logic_vector (B-1 downto 0);
 
 -- Flags.
 signal full_i   : std_logic;
@@ -132,87 +132,87 @@ begin
 
 -- wptr_i: binary to gray.
 wptr_i : bin2gray
-	Generic map
-	(
-		-- Data width.
-		B => N_LOG2
-	)
-	Port map
-	(
-		din		=> std_logic_vector(wptr),
-		dout	=> wptr_g
-	);
+   Generic map
+   (
+      -- Data width.
+      B => N_LOG2
+   )
+   Port map
+   (
+      din      => std_logic_vector(wptr),
+      dout  => wptr_g
+   );
 
 -- wptr_g: write to read domain.
 wptr_g_i : synchronizer_vect
-	generic  map (
-		-- Sync stages.
-		N => 2,
+   generic  map (
+      -- Sync stages.
+      N => 2,
 
-		-- Data width.
-		B => N_LOG2
-	)
-	port map (
-		rstn	    => rd_rstn,
-		clk 		=> rd_clk,
-		data_in		=> wptr_g,
-		data_out	=> wptr_gc
-	);
+      -- Data width.
+      B => N_LOG2
+   )
+   port map (
+      rstn      => rd_rstn,
+      clk      => rd_clk,
+      data_in     => wptr_g,
+      data_out => wptr_gc
+   );
 
 -- wptr_gc_i
 wptr_gc_i : gray2bin
-	Generic map
-	(
-		-- Data width.
-		B => N_LOG2
-	)
-	Port map
-	(
-		din		=> wptr_gc,
-		dout	=> wptr_c
-	);
+   Generic map
+   (
+      -- Data width.
+      B => N_LOG2
+   )
+   Port map
+   (
+      din      => wptr_gc,
+      dout  => wptr_c
+   );
 
 -- rptr_i: binary to gray.
 rptr_i : bin2gray
-	Generic map
-	(
-		-- Data width.
-		B => N_LOG2
-	)
-	Port map
-	(
-		din		=> std_logic_vector(rptr),
-		dout	=> rptr_g
-	);
+   Generic map
+   (
+      -- Data width.
+      B => N_LOG2
+   )
+   Port map
+   (
+      din      => std_logic_vector(rptr),
+      dout  => rptr_g
+   );
 
 -- rptr_g: read to write domain.
 rptr_g_i : synchronizer_vect
-	generic  map (
-		-- Sync stages.
-		N => 2,
+   generic  map (
+      -- Sync stages.
+      N => 2,
 
-		-- Data width.
-		B => N_LOG2
-	)
-	port map (
-		rstn	    => wr_rstn,
-		clk 		=> wr_clk,
-		data_in		=> rptr_g,
-		data_out	=> rptr_gc
-	);
+      -- Data width.
+      B => N_LOG2
+   )
+   port map (
+      rstn      => wr_rstn,
+      clk      => wr_clk,
+      data_in     => rptr_g,
+      data_out => rptr_gc
+   );
 
 -- rptr_gc_i
 rptr_gc_i : gray2bin
-	Generic map
-	(
-		-- Data width.
-		B => N_LOG2
-	)
-	Port map
-	(
-		din		=> rptr_gc,
-		dout	=> rptr_c
-	);
+   Generic map
+   (
+      -- Data width.
+      B => N_LOG2
+   )
+   Port map
+   (
+      din      => rptr_gc,
+      dout  => rptr_c
+   );
 
 -- FIFO memory.
 mem_i : bram_dp
@@ -237,15 +237,15 @@ mem_i : bram_dp
         dob     => mem_dob
     );
 -- Memory connections.
-mem_wea <= 	wr_en when full_i = '0' else
-			'0';
-mem_dib	<= (others => '0');
+mem_wea <=  wr_en when full_i = '0' else
+         '0';
+mem_dib  <= (others => '0');
 
 -- Full/empty signals.
-full_i 	<=  '1' when wptr = unsigned(rptr_c) - 1 else 
+full_i   <=  '1' when wptr = unsigned(rptr_c) - 1 else 
             '0';           
-empty_i	<= 	'1' when unsigned(wptr_c) = rptr else
-			'0';
+empty_i  <=    '1' when unsigned(wptr_c) = rptr else
+         '0';
 
 -- wr_clk registers.
 process (wr_clk)
@@ -284,7 +284,7 @@ begin
 end process;
 
 -- Assign outputs.
-dout   	<= mem_dob;
+dout     <= mem_dob;
 full    <= full_i;
 empty   <= empty_i;
 

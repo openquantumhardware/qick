@@ -14,16 +14,16 @@ entity fifo is
     );
     Port
     ( 
-        rstn	: in std_logic;
-        clk 	: in std_logic;
+        rstn   : in std_logic;
+        clk    : in std_logic;
 
         -- Write I/F.
-        wr_en  	: in std_logic;
+        wr_en     : in std_logic;
         din     : in std_logic_vector (B-1 downto 0);
         
         -- Read I/F.
-        rd_en  	: in std_logic;
-        dout   	: out std_logic_vector (B-1 downto 0);
+        rd_en     : in std_logic;
+        dout      : out std_logic_vector (B-1 downto 0);
         
         -- Flags.
         full    : out std_logic;        
@@ -45,7 +45,7 @@ component bram_simple_dp is
         B       : Integer := 16
     );
     Port ( 
-        clk    	: in STD_LOGIC;
+        clk       : in STD_LOGIC;
         ena     : in STD_LOGIC;
         enb     : in STD_LOGIC;
         wea     : in STD_LOGIC;
@@ -57,12 +57,12 @@ component bram_simple_dp is
 end component;
 
 -- Pointers.
-signal wptr   	: unsigned (N_LOG2-1 downto 0);
-signal rptr   	: unsigned (N_LOG2-1 downto 0);
+signal wptr    : unsigned (N_LOG2-1 downto 0);
+signal rptr    : unsigned (N_LOG2-1 downto 0);
 
 -- Memory signals.
-signal mem_wea	: std_logic;
-signal mem_dob	: std_logic_vector (B-1 downto 0);
+signal mem_wea : std_logic;
+signal mem_dob : std_logic_vector (B-1 downto 0);
 
 -- Flags.
 signal full_i   : std_logic;
@@ -79,25 +79,25 @@ mem_i : bram_simple_dp
         B       => B
     )
     Port map ( 
-        clk    	=> clk						,
-        ena     => '1'						,
-        enb     => rd_en					,
-        wea     => mem_wea					,
-        addra   => std_logic_vector(wptr)	,
-        addrb   => std_logic_vector(rptr)	,
-        dia     => din						,
+        clk       => clk                  ,
+        ena     => '1'                 ,
+        enb     => rd_en               ,
+        wea     => mem_wea             ,
+        addra   => std_logic_vector(wptr) ,
+        addrb   => std_logic_vector(rptr) ,
+        dia     => din                 ,
         dob     => mem_dob
     );
 
 -- Memory connections.
-mem_wea <= 	wr_en when full_i = '0' else
-			'0';
+mem_wea <=  wr_en when full_i = '0' else
+         '0';
 
 -- Full/empty signals.
-full_i 	<=  '1' when wptr = rptr - 1 else 
+full_i   <=  '1' when wptr = rptr - 1 else 
             '0';           
-empty_i	<= 	'1' when wptr = rptr else
-			'0';
+empty_i  <=    '1' when wptr = rptr else
+         '0';
 
 -- wr_clk registers.
 process (clk)
@@ -127,7 +127,7 @@ begin
 end process;
 
 -- Assign outputs.
-dout   	<= mem_dob;
+dout     <= mem_dob;
 full    <= full_i;
 empty   <= empty_i;
 
