@@ -516,11 +516,10 @@ class QickConfig():
         else:
             return None
 
-    def _get_mixer_cfg(self, gen_ch):
+    def _get_mixer_cfg(self, gencfg):
         """
         Create a fake config dictionary for a generator's NCO, for use in frequency matching.
         """
-        gencfg = self['gens'][gen_ch]
         mixercfg = {}
         mixercfg['fs_mult'] = gencfg['fs_mult']
         mixercfg['fdds_div'] = gencfg['fs_div']
@@ -689,7 +688,7 @@ class QickConfig():
         cfg = {}
         cfg['userval'] = mixer_freq
         gencfg = self['gens'][gen_ch]
-        mixercfg = self._get_mixer_cfg(gen_ch)
+        mixercfg = self._get_mixer_cfg(gencfg)
         if ro_ch is None:
             rounded_f = self.roundfreq(mixer_freq, [mixercfg])
         else:

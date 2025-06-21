@@ -9,14 +9,24 @@ class AbsSignalGen(SocIP):
     """
     Abstract class which defines methods that are common to different signal generators.
     """
-    # The DAC channel has a mixer.
-    HAS_MIXER = False
     # Maximum waveform amplitude. This is applied to pulse gain for the arb generators, and to the tone amplitude for the mux and const-IQ generators.
     MAXV = 2**15-2
 
+    # these must be defined by the subclass
+    HAS_MIXER = None # the DAC has a mixer
+    B_DDS = None
+    B_PHASE = None
+
     def _init_config(self, description):
-        self.cfg['has_mixer'] = self.HAS_MIXER
         self.cfg['maxv'] = self.MAXV
+
+        assert self.HAS_MIXER is not None
+        assert self.B_DDS is not None
+        assert self.B_PHASE is not None
+
+        self.cfg['has_mixer'] = self.HAS_MIXER
+        self.cfg['b_dds'] = self.B_DDS
+        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
 
         super()._init_config(description)
 
@@ -25,9 +35,6 @@ class AbsSignalGen(SocIP):
         # Channel number corresponding to entry in the QickConfig list of gens.
         self.ch = ch
 
-        # RF data converter
-        self.rf = rf
-
     def configure_connections(self, soc):
         super().configure_connections(soc)
 
@@ -35,6 +42,8 @@ class AbsSignalGen(SocIP):
 
         # what RFDC port does this generator drive?
         block, port, _ = soc.metadata.trace_forward(self['fullpath'], 'm_axis', ["usp_rf_data_converter"])
+
+        self.rf = soc._get_block(block)
         # port names are of the form 's00_axis'
         self.cfg['dac'] = port[1:3]
 
@@ -77,7 +86,7 @@ class AbsSignalGen(SocIP):
         if ro_ch is None:
             self.rf.set_mixer_freq(self['dac'], f, phase_reset=phase_reset)
         else:
-            mixercfg = self.soc._get_mixer_cfg(self.ch)
+            mixercfg = self.soc._get_mixer_cfg(self.cfg)
             rocfg = self.soc['readouts'][ro_ch]
             rounded_f = self.soc.roundfreq(f, [mixercfg, rocfg])
             self.rf.set_mixer_freq(self['dac'], rounded_f, phase_reset=phase_reset)
@@ -202,18 +211,15 @@ class AbsPulsedSignalGen(AbsSignalGen):
     """
     # Name of the input driven by the tProc (if applicable).
     TPROC_PORT = 's1_axis'
-    B_PHASE = None
 
-    GEN_DDS = True    # Default
+    HAS_DDS = True    # Default
 
     def _init_config(self, description):
         if 'GEN_DDS' in description['parameters']:
             self.cfg['has_dds'] = {'TRUE': True, 'FALSE': False}[description['parameters']['GEN_DDS']]
         else:
-            self.cfg['has_dds'] = self.GEN_DDS
+            self.cfg['has_dds'] = self.HAS_DDS
 
-        self.cfg['b_dds'] = self.B_DDS
-        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         super()._init_config(description)
 
     def configure_connections(self, soc):
@@ -246,6 +252,7 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0',
               'user.org:user:axis_signal_gen_v6:1.0']
+    HAS_MIXER = False
     SAMPS_PER_CLK = 16
     B_DDS = 32
     B_PHASE = 32
