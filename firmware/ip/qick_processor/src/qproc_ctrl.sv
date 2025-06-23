@@ -18,8 +18,6 @@ module qproc_ctrl # (
    input   wire        t_rst_ni        ,
    input   wire        c_clk_i         ,
    input   wire        c_rst_ni        ,
-   input   wire        ps_clk_i        ,
-   input   wire        ps_rst_ni       ,
 // External Control  
    input  wire         proc_start_i    ,
    input  wire         proc_stop_i     ,
@@ -33,8 +31,10 @@ module qproc_ctrl # (
    input  wire  [3:0]  int_time_cmd     , //core_usr_operation
    input  wire  [31:0] int_time_dt     , //core_usr_operation
 // AXI  Control  
-   input wire [15:0]   xreg_TPROC_CTRL ,
-   input wire [15:0]   xreg_TPROC_CFG  ,
+   input wire [15:0]   PS_TPROC_CTRL,
+   input wire [10:9]   PS_TPROC_CFG,
+   // input wire [15:0]   xreg_TPROC_CTRL ,
+   // input wire [15:0]   xreg_TPROC_CFG  ,
    input wire [31:0]   xreg_TPROC_W_DT ,
 // QPROC_STATE  
    input wire          all_fifo_full_i ,
@@ -53,6 +53,34 @@ module qproc_ctrl # (
    output reg   [ 6:0]  t_debug_do ,
    output reg   [ 6:0]  c_debug_do
 );
+
+//-------------------------------------------------------
+// Code moved from qproc_axi_reg due to issue #33
+logic [15:0]   xreg_TPROC_CTRL;
+logic [10:9]   xreg_TPROC_CFG, TPROC_CFG;
+
+logic [15:0]   tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
+logic [10:9]   tproc_cfg_rcd;
+
+// From PS_CLK to C_CLK
+always_ff @(posedge c_clk_i) 
+   if (!c_rst_ni) begin
+      tproc_ctrl_rcd  <= 0 ;
+      tproc_ctrl_r    <= 0 ;
+      tproc_ctrl_2r   <= 0 ;
+      tproc_cfg_rcd   <= 0 ;
+   end else begin 
+      tproc_ctrl_rcd  <= PS_TPROC_CTRL ;
+      tproc_ctrl_r    <= tproc_ctrl_rcd ;
+      tproc_ctrl_2r   <= tproc_ctrl_r ;
+      tproc_cfg_rcd   <= PS_TPROC_CFG ;
+      TPROC_CFG       <= tproc_cfg_rcd ;
+   end
+
+// The C_TPROC_CTRL is only ONE clock.
+assign xreg_TPROC_CTRL  = tproc_ctrl_r & ~tproc_ctrl_2r ;
+assign xreg_TPROC_CFG   = TPROC_CFG;
+//-------------------------------------------------------
 
 
 // Control

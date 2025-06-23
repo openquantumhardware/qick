@@ -183,8 +183,6 @@ qproc_ctrl # (
    .t_rst_ni        ( t_rst_ni           ),
    .c_clk_i         ( c_clk_i            ),
    .c_rst_ni        ( c_rst_ni           ),
-   .ps_clk_i        ( ps_clk_i           ),
-   .ps_rst_ni       ( ps_rst_ni          ),
    .proc_start_i    ( proc_start_i       ),
    .proc_stop_i     ( proc_stop_i        ),
    .core_start_i    ( core_start_i       ),
@@ -195,8 +193,10 @@ qproc_ctrl # (
    .int_time_en     ( int_time_pen       ),
    .int_time_cmd    ( core_usr_operation[3:0] ),
    .int_time_dt     ( core_usr_b_dt      ),
-   .xreg_TPROC_CTRL ( xreg_TPROC_CTRL    ),
-   .xreg_TPROC_CFG  ( xreg_TPROC_CFG     ),
+   .PS_TPROC_CTRL   ( xreg_TPROC_CTRL    ),
+   .PS_TPROC_CFG    ( xreg_TPROC_CFG[10:9]),
+   // .xreg_TPROC_CTRL ( xreg_TPROC_CTRL    ),
+   // .xreg_TPROC_CFG  ( xreg_TPROC_CFG     ),
    .xreg_TPROC_W_DT ( xreg_TPROC_W_DT[0] ),
    .all_fifo_full_i ( all_fifo_full      ),
    .core_rst_o      ( core_rst           ),
@@ -410,8 +410,6 @@ qproc_mem_ctrl # (
 qproc_axi_reg QPROC_xREG (
    .ps_aclk          ( ps_clk_i            ) , 
    .ps_aresetn       ( ps_rst_ni           ) , 
-   .c_clk_i          ( c_clk_i             ) , 
-   .c_rst_ni         ( c_rst_ni            ) , 
    .IF_s_axireg      ( IF_s_axireg         ) ,
    .TPROC_CTRL       ( xreg_TPROC_CTRL     ) ,
    .TPROC_CFG        ( xreg_TPROC_CFG      ) ,
@@ -428,6 +426,7 @@ qproc_axi_reg QPROC_xREG (
    .TIME_USR         ( c_time_usr        ) ,
    .TPROC_STATUS     ( xreg_TPROC_STATUS   ) ,
    .TPROC_DEBUG      ( xreg_TPROC_DEBUG    ) );
+
 // AXI_REG TPROC_R_DT source selection
 ///////////////////////////////////////////////////////////////////////////////
 wire [ 3:0] tproc_src_dt;

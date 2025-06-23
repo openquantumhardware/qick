@@ -5,28 +5,28 @@
 module qproc_axi_reg(
    input wire            ps_aclk      ,    
    input wire            ps_aresetn   ,
-   input wire            c_clk_i      ,    
-   input wire            c_rst_ni     ,
+   // input wire            c_clk_i      ,    
+   // input wire            c_rst_ni     ,
    TYPE_IF_AXI_REG.slave       IF_s_axireg  ,
-   output wire  [15:0]   TPROC_CTRL   ,    
-   output reg   [15:0]   TPROC_CFG    ,
-   output reg   [15:0]   MEM_ADDR     ,    
-   output reg   [15:0]   MEM_LEN      ,    
-   output reg   [31:0]   MEM_DT_I     ,    
-   output reg   [31:0]   TPROC_W_DT1  ,    
-   output reg   [31:0]   TPROC_W_DT2  ,    
-   output reg   [7:0]    CORE_CFG   ,    
-   output reg   [7:0]    READ_SEL   ,    
-   input  reg   [31:0]   MEM_DT_O     ,    
-   input  reg   [31:0]   TPROC_R_DT1  ,    
-   input  reg   [31:0]   TPROC_R_DT2  ,    
-   input  reg   [31:0]   TIME_USR     ,    
-   input  reg   [31:0]   TPROC_STATUS ,    
-   input  reg   [31:0]   TPROC_DEBUG     
-   );
+   output logic [15:0]   TPROC_CTRL   ,    
+   output logic [15:0]   TPROC_CFG    ,
+   output logic [15:0]   MEM_ADDR     ,    
+   output logic [15:0]   MEM_LEN      ,    
+   output logic [31:0]   MEM_DT_I     ,    
+   output logic [31:0]   TPROC_W_DT1  ,    
+   output logic [31:0]   TPROC_W_DT2  ,    
+   output logic [7:0]    CORE_CFG   ,    
+   output logic [7:0]    READ_SEL   ,    
+   input  wire  [31:0]   MEM_DT_O     ,    
+   input  wire  [31:0]   TPROC_R_DT1  ,    
+   input  wire  [31:0]   TPROC_R_DT2  ,    
+   input  wire  [31:0]   TIME_USR     ,    
+   input  wire  [31:0]   TPROC_STATUS ,    
+   input  wire  [31:0]   TPROC_DEBUG     
+);
 
 
-wire [15:0] PS_TPROC_CTRL, PS_TPROC_CFG;
+// wire [15:0] PS_TPROC_CTRL, PS_TPROC_CFG;
 
 // AXI Slave.
 axi_slv_qproc QPROC_xREG (
@@ -51,8 +51,8 @@ axi_slv_qproc QPROC_xREG (
    .rresp         ( IF_s_axireg.axi_rresp        ) , 
    .rvalid        ( IF_s_axireg.axi_rvalid       ) , 
    .rready        ( IF_s_axireg.axi_rready       ) , 
-   .TPROC_CTRL    ( PS_TPROC_CTRL                ) ,
-   .TPROC_CFG     ( PS_TPROC_CFG                 ) ,
+   .TPROC_CTRL    ( TPROC_CTRL                ) ,
+   .TPROC_CFG     ( TPROC_CFG                 ) ,
    .MEM_ADDR      ( MEM_ADDR                  ) ,
    .MEM_LEN       ( MEM_LEN                   ) ,
    .MEM_DT_I      ( MEM_DT_I                  ) ,
@@ -67,27 +67,29 @@ axi_slv_qproc QPROC_xREG (
    .TPROC_STATUS  ( TPROC_STATUS           ) ,
    .TPROC_DEBUG   ( TPROC_DEBUG            ) );
 
- 
-reg [15:0] tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
-reg [15:0] tproc_cfg_rcd;
+//-------------------------------------------------------
+// Moved to qproc_ctrl due to issue #33
 
-// From PS_CLK to C_CLK
-always_ff @(posedge c_clk_i) 
-   if (!c_rst_ni) begin
-      tproc_ctrl_rcd  <= 0 ;
-      tproc_ctrl_r    <= 0 ;
-      tproc_ctrl_2r   <= 0 ;
-      tproc_cfg_rcd   <= 0 ;
-      TPROC_CFG       <= 0 ;
-   end else begin 
-      tproc_ctrl_rcd  <= PS_TPROC_CTRL    ;
-      tproc_ctrl_r    <= tproc_ctrl_rcd  ;
-      tproc_ctrl_2r   <= tproc_ctrl_r  ;
-      tproc_cfg_rcd   <= PS_TPROC_CFG     ;
-      TPROC_CFG     <= tproc_cfg_rcd ;
-   end
+// reg [15:0] tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
+// reg [15:0] tproc_cfg_rcd;
 
-// The C_TPROC_CTRL is only ONE clock.
-assign TPROC_CTRL       = tproc_ctrl_r & ~tproc_ctrl_2r ;
+// // From PS_CLK to C_CLK
+// always_ff @(posedge c_clk_i) 
+//    if (!c_rst_ni) begin
+//       tproc_ctrl_rcd  <= 0 ;
+//       tproc_ctrl_r    <= 0 ;
+//       tproc_ctrl_2r   <= 0 ;
+//       tproc_cfg_rcd   <= 0 ;
+//    end else begin 
+//       tproc_ctrl_rcd  <= PS_TPROC_CTRL    ;
+//       tproc_ctrl_r    <= tproc_ctrl_rcd  ;
+//       tproc_ctrl_2r   <= tproc_ctrl_r  ;
+//       tproc_cfg_rcd   <= PS_TPROC_CFG     ;
+//       TPROC_CFG     <= tproc_cfg_rcd ;
+//    end
+
+// // The C_TPROC_CTRL is only ONE clock.
+// assign TPROC_CTRL       = tproc_ctrl_r & ~tproc_ctrl_2r ;
+//-------------------------------------------------------
 
 endmodule
