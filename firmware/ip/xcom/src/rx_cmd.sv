@@ -63,7 +63,7 @@ logic [NCH-1:0]         s_req       ;
 logic [NCH-1:0]         s_ack       ;
 logic  [ 4-1:0]         s_cmd  [NCH];
 logic  [32-1:0]         s_data [NCH];
-logic [$clog2(NCH)-1:0] s_channel   ;
+logic [$clog2(NCH):0]   s_channel   ;
 logic                   s_valid     ;
 logic                   s_cmd_req   ;
 logic [NCH-1:0]         s_cmd_chid  ;

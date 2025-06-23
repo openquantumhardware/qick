@@ -28,7 +28,8 @@
 //               network (remote) command should be excecuted.
 // - o_op        operation to be excecuted (local or remote).
 // - o_data      data to be excecuted (local or remote).
-// - o_data_cntr data counter port for debug purposes.
+// - o_data_cntr command counter. It counts the number of commands received
+//               locally. This is a port for debug purposes.
 //
 //
 // Change history: 10/20/24 - v2 Started by @mdifederico

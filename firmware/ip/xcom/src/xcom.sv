@@ -329,7 +329,7 @@ xcom_txrx#(
 );
 
 assign o_xcom_id   = s_xcom_id;
-assign xreg_status        = { 7'd0,s_data_cntr, s_dbg_status_ps};
+assign xreg_status = {7'd0,s_data_cntr, s_dbg_status_ps};
 
 //end of SYNC STAGES
 ///////////////////////////////////////////////////////////////////////////////
