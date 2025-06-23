@@ -105,7 +105,7 @@ module xcom_txrx import qick_pkg::*;
 // XCOM CFG
    input  logic [4-1:0]     i_cfg_tick         ,
    output logic [ 4-1:0]    o_xcom_id          ,
-   output logic [32-1:0]    o_xcom_mem[15]     ,
+   output logic [32-1:0]    o_xcom_mem[16]     ,
 // Xlogic COM
    input  logic [NCH-1:0]   i_xcom_data        ,
    input  logic [NCH-1:0]   i_xcom_clk         ,
@@ -137,7 +137,7 @@ logic          data_flag, wreg_r ;
 logic [32-1:0] reg_dt_s;
 logic [ 4-1:0] mem_addr;
 logic [32-1:0] reg1_dt, reg2_dt;
-logic [32-1:0] mem_data [15];
+logic [32-1:0] mem_data [16];
 logic          s_cmd_exec;
 
 logic set_id_flg, wflg_flg, wreg_flg, wmem_flg;

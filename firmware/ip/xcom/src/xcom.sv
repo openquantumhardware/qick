@@ -161,7 +161,7 @@ logic [32-1:0] s_core_data2_sync;
 logic [32-1:0] s_core_data1_ps;
 logic [32-1:0] s_core_data2_ps;
 
-logic [32-1:0] xcom_mem_data [15];
+logic [32-1:0] xcom_mem_data [16];
 logic [32-1:0] axi_mem_data;
 
 logic [32-1:0] xreg_debug;
