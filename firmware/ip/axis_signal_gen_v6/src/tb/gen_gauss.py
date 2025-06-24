@@ -16,3 +16,7 @@ yq = yq.astype(np.int16)
 for ii in range(len(yi)):
 	print("%d,%d" %(yq[ii],yi[ii]))
 
+# plt.figure()
+# plt.plot(yq)
+# plt.show()
+
