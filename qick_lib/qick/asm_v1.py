@@ -310,6 +310,14 @@ class FullSpeedGenManager(AbsGenManager):
         for parname in ['freq', 'phase', 'gain']:
             if parname in params:
                 self.set_reg(parname, params[parname], defaults=defaults)
+        if not self.gencfg['has_dds']:
+            if 'freq' in params and params['freq'] != 0:
+                raise RuntimeError("a nonzero freq is being set for gen %d, but this generator has no DDS" % (self.ch))
+            if 'phase' in params and params['phase'] != 0:
+                raise RuntimeError("a nonzero phase is being set for gen %d, but this generator has no DDS" % (self.ch))
+            if params.get('phrst') == 1:
+                raise RuntimeError("phrst is being set for gen %d, but this generator has no DDS" % (self.ch))
+
         if 'waveform' in params:
             pinfo = self.envelopes[params['waveform']]
             wfm_length = pinfo['data'].shape[0] // self.gencfg['samps_per_clk']
