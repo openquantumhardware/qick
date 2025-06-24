@@ -862,8 +862,14 @@ class QickSoc(Overlay, QickConfig):
 
     def _get_block(self, fullpath):
         """Return the IP block specified by its full path.
+
+        Blocks inside hierarchies have slash-separated fullpaths e.g. "rfb_control/attn_spi"
+        PYNQ has two ways to access blocks inside hierarchies: recursively (soc.rfb_control.attn_spi) or directly (getattr(soc, "rfb_control/attn_spi")).
+        Annoyingly, these are separate instances of the driver object so you have to be consistent about which you use.
+        For some types of blocks (e.g. memories) the direct access uses a modified path with slashes removed (e.g. ddr4ddr4_0 instead of ddr4/ddr4_0).
+
+        To avoid these complications, we use this method, which consistently uses recursive access.
         """
-        #return getattr(self, fullpath.replace('/','_'))
         block = self
         # recurse into hierarchies, if present
         for x in fullpath.split('/'):
@@ -884,16 +890,24 @@ class QickSoc(Overlay, QickConfig):
             if hasattr(val['driver'], 'configure_connections'):
                 self._get_block(val['fullpath']).configure_connections(self)
 
+        # temporary lists for blocks that we only expect to see once
+        ddr4_buf = []
+        mr_buf = []
+
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
             if issubclass(val['driver'], AbsPulsedSignalGen):
-                self.gens.append(getattr(self, key))
+                self.gens.append(self._get_block(key))
             elif val['driver'] == AxisConstantIQ:
-                self.iqs.append(getattr(self, key))
+                self.iqs.append(self._get_block(key))
             elif issubclass(val['driver'], AbsReadout):
-                self.readouts.append(getattr(self, key))
+                self.readouts.append(self._get_block(key))
             elif issubclass(val['driver'], AxisAvgBuffer):
-                self.avg_bufs.append(getattr(self, key))
+                self.avg_bufs.append(self._get_block(key))
+            elif issubclass(val['driver'], AxisBufferDdrV1):
+                ddr4_buf.append(self._get_block(key))
+            elif issubclass(val['driver'], MrBufferEt):
+                mr_buf.append(self._get_block(key))
 
         # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
         for buf in self.avg_bufs:
@@ -921,21 +935,18 @@ class QickSoc(Overlay, QickConfig):
             readout.configure(self.rf)
 
         # Find the MR buffer, if present.
-        try:
-            self.mr_buf = self.mr_buffer_et_0
+        if len(mr_buf) == 1:
+            self.mr_buf = mr_buf[0]
             self['mr_buf'] = self.mr_buf.cfg
-        except:
-            pass
+        elif len(mr_buf) > 1:
+            raise RuntimeError("found multiple MR buffers, which is not currently supported by the software")
 
         # Find the DDR4 controller and buffer, if present.
-        try:
-            if hasattr(self, 'ddr4'):
-                self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
-            else:
-                self.ddr4_buf = self.axis_buffer_ddr_v1_0
+        if len(ddr4_buf) == 1:
+            self.ddr4_buf = ddr4_buf[0]
             self['ddr4_buf'] = self.ddr4_buf.cfg
-        except:
-            pass
+        elif len(ddr4_buf) > 1:
+            raise RuntimeError("found multiple DDR4 buffers, which is not currently supported by the software")
 
         # Fill the config dictionary with driver parameters.
         self['gens'] = [gen.cfg for gen in self.gens]

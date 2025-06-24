@@ -14,19 +14,19 @@ entity fifo_dc_axi is
     );
     Port
     ( 
-        wr_rstn	: in std_logic;
-        wr_clk 	: in std_logic;
+        wr_rstn   : in std_logic;
+        wr_clk    : in std_logic;
 
-        rd_rstn	: in std_logic;
-        rd_clk 	: in std_logic;
+        rd_rstn   : in std_logic;
+        rd_clk    : in std_logic;
         
         -- Write I/F.
-        wr_en  	: in std_logic;
+        wr_en     : in std_logic;
         din     : in std_logic_vector (B-1 downto 0);
         
         -- Read I/F.
-        rd_en  	: in std_logic;
-        dout   	: out std_logic_vector (B-1 downto 0);
+        rd_en     : in std_logic;
+        dout      : out std_logic_vector (B-1 downto 0);
         
         -- Flags.
         full    : out std_logic;        
@@ -48,19 +48,19 @@ component fifo_dc is
     );
     Port
     ( 
-        wr_rstn	: in std_logic;
-        wr_clk 	: in std_logic;
+        wr_rstn   : in std_logic;
+        wr_clk    : in std_logic;
 
-        rd_rstn	: in std_logic;
-        rd_clk 	: in std_logic;
+        rd_rstn   : in std_logic;
+        rd_clk    : in std_logic;
         
         -- Write I/F.
-        wr_en  	: in std_logic;
+        wr_en     : in std_logic;
         din     : in std_logic_vector (B-1 downto 0);
         
         -- Read I/F.
-        rd_en  	: in std_logic;
-        dout   	: out std_logic_vector (B-1 downto 0);
+        rd_en     : in std_logic;
+        dout      : out std_logic_vector (B-1 downto 0);
         
         -- Flags.
         full    : out std_logic;        
@@ -77,18 +77,18 @@ component rd2axi is
     );
     Port
     ( 
-        rstn		: in std_logic;
-        clk 		: in std_logic;
+        rstn      : in std_logic;
+        clk       : in std_logic;
 
         -- FIFO Read I/F.
-        fifo_rd_en 	: out std_logic;
-        fifo_dout  	: in std_logic_vector (B-1 downto 0);
+        fifo_rd_en   : out std_logic;
+        fifo_dout    : in std_logic_vector (B-1 downto 0);
         fifo_empty  : in std_logic;
         
         -- Read I/F.
-        rd_en 		: in std_logic;
-        dout  		: out std_logic_vector (B-1 downto 0);
-        empty  		: out std_logic
+        rd_en     : in std_logic;
+        dout      : out std_logic_vector (B-1 downto 0);
+        empty        : out std_logic
     );
 end component;
 
@@ -110,22 +110,22 @@ fifo_i : fifo_dc
     )
     Port map
     ( 
-        wr_rstn	=> wr_rstn	,
-        wr_clk 	=> wr_clk 	,
+        wr_rstn   => wr_rstn  ,
+        wr_clk    => wr_clk   ,
 
-        rd_rstn	=> rd_rstn	,
-        rd_clk 	=> rd_clk 	,
+        rd_rstn   => rd_rstn  ,
+        rd_clk    => rd_clk   ,
         
         -- Write I/F.
-        wr_en  	=> wr_en  	,
-        din     => din     	,
+        wr_en     => wr_en    ,
+        din     => din        ,
         
         -- Read I/F.
-        rd_en  	=> rd_en_i	,
-        dout   	=> dout_i	,
+        rd_en     => rd_en_i  ,
+        dout      => dout_i   ,
         
         -- Flags.
-        full    => full		,
+        full    => full    ,
         empty   => empty_i
     );
 
@@ -138,18 +138,18 @@ rd2axi_i : rd2axi
     )
     Port map
     ( 
-        rstn		=> rd_rstn	,
-        clk 		=> rd_clk	,
+        rstn      => rd_rstn  ,
+        clk       => rd_clk   ,
 
         -- FIFO Read I/F.
-        fifo_rd_en 	=> rd_en_i	,
-        fifo_dout  	=> dout_i	,
-        fifo_empty  => empty_i	,
+        fifo_rd_en   => rd_en_i  ,
+        fifo_dout    => dout_i   ,
+        fifo_empty  => empty_i   ,
         
         -- Read I/F.
-        rd_en 		=> rd_en	,
-        dout  		=> dout		,
-        empty  		=> empty	
+        rd_en     => rd_en ,
+        dout      => dout     ,
+        empty        => empty 
     );
 
 end rtl;

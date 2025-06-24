@@ -6,15 +6,15 @@ library common_lib;
 use common_lib.all;
 
 entity synchronizer_n is 
-	generic (
-		N : Integer := 2
-	);
-	port (
-		rstn	    : in std_logic;
-		clk 		: in std_logic;
-		data_in		: in std_logic;
-		data_out	: out std_logic
-	);
+   generic (
+      N : Integer := 2
+   );
+   port (
+      rstn      : in std_logic;
+      clk      : in std_logic;
+      data_in     : in std_logic;
+      data_out : out std_logic
+   );
 end synchronizer_n;
 
 architecture rtl of synchronizer_n is
@@ -26,13 +26,13 @@ begin
 
 process(clk)
 begin
-	if (rising_edge(clk)) then
-		if (rstn = '0') then
-			data_int_reg <= (others => '0');
-		else
-			data_int_reg <= data_int_reg(N-2 downto 0) & data_in;
-		end if;
-	end if;
+   if (rising_edge(clk)) then
+      if (rstn = '0') then
+         data_int_reg <= (others => '0');
+      else
+         data_int_reg <= data_int_reg(N-2 downto 0) & data_in;
+      end if;
+   end if;
 end process;
 
 -- Assign output.
