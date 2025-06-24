@@ -1554,7 +1554,6 @@ class AbsGenManager(AbsRegisterManager):
         self.tproc_ch = chcfg['tproc_ch']
         self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_fabric']
-        self.samps_per_clk = self.chcfg['samps_per_clk']
 
         # dictionary of defined envelopes
         self.envelopes = prog.envelopes[gen_ch]['envs']
@@ -1655,6 +1654,14 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
+        if not self.chcfg['has_dds'] :
+            if par['freq'].maxval() != 0 or par['freq'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero freq, but this generator has no DDS" % (self.ch))
+            if par['phase'].maxval() != 0 or par['phase'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero phase, but this generator has no DDS" % (self.ch))
+            if par.get('phrst') == 1:
+                raise RuntimeError("gen %d has a pulse with phrst, but this generator has no DDS" % (self.ch))
+
         pulse = QickPulse(self.prog, self, par)
 
         w = {}
@@ -1688,8 +1695,8 @@ class StandardGenManager(AbsGenManager):
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
-            env_length = env['data'].shape[0] // self.samps_per_clk
-            env_addr = env['addr'] // self.samps_per_clk
+            env_length = env['data'].shape[0] // self.chcfg['samps_per_clk']
+            env_addr = env['addr'] // self.chcfg['samps_per_clk']
 
         waves = []
         if par['style']=='const':

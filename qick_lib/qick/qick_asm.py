@@ -7,7 +7,6 @@ import logging
 import numpy as np
 import json
 from collections import namedtuple, OrderedDict, defaultdict
-from contextlib import suppress
 import operator
 import functools
 from numbers import Number
@@ -116,28 +115,31 @@ class QickConfig():
             groupdescs.append('[' + ', '.join(groupnames) + ']')
         lines.append('\tGroups of related clocks: ' + ', '.join(groupdescs))
 
-        with suppress(KeyError): # self['gens'] may not exist
+        if 'gens' in self._cfg: # self['gens'] may not exist for a non-tproc firmware
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):
                 dacname = gen['dac']
                 dac = self['rf']['dacs'][dacname]
-                buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
-                lines.append("\t%d:\t%s - envelope memory %d samples (%.3f us)" %
-                             (iGen, gen['type'], gen['maxlen'], buflen))
-                lines.append("\t\tfs=%.3f Msps, fabric=%.3f MHz, %d-bit DDS, range=%.3f MHz" %
-                             (dac['fs'], gen['f_fabric'], gen['b_dds'], gen['f_dds']))
+                lines.append("\t%d:\t%s - fs=%.3f Msps, fabric=%.3f MHz" % (iGen, gen['type'], dac['fs'], gen['f_fabric']))
+                if 'maxlen' in gen:
+                    buflen = gen['maxlen']/(gen['samps_per_clk']*gen['f_fabric'])
+                    envtype = 'complex' if gen['complex_env'] else 'real'
+                    lines.append("\t\tenvelope memory: %d %s samples (%.3f us)" %
+                                    (gen['maxlen'], envtype, buflen))
+                if gen['has_dds']:
+                    lines.append("\t\t%d-bit DDS, range=%.3f MHz" %
+                                (gen['b_dds'], gen['f_dds']))
                 lines.append("\t\t" + self._describe_dac(dacname))
 
-        with suppress(KeyError): # self['iqs'] may not exist
-            if self['iqs']: # if there are no IQ generators, don't print this section
-                lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
-                for iIQ, iq in enumerate(self['iqs']):
-                    dacname = iq['dac']
-                    dac = self['rf']['dacs'][dacname]
-                    lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
-                    lines.append("\t\t" + self._describe_dac(dacname))
+        if 'iqs' in self._cfg and self['iqs']: # if there are no IQ generators, don't print this section
+            lines.append("\n\t%d constant-IQ outputs:" % (len(self['iqs'])))
+            for iIQ, iq in enumerate(self['iqs']):
+                dacname = iq['dac']
+                dac = self['rf']['dacs'][dacname]
+                lines.append("\t%d:\tfs=%.3f Msps" % (iIQ, iq['fs']))
+                lines.append("\t\t" + self._describe_dac(dacname))
 
-        with suppress(KeyError): # self['readouts'] may not exist
+        if 'readouts' in self._cfg: # self['readouts'] may not exist for a non-tproc firmware
             lines.append("\n\t%d readout channels:" % (len(self['readouts'])))
             for iReadout, readout in enumerate(self['readouts']):
                 adcname = readout['adc']
@@ -162,7 +164,7 @@ class QickConfig():
                     readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
                 lines.append("\t\t" + self._describe_adc(adcname))
 
-        with suppress(KeyError): # tproc may be an empty dict
+        if tproc: # tproc may be an empty dict
             lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
             for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
                 lines.append("\t%d:\t%s" % (iPin, name))
@@ -514,11 +516,10 @@ class QickConfig():
         else:
             return None
 
-    def _get_mixer_cfg(self, gen_ch):
+    def _get_mixer_cfg(self, gencfg):
         """
         Create a fake config dictionary for a generator's NCO, for use in frequency matching.
         """
-        gencfg = self['gens'][gen_ch]
         mixercfg = {}
         mixercfg['fs_mult'] = gencfg['fs_mult']
         mixercfg['fdds_div'] = gencfg['fs_div']
@@ -687,7 +688,7 @@ class QickConfig():
         cfg = {}
         cfg['userval'] = mixer_freq
         gencfg = self['gens'][gen_ch]
-        mixercfg = self._get_mixer_cfg(gen_ch)
+        mixercfg = self._get_mixer_cfg(gencfg)
         if ro_ch is None:
             rounded_f = self.roundfreq(mixer_freq, [mixercfg])
         else:
@@ -1315,6 +1316,9 @@ class AbsQickProgram(ABC):
     def add_envelope(self, ch, name, idata=None, qdata=None):
         """Adds a waveform to the list of envelope waveforms available for this channel.
         The I and Q arrays must be of equal length, and the length must be divisible by the samples-per-clock of this generator.
+        If either array is omitted, zeros will be used for that component.
+
+        If this channel uses a real-only envelope, qdata must be omitted or all zeros.
 
         Parameters
         ----------
@@ -1322,13 +1326,16 @@ class AbsQickProgram(ABC):
             generator channel (index in 'gens' list)
         name : str
             Name of the pulse
-        idata : numpy.ndarray
+        idata : numpy.ndarray or None
             I data
-        qdata : numpy.ndarray
+        qdata : numpy.ndarray or None
             Q data
 
         """
         gencfg = self.soccfg['gens'][ch]
+
+        if not gencfg['complex_env'] and qdata is not None and np.any(qdata):
+            raise RuntimeError("generator %d only supports real envelope, but nonzero qdata was supplied"%(ch))
 
         length = [len(d) for d in [idata, qdata] if d is not None]
         if len(length)==0:
