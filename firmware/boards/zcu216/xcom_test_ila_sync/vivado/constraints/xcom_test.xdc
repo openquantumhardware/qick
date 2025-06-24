@@ -19,14 +19,17 @@ set_clock_groups -name async_clks -asynchronous \
 ## PMOD_0
 set_property PACKAGE_PIN G15       [get_ports "PMOD0_0"] ;# Bank 88 PMOD0_0
 set_property PACKAGE_PIN G16       [get_ports "PMOD0_1"] ;# Bank 88 PMOD0_1
-set_property PACKAGE_PIN H14       [get_ports "i_sync"] ;# Bank 88 PMOD0_2
+#set_property PACKAGE_PIN H14       [get_ports "i_sync"] ;# Bank 88 PMOD0_2
 #set_property PACKAGE_PIN H15       [get_ports "PMOD0_3"] ;# Bank 88 PMOD0_3
 #set_property PACKAGE_PIN G13       [get_ports "PMOD0_4"] ;# Bank 88 PMOD0_4
 #set_property PACKAGE_PIN H13       [get_ports "PMOD0_5"] ;# Bank 88 PMOD0_5
 #set_property PACKAGE_PIN J13       [get_ports "PMOD0_6"] ;# Bank 88 PMOD0_6
 #set_property PACKAGE_PIN J14       [get_ports "PMOD0_7"] ;# Bank 88 PMOD0_7
 set_property IOSTANDARD LVCMOS18   [get_ports "PMOD0*"]
-set_property IOSTANDARD LVCMOS18   [get_ports "i_sync"]
+#set_property IOSTANDARD LVCMOS18   [get_ports "i_sync"]
+## PMOD_0
+set_property PACKAGE_PIN N14       [get_ports "i_sync"]; # Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
+set_property IOSTANDARD  LVCMOS18  [get_ports "i_sync"]; # Bank  88 VCCO - VCC1V8   - IO_L3P_AD13P_88
 
 ## GREEN LED
 #######################################
