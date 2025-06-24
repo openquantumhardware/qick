@@ -1654,12 +1654,13 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
-        if not self.chcfg['has_dds'] and par['freq'].start != 0:
-            raise RuntimeError("freq is %f, but must be 0 if Signal Generator does not have DDS" % par['freq'].start)
-        if not self.chcfg['has_dds'] and par['phase'].start != 0:
-            raise RuntimeError("phase is %f, but must be 0 if Signal Generator does not have DDS" % par['phase'].start)
-        if not self.chcfg['has_dds'] and par.get('phrst') is not None:
-            raise RuntimeError("phrst is set but is not supported if Signal Generator does not have DDS")
+        if not self.chcfg['has_dds'] :
+            if par['freq'].maxval() != 0 or par['freq'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero freq, but this generator has no DDS" % (self.ch))
+            if par['phase'].maxval() != 0 or par['phase'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero phase, but this generator has no DDS" % (self.ch))
+            if par.get('phrst') == 1:
+                raise RuntimeError("gen %d has a pulse with phrst, but this generator has no DDS" % (self.ch))
 
         pulse = QickPulse(self.prog, self, par)
 
