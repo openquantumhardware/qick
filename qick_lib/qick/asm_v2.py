@@ -2516,6 +2516,35 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         except ValueError:
             return False
 
+    def print_pmem2hex(self):
+        """Prints the content of the PMEM in Hexadecimal format to dump it in an RTL simulation using the command $readmemh()
+        """
+        if self.binprog is None:
+            raise RuntimeError("print_pmem2hex() can only be called on a program after it's been compiled")
+        # print(prog.binprog['pmem'])
+        print("// PMEM content")
+        for ls in self.binprog['pmem']:
+            # Convert to uint for %x to work correctly
+            l = np.uint32(ls)
+            s = "%08x%08x%08x" % (l[2], l[1], l[0])
+            # Take only last 72 bits (18 nibbles)
+            print(s[-18:])
+
+    def print_wmem2hex(self):
+        """Prints the content of the WMEM in Hexadecimal format to dump it in an RTL simulation using the command $readmemh()
+        """
+        if self.binprog is None:
+            raise RuntimeError("print_pmem2hex() can only be called on a program after it's been compiled")
+
+        print("// WMEM content")
+        for ls in self.binprog['wmem']:
+            # print(ls)
+            l = np.uint32(ls)
+            s = "%08x%08x%08x%08x%08x%08x%08x%08x" % (l[7], l[6], l[5], l[4], l[3], l[2], l[1], l[0])
+            # Take only last 168 bits
+            print(s[-168//4:])
+
+
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
     You will need to define the acquisition structure with setup_acquire().
