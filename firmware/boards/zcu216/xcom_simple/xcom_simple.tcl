@@ -1716,4 +1716,11 @@ pagesize -pg 1 -db -bbox -sgen -130 0 4940 2260
 
 create_root_design ""
 
+# Add top wrapper and xdc files
+make_wrapper -files [get_files ./${overlay_name}/${overlay_name}.srcs/sources_1/bd/${design_name}/${design_name}.bd] -top
+add_files -norecurse ./${overlay_name}/${overlay_name}.srcs/sources_1/bd/${design_name}/hdl/${design_name}_wrapper.v
+set_property top ${design_name}_wrapper [current_fileset]
+import_files -fileset constrs_1 -norecurse ./vivado/constraints/${overlay_name}.xdc
+update_compile_order -fileset sources_1
+
 
