@@ -208,10 +208,10 @@ class QICK_Xcom(SocIP):
     def print_status(self):
         debug_num = self.status
         debug_bin = '{:032b}'.format(debug_num)
-        print(debug_bin)
+        #print(debug_bin)
         print('---------------------------------------------')
         print('--- AXI XCOM Register STATUS')
-        tx_status = debug_num & 0x0000_0000_0000_0003
+        tx_status = debug_num & 0x3
         match tx_status:
             case 0:
                 print( ' tx_st     : ' + 'IDLE')
@@ -221,11 +221,10 @@ class QICK_Xcom(SocIP):
                 print( ' tx_st     : ' + 'WSYNC')
             case 3:
                 print( ' tx_st     : ' + 'WRDY' )
-        #print( ' tx_st     : ' + debug_bin[30:32] )
-        #print( ' c_cmd_st  : ' + debug_bin[28:30] )
-        #print( ' x_cmd_st  : ' + debug_bin[26:28] )
-        print( ' rx_st[0]  : ' + debug_bin[21:26] )
-        rx_status = debug_num & 0x0000_0000_0000_01C0
+            case _:
+                print( ' tx_st     : ' + 'UNKNOWN' )
+        #print( ' rx_st[0]  : ' + debug_bin[21:26] )
+        rx_status = (debug_num & 0x01C0)>>6
         match rx_status:
             case 0:
                 print( ' rx_st     : ' + 'IDLE')
@@ -239,11 +238,9 @@ class QICK_Xcom(SocIP):
                 print( ' rx_st     : ' + 'ACK' )
             case _:
                 print( ' rx_st     : ' + 'UNKNOWN' )
-        #print( ' rx_st[1]  : ' + debug_bin[16:21] )
         print( ' tx_ready     : ' + debug_bin[15]    )
         print( ' board_id     : ' + debug_bin[11:15] )
         print( ' rx_data_cntr : ' + debug_bin[7:11]  )
-        #print( ' c_cmd_cnt : ' + debug_bin[3:7]   )
         
     def print_debug(self):
         debug_num = self.debug
