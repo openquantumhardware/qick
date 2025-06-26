@@ -180,15 +180,15 @@ synchronizer#(
 
 ///////////////////////////////////////////////////////////////////////////////
 //PS domain -> Time domain
-synchronizer#(
-   .NB(6)
+wide_en_signal#(                                                                                                                                                                              
+  .DWIDTH(6) 
    ) sync_xcom_ctrl(
   .i_clk      ( i_time_clk       ),
-  .i_rstn     ( i_time_rstn      ),
-  .i_async    ( i_xcom_ctrl[6-1:0]      ),
-  .o_sync     ( o_xcom_ctrl_sync[6-1:0] )
+  .i_rstn     ( i_time_rstn      ),  
+  .i_en       ( i_xcom_ctrl[6-1:0]      ),  
+  .o_en       ( o_xcom_ctrl_sync[6-1:0] )
 );
-assign o_xcom_ctrl_sync[32-1:6] = '0;
+assign o_xcom_ctrl_sync[32-1:6] = '0; 
 
 synchronizer#(
    .NB(4)
@@ -220,7 +220,9 @@ synchronizer#(
 
 ///////////////////////////////////////////////////////////////////////////////
 //Core domain -> Time domain
-wide_en_signal sync_core_en(
+wide_en_signal#(                                                                                                                                                                              
+  .DWIDTH(1) 
+   ) sync_core_en(
    .i_clk  ( i_time_clk     ),
    .i_rstn ( i_time_rstn    ),
    .i_en   ( i_core_en      ),

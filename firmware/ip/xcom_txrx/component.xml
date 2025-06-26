@@ -81,6 +81,22 @@
         </spirit:portMap>
       </spirit:portMaps>
     </spirit:busInterface>
+    <spirit:busInterface>
+      <spirit:name>o_time_rst</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset_rtl" spirit:version="1.0"/>
+      <spirit:master/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>RST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>o_time_rst</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
   </spirit:busInterfaces>
   <spirit:model>
     <spirit:views>
@@ -96,7 +112,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b15dd811</spirit:value>
+            <spirit:value>29efc0ce</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -112,7 +128,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b15dd811</spirit:value>
+            <spirit:value>29efc0ce</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -464,7 +480,7 @@
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">479</spirit:left>
+            <spirit:left spirit:format="long">511</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -486,7 +502,7 @@
             <xilinx:unpackedDimensionsVector>
               <xilinx:dimension>
                 <xilinx:left>0</xilinx:left>
-                <xilinx:right>14</xilinx:right>
+                <xilinx:right>15</xilinx:right>
               </xilinx:dimension>
             </xilinx:unpackedDimensionsVector>
           </xilinx:portInfo>
@@ -682,7 +698,7 @@
       <spirit:file>
         <spirit:name>src/xcom_txrx.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_9ed43bb9</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_d2beea6b</spirit:userFileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -781,14 +797,14 @@
       </xilinx:taxonomies>
       <xilinx:displayName>xcom_txrx_v1_0</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>2</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2025-05-23T17:32:40Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>3</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-06-25T16:27:32Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="3a85a26f"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="078fce87"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="d0240ffc"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="ce60abd2"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="07dbe19c"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="209e9937"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="8fe9f4ea"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="67d2600e"/>
     </xilinx:packagingInfo>
