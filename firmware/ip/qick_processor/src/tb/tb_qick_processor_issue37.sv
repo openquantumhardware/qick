@@ -26,7 +26,7 @@ import axi_mst_0_pkg::*;
 
 `define GEN_SYNC         1
 `define DUAL_CORE        0
-`define IO_CTRL          0
+`define IO_CTRL          1
 `define DEBUG            3
 `define TNET             0
 `define QCOM             0
@@ -35,27 +35,18 @@ import axi_mst_0_pkg::*;
 `define DIVIDER          1
 `define ARITH            1
 `define TIME_READ        1
-`define FIFO_DEPTH       9
-`define PMEM_AW          8 
-`define DMEM_AW          10 
-`define WMEM_AW          4 
+`define FIFO_DEPTH       8
+`define PMEM_AW          12 
+`define DMEM_AW          14 
+`define WMEM_AW          10
 `define REG_AW           4 
 `define IN_PORT_QTY      2
 `define OUT_TRIG_QTY     8
-`define OUT_DPORT_QTY    1
-`define OUT_DPORT_DW     4
+`define OUT_DPORT_QTY    2
+`define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    3 
 
-
-module tb_axis_qick_processor ();
-
-///////////////////////////////////////////////////////////////////////////////
-
-  
-   
-//wire [31:0] port_data_o [`OUT_WPORT_QTY] ;
-//wire m_axis_tvalid [`OUT_WPORT_QTY] ;
-//wire m_axis_tdata [`OUT_WPORT_QTY] ;
+module tb_qick_processor_issue37 ();
 
 
 // VIP Agent
@@ -132,7 +123,7 @@ reg                s_axi_aresetn        ;
 
 reg                axis_aclk            ;
 reg                axis_aresetn         ;
-reg                m0_axis_tready   =0    ;
+reg                m0_axis_tready   =1    ;
 reg                m1_axis_tready   =0    ;
 reg                m2_axis_tready   =0    ;
 reg                m3_axis_tready   =0    ;
@@ -439,6 +430,16 @@ reg qcom_rdy_i, qpb_rdy_i;
 
 initial begin
 
+  	// Create agents.
+	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_qick_processor_issue37.axi_mst_0_i.inst.IF);
+	// Set tag for agents.
+	axi_mst_0_agent.set_agent_tag	("axi_mst_0 VIP");
+	// Start agents.
+	axi_mst_0_agent.start_master();
+
+
+   $display("*** Start Test ***");
+   
    $display("AXI_WDATA_WIDTH %d",  `AXI_WDATA_WIDTH);
 
    $display("LFSR %d",  `LFSR);
@@ -454,34 +455,30 @@ initial begin
    $display("OUT_WPORT_QTY %d",  `OUT_WPORT_QTY);
    
   
+   AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM = '{default:'0} ;
+   
    AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
 
-   //AXIS_QPROC.QPROC.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//    for (int i=0; i < 1 /*`OUT_TRIG_QTY*/; i=i+1)
+//        AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[i].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//    for (int i=0; i < `OUT_DPORT_QTY; i=i+1)
+//        AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[i].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//    for (int i=0; i < `OUT_WPORT_QTY; i=i+1)
+//        AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[i].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
 
-   //AXIS_QPROC.QPROC.WAVE_FIFO[1].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.WAVE_FIFO[2].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.WAVE_FIFO[3].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.WAVE_FIFO[4].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   //AXIS_QPROC.QPROC.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+    // Load Memories 
    
-   
-   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   //$readmemb("/home/mdifeder/repos/qick-spin/firmware/ip/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemb("/home/mdifeder/IPs/qick_processor/src/TB/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   //$readmemb("/home/mdifeder/IPs/qick_processor/src/TB/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   
-  	// Create agents.
-	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_axis_qick_processor.axi_mst_0_i.inst.IF);
-	// Set tag for agents.
-	axi_mst_0_agent.set_agent_tag	("axi_mst_0 VIP");
-	// Start agents.
-	axi_mst_0_agent.start_master();
+//   $readmemb("/home/mdifeder/IPs/qick_processor/src/tb/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+//   $readmemb("prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemh("prog_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh("wave_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh("dmem_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
 
 // INITIAL VALUES
@@ -510,325 +507,253 @@ initial begin
    m_dma_axis_tready_i = 1'b1; 
    max_value   = 0;
    #10;
-   @ (posedge s_ps_dma_aclk); #0.1;
+   repeat(16) @ (posedge s_ps_dma_aclk); #0.1;
 	rst_ni = 1'b1;
    #10;
 
-   TEST_AXI ();
-   //TEST_SINGLE_READ_AXI();
-   // TEST_DMA_AXI ();
-   //TEST_SINGLE_READ_AXI();
 
-   WRITE_AXI( REG_TPROC_CFG , 512); //DISABLE NET CTRL NOTHING HAPPENS
-   TEST_STATES();
-   // 
-   WRITE_AXI( REG_TPROC_CFG , 0); //DISABLE NET CTRL ONLY NET COMMANDS
-   TEST_STATES();
-   // 
-   WRITE_AXI( REG_TPROC_CFG , 1536); //ENABLE IO ONLY IO COMMANDS
-   TEST_STATES();
-   // 
-   WRITE_AXI( REG_TPROC_CFG , 1024); //ENABLE IO ENABLE NET
-   TEST_STATES();
-
-   WRITE_AXI( REG_CORE_CFG , 2); //LFSR CHange when READ
-
-
-   //#100;
-   //@ (posedge t_clk); #0.1;
-//   proc_start_i   = 1'b1;
-//   @ (posedge t_clk); #0.1;
-//   proc_start_i   = 1'b0;
-
-   WRITE_AXI( REG_TPROC_CFG, 1024); //ENABLE EXTERNAL CONTROL
-
+   WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
+   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
+//   #900;
    
-   #100;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b0;
-
- 
-   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
-   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
-   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
-   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
-   WRITE_AXI( REG_TPROC_CTRL , 8192); //SET_FLAG
-   WRITE_AXI( REG_TPROC_CTRL , 16384); //CLR_FLAG
-
-   #10000;
-
-/*
-// CONFIGURE LFSR
-   @ (posedge s_ps_dma_aclk); #0.1;
-   WRITE_AXI( REG_TPROC_W_DT1 , 4); //
-   WRITE_AXI( REG_TPROC_W_DT2 , 10); //
-   WRITE_AXI( REG_CORE_CFG, 1); //LFSR FREE RUN
-   WRITE_AXI( REG_CORE_CFG, 2); //LFSR LAST
-   WRITE_AXI( REG_TPROC_CTRL , 4); //START
+//   force tb_axis_qick_processor.AXIS_QPROC.QPROC.DISPATCHER.some_fifo_full = 1'b1;
+//   #100ns;
+//   force tb_axis_qick_processor.AXIS_QPROC.QPROC.DISPATCHER.some_fifo_full = 1'b0;
+   
+   #150us;
 
 
-   WRITE_AXI( REG_READ_SEL, 0); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 1); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 2); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 3); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 4); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 5); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 6); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 7); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 8); //SELECT READ
-   WRITE_AXI( REG_READ_SEL, 1); //SELECT READ
-
-   #1000;
-//   WRITE_AXI( REG_TPROC_CTRL , 8); //STOP
-   WRITE_AXI( REG_TPROC_CTRL , 4); //START
-   #1000;
-   WRITE_AXI( REG_TPROC_CTRL , 4); //START
-   #1000;
-   WRITE_AXI( REG_TPROC_CTRL , 4); //START
-   #1000;
-
-   //WRITE_AXI( REG_TPROC_CFG , 6144); //CONTINUE IF FULL
-  // PROCESSOR START
-   WRITE_AXI( REG_TPROC_W_DT1 , 4); //
-   WRITE_AXI( REG_TPROC_W_DT2 , 10); //
-   WRITE_AXI( REG_TPROC_CTRL , 8192); //COND_SET
-// PORT DATA IN
-   @ (posedge c_clk); #0.1;
-   s1_axis_tvalid  = 1'b1 ;
-   port_1_dt_i     = 13;
-   @ (posedge c_clk); #0.1;
-   s1_axis_tvalid  = 1'b0 ;
-   port_1_dt_i     = 0;
-   #25;
-*/
-
-
-
+   $display("*** End Test ***");
+   $finish();
 end
 
 
-integer DATA_RD;
+//integer DATA_RD;
 
-/// DMA SIMULATOR
-always_ff @(posedge s_ps_dma_aclk) begin
-   if (axis_dma_start) begin
-      if (s_dma_axis_tdata_i < axis_dma_len ) begin
-         s_dma_axis_tdata_i   <= s_dma_axis_tdata_i + 1'b1 ;
-         s_dma_axis_tvalid_i  <= 1;
-      end else if (s_dma_axis_tdata_i == axis_dma_len ) begin
-         s_dma_axis_tdata_i   <= s_dma_axis_tdata_i + 1'b1 ;
-         s_dma_axis_tlast_i   <= 1'b1;
-         s_dma_axis_tvalid_i  <= 1'b1; 
-      end else begin
-         s_dma_axis_tdata_i   <= 0 ;
-         s_dma_axis_tlast_i   <= 0 ;
-         s_dma_axis_tvalid_i  <= 0 ;
-      end
-   end else begin 
-      s_dma_axis_tdata_i   <= 0 ;
-      s_dma_axis_tlast_i   <= 0 ;
-      s_dma_axis_tvalid_i  <= 0 ;
-   end
-end
+///// DMA SIMULATOR
+//always_ff @(posedge s_ps_dma_aclk) begin
+//   if (axis_dma_start) begin
+//      if (s_dma_axis_tdata_i < axis_dma_len ) begin
+//         s_dma_axis_tdata_i   <= s_dma_axis_tdata_i + 1'b1 ;
+//         s_dma_axis_tvalid_i  <= 1;
+//      end else if (s_dma_axis_tdata_i == axis_dma_len ) begin
+//         s_dma_axis_tdata_i   <= s_dma_axis_tdata_i + 1'b1 ;
+//         s_dma_axis_tlast_i   <= 1'b1;
+//         s_dma_axis_tvalid_i  <= 1'b1; 
+//      end else begin
+//         s_dma_axis_tdata_i   <= 0 ;
+//         s_dma_axis_tlast_i   <= 0 ;
+//         s_dma_axis_tvalid_i  <= 0 ;
+//      end
+//   end else begin 
+//      s_dma_axis_tdata_i   <= 0 ;
+//      s_dma_axis_tlast_i   <= 0 ;
+//      s_dma_axis_tvalid_i  <= 0 ;
+//   end
+//end
 
 
-reg [15:0] axis_dma_len;
-task TEST_SINGLE_READ_AXI (); begin
+//reg [15:0] axis_dma_len;
+//task TEST_SINGLE_READ_AXI (); begin
+//   $display("Running TEST_SINGLE_READ_AXI Task");
 
-   //DATA MEMORY READ
-   /////////////////////////////////////////////
-   // ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_1_10_0_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '0'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   data_wr = 32'b00000000_00000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //DATA MEMORY READ
+//   /////////////////////////////////////////////
+//   // ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_1_10_0_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '0'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   data_wr = 32'b00000000_00000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
    
-   //PROGRAM MEMORY WRITE
-   /////////////////////////////////////////////
-   // ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   // DATA
-   data_wr   = 127; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_DT_I, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_1_01_1_1; // '00'_CORE0 - '1'_SINGLE - '01'_PMEM - '1'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   data_wr = 32'b00000000_00000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   //DATA MEMORY WRITE
-   /////////////////////////////////////////////
-   // ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   // DATA
-   data_wr   = 255; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_DT_I, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_1_10_1_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '1'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   data_wr = 32'b00000000_00000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //PROGRAM MEMORY WRITE
+//   /////////////////////////////////////////////
+//   // ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   // DATA
+//   data_wr   = 127; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_DT_I, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_1_01_1_1; // '00'_CORE0 - '1'_SINGLE - '01'_PMEM - '1'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   data_wr = 32'b00000000_00000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   //DATA MEMORY WRITE
+//   /////////////////////////////////////////////
+//   // ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   // DATA
+//   data_wr   = 255; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_DT_I, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_1_10_1_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '1'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   data_wr = 32'b00000000_00000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
 
 
-   //DATA MEMORY READ
-   /////////////////////////////////////////////
-   // ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_1_10_0_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '0'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   data_wr = 32'b00000000_00000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //DATA MEMORY READ
+//   /////////////////////////////////////////////
+//   // ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_1_10_0_1; // '00'_CORE0 - '1'_SINGLE - '10'_DMEM - '0'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   data_wr = 32'b00000000_00000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
    
-end
-endtask
+//end
+//endtask
 
-task TEST_DMA_AXI (); begin
-   //PROGRAM MEMORY WRITE
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 50;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//task TEST_DMA_AXI (); begin
+//   $display("Running TEST_DMA_AXI Task");
 
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_01_1_1; // '00'_CORE0 - '0'_AXI - '01'_PMEM - '1'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   //Start DMA TRANSFER
-   @(posedge s_dma_axis_tready_o); 
-   axis_dma_start = 1'b1;
-   @(posedge s_dma_axis_tlast_i);
-   axis_dma_start = 1'b0;
-   data_wr = 32'b00000000_00000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   
-   
-   //PROGRAM MEMORY READ
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 25;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 25;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_01_0_1; // '00'_CORE0 - '0'_AXI - '01'_PMEM - '0'_READ - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   //PROGRAM MEMORY WRITE
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 50;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
 
-   //Wait for READ - DMA TRANSFER
-   @(posedge m_dma_axis_tlast_o);
-   data_wr = 32'b00000000_0000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_01_1_1; // '00'_CORE0 - '0'_AXI - '01'_PMEM - '1'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   //Start DMA TRANSFER
+//   @(posedge s_dma_axis_tready_o); 
+//   axis_dma_start = 1'b1;
+//   @(posedge s_dma_axis_tlast_i);
+//   axis_dma_start = 1'b0;
+//   data_wr = 32'b00000000_00000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
    
    
-   //DATA MEMORY WRITE
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 50;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 10; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_10_1_1; // '00'_CORE0 - '0'_AXI - '10'_DMEM - '1'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   //PROGRAM MEMORY READ
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 25;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 25;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_01_0_1; // '00'_CORE0 - '0'_AXI - '01'_PMEM - '0'_READ - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
 
-   //Start DMA TRANSFER
-   @(posedge s_dma_axis_tready_o); 
-   axis_dma_start = 1'b1;
-   @(posedge s_dma_axis_tlast_i);
-   axis_dma_start = 1'b0;
-   data_wr = 32'b00000000_0000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //Wait for READ - DMA TRANSFER
+//   @(posedge m_dma_axis_tlast_o);
+//   data_wr = 32'b00000000_0000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
    
    
-   //DATA MEMORY READ
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 50;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_10_0_1; // '00'_CORE0 - '0'_AXI - '10'_DMEM - '0'_READ - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   //DATA MEMORY WRITE
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 50;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 10; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_10_1_1; // '00'_CORE0 - '0'_AXI - '10'_DMEM - '1'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
 
-   //Wait for READ - DMA TRANSFER
-   @(posedge m_dma_axis_tlast_o);
-   data_wr = 32'b00000000_0000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //Start DMA TRANSFER
+//   @(posedge s_dma_axis_tready_o); 
+//   axis_dma_start = 1'b1;
+//   @(posedge s_dma_axis_tlast_i);
+//   axis_dma_start = 1'b0;
+//   data_wr = 32'b00000000_0000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
    
-   /*
-   //WAVE MEMORY WRITE
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 15;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_11_1_1; // '00'_CORE0 - '0'_AXI - '11'_WMEM - '1'_WRITE - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+   
+//   //DATA MEMORY READ
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 50;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_10_0_1; // '00'_CORE0 - '0'_AXI - '10'_DMEM - '0'_READ - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
 
-   //Start DMA TRANSFER
-   @(posedge s_dma_axis_tready_o); 
-   axis_dma_start = 1'b1;
-   @(posedge s_dma_axis_tlast_i);
-   axis_dma_start = 1'b0;
-   data_wr = 32'b00000000_0000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
-   */
+//   //Wait for READ - DMA TRANSFER
+//   @(posedge m_dma_axis_tlast_o);
+//   data_wr = 32'b00000000_0000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+   
+//   /*
+//   //WAVE MEMORY WRITE
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 15;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_11_1_1; // '00'_CORE0 - '0'_AXI - '11'_WMEM - '1'_WRITE - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
 
-   //WAVE MEMORY READ
-   /////////////////////////////////////////////
-   // DATA LEN
-   axis_dma_len = 15;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
-   // START ADDR
-   data_wr   = 0; 
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
-   //CONFIGURE TPROC ()
-   data_wr = 32'b0000000000000000000000000_00_0_11_0_1; // '00'_CORE0 - '0'_AXI - '11'_WMEM - '0'_READ - '1'_START
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   //Start DMA TRANSFER
+//   @(posedge s_dma_axis_tready_o); 
+//   axis_dma_start = 1'b1;
+//   @(posedge s_dma_axis_tlast_i);
+//   axis_dma_start = 1'b0;
+//   data_wr = 32'b00000000_0000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   */
 
-   //Wait for READ - DMA TRANSFER
-   @(posedge m_dma_axis_tlast_o);
-   data_wr = 32'b00000000_0000000_00000000_00000000;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
-   @ (posedge s_ps_dma_aclk); #0.1;
+//   //WAVE MEMORY READ
+//   /////////////////////////////////////////////
+//   // DATA LEN
+//   axis_dma_len = 15;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_LEN, prot, axis_dma_len, resp);
+//   // START ADDR
+//   data_wr   = 0; 
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_MEM_ADDR, prot, data_wr, resp);
+//   //CONFIGURE TPROC ()
+//   data_wr = 32'b0000000000000000000000000_00_0_11_0_1; // '00'_CORE0 - '0'_AXI - '11'_WMEM - '0'_READ - '1'_START
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+
+//   //Wait for READ - DMA TRANSFER
+//   @(posedge m_dma_axis_tlast_o);
+//   data_wr = 32'b00000000_0000000_00000000_00000000;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CFG, prot, data_wr, resp);
+//   @ (posedge s_ps_dma_aclk); #0.1;
 
    
 
-end
-endtask
+//end
+//endtask
 
 
 task WRITE_AXI(integer PORT_AXI, DATA_AXI); begin
-   //$display("Write to AXI");
+   $display("Running WRITE_AXI() Task");
    //$display("PORT %d",  PORT_AXI);
    //$display("DATA %d",  DATA_AXI);
    @ (posedge s_ps_dma_aclk); #0.1;
@@ -836,151 +761,160 @@ task WRITE_AXI(integer PORT_AXI, DATA_AXI); begin
    end
 endtask
 
-task READ_AXI(integer ADDR_AXI); begin
-   @ (posedge s_ps_dma_aclk); #0.1;
-   axi_mst_0_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
-      $display("READ AXI_DATA %d",  DATA_RD);
-   end
-endtask
+//task READ_AXI(integer ADDR_AXI); begin
+//    $display("Running READ_AXI() Task");
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   axi_mst_0_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
+//      $display("READ AXI_DATA %d",  DATA_RD);
+//   end
+//endtask
 
-task COND_CLEAR; begin
-   $display("COND CLEAR");
-   @ (posedge s_ps_dma_aclk); #0.1;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 2048, resp);
-   end
-endtask
+//task COND_CLEAR; begin
+//   $display("Running COND CLEAR Task");
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 2048, resp);
+//   end
+//endtask
 
-task COND_SET; begin
-   $display("COND SET");
-   @ (posedge s_ps_dma_aclk); #0.1;
-   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 20481024, resp);
-   end
-endtask
+//task COND_SET; begin
+//   $display("Running COND SET Task");
+//   @ (posedge s_ps_dma_aclk); #0.1;
+//   axi_mst_0_agent.AXI4LITE_WRITE_BURST(REG_TPROC_CTRL, prot, 20481024, resp);
+//   end
+//endtask
 
 
-integer cnt ;
-integer axi_addr ;
-integer num;
+//integer cnt ;
+//integer axi_addr ;
+//integer num;
 
-task TEST_STATES; begin
-   $display("TEST TPROC STATES");
+//task TEST_STATES; begin
+//   $display("Running TPROC TEST_STATES Task");
 
-// PROCESSOR START
-   #100;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b0;
-// PROCESSOR STOP
-   #100;
-   @ (posedge c_clk); #0.1;
-   proc_stop_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   proc_stop_i   = 1'b0;
-// PROCESSOR START
-   #100;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b0;
+//// PROCESSOR START
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b0;
+//// PROCESSOR STOP
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   proc_stop_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   proc_stop_i   = 1'b0;
+//// PROCESSOR START
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b0;
 
-// CORE STOP
-   #100;
-   @ (posedge c_clk); #0.1;
-   core_stop_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   core_stop_i   = 1'b0;
-// CORE START
-   #100;
-   @ (posedge c_clk); #0.1;
-   core_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   core_start_i   = 1'b0;
+//// CORE STOP
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   core_stop_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   core_stop_i   = 1'b0;
+//// CORE START
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   core_start_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   core_start_i   = 1'b0;
 
-// PROCESSOR START
-   #100;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   proc_start_i   = 1'b0;
+//// PROCESSOR START
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   proc_start_i   = 1'b0;
 
-// CORE START
-   #100;
-   @ (posedge c_clk); #0.1;
-   core_start_i   = 1'b1;
-   @ (posedge c_clk); #0.1;
-   core_start_i   = 1'b0;
+//// CORE START
+//   #1000;
+//   @ (posedge c_clk); #0.1;
+//   core_start_i   = 1'b1;
+//   @ (posedge c_clk); #0.1;
+//   core_start_i   = 1'b0;
 
-// TIME RESET
-   #100;
-   @ (posedge t_clk); #0.1;
-   time_rst_i   = 1'b1;
-   @ (posedge t_clk); #0.1;
-   time_rst_i   = 1'b0;
-// TIME INIT
-   #100;
-   @ (posedge t_clk); #0.1;
-   time_init_i  = 1'b1;
-   offset_dt_i   = 100;
-   @ (posedge t_clk); #0.1;
-   time_init_i   = 1'b0;
-// TIME UPDATE
-   #100;
-   @ (posedge t_clk); #0.1;
-   time_updt_i  = 1'b1;
-   offset_dt_i   = 50;
-   @ (posedge t_clk); #0.1;
-   time_updt_i   = 1'b0;
+//// TIME RESET
+//   #1000;
+//   @ (posedge t_clk); #0.1;
+//   time_rst_i   = 1'b1;
+//   @ (posedge t_clk); #0.1;
+//   time_rst_i   = 1'b0;
+//// TIME INIT
+//   #1000;
+//   @ (posedge t_clk); #0.1;
+//   time_init_i  = 1'b1;
+//   offset_dt_i   = 100;
+//   @ (posedge t_clk); #0.1;
+//   time_init_i   = 1'b0;
+//// TIME UPDATE
+//   #1000;
+//   @ (posedge t_clk); #0.1;
+//   time_updt_i  = 1'b1;
+//   offset_dt_i   = 50;
+//   @ (posedge t_clk); #0.1;
+//   time_updt_i   = 1'b0;
       
-   @ (posedge c_clk); #0.1;
+//   @ (posedge c_clk); #0.1;
 
 
-   end
-endtask
+//   end
+//endtask
 
 
-task TEST_AXI (); begin
-   $display("-----Writting AXI ");
-   WRITE_AXI( REG_TPROC_CTRL , 1); //TIME_RST
-   WRITE_AXI( REG_TPROC_CTRL , 2); //TIME_UPDT
-   WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
-   WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
-   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START
-   WRITE_AXI( REG_TPROC_CTRL , 32); //CORE_STOP
-   WRITE_AXI( REG_TPROC_CTRL , 64); //PROC_RST
-   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
-   WRITE_AXI( REG_TPROC_CTRL , 256); //PROC_PAUSE
-   WRITE_AXI( REG_TPROC_CTRL , 512); //PROC_FREEZE
-   WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
-   WRITE_AXI( REG_TPROC_CTRL , 1024); //PROC_STEP
-   WRITE_AXI( REG_TPROC_CTRL , 2048); //CORE_STEP
-   WRITE_AXI( REG_TPROC_CTRL , 4096); //TIME_STEP
+//task TEST_AXI (); begin
+//   $display("Running TEST_AXI Task");
+//   WRITE_AXI( REG_TPROC_CTRL , 1); //TIME_RST
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 2); //TIME_UPDT
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 32); //CORE_STOP
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 64); //PROC_RST
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 256); //PROC_PAUSE
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 512); //PROC_FREEZE
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 1024); //PROC_STEP
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 2048); //CORE_STEP
+//   #1000;
+//   WRITE_AXI( REG_TPROC_CTRL , 4096); //TIME_STEP
 
-   #100;
-   WRITE_AXI( REG_TPROC_CTRL , 8192); //PROC_START
-   WRITE_AXI( REG_TPROC_CTRL , 16384); //PROC_RST
-   #100;
+//   #100;
+//   WRITE_AXI( REG_TPROC_CTRL , 8192); //PROC_START
+//   WRITE_AXI( REG_TPROC_CTRL , 16384); //PROC_RST
+//   #100;
    
 
-end
-endtask
+//end
+//endtask
 
 
-/*
-always @(posedge t_clk)
-   if (!rst_ni)
-         count_bin_i <= 0;
-   else 
-   count_bin_i <= count_bin_i + 1'b1;
+///*
+//always @(posedge t_clk)
+//   if (!rst_ni)
+//         count_bin_i <= 0;
+//   else 
+//   count_bin_i <= count_bin_i + 1'b1;
       
-reg [31:0] count_gray, count_bin_i, count_bin_o;
-bin_2_gray bin_2_gray_inst (count_bin_i , count_gray );
-gray_2_bin gray_2_bin_inst (count_gray , count_bin_o );
-*/
+//reg [31:0] count_gray, count_bin_i, count_bin_o;
+//bin_2_gray bin_2_gray_inst (count_bin_i , count_gray );
+//gray_2_bin gray_2_bin_inst (count_gray , count_bin_o );
+//*/
 
 endmodule
-
-
-
-
-

@@ -21,7 +21,7 @@ module axis_qick_processor # (
    parameter TIME_CTRL      =  0 , // 0-No NET control 1-Add proc_strat and Proc Stop IN
    parameter CORE_CTRL      =  0 , // 0-No NET control 1-Add proc_strat and Proc Stop IN
    parameter OUT_TIME       =  0 , // 
-   parameter DEBUG          =  1 , // 0-No Debug 1-Only Registers 2-Registers and OUT Signals
+   parameter DEBUG          =  1 , // 0-No Debug 1-AXI control 2-Only Registers 3-Registers and OUT Signals
    parameter QNET           =  0 , // QNET Interfrace 0-No 1-Yes
    parameter QCOM           =  0 , // QCOM Interfrace 0-No 1-Yes
    parameter CUSTOM_PERIPH  =  0 , // PERIPH Interfrace 0-No 1-ONE 2-Two
