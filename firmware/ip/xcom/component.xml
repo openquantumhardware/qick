@@ -575,7 +575,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>efd26af7</spirit:value>
+            <spirit:value>da9c920c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -591,7 +591,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>efd26af7</spirit:value>
+            <spirit:value>da9c920c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1459,7 +1459,7 @@
       <spirit:file>
         <spirit:name>src/xcom.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_c625a6ec</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_47b71179</spirit:userFileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -1615,14 +1615,14 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Fermi National Laboratory</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://fnal.gov</xilinx:vendorURL>
-      <xilinx:coreRevision>7</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2025-06-23T14:20:39Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>8</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-06-26T20:50:27Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="621e6e32"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="97e0d26f"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="dce11b51"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="bc98a234"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="3285cf29"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="46f159be"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="0e76d2d5"/>
