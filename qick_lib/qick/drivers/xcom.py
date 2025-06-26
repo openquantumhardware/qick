@@ -99,7 +99,6 @@ class QICK_Xcom(SocIP):
         if  (dst < 16 ):
             self.axi_dt1   = dst
             self.xcom_ctrl = 1+2*0
-            self.xcom_ctrl = 1+2*0 & 0x3C
         else:
             raise RuntimeError('Destination Board error should be between 1 and 15 - current Value : %d' % (dst))
 
@@ -107,7 +106,6 @@ class QICK_Xcom(SocIP):
         if  (dst < 16 ):
             self.axi_dt1   = dst
             self.xcom_ctrl = 1+2*1
-            self.xcom_ctrl = 1+2*1 & 0x3C
         else:
             raise RuntimeError('Destination Board error should be between 1 and 15 - current Value : %d' % (dst))
 
@@ -115,7 +113,6 @@ class QICK_Xcom(SocIP):
         if  (chid < 16 ):
             self.axi_dt1   = chid
             self.xcom_ctrl = 1+2*16
-            self.xcom_ctrl = 1+2*16 & 0x3C
         else:
             raise RuntimeError('Board ID number should be between 1 and 15 - current Value : %d' % (chid))
             
@@ -123,7 +120,6 @@ class QICK_Xcom(SocIP):
         if  (flg == 1 ):
             self.axi_dt1   = flg
             self.xcom_ctrl = 1+2*17
-            self.xcom_ctrl = 1+2*17 & 0x3C
         else:
             raise RuntimeError('Flag must be 1 - current Value : %d' % (flg))
             
@@ -133,10 +129,8 @@ class QICK_Xcom(SocIP):
             self.axi_dt2  = data
             if   (reg == 1):
                 self.xcom_ctrl = 1+2*2
-                self.xcom_ctrl = 1+2*2 & 0x3C
             elif (reg == 2):
                 self.xcom_ctrl = 1+2*3
-                self.xcom_ctrl = 1+2*3 & 0x3C
             else:
                 raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (reg))
         else:
@@ -148,10 +142,8 @@ class QICK_Xcom(SocIP):
             self.axi_dt2  = data
             if   (reg == 1):
                 self.xcom_ctrl = 1+2*4
-                self.xcom_ctrl = 1+2*4 & 0x3C
             elif (reg == 2):
                 self.xcom_ctrl = 1+2*5
-                self.xcom_ctrl = 1+2*5 & 0x3C
             else:
                 raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (reg))
         else:
@@ -163,10 +155,8 @@ class QICK_Xcom(SocIP):
             self.axi_dt2  = data
             if   (reg == 1):
                 self.xcom_ctrl = 1+2*6
-                self.xcom_ctrl = 1+2*6 & 0x3C
             elif (reg == 2):
                 self.xcom_ctrl = 1+2*7
-                self.xcom_ctrl = 1+2*7 & 0x3C
             else:
                 raise RuntimeError('Destination Register error should be 1 or 2 current Value : %d' % (reg))
         else:
@@ -176,14 +166,12 @@ class QICK_Xcom(SocIP):
             self.axi_dt1 = 0
             self.axi_dt2 = 0
             self.xcom_ctrl = 1+2*9
-            self.xcom_ctrl = 1+2*9 & 0x3C
         
     def update_byte(self, data, dst):
         if  (dst < 16 ):
             self.axi_dt1   = dst
             self.axi_dt2   = data
             self.xcom_ctrl = 1+2*10
-            self.xcom_ctrl = 1+2*10 & 0x3C
         else:
             raise RuntimeError('Destination Board error should be between 0 and 15 - current Value : %d' % (dst))
             
@@ -191,7 +179,6 @@ class QICK_Xcom(SocIP):
             self.axi_dt1 = dt1
             self.axi_dt2 = dt2
             self.xcom_ctrl = 1+2*cmd
-            self.xcom_ctrl = 1+2*cmd & 0x3C
             
             
     def print_dt(self):
@@ -223,7 +210,6 @@ class QICK_Xcom(SocIP):
                 print( ' tx_st     : ' + 'WRDY' )
             case _:
                 print( ' tx_st     : ' + 'UNKNOWN' )
-        #print( ' rx_st[0]  : ' + debug_bin[21:26] )
         rx_status = (debug_num & 0x01C0)>>6
         match rx_status:
             case 0:
