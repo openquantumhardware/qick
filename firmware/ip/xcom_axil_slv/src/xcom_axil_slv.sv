@@ -335,6 +335,8 @@ module xcom_axil_slv #(
             slave_registers[14] <= '0;
             slave_registers[15] <= '0;
         end else begin
+           //reset
+           if (slave_registers[0] != '0) slave_registers[0]  <= '0;
             if (awvalid_reg && wvalid_reg) begin
                 case (awaddr_reg[C_S_AXI_ADDR_WIDTH-1:0])
                    REG_OFFSET_0: begin
