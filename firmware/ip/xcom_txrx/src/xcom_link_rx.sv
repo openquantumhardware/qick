@@ -122,10 +122,11 @@ always_comb begin
       end
       HEADER:  begin
          s_rx_header = 1'b1;
-         if ( s_header_last )
+         if ( s_header_last ) begin
             if      ( s_no_data  ) state_n = REQ  ; // Package has No Data
             else if ( s_new_data ) state_n = DATA ; // Package has Data   
             else if ( s_timeout  ) state_n = IDLE;  // TimeOut    
+         end else if ( s_timeout ) state_n = IDLE;  // False start detection (glitch), so return to IDLE. This is needed due to glitches in the communication path
       end
       DATA:  begin 
          if      ( s_data_last ) state_n = REQ;  // Last Data Received
