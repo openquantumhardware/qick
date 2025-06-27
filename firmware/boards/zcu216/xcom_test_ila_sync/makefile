@@ -4,7 +4,7 @@
 overlay_name := xcom_test
 design_name := xcom_test
 
-all: board_files block_design bitstream check_timing
+all: block_design bitstream check_timing
 	@echo
 	@tput setaf 2 ; echo "Built $(overlay_name) successfully!"; tput sgr0;
 	@echo
