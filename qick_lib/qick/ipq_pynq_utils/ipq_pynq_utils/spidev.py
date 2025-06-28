@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import struct
 import fcntl
 import cffi
@@ -71,17 +72,18 @@ class SpiDev:
     XFER_FORMAT = '=QQIIHBBBBBB'
 
     def __init__(self, bus, device):
-        self.file_obj = open('/dev/spidev%d.%d'%(bus, device), 'w+b', buffering=0)
+        spidev_bind(bus, device)
+        self.fd = os.open('/dev/spidev%d.%d'%(bus, device), os.O_RDWR)
         
     def __enter__(self):
         return self
     def __exit__(self, type, value, traceback):
-        self.file_obj.close()
+        os.close(self.fd)
         
     def writebytes(self, msg):
         """Write to the SPI device.
         """
-        self.file_obj.write(bytes(msg))
+        os.write(self.fd, bytes(msg))
         
     def xfer(self, msg):
         """Do a single full-duplex transaction.
@@ -99,35 +101,32 @@ class SpiDev:
                                  n,0,0,0,0,0,0,0,0)
         ioc = _IOC(_IOC_WRITE, self.SPI_IOC_MAGIC, self.SPI_IOCTL_MSG, len(xfer_bytes))
 
-        fcntl.ioctl(self.file_obj.fileno(), ioc, xfer_bytes)
+        fcntl.ioctl(self.fd, ioc, xfer_bytes)
         return _ffi.unpack(rx_buf, n)
     
+    def _read(self, ioctl, n):
+        buf = bytearray(n)
+        ioc = _IOC(_IOC_READ, self.SPI_IOC_MAGIC, ioctl, n)
+        fcntl.ioctl(self.fd, ioc, buf)
+        return int.from_bytes(buf, byteorder='little')
+
+    def _write(self, ioctl, n):
+        buf = value.to_bytes(length=n, byteorder='little')
+        ioc = _IOC(_IOC_WRITE, self.SPI_IOC_MAGIC, ioctl, n)
+        fcntl.ioctl(self.fd, ioc, buf)
+
     @property
     def bits_per_word(self):
-        n = 1
-        buf = bytearray(n)
-        ioc = _IOC(_IOC_READ, self.SPI_IOC_MAGIC, self.SPI_IOCTL_BITS_PER_WORD, n)
-        fcntl.ioctl(self.file_obj.fileno(), ioc, buf)
-        return int.from_bytes(buf, byteorder='little')
+        return self._read(self.SPI_IOCTL_BITS_PER_WORD, 1)
 
     @bits_per_word.setter
     def bits_per_word(self, value):
-        n = 1
-        buf = value.to_bytes(length=n, byteorder='little')
-        ioc = _IOC(_IOC_WRITE, self.SPI_IOC_MAGIC, self.SPI_IOCTL_BITS_PER_WORD, n)
-        fcntl.ioctl(self.file_obj.fileno(), ioc, buf)
+        self._write(self.SPI_IOCTL_BITS_PER_WORD, 1)
 
     @property
     def max_speed_hz(self):
-        n = 4
-        buf = bytearray(n)
-        ioc = _IOC(_IOC_READ, self.SPI_IOC_MAGIC, self.SPI_IOCTL_MAX_SPEED_HZ, n)
-        fcntl.ioctl(self.file_obj.fileno(), ioc, buf)
-        return int.from_bytes(buf, byteorder='little')
+        return self._read(self.SPI_IOCTL_MAX_SPEED_HZ, 4)
 
     @max_speed_hz.setter
     def max_speed_hz(self, value):
-        n = 4
-        buf = value.to_bytes(length=n, byteorder='little')
-        ioc = _IOC(_IOC_WRITE, self.SPI_IOC_MAGIC, self.SPI_IOCTL_MAX_SPEED_HZ, n)
-        fcntl.ioctl(self.file_obj.fileno(), ioc, buf)
+        self._write(self.SPI_IOCTL_MAX_SPEED_HZ, 4)
