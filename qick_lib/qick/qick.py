@@ -1446,10 +1446,13 @@ class QickSoc(Overlay, QickConfig):
         """
         Start the tProc.
         """
-        if self.TPROC_VERSION == 2:
+        if self.TPROC_VERSION == 1:
+            self.tproc.start()
+        elif self.TPROC_VERSION == 2:
             # reset all registers (importantly, this zeroes the counters to distinguish "program waiting for external start" from "program complete")
             self.tproc.reset()
-        self.tproc.start()
+            if self.tproc.get_start_src() == 'internal':
+                self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """

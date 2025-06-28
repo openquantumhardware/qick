@@ -507,15 +507,8 @@ class Axis_QICK_Proc(SocIP):
         self.logger.info('TIME_UPDATE')
         self.tproc_ctrl      = 2
     def start(self):
-        """
-        If tProc is configured for internal start, start the tProc.
-        If configured for external start, do nothing.
-        """
-        if self.tproc_cfg & (1 << 10):
-            pass
-        else:
-            self.logger.info('PROCESSOR_START')
-            self.tproc_ctrl      = 4
+        self.logger.info('PROCESSOR_START')
+        self.tproc_ctrl      = 4
     def stop(self):
         self.logger.info('PROCESSOR_STOP')
         self.tproc_ctrl      = 8
@@ -568,6 +561,11 @@ class Axis_QICK_Proc(SocIP):
             self.tproc_cfg |=  (1 << 10)
         else:
             raise RuntimeError("start_src must be internal or external, got %s"%(src))
+    def get_start_src(self):
+        if self.tproc_cfg & (1 << 10):
+            return 'external'
+        else:
+            return 'internal'
 
     def __str__(self):
         lines = []
