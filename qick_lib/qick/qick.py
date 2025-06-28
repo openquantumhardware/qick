@@ -1446,7 +1446,13 @@ class QickSoc(Overlay, QickConfig):
         """
         Start the tProc.
         """
-        self.tproc.start()
+        if self.TPROC_VERSION == 1:
+            self.tproc.start()
+        elif self.TPROC_VERSION == 2:
+            # reset all registers (importantly, this zeroes the counters to distinguish "program waiting for external start" from "program complete")
+            self.tproc.reset()
+            if self.tproc.get_start_src() == 'internal':
+                self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """
@@ -1470,7 +1476,7 @@ class QickSoc(Overlay, QickConfig):
     def set_tproc_counter(self, addr, val):
         """
         Initialize the tProc shot counter.
-        For tProc v2. this does nothing (the counter is typically initialized by the program).
+        For tProc v2. this does nothing (the counter is zeroed by QickSoc.start() and is typically initialized in the program).
 
         Parameters
         ----------
