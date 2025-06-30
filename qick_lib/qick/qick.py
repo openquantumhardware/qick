@@ -22,6 +22,7 @@ from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
 from .drivers.peripherals import *
+from .drivers.xcom import *
 
 logger = logging.getLogger(__name__)
 
