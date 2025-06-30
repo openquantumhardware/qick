@@ -1487,7 +1487,7 @@ class QickSoc(Overlay, QickConfig):
             Counter address
         """
         if self.TPROC_VERSION == 1:
-            self.tproc.single_write(addr=addr, data=val)
+            self.tproc.single_write(addr=addr, data=0)
         elif self.TPROC_VERSION == 2:
             self.tproc.reset()
 
