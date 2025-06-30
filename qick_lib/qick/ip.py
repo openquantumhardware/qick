@@ -310,11 +310,16 @@ class QickMetadata:
             elif blocktype == "axis_broadcaster":
                 for iOut in range(int(self.get_param(block, 'NUM_MI'))):
                     to_check.append((block, "M%02d_AXIS" % (iOut)))
+            elif blocktype == "axis_combiner" and port == 'S00_AXIS':
+                # this is used for xtalk with IQ generators - we only want to trace the "primary" path
+                to_check.append((block, "M_AXIS"))
             elif blocktype == "axis_clock_converter":
                 to_check.append((block, "M_AXIS"))
             elif blocktype == "axis_register_slice":
                 to_check.append((block, "M_AXIS"))
             elif blocktype == "axis_register_slice_nb":
+                to_check.append((block, "m_axis"))
+            elif blocktype == "axis_reorder_iq_v1":
                 to_check.append((block, "m_axis"))
             elif blocktype == "qick_xtalk" and port == 'wave_i':
                 # we only want to trace the "primary" xtalk port
