@@ -1026,7 +1026,7 @@ class QickProgram(AbsQickProgram):
             # update trigger count for this readout
             self.ro_chs[ro]['trigs'] += 1
         for pin in pins:
-            pincfg = self.soccfg['tprocs'][0]['output_pins'][pin]
+            pincfg = self.tproccfg['output_pins'][pin]
             outdict[pincfg[1]] |= (1 << pincfg[2])
         if ddr4:
             rocfg = self.soccfg['ddr4_buf']
