@@ -2057,6 +2057,14 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         self.binprog['pmem'] = self._compile_prog()
         self.binprog['wmem'] = self._compile_waves()
         self.binprog['dmem'] = self.compile_datamem()
+        # check that the program will fit
+        for name in ['pmem', 'wmem', 'dmem']:
+            progsize = 0
+            if self.binprog[name] is not None:
+                progsize = len(self.binprog[name])
+            memsize = self.tproccfg[name+'_size']
+            if progsize > memsize:
+                raise RuntimeError("compiled program uses %d words of %s, but the size of that tProc memory is only %d"%(progsize, name, memsize))
 
     def _make_asm(self):
         # convert the high-level program definition (macros and pulses) to low-level (ASM and waveform list)
