@@ -18,8 +18,6 @@ module qproc_ctrl # (
    input   wire        t_rst_ni        ,
    input   wire        c_clk_i         ,
    input   wire        c_rst_ni        ,
-   input   wire        ps_clk_i        ,
-   input   wire        ps_rst_ni       ,
 // External Control  
    input  wire         proc_start_i    ,
    input  wire         proc_stop_i     ,
@@ -33,8 +31,10 @@ module qproc_ctrl # (
    input  wire  [3:0]  int_time_cmd     , //core_usr_operation
    input  wire  [31:0] int_time_dt     , //core_usr_operation
 // AXI  Control  
-   input wire [15:0]   xreg_TPROC_CTRL ,
-   input wire [15:0]   xreg_TPROC_CFG  ,
+   input wire [15:0]   PS_TPROC_CTRL,
+   input wire [10:9]   PS_TPROC_CFG,
+   // input wire [15:0]   xreg_TPROC_CTRL ,
+   // input wire [15:0]   xreg_TPROC_CFG  ,
    input wire [31:0]   xreg_TPROC_W_DT ,
 // QPROC_STATE  
    input wire          all_fifo_full_i ,
@@ -53,6 +53,34 @@ module qproc_ctrl # (
    output reg   [ 6:0]  t_debug_do ,
    output reg   [ 6:0]  c_debug_do
 );
+
+//-------------------------------------------------------
+// Code moved from qproc_axi_reg due to issue #33
+logic [15:0]   xreg_TPROC_CTRL;
+logic [10:9]   xreg_TPROC_CFG, TPROC_CFG;
+
+logic [15:0]   tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
+logic [10:9]   tproc_cfg_rcd;
+
+// From PS_CLK to C_CLK
+always_ff @(posedge c_clk_i) 
+   if (!c_rst_ni) begin
+      tproc_ctrl_rcd  <= 0 ;
+      tproc_ctrl_r    <= 0 ;
+      tproc_ctrl_2r   <= 0 ;
+      tproc_cfg_rcd   <= 0 ;
+   end else begin 
+      tproc_ctrl_rcd  <= PS_TPROC_CTRL ;
+      tproc_ctrl_r    <= tproc_ctrl_rcd ;
+      tproc_ctrl_2r   <= tproc_ctrl_r ;
+      tproc_cfg_rcd   <= PS_TPROC_CFG ;
+      TPROC_CFG       <= tproc_cfg_rcd ;
+   end
+
+// The C_TPROC_CTRL is only ONE clock.
+assign xreg_TPROC_CTRL  = tproc_ctrl_r & ~tproc_ctrl_2r ;
+assign xreg_TPROC_CFG   = TPROC_CFG;
+//-------------------------------------------------------
 
 
 // Control
@@ -123,8 +151,6 @@ assign ctrl_c_step     = core_step_p ;
 // Core Control State Machine
 ///////////////////////////////////////////////////////////////////////////////
 enum {C_RST_STOP=0, C_RST_STOP_WAIT=1, C_RST_RUN=2, C_RST_RUN_WAIT=3, C_STOP=4, C_RUN=5, C_STEP=6, C_END_STEP=7} core_st_nxt, core_st;
-
-//assign core_en = c_core_en  & fifo_ok; 
 
 // Sequential Stante Machine
 always_ff @(posedge c_clk_i)
@@ -273,7 +299,7 @@ qproc_time_ctrl QTIME_CTRL (
    .updt_dt_i     ( time_updt_dt ) ,
    .time_abs_o    ( time_abs_o   ) );
    
-assign c_debug_do   = { 1'b0, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
+assign c_debug_do   = { 2'b00, ctrl_c_step, ctrl_c_stop, ctrl_c_run, ctrl_c_rst_run, ctrl_c_rst_stop }  ;
 assign t_debug_do   = { ctrl_t_updt, 1'b0, ctrl_t_step, ctrl_t_stop, ctrl_t_run, ctrl_t_rst_run, ctrl_t_rst_stop }  ;
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -545,6 +545,27 @@ class Axis_QICK_Proc(SocIP):
     def clr_axi_flg(self):
         self.logger.info('CLEAR CONDITION')
         self.tproc_ctrl      = 16384
+    def start_src(self, src):
+        """
+        Sets the start source of tProc
+
+        :param src: start source "internal" or "external"
+        :type src: str
+        """
+        self.stop()
+        if src=='internal':
+            self.tproc_cfg &= ~(1 << 10)
+        elif src=='external':
+            if self['revision'] < 23:
+                raise RuntimeError("external start requires tProc revision 23 or newer")
+            self.tproc_cfg |=  (1 << 10)
+        else:
+            raise RuntimeError("start_src must be internal or external, got %s"%(src))
+    def get_start_src(self):
+        if self.tproc_cfg & (1 << 10):
+            return 'external'
+        else:
+            return 'internal'
 
     def __str__(self):
         lines = []
@@ -609,7 +630,7 @@ class Axis_QICK_Proc(SocIP):
         self.mem_dt_i = data
         self.tproc_cfg         &= ~63
 
-    def load_mem(self, mem_sel, buff_in, addr=0):
+    def load_mem(self, mem_sel, buff_in, addr=0, check=True):
         """
         Writes tProc Selected memory using DMA
 
@@ -622,9 +643,12 @@ class Axis_QICK_Proc(SocIP):
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         addr : int
             Starting write address
+        check : bool
+            do a readback to check that the data was written correctly
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:
             raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
+        self.logger.info('tProc %s: loading data'%(mem_sel))
 
         # Length.
         length = len(buff_in)
@@ -649,9 +673,18 @@ class Axis_QICK_Proc(SocIP):
         # End Operation
         self.tproc_cfg       &= ~63
 
-    def read_mem(self, mem_sel, length, addr=0):
+        if check:
+            readback = self.read_mem(mem_sel, length=length, truncate=False)
+            width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
+            if np.array_equal(buff_in[:,:width], readback[:,:width]):
+                self.logger.info('tProc %s: readback OK'%(mem_sel))
+            else:
+                raise RuntimeError("tProc %s: readback does not match what was just loaded"%(mem_sel))
+
+    def read_mem(self, mem_sel, length, addr=0, truncate=True):
         """
-        Read tProc Selected memory using DMA
+        Read selected tProc memory using DMA.
+        The DMA transfer width is 256 bits (8 x int32), but the memories are smaller.
 
         Parameters
         ----------
@@ -661,11 +694,13 @@ class Axis_QICK_Proc(SocIP):
             Number of words to read
         addr : int
             Starting read address
+        truncate : bool
+            Trim columns that have no data in them
 
         Returns
         -------
         numpy.ndarray
-            32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
+            32-bit array of shape (n, 8) if not truncating; otherwise (n, 3) for pmem, (n, 6) for wmem, (n) for dmem
         """
         if mem_sel not in ['pmem', 'dmem', 'wmem']:
             raise RuntimeError('mem_sel should be pmem/dmem/wmem, current Value : %s' % (mem_sel))
@@ -685,24 +720,14 @@ class Axis_QICK_Proc(SocIP):
         # End Operation
         self.tproc_cfg         &= ~63
 
+        data = np.array(self.buff_rd[:length], copy=True)
         # truncate, copy, convert PynqBuffer to ndarray
-        if mem_sel=='dmem':
-            return np.array(self.buff_rd[:length, 0], copy=True)
-        else:
-            return np.array(self.buff_rd[:length], copy=True)
-
-    def Load_PMEM(self, p_mem, check=True):
-        length = len(p_mem)
-
-        self.logger.info('Loading Program in PMEM')
-        self.load_mem('pmem', p_mem)
-
-        if check:
-            readback = self.read_mem('pmem', length=length)
-            if ( (np.max(readback - p_mem) )  == 0):
-                self.logger.info('Program Loaded OK')
-            else:
-                self.logger.error('Error Loading Program')
+        if truncate:
+            width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
+            data = data[:, :width]
+            if mem_sel=='dmem':
+                return data.flatten()
+        return data
 
     def reload_mem(self):
         """Reload the waveform and data memory from the most recently written program.
@@ -718,7 +743,7 @@ class Axis_QICK_Proc(SocIP):
         Write the program to the tProc program memory.
         """
         self.binprog = binprog
-        self.Load_PMEM(self.binprog['pmem'])
+        self.load_mem('pmem', self.binprog['pmem'])
         if load_mem: self.reload_mem()
 
     def print_axi_regs(self):

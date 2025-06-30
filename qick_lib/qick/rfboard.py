@@ -2064,7 +2064,7 @@ class RFQickSoc111V1(RFQickSoc):
         if not no_tproc:
             # Link gens/readouts to the corresponding RF board channels.
             for gen in self.gens:
-                tile, block = [int(a) for a in gen.dac]
+                tile, block = [int(a) for a in gen['dac']]
                 gen.rfb_ch = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
                 tile, block = [int(a) for a in avg_buf.readout.adc]
@@ -2245,7 +2245,7 @@ class RFQickSoc216V1(RFQickSoc):
         if not no_tproc:
             # Each DAC tile maps to a daughter card, in order.
             for gen in self.gens:
-                tile, block = [int(a) for a in gen.dac]
+                tile, block = [int(a) for a in gen['dac']]
                 card = self.dac_cards[tile]
                 if card is not None:
                     gen.rfb_ch = card.chains[block]

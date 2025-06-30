@@ -1554,7 +1554,6 @@ class AbsGenManager(AbsRegisterManager):
         self.tproc_ch = chcfg['tproc_ch']
         self.tmux_ch = chcfg.get('tmux_ch') # default to None if undefined
         self.f_clk = chcfg['f_fabric']
-        self.samps_per_clk = self.chcfg['samps_per_clk']
 
         # dictionary of defined envelopes
         self.envelopes = prog.envelopes[gen_ch]['envs']
@@ -1655,6 +1654,14 @@ class StandardGenManager(AbsGenManager):
         if par.get('phrst') is not None and self.chcfg['type'] not in phrst_gens:
             raise RuntimeError("phrst not supported for %s, only for %s" % (self.chcfg['type'], phrst_gens))
 
+        if not self.chcfg['has_dds'] :
+            if par['freq'].maxval() != 0 or par['freq'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero freq, but this generator has no DDS" % (self.ch))
+            if par['phase'].maxval() != 0 or par['phase'].minval()!=0:
+                raise RuntimeError("gen %d has a pulse with a nonzero phase, but this generator has no DDS" % (self.ch))
+            if par.get('phrst') == 1:
+                raise RuntimeError("gen %d has a pulse with phrst, but this generator has no DDS" % (self.ch))
+
         pulse = QickPulse(self.prog, self, par)
 
         w = {}
@@ -1688,8 +1695,8 @@ class StandardGenManager(AbsGenManager):
 
         if 'envelope' in par:
             env = self.envelopes[par['envelope']]
-            env_length = env['data'].shape[0] // self.samps_per_clk
-            env_addr = env['addr'] // self.samps_per_clk
+            env_length = env['data'].shape[0] // self.chcfg['samps_per_clk']
+            env_addr = env['addr'] // self.chcfg['samps_per_clk']
 
         waves = []
         if par['style']=='const':
@@ -1918,7 +1925,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     FLIP_DOWNCONVERSION = True
 
     # supported revisions of the tProc v2 core
-    ASM_REVISIONS = [21, 22, 23]
+    ASM_REVISIONS = [21, 22, 23, 24, 25]
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
@@ -2508,6 +2515,35 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 return False
         except ValueError:
             return False
+
+    def print_pmem2hex(self):
+        """Prints the content of the PMEM in Hexadecimal format to dump it in an RTL simulation using the command $readmemh()
+        """
+        if self.binprog is None:
+            raise RuntimeError("print_pmem2hex() can only be called on a program after it's been compiled")
+        # print(prog.binprog['pmem'])
+        print("// PMEM content")
+        for ls in self.binprog['pmem']:
+            # Convert to uint for %x to work correctly
+            l = np.uint32(ls)
+            s = "%08x%08x%08x" % (l[2], l[1], l[0])
+            # Take only last 72 bits (18 nibbles)
+            print(s[-18:])
+
+    def print_wmem2hex(self):
+        """Prints the content of the WMEM in Hexadecimal format to dump it in an RTL simulation using the command $readmemh()
+        """
+        if self.binprog is None:
+            raise RuntimeError("print_pmem2hex() can only be called on a program after it's been compiled")
+
+        print("// WMEM content")
+        for ls in self.binprog['wmem']:
+            # print(ls)
+            l = np.uint32(ls)
+            s = "%08x%08x%08x%08x%08x%08x%08x%08x" % (l[7], l[6], l[5], l[4], l[3], l[2], l[1], l[0])
+            # Take only last 168 bits
+            print(s[-168//4:])
+
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.

@@ -104,12 +104,12 @@ class DataStreamer():
 
                 # how many shots worth of data to transfer at a time
                 if stride is None:
+                    # how many shots will fit in each buffer?
                     shots = [self.soc['readouts'][ch]['avg_maxlen']/reads_per_count[i] for i, ch in enumerate(ch_list)]
-                    stride = int(0.1 * min(shots))
+                    # take 10% of the smallest buffer, but stride must always be at least 1
+                    stride = max(1, int(0.1 * min(shots)))
                 # bigger stride is more efficient, but the transfer size must never exceed AVG_MAX_LENGTH, so the stride should be set with some safety margin
 
-                # make sure count variable is reset to 0 before starting processor
-                self.soc.set_tproc_counter(addr=counter_addr, val=0)
                 stats = []
 
                 t_start = time.time()

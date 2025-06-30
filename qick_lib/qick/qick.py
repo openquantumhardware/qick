@@ -863,8 +863,14 @@ class QickSoc(Overlay, QickConfig):
 
     def _get_block(self, fullpath):
         """Return the IP block specified by its full path.
+
+        Blocks inside hierarchies have slash-separated fullpaths e.g. "rfb_control/attn_spi"
+        PYNQ has two ways to access blocks inside hierarchies: recursively (soc.rfb_control.attn_spi) or directly (getattr(soc, "rfb_control/attn_spi")).
+        Annoyingly, these are separate instances of the driver object so you have to be consistent about which you use.
+        For some types of blocks (e.g. memories) the direct access uses a modified path with slashes removed (e.g. ddr4ddr4_0 instead of ddr4/ddr4_0).
+
+        To avoid these complications, we use this method, which consistently uses recursive access.
         """
-        #return getattr(self, fullpath.replace('/','_'))
         block = self
         # recurse into hierarchies, if present
         for x in fullpath.split('/'):
@@ -885,16 +891,24 @@ class QickSoc(Overlay, QickConfig):
             if hasattr(val['driver'], 'configure_connections'):
                 self._get_block(val['fullpath']).configure_connections(self)
 
+        # temporary lists for blocks that we only expect to see once
+        ddr4_buf = []
+        mr_buf = []
+
         # Populate the lists with the registered IP blocks.
         for key, val in self.ip_dict.items():
             if issubclass(val['driver'], AbsPulsedSignalGen):
-                self.gens.append(getattr(self, key))
+                self.gens.append(self._get_block(key))
             elif val['driver'] == AxisConstantIQ:
-                self.iqs.append(getattr(self, key))
+                self.iqs.append(self._get_block(key))
             elif issubclass(val['driver'], AbsReadout):
-                self.readouts.append(getattr(self, key))
+                self.readouts.append(self._get_block(key))
             elif issubclass(val['driver'], AxisAvgBuffer):
-                self.avg_bufs.append(getattr(self, key))
+                self.avg_bufs.append(self._get_block(key))
+            elif issubclass(val['driver'], AxisBufferDdrV1):
+                ddr4_buf.append(self._get_block(key))
+            elif issubclass(val['driver'], MrBufferEt):
+                mr_buf.append(self._get_block(key))
 
         # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
         for buf in self.avg_bufs:
@@ -922,21 +936,18 @@ class QickSoc(Overlay, QickConfig):
             readout.configure(self.rf)
 
         # Find the MR buffer, if present.
-        try:
-            self.mr_buf = self.mr_buffer_et_0
+        if len(mr_buf) == 1:
+            self.mr_buf = mr_buf[0]
             self['mr_buf'] = self.mr_buf.cfg
-        except:
-            pass
+        elif len(mr_buf) > 1:
+            raise RuntimeError("found multiple MR buffers, which is not currently supported by the software")
 
         # Find the DDR4 controller and buffer, if present.
-        try:
-            if hasattr(self, 'ddr4'):
-                self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
-            else:
-                self.ddr4_buf = self.axis_buffer_ddr_v1_0
+        if len(ddr4_buf) == 1:
+            self.ddr4_buf = ddr4_buf[0]
             self['ddr4_buf'] = self.ddr4_buf.cfg
-        except:
-            pass
+        elif len(ddr4_buf) > 1:
+            raise RuntimeError("found multiple DDR4 buffers, which is not currently supported by the software")
 
         # Fill the config dictionary with driver parameters.
         self['gens'] = [gen.cfg for gen in self.gens]
@@ -1236,13 +1247,16 @@ class QickSoc(Overlay, QickConfig):
         self.avg_bufs[ch].load_weights(data, addr)
 
     def load_envelope(self, ch, data, addr):
-        """Load envelope data into signal generators
-        :param ch: Channel
-        :type ch: int
-        :param data: array of (I, Q) values for pulse envelope
-        :type data: numpy.ndarray of int16
-        :param addr: address to start data at
-        :type addr: int
+        """Load envelope data into a signal generator.
+
+        Parameters
+        ----------
+        ch: int
+            Generator channel to configure
+        data: numpy.ndarray of int16
+            Array of (I, Q) values for pulse envelope
+        addr: int
+            Starting address
         """
         # we may have converted to list for pyro compatiblity, so convert back to ndarray
         data = np.array(data, dtype=np.int16)
@@ -1352,7 +1366,15 @@ class QickSoc(Overlay, QickConfig):
         load_mem : bool
             write waveform and data memory now (can do this later with reload_mem())
         """
-        self.tproc.load_bin_program(obtain(binprog), load_mem=load_mem)
+        binprog = obtain(binprog)
+        # cast to ndarray
+        if self.TPROC_VERSION == 1:
+            binprog = np.array(binprog, dtype=np.uint64)
+        elif self.TPROC_VERSION == 2:
+            for mem_sel in ['pmem', 'dmem', 'wmem']:
+                if binprog[mem_sel] is not None:
+                    binprog[mem_sel] = np.array(binprog[mem_sel], dtype=np.int32)
+        self.tproc.load_bin_program(binprog, load_mem=load_mem)
 
     def reload_mem(self):
         """Reload the waveform and data memory, overwriting any changes made by running the program.
@@ -1360,7 +1382,7 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 2:
             self.tproc.reload_mem()
 
-    def load_mem(self, buff, mem_sel='dmem', addr=0):
+    def load_mem(self, data, mem_sel='dmem', addr=0):
         """
         Write a block of the selected tProc memory.
         For tProc v1 only the data memory ("dmem") is valid.
@@ -1368,7 +1390,7 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        buff_in : numpy.ndarray of int
+        data : numpy.ndarray of int
             Data to be loaded
             32-bit array of shape (n, 8) for pmem and wmem, (n) for dmem
         mem_sel : str
@@ -1376,13 +1398,14 @@ class QickSoc(Overlay, QickConfig):
         addr : int
             Starting write address
         """
+        data = np.array(data, dtype=np.int32)
         if self.TPROC_VERSION == 1:
             if mem_sel=='dmem':
-                self.tproc.load_dmem(buff, addr)
+                self.tproc.load_dmem(data, addr)
             else:
                 raise RuntimeError("invalid mem_sel: %s"%(mem_sel))
         elif self.TPROC_VERSION == 2:
-            self.tproc.load_mem(mem_sel, buff, addr)
+            self.tproc.load_mem(mem_sel, data, addr)
 
     def read_mem(self, length, mem_sel='dmem', addr=0):
         """
@@ -1419,9 +1442,7 @@ class QickSoc(Overlay, QickConfig):
         :param src: start source "internal" or "external"
         :type src: str
         """
-        if self.TPROC_VERSION == 1:
-            self.tproc.start_src(src)
-        # TODO: not implemented for tproc v2
+        self.tproc.start_src(src)
 
     def start_tproc(self):
         """
@@ -1430,8 +1451,10 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 1:
             self.tproc.start()
         elif self.TPROC_VERSION == 2:
-            self.tproc.stop()
-            self.tproc.start()
+            # reset all registers (importantly, this zeroes the counters to distinguish "program waiting for external start" from "program complete")
+            self.tproc.reset()
+            if self.tproc.get_start_src() == 'internal':
+                self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """
@@ -1455,7 +1478,7 @@ class QickSoc(Overlay, QickConfig):
     def set_tproc_counter(self, addr, val):
         """
         Initialize the tProc shot counter.
-        For tProc v2. this does nothing (the counter is typically initialized by the program).
+        For tProc v2. this does nothing (the counter is zeroed by QickSoc.start() and is typically initialized in the program).
 
         Parameters
         ----------

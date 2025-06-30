@@ -3,8 +3,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "Component_Name"
   #Adding Page
   set Page_0 [ipgui::add_page $IPINST -name "Page 0"]
-  ipgui::add_static_text $IPINST -name "Version" -parent ${Page_0} -text {Qick_Processor Revision 22 - 2024_10, ( Use Assembler Version v3 rev23 )}
-  ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size Port quantity and register amount can be modified in order to make a smaller and Faster processor }
+  ipgui::add_static_text $IPINST -name "Introduction" -parent ${Page_0} -text {Values for Memory size, port quantity, and register amount can be modified in order to make a smaller and faster processor}
   #Adding Group
   set Process [ipgui::add_group $IPINST -name "Process" -parent ${Page_0} -display_name {Processor Options}]
   set_property tooltip {Process} ${Process}
@@ -44,6 +43,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "OUT_WPORT_QTY" -parent ${GROUP1}
   ipgui::add_param $IPINST -name "OUT_DPORT_QTY" -parent ${GROUP1}
   ipgui::add_param $IPINST -name "OUT_DPORT_DW" -parent ${GROUP1}
+  ipgui::add_param $IPINST -name "FIFO_DEPTH" -parent ${GROUP1} -widget comboBox
 
   #Adding Group
   set GROUP [ipgui::add_group $IPINST -name "GROUP" -parent ${OUT_Port_Configuration} -display_name {QICK SIGNALS}]

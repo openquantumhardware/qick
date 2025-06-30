@@ -2,10 +2,9 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dsp_macro_0",
-    "cell_name": "QPROC/arith/dsp_macro_0",
     "component_reference": "xilinx.com:ip:dsp_macro:1.0",
     "ip_revision": "3",
-    "gen_directory": "../../../../projects/qick_tprocv2_216_standard/top/top.tmp/qick_processor_v2_0_project/qick_processor_v2_0_project.gen/sources_1/ip/dsp_macro_0",
+    "gen_directory": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/qick_processor_v2_0_project/qick_processor_v2_0_project.gen/sources_1/ip/dsp_macro_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "dsp_macro_0", "resolve_type": "user", "usage": "all" } ],
@@ -154,10 +153,10 @@
       },
       "project_parameters": {
         "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
-        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu216:part0:2.0" } ],
+        "BASE_BOARD_PART": [ { "value": "" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
-        "DEVICE": [ { "value": "xczu49dr" } ],
-        "PACKAGE": [ { "value": "ffvf1760" } ],
+        "DEVICE": [ { "value": "xczu48dr" } ],
+        "PACKAGE": [ { "value": "ffvg1517" } ],
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
@@ -171,7 +170,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "3" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_216_standard/top/top.tmp/qick_processor_v2_0_project/qick_processor_v2_0_project.gen/sources_1/ip/dsp_macro_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/qick_processor_v2_0_project/qick_processor_v2_0_project.gen/sources_1/ip/dsp_macro_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
