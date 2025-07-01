@@ -1026,7 +1026,7 @@ class QickProgram(AbsQickProgram):
             # update trigger count for this readout
             self.ro_chs[ro]['trigs'] += 1
         for pin in pins:
-            pincfg = self.soccfg['tprocs'][0]['output_pins'][pin]
+            pincfg = self.tproccfg['output_pins'][pin]
             outdict[pincfg[1]] |= (1 << pincfg[2])
         if ddr4:
             rocfg = self.soccfg['ddr4_buf']
@@ -1260,6 +1260,10 @@ class QickProgram(AbsQickProgram):
                 labels[inst['label']] = prog_counter
             prog_counter += 1
         self.binprog = [self.compile_instruction(inst, labels, debug=debug) for inst in self.prog_list if inst['name']!='comment']
+        progsize = len(self.binprog)
+        memsize = self.tproccfg['pmem_size']
+        if progsize > memsize:
+            raise RuntimeError("compiled program uses %d ASM instructions, but the tProc program memory is only %d words"%(progsize, memsize))
 
     def append_instruction(self, name, *args):
         """Append instruction to the program list
