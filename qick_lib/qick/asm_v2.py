@@ -1002,7 +1002,7 @@ class Trigger(TimedMacro):
             # update trigger count for this readout
             prog.ro_chs[ro]['trigs'] += 1
         for pin in self.pins:
-            porttype, portnum, pinnum, _ = prog.soccfg['tprocs'][0]['output_pins'][pin]
+            porttype, portnum, pinnum, _ = prog.tproccfg['output_pins'][pin]
             if porttype == 'dport':
                 self.outdict[portnum] |= (1 << pinnum)
             else:
@@ -1925,7 +1925,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     FLIP_DOWNCONVERSION = True
 
     # supported revisions of the tProc v2 core
-    ASM_REVISIONS = [21, 22, 23, 24]
+    ASM_REVISIONS = [21, 22, 23, 24, 25]
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
@@ -2057,6 +2057,14 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         self.binprog['pmem'] = self._compile_prog()
         self.binprog['wmem'] = self._compile_waves()
         self.binprog['dmem'] = self.compile_datamem()
+        # check that the program will fit
+        for name in ['pmem', 'wmem', 'dmem']:
+            progsize = 0
+            if self.binprog[name] is not None:
+                progsize = len(self.binprog[name])
+            memsize = self.tproccfg[name+'_size']
+            if progsize > memsize:
+                raise RuntimeError("compiled program uses %d words of %s, but the size of that tProc memory is only %d"%(progsize, name, memsize))
 
     def _make_asm(self):
         # convert the high-level program definition (macros and pulses) to low-level (ASM and waveform list)
@@ -2458,15 +2466,16 @@ class QickProgramV2(AsmV2, AbsQickProgram):
                 return name
 
         assigned_addrs = set([v.addr for v in self.reg_dict.values()])
+        n_dreg = self.tproccfg['dreg_qty']
         if addr is None:
             addr = 0
             while addr in assigned_addrs:
                 addr += 1
-            if addr >= self.soccfg['tprocs'][0]['dreg_qty']:
-                raise RuntimeError(f"all data registers are assigned.")
+            if addr >= n_dreg:
+                raise RuntimeError(f"this program uses more data registers than are available in the tProc ({n_dreg}).")
         else:
-            if addr < 0 or addr >= self.soccfg['tprocs'][0]['dreg_qty']:
-                raise ValueError(f"register address must be smaller than {self.soccfg['tprocs'][0]['dreg_qty']}")
+            if addr < 0 or addr >= n_dreg:
+                raise ValueError(f"register address must be >=0, <{n_dreg}")
             if addr in assigned_addrs:
                 raise ValueError(f"register at address {addr} is already occupied.")
         reg = QickRegisterV2(addr=addr, init=init)
@@ -2510,7 +2519,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             elif name[0]=='w': # waveform register
                 return addr<6
             elif name[0]=='r': # data register
-                return addr<self.soccfg['tprocs'][0]['dreg_qty']
+                return addr<self.tproccfg['dreg_qty']
             else:
                 return False
         except ValueError:

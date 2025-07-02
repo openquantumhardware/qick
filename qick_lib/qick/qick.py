@@ -1445,8 +1445,14 @@ class QickSoc(Overlay, QickConfig):
     def start_tproc(self):
         """
         Start the tProc.
+
+        If the tProc is configured for external start, this does nothing (the tProc will start on the first start signal it sees after external start is enabled).
         """
-        self.tproc.start()
+        if self.TPROC_VERSION == 1:
+            self.tproc.start()
+        elif self.TPROC_VERSION == 2:
+            if self.tproc.get_start_src() == 'internal':
+                self.tproc.start()
 
     def stop_tproc(self, lazy=False):
         """
@@ -1467,23 +1473,23 @@ class QickSoc(Overlay, QickConfig):
         elif self.TPROC_VERSION == 2:
             self.tproc.stop()
 
-    def set_tproc_counter(self, addr, val):
+    def clear_tproc_counter(self, addr):
         """
         Initialize the tProc shot counter.
-        For tProc v2. this does nothing (the counter is typically initialized by the program).
+        For tProc v1, the data memory at the specified address is zeroed.
+        For tProc v2, the tProc is reset, which zeroes all registers (the address is ignored).
+
+        Typical tProc v2 programs will also initialize the counter registers at the beginning of the program, but zeroing the counter now is important to distinguish "program waiting for external start" from "program complete."
 
         Parameters
         ----------
         addr : int
             Counter address
-
-        Returns
-        -------
-        int
-            Counter value
         """
         if self.TPROC_VERSION == 1:
-            self.tproc.single_write(addr=addr, data=val)
+            self.tproc.single_write(addr=addr, data=0)
+        elif self.TPROC_VERSION == 2:
+            self.tproc.reset()
 
     def get_tproc_counter(self, addr):
         """
