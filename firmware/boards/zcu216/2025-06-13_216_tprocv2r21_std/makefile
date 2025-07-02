@@ -4,7 +4,7 @@
 overlay_name := tprocv2r21_standard
 design_name := tprocv2r21_standard
 
-all: board_files block_design bitstream check_timing
+all: block_design bitstream check_timing
 	@echo
 	@tput setaf 2 ; echo "Built $(overlay_name) successfully!"; tput sgr0;
 	@echo
