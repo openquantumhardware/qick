@@ -125,7 +125,7 @@ module req_ack_cmd
     //next state logic
     assign cmd_op_n  = i_valid ? {i_op[3:0], i_addr} : cmd_op_r;
     assign cmd_dt_n  = i_valid ? i_data              : cmd_dt_r;
-    assign cmd_cnt_n = i_valid ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
+    assign cmd_cnt_n = i_ack   ? cmd_cnt_r + 1'b1    : cmd_cnt_r;
 
     // OUTPUTS
     ///////////////////////////////////////////////////////////////////////////////
