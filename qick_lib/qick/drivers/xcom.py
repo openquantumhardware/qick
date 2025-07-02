@@ -30,7 +30,7 @@ class QICK_Xcom(SocIP):
     XCOM_STATUS     Read Only    32-Bits
     XCOM_DEBUG      Read Only    32-Bits
     """
-    bindto = ['fnal:qick:xcom:1.0'] 
+    bindto = ['fnal:qick:xcom:1.0','user.org:user:xcom_axil_slv:1.0'] 
 
     def __init__(self, description):
         """
@@ -231,7 +231,7 @@ class QICK_Xcom(SocIP):
     def print_debug(self):
         debug_num = self.debug
         debug_bin = '{:032b}'.format(debug_num)
-        print(debug_num, debug_bin)
+        #print(debug_num, debug_bin)
         print('---------------------------------------------')
         print('--- AXI XCOM DEBUG')
         print( ' cmd_loc_req_i : ' + debug_bin[31]    )
