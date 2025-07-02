@@ -12,7 +12,7 @@ module qproc_dispatcher # (
    input  wire          c_rst_ni       ,
    input  wire          t_clk_i        ,
    input  wire          t_rst_ni       ,
-//Port
+   //Port
    input  wire          core_en        ,
    input  wire          core_rst       ,
    input  wire          time_en        ,
@@ -23,15 +23,16 @@ module qproc_dispatcher # (
    input  PORT_DT       out_port_data  ,
    output wire          all_fifo_full  ,
    output wire          some_fifo_full ,
-// TRIGGERS 
+   // TRIGGERS 
    output wire          port_trig_o  [OUT_TRIG_QTY] ,
-// DATA OUTPUT INTERFACE
+   // DATA OUTPUT INTERFACE
    output wire                    port_tvalid_o[OUT_DPORT_QTY] ,
    output wire [OUT_DPORT_DW-1:0] port_tdata_o [OUT_DPORT_QTY] ,
-// WAVE OUTPUT INTERFACE
+   // WAVE OUTPUT INTERFACE
    output wire [167:0]   m_axis_tdata  [OUT_WPORT_QTY] ,
    output wire           m_axis_tvalid [OUT_WPORT_QTY] ,
    input  wire           m_axis_tready [OUT_WPORT_QTY] , 
+   // DEBUG outputs
    output wire [31:0]    fifo_dt_do    , 
    output wire [31:0]    axi_fifo_do   , 
    output wire [15:0]    c_fifo_do     , 
@@ -284,8 +285,9 @@ generate
       // POP Generator
       always_comb begin : WAVE_DISPATCHER
          wave_t_gr[ind_wfifo]  = W_RESULT[ind_wfifo][47];
+         // wave_t_gr[ind_wfifo]  = time_abs_i[47:0] > t_fifo_wave_time[ind_wfifo];
          wave_pop[ind_wfifo]   = 0;
-         wave_pop_prev[ind_wfifo] = wave_pop_r[ind_wfifo] | wave_pop_r2[ind_wfifo] | wave_pop_r3[ind_wfifo]| wave_pop_r4[ind_wfifo];
+         wave_pop_prev[ind_wfifo] = wave_pop_r[ind_wfifo] | wave_pop_r2[ind_wfifo] | wave_pop_r3[ind_wfifo] | wave_pop_r4[ind_wfifo];
          if (time_en & ~t_fifo_wave_empty[ind_wfifo])
             if ( wave_t_gr[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
                wave_pop      [ind_wfifo] = 1'b1 ;
@@ -362,7 +364,9 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_trig_r[ind_tport]   <= 1'b0;
       else 
-        if (trig_pop_r[ind_tport]) port_trig_r[ind_tport] <= t_fifo_trig_dt[ind_tport] ;
+         // if (trig_pop_r[ind_tport]) 
+         if (trig_pop[ind_tport]) 
+            port_trig_r[ind_tport] <= t_fifo_trig_dt[ind_tport] ;
    end
 end
 assign port_trig_o  = port_trig_r;
@@ -378,7 +382,9 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_dt_r[ind_dport]   <= '{default:'0} ;
       else 
-        if (data_pop_r[ind_dport]) port_dt_r[ind_dport] <= t_fifo_data_dt[ind_dport] ;
+         // if (data_pop_r[ind_dport]) 
+         if (data_pop[ind_dport]) 
+            port_dt_r[ind_dport] <= t_fifo_data_dt[ind_dport] ;
    end
 end
 assign port_tvalid_o = data_pop_r;
@@ -400,7 +406,8 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
          m_axis_tvalid_r[ind_wport]  <= 1'b0 ;
          m_axis_tdata_r [ind_wport]  <= '{default:'0} ;
       end else begin  
-         m_axis_tvalid_r[ind_wport] <= wave_pop_r      [ind_wport] ;
+         // m_axis_tvalid_r[ind_wport] <= wave_pop_r      [ind_wport] ;
+         m_axis_tvalid_r[ind_wport] <= wave_pop       [ind_wport] ;
          m_axis_tdata_r[ind_wport]  <= t_fifo_wave_dt [ind_wport] ;
       end
    end

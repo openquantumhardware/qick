@@ -2,7 +2,7 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dsp_macro_0",
-    "cell_name": "QPROC/arith/dsp_macro_0",
+    "cell_name": "QPROC/arith/dsp_macro_0/dsp_macro_0",
     "component_reference": "xilinx.com:ip:dsp_macro:1.0",
     "ip_revision": "3",
     "gen_directory": "../../../../projects/qick_tprocv2_111_standard_1ch_tproc_debug/top/top.tmp/qick_processor_v2_0_project/qick_processor_v2_0_project.gen/sources_1/ip/dsp_macro_0",

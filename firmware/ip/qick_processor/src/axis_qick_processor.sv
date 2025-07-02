@@ -273,12 +273,13 @@ module axis_qick_processor # (
    output reg   [OUT_DPORT_DW-1:0] port_2_dt_o  ,
    output reg   [OUT_DPORT_DW-1:0] port_3_dt_o  ,
 // Debug Signals
-   output  wire [31:0]        ps_debug_do       ,
+   output wire  [31:0]        ps_debug_do       ,
    output wire  [31:0]        t_debug_do        ,
    output wire  [31:0]        t_fifo_do         ,
    output wire  [31:0]        c_time_usr_do     ,
    output wire  [31:0]        c_debug_do        ,
    output wire  [31:0]        c_time_ref_do     ,
+   output wire  [31:0]        c_proc_do         ,
    output wire  [31:0]        c_port_do         ,
    output wire  [31:0]        c_core_do
    );
@@ -477,6 +478,7 @@ qick_processor# (
    .t_fifo_do           ( t_fifo_do             ) ,
    .c_debug_do          ( c_debug_do            ) ,
    .c_time_ref_do       ( c_time_ref_do         ) ,
+   .c_proc_do           ( c_proc_do             ) ,
    .c_port_do           ( c_port_do             ) ,
    .c_core_do           ( c_core_do             ) 
 );

@@ -1025,6 +1025,14 @@
             <spirit:name>c_time_usr_do</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>Data_32_5</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>c_proc_do</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
       </spirit:portMaps>
       <spirit:vendorExtensions>
         <xilinx:busInterfaceInfo>
@@ -2236,7 +2244,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>c80492e3</spirit:value>
+            <spirit:value>b8709391</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2255,7 +2263,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>e6448d69</spirit:value>
+            <spirit:value>88d2b4d9</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2285,6 +2293,20 @@
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
             <spirit:value>4ab07b4f</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+      <spirit:view>
+        <spirit:name>xilinx_utilityxitfiles</spirit:name>
+        <spirit:displayName>Utility XIT/TTCL</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:xit.util</spirit:envIdentifier>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_utilityxitfiles_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>5fe144f7</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -6074,6 +6096,30 @@
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>c_proc_do</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">31</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+        <spirit:vendorExtensions>
+          <xilinx:portInfo>
+            <xilinx:enablement>
+              <xilinx:isEnabled xilinx:resolve="dependent" xilinx:id="PORT_ENABLEMENT.c_proc_do">false</xilinx:isEnabled>
+            </xilinx:enablement>
+          </xilinx:portInfo>
+        </spirit:vendorExtensions>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>c_port_do</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -6278,7 +6324,7 @@
       <spirit:file>
         <spirit:name>src/dsp_macro_0/dsp_macro_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_QPROC/arith/dsp_macro_0/dsp_macro_0</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_QPROC/arith/dsp_macro_0</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axis_read.v</spirit:name>
@@ -6383,7 +6429,7 @@
       <spirit:file>
         <spirit:name>src/dsp_macro_0/dsp_macro_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_QPROC/arith/dsp_macro_0/dsp_macro_0</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_QPROC/arith/dsp_macro_0</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axis_read.v</spirit:name>
@@ -6512,7 +6558,6 @@
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:userFileType>USED_IN_simulation</spirit:userFileType>
         <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
-        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6522,6 +6567,14 @@
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_4ab07b4f</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>src/logoQICK_128x128.png</spirit:name>
+        <spirit:userFileType>image</spirit:userFileType>
+        <spirit:userFileType>LOGO</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
@@ -6670,18 +6723,21 @@
       <xilinx:displayName>qick_processor</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:xpmLibraries>
+        <xilinx:xpmLibrary>XPM_FIFO</xilinx:xpmLibrary>
+      </xilinx:xpmLibraries>
       <xilinx:coreRevision>26</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axis_tproc_B:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-07-02T17:55:44Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-07-02T20:32:00Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="2897c82e"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="68a1a477"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="351b1172"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="f423e66e"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="a0a8cfd7"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="7d2f0412"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="0a52d470"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="4960cdd2"/>
     </xilinx:packagingInfo>
