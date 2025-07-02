@@ -67,6 +67,8 @@ set_property PACKAGE_PIN A32       [get_ports "XCOM_CK_clk_n[1]"] ;# Bank 67 - F
 set_property PACKAGE_PIN F29       [get_ports "XCOM_DT_clk_p[1]"] ;# Bank 67 - FMCP_HSPC_LA05_P
 set_property PACKAGE_PIN E29       [get_ports "XCOM_DT_clk_n[1]"] ;# Bank 67 - FMCP_HSPC_LA05_N
 set_property IOSTANDARD  LVDS [get_ports "XCOM_*"] ;
+set_property PULLDOWN true [get_ports "XCOM_CK_*"];
+set_property PULLDOWN true [get_ports "XCOM_DT_*"];
 
 
 #######################################
