@@ -1,6 +1,6 @@
 set clk_axi [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/s_axi_aclk]]]
-set clk_core [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_rst_wrapper/clk_core/clk_out1]]]
-set clk_adc0_x2  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_rst_wrapper/clk_adc0_x2/clk_out1]]]
+set clk_core [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_core/clk_out1]]]
+set clk_adc0_x2  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/clk_adc0_x2/clk_out1]]]
 set clk_dac0 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_dac0]]]
 #set clk_dac1 [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/usp_rf_data_converter_0/clk_dac1]]]
 set clk_ddr4  [get_clocks -of_objects [get_nets -of_objects [get_pins d_1_i/ddr4/ddr4_0/c0_ddr4_ui_clk]]]
@@ -66,4 +66,4 @@ set_clock_group -name clk_ddr4_to_adc0_x2 -asynchronous \
 set_false_path -through [get_pins d_1_i/qick_processor_0/trig_*_o]
 
 # reset
-set_false_path -through [get_pins d_1_i/clk_rst_wrapper/rst_dac0/peripheral_aresetn[0]]
+set_false_path -through [get_pins d_1_i/rst_dac0/peripheral_aresetn[0]]

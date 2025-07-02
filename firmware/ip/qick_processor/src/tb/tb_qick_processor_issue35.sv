@@ -46,7 +46,7 @@ import axi_mst_0_pkg::*;
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    3 
 
-module tb_qick_processor_issue37 ();
+module tb_qick_processor_issue35 ();
 
 
 // VIP Agent
@@ -431,7 +431,7 @@ reg qcom_rdy_i, qpb_rdy_i;
 initial begin
 
   	// Create agents.
-	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_qick_processor_issue37.axi_mst_0_i.inst.IF);
+	axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_qick_processor_issue35.axi_mst_0_i.inst.IF);
 	// Set tag for agents.
 	axi_mst_0_agent.set_agent_tag	("axi_mst_0 VIP");
 	// Start agents.
@@ -459,10 +459,10 @@ initial begin
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM = '{default:'0} ;
    
-   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[1].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
 
 //    for (int i=0; i < 1 /*`OUT_TRIG_QTY*/; i=i+1)
 //        AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[i].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
@@ -475,10 +475,10 @@ initial begin
    
 //   $readmemb("/home/mdifeder/IPs/qick_processor/src/tb/prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
 //   $readmemb("prog.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemh("prog_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemh("prog_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
    //$readmemb("/home/mdifeder/IPs/qick_processor/src/tb/wave.bin", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemh("wave_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemh("dmem_issue37.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+   $readmemh("wave_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh("dmem_issue35.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
 
 // INITIAL VALUES
@@ -506,25 +506,26 @@ initial begin
 
    m_dma_axis_tready_i = 1'b1; 
    max_value   = 0;
-   #10;
+   
+   #0.5us;
+   
    repeat(16) @ (posedge s_ps_dma_aclk); #0.1;
-	rst_ni = 1'b1;
-   #10;
+   rst_ni = 1'b1;
+
+   #0.5us;
 
 
-   WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
-   #1000;
-//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START
-//   #1000;
-//   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
-//   #900;
+    repeat (2) begin
+
+       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
+    
+       #5us;
+       
+       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+    
+       #5us;
+    end
    
-//   force tb_axis_qick_processor.AXIS_QPROC.QPROC.DISPATCHER.some_fifo_full = 1'b1;
-//   #100ns;
-//   force tb_axis_qick_processor.AXIS_QPROC.QPROC.DISPATCHER.some_fifo_full = 1'b0;
-   
-   #150us;
-
 
    $display("*** End Test ***");
    $finish();

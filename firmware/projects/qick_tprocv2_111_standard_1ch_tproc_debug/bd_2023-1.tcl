@@ -134,13 +134,13 @@ xilinx.com:ip:zynq_ultra_ps_e:3.5\
 user.org:user:axis_constant:1.0\
 xilinx.com:ip:debug_bridge:3.0\
 xilinx.com:ip:system_ila:1.1\
+xilinx.com:ip:proc_sys_reset:5.0\
+xilinx.com:ip:clk_wiz:6.0\
 Fermi:user:qick_processor:2.0\
 xilinx.com:ip:axis_clock_converter:1.1\
-xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:ddr4:2.2\
 user.org:user:axis_buffer_ddr_v1:1.0\
 xilinx.com:ip:axis_dwidth_converter:1.1\
-xilinx.com:ip:clk_wiz:6.0\
 user.org:user:sg_translator:1.0\
 user.org:user:axis_signal_gen_v6:1.0\
 user.org:user:axis_cdcsync_v1:1.0\
@@ -431,125 +431,6 @@ proc create_hier_cell_signal_gen_wrapper { parentCell nameHier } {
   connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_0/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aresetn] [get_bd_pins axis_signal_gen_v6_7/s_axi_aresetn] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aresetn]
   connect_bd_net -net usp_rf_data_converter_0_clk_dac0 [get_bd_pins aclk] [get_bd_pins sg_translator_7/aclk] [get_bd_pins sg_translator_0/aclk] [get_bd_pins axis_signal_gen_v6_0/aclk] [get_bd_pins axis_signal_gen_v6_7/aclk]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_0/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_0/s0_axis_aclk] [get_bd_pins axis_signal_gen_v6_7/s_axi_aclk] [get_bd_pins axis_signal_gen_v6_7/s0_axis_aclk]
-
-  # Restore current instance
-  current_bd_instance $oldCurInst
-}
-
-# Hierarchical cell: clk_rst_wrapper
-proc create_hier_cell_clk_rst_wrapper { parentCell nameHier } {
-
-  variable script_folder
-
-  if { $parentCell eq "" || $nameHier eq "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_clk_rst_wrapper() - Empty argument(s)!"}
-     return
-  }
-
-  # Get object for parentCell
-  set parentObj [get_bd_cells $parentCell]
-  if { $parentObj == "" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
-     return
-  }
-
-  # Make sure parentObj is hier blk
-  set parentType [get_property TYPE $parentObj]
-  if { $parentType ne "hier" } {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
-     return
-  }
-
-  # Save current instance; Restore later
-  set oldCurInst [current_bd_instance .]
-
-  # Set parent object as current
-  current_bd_instance $parentObj
-
-  # Create cell and set as current instance
-  set hier_obj [create_bd_cell -type hier $nameHier]
-  current_bd_instance $hier_obj
-
-  # Create interface pins
-
-  # Create pins
-  create_bd_pin -dir I -type clk clk_in1
-  create_bd_pin -dir I -type rst ext_reset_in
-  create_bd_pin -dir I -type clk clk_in2
-  create_bd_pin -dir O -from 0 -to 0 -type rst bus_struct_reset
-  create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn
-  create_bd_pin -dir O -type clk clk_out1
-  create_bd_pin -dir I -type clk slowest_sync_clk
-  create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn2
-  create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn3
-  create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn1
-  create_bd_pin -dir O -type clk clk_out2
-
-  # Create instance: rst_adc0, and set properties
-  set rst_adc0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_adc0 ]
-
-  # Create instance: rst_100, and set properties
-  set rst_100 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_100 ]
-
-  # Create instance: rst_dac0, and set properties
-  set rst_dac0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_dac0 ]
-
-  # Create instance: clk_adc0_x2, and set properties
-  set clk_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_adc0_x2 ]
-  set_property -dict [list \
-    CONFIG.CLKIN1_JITTER_PS {39.06} \
-    CONFIG.CLKOUT1_JITTER {73.505} \
-    CONFIG.CLKOUT1_PHASE_ERROR {77.298} \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {512} \
-    CONFIG.MMCM_CLKFBOUT_MULT_F {4.750} \
-    CONFIG.MMCM_CLKIN1_PERIOD {3.906} \
-    CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
-    CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.375} \
-    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
-    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
-    CONFIG.PRIM_SOURCE {Global_buffer} \
-  ] $clk_adc0_x2
-
-
-  # Create instance: rst_core, and set properties
-  set rst_core [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_core ]
-
-  # Create instance: rst_adc0_x2, and set properties
-  set rst_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_adc0_x2 ]
-
-  # Create instance: clk_core, and set properties
-  set clk_core [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_core ]
-  set_property -dict [list \
-    CONFIG.CLKIN1_JITTER_PS {100.0} \
-    CONFIG.CLKOUT1_JITTER {102.087} \
-    CONFIG.CLKOUT1_PHASE_ERROR {87.181} \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {199.998} \
-    CONFIG.MMCM_CLKFBOUT_MULT_F {12.000} \
-    CONFIG.MMCM_CLKIN1_PERIOD {10.000} \
-    CONFIG.MMCM_CLKIN2_PERIOD {10.000} \
-    CONFIG.MMCM_CLKOUT0_DIVIDE_F {6.000} \
-    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
-    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
-    CONFIG.PRIM_SOURCE {Global_buffer} \
-  ] $clk_core
-
-
-  # Create port connections
-  connect_bd_net -net clk_adc0_x2_clk_out1 [get_bd_pins clk_adc0_x2/clk_out1] [get_bd_pins clk_out1] [get_bd_pins rst_adc0_x2/slowest_sync_clk]
-  connect_bd_net -net clk_adc0_x2_locked [get_bd_pins clk_adc0_x2/locked] [get_bd_pins rst_adc0_x2/dcm_locked]
-  connect_bd_net -net clk_core_clk_out1 [get_bd_pins clk_core/clk_out1] [get_bd_pins rst_core/slowest_sync_clk] [get_bd_pins clk_out2]
-  connect_bd_net -net clk_core_locked [get_bd_pins clk_core/locked] [get_bd_pins rst_core/dcm_locked]
-  connect_bd_net -net rst_100_bus_struct_reset [get_bd_pins rst_100/bus_struct_reset] [get_bd_pins bus_struct_reset]
-  connect_bd_net -net rst_100_peripheral_reset [get_bd_pins rst_100/peripheral_reset] [get_bd_pins clk_core/reset]
-  connect_bd_net -net rst_adc0_peripheral_reset [get_bd_pins rst_adc0/peripheral_reset] [get_bd_pins clk_adc0_x2/reset]
-  connect_bd_net -net rst_adc0_x2_peripheral_aresetn [get_bd_pins rst_adc0_x2/peripheral_aresetn] [get_bd_pins peripheral_aresetn1]
-  connect_bd_net -net rst_core_peripheral_aresetn [get_bd_pins rst_core/peripheral_aresetn] [get_bd_pins peripheral_aresetn3]
-  connect_bd_net -net rst_dac0_peripheral_aresetn [get_bd_pins rst_dac0/peripheral_aresetn] [get_bd_pins peripheral_aresetn2]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_100/peripheral_aresetn] [get_bd_pins peripheral_aresetn]
-  connect_bd_net -net usp_rf_data_converter_0_clk_adc0 [get_bd_pins clk_in1] [get_bd_pins clk_adc0_x2/clk_in1] [get_bd_pins rst_adc0/slowest_sync_clk]
-  connect_bd_net -net usp_rf_data_converter_0_clk_dac0 [get_bd_pins slowest_sync_clk] [get_bd_pins rst_dac0/slowest_sync_clk]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins clk_in2] [get_bd_pins rst_100/slowest_sync_clk] [get_bd_pins clk_core/clk_in1]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins ext_reset_in] [get_bd_pins rst_100/ext_reset_in] [get_bd_pins rst_core/ext_reset_in] [get_bd_pins rst_dac0/ext_reset_in] [get_bd_pins rst_adc0/ext_reset_in] [get_bd_pins rst_adc0_x2/ext_reset_in]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -1958,9 +1839,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   # Create instance: ddr4
   create_hier_cell_ddr4 [current_bd_instance .] ddr4
 
-  # Create instance: clk_rst_wrapper
-  create_hier_cell_clk_rst_wrapper [current_bd_instance .] clk_rst_wrapper
-
   # Create instance: signal_gen_wrapper
   create_hier_cell_signal_gen_wrapper [current_bd_instance .] signal_gen_wrapper
 
@@ -2008,6 +1886,55 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
     CONFIG.C_SLOT_1_INTF_TYPE {xilinx.com:interface:axis_rtl:1.0} \
   ] $system_ila_1
 
+
+  # Create instance: rst_adc0, and set properties
+  set rst_adc0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_adc0 ]
+
+  # Create instance: clk_adc0_x2, and set properties
+  set clk_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_adc0_x2 ]
+  set_property -dict [list \
+    CONFIG.CLKIN1_JITTER_PS {39.06} \
+    CONFIG.CLKOUT1_JITTER {73.505} \
+    CONFIG.CLKOUT1_PHASE_ERROR {77.298} \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {512} \
+    CONFIG.MMCM_CLKFBOUT_MULT_F {4.750} \
+    CONFIG.MMCM_CLKIN1_PERIOD {3.906} \
+    CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
+    CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.375} \
+    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
+    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
+    CONFIG.PRIM_SOURCE {Global_buffer} \
+  ] $clk_adc0_x2
+
+
+  # Create instance: clk_core, and set properties
+  set clk_core [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_core ]
+  set_property -dict [list \
+    CONFIG.CLKIN1_JITTER_PS {100.0} \
+    CONFIG.CLKOUT1_JITTER {102.087} \
+    CONFIG.CLKOUT1_PHASE_ERROR {87.181} \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {199.998} \
+    CONFIG.MMCM_CLKFBOUT_MULT_F {12.000} \
+    CONFIG.MMCM_CLKIN1_PERIOD {10.000} \
+    CONFIG.MMCM_CLKIN2_PERIOD {10.000} \
+    CONFIG.MMCM_CLKOUT0_DIVIDE_F {6.000} \
+    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
+    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
+    CONFIG.PRIM_SOURCE {Global_buffer} \
+  ] $clk_core
+
+
+  # Create instance: rst_100, and set properties
+  set rst_100 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_100 ]
+
+  # Create instance: rst_dac0, and set properties
+  set rst_dac0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_dac0 ]
+
+  # Create instance: rst_adc0_x2, and set properties
+  set rst_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_adc0_x2 ]
+
+  # Create instance: rst_core, and set properties
+  set rst_core [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_core ]
 
   # Create instance: qick_processor_0, and set properties
   set qick_processor_0 [ create_bd_cell -type ip -vlnv Fermi:user:qick_processor:2.0 qick_processor_0 ]
@@ -2109,8 +2036,10 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets qick_processor_0_m7_axis] [get_b
   connect_bd_net -net axi_dma_tproc_mm2s_introut [get_bd_pins axi_dma_tproc/mm2s_introut] [get_bd_pins xlconcat_intc/In0]
   connect_bd_net -net axi_dma_tproc_s2mm_introut [get_bd_pins axi_dma_tproc/s2mm_introut] [get_bd_pins xlconcat_intc/In1]
   connect_bd_net -net axi_intc_0_irq [get_bd_pins axi_intc_0/irq] [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
-  connect_bd_net -net clk_adc0_x2_clk_out1 [get_bd_pins clk_rst_wrapper/clk_out1] [get_bd_pins axis_switch_ddr/aclk] [get_bd_pins usp_rf_data_converter_0/m0_axis_aclk] [get_bd_pins usp_rf_data_converter_0/m2_axis_aclk] [get_bd_pins ddr4/aclk] [get_bd_pins readout_wrapper/aclk]
-  connect_bd_net -net clk_core_clk_out2 [get_bd_pins clk_rst_wrapper/clk_out2] [get_bd_pins readout_wrapper/m_axis_aclk] [get_bd_pins axis_constant_0/m_axis_aclk] [get_bd_pins axis_constant_1/m_axis_aclk] [get_bd_pins axis_constant_2/m_axis_aclk] [get_bd_pins system_ila_0/clk] [get_bd_pins qick_processor_0/c_clk_i]
+  connect_bd_net -net clk_adc0_x2_clk_out1 [get_bd_pins clk_adc0_x2/clk_out1] [get_bd_pins axis_switch_ddr/aclk] [get_bd_pins usp_rf_data_converter_0/m0_axis_aclk] [get_bd_pins usp_rf_data_converter_0/m2_axis_aclk] [get_bd_pins ddr4/aclk] [get_bd_pins readout_wrapper/aclk] [get_bd_pins rst_adc0_x2/slowest_sync_clk]
+  connect_bd_net -net clk_adc0_x2_locked [get_bd_pins clk_adc0_x2/locked] [get_bd_pins rst_adc0_x2/dcm_locked]
+  connect_bd_net -net clk_core_clk_out1 [get_bd_pins clk_core/clk_out1] [get_bd_pins readout_wrapper/m_axis_aclk] [get_bd_pins axis_constant_0/m_axis_aclk] [get_bd_pins axis_constant_1/m_axis_aclk] [get_bd_pins axis_constant_2/m_axis_aclk] [get_bd_pins system_ila_0/clk] [get_bd_pins rst_core/slowest_sync_clk] [get_bd_pins qick_processor_0/c_clk_i]
+  connect_bd_net -net clk_core_locked [get_bd_pins clk_core/locked] [get_bd_pins rst_core/dcm_locked]
   connect_bd_net -net ddr4_0_c0_ddr4_ui_clk [get_bd_pins ddr4/c0_ddr4_ui_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm1_fpd_aclk]
   connect_bd_net -net qick_processor_0_c_core_do [get_bd_pins qick_processor_0/c_core_do] [get_bd_pins system_ila_0/probe0]
   connect_bd_net -net qick_processor_0_c_debug_do [get_bd_pins qick_processor_0/c_debug_do] [get_bd_pins system_ila_0/probe3]
@@ -2130,17 +2059,19 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets qick_processor_0_m7_axis] [get_b
   connect_bd_net -net qick_processor_0_trig_6_o [get_bd_pins qick_processor_0/trig_6_o] [get_bd_ports PMOD0_6_LS]
   connect_bd_net -net qick_processor_0_trig_7_o [get_bd_pins qick_processor_0/trig_7_o] [get_bd_ports PMOD0_7_LS]
   connect_bd_net -net qick_processor_0_trig_9_o [get_bd_pins qick_processor_0/trig_9_o] [get_bd_pins ddr4/trigger]
-  connect_bd_net -net rst_100_bus_struct_reset [get_bd_pins clk_rst_wrapper/bus_struct_reset] [get_bd_pins ddr4/sys_rst]
-  connect_bd_net -net rst_adc0_x2_peripheral_aresetn [get_bd_pins clk_rst_wrapper/peripheral_aresetn1] [get_bd_pins axis_switch_ddr/aresetn] [get_bd_pins usp_rf_data_converter_0/m0_axis_aresetn] [get_bd_pins usp_rf_data_converter_0/m2_axis_aresetn] [get_bd_pins ddr4/aresetn] [get_bd_pins readout_wrapper/aresetn]
-  connect_bd_net -net rst_core_peripheral_aresetn [get_bd_pins clk_rst_wrapper/peripheral_aresetn3] [get_bd_pins readout_wrapper/m_axis_aresetn] [get_bd_pins axis_constant_0/m_axis_aresetn] [get_bd_pins axis_constant_1/m_axis_aresetn] [get_bd_pins axis_constant_2/m_axis_aresetn] [get_bd_pins qick_processor_0/c_resetn]
-  connect_bd_net -net rst_dac0_peripheral_aresetn [get_bd_pins clk_rst_wrapper/peripheral_aresetn2] [get_bd_pins usp_rf_data_converter_0/s0_axis_aresetn] [get_bd_pins usp_rf_data_converter_0/s1_axis_aresetn] [get_bd_pins signal_gen_wrapper/aresetn] [get_bd_pins readout_wrapper/s_axis_aresetn1] [get_bd_pins system_ila_1/resetn] [get_bd_pins qick_processor_0/t_resetn]
-  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins clk_rst_wrapper/peripheral_aresetn] [get_bd_pins axi_intc_0/s_axi_aresetn] [get_bd_pins axi_dma_avg/axi_resetn] [get_bd_pins axi_dma_buf/axi_resetn] [get_bd_pins axi_dma_gen/axi_resetn] [get_bd_pins axi_dma_tproc/axi_resetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins axis_switch_avg/aresetn] [get_bd_pins axis_switch_avg/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_buf/aresetn] [get_bd_pins axis_switch_buf/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_ddr/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_gen/aresetn] [get_bd_pins axis_switch_gen/s_axi_ctrl_aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins ps8_0_axi_periph/M04_ARESETN] [get_bd_pins ps8_0_axi_periph/M05_ARESETN] [get_bd_pins ps8_0_axi_periph/M06_ARESETN] [get_bd_pins ps8_0_axi_periph/M07_ARESETN] [get_bd_pins ps8_0_axi_periph/M08_ARESETN] [get_bd_pins ps8_0_axi_periph/M09_ARESETN] [get_bd_pins ps8_0_axi_periph/M10_ARESETN] [get_bd_pins ps8_0_axi_periph/M11_ARESETN] [get_bd_pins ps8_0_axi_periph/M12_ARESETN] [get_bd_pins ps8_0_axi_periph/M13_ARESETN] [get_bd_pins ps8_0_axi_periph/M14_ARESETN] [get_bd_pins ps8_0_axi_periph/M15_ARESETN] [get_bd_pins ps8_0_axi_periph/M16_ARESETN] [get_bd_pins ps8_0_axi_periph/M17_ARESETN] [get_bd_pins ps8_0_axi_periph/M18_ARESETN] [get_bd_pins ps8_0_axi_periph/M19_ARESETN] [get_bd_pins ps8_0_axi_periph/M20_ARESETN] [get_bd_pins ps8_0_axi_periph/M21_ARESETN] [get_bd_pins ps8_0_axi_periph/M22_ARESETN] [get_bd_pins ps8_0_axi_periph/M23_ARESETN] [get_bd_pins ps8_0_axi_periph/M24_ARESETN] [get_bd_pins ps8_0_axi_periph/M25_ARESETN] [get_bd_pins ps8_0_axi_periph/M26_ARESETN] [get_bd_pins ps8_0_axi_periph/M27_ARESETN] [get_bd_pins ps8_0_axi_periph/M28_ARESETN] [get_bd_pins ps8_0_axi_periph/M29_ARESETN] [get_bd_pins ps8_0_axi_periph/M30_ARESETN] [get_bd_pins usp_rf_data_converter_0/s_axi_aresetn] [get_bd_pins ddr4/s_axi_aresetn] [get_bd_pins signal_gen_wrapper/s0_axis_aresetn] [get_bd_pins readout_wrapper/s_axis_aresetn] [get_bd_pins debug_bridge_0/s_axi_aresetn] [get_bd_pins qick_processor_0/ps_resetn]
-  connect_bd_net -net usp_rf_data_converter_0_clk_adc0 [get_bd_pins usp_rf_data_converter_0/clk_adc0] [get_bd_pins clk_rst_wrapper/clk_in1]
-  connect_bd_net -net usp_rf_data_converter_0_clk_dac0 [get_bd_pins usp_rf_data_converter_0/clk_dac0] [get_bd_pins usp_rf_data_converter_0/s0_axis_aclk] [get_bd_pins usp_rf_data_converter_0/s1_axis_aclk] [get_bd_pins clk_rst_wrapper/slowest_sync_clk] [get_bd_pins signal_gen_wrapper/aclk] [get_bd_pins readout_wrapper/s_axis_aclk1] [get_bd_pins system_ila_1/clk] [get_bd_pins qick_processor_0/t_clk_i]
+  connect_bd_net -net rst_100_peripheral_reset [get_bd_pins rst_100/peripheral_reset] [get_bd_pins clk_core/reset]
+  connect_bd_net -net rst_adc0_peripheral_reset [get_bd_pins rst_adc0/peripheral_reset] [get_bd_pins clk_adc0_x2/reset]
+  connect_bd_net -net rst_adc0_x2_peripheral_aresetn [get_bd_pins rst_adc0_x2/peripheral_aresetn] [get_bd_pins axis_switch_ddr/aresetn] [get_bd_pins usp_rf_data_converter_0/m0_axis_aresetn] [get_bd_pins usp_rf_data_converter_0/m2_axis_aresetn] [get_bd_pins ddr4/aresetn] [get_bd_pins readout_wrapper/aresetn]
+  connect_bd_net -net rst_core_peripheral_aresetn [get_bd_pins rst_core/peripheral_aresetn] [get_bd_pins readout_wrapper/m_axis_aresetn] [get_bd_pins axis_constant_0/m_axis_aresetn] [get_bd_pins axis_constant_1/m_axis_aresetn] [get_bd_pins axis_constant_2/m_axis_aresetn] [get_bd_pins qick_processor_0/c_resetn]
+  connect_bd_net -net rst_dac0_peripheral_aresetn [get_bd_pins rst_dac0/peripheral_aresetn] [get_bd_pins usp_rf_data_converter_0/s0_axis_aresetn] [get_bd_pins usp_rf_data_converter_0/s1_axis_aresetn] [get_bd_pins signal_gen_wrapper/aresetn] [get_bd_pins readout_wrapper/s_axis_aresetn1] [get_bd_pins system_ila_1/resetn] [get_bd_pins qick_processor_0/t_resetn]
+  connect_bd_net -net rst_ps8_0_99M_peripheral_aresetn [get_bd_pins rst_100/peripheral_aresetn] [get_bd_pins axi_intc_0/s_axi_aresetn] [get_bd_pins axi_dma_avg/axi_resetn] [get_bd_pins axi_dma_buf/axi_resetn] [get_bd_pins axi_dma_gen/axi_resetn] [get_bd_pins axi_dma_tproc/axi_resetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins axis_switch_avg/aresetn] [get_bd_pins axis_switch_avg/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_buf/aresetn] [get_bd_pins axis_switch_buf/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_ddr/s_axi_ctrl_aresetn] [get_bd_pins axis_switch_gen/aresetn] [get_bd_pins axis_switch_gen/s_axi_ctrl_aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins ps8_0_axi_periph/M04_ARESETN] [get_bd_pins ps8_0_axi_periph/M05_ARESETN] [get_bd_pins ps8_0_axi_periph/M06_ARESETN] [get_bd_pins ps8_0_axi_periph/M07_ARESETN] [get_bd_pins ps8_0_axi_periph/M08_ARESETN] [get_bd_pins ps8_0_axi_periph/M09_ARESETN] [get_bd_pins ps8_0_axi_periph/M10_ARESETN] [get_bd_pins ps8_0_axi_periph/M11_ARESETN] [get_bd_pins ps8_0_axi_periph/M12_ARESETN] [get_bd_pins ps8_0_axi_periph/M13_ARESETN] [get_bd_pins ps8_0_axi_periph/M14_ARESETN] [get_bd_pins ps8_0_axi_periph/M15_ARESETN] [get_bd_pins ps8_0_axi_periph/M16_ARESETN] [get_bd_pins ps8_0_axi_periph/M17_ARESETN] [get_bd_pins ps8_0_axi_periph/M18_ARESETN] [get_bd_pins ps8_0_axi_periph/M19_ARESETN] [get_bd_pins ps8_0_axi_periph/M20_ARESETN] [get_bd_pins ps8_0_axi_periph/M21_ARESETN] [get_bd_pins ps8_0_axi_periph/M22_ARESETN] [get_bd_pins ps8_0_axi_periph/M23_ARESETN] [get_bd_pins ps8_0_axi_periph/M24_ARESETN] [get_bd_pins ps8_0_axi_periph/M25_ARESETN] [get_bd_pins ps8_0_axi_periph/M26_ARESETN] [get_bd_pins ps8_0_axi_periph/M27_ARESETN] [get_bd_pins ps8_0_axi_periph/M28_ARESETN] [get_bd_pins ps8_0_axi_periph/M29_ARESETN] [get_bd_pins ps8_0_axi_periph/M30_ARESETN] [get_bd_pins usp_rf_data_converter_0/s_axi_aresetn] [get_bd_pins ddr4/s_axi_aresetn] [get_bd_pins signal_gen_wrapper/s0_axis_aresetn] [get_bd_pins readout_wrapper/s_axis_aresetn] [get_bd_pins debug_bridge_0/s_axi_aresetn] [get_bd_pins qick_processor_0/ps_resetn]
+  connect_bd_net -net sys_rst_1 [get_bd_pins rst_100/bus_struct_reset] [get_bd_pins ddr4/sys_rst]
+  connect_bd_net -net usp_rf_data_converter_0_clk_adc0 [get_bd_pins usp_rf_data_converter_0/clk_adc0] [get_bd_pins rst_adc0/slowest_sync_clk] [get_bd_pins clk_adc0_x2/clk_in1]
+  connect_bd_net -net usp_rf_data_converter_0_clk_dac0 [get_bd_pins usp_rf_data_converter_0/clk_dac0] [get_bd_pins usp_rf_data_converter_0/s0_axis_aclk] [get_bd_pins usp_rf_data_converter_0/s1_axis_aclk] [get_bd_pins signal_gen_wrapper/aclk] [get_bd_pins readout_wrapper/s_axis_aclk1] [get_bd_pins system_ila_1/clk] [get_bd_pins rst_dac0/slowest_sync_clk] [get_bd_pins qick_processor_0/t_clk_i]
   connect_bd_net -net usp_rf_data_converter_0_irq [get_bd_pins usp_rf_data_converter_0/irq] [get_bd_pins xlconcat_intc/In6]
   connect_bd_net -net xlconcat_0_dout [get_bd_pins xlconcat_intc/dout] [get_bd_pins axi_intc_0/intr]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins axi_intc_0/s_axi_aclk] [get_bd_pins axi_dma_avg/s_axi_lite_aclk] [get_bd_pins axi_dma_avg/m_axi_s2mm_aclk] [get_bd_pins axi_dma_buf/s_axi_lite_aclk] [get_bd_pins axi_dma_buf/m_axi_s2mm_aclk] [get_bd_pins axi_dma_gen/s_axi_lite_aclk] [get_bd_pins axi_dma_gen/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/s_axi_lite_aclk] [get_bd_pins axi_dma_tproc/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/m_axi_s2mm_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins axis_switch_avg/aclk] [get_bd_pins axis_switch_avg/s_axi_ctrl_aclk] [get_bd_pins axis_switch_buf/aclk] [get_bd_pins axis_switch_buf/s_axi_ctrl_aclk] [get_bd_pins axis_switch_ddr/s_axi_ctrl_aclk] [get_bd_pins axis_switch_gen/aclk] [get_bd_pins axis_switch_gen/s_axi_ctrl_aclk] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins ps8_0_axi_periph/M04_ACLK] [get_bd_pins ps8_0_axi_periph/M05_ACLK] [get_bd_pins ps8_0_axi_periph/M06_ACLK] [get_bd_pins ps8_0_axi_periph/M07_ACLK] [get_bd_pins ps8_0_axi_periph/M08_ACLK] [get_bd_pins ps8_0_axi_periph/M09_ACLK] [get_bd_pins ps8_0_axi_periph/M10_ACLK] [get_bd_pins ps8_0_axi_periph/M11_ACLK] [get_bd_pins ps8_0_axi_periph/M12_ACLK] [get_bd_pins ps8_0_axi_periph/M13_ACLK] [get_bd_pins ps8_0_axi_periph/M14_ACLK] [get_bd_pins ps8_0_axi_periph/M15_ACLK] [get_bd_pins ps8_0_axi_periph/M16_ACLK] [get_bd_pins ps8_0_axi_periph/M17_ACLK] [get_bd_pins ps8_0_axi_periph/M18_ACLK] [get_bd_pins ps8_0_axi_periph/M19_ACLK] [get_bd_pins ps8_0_axi_periph/M20_ACLK] [get_bd_pins ps8_0_axi_periph/M21_ACLK] [get_bd_pins ps8_0_axi_periph/M22_ACLK] [get_bd_pins ps8_0_axi_periph/M23_ACLK] [get_bd_pins ps8_0_axi_periph/M24_ACLK] [get_bd_pins ps8_0_axi_periph/M25_ACLK] [get_bd_pins ps8_0_axi_periph/M26_ACLK] [get_bd_pins ps8_0_axi_periph/M27_ACLK] [get_bd_pins ps8_0_axi_periph/M28_ACLK] [get_bd_pins ps8_0_axi_periph/M29_ACLK] [get_bd_pins ps8_0_axi_periph/M30_ACLK] [get_bd_pins usp_rf_data_converter_0/s_axi_aclk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/saxihpc0_fpd_aclk] [get_bd_pins ddr4/s_axi_aclk] [get_bd_pins clk_rst_wrapper/clk_in2] [get_bd_pins signal_gen_wrapper/s0_axis_aclk] [get_bd_pins readout_wrapper/s_axis_aclk] [get_bd_pins debug_bridge_0/s_axi_aclk] [get_bd_pins qick_processor_0/ps_clk_i]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] [get_bd_pins clk_rst_wrapper/ext_reset_in]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins axi_intc_0/s_axi_aclk] [get_bd_pins axi_dma_avg/s_axi_lite_aclk] [get_bd_pins axi_dma_avg/m_axi_s2mm_aclk] [get_bd_pins axi_dma_buf/s_axi_lite_aclk] [get_bd_pins axi_dma_buf/m_axi_s2mm_aclk] [get_bd_pins axi_dma_gen/s_axi_lite_aclk] [get_bd_pins axi_dma_gen/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/s_axi_lite_aclk] [get_bd_pins axi_dma_tproc/m_axi_mm2s_aclk] [get_bd_pins axi_dma_tproc/m_axi_s2mm_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins axis_switch_avg/aclk] [get_bd_pins axis_switch_avg/s_axi_ctrl_aclk] [get_bd_pins axis_switch_buf/aclk] [get_bd_pins axis_switch_buf/s_axi_ctrl_aclk] [get_bd_pins axis_switch_ddr/s_axi_ctrl_aclk] [get_bd_pins axis_switch_gen/aclk] [get_bd_pins axis_switch_gen/s_axi_ctrl_aclk] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins ps8_0_axi_periph/M04_ACLK] [get_bd_pins ps8_0_axi_periph/M05_ACLK] [get_bd_pins ps8_0_axi_periph/M06_ACLK] [get_bd_pins ps8_0_axi_periph/M07_ACLK] [get_bd_pins ps8_0_axi_periph/M08_ACLK] [get_bd_pins ps8_0_axi_periph/M09_ACLK] [get_bd_pins ps8_0_axi_periph/M10_ACLK] [get_bd_pins ps8_0_axi_periph/M11_ACLK] [get_bd_pins ps8_0_axi_periph/M12_ACLK] [get_bd_pins ps8_0_axi_periph/M13_ACLK] [get_bd_pins ps8_0_axi_periph/M14_ACLK] [get_bd_pins ps8_0_axi_periph/M15_ACLK] [get_bd_pins ps8_0_axi_periph/M16_ACLK] [get_bd_pins ps8_0_axi_periph/M17_ACLK] [get_bd_pins ps8_0_axi_periph/M18_ACLK] [get_bd_pins ps8_0_axi_periph/M19_ACLK] [get_bd_pins ps8_0_axi_periph/M20_ACLK] [get_bd_pins ps8_0_axi_periph/M21_ACLK] [get_bd_pins ps8_0_axi_periph/M22_ACLK] [get_bd_pins ps8_0_axi_periph/M23_ACLK] [get_bd_pins ps8_0_axi_periph/M24_ACLK] [get_bd_pins ps8_0_axi_periph/M25_ACLK] [get_bd_pins ps8_0_axi_periph/M26_ACLK] [get_bd_pins ps8_0_axi_periph/M27_ACLK] [get_bd_pins ps8_0_axi_periph/M28_ACLK] [get_bd_pins ps8_0_axi_periph/M29_ACLK] [get_bd_pins ps8_0_axi_periph/M30_ACLK] [get_bd_pins usp_rf_data_converter_0/s_axi_aclk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_fpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/saxihpc0_fpd_aclk] [get_bd_pins ddr4/s_axi_aclk] [get_bd_pins signal_gen_wrapper/s0_axis_aclk] [get_bd_pins readout_wrapper/s_axis_aclk] [get_bd_pins debug_bridge_0/s_axi_aclk] [get_bd_pins clk_core/clk_in1] [get_bd_pins rst_100/slowest_sync_clk] [get_bd_pins qick_processor_0/ps_clk_i]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0] [get_bd_pins rst_adc0/ext_reset_in] [get_bd_pins rst_100/ext_reset_in] [get_bd_pins rst_dac0/ext_reset_in] [get_bd_pins rst_adc0_x2/ext_reset_in] [get_bd_pins rst_core/ext_reset_in]
 
   # Create address segments
   assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_dma_avg/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP0/HPC0_DDR_LOW] -force
@@ -2188,7 +2119,6 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets qick_processor_0_m7_axis] [get_b
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -2200,4 +2130,6 @@ connect_bd_intf_net -intf_net [get_bd_intf_nets qick_processor_0_m7_axis] [get_b
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
