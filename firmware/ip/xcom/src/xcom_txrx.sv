@@ -140,16 +140,18 @@ logic [32-1:0] reg1_dt, reg2_dt;
 logic [32-1:0] mem_data [16];
 logic          s_cmd_exec;
 
-logic set_id_flg, wflg_flg, wreg_flg, wmem_flg;
-logic s_loc_sid; //local set ID
-logic s_wflg, s_wreg, s_wmem, s_rst;
+logic          set_id_flg, wflg_flg, wreg_flg, wmem_flg;
+logic          s_loc_sid; //local set ID
+logic          s_wflg, s_wreg, s_wmem, s_rst;
 logic [ 4-1:0] loc_cmd_op  ;
 
 logic [ 4-1:0] s_rx_chid, s_rx_op ;
 logic [32-1:0] s_rx_data ;
 
-logic         tx_auto_id;
-logic         tx_qrst_sync;
+logic          tx_auto_id;
+logic          tx_qrst_sync;
+logic [NCH-1:0]s_xcom_clk_sync;
+logic [NCH-1:0]s_xcom_data_sync;
 
 //TX related signals
 logic         s_nack;
@@ -319,12 +321,29 @@ end
 
 // RX COMMAND
 ///////////////////////////////////////////////////////////////////////////////
+synchronizer#(
+   .NB(NCH)
+   ) sync_xcom_clk(
+  .i_clk      ( i_clk           ),
+  .i_rstn     ( i_rstn          ),
+  .i_async    ( i_xcom_clk      ),
+  .o_sync     ( s_xcom_clk_sync )
+);
+synchronizer#(
+   .NB(NCH)
+   ) sync_xcom_data(
+  .i_clk      ( i_clk            ),
+  .i_rstn     ( i_rstn           ),
+  .i_async    ( i_xcom_data      ),
+  .o_sync     ( s_xcom_data_sync )
+);
+
 rx_cmd#(.NCH(NCH)) u_rx_cmd(
   .i_clk           ( i_clk             ),
   .i_rstn          ( i_rstn            ),
   .i_id            ( board_id_r        ),
-  .i_xcom_data     ( i_xcom_data       ),
-  .i_xcom_clk      ( i_xcom_clk        ),
+  .i_xcom_data     ( s_xcom_data_sync  ),
+  .i_xcom_clk      ( s_xcom_clk_sync   ),
   .o_valid         ( s_rx_valid        ),
   .o_op            ( s_rx_op           ),
   .o_data          ( s_rx_data         ),
@@ -418,8 +437,9 @@ assign rx_cmd_ds  = {rx_wmem, rx_wreg, rx_wflg, rx_no_dt, tx_auto_id, s_rx_op};
 assign o_dbg_rx_data = s_rx_data;
 assign o_dbg_tx_data = i_data;
 
-assign o_dbg_status  = {board_id_r, s_tx_ready, 5'b0_0000, s_rx_dbg_state[0], 4'b0000, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
-assign o_dbg_data    = {s_cfg_tick, s_rx_chid, rx_cmd_ds, s_net_dbg_status, s_loc_dbg_status};
+assign o_dbg_status  = {board_id_r, s_tx_ready, 5'b0_0000, s_rx_dbg_state[0], 2'b00, s_rx_valid, rx_qctrl, s_tx_dbg_state};//FIXME: here was cmd_st_ds. Also we are seeing only state[0] here
+assign o_dbg_data    = {s_cfg_tick, s_rx_chid, rx_cmd_ds, s_net_dbg_status, s_loc_dbg_status};//4+4+9+10+6
+
 
 // OUT SIGNALS
 ///////////////////////////////////////////////////////////////////////////////

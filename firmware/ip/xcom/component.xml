@@ -575,7 +575,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a3f56391</spirit:value>
+            <spirit:value>04c4fcc1</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -591,7 +591,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a3f56391</spirit:value>
+            <spirit:value>04c4fcc1</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1615,14 +1615,14 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Fermi National Laboratory</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://fnal.gov</xilinx:vendorURL>
-      <xilinx:coreRevision>9</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2025-06-27T17:53:19Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>10</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-06-30T16:07:02Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="621e6e32"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="97e0d26f"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="c195d152"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="2e491dc1"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="3285cf29"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="46f159be"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="0e76d2d5"/>

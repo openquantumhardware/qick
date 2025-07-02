@@ -112,7 +112,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>71b43ecb</spirit:value>
+            <spirit:value>821862ca</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -128,7 +128,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>71b43ecb</spirit:value>
+            <spirit:value>821862ca</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -696,9 +696,14 @@
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
       <spirit:file>
+        <spirit:name>src/synchronizer.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>src/xcom_txrx.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_d2beea6b</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_1c4362ce</spirit:userFileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -736,6 +741,11 @@
       </spirit:file>
       <spirit:file>
         <spirit:name>src/xcom_qctrl.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/synchronizer.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
@@ -797,13 +807,13 @@
       </xilinx:taxonomies>
       <xilinx:displayName>xcom_txrx_v1_0</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>4</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2025-06-27T14:29:00Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>6</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-07-02T14:26:48Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="ce60abd2"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="33baca27"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7f7507e4"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="209e9937"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="8fe9f4ea"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="67d2600e"/>

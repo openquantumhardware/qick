@@ -31,6 +31,9 @@
 //                 05/13/25 - Refactored by @lharnaldi
 //                          - the sync_n core was removed to sync all signals
 //                            in one place (external).
+//                 07/01/25 - @lharnaldi include timeout for state WSYNC and
+//                            register the i_ctrl_data input to improve 
+//                            reliability
 //
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -50,7 +53,8 @@ module xcom_qctrl (
    output logic         o_core_stop     
 );
 
-logic [3-1:0] qctrl_cnt;
+logic [3-1:0] ctrl_data_r, ctrl_data_n;
+logic [3-1:0] qctrl_cnt_r, qctrl_cnt_n;
 logic         qctrl_en;
 logic         qctrl_pulse_end;
 logic         s_proc_start, s_proc_stop;
@@ -58,6 +62,11 @@ logic         s_core_start, s_core_stop;
 logic         s_time_rst, s_time_update;
 logic         sync_dly_r, sync_dly_n;
 logic         s_sync ;
+logic         s_timeout; 
+
+// Timeout counter, up to 2^30 clock cycles. This gives roughly 2.14 s with
+// a t_clk = 500 MHz                        
+logic [30-1:0] timeout_cntr_r, timeout_cntr_n;
 
 typedef enum logic [2-1:0]{ IDLE      = 2'b00, 
                             WSYNC     = 2'b01, 
@@ -76,7 +85,7 @@ end
 assign sync_dly_n = i_sync;
 assign s_sync = !sync_dly_r & i_sync ;
 
-assign qctrl_pulse_end = (qctrl_cnt == '1);
+assign qctrl_pulse_end = (qctrl_cnt_r == '1);
 
 // PROCESSOR CONTROL
 ///////////////////////////////////////////////////////////////////////////////
@@ -100,7 +109,8 @@ always_comb begin
          else if ( i_ctrl_req ) state_n = EXEC_CTRL;     
 
       WSYNC: begin
-         if ( s_sync ) state_n = EXEC_RST;     
+         if      ( s_sync    ) state_n = EXEC_RST;    
+         else if ( s_timeout ) state_n = IDLE;  // TimeOut 
       end
 
       EXEC_RST: begin
@@ -111,7 +121,7 @@ always_comb begin
 
       EXEC_CTRL: begin
          qctrl_en  = 1'b1;
-         case ( i_ctrl_data )
+         case ( ctrl_data_r )
             3'b010  : s_time_rst    = 1'b1;
             3'b011  : s_time_update = 1'b1;
             3'b100  : s_core_start  = 1'b1;
@@ -127,10 +137,21 @@ always_comb begin
 end
 
 always_ff @ (posedge i_clk) begin
-   if      ( !i_rstn  ) qctrl_cnt  <= 0;
-   else if ( qctrl_en ) qctrl_cnt  <= qctrl_cnt+1'b1;
-   else                 qctrl_cnt  <= 0;
+   if ( !i_rstn ) begin
+      qctrl_cnt_r    <= '0;
+      timeout_cntr_r <= '0;
+      ctrl_data_r    <= '0;
+   end else begin
+      qctrl_cnt_r    <= qctrl_cnt_n;
+      timeout_cntr_r <= timeout_cntr_n;
+      ctrl_data_r    <= ctrl_data_n;
+   end
 end
+//next-state logic
+assign ctrl_data_n    = (i_ctrl_req)       ? i_ctrl_data           : ctrl_data_r;
+assign qctrl_cnt_n    = (qctrl_en)         ? qctrl_cnt_r + 1'b1    : '0;
+assign timeout_cntr_n = (state_r == WSYNC) ? timeout_cntr_r + 1'b1 : '0;
+assign s_timeout      = &timeout_cntr_r ; // New sync signal was not received in time
 
 // OUTPUTS
 ///////////////////////////////////////////////////////////////////////////////
