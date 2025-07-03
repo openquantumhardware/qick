@@ -136,21 +136,21 @@ xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:axi_intc:4.1\
 xilinx.com:ip:smartconnect:1.0\
-user.org:user:axis_avg_buffer:1.2\
+Fermilab:QICK:axis_avg_buffer:1.2\
 xilinx.com:ip:axis_broadcaster:1.1\
-user.org:user:axis_buffer_ddr_v1:1.0\
+Fermilab:QICK:axis_buffer_ddr_v1:1.0\
 xilinx.com:ip:axis_clock_converter:1.1\
 xilinx.com:ip:axis_dwidth_converter:1.1\
-user.org:user:axis_readout_v2:1.0\
-user.org:user:axis_register_slice_nb:1.0\
+Fermilab:QICK:axis_readout_v2:1.0\
+Fermilab:QICK:axis_register_slice_nb:1.0\
 xilinx.com:ip:axis_register_slice:1.1\
-user.org:user:axis_set_reg:1.0\
-user.org:user:axis_signal_gen_v6:1.0\
+Fermilab:QICK:axis_set_reg:1.0\
+Fermilab:QICK:axis_signal_gen_v6:1.0\
 xilinx.com:ip:axis_switch:1.1\
-user.org:user:axis_tproc64x32_x8:1.0\
+Fermilab:QICK:axis_tproc64x32_x8:1.0\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:ddr4:2.2\
-user.org:user:mr_buffer_et:1.1\
+Fermilab:QICK:mr_buffer_et:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:usp_rf_data_converter:2.6\
 xilinx.com:ip:xlconcat:2.1\
@@ -364,14 +364,14 @@ proc create_root_design { parentCell } {
  ] $axi_smc
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
    CONFIG.N_BUF {10} \
  ] $axis_avg_buffer_0
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
    CONFIG.N_BUF {10} \
@@ -390,7 +390,7 @@ proc create_root_design { parentCell } {
  ] $axis_broadcaster_1
 
   # Create instance: axis_buffer_ddr_v1_0, and set properties
-  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
+  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
   set_property -dict [ list \
    CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} \
  ] $axis_buffer_ddr_v1_0
@@ -423,20 +423,20 @@ proc create_root_design { parentCell } {
  ] $axis_dwidth_converter_0
 
   # Create instance: axis_readout_v2_0, and set properties
-  set axis_readout_v2_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_readout_v2:1.0 axis_readout_v2_0 ]
+  set axis_readout_v2_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_readout_v2:1.0 axis_readout_v2_0 ]
 
   # Create instance: axis_readout_v2_1, and set properties
-  set axis_readout_v2_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_readout_v2:1.0 axis_readout_v2_1 ]
+  set axis_readout_v2_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_readout_v2:1.0 axis_readout_v2_1 ]
 
   # Create instance: axis_register_slice_0, and set properties
-  set axis_register_slice_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_register_slice_nb:1.0 axis_register_slice_0 ]
+  set axis_register_slice_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_register_slice_nb:1.0 axis_register_slice_0 ]
   set_property -dict [ list \
    CONFIG.B {256} \
    CONFIG.N {4} \
  ] $axis_register_slice_0
 
   # Create instance: axis_register_slice_1, and set properties
-  set axis_register_slice_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_register_slice_nb:1.0 axis_register_slice_1 ]
+  set axis_register_slice_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_register_slice_nb:1.0 axis_register_slice_1 ]
   set_property -dict [ list \
    CONFIG.B {256} \
    CONFIG.N {4} \
@@ -455,16 +455,16 @@ proc create_root_design { parentCell } {
  ] $axis_register_slice_3
 
   # Create instance: axis_set_reg_0, and set properties
-  set axis_set_reg_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_set_reg:1.0 axis_set_reg_0 ]
+  set axis_set_reg_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_set_reg:1.0 axis_set_reg_0 ]
   set_property -dict [ list \
    CONFIG.DATA_WIDTH {160} \
  ] $axis_set_reg_0
 
   # Create instance: axis_signal_gen_v6_0, and set properties
-  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
+  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
 
   # Create instance: axis_signal_gen_v6_1, and set properties
-  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv user.org:user:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
+  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
 
   # Create instance: axis_switch_avg, and set properties
   set axis_switch_avg [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_switch:1.1 axis_switch_avg ]
@@ -500,7 +500,7 @@ proc create_root_design { parentCell } {
  ] $axis_switch_mr
 
   # Create instance: axis_tproc64x32_x8_0, and set properties
-  set axis_tproc64x32_x8_0 [ create_bd_cell -type ip -vlnv user.org:user:axis_tproc64x32_x8:1.0 axis_tproc64x32_x8_0 ]
+  set axis_tproc64x32_x8_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_tproc64x32_x8:1.0 axis_tproc64x32_x8_0 ]
 
   # Create instance: clk_adc0_x2, and set properties
   set clk_adc0_x2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_adc0_x2 ]
@@ -515,9 +515,9 @@ proc create_root_design { parentCell } {
    CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.125} \
    CONFIG.MMCM_DIVCLK_DIVIDE {1} \
    CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
    CONFIG.RESET_PORT {resetn} \
    CONFIG.RESET_TYPE {ACTIVE_LOW} \
-   CONFIG.PRIM_SOURCE {Global_buffer} \
  ] $clk_adc0_x2
 
   # Create instance: clk_tproc, and set properties
@@ -532,9 +532,9 @@ proc create_root_design { parentCell } {
    CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
    CONFIG.MMCM_CLKOUT0_DIVIDE_F {2.875} \
    CONFIG.MMCM_DIVCLK_DIVIDE {3} \
+   CONFIG.PRIM_SOURCE {Global_buffer} \
    CONFIG.RESET_PORT {resetn} \
    CONFIG.RESET_TYPE {ACTIVE_LOW} \
-   CONFIG.PRIM_SOURCE {Global_buffer} \
  ] $clk_tproc
 
   # Create instance: ddr4_0, and set properties
@@ -554,7 +554,7 @@ proc create_root_design { parentCell } {
  ] $ddr4_0
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv user.org:user:mr_buffer_et:1.1 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [ list \
    CONFIG.B {32} \
    CONFIG.N {10} \
@@ -2099,6 +2099,12 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
    CONFIG.PSU__SD0__SLOT_TYPE {SD 2.0} \
    CONFIG.PSU__SD1_COHERENCY {0} \
    CONFIG.PSU__SD1_ROUTE_THROUGH_FPD {0} \
+   CONFIG.PSU__SD1__CLK_100_SDR_OTAP_DLY {0x3} \
+   CONFIG.PSU__SD1__CLK_200_SDR_OTAP_DLY {0x3} \
+   CONFIG.PSU__SD1__CLK_50_DDR_ITAP_DLY {0x3D} \
+   CONFIG.PSU__SD1__CLK_50_DDR_OTAP_DLY {0x4} \
+   CONFIG.PSU__SD1__CLK_50_SDR_ITAP_DLY {0x15} \
+   CONFIG.PSU__SD1__CLK_50_SDR_OTAP_DLY {0x5} \
    CONFIG.PSU__SD1__GRP_CD__ENABLE {0} \
    CONFIG.PSU__SD1__GRP_POW__ENABLE {0} \
    CONFIG.PSU__SD1__GRP_WP__ENABLE {0} \
@@ -2435,225 +2441,6 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
   exclude_bd_addr_seg -offset 0x000800000000 -range 0x000100000000 -target_address_space [get_bd_addr_spaces axi_dma_tproc/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP0/HPC0_DDR_HIGH]
   exclude_bd_addr_seg -offset 0xFF000000 -range 0x01000000 -target_address_space [get_bd_addr_spaces axi_dma_tproc/Data_S2MM] [get_bd_addr_segs zynq_ultra_ps_e_0/SAXIGP0/HPC0_LPS_OCM]
 
-  # Perform GUI Layout
-  regenerate_bd_layout -layout_string {
-   "ActiveEmotionalView":"Default View",
-   "Default View_ScaleFactor":"0.478209",
-   "Default View_TopLeft":"-609,-100",
-   "ExpandedHierarchyInLayout":"",
-   "guistr":"# # String gsaved with Nlview 7.0r4  2019-12-20 bk=1.5203 VDI=41 GEI=36 GUI=JA:10.0 TLS
-#  -string -flagsOSRD
-preplace port adc0_clk -pg 1 -lvl 0 -x -50 -y 2600 -defaultsOSRD
-preplace port dac0_clk -pg 1 -lvl 0 -x -50 -y 2620 -defaultsOSRD
-preplace port dac2_clk -pg 1 -lvl 0 -x -50 -y 2640 -defaultsOSRD
-preplace port ddr4_pl -pg 1 -lvl 12 -x 5320 -y 2450 -defaultsOSRD
-preplace port sys_clk_ddr4 -pg 1 -lvl 12 -x 5320 -y 2380 -defaultsOSRD -right
-preplace port sysref_in -pg 1 -lvl 0 -x -50 -y 2700 -defaultsOSRD
-preplace port vin0_01 -pg 1 -lvl 0 -x -50 -y 2660 -defaultsOSRD
-preplace port vin0_23 -pg 1 -lvl 0 -x -50 -y 2680 -defaultsOSRD
-preplace port vout00 -pg 1 -lvl 12 -x 5320 -y 2670 -defaultsOSRD
-preplace port vout20 -pg 1 -lvl 12 -x 5320 -y 2690 -defaultsOSRD
-preplace port port-id_PMOD0_0 -pg 1 -lvl 12 -x 5320 -y 2890 -defaultsOSRD
-preplace port port-id_PMOD0_1 -pg 1 -lvl 12 -x 5320 -y 2910 -defaultsOSRD
-preplace port port-id_PMOD0_2 -pg 1 -lvl 12 -x 5320 -y 2930 -defaultsOSRD
-preplace port port-id_PMOD0_3 -pg 1 -lvl 12 -x 5320 -y 2950 -defaultsOSRD
-preplace port port-id_PMOD0_4 -pg 1 -lvl 12 -x 5320 -y 2970 -defaultsOSRD
-preplace port port-id_PMOD0_5 -pg 1 -lvl 12 -x 5320 -y 2990 -defaultsOSRD
-preplace port port-id_PMOD0_6 -pg 1 -lvl 12 -x 5320 -y 3010 -defaultsOSRD
-preplace port port-id_PMOD0_7 -pg 1 -lvl 12 -x 5320 -y 3030 -defaultsOSRD
-preplace port port-id_PMOD1_0 -pg 1 -lvl 0 -x -50 -y 1880 -defaultsOSRD
-preplace inst axi_bram_ctrl_0 -pg 1 -lvl 1 -x 140 -y 2010 -defaultsOSRD
-preplace inst axi_bram_ctrl_0_bram -pg 1 -lvl 2 -x 570 -y 2400 -defaultsOSRD
-preplace inst axi_dma_avg -pg 1 -lvl 10 -x 4640 -y 880 -defaultsOSRD
-preplace inst axi_dma_buf -pg 1 -lvl 10 -x 4640 -y 1100 -defaultsOSRD -resize 320 156
-preplace inst axi_dma_gen -pg 1 -lvl 2 -x 570 -y 1290 -defaultsOSRD
-preplace inst axi_dma_mr -pg 1 -lvl 10 -x 4640 -y 1970 -defaultsOSRD -resize 320 156
-preplace inst axi_dma_tproc -pg 1 -lvl 2 -x 570 -y 1520 -defaultsOSRD
-preplace inst axi_intc_0 -pg 1 -lvl 5 -x 1720 -y 130 -defaultsOSRD
-preplace inst axi_smc -pg 1 -lvl 5 -x 1720 -y 1040 -defaultsOSRD
-preplace inst axis_avg_buffer_0 -pg 1 -lvl 8 -x 3700 -y 1300 -defaultsOSRD
-preplace inst axis_avg_buffer_1 -pg 1 -lvl 8 -x 3700 -y 1560 -defaultsOSRD -resize 220 236
-preplace inst axis_broadcaster_0 -pg 1 -lvl 7 -x 3050 -y 1850 -defaultsOSRD
-preplace inst axis_broadcaster_1 -pg 1 -lvl 7 -x 3050 -y 2190 -defaultsOSRD
-preplace inst axis_buffer_ddr_v1_0 -pg 1 -lvl 9 -x 4220 -y 2470 -defaultsOSRD
-preplace inst axis_cc_avg_0 -pg 1 -lvl 9 -x 4220 -y 1360 -defaultsOSRD
-preplace inst axis_cc_avg_1 -pg 1 -lvl 9 -x 4220 -y 1620 -defaultsOSRD -resize 220 156
-preplace inst axis_cc_sg_0 -pg 1 -lvl 3 -x 1000 -y 2040 -defaultsOSRD
-preplace inst axis_cc_sg_1 -pg 1 -lvl 3 -x 1000 -y 2330 -defaultsOSRD -resize 220 156
-preplace inst axis_clock_converter_0 -pg 1 -lvl 9 -x 4220 -y 2230 -defaultsOSRD
-preplace inst axis_dwidth_converter_0 -pg 1 -lvl 8 -x 3700 -y 2340 -defaultsOSRD
-preplace inst axis_readout_v2_0 -pg 1 -lvl 7 -x 3050 -y 1680 -defaultsOSRD
-preplace inst axis_readout_v2_1 -pg 1 -lvl 7 -x 3050 -y 2020 -defaultsOSRD -resize 200 176
-preplace inst axis_register_slice_0 -pg 1 -lvl 5 -x 1720 -y 2120 -defaultsOSRD
-preplace inst axis_register_slice_1 -pg 1 -lvl 5 -x 1720 -y 2410 -defaultsOSRD
-preplace inst axis_register_slice_2 -pg 1 -lvl 6 -x 2400 -y 2070 -defaultsOSRD -resize 180 116
-preplace inst axis_register_slice_3 -pg 1 -lvl 6 -x 2400 -y 2220 -defaultsOSRD -resize 180 116
-preplace inst axis_set_reg_0 -pg 1 -lvl 6 -x 2400 -y 3040 -defaultsOSRD
-preplace inst axis_signal_gen_v6_0 -pg 1 -lvl 4 -x 1400 -y 2100 -defaultsOSRD
-preplace inst axis_signal_gen_v6_1 -pg 1 -lvl 4 -x 1400 -y 2390 -defaultsOSRD -resize 220 236
-preplace inst axis_switch_avg -pg 1 -lvl 9 -x 4220 -y 860 -defaultsOSRD -resize 240 196
-preplace inst axis_switch_buf -pg 1 -lvl 9 -x 4220 -y 1080 -defaultsOSRD -resize 240 196
-preplace inst axis_switch_ddr4 -pg 1 -lvl 8 -x 3700 -y 2080 -defaultsOSRD
-preplace inst axis_switch_gen -pg 1 -lvl 3 -x 1000 -y 1330 -defaultsOSRD
-preplace inst axis_switch_mr -pg 1 -lvl 8 -x 3700 -y 1860 -defaultsOSRD
-preplace inst axis_tproc64x32_x8_0 -pg 1 -lvl 2 -x 570 -y 1880 -defaultsOSRD
-preplace inst clk_adc0_x2 -pg 1 -lvl 6 -x 2400 -y 690 -defaultsOSRD
-preplace inst clk_tproc -pg 1 -lvl 6 -x 2400 -y 1410 -defaultsOSRD -resize 160 96
-preplace inst ddr4_0 -pg 1 -lvl 11 -x 5080 -y 2500 -defaultsOSRD
-preplace inst mr_buffer_et_0 -pg 1 -lvl 9 -x 4220 -y 1940 -defaultsOSRD
-preplace inst ps8_0_axi_periph -pg 1 -lvl 7 -x 3050 -y 560 -defaultsOSRD
-preplace inst rst_100 -pg 1 -lvl 6 -x 2400 -y 300 -defaultsOSRD
-preplace inst rst_adc0 -pg 1 -lvl 6 -x 2400 -y 490 -defaultsOSRD
-preplace inst rst_adc0_x2 -pg 1 -lvl 6 -x 2400 -y 840 -defaultsOSRD -resize 320 156
-preplace inst rst_dac0 -pg 1 -lvl 6 -x 2400 -y 1060 -defaultsOSRD -resize 320 156
-preplace inst rst_dac1 -pg 1 -lvl 6 -x 2400 -y 1240 -defaultsOSRD -resize 320 156
-preplace inst rst_ddr4 -pg 1 -lvl 6 -x 2400 -y 1770 -defaultsOSRD
-preplace inst rst_tproc -pg 1 -lvl 6 -x 2400 -y 1560 -defaultsOSRD -resize 320 156
-preplace inst smartconnect_0 -pg 1 -lvl 10 -x 4640 -y 2490 -defaultsOSRD
-preplace inst usp_rf_data_converter_0 -pg 1 -lvl 6 -x 2400 -y 2700 -defaultsOSRD
-preplace inst vect2bits_16_0 -pg 1 -lvl 7 -x 3050 -y 3040 -defaultsOSRD
-preplace inst xlconcat_0 -pg 1 -lvl 4 -x 1400 -y 160 -defaultsOSRD
-preplace inst xlconstant_0 -pg 1 -lvl 1 -x 140 -y 2130 -defaultsOSRD
-preplace inst xlconstant_1 -pg 1 -lvl 1 -x 140 -y 2240 -defaultsOSRD -resize 140 88
-preplace inst xlconstant_2 -pg 1 -lvl 1 -x 140 -y 2350 -defaultsOSRD -resize 140 88
-preplace inst xlconstant_3 -pg 1 -lvl 1 -x 140 -y 2480 -defaultsOSRD -resize 140 88
-preplace inst zynq_ultra_ps_e_0 -pg 1 -lvl 6 -x 2400 -y 110 -defaultsOSRD
-preplace netloc PMOD1_0_1 1 0 2 NJ 1880 320
-preplace netloc axi_bram_ctrl_0_bram_doutb 1 1 1 370 2030n
-preplace netloc axi_dma_avg_s2mm_introut 1 3 8 1240 890 NJ 890 1980J 940 2810J 1120 NJ 1120 3920J 1200 NJ 1200 4830
-preplace netloc axi_dma_buf_s2mm_introut 1 3 8 1250 1660 NJ 1660 NJ 1660 2780J 1550 3340J 1720 NJ 1720 NJ 1720 4820
-preplace netloc axi_dma_gen_mm2s_introut 1 2 2 750 110 NJ
-preplace netloc axi_dma_readout_s2mm_introut 1 3 8 1230 2250 NJ 2250 1900J 2300 NJ 2300 3480J 2250 3870J 2330 NJ 2330 4820
-preplace netloc axi_dma_tproc_mm2s_introut 1 2 2 770 130 NJ
-preplace netloc axi_dma_tproc_s2mm_introut 1 2 2 790 150 NJ
-preplace netloc axi_intc_0_irq 1 5 1 1990 130n
-preplace netloc axis_set_reg_0_dout 1 6 1 N 3040
-preplace netloc axis_tproc64x32_x8_0_pmem_addr 1 1 2 380 2100 750
-preplace netloc clk_adc0_x2_clk_out1 1 5 4 1990 1910 2790 1320 3400 2230 3970
-preplace netloc clk_adc0_x2_locked 1 5 2 2040 620 2740
-preplace netloc clk_tproc_clk_out1 1 1 8 360 2110 790 1930 N 1930 N 1930 1940 1670 2760 1540 3360 1700 3920
-preplace netloc clk_tproc_locked 1 5 2 2040 1340 2710
-preplace netloc ddr4_0_c0_ddr4_ui_clk 1 5 7 2000 1900 2750 2290 3490J 2260 3860J 2600 4380J 2600 4850 2610 5270
-preplace netloc ddr4_0_c0_ddr4_ui_clk_sync_rst 1 5 7 2020 2470 NJ 2470 NJ 2470 3850J 2620 NJ 2620 NJ 2620 5260
-preplace netloc proc_sys_reset_0_peripheral_aresetn 1 6 5 2760 2280 3460 2240 3980 2590 4410 2580 4830
-preplace netloc rst_100_bus_struct_reset 1 6 5 2830J 1130 NJ 1130 3910J 1210 NJ 1210 4870
-preplace netloc rst_adc0_peripheral_aresetn 1 5 2 2030 610 2740
-preplace netloc rst_adc0_x2_peripheral_aresetn 1 5 4 2010 1980 2770 1340 3390 2200 3980
-preplace netloc rst_dac0_peripheral_aresetn 1 2 5 810 2150 1200 1950 1570J 1950 1970J 1870 2740
-preplace netloc rst_dac1_peripheral_aresetn 1 2 5 810 2470 1150 2530 1570J 2490 1980J 2480 2730
-preplace netloc rst_ps8_0_99M_peripheral_aresetn 1 0 10 -30 1920 330 1390 820 1450 1160 1450 1540 1450 1890 1920 2840 1160 3420 1160 3950J 1220 4420
-preplace netloc rst_tproc_peripheral_aresetn 1 1 8 380 2090 800 1940 N 1940 NJ 1940 1880 1940 2830 1560 3330J 1710 3910
-preplace netloc usp_rf_data_converter_0_clk_adc0 1 5 2 2010 1930 2740
-preplace netloc usp_rf_data_converter_0_clk_dac0 1 2 5 820 2160 1180 1960 1540 1960 1920 2920 2720
-preplace netloc usp_rf_data_converter_0_clk_dac2 1 2 5 820 2450 1220 2540 1540 2500 1930 2930 2710
-preplace netloc vect2bits_16_0_dout0 1 7 5 N 2890 NJ 2890 NJ 2890 NJ 2890 N
-preplace netloc vect2bits_16_0_dout1 1 7 5 N 2910 NJ 2910 NJ 2910 NJ 2910 N
-preplace netloc vect2bits_16_0_dout2 1 7 5 N 2930 NJ 2930 NJ 2930 NJ 2930 N
-preplace netloc vect2bits_16_0_dout3 1 7 5 N 2950 NJ 2950 NJ 2950 NJ 2950 N
-preplace netloc vect2bits_16_0_dout4 1 7 5 N 2970 NJ 2970 NJ 2970 NJ 2970 N
-preplace netloc vect2bits_16_0_dout5 1 7 5 N 2990 NJ 2990 NJ 2990 NJ 2990 N
-preplace netloc vect2bits_16_0_dout6 1 7 5 N 3010 NJ 3010 NJ 3010 NJ 3010 N
-preplace netloc vect2bits_16_0_dout7 1 7 5 N 3030 NJ 3030 NJ 3030 NJ 3030 N
-preplace netloc vect2bits_16_0_dout12 1 7 2 3430 1730 3920J
-preplace netloc vect2bits_16_0_dout13 1 7 2 3500 2480 3970J
-preplace netloc vect2bits_16_0_dout14 1 7 1 3410 1300n
-preplace netloc vect2bits_16_0_dout15 1 7 1 3470 1560n
-preplace netloc xlconcat_0_dout 1 4 1 N 160
-preplace netloc xlconstant_0_dout 1 1 1 300 2130n
-preplace netloc xlconstant_1_dout 1 1 1 290 2240n
-preplace netloc xlconstant_2_dout 1 1 1 280 2350n
-preplace netloc xlconstant_3_dout 1 1 1 N 2480
-preplace netloc zynq_ultra_ps_e_0_pl_clk0 1 0 10 -10 1930 310 1380 810 1440 1190 1090 1530 40 1950 1970 2850 1170 3440 1150 3940J 1230 4410
-preplace netloc zynq_ultra_ps_e_0_pl_resetn0 1 5 2 2020 600 2770
-preplace netloc adc0_clk_1 1 0 6 N 2600 N 2600 N 2600 N 2600 N 2600 N
-preplace netloc axi_bram_ctrl_0_BRAM_PORTA 1 1 1 310 2010n
-preplace netloc axi_dma_avg_M_AXI_S2MM 1 4 7 1550 -90 N -90 N -90 N -90 N -90 N -90 4850
-preplace netloc axi_dma_buf_M_AXI_S2MM 1 4 7 1560J -80 N -80 NJ -80 NJ -80 NJ -80 NJ -80 4840
-preplace netloc axi_dma_gen_M_AXIS_MM2S 1 2 1 N 1280
-preplace netloc axi_dma_gen_M_AXI_MM2S 1 2 3 760 1030 N 1030 N
-preplace netloc axi_dma_readout_M_AXI_S2MM 1 4 7 1570J -70 N -70 NJ -70 NJ -70 NJ -70 NJ -70 4860
-preplace netloc axi_dma_tproc_M_AXIS_MM2S 1 1 2 380 1640 750
-preplace netloc axi_dma_tproc_M_AXI_MM2S 1 2 3 780 1050 NJ 1050 N
-preplace netloc axi_dma_tproc_M_AXI_S2MM 1 2 3 800 1070 NJ 1070 N
-preplace netloc axi_smc_M00_AXI 1 5 1 1890 60n
-preplace netloc axis_avg_buffer_0_m0_axis 1 8 1 3840 800n
-preplace netloc axis_avg_buffer_0_m1_axis 1 8 1 3880 1020n
-preplace netloc axis_avg_buffer_0_m2_axis 1 8 1 N 1320
-preplace netloc axis_avg_buffer_1_m0_axis 1 8 1 3870 820n
-preplace netloc axis_avg_buffer_1_m1_axis 1 8 1 3900 1040n
-preplace netloc axis_avg_buffer_1_m2_axis 1 8 1 N 1580
-preplace netloc axis_broadcaster_0_M00_AXIS 1 7 1 3320 1220n
-preplace netloc axis_broadcaster_0_M01_AXIS 1 7 1 3300 1860n
-preplace netloc axis_broadcaster_1_M00_AXIS 1 7 1 3350 1480n
-preplace netloc axis_broadcaster_1_M01_AXIS 1 7 1 3220 2040n
-preplace netloc axis_buffer_ddr_v1_0_m_axi 1 9 1 N 2480
-preplace netloc axis_cc_avg_0_M_AXIS 1 1 9 340 -60 N -60 N -60 NJ -60 N -60 NJ -60 NJ -60 NJ -60 4370
-preplace netloc axis_cc_avg_1_M_AXIS 1 1 9 350 -50 N -50 N -50 NJ -50 N -50 NJ -50 NJ -50 NJ -50 4360
-preplace netloc axis_cc_sg_0_M_AXIS 1 3 1 N 2040
-preplace netloc axis_cc_sg_1_M_AXIS 1 3 1 N 2330
-preplace netloc axis_clock_converter_0_M_AXIS 1 8 2 3990 2340 4370
-preplace netloc axis_dwidth_converter_0_M_AXIS 1 8 1 3960 2190n
-preplace netloc axis_readout_v2_0_m0_axis 1 7 1 3300 1670n
-preplace netloc axis_readout_v2_0_m1_axis 1 6 2 2890 1570 3210
-preplace netloc axis_readout_v2_1_m0_axis 1 7 1 3380 1820n
-preplace netloc axis_readout_v2_1_m1_axis 1 6 2 2890 2270 3210
-preplace netloc axis_register_slice_2_M_AXIS 1 6 1 2710 1630n
-preplace netloc axis_register_slice_3_M_AXIS 1 6 1 2860 1970n
-preplace netloc axis_register_slice_4_m_axis 1 5 1 1870J 2410n
-preplace netloc axis_register_slice_6_m_axis 1 5 1 1910 2120n
-preplace netloc axis_signal_gen_v6_0_m_axis 1 4 1 N 2100
-preplace netloc axis_signal_gen_v6_1_m_axis 1 4 1 N 2390
-preplace netloc axis_switch_0_M00_AXIS 1 8 1 N 1860
-preplace netloc axis_switch_avg_M00_AXIS 1 9 1 N 860
-preplace netloc axis_switch_buf_M00_AXIS 1 9 1 N 1080
-preplace netloc axis_switch_ddr4_M00_AXIS 1 7 2 3500 1740 3860
-preplace netloc axis_switch_gen_M00_AXIS 1 3 1 1170 1320n
-preplace netloc axis_switch_gen_M01_AXIS 1 3 1 1140 1340n
-preplace netloc axis_tproc64x32_x8_0_m0_axis 1 1 2 380 1400 760
-preplace netloc axis_tproc64x32_x8_0_m1_axis 1 2 1 780 1810n
-preplace netloc axis_tproc64x32_x8_0_m2_axis 1 2 1 770 1830n
-preplace netloc axis_tproc64x32_x8_0_m8_axis 1 2 4 760J 2140 1150J 1920 NJ 1920 1860
-preplace netloc dac0_clk_1 1 0 6 N 2620 N 2620 N 2620 N 2620 N 2620 N
-preplace netloc dac2_clk_1 1 0 6 N 2640 N 2640 N 2640 N 2640 N 2640 N
-preplace netloc ddr4_0_C0_DDR4 1 11 1 N 2450
-preplace netloc mr_buffer_et_0_m00_axis 1 9 1 4360 1940n
-preplace netloc ps8_0_axi_periph_M00_AXI 1 7 3 3500 710 3850 720 4420J
-preplace netloc ps8_0_axi_periph_M01_AXI 1 7 3 3490 730 N 730 4400J
-preplace netloc ps8_0_axi_periph_M02_AXI 1 7 3 3480 740 N 740 4390J
-preplace netloc ps8_0_axi_periph_M03_AXI 1 7 1 3450 410n
-preplace netloc ps8_0_axi_periph_M04_AXI 1 6 2 2880 1150 3280J
-preplace netloc ps8_0_axi_periph_M05_AXI 1 6 2 2870 1140 3250J
-preplace netloc ps8_0_axi_periph_M06_AXI 1 7 2 3470 820 3860
-preplace netloc ps8_0_axi_periph_M07_AXI 1 7 2 3460 840 3850
-preplace netloc ps8_0_axi_periph_M08_AXI 1 7 1 3370 510n
-preplace netloc ps8_0_axi_periph_M09_AXI 1 1 7 360 -40 N -40 N -40 NJ -40 N -40 NJ -40 3240J
-preplace netloc ps8_0_axi_periph_M10_AXI 1 7 2 3440 900 3930
-preplace netloc ps8_0_axi_periph_M11_AXI 1 5 3 2030 2310 NJ 2310 3290J
-preplace netloc ps8_0_axi_periph_M12_AXI 1 7 1 3410 590n
-preplace netloc ps8_0_axi_periph_M13_AXI 1 3 5 1220 -30 NJ -30 NJ -30 NJ -30 3230
-preplace netloc ps8_0_axi_periph_M14_AXI 1 3 5 1210 -20 NJ -20 NJ -20 NJ -20 3220
-preplace netloc ps8_0_axi_periph_M15_AXI 1 1 7 380 590 N 590 N 590 NJ 590 NJ 590 2790J 20 3210
-preplace netloc ps8_0_axi_periph_M16_AXI 1 2 6 810 910 N 910 N 910 1960J 950 2820J 1100 3220
-preplace netloc ps8_0_axi_periph_M17_AXI 1 1 7 370 -10 NJ -10 NJ -10 NJ -10 NJ -10 NJ -10 3270
-preplace netloc ps8_0_axi_periph_M18_AXI 1 0 8 -20 0 NJ 0 NJ 0 NJ 0 NJ 0 NJ 0 NJ 0 3260
-preplace netloc ps8_0_axi_periph_M19_AXI 1 4 4 1580 900 1970 960 2800 1110 3210
-preplace netloc ps8_0_axi_periph_M20_AXI 1 7 2 3400 1100 3890
-preplace netloc ps8_0_axi_periph_M21_AXI 1 7 1 3310 770n
-preplace netloc smartconnect_0_M00_AXI 1 10 1 N 2490
-preplace netloc sys_clk_ddr4_1 1 10 2 4880 2380 NJ
-preplace netloc sysref_in_1 1 0 6 NJ 2700 NJ 2700 NJ 2700 NJ 2700 NJ 2700 N
-preplace netloc usp_rf_data_converter_0_m00_axis 1 5 2 2040 1990 2720
-preplace netloc usp_rf_data_converter_0_m02_axis 1 5 2 2040 2320 2710
-preplace netloc usp_rf_data_converter_0_vout00 1 6 6 N 2670 N 2670 N 2670 N 2670 N 2670 N
-preplace netloc usp_rf_data_converter_0_vout20 1 6 6 N 2690 N 2690 N 2690 N 2690 N 2690 N
-preplace netloc vin0_01_1 1 0 6 N 2660 N 2660 N 2660 N 2660 N 2660 N
-preplace netloc vin0_23_1 1 0 6 N 2680 N 2680 N 2680 N 2680 N 2680 N
-preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM0_FPD 1 6 1 2850J 70n
-preplace netloc zynq_ultra_ps_e_0_M_AXI_HPM1_FPD 1 6 4 2740 10 N 10 N 10 4380
-levelinfo -pg 1 -50 140 570 1000 1400 1720 2400 3050 3700 4220 4640 5080 5320
-pagesize -pg 1 -db -bbox -sgen -170 -100 5460 3560
-"
-}
 
   # Restore current instance
   current_bd_instance $oldCurInst
