@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>user.org</spirit:vendor>
-  <spirit:library>user</spirit:library>
+  <spirit:vendor>Fermilab</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>axis_constant</spirit:name>
   <spirit:version>1.0</spirit:version>
   <spirit:busInterfaces>

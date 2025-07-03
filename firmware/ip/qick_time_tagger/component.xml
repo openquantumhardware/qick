@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>Fermi</spirit:vendor>
-  <spirit:library>user</spirit:library>
+  <spirit:vendor>Fermilab</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>qick_time_tagger</spirit:name>
   <spirit:version>1.0</spirit:version>
   <spirit:busInterfaces>
@@ -313,8 +313,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>qick_peripheral</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>

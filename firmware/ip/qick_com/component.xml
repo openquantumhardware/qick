@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>Fermi</spirit:vendor>
-  <spirit:library>user</spirit:library>
+  <spirit:vendor>Fermilab</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>qick_com</spirit:name>
   <spirit:version>1.0</spirit:version>
   <spirit:busInterfaces>
@@ -265,8 +265,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QCOM</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -386,8 +386,8 @@
     <spirit:busInterface>
       <spirit:name>QPROC_CTRL</spirit:name>
       <spirit:displayName>Processor Control</spirit:displayName>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_qproc_control" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="Fermilab" spirit:library="QICK" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
