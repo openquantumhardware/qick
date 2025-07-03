@@ -1,0 +1,165 @@
+///////////////////////////////////////////////////////////////////////////////
+// vim:set shiftwidth=3 softtabstop=3 expandtab:
+//
+// Fermi Fordward Alliance LLC
+//
+// Module: xcom_qctrl.sv
+// Project: QICK 
+// Description: 
+// Control block to instruct the tproc to start/stop internal processing.
+// 
+//Inputs:
+// - i_clk       clock signal
+// - i_rstn      active low reset signal
+// - i_sync      synchronization signal. Lets the core synchronize with an
+//               external signal. 
+// - i_ctrl_req  control requirement signal.
+// - i_ctrl_data control code to execute when there is a i_ctrl_req
+//               requirement.  
+// - i sync_req  synchronization requirement signal. 
+//Outputs:
+//The ouput signals in this core instruct the tproc to start/stop internal
+//processing
+// - o_proc_start processor start signal
+// - o_proc_stop  processor stop signal
+// - o_time_start time start signal
+// - o_time_stop  time stop signal
+// - o_core_start core start signal
+// - o_core_stop  core stop signal
+//
+// Change history: 09/20/24 - v1 Started by @mdifederico
+//                 05/13/25 - Refactored by @lharnaldi
+//                          - the sync_n core was removed to sync all signals
+//                            in one place (external).
+//                 07/01/25 - @lharnaldi include timeout for state WSYNC and
+//                            register the i_ctrl_data input to improve 
+//                            reliability
+//
+///////////////////////////////////////////////////////////////////////////////
+
+module xcom_qctrl (
+   input  logic         i_clk        ,
+   input  logic         i_rstn       ,
+   input  logic         i_sync       ,
+   input  logic         i_ctrl_req   ,
+   input  logic [3-1:0] i_ctrl_data  ,
+   input  logic         i_sync_req   ,
+// TPROC CONTROL
+   output logic         o_proc_start ,
+   output logic         o_proc_stop  ,
+   output logic         o_time_rst   ,
+   output logic         o_time_update,
+   output logic         o_core_start ,
+   output logic         o_core_stop     
+);
+
+logic [3-1:0] ctrl_data_r, ctrl_data_n;
+logic [3-1:0] qctrl_cnt_r, qctrl_cnt_n;
+logic         qctrl_en;
+logic         qctrl_pulse_end;
+logic         s_proc_start, s_proc_stop;
+logic         s_core_start, s_core_stop;
+logic         s_time_rst, s_time_update;
+logic         sync_dly_r, sync_dly_n;
+logic         s_sync ;
+logic         s_timeout; 
+
+// Timeout counter, up to 2^30 clock cycles. This gives roughly 2.14 s with
+// a t_clk = 500 MHz                        
+logic [30-1:0] timeout_cntr_r, timeout_cntr_n;
+
+typedef enum logic [2-1:0]{ IDLE      = 2'b00, 
+                            WSYNC     = 2'b01, 
+                            EXEC_RST  = 2'b10, 
+                            EXEC_CTRL = 2'b11 
+} state_t;
+state_t state_r, state_n;
+
+// PULSE SYNC 
+///////////////////////////////////////////////////////////////////////////////
+always_ff@(posedge i_clk) begin
+    if (!i_rstn) sync_dly_r <= 1'b0;
+    else         sync_dly_r <= sync_dly_n;
+end          
+          
+assign sync_dly_n = i_sync;
+assign s_sync = !sync_dly_r & i_sync ;
+
+assign qctrl_pulse_end = (qctrl_cnt_r == '1);
+
+// PROCESSOR CONTROL
+///////////////////////////////////////////////////////////////////////////////
+always_ff @ (posedge i_clk) begin
+   if   ( !i_rstn ) state_r <= IDLE;
+   else             state_r <= state_n;
+end
+
+always_comb begin
+   state_n       = state_r; 
+   s_proc_start  = 1'b0;
+   s_proc_stop   = 1'b0;
+   s_time_rst    = 1'b0;
+   s_time_update = 1'b0;
+   s_core_start  = 1'b0;
+   s_core_stop   = 1'b0;
+   qctrl_en      = 1'b0;
+   case (state_r)
+      IDLE: 
+         if      ( i_sync_req ) state_n = WSYNC;
+         else if ( i_ctrl_req ) state_n = EXEC_CTRL;     
+
+      WSYNC: begin
+         if      ( s_sync    ) state_n = EXEC_RST;    
+         else if ( s_timeout ) state_n = IDLE;  // TimeOut 
+      end
+
+      EXEC_RST: begin
+         s_proc_start = 1'b1;
+         qctrl_en     = 1'b1;
+         if ( qctrl_pulse_end ) state_n = IDLE;     
+      end
+
+      EXEC_CTRL: begin
+         qctrl_en  = 1'b1;
+         case ( ctrl_data_r )
+            3'b010  : s_time_rst    = 1'b1;
+            3'b011  : s_time_update = 1'b1;
+            3'b100  : s_core_start  = 1'b1;
+            3'b101  : s_core_stop   = 1'b1;
+            3'b110  : s_proc_start  = 1'b1;
+            3'b111  : s_proc_stop   = 1'b1;
+         endcase
+         if ( qctrl_pulse_end ) state_n = IDLE;     
+      end
+
+      default: state_n = state_r;
+   endcase
+end
+
+always_ff @ (posedge i_clk) begin
+   if ( !i_rstn ) begin
+      qctrl_cnt_r    <= '0;
+      timeout_cntr_r <= '0;
+      ctrl_data_r    <= '0;
+   end else begin
+      qctrl_cnt_r    <= qctrl_cnt_n;
+      timeout_cntr_r <= timeout_cntr_n;
+      ctrl_data_r    <= ctrl_data_n;
+   end
+end
+//next-state logic
+assign ctrl_data_n    = (i_ctrl_req)       ? i_ctrl_data           : ctrl_data_r;
+assign qctrl_cnt_n    = (qctrl_en)         ? qctrl_cnt_r + 1'b1    : '0;
+assign timeout_cntr_n = (state_r == WSYNC) ? timeout_cntr_r + 1'b1 : '0;
+assign s_timeout      = &timeout_cntr_r ; // New sync signal was not received in time
+
+// OUTPUTS
+///////////////////////////////////////////////////////////////////////////////
+assign o_proc_start  = s_proc_start;
+assign o_proc_stop   = s_proc_stop;
+assign o_core_start  = s_core_start;
+assign o_core_stop   = s_core_stop;
+assign o_time_rst    = s_time_rst;
+assign o_time_update = s_time_update;
+
+endmodule
