@@ -1,7 +1,0 @@
-xsim.dir
-.*.timestamp*
-*.wdb
-*.log
-*.pb
-*.jou
-tmp

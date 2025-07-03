@@ -1,3 +1,0 @@
-00 IDLE
-01 REQ
-10 ACK
