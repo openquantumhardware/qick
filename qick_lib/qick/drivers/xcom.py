@@ -199,31 +199,31 @@ class QICK_Xcom(SocIP):
         print('---------------------------------------------')
         print('--- AXI XCOM Register STATUS')
         tx_status = debug_num & 0x3
-        match tx_status:
-            case 0:
-                print( ' tx_st     : ' + 'IDLE')
-            case 1:
-                print( ' tx_st     : ' + 'WVLD')
-            case 2:
-                print( ' tx_st     : ' + 'WSYNC')
-            case 3:
-                print( ' tx_st     : ' + 'WRDY' )
-            case _:
-                print( ' tx_st     : ' + 'UNKNOWN' )
+        if tx_status == 0:
+            print( ' tx_st     : ' + 'IDLE')
+        elif tx_status == 1:
+            print( ' tx_st     : ' + 'WVLD')
+        elif tx_status == 2:
+            print( ' tx_st     : ' + 'WSYNC')
+        elif tx_status == 3:
+            print( ' tx_st     : ' + 'WRDY' )
+        else:
+            print( ' tx_st     : ' + 'UNKNOWN' )
+            
         rx_status = (debug_num & 0x01C0)>>6
-        match rx_status:
-            case 0:
-                print( ' rx_st     : ' + 'IDLE')
-            case 1:
-                print( ' rx_st     : ' + 'HEADER')
-            case 2:
-                print( ' rx_st     : ' + 'DATA')
-            case 3:
-                print( ' rx_st     : ' + 'REQ' )
-            case 4:
-                print( ' rx_st     : ' + 'ACK' )
-            case _:
-                print( ' rx_st     : ' + 'UNKNOWN' )
+        if rx_status == 0:
+            print( ' rx_st     : ' + 'IDLE')
+        elif rx_status == 1:
+            print( ' rx_st     : ' + 'HEADER')
+        elif rx_status == 2:
+            print( ' rx_st     : ' + 'DATA')
+        elif rx_status == 3:
+            print( ' rx_st     : ' + 'REQ' )
+        elif rx_status == 4:
+            print( ' rx_st     : ' + 'ACK' )
+        else:
+            print( ' rx_st     : ' + 'UNKNOWN' )
+        
         print( ' tx_ready     : ' + debug_bin[15]    )
         print( ' board_id     : ' + debug_bin[11:15] )
         print( ' rx_data_cntr : ' + debug_bin[7:11]  )
