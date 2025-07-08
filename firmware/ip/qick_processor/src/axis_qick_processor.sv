@@ -652,7 +652,7 @@ generate
    if (GEN_SYNC == 1) begin : SYNC_OUT
       always_ff @ (posedge t_clk_i, negedge t_resetn) begin
          if (!t_resetn)   net_sync     <= 1'b0;
-         else             net_sync     <= t_time_abs_o[9];
+         else             net_sync     <= t_time_abs_o[29];
       end
       assign pulse_sync_o = net_sync;
    end else
