@@ -540,20 +540,24 @@ module BRAM_FIFO_DC_2 # (
    // +---------------------------------------------------------------------------------------------------------------------+
 
    logic rd_rst_busy, wr_rst_busy;
-   logic wr_full, rd_empty, rd_empty_d1;
+   logic wr_full, rd_empty, rd_empty_d1, rd_empty_d2;
    logic [FIFO_DW - 1:0] dout;
 
    // Hold full high during Flush or Reset
    assign async_full_o = wr_full | flush_i | wr_rst_busy;
 
-   // Delay empty 1 clock cycle
+   // Delay empty 2 clocks
    always_ff @(posedge rd_clk_i) begin
-      rd_empty_d1  <= rd_empty;
+      rd_empty_d1 <= rd_empty;
+      rd_empty_d2 <= rd_empty_d1;
    end
-   assign async_empty_o = rd_empty_d1;
+   assign async_empty_o = rd_empty_d2;
 
    // Clear data output when empty
-   assign data_o = rd_empty ? 'd0 : dout;
+   always_ff @(posedge rd_clk_i) begin
+      data_o      <= rd_empty ? 'd0 : dout;
+   end
+   // assign data_o = rd_empty ? 'd0 : dout;
 
 
    // xpm_fifo_async: Asynchronous FIFO
@@ -571,6 +575,7 @@ module BRAM_FIFO_DC_2 # (
       .PROG_FULL_THRESH          (10),          // DECIMAL
       .RD_DATA_COUNT_WIDTH       (1),           // DECIMAL
       .READ_DATA_WIDTH           (FIFO_DW),     // DECIMAL
+      // .READ_MODE                 ("std"),       // String
       .READ_MODE                 ("fwft"),      // String
       .RELATED_CLOCKS            (0),           // DECIMAL
       .SIM_ASSERT_CHK            (0),           // DECIMAL; 0=disable simulation messages, 1=enable simulation messages

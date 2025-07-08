@@ -2244,7 +2244,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>b8709391</spirit:value>
+            <spirit:value>607cb051</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2263,7 +2263,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>88d2b4d9</spirit:value>
+            <spirit:value>37afe8ce</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2278,7 +2278,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>40e3ba82</spirit:value>
+            <spirit:value>edf439de</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -6322,6 +6322,11 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
+        <spirit:name>src/qick_processor_ooc.xdc</spirit:name>
+        <spirit:userFileType>xdc</spirit:userFileType>
+        <spirit:userFileType>USED_IN_out_of_context</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>src/dsp_macro_0/dsp_macro_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_QPROC/arith/dsp_macro_0</spirit:userFileType>
@@ -6407,11 +6412,7 @@
       <spirit:file>
         <spirit:name>src/axis_qick_processor.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_2100426f</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
-        <spirit:name>src/qick_processor_ooc.xdc</spirit:name>
-        <spirit:userFileType>xdc</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_f240ca51</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6434,83 +6435,103 @@
       <spirit:file>
         <spirit:name>src/axis_read.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axis_write.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/data_mem_ctrl.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/mem_rw.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qcore_mem.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_mem_ctrl.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/_qproc_defines.svh</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:isIncludeFile>true</spirit:isIncludeFile>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/_qproc_ips.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qcore_cpu.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qcore_ctrl_hazard.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qcore_reg_bank.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qick_processor.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_axi_reg.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_core.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_dispatcher.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_inport_reg.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_time_ctrl.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axi_slv_qproc.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/qproc_ctrl.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axis_qick_processor.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6558,6 +6579,7 @@
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:userFileType>USED_IN_simulation</spirit:userFileType>
         <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6730,14 +6752,14 @@
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>user.org:user:axis_tproc_B:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-07-02T20:32:00Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-07-08T14:35:02Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="68a1a477"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="a0a8cfd7"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="7d2f0412"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="794bb316"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="f340e3be"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="0a52d470"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="4960cdd2"/>
     </xilinx:packagingInfo>

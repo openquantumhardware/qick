@@ -126,7 +126,7 @@ reg  [47:0]    c_time_ref_dt           ; // Reference time "ref_time"
 wire [31:0]    c_time_usr  ; // User time "current_user_time"
 
 // AXI REGISTERS
-wire [15:0]    xreg_TPROC_CTRL  , xreg_TPROC_CFG       ;
+wire [15:0]    xreg_TPROC_CTRL  , xreg_TPROC_CFG, xreg_TPROC_DBG ;
 wire [15:0]    xreg_MEM_ADDR    , xreg_MEM_LEN         ;
 wire [31:0]    xreg_MEM_DT_I    , xreg_MEM_DT_O        ;
 reg  [31:0]    xreg_TPROC_STATUS, xreg_TPROC_DEBUG     ;
@@ -413,6 +413,7 @@ qproc_axi_reg QPROC_xREG (
    .IF_s_axireg      ( IF_s_axireg         ) ,
    .TPROC_CTRL       ( xreg_TPROC_CTRL     ) ,
    .TPROC_CFG        ( xreg_TPROC_CFG      ) ,
+   .TPROC_DBG        ( xreg_TPROC_DBG      ) ,
    .MEM_ADDR         ( xreg_MEM_ADDR       ) ,
    .MEM_LEN          ( xreg_MEM_LEN        ) ,
    .MEM_DT_I         ( xreg_MEM_DT_I       ) ,
@@ -716,25 +717,31 @@ qproc_dispatcher # (
    .c_rst_ni       ( c_rst_ni      ) ,
    .t_clk_i        ( t_clk_i       ) ,
    .t_rst_ni       ( t_rst_ni      ) ,
+   //Port
    .core_en        ( core_en       ) ,  
    .core_rst       ( core_rst      ) ,  
    .time_en        ( time_en       ) ,  
    .time_rst       ( time_rst      ) ,   
    .c_time_ref_dt  ( c_time_ref_dt ) ,
    .time_abs_i     ( time_abs      ) ,
-   .all_fifo_full  ( all_fifo_full )    ,
-   .some_fifo_full ( some_fifo_full )    ,
-   .port_we        ( port_we       ) ,  
-   .out_port_data  ( out_port_data ) ,    
+   .all_fifo_full  ( all_fifo_full ) ,
+   .some_fifo_full ( some_fifo_full ),
+   .port_we        ( port_we       ) ,
+   .prev_mask_dbg  ( xreg_TPROC_DBG[2:0] ) ,
+   .out_port_data  ( out_port_data ) ,
+   // TRIGGERS
    .port_trig_o    ( port_trig_o   ) ,
+   // DATA OUTPUT INTERFACE
    .port_tvalid_o  ( port_tvalid_o ) ,
    .port_tdata_o   ( port_tdata_o  ) ,
+   // WAVE OUTPUT INTERFACE
    .m_axis_tdata   ( m_axis_tdata  ) ,
    .m_axis_tvalid  ( m_axis_tvalid ) ,
    .m_axis_tready  ( m_axis_tready ) ,
+   // DEBUG outputs
    .fifo_dt_do     ( fifo_dt_ds    ) ,
-   .axi_fifo_do    ( axi_fifo_ds    ) ,
-   .c_fifo_do      ( c_fifo_ds    ) ,
+   .axi_fifo_do    ( axi_fifo_ds   ) ,
+   .c_fifo_do      ( c_fifo_ds     ) ,
    .t_fifo_do      ( t_fifo_ds     )
 );
 

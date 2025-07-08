@@ -514,6 +514,8 @@ initial begin
 
    #0.5us;
 
+   WRITE_AXI( REG_TPROC_CFG , 32'h0001_0000); // prev_mask_dbg
+
 
     repeat (2) begin
 

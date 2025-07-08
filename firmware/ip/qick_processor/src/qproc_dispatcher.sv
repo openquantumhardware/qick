@@ -21,6 +21,7 @@ module qproc_dispatcher # (
    input  wire  [47:0]  time_abs_i     ,
    input  wire          port_we        ,
    input  PORT_DT       out_port_data  ,
+   input  wire  [2:0]   prev_mask_dbg  ,
    output wire          all_fifo_full  ,
    output wire          some_fifo_full ,
    // TRIGGERS 
@@ -188,6 +189,17 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
    end
 end
 
+wire [2:0] prev_mask_sync;
+sync_reg #(
+    .DW        (3)
+) u_prev_mask_sync (
+   .rst_ni    (t_rst_ni),
+   .clk_i     (t_clk_i),
+   .dt_i      (prev_mask_dbg),
+   .dt_o      (prev_mask_sync)
+);
+
+wire [3:0] prev_mask = {1'b1, prev_mask_sync[0], prev_mask_sync[1], prev_mask_sync[2]};
 
 ///////////////////////////////////////////////////////////////////////////////
 /// TRIGGER PORT
@@ -233,7 +245,7 @@ generate
       always_comb begin : TRIG_DISPATCHER
          trig_t_gr[ind_tfifo]  = T_RESULT[ind_tfifo][47];
          trig_pop[ind_tfifo] = 0;
-         trig_pop_prev[ind_tfifo] = trig_pop_r[ind_tfifo] | trig_pop_r2[ind_tfifo] | trig_pop_r3[ind_tfifo] | trig_pop_r4[ind_tfifo];
+         trig_pop_prev[ind_tfifo] = |({trig_pop_r[ind_tfifo], trig_pop_r2[ind_tfifo], trig_pop_r3[ind_tfifo], trig_pop_r4[ind_tfifo]} & prev_mask);
          if (time_en & ~t_fifo_trig_empty[ind_tfifo] )
             if ( trig_t_gr[ind_tfifo] & ~trig_pop_prev[ind_tfifo] ) 
                trig_pop      [ind_tfifo] = 1'b1 ;
@@ -287,7 +299,7 @@ generate
          wave_t_gr[ind_wfifo]  = W_RESULT[ind_wfifo][47];
          // wave_t_gr[ind_wfifo]  = time_abs_i[47:0] > t_fifo_wave_time[ind_wfifo];
          wave_pop[ind_wfifo]   = 0;
-         wave_pop_prev[ind_wfifo] = wave_pop_r[ind_wfifo] | wave_pop_r2[ind_wfifo] | wave_pop_r3[ind_wfifo] | wave_pop_r4[ind_wfifo];
+         wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo], wave_pop_r3[ind_wfifo], wave_pop_r4[ind_wfifo]} & prev_mask);
          if (time_en & ~t_fifo_wave_empty[ind_wfifo])
             if ( wave_t_gr[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
                wave_pop      [ind_wfifo] = 1'b1 ;
@@ -339,7 +351,7 @@ generate
       always_comb begin : DATA_DISPATCHER
          data_t_gr[ind_dfifo]  = D_RESULT[ind_dfifo][47];
          data_pop[ind_dfifo] = 0;
-         data_pop_prev[ind_dfifo] = data_pop_r[ind_dfifo] | data_pop_r2[ind_dfifo] | data_pop_r3[ind_dfifo] | data_pop_r4[ind_dfifo];
+         data_pop_prev[ind_dfifo] = |({data_pop_r[ind_dfifo], data_pop_r2[ind_dfifo], data_pop_r3[ind_dfifo], data_pop_r4[ind_dfifo]} & prev_mask);
          if (time_en & ~t_fifo_data_empty[ind_dfifo] )
             if ( data_t_gr[ind_dfifo] & ~data_pop_prev[ind_dfifo] ) 
                data_pop      [ind_dfifo] = 1'b1 ;
@@ -431,7 +443,7 @@ assign m_axis_tdata    = m_axis_tdata_r  ;
    assign c_fifo_do[ 6: 5]   = { c_fifo_trig_full[1], c_fifo_trig_full[0] };
    assign c_fifo_do[ 4: 0]   = { all_fifo_full, all_wfifo_full, all_dfifo_full, all_tfifo_full, 1'b0 };
 
-   assign t_fifo_do[15:11]   = { wave_pop_r2[0], data_pop_r2[1], data_pop_r2[0], trig_pop_r2[1], trig_pop_r2[0]  } ;
+   assign t_fifo_do[15:11]   = { wave_pop_r[0], data_pop_r[1], data_pop_r[0], trig_pop_r[1], trig_pop_r[0]  } ;
    assign t_fifo_do[10: 9]   = { c_fifo_wave_empty[1], c_fifo_wave_empty[0] };
    assign t_fifo_do[ 8: 7]   = { c_fifo_data_empty[1], c_fifo_data_empty[0] };
    assign t_fifo_do[ 6: 5]   = { c_fifo_trig_empty[1], c_fifo_trig_empty[0] };
