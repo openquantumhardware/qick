@@ -45,7 +45,6 @@ entity axi_slv_qproc is
 		-- Registers.
         TPROC_CTRL       : out std_logic_vector (15 downto 0) ; -- Register AUTORESET
         TPROC_CFG        : out std_logic_vector (15 downto 0) ;
-        TPROC_DBG        : out std_logic_vector (15 downto 0) ;
         MEM_ADDR         : out std_logic_vector (15 downto 0) ;
         MEM_LEN          : out std_logic_vector (15 downto 0) ;
         MEM_DT_I         : out std_logic_vector (31 downto 0) ;
@@ -525,7 +524,6 @@ begin
 -- Output Registers.
 TPROC_CTRL        <= slv_reg0(15 downto 0);
 TPROC_CFG         <= slv_reg1(15 downto 0);
-TPROC_DBG         <= slv_reg1(31 downto 16);
 MEM_ADDR          <= slv_reg2(15 downto 0);
 MEM_LEN           <= slv_reg3(15 downto 0);
 MEM_DT_I          <= slv_reg4(31 downto 0);

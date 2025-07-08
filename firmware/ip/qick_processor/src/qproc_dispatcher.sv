@@ -21,7 +21,6 @@ module qproc_dispatcher # (
    input  wire  [47:0]  time_abs_i     ,
    input  wire          port_we        ,
    input  PORT_DT       out_port_data  ,
-   input  wire  [2:0]   prev_mask_dbg  ,
    output wire          all_fifo_full  ,
    output wire          some_fifo_full ,
    // TRIGGERS 
@@ -57,7 +56,7 @@ wire [47:0]                W_RESULT          [OUT_WPORT_QTY-1:0]; // Comparison 
 reg  [OUT_WPORT_QTY-1:0]   wave_t_gr;                             // Sign bit of W_RESULT
 reg  [OUT_WPORT_QTY-1:0]   c_fifo_wave_push, c_fifo_wave_push_r, c_fifo_wave_push_s; 
 reg  [OUT_WPORT_QTY-1:0]   wave_pop, wave_pop_prev;
-reg  [OUT_WPORT_QTY-1:0]   wave_pop_r, wave_pop_r2, wave_pop_r3, wave_pop_r4;
+reg  [OUT_WPORT_QTY-1:0]   wave_pop_r, wave_pop_r2;
 
 wire [47:0]                t_fifo_data_time  [OUT_DPORT_QTY-1:0]; // TIME from the FIFO > To the Comparator
 wire [OUT_DPORT_DW-1 :0]   t_fifo_data_dt    [OUT_DPORT_QTY-1:0]; // DATA from the FIFO > TO the DPORT
@@ -65,7 +64,7 @@ wire [47:0]                D_RESULT          [OUT_DPORT_QTY-1:0]; // Comparison 
 reg  [OUT_DPORT_QTY-1:0]   data_t_gr;                             // Sign bit of D_RESULT
 reg  [OUT_DPORT_QTY-1:0]   c_fifo_data_push, c_fifo_data_push_r, c_fifo_data_push_s ; 
 reg                        data_pop[OUT_DPORT_QTY], data_pop_prev[OUT_DPORT_QTY];
-reg                        data_pop_r[OUT_DPORT_QTY], data_pop_r2[OUT_DPORT_QTY], data_pop_r3[OUT_DPORT_QTY], data_pop_r4[OUT_DPORT_QTY];
+reg                        data_pop_r[OUT_DPORT_QTY], data_pop_r2[OUT_DPORT_QTY];
 
 wire [47:0]                t_fifo_trig_time  [OUT_TRIG_QTY]; // TIME from the FIFO > To the Comparator
 wire                       t_fifo_trig_dt    [OUT_TRIG_QTY]; // DATA from the FIFO > TO the WPORT
@@ -73,14 +72,14 @@ wire [47:0]                T_RESULT          [OUT_TRIG_QTY]; // Comparison betwe
 reg  [OUT_TRIG_QTY-1:0]    trig_t_gr; // Sign bit of T_RESULT
 reg  [OUT_TRIG_QTY-1:0]    c_fifo_trig_push, c_fifo_trig_push_r, c_fifo_trig_push_s ; 
 reg                        trig_pop[OUT_TRIG_QTY], trig_pop_prev[OUT_TRIG_QTY];
-reg                        trig_pop_r[OUT_TRIG_QTY], trig_pop_r2[OUT_TRIG_QTY], trig_pop_r3[OUT_TRIG_QTY], trig_pop_r4[OUT_TRIG_QTY];
+reg                        trig_pop_r[OUT_TRIG_QTY], trig_pop_r2[OUT_TRIG_QTY];
 
 reg  [OUT_TRIG_QTY-1:0]    c_fifo_trig_empty ;
 wire [OUT_TRIG_QTY-1:0]    t_fifo_trig_empty, c_fifo_trig_full ;
 reg  [OUT_DPORT_QTY-1:0]   c_fifo_data_empty ;
 wire [OUT_DPORT_QTY-1:0]   t_fifo_data_empty, c_fifo_data_full ;
 reg  [OUT_WPORT_QTY-1:0]   c_fifo_wave_empty;
-wire [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty , c_fifo_wave_full   ;
+wire [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty , c_fifo_wave_full ;
 wire                       dfifo_full, wfifo_full;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -163,43 +162,20 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
    if (!t_rst_ni) begin
       trig_pop_r     <= '{default:'0} ;
       trig_pop_r2    <= '{default:'0} ;
-      trig_pop_r3    <= '{default:'0} ;
-      trig_pop_r4    <= '{default:'0} ;
       data_pop_r     <= '{default:'0} ;
       data_pop_r2    <= '{default:'0} ;
-      data_pop_r3    <= '{default:'0} ;
-      data_pop_r4    <= '{default:'0} ;
       wave_pop_r     <= '{default:'0} ;
       wave_pop_r2    <= '{default:'0} ;
-      wave_pop_r3    <= '{default:'0} ;
-      wave_pop_r4    <= '{default:'0} ;
    end else begin
       trig_pop_r     <= trig_pop;
       trig_pop_r2    <= trig_pop_r;
-      trig_pop_r3    <= trig_pop_r2;
-      trig_pop_r4    <= trig_pop_r3;
       data_pop_r     <= data_pop;
       data_pop_r2    <= data_pop_r;
-      data_pop_r3    <= data_pop_r2;
-      data_pop_r4    <= data_pop_r3;
       wave_pop_r     <= wave_pop;
       wave_pop_r2    <= wave_pop_r;
-      wave_pop_r3    <= wave_pop_r2;
-      wave_pop_r4    <= wave_pop_r3;
    end
 end
 
-wire [2:0] prev_mask_sync;
-sync_reg #(
-    .DW        (3)
-) u_prev_mask_sync (
-   .rst_ni    (t_rst_ni),
-   .clk_i     (t_clk_i),
-   .dt_i      (prev_mask_dbg),
-   .dt_o      (prev_mask_sync)
-);
-
-wire [3:0] prev_mask = {1'b1, prev_mask_sync[0], prev_mask_sync[1], prev_mask_sync[2]};
 
 ///////////////////////////////////////////////////////////////////////////////
 /// TRIGGER PORT
@@ -245,7 +221,7 @@ generate
       always_comb begin : TRIG_DISPATCHER
          trig_t_gr[ind_tfifo]  = T_RESULT[ind_tfifo][47];
          trig_pop[ind_tfifo] = 0;
-         trig_pop_prev[ind_tfifo] = |({trig_pop_r[ind_tfifo], trig_pop_r2[ind_tfifo], trig_pop_r3[ind_tfifo], trig_pop_r4[ind_tfifo]} & prev_mask);
+         trig_pop_prev[ind_tfifo] = |({trig_pop_r[ind_tfifo], trig_pop_r2[ind_tfifo]});
          if (time_en & ~t_fifo_trig_empty[ind_tfifo] )
             if ( trig_t_gr[ind_tfifo] & ~trig_pop_prev[ind_tfifo] ) 
                trig_pop      [ind_tfifo] = 1'b1 ;
@@ -297,9 +273,8 @@ generate
       // POP Generator
       always_comb begin : WAVE_DISPATCHER
          wave_t_gr[ind_wfifo]  = W_RESULT[ind_wfifo][47];
-         // wave_t_gr[ind_wfifo]  = time_abs_i[47:0] > t_fifo_wave_time[ind_wfifo];
          wave_pop[ind_wfifo]   = 0;
-         wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo], wave_pop_r3[ind_wfifo], wave_pop_r4[ind_wfifo]} & prev_mask);
+         wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo]});
          if (time_en & ~t_fifo_wave_empty[ind_wfifo])
             if ( wave_t_gr[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
                wave_pop      [ind_wfifo] = 1'b1 ;
@@ -351,7 +326,7 @@ generate
       always_comb begin : DATA_DISPATCHER
          data_t_gr[ind_dfifo]  = D_RESULT[ind_dfifo][47];
          data_pop[ind_dfifo] = 0;
-         data_pop_prev[ind_dfifo] = |({data_pop_r[ind_dfifo], data_pop_r2[ind_dfifo], data_pop_r3[ind_dfifo], data_pop_r4[ind_dfifo]} & prev_mask);
+         data_pop_prev[ind_dfifo] = |({data_pop_r[ind_dfifo], data_pop_r2[ind_dfifo]});
          if (time_en & ~t_fifo_data_empty[ind_dfifo] )
             if ( data_t_gr[ind_dfifo] & ~data_pop_prev[ind_dfifo] ) 
                data_pop      [ind_dfifo] = 1'b1 ;
@@ -376,7 +351,6 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_trig_r[ind_tport]   <= 1'b0;
       else 
-         // if (trig_pop_r[ind_tport]) 
          if (trig_pop[ind_tport]) 
             port_trig_r[ind_tport] <= t_fifo_trig_dt[ind_tport] ;
    end
@@ -394,7 +368,6 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_dt_r[ind_dport]   <= '{default:'0} ;
       else 
-         // if (data_pop_r[ind_dport]) 
          if (data_pop[ind_dport]) 
             port_dt_r[ind_dport] <= t_fifo_data_dt[ind_dport] ;
    end
@@ -418,7 +391,6 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
          m_axis_tvalid_r[ind_wport]  <= 1'b0 ;
          m_axis_tdata_r [ind_wport]  <= '{default:'0} ;
       end else begin  
-         // m_axis_tvalid_r[ind_wport] <= wave_pop_r      [ind_wport] ;
          m_axis_tvalid_r[ind_wport] <= wave_pop       [ind_wport] ;
          m_axis_tdata_r[ind_wport]  <= t_fifo_wave_dt [ind_wport] ;
       end
