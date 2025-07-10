@@ -2535,24 +2535,25 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         for ls in self.binprog['pmem']:
             # Convert to uint for %x to work correctly
             l = np.uint32(ls)
-            s = "%08x%08x%08x" % (l[2], l[1], l[0])
-            # Take only last 72 bits (18 nibbles)
-            print(s[-18:])
+            # Take only 72 bits (18 nibbles)
+            s = "%02x%08x%08x" % (l[2], l[1], l[0])
+            print(s)
 
     def print_wmem2hex(self):
         """Prints the content of the WMEM in Hexadecimal format to dump it in an RTL simulation using the command $readmemh()
+        NOTE: AXIS Data to WMEM words mapping is done in qproc_mem_ctrl.sv
         """
         if self.binprog is None:
-            raise RuntimeError("print_pmem2hex() can only be called on a program after it's been compiled")
+            raise RuntimeError("print_wmem2hex() can only be called on a program after it's been compiled")
 
         print("// WMEM content")
+        print("// %4s_%8s_%8s_%6s_%8s_%8s" % ('CONF','LEN','GAIN','ENV','PHASE','FREQ'))
         for ls in self.binprog['wmem']:
             # print(ls)
             l = np.uint32(ls)
-            s = "%08x%08x%08x%08x%08x%08x%08x%08x" % (l[7], l[6], l[5], l[4], l[3], l[2], l[1], l[0])
-            # Take only last 168 bits
-            print(s[-168//4:])
-
+            # Take only 168 bits (42 nibbles)
+            s = "___%04x_%08x_%08x_%06x_%08x_%08x" % (l[5], l[4], l[3], l[2], l[1], l[0])
+            print(s)
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
     """Base class for tProc v2 programs with shot counting and readout acquisition.
