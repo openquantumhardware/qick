@@ -649,6 +649,10 @@ initial begin
    tb_load_mem             = 1'b0;
    tb_load_mem_done        = 1'b0;
 
+   sg_s0_axis_tvalid       = 0;
+   sg_s0_axis_tdata        = 0;
+
+
    m_dma_axis_tready_i     = 1'b1; 
    max_value               = 0;
    #10ns;
@@ -730,28 +734,28 @@ task sg_load_mem(input logic tb_load_mem, output logic tb_load_mem_done);
    
    $display("### Task sg_load_mem() start ###");
 
-   sg_s0_axis_tvalid <= 0;
-   sg_s0_axis_tdata  <= 0;
+   sg_s0_axis_tvalid = 0;
+   sg_s0_axis_tdata  = 0;
    
    wait (tb_load_mem);
 
    // File must be in the same directory from where the simulation is run
-   fd = $fopen("./gauss.txt","r");
+   fd = $fopen("./sg_0.mem","r");
 
    wait (sg_s0_axis_tready);
 
    while($fscanf(fd,"%d,%d", vali,valq) == 2) begin
-      // $display("I,Q: %d, %d", vali,valq);
+      $display("I,Q: %d, %d", vali,valq);
       ii = vali;
       qq = valq;
       @(posedge sg_s0_axis_aclk);
-      sg_s0_axis_tvalid    <= 1;
-      sg_s0_axis_tdata     <= {qq,ii};
+      sg_s0_axis_tvalid    = 1;
+      sg_s0_axis_tdata     = {qq,ii};
    end
    $fclose(fd);
 
    @(posedge sg_s0_axis_aclk);
-   sg_s0_axis_tvalid    <= 0;
+   sg_s0_axis_tvalid    = 0;
 
    tb_load_mem_done = 1;
 
