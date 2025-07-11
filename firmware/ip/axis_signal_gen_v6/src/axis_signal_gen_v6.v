@@ -131,6 +131,7 @@ wire              WE_REG;
 /**********************/
 /* Begin Architecture */
 /**********************/
+// `uselib lib=lib_axis_signal_gen_v6
 // AXI Slave.
 axi_slv axi_slv_i
    (
