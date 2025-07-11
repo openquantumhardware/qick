@@ -129,6 +129,7 @@ reg                     en_la_r;
 /**********************/
 /* Begin Architecture */
 /**********************/
+`uselib lib=lib_axis_signal_gen_v6
 // Control block.
 ctrl 
    #(
