@@ -43,7 +43,7 @@ module tb_qick ();
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
 axi_mst_0_mst_t     axi_mst_sg_agent;
-
+axi_mst_0_mst_t     axi_mst_avg_agent;
 
 xil_axi_prot_t  prot        = 0;
 reg[31:0]       data_wr     = 32'h12345678;
@@ -227,9 +227,13 @@ reg qcom_rdy_i, qpb_rdy_i;
 
 
    // DAC-ADC connections
-   wire                    axis_sg_ro_tready;
-   wire                    axis_sg_ro_tvalid;
-   wire    [N_DDS*16-1:0]  axis_sg_ro_tdata;
+   wire                    axis_sg_dac_tready;
+   wire                    axis_sg_dac_tvalid;
+   wire    [N_DDS*16-1:0]  axis_sg_dac_tdata;
+
+   wire                    axis_adc_ro_tready;
+   wire                    axis_adc_ro_tvalid;
+   wire    [8*16-1:0]      axis_adc_ro_tdata;
 
 
    //--------------------------------------
@@ -596,9 +600,9 @@ reg qcom_rdy_i, qpb_rdy_i;
       .s1_axis_tready      (sgt_sg_0_axis_tready   ),
 
       // AXIS Master for output data.
-      .m_axis_tready       (axis_sg_ro_tready      ),
-      .m_axis_tvalid       (axis_sg_ro_tvalid      ),
-      .m_axis_tdata        (axis_sg_ro_tdata       )
+      .m_axis_tready       (axis_sg_dac_tready      ),
+      .m_axis_tvalid       (axis_sg_dac_tvalid      ),
+      .m_axis_tdata        (axis_sg_dac_tdata       )
    );
 
 
@@ -606,10 +610,28 @@ reg qcom_rdy_i, qpb_rdy_i;
    // TODO: RF DATA CONVERTER IP
    //--------------------------------------
 
-   // axis_sg_ro_tready
-   // axis_sg_ro_tvalid
-   // axis_sg_ro_tdata
+   // SG to DAC RF processes 4 samples per clock
+   // ADC RF to RO processes 8 samples per clock
 
+   assign axis_sg_dac_tready        = axis_adc_ro_tready;
+   assign axis_adc_ro_tvalid        = axis_sg_dac_tvalid;
+   assign axis_adc_ro_tdata[127:0]  = { axis_sg_dac_tdata[ 48 +: 16], axis_sg_dac_tdata[ 48 +: 16], axis_sg_dac_tdata[ 32 +: 16], axis_sg_dac_tdata[ 32 +: 16],
+                                        axis_sg_dac_tdata[ 16 +: 16], axis_sg_dac_tdata[ 16 +: 16], axis_sg_dac_tdata[  0 +: 16], axis_sg_dac_tdata[  0 +: 16]
+                                       };
+
+   reg           axis_adc_ro_tvalid_dly;
+   reg [127:0]   axis_adc_ro_tdata_dly;
+
+   // always @(*) begin
+   //    #50 axis_adc_ro_tvalid_dly = axis_adc_ro_tvalid;
+   //    #50 axis_adc_ro_tdata_dly  = axis_adc_ro_tdata;
+   // end
+
+   wire           axis_adc_ro_tvalid_dly;
+   wire [127:0]   axis_adc_ro_tdata_dly;
+
+   assign #250ns axis_adc_ro_tvalid_dly = axis_adc_ro_tvalid;
+   assign #250ns axis_adc_ro_tdata_dly  = axis_adc_ro_tdata;
 
    //--------------------------------------
    // READOUT
@@ -654,8 +676,8 @@ reg qcom_rdy_i, qpb_rdy_i;
    )*/
    u_axis_dyn_readout_v1_0 (
       // Reset and clock.
-      .aresetn          (s_ps_dma_aclk),
-      .aclk             (s_ps_dma_aresetn),
+      .aresetn          (s_ps_dma_aresetn),
+      .aclk             (s_ps_dma_aclk),
 
       // s0_axis for pushing waveforms.
       .s0_axis_tready   (rot_ro_0_axis_tready),
@@ -663,12 +685,12 @@ reg qcom_rdy_i, qpb_rdy_i;
       .s0_axis_tdata    (rot_ro_0_axis_tdata),
 
       // s1_axis for input data
-      .s1_axis_tready   (axis_sg_ro_tready),
-      .s1_axis_tvalid   (axis_sg_ro_tvalid),
-      .s1_axis_tdata    (axis_sg_ro_tdata),
+      .s1_axis_tready   (axis_adc_ro_tready),
+      .s1_axis_tvalid   (axis_adc_ro_tvalid_dly),
+      .s1_axis_tdata    (axis_adc_ro_tdata_dly),
 
       // m0_axis to MR_Buffer
-      .m0_axis_tready   (),
+      .m0_axis_tready   (1'b1),
       .m0_axis_tvalid   (),
       .m0_axis_tdata    (),
       
@@ -700,18 +722,18 @@ reg qcom_rdy_i, qpb_rdy_i;
    wire              s_axi_avg_wvalid;
    
    // AXI VIP master address.
-   xil_axi_ulong   AVG_START_REG       = 0;
-   xil_axi_ulong   AVG_ADDR_REG        = 1;
-   xil_axi_ulong   AVG_LEN_REG         = 2;
-   xil_axi_ulong   AVG_DR_START_REG    = 3;
-   xil_axi_ulong   AVG_DR_ADDR_REG     = 4;
-   xil_axi_ulong   AVG_DR_LEN_REG      = 5;
-   xil_axi_ulong   BUF_START_REG       = 6;
-   xil_axi_ulong   BUF_ADDR_REG        = 7;
-   xil_axi_ulong   BUF_LEN_REG         = 8;
-   xil_axi_ulong   BUF_DR_START_REG    = 9;
-   xil_axi_ulong   BUF_DR_ADDR_REG     = 10;
-   xil_axi_ulong   BUF_DR_LEN_REG      = 11;
+   xil_axi_ulong   AVG_START_REG       = 4 * 0;
+   xil_axi_ulong   AVG_ADDR_REG        = 4 * 1;
+   xil_axi_ulong   AVG_LEN_REG         = 4 * 2;
+   xil_axi_ulong   AVG_DR_START_REG    = 4 * 3;
+   xil_axi_ulong   AVG_DR_ADDR_REG     = 4 * 4;
+   xil_axi_ulong   AVG_DR_LEN_REG      = 4 * 5;
+   xil_axi_ulong   BUF_START_REG       = 4 * 6;
+   xil_axi_ulong   BUF_ADDR_REG        = 4 * 7;
+   xil_axi_ulong   BUF_LEN_REG         = 4 * 8;
+   xil_axi_ulong   BUF_DR_START_REG    = 4 * 9;
+   xil_axi_ulong   BUF_DR_ADDR_REG     = 4 * 10;
+   xil_axi_ulong   BUF_DR_LEN_REG      = 4 * 11;
 
 
    axi_mst_0 u_axi_mst_avg_0 (
@@ -773,30 +795,30 @@ reg qcom_rdy_i, qpb_rdy_i;
       // AXIS Slave for input data.
       .s_axis_aclk            (s_ps_dma_aclk         ),
       .s_axis_aresetn         (s_ps_dma_aresetn      ),
-      .s_axis_tvalid          (axis_ro_avg_tvalid       ),
-      .s_axis_tready          (axis_ro_avg_tready       ),
-      .s_axis_tdata           (axis_ro_avg_tdata        ),
+      .s_axis_tvalid          (axis_ro_avg_tvalid    ),
+      .s_axis_tready          (axis_ro_avg_tready    ),
+      .s_axis_tdata           (axis_ro_avg_tdata     ),
 
       // Reset and clock for m0 and m1.
       .m_axis_aclk            (s_ps_dma_aclk         ),
       .m_axis_aresetn         (s_ps_dma_aresetn      ),
 
       // AXIS Master for averaged output.
-      .m0_axis_tvalid         (/*m0_axis_tvalid*/      ),
-      .m0_axis_tready         (/*m0_axis_tready*/      ),
-      .m0_axis_tdata          (/*m0_axis_tdata*/       ),
-      .m0_axis_tlast          (/*m0_axis_tlast*/       ),
+      .m0_axis_tready         (1'b1/*m0_axis_tready*/),
+      .m0_axis_tvalid         (/*m0_axis_tvalid*/    ),
+      .m0_axis_tdata          (/*m0_axis_tdata*/     ),
+      .m0_axis_tlast          (/*m0_axis_tlast*/     ),
 
       // AXIS Master for raw output.
-      .m1_axis_tvalid         (/*m1_axis_tvalid*/      ),
-      .m1_axis_tready         (/*m1_axis_tready*/      ),
-      .m1_axis_tdata          (/*m1_axis_tdata*/       ),
-      .m1_axis_tlast          (/*m1_axis_tlast*/       ),
+      .m1_axis_tready         (1'b1/*m1_axis_tready*/),
+      .m1_axis_tvalid         (/*m1_axis_tvalid*/    ),
+      .m1_axis_tdata          (/*m1_axis_tdata*/     ),
+      .m1_axis_tlast          (/*m1_axis_tlast*/     ),
 
       // AXIS Master for register output.
-      .m2_axis_tvalid         (/*m2_axis_tvalid*/      ),
-      .m2_axis_tready         (/*m2_axis_tready*/      ),
-      .m2_axis_tdata          (/*m2_axis_tdata*/       )
+      .m2_axis_tready         (1'b1/*m2_axis_tready*/),
+      .m2_axis_tvalid         (/*m2_axis_tvalid*/    ),
+      .m2_axis_tdata          (/*m2_axis_tdata*/     )
    );
 
 //--------------------------------------
@@ -818,6 +840,13 @@ initial begin
    axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
    // Start agents.
    axi_mst_sg_agent.start_master();
+
+   // Create agents.
+   axi_mst_avg_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.u_axi_mst_avg_0.inst.IF);
+   // Set tag for agents.
+   axi_mst_avg_agent.set_agent_tag("axi_mst_avg_0 VIP");
+   // Start agents.
+   axi_mst_avg_agent.start_master();
 
    $display("*** Start Test ***");
    
@@ -915,13 +944,44 @@ initial begin
 
    repeat (2) begin
 
+      // Set Raw Buffer Capture Length
+      data_wr = 300;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_LEN_REG, prot, data_wr, resp);
+      #100ns;
+
+      // Start Raw Buffer Capture
+      data_wr = 1;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+      #100ns;
+
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
       #5us;
 
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
 
+      // Stop Raw Buffer Capture
+      data_wr = 0;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+      #100ns;
+
+      // Set Raw Buffer Read Length
+      data_wr = 300;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_LEN_REG, prot, data_wr, resp);
+      #100ns;
+
+      // Readout Raw Buffer Data
+      data_wr = 1;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+      #100ns;
+
       #5us;
+
+      // Readout Raw Buffer Data
+      data_wr = 0;
+      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+      #100ns;
+
    end
     
 //   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START

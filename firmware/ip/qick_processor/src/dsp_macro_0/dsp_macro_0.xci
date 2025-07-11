@@ -153,10 +153,10 @@
       },
       "project_parameters": {
         "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
-        "BASE_BOARD_PART": [ { "value": "" } ],
+        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu216:part0:2.0" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
-        "DEVICE": [ { "value": "xczu48dr" } ],
-        "PACKAGE": [ { "value": "ffvg1517" } ],
+        "DEVICE": [ { "value": "xczu49dr" } ],
+        "PACKAGE": [ { "value": "ffvf1760" } ],
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],

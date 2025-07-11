@@ -16,12 +16,12 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="34.135501 us"></ZoomEndTime>
-      <Cursor1Time time="34.135500 us"></Cursor1Time>
+      <ZoomEndTime time="36.315501 us"></ZoomEndTime>
+      <Cursor1Time time="25.087519 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="193"></NameColumnWidth>
-      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+      <NameColumnWidth column_width="218"></NameColumnWidth>
+      <ValueColumnWidth column_width="109"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="5" />
    <wave_markers>
@@ -345,10 +345,87 @@
          <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
       </wvobject>
+      <wvobject type="vbus" fp_name="vbus1720">
+         <obj_property name="label">New Virtual Bus 19</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[15]">
+            <obj_property name="ElementShortName">[15]</obj_property>
+            <obj_property name="ObjectShortName">[15]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[14]">
+            <obj_property name="ElementShortName">[14]</obj_property>
+            <obj_property name="ObjectShortName">[14]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[13]">
+            <obj_property name="ElementShortName">[13]</obj_property>
+            <obj_property name="ObjectShortName">[13]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[12]">
+            <obj_property name="ElementShortName">[12]</obj_property>
+            <obj_property name="ObjectShortName">[12]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[11]">
+            <obj_property name="ElementShortName">[11]</obj_property>
+            <obj_property name="ObjectShortName">[11]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[10]">
+            <obj_property name="ElementShortName">[10]</obj_property>
+            <obj_property name="ObjectShortName">[10]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[9]">
+            <obj_property name="ElementShortName">[9]</obj_property>
+            <obj_property name="ObjectShortName">[9]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[8]">
+            <obj_property name="ElementShortName">[8]</obj_property>
+            <obj_property name="ObjectShortName">[8]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[7]">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">[7]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[6]">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">[6]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[5]">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">[5]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[4]">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">[4]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[3]">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">[3]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[2]">
+            <obj_property name="ElementShortName">[2]</obj_property>
+            <obj_property name="ObjectShortName">[2]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[1]">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">[1]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_dyn_readout_v1_0/m1_axis_tdata[0]">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">[0]</obj_property>
+         </wvobject>
+      </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group1417">
       <obj_property name="label">AVG_BUFFER_0</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/s_axis_aresetn">
          <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
          <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
@@ -372,6 +449,30 @@
       <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/s_axis_tdata">
          <obj_property name="ElementShortName">s_axis_tdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">s_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/avg_top_i/avg_i/state">
+         <obj_property name="ElementShortName">state[31:0]</obj_property>
+         <obj_property name="ObjectShortName">state[31:0]</obj_property>
+         <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="other" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/avg_top_i/data_reader_i/current_state">
+         <obj_property name="ElementShortName">current_state</obj_property>
+         <obj_property name="ObjectShortName">current_state</obj_property>
+         <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/buffer_top_i/buffer_i/state">
+         <obj_property name="ElementShortName">state[31:0]</obj_property>
+         <obj_property name="ObjectShortName">state[31:0]</obj_property>
+         <obj_property name="CustomSignalColor">#FF0080</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="other" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/buffer_top_i/data_reader_i/current_state">
+         <obj_property name="ElementShortName">current_state</obj_property>
+         <obj_property name="ObjectShortName">current_state</obj_property>
+         <obj_property name="CustomSignalColor">#FF0080</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m_axis_aclk">
          <obj_property name="ElementShortName">m_axis_aclk</obj_property>
@@ -408,6 +509,83 @@
       <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata">
          <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus1769">
+         <obj_property name="label">Buffer Read Out</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[15]">
+            <obj_property name="ElementShortName">[15]</obj_property>
+            <obj_property name="ObjectShortName">[15]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[14]">
+            <obj_property name="ElementShortName">[14]</obj_property>
+            <obj_property name="ObjectShortName">[14]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[13]">
+            <obj_property name="ElementShortName">[13]</obj_property>
+            <obj_property name="ObjectShortName">[13]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[12]">
+            <obj_property name="ElementShortName">[12]</obj_property>
+            <obj_property name="ObjectShortName">[12]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[11]">
+            <obj_property name="ElementShortName">[11]</obj_property>
+            <obj_property name="ObjectShortName">[11]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[10]">
+            <obj_property name="ElementShortName">[10]</obj_property>
+            <obj_property name="ObjectShortName">[10]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[9]">
+            <obj_property name="ElementShortName">[9]</obj_property>
+            <obj_property name="ObjectShortName">[9]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[8]">
+            <obj_property name="ElementShortName">[8]</obj_property>
+            <obj_property name="ObjectShortName">[8]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[7]">
+            <obj_property name="ElementShortName">[7]</obj_property>
+            <obj_property name="ObjectShortName">[7]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[6]">
+            <obj_property name="ElementShortName">[6]</obj_property>
+            <obj_property name="ObjectShortName">[6]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[5]">
+            <obj_property name="ElementShortName">[5]</obj_property>
+            <obj_property name="ObjectShortName">[5]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[4]">
+            <obj_property name="ElementShortName">[4]</obj_property>
+            <obj_property name="ObjectShortName">[4]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[3]">
+            <obj_property name="ElementShortName">[3]</obj_property>
+            <obj_property name="ObjectShortName">[3]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[2]">
+            <obj_property name="ElementShortName">[2]</obj_property>
+            <obj_property name="ObjectShortName">[2]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[1]">
+            <obj_property name="ElementShortName">[1]</obj_property>
+            <obj_property name="ObjectShortName">[1]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata[0]">
+            <obj_property name="ElementShortName">[0]</obj_property>
+            <obj_property name="ObjectShortName">[0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tlast">
          <obj_property name="ElementShortName">m1_axis_tlast</obj_property>
