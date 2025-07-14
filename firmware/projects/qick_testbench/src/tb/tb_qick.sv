@@ -39,6 +39,8 @@ import axi_mst_0_pkg::*;
 
 module tb_qick ();
 
+// Define Test to run
+string TEST_NAME = "test02";
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -622,16 +624,12 @@ reg qcom_rdy_i, qpb_rdy_i;
    reg           axis_adc_ro_tvalid_dly;
    reg [127:0]   axis_adc_ro_tdata_dly;
 
-   // always @(*) begin
-   //    #50 axis_adc_ro_tvalid_dly = axis_adc_ro_tvalid;
-   //    #50 axis_adc_ro_tdata_dly  = axis_adc_ro_tdata;
-   // end
+   // Model Transport delay
+   always @(*) begin
+      axis_adc_ro_tvalid_dly <= #(250ns) axis_adc_ro_tvalid;
+      axis_adc_ro_tdata_dly  <= #(250ns) axis_adc_ro_tdata;
+   end
 
-   wire           axis_adc_ro_tvalid_dly;
-   wire [127:0]   axis_adc_ro_tdata_dly;
-
-   assign #250ns axis_adc_ro_tvalid_dly = axis_adc_ro_tvalid;
-   assign #250ns axis_adc_ro_tdata_dly  = axis_adc_ro_tdata;
 
    //--------------------------------------
    // READOUT
@@ -870,12 +868,8 @@ initial begin
    AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
    AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
 
-
-   // Load Memories 
-   
-   $readmemh("prog.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-   $readmemh("wave.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-   $readmemh("dmem.mem", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+   // Load tProc Memories with Program
+   tproc_load_mem(TEST_NAME);
 
 
    // INITIAL VALUES
@@ -919,26 +913,27 @@ initial begin
 
    #1us;
 
-   $display("################################");
-   $display("### Load envelope into Table ###");
-   $display("################################");
-   $display("t = %0t", $time);
+   // $display("################################");
+   // $display("### Load envelope into Table ###");
+   // $display("################################");
+   // $display("t = %0t", $time);
 
-   // start_addr.
-   data_wr = 0;
-   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
-   #100ns;
+   // // start_addr.
+   // data_wr = 0;
+   // axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
+   // #100ns;
    
-   // we.
-   data_wr = 1;
-   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
-   #100ns;
+   // // we.
+   // data_wr = 1;
+   // axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
+   // #100ns;
    
-   // Load Envelope Table Memory.
-   tb_load_mem    = 1;
-   sg_load_mem(tb_load_mem, tb_load_mem_done);
-   // wait (tb_load_mem_done);
-   tb_load_mem    = 0;
+   // // Load Envelope Table Memory.
+   // tb_load_mem    = 1;
+   // sg_load_mem(tb_load_mem, tb_load_mem_done);
+   // // wait (tb_load_mem_done);
+   // tb_load_mem    = 0;
+   sg_load_mem(TEST_NAME);
 
    #1us;
 
@@ -1013,8 +1008,28 @@ task READ_AXI(integer ADDR_AXI);
 endtask
 
 
+task tproc_load_mem(string test_name);
+   string pmem_file, wmem_file, dmem_file;
+
+   $display("### Task tproc_load_mem() start ###");
+   $display("Loading Test: %s", test_name);
+
+   pmem_file = {"../../../../src/tb/",test_name,"/pmem.mem"};
+   wmem_file = {"../../../../src/tb/",test_name,"/wmem.mem"};
+   dmem_file = {"../../../../src/tb/",test_name,"/dmem.mem"};
+
+   $readmemh(pmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+   $readmemh(wmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+   $readmemh(dmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+
+   $display("### Task sg_load_mem() end ###");
+
+endtask;
+
+
 // Load pulse data into memory.
-task sg_load_mem(input logic tb_load_mem, output logic tb_load_mem_done);
+task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_load_mem_done)*/;
+   string sg_file;
    int fd,vali,valq;
    bit signed [15:0] ii,qq;
    
@@ -1022,16 +1037,34 @@ task sg_load_mem(input logic tb_load_mem, output logic tb_load_mem_done);
 
    sg_s0_axis_tvalid = 0;
    sg_s0_axis_tdata  = 0;
-   
-   wait (tb_load_mem);
 
-   // File must be in the same directory from where the simulation is run
-   fd = $fopen("./sg_0.mem","r");
+   
+   $display("################################");
+   $display("### Load envelope into Table ###");
+   $display("################################");
+   $display("t = %0t", $time);
+
+   // start_addr.
+   data_wr = 0;
+   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
+   #100ns;
+   
+   // we.
+   data_wr = 1;
+   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
+   #100ns;
+   
+   // Load Envelope Table Memory.
+   tb_load_mem    = 1;
+
+   // File must be relative to where the simulation is run from (i.e.: xxx.sim/sim_x/behav/xsim)
+   sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
+   fd = $fopen(sg_file,"r");
 
    wait (sg_s0_axis_tready);
 
    while($fscanf(fd,"%d,%d", vali,valq) == 2) begin
-      $display("I,Q: %d, %d", vali,valq);
+      // $display("I,Q: %d, %d", vali,valq);
       ii = vali;
       qq = valq;
       @(posedge sg_s0_axis_aclk);
