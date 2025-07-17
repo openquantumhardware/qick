@@ -675,8 +675,12 @@ class Axis_QICK_Proc(SocIP):
 
         if check:
             readback = self.read_mem(mem_sel, length=length, truncate=False)
+            if mem_sel=='dmem':
+                to_compare = buff_in.reshape((-1,1))
+            else:
+                to_compare = buff_in
             width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
-            if np.array_equal(buff_in[:,:width], readback[:,:width]):
+            if np.array_equal(to_compare[:,:width], readback[:,:width]):
                 self.logger.info('tProc %s: readback OK'%(mem_sel))
             else:
                 raise RuntimeError("tProc %s: readback does not match what was just loaded"%(mem_sel))
@@ -726,7 +730,7 @@ class Axis_QICK_Proc(SocIP):
             width = {'pmem': 3, 'dmem': 1, 'wmem': 6}[mem_sel]
             data = data[:, :width]
             if mem_sel=='dmem':
-                return data.flatten()
+                return data.ravel()
         return data
 
     def reload_mem(self):
