@@ -110,7 +110,7 @@ class SpiDev:
         fcntl.ioctl(self.fd, ioc, buf)
         return int.from_bytes(buf, byteorder='little')
 
-    def _write(self, ioctl, n):
+    def _write(self, ioctl, n, value):
         buf = value.to_bytes(length=n, byteorder='little')
         ioc = _IOC(_IOC_WRITE, self.SPI_IOC_MAGIC, ioctl, n)
         fcntl.ioctl(self.fd, ioc, buf)
@@ -121,7 +121,7 @@ class SpiDev:
 
     @bits_per_word.setter
     def bits_per_word(self, value):
-        self._write(self.SPI_IOCTL_BITS_PER_WORD, 1)
+        self._write(self.SPI_IOCTL_BITS_PER_WORD, 1, value)
 
     @property
     def max_speed_hz(self):
@@ -129,4 +129,4 @@ class SpiDev:
 
     @max_speed_hz.setter
     def max_speed_hz(self, value):
-        self._write(self.SPI_IOCTL_MAX_SPEED_HZ, 4)
+        self._write(self.SPI_IOCTL_MAX_SPEED_HZ, 4, value)

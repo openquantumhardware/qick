@@ -5,8 +5,6 @@
 module qproc_axi_reg(
    input wire            ps_aclk      ,    
    input wire            ps_aresetn   ,
-   // input wire            c_clk_i      ,    
-   // input wire            c_rst_ni     ,
    TYPE_IF_AXI_REG.slave       IF_s_axireg  ,
    output logic [15:0]   TPROC_CTRL   ,    
    output logic [15:0]   TPROC_CFG    ,

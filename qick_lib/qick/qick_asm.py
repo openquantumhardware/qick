@@ -2189,7 +2189,7 @@ class AcquireMixin:
         # Reload data memory.
         soc.reload_mem()
         # make sure count variable is reset to 0
-        soc.set_tproc_counter(addr=self.counter_addr, val=0)
+        soc.clear_tproc_counter(addr=self.counter_addr)
         # configure tproc for internal/external start
         soc.start_src(self.acquire_params['start_src'])
 
