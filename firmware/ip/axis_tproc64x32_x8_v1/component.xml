@@ -2295,6 +2295,8 @@
       <xilinx:displayName>AXIS tProcessor 64x32, 8 channels V1.</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>4</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2023-08-08T16:38:04Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

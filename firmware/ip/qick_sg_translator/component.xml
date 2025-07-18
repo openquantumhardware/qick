@@ -668,6 +668,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>qick_sg_translator</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>10</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2024-03-19T19:59:06Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

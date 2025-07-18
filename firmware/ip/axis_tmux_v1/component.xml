@@ -803,6 +803,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS tMux V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2024-08-05T21:30:41Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

@@ -1316,6 +1316,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>Multi-Rate Buffer ET</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>1</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>Fermilab:QICK:mr_buffer_et:1.0</xilinx:canUpgradeFrom>

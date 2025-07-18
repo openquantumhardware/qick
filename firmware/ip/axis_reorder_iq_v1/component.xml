@@ -404,6 +404,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Reorder IQ V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2023-02-27T15:39:16Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

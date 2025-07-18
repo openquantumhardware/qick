@@ -1328,6 +1328,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS PFBA PR 4x256 V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>7</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2023-04-26T18:18:48Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

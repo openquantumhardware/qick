@@ -1289,6 +1289,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>qick_com</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>7</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2024-06-20T14:01:58Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

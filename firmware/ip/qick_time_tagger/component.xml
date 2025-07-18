@@ -1906,6 +1906,8 @@
       <xilinx:xpmLibraries>
         <xilinx:xpmLibrary>XPM_CDC</xilinx:xpmLibrary>
       </xilinx:xpmLibraries>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>28</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2025-02-26T02:45:24Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

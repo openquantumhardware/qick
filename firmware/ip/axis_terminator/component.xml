@@ -365,6 +365,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Terminator</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>2</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2019-08-16T18:41:23Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

@@ -1117,6 +1117,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Readout V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>9</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2021-07-09T15:22:25Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

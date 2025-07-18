@@ -1043,6 +1043,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS SG mux 4</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2022-02-22T20:24:54Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

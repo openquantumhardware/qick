@@ -1423,6 +1423,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS PFB Readout x8 V2</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>4</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2022-08-19T21:02:47Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

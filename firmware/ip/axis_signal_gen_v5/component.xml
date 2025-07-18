@@ -1213,6 +1213,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Signal Generator V5</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>6</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2022-02-14T20:44:43Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

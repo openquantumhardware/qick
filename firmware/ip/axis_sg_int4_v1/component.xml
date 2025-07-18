@@ -1247,6 +1247,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS SG x4 Interpolation</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>6</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2022-04-07T20:07:10Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

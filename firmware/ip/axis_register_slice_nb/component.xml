@@ -404,6 +404,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Register Slice Non-Blocking</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>2</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2022-04-11T15:56:34Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

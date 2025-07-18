@@ -383,6 +383,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Set Register</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2020-12-15T18:32:58Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

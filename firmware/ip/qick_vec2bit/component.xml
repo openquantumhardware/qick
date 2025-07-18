@@ -486,6 +486,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>qick_vec2bit</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
       <xilinx:coreRevision>5</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2023-06-12T16:47:20Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
