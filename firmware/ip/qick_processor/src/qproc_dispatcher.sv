@@ -12,7 +12,7 @@ module qproc_dispatcher # (
    input  wire          c_rst_ni       ,
    input  wire          t_clk_i        ,
    input  wire          t_rst_ni       ,
-//Port
+   //Port
    input  wire          core_en        ,
    input  wire          core_rst       ,
    input  wire          time_en        ,
@@ -23,15 +23,16 @@ module qproc_dispatcher # (
    input  PORT_DT       out_port_data  ,
    output wire          all_fifo_full  ,
    output wire          some_fifo_full ,
-// TRIGGERS 
+   // TRIGGERS 
    output wire          port_trig_o  [OUT_TRIG_QTY] ,
-// DATA OUTPUT INTERFACE
+   // DATA OUTPUT INTERFACE
    output wire                    port_tvalid_o[OUT_DPORT_QTY] ,
    output wire [OUT_DPORT_DW-1:0] port_tdata_o [OUT_DPORT_QTY] ,
-// WAVE OUTPUT INTERFACE
+   // WAVE OUTPUT INTERFACE
    output wire [167:0]   m_axis_tdata  [OUT_WPORT_QTY] ,
    output wire           m_axis_tvalid [OUT_WPORT_QTY] ,
    input  wire           m_axis_tready [OUT_WPORT_QTY] , 
+   // DEBUG outputs
    output wire [31:0]    fifo_dt_do    , 
    output wire [31:0]    axi_fifo_do   , 
    output wire [15:0]    c_fifo_do     , 
@@ -45,40 +46,44 @@ module qproc_dispatcher # (
 // .p_addr > Select Port Addr (Bit 3 select between DATA and TRIGGER (Addr 0 to 7 are Data, Addr 8 to 15 are Trigger)
 // .p_time > c_fifo_time_in_r 
 // .p_data > c_fifo_data_in_r
+reg  [ 47:0]               time_abs_r ;
 
 reg  [ 47:0]               c_fifo_time_in_r ; // TIME from the CORE > To the FIFOs
 reg  [167:0]               c_fifo_data_in_r ; // DATA from the CORE > To the FIFOs
 
 wire [47:0]                t_fifo_wave_time  [OUT_WPORT_QTY-1:0]; // TIME from the FIFO > To the Comparator
 wire [167:0]               t_fifo_wave_dt    [OUT_WPORT_QTY-1:0]; // DATA from the FIFO > TO the WPORT
-wire [47:0]                W_RESULT          [OUT_WPORT_QTY-1:0]; // Comparison between t_fifo_wave_time and time_abs_i
+// wire [47:0]                W_RESULT          [OUT_WPORT_QTY-1:0]; // Comparison between t_fifo_wave_time and time_abs_i
+wire                       W_CARRYOUT        [OUT_WPORT_QTY-1:0]; // Carry of Comparison between t_fifo_wave_time and time_abs_i
 reg  [OUT_WPORT_QTY-1:0]   wave_t_gr;                             // Sign bit of W_RESULT
 reg  [OUT_WPORT_QTY-1:0]   c_fifo_wave_push, c_fifo_wave_push_r, c_fifo_wave_push_s; 
 reg  [OUT_WPORT_QTY-1:0]   wave_pop, wave_pop_prev;
-reg  [OUT_WPORT_QTY-1:0]   wave_pop_r, wave_pop_r2, wave_pop_r3, wave_pop_r4;
+reg  [OUT_WPORT_QTY-1:0]   wave_pop_r, wave_pop_r2;
 
 wire [47:0]                t_fifo_data_time  [OUT_DPORT_QTY-1:0]; // TIME from the FIFO > To the Comparator
 wire [OUT_DPORT_DW-1 :0]   t_fifo_data_dt    [OUT_DPORT_QTY-1:0]; // DATA from the FIFO > TO the DPORT
-wire [47:0]                D_RESULT          [OUT_DPORT_QTY-1:0]; // Comparison between t_fifo_data_time and time_abs_i
+// wire [47:0]                D_RESULT          [OUT_DPORT_QTY-1:0]; // Comparison between t_fifo_data_time and time_abs_i
+wire                       D_CARRYOUT        [OUT_DPORT_QTY-1:0]; // Carry of Comparison between t_fifo_data_time and time_abs_i
 reg  [OUT_DPORT_QTY-1:0]   data_t_gr;                             // Sign bit of D_RESULT
 reg  [OUT_DPORT_QTY-1:0]   c_fifo_data_push, c_fifo_data_push_r, c_fifo_data_push_s ; 
 reg                        data_pop[OUT_DPORT_QTY], data_pop_prev[OUT_DPORT_QTY];
-reg                        data_pop_r[OUT_DPORT_QTY], data_pop_r2[OUT_DPORT_QTY], data_pop_r3[OUT_DPORT_QTY], data_pop_r4[OUT_DPORT_QTY];
+reg                        data_pop_r[OUT_DPORT_QTY], data_pop_r2[OUT_DPORT_QTY];
 
 wire [47:0]                t_fifo_trig_time  [OUT_TRIG_QTY]; // TIME from the FIFO > To the Comparator
 wire                       t_fifo_trig_dt    [OUT_TRIG_QTY]; // DATA from the FIFO > TO the WPORT
-wire [47:0]                T_RESULT          [OUT_TRIG_QTY]; // Comparison between t_fifo_trig_time and time_abs_i
+// wire [47:0]                T_RESULT          [OUT_TRIG_QTY]; // Comparison between t_fifo_trig_time and time_abs_i
+wire                       T_CARRYOUT        [OUT_TRIG_QTY]; // Carry of Comparison between t_fifo_trig_time and time_abs_i
 reg  [OUT_TRIG_QTY-1:0]    trig_t_gr; // Sign bit of T_RESULT
 reg  [OUT_TRIG_QTY-1:0]    c_fifo_trig_push, c_fifo_trig_push_r, c_fifo_trig_push_s ; 
 reg                        trig_pop[OUT_TRIG_QTY], trig_pop_prev[OUT_TRIG_QTY];
-reg                        trig_pop_r[OUT_TRIG_QTY], trig_pop_r2[OUT_TRIG_QTY], trig_pop_r3[OUT_TRIG_QTY], trig_pop_r4[OUT_TRIG_QTY];
+reg                        trig_pop_r[OUT_TRIG_QTY], trig_pop_r2[OUT_TRIG_QTY];
 
 reg  [OUT_TRIG_QTY-1:0]    c_fifo_trig_empty ;
 wire [OUT_TRIG_QTY-1:0]    t_fifo_trig_empty, c_fifo_trig_full ;
 reg  [OUT_DPORT_QTY-1:0]   c_fifo_data_empty ;
 wire [OUT_DPORT_QTY-1:0]   t_fifo_data_empty, c_fifo_data_full ;
 reg  [OUT_WPORT_QTY-1:0]   c_fifo_wave_empty;
-wire [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty , c_fifo_wave_full   ;
+wire [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty , c_fifo_wave_full ;
 wire                       dfifo_full, wfifo_full;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,31 +164,21 @@ end
 
 always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
    if (!t_rst_ni) begin
+      time_abs_r     <= '{default:'0} ;
       trig_pop_r     <= '{default:'0} ;
       trig_pop_r2    <= '{default:'0} ;
-      trig_pop_r3    <= '{default:'0} ;
-      trig_pop_r4    <= '{default:'0} ;
       data_pop_r     <= '{default:'0} ;
       data_pop_r2    <= '{default:'0} ;
-      data_pop_r3    <= '{default:'0} ;
-      data_pop_r4    <= '{default:'0} ;
       wave_pop_r     <= '{default:'0} ;
       wave_pop_r2    <= '{default:'0} ;
-      wave_pop_r3    <= '{default:'0} ;
-      wave_pop_r4    <= '{default:'0} ;
    end else begin
+      time_abs_r     <= time_abs_i;
       trig_pop_r     <= trig_pop;
       trig_pop_r2    <= trig_pop_r;
-      trig_pop_r3    <= trig_pop_r2;
-      trig_pop_r4    <= trig_pop_r3;
       data_pop_r     <= data_pop;
       data_pop_r2    <= data_pop_r;
-      data_pop_r3    <= data_pop_r2;
-      data_pop_r4    <= data_pop_r3;
       wave_pop_r     <= wave_pop;
       wave_pop_r2    <= wave_pop_r;
-      wave_pop_r3    <= wave_pop_r2;
-      wave_pop_r4    <= wave_pop_r3;
    end
 end
 
@@ -193,7 +188,7 @@ end
 ///////////////////////////////////////////////////////////////////////////////
 genvar ind_tfifo;
 generate
-   for (ind_tfifo=0; ind_tfifo < OUT_TRIG_QTY; ind_tfifo=ind_tfifo+1) begin: TRIG_FIFO
+   for (ind_tfifo=0; ind_tfifo < OUT_TRIG_QTY; ind_tfifo=ind_tfifo+1) begin: TRIG_PORT
       // TRIGGER FIFO
       BRAM_FIFO_DC_2 # (
          .FIFO_DW (1+48) , 
@@ -212,27 +207,29 @@ generate
          .flush_i    ( core_rst     ),
          .async_empty_o ( t_fifo_trig_empty [ind_tfifo] ) , // SYNC with RD_CLK
          .async_full_o  ( c_fifo_trig_full  [ind_tfifo] ) ); // SYNC with WR_CLK
+
       // Time Comparator
       ADDSUB_MACRO #(
-            .DEVICE     ("7SERIES"),        // Target Device: "7SERIES" 
-            .LATENCY    ( 1   ),            // Desired clock cycle latency, 0-2
-            .WIDTH      ( 48  )             // Input / output bus width, 1-48
-         ) ADDSUB_MACRO_inst (
-            .CARRYOUT   (                             ), // 1-bit carry-out output signal
-            .RESULT     ( T_RESULT[ind_tfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
-            .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
-            .A          ( t_fifo_trig_time[ind_tfifo] ), // Input B bus, width defined by WIDTH parameter
-            .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
-            .CE         ( 1'b1                        ), // 1-bit clock enable input
-            .CLK        ( t_clk_i                     ), // 1-bit clock input
-            .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
-         );
+         .DEVICE     ("7SERIES"),        // Target Device: "7SERIES" 
+         .LATENCY    ( 1   ),            // Desired clock cycle latency, 0-2
+         .WIDTH      ( 48  )             // Input / output bus width, 1-48
+      ) ADDSUB_MACRO_T_inst (
+         .CARRYOUT   ( T_CARRYOUT[ind_tfifo]       ), // 1-bit carry-out output signal
+         .RESULT     ( /*T_RESULT[ind_tfifo]*/     ), // Add/sub result output, width defined by WIDTH parameter
+         .A          ( t_fifo_trig_time[ind_tfifo] ), // Input A bus, width defined by WIDTH parameter
+         .B          ( time_abs_r[47:0]            ), // Input B bus, width defined by WIDTH parameter
+         .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
+         .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
+         .CE         ( 1'b1                        ), // 1-bit clock enable input
+         .CLK        ( t_clk_i                     ), // 1-bit clock input
+         .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
+      );
       // POP Generator
       always_comb begin : TRIG_DISPATCHER
-         trig_t_gr[ind_tfifo]  = T_RESULT[ind_tfifo][47];
+         // trig_t_gr[ind_tfifo]  = T_RESULT[ind_tfifo][47];
+         trig_t_gr[ind_tfifo]  = ~T_CARRYOUT[ind_tfifo];
          trig_pop[ind_tfifo] = 0;
-         trig_pop_prev[ind_tfifo] = trig_pop_r[ind_tfifo] | trig_pop_r2[ind_tfifo] | trig_pop_r3[ind_tfifo] | trig_pop_r4[ind_tfifo];
+         trig_pop_prev[ind_tfifo] = |({trig_pop_r[ind_tfifo], trig_pop_r2[ind_tfifo]});
          if (time_en & ~t_fifo_trig_empty[ind_tfifo] )
             if ( trig_t_gr[ind_tfifo] & ~trig_pop_prev[ind_tfifo] ) 
                trig_pop      [ind_tfifo] = 1'b1 ;
@@ -246,7 +243,7 @@ endgenerate
 ///////////////////////////////////////////////////////////////////////////////
 genvar ind_wfifo;
 generate
-   for (ind_wfifo=0; ind_wfifo < OUT_WPORT_QTY; ind_wfifo=ind_wfifo+1) begin: WAVE_FIFO
+   for (ind_wfifo=0; ind_wfifo < OUT_WPORT_QTY; ind_wfifo=ind_wfifo+1) begin: WAVE_PORT
       // WaveForm FIFO
       BRAM_FIFO_DC_2 # (
          .FIFO_DW (168+48) , 
@@ -266,26 +263,27 @@ generate
          .async_empty_o ( t_fifo_wave_empty [ind_wfifo] ) , // SYNC with RD_CLK
          .async_full_o  ( c_fifo_wave_full  [ind_wfifo] ) ); // SYNC with WR_CLK
       // Time Comparator
-         ADDSUB_MACRO #(
-            .DEVICE     ( "7SERIES" ),                   // Target Device: "7SERIES" 
-            .LATENCY    ( 1         ),                   // Desired clock cycle latency, 0-2
-            .WIDTH      ( 48        )                    // Input / output bus width, 1-48
-         ) ADDSUB_MACRO_inst (
-            .CARRYOUT   (                             ), // 1-bit carry-out output signal
-            .RESULT     ( W_RESULT[ind_wfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
-            .A          ( t_fifo_wave_time[ind_wfifo] ), // Input B bus, width defined by WIDTH parameter
-            .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
-            .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
-            .CE         ( 1'b1                        ), // 1-bit clock enable input
-            .CLK        ( t_clk_i                     ), // 1-bit clock input
-            .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
-         );
+      ADDSUB_MACRO #(
+         .DEVICE     ( "7SERIES" ),                   // Target Device: "7SERIES" 
+         .LATENCY    ( 1         ),                   // Desired clock cycle latency, 0-2
+         .WIDTH      ( 48        )                    // Input / output bus width, 1-48
+      ) ADDSUB_MACRO_W_inst (
+         .CARRYOUT   ( W_CARRYOUT[ind_wfifo]       ), // 1-bit carry-out output signal
+         .RESULT     ( /*W_RESULT[ind_wfifo]*/     ), // Add/sub result output, width defined by WIDTH parameter
+         .B          ( time_abs_r[47:0]            ), // Input A bus, width defined by WIDTH parameter
+         .A          ( t_fifo_wave_time[ind_wfifo] ), // Input B bus, width defined by WIDTH parameter
+         .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
+         .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
+         .CE         ( 1'b1                        ), // 1-bit clock enable input
+         .CLK        ( t_clk_i                     ), // 1-bit clock input
+         .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
+      );
       // POP Generator
       always_comb begin : WAVE_DISPATCHER
-         wave_t_gr[ind_wfifo]  = W_RESULT[ind_wfifo][47];
+         // wave_t_gr[ind_wfifo]  = W_RESULT[ind_wfifo][47];
+         wave_t_gr[ind_wfifo]  = ~W_CARRYOUT[ind_wfifo];
          wave_pop[ind_wfifo]   = 0;
-         wave_pop_prev[ind_wfifo] = wave_pop_r[ind_wfifo] | wave_pop_r2[ind_wfifo] | wave_pop_r3[ind_wfifo]| wave_pop_r4[ind_wfifo];
+         wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo]});
          if (time_en & ~t_fifo_wave_empty[ind_wfifo])
             if ( wave_t_gr[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
                wave_pop      [ind_wfifo] = 1'b1 ;
@@ -298,7 +296,7 @@ endgenerate
 ///////////////////////////////////////////////////////////////////////////////
 genvar ind_dfifo;
 generate
-   for (ind_dfifo=0; ind_dfifo < OUT_DPORT_QTY; ind_dfifo=ind_dfifo+1) begin: DATA_FIFO
+   for (ind_dfifo=0; ind_dfifo < OUT_DPORT_QTY; ind_dfifo=ind_dfifo+1) begin: DATA_PORT
       // DATA FIFO
       BRAM_FIFO_DC_2 # (
          .FIFO_DW (OUT_DPORT_DW+48) , 
@@ -319,25 +317,26 @@ generate
          .async_full_o  ( c_fifo_data_full  [ind_dfifo] ) ); // SYNC with WR_CLK
       // Time Comparator
       ADDSUB_MACRO #(
-            .DEVICE     ("7SERIES"),        // Target Device: "7SERIES" 
-            .LATENCY    ( 1   ),            // Desired clock cycle latency, 0-2
-            .WIDTH      ( 48  )             // Input / output bus width, 1-48
-         ) ADDSUB_MACRO_inst (
-            .CARRYOUT   (                             ), // 1-bit carry-out output signal
-            .RESULT     ( D_RESULT[ind_dfifo]         ), // Add/sub result output, width defined by WIDTH parameter
-            .B          ( time_abs_i[47:0]            ), // Input A bus, width defined by WIDTH parameter
-            .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
-            .A          ( t_fifo_data_time[ind_dfifo] ), // Input B bus, width defined by WIDTH parameter
-            .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
-            .CE         ( 1'b1                        ), // 1-bit clock enable input
-            .CLK        ( t_clk_i                     ), // 1-bit clock input
-            .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
-         );
+         .DEVICE     ("7SERIES"),        // Target Device: "7SERIES" 
+         .LATENCY    ( 1   ),            // Desired clock cycle latency, 0-2
+         .WIDTH      ( 48  )             // Input / output bus width, 1-48
+      ) ADDSUB_MACRO_D_inst (
+         .CARRYOUT   ( D_CARRYOUT[ind_dfifo]       ), // 1-bit carry-out output signal
+         .RESULT     ( /*D_RESULT[ind_dfifo]*/     ), // Add/sub result output, width defined by WIDTH parameter
+         .B          ( time_abs_r[47:0]            ), // Input A bus, width defined by WIDTH parameter
+         .ADD_SUB    ( 1'b0                        ), // 1-bit add/sub input, high selects add, low selects subtract
+         .A          ( t_fifo_data_time[ind_dfifo] ), // Input B bus, width defined by WIDTH parameter
+         .CARRYIN    ( 1'b0                        ), // 1-bit carry-in input
+         .CE         ( 1'b1                        ), // 1-bit clock enable input
+         .CLK        ( t_clk_i                     ), // 1-bit clock input
+         .RST        ( ~t_rst_ni                   )  // 1-bit active high synchronous reset
+      );
       // POP Generator
       always_comb begin : DATA_DISPATCHER
-         data_t_gr[ind_dfifo]  = D_RESULT[ind_dfifo][47];
+         // data_t_gr[ind_dfifo]  = D_RESULT[ind_dfifo][47];
+         data_t_gr[ind_dfifo]  = ~D_CARRYOUT[ind_dfifo];
          data_pop[ind_dfifo] = 0;
-         data_pop_prev[ind_dfifo] = data_pop_r[ind_dfifo] | data_pop_r2[ind_dfifo] | data_pop_r3[ind_dfifo] | data_pop_r4[ind_dfifo];
+         data_pop_prev[ind_dfifo] = |({data_pop_r[ind_dfifo], data_pop_r2[ind_dfifo]});
          if (time_en & ~t_fifo_data_empty[ind_dfifo] )
             if ( data_t_gr[ind_dfifo] & ~data_pop_prev[ind_dfifo] ) 
                data_pop      [ind_dfifo] = 1'b1 ;
@@ -362,7 +361,8 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_trig_r[ind_tport]   <= 1'b0;
       else 
-        if (trig_pop_r[ind_tport]) port_trig_r[ind_tport] <= t_fifo_trig_dt[ind_tport] ;
+         if (trig_pop[ind_tport]) 
+            port_trig_r[ind_tport] <= t_fifo_trig_dt[ind_tport] ;
    end
 end
 assign port_trig_o  = port_trig_r;
@@ -378,7 +378,8 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
       else if (time_rst) 
          port_dt_r[ind_dport]   <= '{default:'0} ;
       else 
-        if (data_pop_r[ind_dport]) port_dt_r[ind_dport] <= t_fifo_data_dt[ind_dport] ;
+         if (data_pop[ind_dport]) 
+            port_dt_r[ind_dport] <= t_fifo_data_dt[ind_dport] ;
    end
 end
 assign port_tvalid_o = data_pop_r;
@@ -400,7 +401,7 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
          m_axis_tvalid_r[ind_wport]  <= 1'b0 ;
          m_axis_tdata_r [ind_wport]  <= '{default:'0} ;
       end else begin  
-         m_axis_tvalid_r[ind_wport] <= wave_pop_r      [ind_wport] ;
+         m_axis_tvalid_r[ind_wport] <= wave_pop       [ind_wport] ;
          m_axis_tdata_r[ind_wport]  <= t_fifo_wave_dt [ind_wport] ;
       end
    end
@@ -424,7 +425,7 @@ assign m_axis_tdata    = m_axis_tdata_r  ;
    assign c_fifo_do[ 6: 5]   = { c_fifo_trig_full[1], c_fifo_trig_full[0] };
    assign c_fifo_do[ 4: 0]   = { all_fifo_full, all_wfifo_full, all_dfifo_full, all_tfifo_full, 1'b0 };
 
-   assign t_fifo_do[15:11]   = { wave_pop_r2[0], data_pop_r2[1], data_pop_r2[0], trig_pop_r2[1], trig_pop_r2[0]  } ;
+   assign t_fifo_do[15:11]   = { wave_pop_r[0], data_pop_r[1], data_pop_r[0], trig_pop_r[1], trig_pop_r[0]  } ;
    assign t_fifo_do[10: 9]   = { c_fifo_wave_empty[1], c_fifo_wave_empty[0] };
    assign t_fifo_do[ 8: 7]   = { c_fifo_data_empty[1], c_fifo_data_empty[0] };
    assign t_fifo_do[ 6: 5]   = { c_fifo_trig_empty[1], c_fifo_trig_empty[0] };

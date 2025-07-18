@@ -1,7 +1,7 @@
 QICK papers
 ===========
 
-This list of academic papers that used the QICK was last updated March 19, 2025.
+This list of academic papers that used the QICK was last updated July 15, 2025.
 
 QICK system
 -----------
@@ -10,6 +10,7 @@ QICK system
 
 Superconducting circuits - coherence
 ------------------------------------
+* `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/pdf/2506.18232>`_.
 * `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
 * `Bland, M. et al. 2D transmons with lifetimes and coherence times exceeding 1 millisecond. (2025) <https://arxiv.org/abs/2503.14798>`_.
 * `Kumar, S. et al. Protomon: A Multimode Qubit in the Fluxonium Molecule. (2024) <https://arxiv.org/abs/2411.16648>`_.
@@ -20,6 +21,10 @@ Superconducting circuits - coherence
 * `Anferov, A. et al. Superconducting Qubits Above 20 GHz Operating over 200 mK. (2024) <https://arxiv.org/abs/2402.03031>`_.
 * `Anferov, A. et al. Improved Coherence in Optically-Defined Niobium Trilayer Junction Qubits. (2023) <https://arxiv.org/abs/2306.05883>`_.
 
+Superconducting circuits - scaling
+------------------------------------
+* `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/pdf/2507.10676>`_.
+
 Superconducting circuits - radiative loss
 -----------------------------------------
 * `De Dominicis, F. et al. Evaluating radiation impact on transmon qubits in above and underground facilities. (2024) <https://arxiv.org/abs/2405.18355>`_.
@@ -28,6 +33,7 @@ Superconducting circuits - radiative loss
 
 Superconducting circuits – readout
 ----------------------------------
+* `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/pdf/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/pdf/2503.10750>`_.
 * `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
