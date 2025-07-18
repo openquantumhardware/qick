@@ -1324,7 +1324,7 @@
         <xilinx:family xilinx:lifeCycle="Production">zynquplus</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS PFBA PR 4x256 V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>

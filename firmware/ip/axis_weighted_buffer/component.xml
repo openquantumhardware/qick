@@ -1528,7 +1528,7 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Weighted Integrator + Buffer</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>
