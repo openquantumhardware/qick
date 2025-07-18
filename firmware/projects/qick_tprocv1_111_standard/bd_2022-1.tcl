@@ -136,21 +136,21 @@ xilinx.com:ip:blk_mem_gen:8.4\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:axi_intc:4.1\
 xilinx.com:ip:smartconnect:1.0\
-Fermilab:QICK:axis_avg_buffer:1.2\
+FNAL:QICK:axis_avg_buffer:1.2\
 xilinx.com:ip:axis_broadcaster:1.1\
-Fermilab:QICK:axis_buffer_ddr_v1:1.0\
-Fermilab:QICK:axis_cdcsync_v1:1.0\
+FNAL:QICK:axis_buffer_ddr_v1:1.0\
+FNAL:QICK:axis_cdcsync_v1:1.0\
 xilinx.com:ip:axis_clock_converter:1.1\
 xilinx.com:ip:axis_dwidth_converter:1.1\
-Fermilab:QICK:axis_readout_v2:1.0\
+FNAL:QICK:axis_readout_v2:1.0\
 xilinx.com:ip:axis_register_slice:1.1\
-Fermilab:QICK:axis_set_reg:1.0\
-Fermilab:QICK:axis_signal_gen_v6:1.0\
+FNAL:QICK:axis_set_reg:1.0\
+FNAL:QICK:axis_signal_gen_v6:1.0\
 xilinx.com:ip:axis_switch:1.1\
-Fermilab:QICK:axis_tproc64x32_x8:1.0\
+FNAL:QICK:axis_tproc64x32_x8:1.0\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:ddr4:2.2\
-Fermilab:QICK:mr_buffer_et:1.1\
+FNAL:QICK:mr_buffer_et:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:usp_rf_data_converter:2.6\
 xilinx.com:ip:xlconcat:2.1\
@@ -376,13 +376,13 @@ proc create_root_design { parentCell } {
  ] $axi_smc_1
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
  ] $axis_avg_buffer_0
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
   set_property -dict [ list \
    CONFIG.N_AVG {14} \
  ] $axis_avg_buffer_1
@@ -400,20 +400,20 @@ proc create_root_design { parentCell } {
  ] $axis_broadcaster_1
 
   # Create instance: axis_buffer_ddr_v1_0, and set properties
-  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
+  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
   set_property -dict [ list \
    CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} \
  ] $axis_buffer_ddr_v1_0
 
   # Create instance: axis_cdcsync_v1_0, and set properties
-  set axis_cdcsync_v1_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_0 ]
+  set axis_cdcsync_v1_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_0 ]
   set_property -dict [ list \
    CONFIG.B {160} \
    CONFIG.N {4} \
  ] $axis_cdcsync_v1_0
 
   # Create instance: axis_cdcsync_v1_1, and set properties
-  set axis_cdcsync_v1_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_1 ]
+  set axis_cdcsync_v1_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_1 ]
   set_property -dict [ list \
    CONFIG.B {160} \
    CONFIG.N {4} \
@@ -436,10 +436,10 @@ proc create_root_design { parentCell } {
  ] $axis_dwidth_converter_0
 
   # Create instance: axis_readout_v2_0, and set properties
-  set axis_readout_v2_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_readout_v2:1.0 axis_readout_v2_0 ]
+  set axis_readout_v2_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_readout_v2:1.0 axis_readout_v2_0 ]
 
   # Create instance: axis_readout_v2_1, and set properties
-  set axis_readout_v2_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_readout_v2:1.0 axis_readout_v2_1 ]
+  set axis_readout_v2_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_readout_v2:1.0 axis_readout_v2_1 ]
 
   # Create instance: axis_register_slice_0, and set properties
   set axis_register_slice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_register_slice:1.1 axis_register_slice_0 ]
@@ -448,31 +448,31 @@ proc create_root_design { parentCell } {
   set axis_register_slice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_register_slice:1.1 axis_register_slice_1 ]
 
   # Create instance: axis_set_reg_0, and set properties
-  set axis_set_reg_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_set_reg:1.0 axis_set_reg_0 ]
+  set axis_set_reg_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_set_reg:1.0 axis_set_reg_0 ]
   set_property -dict [ list \
    CONFIG.DATA_WIDTH {160} \
  ] $axis_set_reg_0
 
   # Create instance: axis_signal_gen_v6_0, and set properties
-  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
+  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
 
   # Create instance: axis_signal_gen_v6_1, and set properties
-  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
+  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
 
   # Create instance: axis_signal_gen_v6_2, and set properties
-  set axis_signal_gen_v6_2 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_2 ]
+  set axis_signal_gen_v6_2 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_2 ]
 
   # Create instance: axis_signal_gen_v6_3, and set properties
-  set axis_signal_gen_v6_3 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_3 ]
+  set axis_signal_gen_v6_3 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_3 ]
 
   # Create instance: axis_signal_gen_v6_4, and set properties
-  set axis_signal_gen_v6_4 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_4 ]
+  set axis_signal_gen_v6_4 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_4 ]
 
   # Create instance: axis_signal_gen_v6_5, and set properties
-  set axis_signal_gen_v6_5 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_5 ]
+  set axis_signal_gen_v6_5 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_5 ]
 
   # Create instance: axis_signal_gen_v6_6, and set properties
-  set axis_signal_gen_v6_6 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_6 ]
+  set axis_signal_gen_v6_6 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_6 ]
 
   # Create instance: axis_switch_avg, and set properties
   set axis_switch_avg [ create_bd_cell -type ip -vlnv xilinx.com:ip:axis_switch:1.1 axis_switch_avg ]
@@ -508,7 +508,7 @@ proc create_root_design { parentCell } {
  ] $axis_switch_mr
 
   # Create instance: axis_tproc64x32_x8_0, and set properties
-  set axis_tproc64x32_x8_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:axis_tproc64x32_x8:1.0 axis_tproc64x32_x8_0 ]
+  set axis_tproc64x32_x8_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_tproc64x32_x8:1.0 axis_tproc64x32_x8_0 ]
   set_property -dict [ list \
    CONFIG.DMEM_N {12} \
    CONFIG.PMEM_N {20} \
@@ -549,7 +549,7 @@ proc create_root_design { parentCell } {
  ] $ddr4_0
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv Fermilab:QICK:mr_buffer_et:1.1 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [ list \
    CONFIG.B {32} \
    CONFIG.N {10} \

@@ -941,10 +941,18 @@ class Pulse(TimedMacro):
         insts = []
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['gens'][self.ch]['tproc_ch']
-        insts.append(self.set_timereg(prog, "t"))
+        t_reg = self.t_regs['t']
+        # if the time is in a register, we need to copy it to the time register
+        # otherwise, we can save an instruction by using a immediate value
+        # TODO: clean this up a bit, maybe fold this into set_timereg somehow?
+        imm_time = isinstance(t_reg, Integral)
+        if not imm_time:
+            insts.append(self.set_timereg(prog, "t"))
         for wave in pulse.get_wavenames():
             idx = prog.wave2idx[wave]
             insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
+            # add the immediate value
+            if imm_time: insts[-1].inst['TIME'] = '@'+str(t_reg)
         return insts
 
 class ConfigReadout(TimedMacro):
@@ -957,10 +965,19 @@ class ConfigReadout(TimedMacro):
         insts = []
         pulse = prog.pulses[self.name]
         tproc_ch = prog.soccfg['readouts'][self.ch]['tproc_ctrl']
-        insts.append(self.set_timereg(prog, "t"))
+        t_reg = self.t_regs['t']
+        # if the time is in a register, we need to copy it to the time register
+        # otherwise, we can save an instruction by using a immediate value
+        # TODO: clean this up a bit, maybe fold this into set_timereg somehow?
+        imm_time = isinstance(t_reg, Integral)
+        if not imm_time:
+            insts.append(self.set_timereg(prog, "t"))
         for wave in pulse.get_wavenames():
             idx = prog.wave2idx[wave]
-            insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
+            if imm_time:
+                insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx), 'TIME':'@'+str(t_reg)}, addr_inc=1))
+            else:
+                insts.append(AsmInst(inst={'CMD':'WPORT_WR', 'DST':str(tproc_ch) ,'SRC':'wmem', 'ADDR':'&'+str(idx)}, addr_inc=1))
         return insts
 
 class Trigger(TimedMacro):
@@ -1010,21 +1027,32 @@ class Trigger(TimedMacro):
 
     def expand(self, prog):
         insts = []
-        if self.t is not None:
+        t_reg = self.t_regs['t']
+        width_reg = self.t_regs['width']
+        # if the time or width is in a register, we need to use the time register
+        # otherwise, we can save an instruction by using immediate values
+        # TODO: clean this up a bit, maybe fold this into set_timereg somehow?
+        imm_time = t_reg is not None and isinstance(t_reg, Integral) and isinstance(width_reg, Integral)
+        if self.t is not None and not imm_time:
             insts.append(self.set_timereg(prog, "t"))
         if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':str(out)}, addr_inc=1))
+                if imm_time: insts[-1].inst['TIME'] = '@'+str(t_reg)
         if self.trigset:
             for outport in self.trigset:
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'set', 'DST':str(outport)}, addr_inc=1))
-        insts.append(self.inc_timereg(prog, "width"))
+                if imm_time: insts[-1].inst['TIME'] = '@'+str(t_reg)
+        if not imm_time:
+            insts.append(self.inc_timereg(prog, "width"))
         if self.outdict:
             for outport, out in self.outdict.items():
                 insts.append(AsmInst(inst={'CMD':'DPORT_WR', 'DST':str(outport), 'SRC':'imm', 'DATA':'0'}, addr_inc=1))
+                if imm_time: insts[-1].inst['TIME'] = '@'+str(t_reg+width_reg)
         if self.trigset:
             for outport in self.trigset:
                 insts.append(AsmInst(inst={'CMD':'TRIG', 'SRC':'clr', 'DST':str(outport)}, addr_inc=1))
+                if imm_time: insts[-1].inst['TIME'] = '@'+str(t_reg+width_reg)
         return insts
 
 class AsmV2:
@@ -1925,7 +1953,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     FLIP_DOWNCONVERSION = True
 
     # supported revisions of the tProc v2 core
-    ASM_REVISIONS = [21, 22, 23, 24, 25]
+    ASM_REVISIONS = [21, 22, 23, 24, 25, 26]
 
     def __init__(self, soccfg):
         super().__init__(soccfg)

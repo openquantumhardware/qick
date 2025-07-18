@@ -11,7 +11,8 @@ class QICK_Time_Tagger(SocIP):
     """
     QICK_Time_Tagger class
     """
-    bindto = ['Fermilab:QICK:qick_time_tagger:1.0']
+    bindto = ['Fermi:user:qick_time_tagger:1.0',
+              'FNAL:QICK::qick_time_tagger:1.0']
 
     def __init__(self, description):
         """
@@ -294,7 +295,8 @@ class QICK_Com(SocIP):
     QCOM_RX_DT       Read Only    32-Bits
     QCOM_DEBUG       Read Only    32-Bits
     """
-    bindto = ['Fermilab:QICK:qick_com:1.0']
+    bindto = ['Fermi:user:qick_com:1.0',
+              'FNAL:QICK::qick_com:1.0']
 
     def _init_config(self, description):
         self.REGISTERS = {
@@ -413,7 +415,8 @@ class QICK_Net(SocIP):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
-    bindto = ['Fermilab:QICK:qick_network:1.0']
+    bindto = ['Fermi:user:qick_network:1.0',
+              'FNAL:QICK::qick_network:1.0']
 
 
     main_list = ['M_NOT_READY','M_IDLE','M_LOC_CMD','M_NET_CMD','M_WRESP','M_WACK','M_NET_RESP','M_NET_ANSW','M_CMD_EXEC','M_ERROR']

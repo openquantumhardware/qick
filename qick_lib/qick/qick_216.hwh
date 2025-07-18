@@ -11063,7 +11063,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="6" FULLNAME="/axis_avg_buffer_0" HWVERSION="1.0" INSTANCE="axis_avg_buffer_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_avg_buffer" VLNV="user.org:user:axis_avg_buffer:1.0">
+    <MODULE COREREVISION="6" FULLNAME="/axis_avg_buffer_0" HWVERSION="1.0" INSTANCE="axis_avg_buffer_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_avg_buffer" VLNV="FNAL:QICK:axis_avg_buffer:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -11414,7 +11414,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="6" FULLNAME="/axis_avg_buffer_1" HWVERSION="1.0" INSTANCE="axis_avg_buffer_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_avg_buffer" VLNV="user.org:user:axis_avg_buffer:1.0">
+    <MODULE COREREVISION="6" FULLNAME="/axis_avg_buffer_1" HWVERSION="1.0" INSTANCE="axis_avg_buffer_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_avg_buffer" VLNV="FNAL:QICK:axis_avg_buffer:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -12089,7 +12089,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/axis_buffer_ddr_v1_0" HWVERSION="1.0" INSTANCE="axis_buffer_ddr_v1_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_buffer_ddr_v1" VLNV="user.org:user:axis_buffer_ddr_v1:1.0">
+    <MODULE COREREVISION="3" FULLNAME="/axis_buffer_ddr_v1_0" HWVERSION="1.0" INSTANCE="axis_buffer_ddr_v1_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_buffer_ddr_v1" VLNV="FNAL:QICK:axis_buffer_ddr_v1:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="0x1000" USAGE="register"/>
@@ -12616,7 +12616,7 @@
         <PERIPHERAL INSTANCE="ddr4_0"/>
       </PERIPHERALS>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/axis_cdcsync_v1_0" HWVERSION="1.0" INSTANCE="axis_cdcsync_v1_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_cdcsync_v1" VLNV="user.org:user:axis_cdcsync_v1:1.0">
+    <MODULE COREREVISION="3" FULLNAME="/axis_cdcsync_v1_0" HWVERSION="1.0" INSTANCE="axis_cdcsync_v1_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_cdcsync_v1" VLNV="FNAL:QICK:axis_cdcsync_v1:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
         <PARAMETER NAME="N" VALUE="4"/>
@@ -12905,7 +12905,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/axis_cdcsync_v1_1" HWVERSION="1.0" INSTANCE="axis_cdcsync_v1_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_cdcsync_v1" VLNV="user.org:user:axis_cdcsync_v1:1.0">
+    <MODULE COREREVISION="3" FULLNAME="/axis_cdcsync_v1_1" HWVERSION="1.0" INSTANCE="axis_cdcsync_v1_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_cdcsync_v1" VLNV="FNAL:QICK:axis_cdcsync_v1:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
         <PARAMETER NAME="N" VALUE="4"/>
@@ -13657,7 +13657,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="8" FULLNAME="/axis_readout_v2_0" HWVERSION="1.0" INSTANCE="axis_readout_v2_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_readout_v2" VLNV="user.org:user:axis_readout_v2:1.0">
+    <MODULE COREREVISION="8" FULLNAME="/axis_readout_v2_0" HWVERSION="1.0" INSTANCE="axis_readout_v2_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_readout_v2" VLNV="FNAL:QICK:axis_readout_v2:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -13944,7 +13944,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="8" FULLNAME="/axis_readout_v2_1" HWVERSION="1.0" INSTANCE="axis_readout_v2_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_readout_v2" VLNV="user.org:user:axis_readout_v2:1.0">
+    <MODULE COREREVISION="8" FULLNAME="/axis_readout_v2_1" HWVERSION="1.0" INSTANCE="axis_readout_v2_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_readout_v2" VLNV="FNAL:QICK:axis_readout_v2:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -15293,7 +15293,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/axis_set_reg_0" HWVERSION="1.0" INSTANCE="axis_set_reg_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_set_reg" VLNV="user.org:user:axis_set_reg:1.0">
+    <MODULE COREREVISION="3" FULLNAME="/axis_set_reg_0" HWVERSION="1.0" INSTANCE="axis_set_reg_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_set_reg" VLNV="FNAL:QICK:axis_set_reg:1.0">
       <DOCUMENTS/>
       <PARAMETERS>
         <PARAMETER NAME="DATA_WIDTH" VALUE="160"/>
@@ -15359,7 +15359,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_0" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_0" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -15657,7 +15657,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_1" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_1" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_1" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -15955,7 +15955,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_2" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_2" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_2" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_2" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -16253,7 +16253,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_3" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_3" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_3" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_3" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -16551,7 +16551,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_4" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_4" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_4" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_4" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -16849,7 +16849,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_5" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_5" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_5" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_5" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -17147,7 +17147,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_6" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_6" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="user.org:user:axis_signal_gen_v6:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_signal_gen_v6_6" HWVERSION="1.0" INSTANCE="axis_signal_gen_v6_6" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_signal_gen_v6" VLNV="FNAL:QICK:axis_signal_gen_v6:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="64" USAGE="register"/>
@@ -20624,7 +20624,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="4" FULLNAME="/axis_tproc64x32_x8_0" HWVERSION="1.0" INSTANCE="axis_tproc64x32_x8_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_tproc64x32_x8" VLNV="user.org:user:axis_tproc64x32_x8:1.0">
+    <MODULE COREREVISION="4" FULLNAME="/axis_tproc64x32_x8_0" HWVERSION="1.0" INSTANCE="axis_tproc64x32_x8_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="axis_tproc64x32_x8" VLNV="FNAL:QICK:axis_tproc64x32_x8:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s_axi" NAME="reg0" RANGE="4294967296" USAGE="register"/>
@@ -21993,7 +21993,7 @@
         </BUSINTERFACE>
       </BUSINTERFACES>
     </MODULE>
-    <MODULE COREREVISION="3" FULLNAME="/mr_buffer_et_0" HWVERSION="1.0" INSTANCE="mr_buffer_et_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="mr_buffer_et" VLNV="user.org:user:mr_buffer_et:1.0">
+    <MODULE COREREVISION="3" FULLNAME="/mr_buffer_et_0" HWVERSION="1.0" INSTANCE="mr_buffer_et_0" IPTYPE="PERIPHERAL" IS_ENABLE="1" MODCLASS="PERIPHERAL" MODTYPE="mr_buffer_et" VLNV="FNAL:QICK:mr_buffer_et:1.0">
       <DOCUMENTS/>
       <ADDRESSBLOCKS>
         <ADDRESSBLOCK ACCESS="" INTERFACE="s00_axi" NAME="reg0" RANGE="4096" USAGE="register"/>
