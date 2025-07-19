@@ -17,6 +17,7 @@ class AveragerProgram(AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
+    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """
@@ -200,6 +201,7 @@ class RAveragerProgram(AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
+    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """
@@ -488,6 +490,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
+    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """

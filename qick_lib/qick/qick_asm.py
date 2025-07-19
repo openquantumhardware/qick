@@ -936,6 +936,8 @@ class AbsQickProgram(ABC):
     GAUSS_BUG = False
     # if true, downconversion frequencies are sign-flipped, so they are subtracted from the signal instead of added
     FLIP_DOWNCONVERSION = False
+    # extra keyword arguments supported by acquire()/acquire_decimated()
+    EXTRA_ARGS = set()
 
     def __init__(self, soccfg):
         """
@@ -1802,6 +1804,17 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
+    def _update_acquire_params(self, extra_args):
+        """
+        Insert additional keyword arguments in the acquire_params.
+        This is for subclasses that override the data-processing methods and need to supply special arguments in acquire()/acquire_decimated().
+        Raise an error if an unrecognized extra argument is present.
+        """
+        unexpected_args = list(set(extra_args) - self.EXTRA_ARGS)
+        if unexpected_args:
+            raise RuntimeError("unexpected keyword arguments %s" % (unexpected_args))
+        self.acquire_params.update(extra_args)
+
     def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
         """Acquire data using the accumulated readout.
 
@@ -1853,9 +1866,7 @@ class AcquireMixin:
                 'threshold': threshold,
                 'angle': angle,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        self._update_acquire_params(kwargs)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -2101,9 +2112,7 @@ class AcquireMixin:
                 'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        self._update_acquire_params(kwargs)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
