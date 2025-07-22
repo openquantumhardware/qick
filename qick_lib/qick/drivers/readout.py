@@ -256,7 +256,7 @@ class AxisPFBReadoutV2(AbsPFBReadout):
     CH[0-3]SEL_REG : 3-bit ID mapping an output channel to an input.
     """
     bindto = ['user.org:user:axis_pfb_readout_v2:1.0',
-              'FNAL:QICK:axis_pfb_readout_v2:1.0'
+              'FNAL:QICK:axis_pfb_readout_v2:1.0']
 
     # Number of PFB channels.
     NCH = 8

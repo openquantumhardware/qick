@@ -353,7 +353,7 @@ class Axis_QICK_Proc(SocIP):
     :type axi_dma: int
     """
     bindto = ['Fermi:user:qick_processor:2.0',
-              'FNAL:QICK::qick_processor:2.0']
+              'FNAL:QICK:qick_processor:2.0']
     
     def __init__(self, description):
         """
