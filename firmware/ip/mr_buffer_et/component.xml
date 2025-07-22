@@ -1312,7 +1312,7 @@
         <xilinx:family xilinx:lifeCycle="Production">zynquplus</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/Miscellaneous</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>Multi-Rate Buffer ET</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>

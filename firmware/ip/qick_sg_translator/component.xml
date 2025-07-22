@@ -664,7 +664,7 @@
         <xilinx:family xilinx:lifeCycle="Production">kintexu</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/Miscellaneous</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>qick_sg_translator</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>

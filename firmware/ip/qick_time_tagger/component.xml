@@ -1898,7 +1898,7 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/QICK_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>qick_time_tagger</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>

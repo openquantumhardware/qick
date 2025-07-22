@@ -400,7 +400,7 @@
         <xilinx:family xilinx:lifeCycle="Production">kintexu</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/QICK</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/AXI_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Reorder IQ V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
