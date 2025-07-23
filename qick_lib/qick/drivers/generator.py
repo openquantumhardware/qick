@@ -252,9 +252,9 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0',
               'user.org:user:axis_signal_gen_v6:1.0',
-              'FNAL:QICK:axis_signal_gen_v4:1.0',
-              'FNAL:QICK:axis_signal_gen_v5:1.0',
-              'FNAL:QICK:axis_signal_gen_v6:1.0']
+              'QICK:QICK:axis_signal_gen_v4:1.0',
+              'QICK:QICK:axis_signal_gen_v5:1.0',
+              'QICK:QICK:axis_signal_gen_v6:1.0']
     HAS_MIXER = False
     SAMPS_PER_CLK = 16
     B_DDS = 32
@@ -331,7 +331,7 @@ class AxisSgInt4V1(AbsIntSignalGen):
     Interpolated generator with 16-bit frequency and phase.
     """
     bindto = ['user.org:user:axis_sg_int4_v1:1.0',
-              'FNAL:QICK:axis_sg_int4_v1:1.0']
+              'QICK:QICK:axis_sg_int4_v1:1.0']
     B_DDS = 16
     B_PHASE = 16
 
@@ -340,7 +340,7 @@ class AxisSgInt4V2(AbsIntSignalGen):
     Interpolated generator with 32-bit frequency and phase.
     """
     bindto = ['user.org:user:axis_sg_int4_v2:1.0',
-              'FNAL:QICK:axis_sg_int4_v2:1.0']
+              'QICK:QICK:axis_sg_int4_v2:1.0']
     B_DDS = 32
     B_PHASE = 32
 
@@ -467,7 +467,7 @@ class AxisSgMux4V1(AbsPulsedSignalGen):
     AXIS Signal Generator with 4 muxed outputs.
     """
     bindto = ['user.org:user:axis_sg_mux4_v1:1.0',
-              'FNAL:QICK:axis_sg_mux4_v1:1.0']
+              'QICK:QICK:axis_sg_mux4_v1:1.0']
     HAS_MIXER = True
     B_DDS = 16
     N_TONES = 4
@@ -481,7 +481,7 @@ class AxisSgMux4V2(AbsMuxSignalGen):
     AXIS Signal Generator with 4 muxed outputs.
     """
     bindto = ['user.org:user:axis_sg_mux4_v2:1.0',
-              'FNAL:QICK:axis_sg_mux4_v2:1.0']
+              'QICK:QICK:axis_sg_mux4_v2:1.0']
     HAS_MIXER = True
     B_DDS = 32
     N_TONES = 4
@@ -492,7 +492,7 @@ class AxisSgMux4V3(AxisSgMux4V2):
     """AxisSgMux4V3: no digital mixer, but otherwise behaves identically to AxisSgMux4V2.
     """
     bindto = ['user.org:user:axis_sg_mux4_v3:1.0',
-              'FNAL:QICK:axis_sg_mux4_v3:1.0']
+              'QICK:QICK:axis_sg_mux4_v3:1.0']
     HAS_MIXER = False
 
 class AxisSgMux8V1(AbsMuxSignalGen):
@@ -502,7 +502,7 @@ class AxisSgMux8V1(AbsMuxSignalGen):
     AXIS Signal Generator with 8 muxed outputs, fullspeed (no DAC mixer).
     """
     bindto = ['user.org:user:axis_sg_mux8_v1:1.0',
-              'FNAL:QICK:axis_sg_mux8_v1:1.0']
+              'QICK:QICK:axis_sg_mux8_v1:1.0']
     HAS_MIXER = False
     B_DDS = 32
     N_TONES = 8
@@ -517,7 +517,7 @@ class AxisSgMixMux8V1(AbsMuxSignalGen):
     AXIS Signal Generator with 8 muxed outputs, using DAC mixer.
     """
     bindto = ['user.org:user:axis_sg_mixmux8_v1:1.0',
-              'FNAL:QICK:axis_sg_mixmux8_v1:1.0']
+              'QICK:QICK:axis_sg_mixmux8_v1:1.0']
     HAS_MIXER = True
     B_DDS = 32
     N_TONES = 8
@@ -533,7 +533,7 @@ class AxisConstantIQ(AbsSignalGen):
     # IMAG_REG : 16-bit.
     # WE_REG   : 1-bit. Update registers.
     bindto = ['user.org:user:axis_constant_iq:1.0',
-              'FNAL:QICK:axis_constant_iq:1.0']
+              'QICK:QICK:axis_constant_iq:1.0']
     HAS_MIXER = True
 
     def _init_config(self, description):

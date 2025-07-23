@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>FNAL</spirit:vendor>
+  <spirit:vendor>QICK</spirit:vendor>
   <spirit:library>QICK</spirit:library>
   <spirit:name>qick_time_tagger</spirit:name>
   <spirit:version>1.0</spirit:version>
@@ -313,8 +313,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>qick_peripheral</spirit:name>
-      <spirit:busType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1906,8 +1906,8 @@
       <xilinx:xpmLibraries>
         <xilinx:xpmLibrary>XPM_CDC</xilinx:xpmLibrary>
       </xilinx:xpmLibraries>
-      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
-      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>28</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2025-02-26T02:45:24Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

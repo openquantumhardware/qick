@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>FNAL</spirit:vendor>
+  <spirit:vendor>QICK</spirit:vendor>
   <spirit:library>QICK</spirit:library>
   <spirit:name>axis_cdcsync_v1</spirit:name>
   <spirit:version>1.0</spirit:version>
@@ -3069,8 +3069,8 @@
       <xilinx:xpmLibraries>
         <xilinx:xpmLibrary>XPM_CDC</xilinx:xpmLibrary>
       </xilinx:xpmLibraries>
-      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
-      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>9</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2024-09-07T00:02:41Z</xilinx:coreCreationDateTime>
       <xilinx:tags>

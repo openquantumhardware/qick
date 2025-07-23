@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>FNAL</spirit:vendor>
+  <spirit:vendor>QICK</spirit:vendor>
   <spirit:library>QICK</spirit:library>
   <spirit:name>qick_com</spirit:name>
   <spirit:version>1.0</spirit:version>
@@ -265,8 +265,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QCOM</spirit:name>
-      <spirit:busType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -386,8 +386,8 @@
     <spirit:busInterface>
       <spirit:name>QPROC_CTRL</spirit:name>
       <spirit:displayName>Processor Control</spirit:displayName>
-      <spirit:busType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_qproc_control" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="FNAL" spirit:library="QICK" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1289,8 +1289,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>qick_com</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
-      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>7</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2024-06-20T14:01:58Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

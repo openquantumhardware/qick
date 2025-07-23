@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>FNAL</spirit:vendor>
+  <spirit:vendor>QICK</spirit:vendor>
   <spirit:library>QICK</spirit:library>
   <spirit:name>axis_pfbs_pr_4x256_v1</spirit:name>
   <spirit:version>1.0</spirit:version>
@@ -1339,8 +1339,8 @@
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS PFBS PR 4x256 V1</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:vendorDisplayName>Fermi National Accelerator Laboratory</xilinx:vendorDisplayName>
-      <xilinx:vendorURL>https://www.fnal.gov/</xilinx:vendorURL>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>4</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2023-04-26T18:26:06Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

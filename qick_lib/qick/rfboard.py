@@ -22,7 +22,7 @@ class AxisSignalGenV3(SocIP):
     # * 1 : enable writes.
     #
     bindto = ['user.org:user:axis_signal_gen_v3:1.0',
-              'FNAL:QICK:axis_signal_gen_v3:1.0']
+              'QICK:QICK:axis_signal_gen_v3:1.0']
 
     # Generics
     N = 12
@@ -93,7 +93,7 @@ class AxisSignalGenV3Ctrl(SocIP):
     # Signal Generator V3 Control registers.
     # ADDR_REG
     bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0',
-              'FNAL:QICK:axis_signal_gen_v3_ctrl:1.0']
+              'QICK:QICK:axis_signal_gen_v3_ctrl:1.0']
 
     # Generics of Signal Generator.
     N = 10
@@ -192,7 +192,7 @@ class AxisSignalGenV6Ctrl(SocIP):
     # * 0 : disable.
     # * 1 : enable.
     bindto = ['user.org:user:axis_signal_gen_v6_ctrl:1.0',
-              'FNAL:QICK:axis_signal_gen_v6_ctrl:1.0']
+              'QICK:QICK:axis_signal_gen_v6_ctrl:1.0']
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
@@ -268,7 +268,7 @@ class AxisDdsMrSwitch(SocIP):
     # * 1 : imaginary part.
     #
     bindto = ['user.org:user:axis_dds_mr_switch:1.0',
-              'FNAL:QICK:axis_dds_mr_switch:1.0']
+              'QICK:QICK:axis_dds_mr_switch:1.0']
 
     def __init__(self, description, **kwargs):
         """
@@ -293,7 +293,7 @@ class AxisDdsMrSwitch(SocIP):
 
 class AxisSwitchV1(SocIP):
     bindto = ['user.org:user:axis_switch_v1:1.0',
-              'FNAL:QICK:axis_switch_v1:1.0']
+              'QICK:QICK:axis_switch_v1:1.0']
 
     def __init__(self, description):
         """
