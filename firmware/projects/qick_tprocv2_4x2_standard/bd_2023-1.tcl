@@ -125,12 +125,12 @@ set bCheckIPs 1
 if { $bCheckIPs == 1 } {
    set list_check_ips "\ 
 xilinx.com:ip:axi_intc:4.1\
-FNAL:QICK:axis_cdcsync_v1:1.0\
-FNAL:QICK:axis_dyn_readout_v1:1.0\
-FNAL:QICK:axis_register_slice_nb:1.0\
-FNAL:QICK:axis_signal_gen_v6:1.0\
+QICK:QICK:axis_cdcsync_v1:1.0\
+QICK:QICK:axis_dyn_readout_v1:1.0\
+QICK:QICK:axis_register_slice_nb:1.0\
+QICK:QICK:axis_signal_gen_v6:1.0\
 xilinx.com:ip:proc_sys_reset:5.0\
-FNAL:QICK:sg_translator:1.0\
+QICK:QICK:sg_translator:1.0\
 xilinx.com:ip:xlconcat:2.1\
 xilinx.com:ip:axi_dma:7.1\
 xilinx.com:ip:smartconnect:1.0\
@@ -141,10 +141,10 @@ xilinx.com:ip:axis_switch:1.1\
 xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:ip:usp_rf_data_converter:2.6\
 xilinx.com:ip:zynq_ultra_ps_e:3.5\
-FNAL:QICK:axis_avg_buffer:1.2\
-FNAL:QICK:mr_buffer_et:1.1\
-FNAL:QICK:qick_processor:2.0\
-FNAL:QICK:axis_buffer_ddr_v1:1.0\
+QICK:QICK:axis_avg_buffer:1.2\
+QICK:QICK:mr_buffer_et:1.1\
+QICK:QICK:qick_processor:2.0\
+QICK:QICK:axis_buffer_ddr_v1:1.0\
 xilinx.com:ip:axis_dwidth_converter:1.1\
 xilinx.com:ip:ddr4:2.2\
 "
@@ -235,7 +235,7 @@ proc create_hier_cell_ddr4 { parentCell nameHier } {
   set rst_ddr4 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ddr4 ]
 
   # Create instance: axis_buffer_ddr_v1_0, and set properties
-  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
+  set axis_buffer_ddr_v1_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_buffer_ddr_v1:1.0 axis_buffer_ddr_v1_0 ]
   set_property CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} $axis_buffer_ddr_v1_0
 
 
@@ -367,18 +367,18 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: axis_cdcsync_v1_0, and set properties
-  set axis_cdcsync_v1_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_0 ]
+  set axis_cdcsync_v1_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_cdcsync_v1:1.0 axis_cdcsync_v1_0 ]
   set_property CONFIG.B {168} $axis_cdcsync_v1_0
 
 
   # Create instance: axis_dyn_readout_v1_0, and set properties
-  set axis_dyn_readout_v1_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_dyn_readout_v1:1.0 axis_dyn_readout_v1_0 ]
+  set axis_dyn_readout_v1_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_dyn_readout_v1:1.0 axis_dyn_readout_v1_0 ]
 
   # Create instance: axis_dyn_readout_v1_1, and set properties
-  set axis_dyn_readout_v1_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_dyn_readout_v1:1.0 axis_dyn_readout_v1_1 ]
+  set axis_dyn_readout_v1_1 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_dyn_readout_v1:1.0 axis_dyn_readout_v1_1 ]
 
   # Create instance: axis_register_slice_0, and set properties
-  set axis_register_slice_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_register_slice_nb:1.0 axis_register_slice_0 ]
+  set axis_register_slice_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_register_slice_nb:1.0 axis_register_slice_0 ]
   set_property -dict [list \
     CONFIG.B {256} \
     CONFIG.N {4} \
@@ -386,7 +386,7 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: axis_register_slice_1, and set properties
-  set axis_register_slice_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_register_slice_nb:1.0 axis_register_slice_1 ]
+  set axis_register_slice_1 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_register_slice_nb:1.0 axis_register_slice_1 ]
   set_property -dict [list \
     CONFIG.B {256} \
     CONFIG.N {4} \
@@ -394,10 +394,10 @@ proc create_root_design { parentCell } {
 
 
   # Create instance: axis_signal_gen_v6_0, and set properties
-  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
+  set axis_signal_gen_v6_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_0 ]
 
   # Create instance: axis_signal_gen_v6_1, and set properties
-  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
+  set axis_signal_gen_v6_1 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_signal_gen_v6:1.0 axis_signal_gen_v6_1 ]
 
   # Create instance: rst_100, and set properties
   set rst_100 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_100 ]
@@ -415,18 +415,18 @@ proc create_root_design { parentCell } {
   set rst_dac2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_dac2 ]
 
   # Create instance: sg_translator_0, and set properties
-  set sg_translator_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:sg_translator:1.0 sg_translator_0 ]
+  set sg_translator_0 [ create_bd_cell -type ip -vlnv QICK:QICK:sg_translator:1.0 sg_translator_0 ]
 
   # Create instance: sg_translator_1, and set properties
-  set sg_translator_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:sg_translator:1.0 sg_translator_1 ]
+  set sg_translator_1 [ create_bd_cell -type ip -vlnv QICK:QICK:sg_translator:1.0 sg_translator_1 ]
 
   # Create instance: sg_translator_2, and set properties
-  set sg_translator_2 [ create_bd_cell -type ip -vlnv FNAL:QICK:sg_translator:1.0 sg_translator_2 ]
+  set sg_translator_2 [ create_bd_cell -type ip -vlnv QICK:QICK:sg_translator:1.0 sg_translator_2 ]
   set_property CONFIG.OUT_TYPE {3} $sg_translator_2
 
 
   # Create instance: sg_translator_3, and set properties
-  set sg_translator_3 [ create_bd_cell -type ip -vlnv FNAL:QICK:sg_translator:1.0 sg_translator_3 ]
+  set sg_translator_3 [ create_bd_cell -type ip -vlnv QICK:QICK:sg_translator:1.0 sg_translator_3 ]
   set_property CONFIG.OUT_TYPE {3} $sg_translator_3
 
 
@@ -1624,7 +1624,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: axis_avg_buffer_0, and set properties
-  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
+  set axis_avg_buffer_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_avg_buffer:1.2 axis_avg_buffer_0 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {14} \
@@ -1632,7 +1632,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: axis_avg_buffer_1, and set properties
-  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv FNAL:QICK:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
+  set axis_avg_buffer_1 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_avg_buffer:1.2 axis_avg_buffer_1 ]
   set_property -dict [list \
     CONFIG.N_AVG {14} \
     CONFIG.N_BUF {14} \
@@ -1640,7 +1640,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: mr_buffer_et_0, and set properties
-  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:mr_buffer_et:1.1 mr_buffer_et_0 ]
+  set mr_buffer_et_0 [ create_bd_cell -type ip -vlnv QICK:QICK:mr_buffer_et:1.1 mr_buffer_et_0 ]
   set_property -dict [list \
     CONFIG.B {32} \
     CONFIG.N {10} \
@@ -1648,7 +1648,7 @@ Port;FD4A0000;FD4AFFFF;1|FPD;DPDMA;FD4C0000;FD4CFFFF;1|FPD;DDR_XMPU5_CFG;FD05000
 
 
   # Create instance: qick_processor_0, and set properties
-  set qick_processor_0 [ create_bd_cell -type ip -vlnv FNAL:QICK:qick_processor:2.0 qick_processor_0 ]
+  set qick_processor_0 [ create_bd_cell -type ip -vlnv QICK:QICK:qick_processor:2.0 qick_processor_0 ]
   set_property -dict [list \
     CONFIG.ARITH {1} \
     CONFIG.DEBUG {0} \

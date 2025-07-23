@@ -92,7 +92,7 @@ class AxisReadoutV2(SocIP, AbsReadout):
     :type fs: float
     """
     bindto = ['user.org:user:axis_readout_v2:1.0',
-              'FNAL:QICK:axis_readout_v2:1.0']
+              'QICK:QICK:axis_readout_v2:1.0']
 
     # Bits of DDS.
     B_DDS = 32
@@ -256,7 +256,7 @@ class AxisPFBReadoutV2(AbsPFBReadout):
     CH[0-3]SEL_REG : 3-bit ID mapping an output channel to an input.
     """
     bindto = ['user.org:user:axis_pfb_readout_v2:1.0',
-              'FNAL:QICK:axis_pfb_readout_v2:1.0']
+              'QICK:QICK:axis_pfb_readout_v2:1.0']
 
     # Number of PFB channels.
     NCH = 8
@@ -336,7 +336,7 @@ class AxisPFBReadoutV3(AbsPFBReadout):
     PHASE[0-3]_REG  : 32-bit phase of each output channel.
     """
     bindto = ['user.org:user:axis_pfb_readout_v3:1.0',
-              'FNAL:QICK:axis_pfb_readout_v3:1.0']
+              'QICK:QICK:axis_pfb_readout_v3:1.0']
 
     # Bits of DDS. 
     B_PHASE = 32
@@ -405,7 +405,7 @@ class AxisPFBReadoutV4(AxisPFBReadoutV3):
     This is identical to AxisPFBReadoutV3, but with 8 outputs instead of 4.
     """
     bindto = ['user.org:user:axis_pfb_readout_v4:1.0',
-              'FNAL:QICK:axis_pfb_readout_v4:1.0']
+              'QICK:QICK:axis_pfb_readout_v4:1.0']
 
     # Number of outputs.
     NOUT = 8
@@ -536,7 +536,7 @@ class AxisAvgBuffer(SocIP):
     :type channel: int
     """
     bindto = ['user.org:user:axis_avg_buffer:1.0',
-              'FNAL:QICK:axis_avg_buffer:1.0']
+              'QICK:QICK:axis_avg_buffer:1.0']
 
     EDGE_COUNTER = False
     WEIGHTS = False
@@ -869,7 +869,7 @@ class AxisAvgBuffer(SocIP):
 class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
     bindto = ['user.org:user:axis_avg_buffer:1.1',
-              'FNAL:QICK:axis_avg_buffer:1.1']
+              'QICK:QICK:axis_avg_buffer:1.1']
 
     EDGE_COUNTER = True
 
@@ -922,13 +922,13 @@ class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
     Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
     """
     bindto = ['user.org:user:axis_avg_buffer:1.2',
-              'FNAL:QICK:axis_avg_buffer:1.2']
+              'QICK:QICK:axis_avg_buffer:1.2']
 
     FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.2
 
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
     bindto = ['user.org:user:axis_weighted_buffer:1.2',
-              'FNAL:QICK:axis_weighted_buffer:1.2']
+              'QICK:QICK:axis_weighted_buffer:1.2']
 
     WEIGHTS = True
 
@@ -1072,8 +1072,8 @@ class MrBufferEt(SocIP):
     #
     bindto = ['user.org:user:mr_buffer_et:1.0',
               'user.org:user:mr_buffer_et:1.1',
-              'FNAL:QICK:mr_buffer_et:1.0',
-              'FNAL:QICK:mr_buffer_et:1.1']
+              'QICK:QICK:mr_buffer_et:1.0',
+              'QICK:QICK:mr_buffer_et:1.1']
 
     def __init__(self, description):
         super().__init__(description)
@@ -1197,7 +1197,7 @@ class AxisBufferDdrV1(SocIP):
     """
     # AXIS Buffer DDR V1 Registers.
     bindto = ['user.org:user:axis_buffer_ddr_v1:1.0',
-              'FNAL:QICK:axis_buffer_ddr_v1:1.0']
+              'QICK:QICK:axis_buffer_ddr_v1:1.0']
 
     # Stream Input Port.
     STREAM_IN_PORT  = "s_axis"
