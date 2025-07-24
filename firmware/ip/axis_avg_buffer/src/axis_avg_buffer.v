@@ -158,8 +158,10 @@ wire	[N_BUF-1:0]	BUF_DR_LEN_REG;
 /**********************/
 /* Begin Architecture */
 /**********************/
+// `uselib lib=lib_axis_avg_buffer
 // AXI Slave.
-axi_slv axi_slv_i
+// axi_slv axi_slv_i
+axi_slv_avg_buf axi_slv_i
 	(
 		.aclk				(s_axi_aclk	 		),
 		.aresetn			(s_axi_aresetn		),

@@ -1212,7 +1212,7 @@
         <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_slv.vhd</spirit:name>
+        <spirit:name>src/axi_slv_avg_buf.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>

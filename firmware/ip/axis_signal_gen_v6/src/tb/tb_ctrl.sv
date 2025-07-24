@@ -76,7 +76,7 @@ fifo
     );
 
 // DUT.
-ctrl 
+ctrl_sg_v6 
    #(
       .N    (N    ),
       .N_DDS   (N_DDS   )
