@@ -2905,6 +2905,7 @@ preplace port dac2_clk_0 -pg 1 -lvl 11 -x 6180 -y 2290 -defaultsOSRD -right
 preplace port ddr4_sdram_c0 -pg 1 -lvl 11 -x 6180 -y 3720 -defaultsOSRD
 preplace port default_sysclk_c0_300mhz -pg 1 -lvl 11 -x 6180 -y 3650 -defaultsOSRD -right
 preplace port sysref_in_0 -pg 1 -lvl 11 -x 6180 -y 2390 -defaultsOSRD -right
+preplace port vin10_0 -pg 1 -lvl 11 -x 6180 -y 2370 -defaultsOSRD -right
 preplace port vin20_0 -pg 1 -lvl 11 -x 6180 -y 2310 -defaultsOSRD -right
 preplace port vin21_0 -pg 1 -lvl 11 -x 6180 -y 2330 -defaultsOSRD -right
 preplace port vin22_0 -pg 1 -lvl 11 -x 6180 -y 2350 -defaultsOSRD -right
