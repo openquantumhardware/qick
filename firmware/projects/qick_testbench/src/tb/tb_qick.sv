@@ -40,7 +40,8 @@ import axi_mst_0_pkg::*;
 module tb_qick ();
 
 // Define Test to run
-string TEST_NAME = "test02";
+string TEST_NAME = "test01";    // basic multi pulse
+//string TEST_NAME = "test02";  // fast short pulses
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -864,9 +865,9 @@ initial begin
    
   
 
-   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
+//   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
 
    // Load tProc Memories with Program
    tproc_load_mem(TEST_NAME);
