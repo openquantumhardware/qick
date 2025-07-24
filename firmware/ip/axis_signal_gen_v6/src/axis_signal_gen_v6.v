@@ -133,7 +133,7 @@ wire              WE_REG;
 /**********************/
 // `uselib lib=lib_axis_signal_gen_v6
 // AXI Slave.
-axi_slv axi_slv_i
+axi_slv_sg_v6 axi_slv_i
    (
       .aclk                      (s_axi_aclk    ),
       .aresetn                   (s_axi_aresetn ),
