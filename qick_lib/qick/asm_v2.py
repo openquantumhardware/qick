@@ -2749,8 +2749,9 @@ class AveragerProgramV2(AcquireProgramV2):
             self.delay_auto(self.final_delay)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
 
-        # close the loops - order doesn't matter
-        for name, count, before, after in self.loops:
+        # close the loops in reverse order
+        # close_loop() doesn't care about order, but we need to make sure exec_after goes in the right place
+        for name, count, before, after in self.loops[::-1]:
             if after is not None: self.extend_macros(after)
             self.close_loop()
 
