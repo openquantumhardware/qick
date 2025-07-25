@@ -30,7 +30,7 @@ class QICK_Xcom(SocIP):
     XCOM_STATUS     Read Only    32-Bits
     XCOM_DEBUG      Read Only    32-Bits
     """
-    bindto = ['fnal:qick:xcom:1.0','user.org:user:xcom_axil_slv:1.0'] 
+    bindto = ['QICK:QICK:xcom:1.0','user.org:user:xcom_axil_slv:1.0'] 
 
     def __init__(self, description):
         """

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>fnal</spirit:vendor>
-  <spirit:library>qick</spirit:library>
+  <spirit:vendor>QICK</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>xcom</spirit:name>
   <spirit:version>1.0</spirit:version>
   <spirit:busInterfaces>
@@ -1607,14 +1607,13 @@
         <xilinx:family xilinx:lifeCycle="Production">kintexu</xilinx:family>
       </xilinx:supportedFamilies>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/Communication_&amp;_Networking/Serial_Interfaces</xilinx:taxonomy>
-        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/QICK_Peripheral</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>xcom_v1_0</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_1</xilinx:autoFamilySupportLevel>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:vendorDisplayName>Fermi National Laboratory</xilinx:vendorDisplayName>
-      <xilinx:vendorURL>https://fnal.gov</xilinx:vendorURL>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>10</xilinx:coreRevision>
       <xilinx:coreCreationDateTime>2025-06-30T16:07:02Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
