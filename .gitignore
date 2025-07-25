@@ -71,3 +71,8 @@ Temporary Items
 
 !/.gitignore
 !/README.md
+.nvim
+venv
+virtualenv
+.fusesoc_libraries
+fusesoc.conf
