@@ -126,7 +126,11 @@ always_ff @ (posedge clk_i) begin
       r_if_op_data   <= 0;
    end else begin 
       r_mem_rst      <= 0;
-      if (pmem_en_o) begin
+      if (r_mem_rst) begin
+         r_if_op_code <= 0;
+         r_if_op_data <= 0;
+      end 
+      else if (pmem_en_o) begin
          if (flush) begin
             r_if_op_code <= 0;
             r_if_op_data <= 0;
