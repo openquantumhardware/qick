@@ -12,12 +12,12 @@ TRANSLATE from tProc_v2 to diferente Signals Souorces.
 
 */
 module sg_translator # (
-    OUT_TYPE = 0 //(0:gen_v6, 0:int4_v1, 0:mux4_v1, )
+    OUT_TYPE = 0 // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
 ) (
-// Reset and clock.
+   // Reset and clock.
    input  wire aresetn  ,
    input  wire	aclk     ,
-// IN WAVE PORT
+   // IN WAVE PORT
    input  wire [167:0]  s_axis_tdata         ,
    input  wire          s_axis_tvalid        ,
    output wire          s_axis_tready        ,
@@ -61,17 +61,17 @@ assign mode	   = conf[2]   ;
 assign outsel  = conf[1:0] ;
 
 
-assign gen_v6_en = (OUT_TYPE == 0) ;
-assign int4_en   = (OUT_TYPE == 1) ;
-assign mux4_en   = (OUT_TYPE == 2) ;
-assign readout_en   = (OUT_TYPE == 3) ;
+assign gen_v6_en  = (OUT_TYPE == 0) ;
+assign int4_en    = (OUT_TYPE == 1) ;
+assign mux4_en    = (OUT_TYPE == 2) ;
+assign readout_en = (OUT_TYPE == 3) ;
 
 // OUTPUTS
 
 ///////////////////////////////////////////////////////////////////////////////
-assign s_axis_tready =  ( gen_v6_en ) ? m_gen_v6_axis_tready : (
-                        ( int4_en   ) ? m_int4_axis_tready   : (
-                        ( mux4_en   ) ? m_mux4_axis_tready   : (
+assign s_axis_tready =  ( gen_v6_en    ) ? m_gen_v6_axis_tready : (
+                        ( int4_en      ) ? m_int4_axis_tready   : (
+                        ( mux4_en      ) ? m_mux4_axis_tready   : (
                         ( readout_en   ) ? m_readout_axis_tready   : 0 ))); 
 ///////////////////////////////////////////////////////////////////////////////
 

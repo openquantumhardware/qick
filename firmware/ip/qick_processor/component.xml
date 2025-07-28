@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>Fermi</spirit:vendor>
-  <spirit:library>user</spirit:library>
+  <spirit:vendor>QICK</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>qick_processor</spirit:name>
   <spirit:version>2.0</spirit:version>
   <spirit:busInterfaces>
@@ -949,8 +949,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>Debug_Time</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="Debug_Core" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="Debug_Core_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="Debug_Core" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="Debug_Core_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -980,8 +980,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>Debug_Core</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="Debug_Core" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="Debug_Core_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="Debug_Core" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="Debug_Core_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1734,8 +1734,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>PROC_CTRL</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1765,8 +1765,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>TIME_CTRL</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_time_control" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_time_control_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_time_control" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_time_control_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1812,8 +1812,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>CORE_CTRL</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_qproc_control_rtl" spirit:version="1.0"/>
       <spirit:slave/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1843,8 +1843,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QNET</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -1938,8 +1938,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QCOM</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -2017,8 +2017,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QPeriphA</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -2120,8 +2120,8 @@
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>QPeriphB</spirit:name>
-      <spirit:busType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral" spirit:version="1.0"/>
-      <spirit:abstractionType spirit:vendor="Fermi" spirit:library="user" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
+      <spirit:busType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="QICK" spirit:library="QICK" spirit:name="qick_peripheral_rtl" spirit:version="1.0"/>
       <spirit:master/>
       <spirit:portMaps>
         <spirit:portMap>
@@ -2243,7 +2243,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>4bb06364</spirit:value>
+            <spirit:value>5025e9d3</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2262,7 +2262,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>1c5d2ecd</spirit:value>
+            <spirit:value>5025e9d3</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2277,7 +2277,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>6042ce31</spirit:value>
+            <spirit:value>fa0cdece</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -6411,7 +6411,8 @@
       <spirit:file>
         <spirit:name>src/axis_qick_processor.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_f240ca51</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_2100426f</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -6593,7 +6594,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/logoQICK_128x128.png</spirit:name>
+        <spirit:name>../../common_ip_files/ip_logos/logoQICK_128x128.png</spirit:name>
         <spirit:userFileType>image</spirit:userFileType>
         <spirit:userFileType>LOGO</spirit:userFileType>
       </spirit:file>
@@ -6739,26 +6740,22 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/Timed_Processor</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>qick_processor</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:xpmLibraries>
-        <xilinx:xpmLibrary>XPM_FIFO</xilinx:xpmLibrary>
-      </xilinx:xpmLibraries>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>26</xilinx:coreRevision>
-      <xilinx:upgrades>
-        <xilinx:canUpgradeFrom>user.org:user:axis_tproc_B:1.0</xilinx:canUpgradeFrom>
-      </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-07-08T15:39:03Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-07-18T20:19:07Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="e399f8fd"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="03e24f24"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="09e3e1f3"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="f340e3be"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="d90ffd6c"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="f423e66e"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="0a52d470"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="4960cdd2"/>
     </xilinx:packagingInfo>
