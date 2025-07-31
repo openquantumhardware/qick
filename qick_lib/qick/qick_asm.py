@@ -945,8 +945,6 @@ class AbsQickProgram(ABC):
     GAUSS_BUG = False
     # if true, downconversion frequencies are sign-flipped, so they are subtracted from the signal instead of added
     FLIP_DOWNCONVERSION = False
-    # extra keyword arguments supported by acquire()/acquire_decimated()
-    EXTRA_ARGS = set()
 
     def __init__(self, soccfg):
         """
