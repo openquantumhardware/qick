@@ -62,20 +62,29 @@ class QickConfig():
     def _describe_dac(self, dacname):
         tile, block = [int(c) for c in dacname]
         if self['board']=='ZCU111':
-            label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
+            label = "DAC%d_T%d_CH%d, or RF board DAC port %d" % (tile + 228, tile, block, tile*4 + block)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
+            jhc_connector = 1 + (block%2) + 2*(tile//2)
+            box_port = tile*4 + block
+            label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
         tile, block = [int(c) for c in adcname]
+        # we don't print the coupling because it might be confusing, but we could?
+        coupling = self['rf']['adcs'][adcname]['coupling']
         if self['board']=='ZCU111':
             rfbtype = "DC" if tile > 1 else "AC"
-            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
+            label = "ADC%d_T%d_CH%d, or RF board ADC %s port %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
+            jhc_connector = 5 + (block%2) + 2*(tile//2)
+            if tile in [1, 2]:
+                box_port = (tile-1)*4 + block
+                label = "%d_%d on JHC%d, or QICK box ADC port %d" % (block, tile + 224, jhc_connector, box_port)
+            else:
+                label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
