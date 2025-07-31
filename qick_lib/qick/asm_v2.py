@@ -1644,12 +1644,16 @@ class StandardGenManager(AbsGenManager):
 
     def params2wave(self, freqreg, phasereg, gainreg, lenreg, env=0, mode=None, outsel=None, stdysel=None, phrst=None):
         confreg = self.cfg2reg(outsel=outsel, mode=mode, stdysel=stdysel, phrst=phrst)
+        # range-check the length
+        maxlen = lenreg
+        minlen = lenreg
         if isinstance(lenreg, QickRawParam):
-            if lenreg.maxval() >= 2**16 or lenreg.minval() < 3:
-                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
-        else:
-            if lenreg >= 2**16 or lenreg < 3:
-                raise RuntimeError("Pulse length of %d cycles is out of range (exceeds 16 bits, or less than 3) - use multiple pulses, or zero-pad the envelope" % (lenreg))
+            maxlen = lenreg.maxval()
+            minlen = lenreg.minval()
+        if maxlen >= 2**16:
+            raise RuntimeError("Pulse length of %d cycles exceeds the max of 2**16 - use multiple pulses or a periodic pulse?" % (maxlen))
+        if minlen < 3:
+            raise RuntimeError("Pulse length of %d cycles is shorter than the min of 3 - zero-pad the envelope?" % (minlen))
         wavereg = Waveform(freqreg, phasereg, env, gainreg, lenreg, confreg)
         return wavereg
 
@@ -2750,8 +2754,9 @@ class AveragerProgramV2(AcquireProgramV2):
             self.delay_auto(self.final_delay)
         self.inc_ext_counter(addr=self.COUNTER_ADDR)
 
-        # close the loops - order doesn't matter
-        for name, count, before, after in self.loops:
+        # close the loops in reverse order
+        # close_loop() doesn't care about order, but we need to make sure exec_after goes in the right place
+        for name, count, before, after in self.loops[::-1]:
             if after is not None: self.extend_macros(after)
             self.close_loop()
 

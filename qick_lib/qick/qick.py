@@ -137,6 +137,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 tilecfg = {}
                 self['tiles'][tiletype][iTile] = tilecfg
+                tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
                 f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
                 f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
                 fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
