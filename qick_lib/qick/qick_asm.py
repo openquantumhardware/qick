@@ -1804,18 +1804,7 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
-    def _update_acquire_params(self, extra_args):
-        """
-        Insert additional keyword arguments in the acquire_params.
-        This is for subclasses that override the data-processing methods and need to supply special arguments in acquire()/acquire_decimated().
-        Raise an error if an unrecognized extra argument is present.
-        """
-        unexpected_args = list(set(extra_args) - self.EXTRA_ARGS)
-        if unexpected_args:
-            raise RuntimeError("unexpected keyword arguments %s" % (unexpected_args))
-        self.acquire_params.update(extra_args)
-
-    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1846,6 +1835,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -1866,7 +1857,8 @@ class AcquireMixin:
                 'threshold': threshold,
                 'angle': angle,
                 }
-        self._update_acquire_params(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -2076,7 +2068,7 @@ class AcquireMixin:
 
         return self.finish_acquire()
 
-    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2096,6 +2088,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -2112,7 +2106,8 @@ class AcquireMixin:
                 'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 }
-        self._update_acquire_params(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")

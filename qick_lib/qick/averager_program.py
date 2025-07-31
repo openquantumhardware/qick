@@ -17,7 +17,6 @@ class AveragerProgram(AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
-    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """
@@ -103,7 +102,8 @@ class AveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        extra_args = {'save_experiments': save_experiments}
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, extra_args=extra_args, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
@@ -201,7 +201,6 @@ class RAveragerProgram(AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
-    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """
@@ -310,7 +309,8 @@ class RAveragerProgram(AcquireProgram):
         """
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        extra_args = {'save_experiments': save_experiments}
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, extra_args=extra_args, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
@@ -490,7 +490,6 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
     :type cfg: dict
     """
     COUNTER_ADDR = 1
-    EXTRA_ARGS = set(['save_experiments'])
 
     def __init__(self, soccfg, cfg):
         """
@@ -613,7 +612,8 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
         if readouts_per_experiment is not None:
             self.set_reads_per_shot(readouts_per_experiment)
-        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, save_experiments=save_experiments, **kwargs)
+        extra_args = {'save_experiments': save_experiments}
+        return super().acquire(soc, rounds=self.rounds, load_envelopes=load_pulses, extra_args=extra_args, **kwargs)
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
