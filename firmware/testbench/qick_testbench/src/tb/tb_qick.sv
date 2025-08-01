@@ -5,6 +5,8 @@
 // Test Bench for Qick Project
 //////////////////////////////////////////////////////////////////////////////
 
+`timescale 1ns/1ps
+
 `include "_qproc_defines.svh"
 
 import axi_vip_pkg::*;
@@ -29,7 +31,7 @@ import axi_mst_0_pkg::*;
 `define FIFO_DEPTH       8
 `define PMEM_AW          12 
 `define DMEM_AW          14 
-`define WMEM_AW          10
+`define WMEM_AW          11
 `define REG_AW           4 
 `define IN_PORT_QTY      1
 `define OUT_TRIG_QTY     1
@@ -40,8 +42,9 @@ import axi_mst_0_pkg::*;
 module tb_qick ();
 
 // Define Test to run
-string TEST_NAME = "test01";    // basic multi pulse
+// string TEST_NAME = "test01";    // basic multi pulse
 //string TEST_NAME = "test02";  // fast short pulses
+string TEST_NAME = "test03";  // randomized benchmarking
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -53,7 +56,6 @@ reg[31:0]       data_wr     = 32'h12345678;
 xil_axi_resp_t  resp;
 
 //AXI-LITE TPROC
-//wire                   s_axi_tproc_aclk       ;
 wire                   s_ps_dma_aresetn    ;
 wire [7:0]             s_axi_tproc_awaddr     ;
 wire [2:0]             s_axi_tproc_awprot     ;
@@ -78,12 +80,15 @@ wire                   s_axi_tproc_rready     ;
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
-logic   c_clk, t_clk, s_ps_dma_aclk, rst_ni;
+logic   c_clk, t_clk, s_ps_dma_aclk, dac_clk;
+logic [4:0]    dac_clk_gen;
 
 initial begin
-  t_clk = 1'b0;
-  forever # (`T_TCLK) t_clk = ~t_clk;
+   dac_clk_gen = 'd0;
+   forever # (`T_TCLK/N_DDS) dac_clk_gen = dac_clk_gen + 'd1;
 end
+assign dac_clk = dac_clk_gen[0];
+assign t_clk   = dac_clk_gen[4];
 
 initial begin
   c_clk = 1'b0;
@@ -96,6 +101,7 @@ initial begin
   forever # (`T_SCLK) s_ps_dma_aclk = ~s_ps_dma_aclk;
 end
 
+logic rst_ni;
 assign s_ps_dma_aresetn  = rst_ni;
 //////////////////////////////////////////////////////////////////////////
 
@@ -554,13 +560,13 @@ reg qcom_rdy_i, qpb_rdy_i;
 
    // axis_signal_gen_v6_0 generics.
    localparam N       = 10;
-   localparam N_DDS   = 4;
+   localparam N_DDS   = 16;
 
    axis_signal_gen_v6 #(
       .N                   (N                ),
       .N_DDS               (N_DDS            ),
       .GEN_DDS             ("FALSE"          ),
-      .ENVELOPE_TYPE       ("REAL"           )
+      .ENVELOPE_TYPE       ("COMPLEX"        )
    )
    u_axis_signal_gen_v6_0 ( 
       // AXI Slave I/F for configuration.
@@ -612,6 +618,18 @@ reg qcom_rdy_i, qpb_rdy_i;
    //--------------------------------------
    // TODO: RF DATA CONVERTER IP
    //--------------------------------------
+
+   logic [$clog2(N_DDS)-1:0] dac_samp_cnt;
+   logic [15:0] dac_samp;
+   always @(posedge dac_clk) begin
+      if (axis_sg_dac_tvalid) begin
+         dac_samp <= axis_sg_dac_tdata[ 16*dac_samp_cnt +: 16];
+         dac_samp_cnt <= dac_samp_cnt + 'd1;
+      end
+      else begin
+         dac_samp_cnt <= 'd0;
+      end
+   end
 
    // SG to DAC RF processes 4 samples per clock
    // ADC RF to RO processes 8 samples per clock
@@ -864,11 +882,6 @@ initial begin
    $display("OUT_WPORT_QTY %0d",  `OUT_WPORT_QTY);
    
   
-
-//   AXIS_QPROC.QPROC.DISPATCHER.TRIG_FIFO[0].trig_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-//   AXIS_QPROC.QPROC.DISPATCHER.DATA_FIFO[0].data_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-//   AXIS_QPROC.QPROC.DISPATCHER.WAVE_FIFO[0].wave_fifo_inst.fifo_mem.RAM = '{default:'0} ;
-
    // Load tProc Memories with Program
    tproc_load_mem(TEST_NAME);
 
@@ -914,27 +927,14 @@ initial begin
 
    #1us;
 
-   // $display("################################");
-   // $display("### Load envelope into Table ###");
-   // $display("################################");
-   // $display("t = %0t", $time);
-
-   // // start_addr.
-   // data_wr = 0;
-   // axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
-   // #100ns;
-   
-   // // we.
-   // data_wr = 1;
-   // axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
-   // #100ns;
-   
-   // // Load Envelope Table Memory.
-   // tb_load_mem    = 1;
-   // sg_load_mem(tb_load_mem, tb_load_mem_done);
-   // // wait (tb_load_mem_done);
-   // tb_load_mem    = 0;
+   // Load Signal Generator Envelope Table Memory.
    sg_load_mem(TEST_NAME);
+
+   #1us;
+
+   // Configure TPROC
+   // LFSR Enable (1: Free Running, 2: Step on s1 Read, 3: Step on s0 Write)
+   WRITE_AXI( REG_CORE_CFG , 1);
 
    #1us;
 
@@ -980,7 +980,7 @@ initial begin
 
    end
     
-//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START
+//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START 
 //   #1000;
 //   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
 //   #900;

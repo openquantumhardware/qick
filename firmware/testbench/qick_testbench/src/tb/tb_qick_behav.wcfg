@@ -16,17 +16,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="36.315501 us"></ZoomEndTime>
-      <Cursor1Time time="36.315500 us"></Cursor1Time>
+      <ZoomEndTime time="27.645501 us"></ZoomEndTime>
+      <Cursor1Time time="3.097500 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="218"></NameColumnWidth>
-      <ValueColumnWidth column_width="93"></ValueColumnWidth>
+      <NameColumnWidth column_width="250"></NameColumnWidth>
+      <ValueColumnWidth column_width="125"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="7" />
-   <wave_markers>
-      <marker label="" time="13229622" />
-   </wave_markers>
+   <WVObjectSize size="16" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -58,6 +55,7 @@
    <wvobject type="group" fp_name="group500">
       <obj_property name="label">TPROC_V2</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/proc_start_i">
          <obj_property name="ElementShortName">proc_start_i</obj_property>
          <obj_property name="ObjectShortName">proc_start_i</obj_property>
@@ -77,6 +75,10 @@
          <obj_property name="ObjectShortName">time_st[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt">
+         <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
+         <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/s0_axis_tdata">
          <obj_property name="ElementShortName">s0_axis_tdata[63:0]</obj_property>
@@ -205,8 +207,8 @@
          <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata">
-         <obj_property name="ElementShortName">m_axis_tdata[63:0]</obj_property>
-         <obj_property name="ObjectShortName">m_axis_tdata[63:0]</obj_property>
+         <obj_property name="ElementShortName">m_axis_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tdata[255:0]</obj_property>
       </wvobject>
       <wvobject type="vbus" fp_name="vbus1107">
          <obj_property name="label">Real_Data_0</obj_property>
@@ -216,7 +218,6 @@
          <obj_property name="CellHeight">100</obj_property>
          <obj_property name="AnalogYRangeMin">-22340.400000</obj_property>
          <obj_property name="AnalogYRRangeMax">97658.600000</obj_property>
-         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
          <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
@@ -285,15 +286,108 @@
             <obj_property name="ObjectShortName">[0]</obj_property>
          </wvobject>
       </wvobject>
+      <wvobject type="vbus" fp_name="vbus216">
+         <obj_property name="label">Imag_Data_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[31]">
+            <obj_property name="ElementShortName">[31]</obj_property>
+            <obj_property name="ObjectShortName">[31]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[30]">
+            <obj_property name="ElementShortName">[30]</obj_property>
+            <obj_property name="ObjectShortName">[30]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[29]">
+            <obj_property name="ElementShortName">[29]</obj_property>
+            <obj_property name="ObjectShortName">[29]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[28]">
+            <obj_property name="ElementShortName">[28]</obj_property>
+            <obj_property name="ObjectShortName">[28]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[27]">
+            <obj_property name="ElementShortName">[27]</obj_property>
+            <obj_property name="ObjectShortName">[27]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[26]">
+            <obj_property name="ElementShortName">[26]</obj_property>
+            <obj_property name="ObjectShortName">[26]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[25]">
+            <obj_property name="ElementShortName">[25]</obj_property>
+            <obj_property name="ObjectShortName">[25]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[24]">
+            <obj_property name="ElementShortName">[24]</obj_property>
+            <obj_property name="ObjectShortName">[24]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[23]">
+            <obj_property name="ElementShortName">[23]</obj_property>
+            <obj_property name="ObjectShortName">[23]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[22]">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">[22]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[21]">
+            <obj_property name="ElementShortName">[21]</obj_property>
+            <obj_property name="ObjectShortName">[21]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[20]">
+            <obj_property name="ElementShortName">[20]</obj_property>
+            <obj_property name="ObjectShortName">[20]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[19]">
+            <obj_property name="ElementShortName">[19]</obj_property>
+            <obj_property name="ObjectShortName">[19]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[18]">
+            <obj_property name="ElementShortName">[18]</obj_property>
+            <obj_property name="ObjectShortName">[18]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[17]">
+            <obj_property name="ElementShortName">[17]</obj_property>
+            <obj_property name="ObjectShortName">[17]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[16]">
+            <obj_property name="ElementShortName">[16]</obj_property>
+            <obj_property name="ObjectShortName">[16]</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group582">
+      <obj_property name="label">DAC_MODEL</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="array" fp_name="/tb_qick/dac_samp">
+         <obj_property name="ElementShortName">dac_samp[15:0]</obj_property>
+         <obj_property name="ObjectShortName">dac_samp[15:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">30000.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject type="vbus" fp_name="vbus557">
       <obj_property name="label">axis_adc_ro_tdata_dly[15:0]</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
       <obj_property name="CellHeight">100</obj_property>
-      <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
-      <obj_property name="AnalogYRangeMin">0.000000</obj_property>
-      <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+      <obj_property name="AnalogYRangeMin">-6100.05</obj_property>
+      <obj_property name="AnalogYRRangeMax">124963</obj_property>
       <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
       <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
       <obj_property name="AnalogHorizLine">0.000000</obj_property>
@@ -687,5 +781,37 @@
          <obj_property name="ElementShortName">m2_axis_tdata[63:0]</obj_property>
          <obj_property name="ObjectShortName">m2_axis_tdata[63:0]</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/restart_i">
+      <obj_property name="ElementShortName">restart_i</obj_property>
+      <obj_property name="ObjectShortName">restart_i</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/halt">
+      <obj_property name="ElementShortName">halt</obj_property>
+      <obj_property name="ObjectShortName">halt</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/flush">
+      <obj_property name="ElementShortName">flush</obj_property>
+      <obj_property name="ObjectShortName">flush</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/stall">
+      <obj_property name="ElementShortName">stall</obj_property>
+      <obj_property name="ObjectShortName">stall</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /push_i">
+      <obj_property name="ElementShortName">push_i</obj_property>
+      <obj_property name="ObjectShortName">push_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_i">
+      <obj_property name="ElementShortName">data_i[215:0]</obj_property>
+      <obj_property name="ObjectShortName">data_i[215:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /pop_i">
+      <obj_property name="ElementShortName">pop_i</obj_property>
+      <obj_property name="ObjectShortName">pop_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o">
+      <obj_property name="ElementShortName">data_o[215:0]</obj_property>
+      <obj_property name="ObjectShortName">data_o[215:0]</obj_property>
    </wvobject>
 </wave_config>
