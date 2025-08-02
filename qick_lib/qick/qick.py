@@ -923,8 +923,8 @@ class QickSoc(Overlay, QickConfig):
         self.gens.sort(key=lambda x:(x['tproc_ch'], x._cfg.get('tmux_ch')))
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
-        self.iqs.sort(key=lambda x: x.dac)
-        self.readouts.sort(key=lambda x: x.adc)
+        self.iqs.sort(key=lambda x: x['dac'])
+        self.readouts.sort(key=lambda x: x['adc'])
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
