@@ -46,7 +46,6 @@ class AbsReadout(QickIP):
     def configure(self, rf):
         self.rf = rf
         # Sampling frequency.
-        self.cfg['adc'] = self.adc
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         adccfg = self.rf['adcs'][self['adc']]
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
@@ -133,7 +132,7 @@ class AxisReadoutV2(SocIP, AbsReadout):
         # what RFDC port drives this readout?
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter"])
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
+        self.cfg['adc'] = port[1:3]
 
     def update(self):
         """
@@ -205,7 +204,7 @@ class AbsPFBReadout(SocIP, AbsReadout):
             ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
 
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
+        self.cfg['adc'] = port[1:3]
 
     def configure(self, rf):
         super().configure(rf)
@@ -454,9 +453,7 @@ class AbsDynReadout(AbsReadout, DummyIP):
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
 
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
-
-        #print("%s: ADC tile %s block %s, buffer %s"%(self['fullpath'], *self.adc, self.buffer['fullpath']))
+        self.cfg['adc'] = port[1:3]
 
 class AxisReadoutV3(AbsDynReadout):
     """tProc-controlled readout block.

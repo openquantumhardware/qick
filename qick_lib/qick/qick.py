@@ -137,7 +137,9 @@ class RFDC(SocIP, xrfdc.RFdc):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 tilecfg = {}
                 self['tiles'][tiletype][iTile] = tilecfg
-                tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
+                # some firmwares (older versions of Vivado?) do not have link coupling params for the DAC
+                if ('C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)) in ip_params:
+                    tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
                 f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
                 f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
                 fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
@@ -299,6 +301,7 @@ class RFDC(SocIP, xrfdc.RFdc):
     def valid_sample_rates(self, tiletype, tile):
         """
         Return an array of valid sample rates.
+        This code is based on XRFdc_SetPLLConf().
         """
         if tiletype not in ['dac', 'adc']:
             raise RuntimeError('tiletype must be "dac" or "adc"')
@@ -312,10 +315,12 @@ class RFDC(SocIP, xrfdc.RFdc):
 
         # Allowed divider values, see PG269 "PLL Parameters"
         # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
+        # Note that the values in PG269 (in comments) are rounded and can't be used literally.
+        # The values here are the VCO_RANGE_* constants used by XRFdc_SetPLLConf().
         Fb_div_vals = np.arange(13,161, dtype=int)
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             M_vals = np.concatenate([[1,2,3], np.arange(4,66,2)])
-            VCO_range = [7863, 13760]
+            VCO_range = [7800, 13800] # [7863, 13760]
         else:
             M_vals = np.concatenate([[2,3], np.arange(4,66,2)])
             VCO_range = [8500, 13200]
@@ -921,8 +926,8 @@ class QickSoc(Overlay, QickConfig):
         self.gens.sort(key=lambda x:(x['tproc_ch'], x._cfg.get('tmux_ch')))
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
-        self.iqs.sort(key=lambda x: x.dac)
-        self.readouts.sort(key=lambda x: x.adc)
+        self.iqs.sort(key=lambda x: x['dac'])
+        self.readouts.sort(key=lambda x: x['adc'])
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):
