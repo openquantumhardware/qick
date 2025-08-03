@@ -301,6 +301,7 @@ class RFDC(SocIP, xrfdc.RFdc):
     def valid_sample_rates(self, tiletype, tile):
         """
         Return an array of valid sample rates.
+        This code is based on XRFdc_SetPLLConf().
         """
         if tiletype not in ['dac', 'adc']:
             raise RuntimeError('tiletype must be "dac" or "adc"')
@@ -314,10 +315,12 @@ class RFDC(SocIP, xrfdc.RFdc):
 
         # Allowed divider values, see PG269 "PLL Parameters"
         # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
+        # Note that the values in PG269 (in comments) are rounded and can't be used literally.
+        # The values here are the VCO_RANGE_* constants used by XRFdc_SetPLLConf().
         Fb_div_vals = np.arange(13,161, dtype=int)
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             M_vals = np.concatenate([[1,2,3], np.arange(4,66,2)])
-            VCO_range = [7863, 13760]
+            VCO_range = [7800, 13800] # [7863, 13760]
         else:
             M_vals = np.concatenate([[2,3], np.arange(4,66,2)])
             VCO_range = [8500, 13200]
