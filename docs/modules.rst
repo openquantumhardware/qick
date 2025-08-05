@@ -10,11 +10,13 @@ Software API
    qick.drivers.tproc
    qick.drivers.generator
    qick.drivers.readout
+   qick.helpers
+   qick.streamer
+   qick.pyro
    qick.qick_asm
    qick.asm_v1
-   qick.averager_program
-   qick.helpers
    qick.parser
-   qick.streamer
-   qick.rfboard
+   qick.averager_program
    qick.asm_v2
+   qick.tprocv2_assembler
+   qick.rfboard
