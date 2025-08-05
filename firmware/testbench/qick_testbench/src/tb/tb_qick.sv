@@ -935,6 +935,12 @@ initial begin
    // Configure TPROC
    // LFSR Enable (1: Free Running, 2: Step on s1 Read, 3: Step on s0 Write)
    WRITE_AXI( REG_CORE_CFG , 1);
+   #1us;
+   WRITE_AXI( REG_CORE_CFG , 0);
+   #1us;
+   WRITE_AXI( REG_CORE_CFG , 2);
+   #1us;
+
 
    #1us;
 
