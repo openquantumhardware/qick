@@ -42,9 +42,10 @@ import axi_mst_0_pkg::*;
 module tb_qick ();
 
 // Define Test to run
-// string TEST_NAME = "test01";    // basic multi pulse
-//string TEST_NAME = "test02";  // fast short pulses
-string TEST_NAME = "test03";  // randomized benchmarking
+// string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_fast_short_pulses";
+// string TEST_NAME = "test_randomized_benchmarking";
+string TEST_NAME = "test_many_envelopes";
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
