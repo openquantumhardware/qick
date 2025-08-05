@@ -369,6 +369,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             # forbidden "hole" for Gen3 RFSoC DAC PLL
             # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
+            # actually, this is a consequence of the VCO range
             fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
 
             # in datapath mode 1, Gen3 DACs can't go above 7 Gsps
@@ -801,6 +802,9 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
+        # list of objects that need to be registered for autoproxying over Pyro
+        self.autoproxy = []
+
         # Initialize lists of IP blocks.
         # Signal generators (anything driven by the tProc)
         self.gens = []
@@ -854,8 +858,7 @@ class QickSoc(Overlay, QickConfig):
 
             self._streamer = DataStreamer(self)
 
-            # list of objects that need to be registered for autoproxying over Pyro
-            self.autoproxy = [self.streamer, self.tproc]
+            self.autoproxy.extend([self.streamer, self.tproc])
 
     @property
     def tproc(self):
