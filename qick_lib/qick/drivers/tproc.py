@@ -47,7 +47,8 @@ class AxisTProc64x32_x8(SocIP):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
-    bindto = ['user.org:user:axis_tproc64x32_x8:1.0']
+    bindto = ['user.org:user:axis_tproc64x32_x8:1.0',
+              'QICK:QICK:axis_tproc64x32_x8:1.0']
 
     # Number of 32-bit words in the lower address map (reserved for register access)
     NREG = 64
@@ -351,7 +352,8 @@ class Axis_QICK_Proc(SocIP):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
-    bindto = ['Fermi:user:qick_processor:2.0']
+    bindto = ['Fermi:user:qick_processor:2.0',
+              'QICK:QICK:qick_processor:2.0']
     
     def __init__(self, description):
         """

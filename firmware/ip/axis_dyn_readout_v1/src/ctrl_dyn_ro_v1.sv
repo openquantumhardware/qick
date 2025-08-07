@@ -10,7 +10,7 @@
 // outsel 	: 2 bits
 // mode 	: 1 bit
 // phrst	: 1 bit
-module ctrl 
+module ctrl_dyn_ro_v1 
 	#(
 		parameter N = 4
 	)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>user.org</spirit:vendor>
-  <spirit:library>user</spirit:library>
+  <spirit:vendor>QICK</spirit:vendor>
+  <spirit:library>QICK</spirit:library>
   <spirit:name>axis_weighted_buffer</spirit:name>
   <spirit:version>1.2</spirit:version>
   <spirit:busInterfaces>
@@ -563,6 +563,20 @@
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
             <spirit:value>62c01b7a</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+      <spirit:view>
+        <spirit:name>xilinx_utilityxitfiles</spirit:name>
+        <spirit:displayName>Utility XIT/TTCL</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:xit.util</spirit:envIdentifier>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_utilityxitfiles_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>5fe144f7</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1476,6 +1490,13 @@
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>../../common_ip_files/ip_logos/logoQICK_128x128.png</spirit:name>
+        <spirit:userFileType>LOGO</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
   </spirit:fileSets>
   <spirit:description>AXIS Weighted Integrator + Buffer block with external trigger and edge-counting mode.</spirit:description>
   <spirit:parameters>
@@ -1507,16 +1528,18 @@
   <spirit:vendorExtensions>
     <xilinx:coreExtensions>
       <xilinx:taxonomies>
-        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+        <xilinx:taxonomy>/QICK/Miscellaneous</xilinx:taxonomy>
       </xilinx:taxonomies>
       <xilinx:displayName>AXIS Weighted Integrator + Buffer</xilinx:displayName>
       <xilinx:autoFamilySupportLevel>level_2</xilinx:autoFamilySupportLevel>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
+      <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>12</xilinx:coreRevision>
       <xilinx:upgrades>
-        <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.0</xilinx:canUpgradeFrom>
-        <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.1</xilinx:canUpgradeFrom>
-        <xilinx:canUpgradeFrom>user.org:user:axis_matchfilt_buffer:1.2</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.0</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.1</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.2</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
       <xilinx:coreCreationDateTime>2025-05-17T02:42:54Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>

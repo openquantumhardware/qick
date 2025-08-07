@@ -62,20 +62,29 @@ class QickConfig():
     def _describe_dac(self, dacname):
         tile, block = [int(c) for c in dacname]
         if self['board']=='ZCU111':
-            label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
+            label = "DAC%d_T%d_CH%d, or RF board DAC port %d" % (tile + 228, tile, block, tile*4 + block)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
+            jhc_connector = 1 + (block%2) + 2*(tile//2)
+            box_port = tile*4 + block
+            label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
         tile, block = [int(c) for c in adcname]
+        # we don't print the coupling because it might be confusing, but we could?
+        coupling = self['rf']['adcs'][adcname]['coupling']
         if self['board']=='ZCU111':
             rfbtype = "DC" if tile > 1 else "AC"
-            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
+            label = "ADC%d_T%d_CH%d, or RF board ADC %s port %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
+            jhc_connector = 5 + (block%2) + 2*(tile//2)
+            if tile in [1, 2]:
+                box_port = (tile-1)*4 + block
+                label = "%d_%d on JHC%d, or QICK box ADC port %d" % (block, tile + 224, jhc_connector, box_port)
+            else:
+                label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
@@ -1802,7 +1811,7 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
-    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1833,6 +1842,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -1853,9 +1864,8 @@ class AcquireMixin:
                 'threshold': threshold,
                 'angle': angle,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -2065,7 +2075,7 @@ class AcquireMixin:
 
         return self.finish_acquire()
 
-    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2085,6 +2095,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -2101,9 +2113,8 @@ class AcquireMixin:
                 'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")

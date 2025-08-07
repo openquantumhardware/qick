@@ -21,7 +21,8 @@ class AxisSignalGenV3(SocIP):
     # * 0 : disable writes.
     # * 1 : enable writes.
     #
-    bindto = ['user.org:user:axis_signal_gen_v3:1.0']
+    bindto = ['user.org:user:axis_signal_gen_v3:1.0',
+              'QICK:QICK:axis_signal_gen_v3:1.0']
 
     # Generics
     N = 12
@@ -91,7 +92,8 @@ class AxisSignalGenV3(SocIP):
 class AxisSignalGenV3Ctrl(SocIP):
     # Signal Generator V3 Control registers.
     # ADDR_REG
-    bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0']
+    bindto = ['user.org:user:axis_signal_gen_v3_ctrl:1.0',
+              'QICK:QICK:axis_signal_gen_v3_ctrl:1.0']
 
     # Generics of Signal Generator.
     N = 10
@@ -189,7 +191,8 @@ class AxisSignalGenV6Ctrl(SocIP):
     # WE_REG        : 1-bit.
     # * 0 : disable.
     # * 1 : enable.
-    bindto = ['user.org:user:axis_signal_gen_v6_ctrl:1.0']
+    bindto = ['user.org:user:axis_signal_gen_v6_ctrl:1.0',
+              'QICK:QICK:axis_signal_gen_v6_ctrl:1.0']
 
     def __init__(self, description, **kwargs):
         super().__init__(description)
@@ -264,7 +267,8 @@ class AxisDdsMrSwitch(SocIP):
     # * 0 : real part.
     # * 1 : imaginary part.
     #
-    bindto = ['user.org:user:axis_dds_mr_switch:1.0']
+    bindto = ['user.org:user:axis_dds_mr_switch:1.0',
+              'QICK:QICK:axis_dds_mr_switch:1.0']
 
     def __init__(self, description, **kwargs):
         """
@@ -288,7 +292,8 @@ class AxisDdsMrSwitch(SocIP):
 
 
 class AxisSwitchV1(SocIP):
-    bindto = ['user.org:user:axis_switch_v1:1.0']
+    bindto = ['user.org:user:axis_switch_v1:1.0',
+              'QICK:QICK:axis_switch_v1:1.0']
 
     def __init__(self, description):
         """
@@ -1791,6 +1796,7 @@ class DaughterCard216(ABC):
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
     CHAIN_CLASS = None # signal chain class to instantiate for each channel
     GPIO_OUTPUTS = [None]*4 # nets controlled by the daughter card's GPIO chip
+    NAME = '' # name for this card type
     def __init__(self, card_num, soc, gpio):
         self.card_num = card_num
         self.soc = soc
@@ -1815,7 +1821,7 @@ class DacRfCard216(DaughterCard216):
     CHAIN_CLASS = DacRfChain216
     # disable all outputs by default
     GPIO_OUTPUTS = [("RFOUT5V0_EN%d"%(i), 0) for i in range(2)] + [None]*2
-
+    NAME = 'RF Out'
     def disable_all(self):
         for i in range(2):
             self.switch_control["RFIN5V0CH%d_EN"%(i)] = 0
@@ -1826,6 +1832,7 @@ class DacDcCard216(DaughterCard216):
     CHAIN_CLASS = DacDcChain216
     # power-on all outputs by default, because in power-down state the LMH5401 just lets through the DAC common-mode voltage
     GPIO_OUTPUTS = [("PD%d"%(i), 0) for i in range(4)]
+    NAME = 'DC Out'
 
 class AdcRfCard216(DaughterCard216):
     NCH = 2
@@ -1833,6 +1840,7 @@ class AdcRfCard216(DaughterCard216):
     CHAIN_CLASS = AdcRfChain216
     # disable all outputs by default
     GPIO_OUTPUTS = [("RFIN5V0CH%d_EN"%(i), 0) for i in range(2)] + [None]*2
+    NAME = 'RF In'
 
 class AdcDcCard216(DaughterCard216):
     NCH = 2
@@ -1840,6 +1848,7 @@ class AdcDcCard216(DaughterCard216):
     CHAIN_CLASS = AdcDcChain216
     # power-down all outputs by default
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
+    NAME = 'DC In'
 
 class BoardSelection:
     """
@@ -2157,28 +2166,19 @@ class RFQickSoc216V1(RFQickSoc):
     def __init__(self, bitfile, **kwargs):
         super().__init__(bitfile, **kwargs)
 
-        self['extra_description'].append("\nDaughter cards detected:")
-        with suppress(AttributeError):
-            for slot, card in enumerate(self.dac_cards):
-                if card is None:
-                    self['extra_description'].append(f"\tslot {slot}: No card detected")
-                else:
-                    try:
-                        channels = [chain.global_ch for chain in card.chains]
-                    except AttributeError:
-                        channels = "[UNKNOWN]"
-                    self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels}")
-
-            for raw_slot, card in enumerate(self.adc_cards):
-                slot = raw_slot + 4
-                if card is None:
-                    self['extra_description'].append(f"\tslot {slot}: No card detected")
-                else:
-                    try:
-                        channels = [chain.global_ch for chain in card.chains]
-                    except AttributeError:
-                        channels = "[UNKNOWN]"
-                    self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels}")
+        self['extra_description'].append("\nQICK box daughter cards detected:")
+        for slot, card in enumerate(self.adc_cards):
+            if card is None:
+                self['extra_description'].append(f"\tADC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tADC slot {slot}: {card.NAME} card has ports {channels}")
+        for slot, card in enumerate(self.dac_cards):
+            if card is None:
+                self['extra_description'].append(f"\tDAC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tDAC slot {slot}: {card.NAME} card has ports {channels}")
 
     def rfb_config(self, no_tproc):
         """

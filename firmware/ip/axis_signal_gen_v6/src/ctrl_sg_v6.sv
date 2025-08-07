@@ -13,7 +13,7 @@
 // mode     : 1 bit
 // stdysel  : 1 bit
 // phrst    : 1 bit
-module ctrl (
+module ctrl_sg_v6 (
    // Reset and clock.
    rstn,
    clk,

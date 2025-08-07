@@ -46,7 +46,6 @@ class AbsReadout(QickIP):
     def configure(self, rf):
         self.rf = rf
         # Sampling frequency.
-        self.cfg['adc'] = self.adc
         if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
         adccfg = self.rf['adcs'][self['adc']]
         for p in ['fs', 'fs_mult', 'fs_div', 'decimation', 'f_fabric']:
@@ -91,7 +90,8 @@ class AxisReadoutV2(SocIP, AbsReadout):
     :param fs: sampling frequency in MHz
     :type fs: float
     """
-    bindto = ['user.org:user:axis_readout_v2:1.0']
+    bindto = ['user.org:user:axis_readout_v2:1.0',
+              'QICK:QICK:axis_readout_v2:1.0']
 
     # Bits of DDS.
     B_DDS = 32
@@ -132,7 +132,7 @@ class AxisReadoutV2(SocIP, AbsReadout):
         # what RFDC port drives this readout?
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's_axis', ["usp_rf_data_converter"])
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
+        self.cfg['adc'] = port[1:3]
 
     def update(self):
         """
@@ -204,7 +204,7 @@ class AbsPFBReadout(SocIP, AbsReadout):
             ((block, port),) = soc.metadata.trace_bus(block, 'S00_AXIS')
 
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
+        self.cfg['adc'] = port[1:3]
 
     def configure(self, rf):
         super().configure(rf)
@@ -254,7 +254,8 @@ class AxisPFBReadoutV2(AbsPFBReadout):
 
     CH[0-3]SEL_REG : 3-bit ID mapping an output channel to an input.
     """
-    bindto = ['user.org:user:axis_pfb_readout_v2:1.0']
+    bindto = ['user.org:user:axis_pfb_readout_v2:1.0',
+              'QICK:QICK:axis_pfb_readout_v2:1.0']
 
     # Number of PFB channels.
     NCH = 8
@@ -333,7 +334,8 @@ class AxisPFBReadoutV3(AbsPFBReadout):
     FREQ[0-3]_REG   : 32-bit frequency of each output channel.
     PHASE[0-3]_REG  : 32-bit phase of each output channel.
     """
-    bindto = ['user.org:user:axis_pfb_readout_v3:1.0']
+    bindto = ['user.org:user:axis_pfb_readout_v3:1.0',
+              'QICK:QICK:axis_pfb_readout_v3:1.0']
 
     # Bits of DDS. 
     B_PHASE = 32
@@ -401,7 +403,8 @@ class AxisPFBReadoutV4(AxisPFBReadoutV3):
 
     This is identical to AxisPFBReadoutV3, but with 8 outputs instead of 4.
     """
-    bindto = ['user.org:user:axis_pfb_readout_v4:1.0']
+    bindto = ['user.org:user:axis_pfb_readout_v4:1.0',
+              'QICK:QICK:axis_pfb_readout_v4:1.0']
 
     # Number of outputs.
     NOUT = 8
@@ -450,9 +453,7 @@ class AbsDynReadout(AbsReadout, DummyIP):
         block, port, _ = soc.metadata.trace_back(self['fullpath'], 's1_axis', ["usp_rf_data_converter"])
 
         # port names are of the form 'm02_axis' where the block number is always even
-        self.adc = port[1:3]
-
-        #print("%s: ADC tile %s block %s, buffer %s"%(self['fullpath'], *self.adc, self.buffer['fullpath']))
+        self.cfg['adc'] = port[1:3]
 
 class AxisReadoutV3(AbsDynReadout):
     """tProc-controlled readout block.
@@ -531,7 +532,8 @@ class AxisAvgBuffer(SocIP):
     :param channel: readout channel selection
     :type channel: int
     """
-    bindto = ['user.org:user:axis_avg_buffer:1.0']
+    bindto = ['user.org:user:axis_avg_buffer:1.0',
+              'QICK:QICK:axis_avg_buffer:1.0']
 
     EDGE_COUNTER = False
     WEIGHTS = False
@@ -863,7 +865,8 @@ class AxisAvgBuffer(SocIP):
 
 class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
-    bindto = ['user.org:user:axis_avg_buffer:1.1']
+    bindto = ['user.org:user:axis_avg_buffer:1.1',
+              'QICK:QICK:axis_avg_buffer:1.1']
 
     EDGE_COUNTER = True
 
@@ -915,12 +918,14 @@ class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
 
     Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
     """
-    bindto = ['user.org:user:axis_avg_buffer:1.2']
+    bindto = ['user.org:user:axis_avg_buffer:1.2',
+              'QICK:QICK:axis_avg_buffer:1.2']
 
     FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.2
 
 class AxisWeightedBuffer(AxisAvgBufferV1pt1):
-    bindto = ['user.org:user:axis_weighted_buffer:1.2']
+    bindto = ['user.org:user:axis_weighted_buffer:1.2',
+              'QICK:QICK:axis_weighted_buffer:1.2']
 
     WEIGHTS = True
 
@@ -1063,7 +1068,9 @@ class MrBufferEt(SocIP):
     # DR_START_REG needs to be de-assereted and asserted again to allow a new transfer.
     #
     bindto = ['user.org:user:mr_buffer_et:1.0',
-              'user.org:user:mr_buffer_et:1.1']
+              'user.org:user:mr_buffer_et:1.1',
+              'QICK:QICK:mr_buffer_et:1.0',
+              'QICK:QICK:mr_buffer_et:1.1']
 
     def __init__(self, description):
         super().__init__(description)
@@ -1085,7 +1092,7 @@ class MrBufferEt(SocIP):
         # Maximum number of samples
         self.cfg['maxlen'] = 2**self.N * self.NM
 
-        if description['type'] == 'user.org:user:mr_buffer_et:1.0':
+        if 'mr_buffer_et:1.0' in description['type']:
             self.cfg['junk_len'] = 8    # Firmware Bug present and junk data samples are returned from buffer
         else:
             self.cfg['junk_len'] = 0    # Firmware Bug was fixed so no need for this value anymore
@@ -1186,7 +1193,8 @@ class AxisBufferDdrV1(SocIP):
     The driver assumes that input(s) to this buffer are also sent to avg_buffer blocks.
     """
     # AXIS Buffer DDR V1 Registers.
-    bindto = ['user.org:user:axis_buffer_ddr_v1:1.0']
+    bindto = ['user.org:user:axis_buffer_ddr_v1:1.0',
+              'QICK:QICK:axis_buffer_ddr_v1:1.0']
 
     # Stream Input Port.
     STREAM_IN_PORT  = "s_axis"

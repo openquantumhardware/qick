@@ -91,8 +91,9 @@ reg			[31:0]			dout_mux_r			[0:N_DDS-1];
 /**********************/
 /* Begin Architecture */
 /**********************/
+// `uselib lib=lib_axis_dyn_readout_v1
 // Control block.
-ctrl 
+ctrl_dyn_ro_v1 
 	#(
 		.N (N_DDS	)
 	)
