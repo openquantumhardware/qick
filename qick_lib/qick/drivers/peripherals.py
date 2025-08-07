@@ -698,7 +698,8 @@ class QICK_XTalk_Compensation(SocIP):
     XCOM_STATUS    Read Only    32-Bits
     XCOM_DEBUG     Read Only    32-Bits
     """
-    bindto = ['Fermi:user:qick_xtalk:1.0']
+    bindto = ['Fermi:user:qick_xtalk:1.0',
+              'QICK:QICK:qick_xtalk:1.0']
 
     def _init_config(self, description):
         self.REGISTERS = {
