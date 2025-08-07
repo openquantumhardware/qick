@@ -42,10 +42,11 @@ import axi_mst_0_pkg::*;
 module tb_qick ();
 
 // Define Test to run
+// string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
-// string TEST_NAME = "test_randomized_benchmarking";
-string TEST_NAME = "test_many_envelopes";
+string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_many_envelopes";
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -628,6 +629,7 @@ reg qcom_rdy_i, qpb_rdy_i;
          dac_samp_cnt <= dac_samp_cnt + 'd1;
       end
       else begin
+         dac_samp <= 'd0;
          dac_samp_cnt <= 'd0;
       end
    end
@@ -959,7 +961,7 @@ initial begin
 
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
-      #5us;
+      #10us;
 
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
 

@@ -15,15 +15,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="30.825501 us"></ZoomEndTime>
-      <Cursor1Time time="0.000000 us"></Cursor1Time>
+      <ZoomStartTime time="8,735.411 ns"></ZoomStartTime>
+      <ZoomEndTime time="9,564.466 ns"></ZoomEndTime>
+      <Cursor1Time time="40,825.500 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="250"></NameColumnWidth>
       <ValueColumnWidth column_width="117"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="8" />
+   <WVObjectSize size="16" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -75,9 +75,274 @@
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt">
-         <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
-         <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/stall">
+         <obj_property name="ElementShortName">stall</obj_property>
+         <obj_property name="ObjectShortName">stall</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/halt">
+         <obj_property name="ElementShortName">halt</obj_property>
+         <obj_property name="ObjectShortName">halt</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1522">
+         <obj_property name="label">REGS</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt">
+            <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[0]">
+               <obj_property name="ElementShortName">[0][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[0][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[1]">
+               <obj_property name="ElementShortName">[1][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+               <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[2]">
+               <obj_property name="ElementShortName">[2][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[2][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[3]">
+               <obj_property name="ElementShortName">[3][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[3][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[4]">
+               <obj_property name="ElementShortName">[4][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[4][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[5]">
+               <obj_property name="ElementShortName">[5][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[5][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[6]">
+               <obj_property name="ElementShortName">[6][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[6][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[7]">
+               <obj_property name="ElementShortName">[7][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[7][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[8]">
+               <obj_property name="ElementShortName">[8][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[8][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[9]">
+               <obj_property name="ElementShortName">[9][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[9][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[10]">
+               <obj_property name="ElementShortName">[10][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[10][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[11]">
+               <obj_property name="ElementShortName">[11][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[11][31:0]</obj_property>
+               <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[12]">
+               <obj_property name="ElementShortName">[12][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[12][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[13]">
+               <obj_property name="ElementShortName">[13][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[13][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[14]">
+               <obj_property name="ElementShortName">[14][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[14][31:0]</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[15]">
+               <obj_property name="ElementShortName">[15][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[15][31:0]</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt">
+            <obj_property name="ElementShortName">dreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">dreg_32_dt[0:15][31:0]</obj_property>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[0]">
+               <obj_property name="ElementShortName">[0][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[0][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[1]">
+               <obj_property name="ElementShortName">[1][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[2]">
+               <obj_property name="ElementShortName">[2][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[2][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+               <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[3]">
+               <obj_property name="ElementShortName">[3][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[3][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[4]">
+               <obj_property name="ElementShortName">[4][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[4][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[5]">
+               <obj_property name="ElementShortName">[5][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[5][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[6]">
+               <obj_property name="ElementShortName">[6][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[6][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[7]">
+               <obj_property name="ElementShortName">[7][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[7][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[8]">
+               <obj_property name="ElementShortName">[8][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[8][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[9]">
+               <obj_property name="ElementShortName">[9][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[9][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[10]">
+               <obj_property name="ElementShortName">[10][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[10][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[11]">
+               <obj_property name="ElementShortName">[11][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[11][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[12]">
+               <obj_property name="ElementShortName">[12][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[12][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[13]">
+               <obj_property name="ElementShortName">[13][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[13][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[14]">
+               <obj_property name="ElementShortName">[14][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[14][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+            <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[15]">
+               <obj_property name="ElementShortName">[15][31:0]</obj_property>
+               <obj_property name="ObjectShortName">[15][31:0]</obj_property>
+               <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[1]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="label">s1_rand[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[11]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[11][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[11][31:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            <obj_property name="label">s11[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[12]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[12][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[12][31:0]</obj_property>
+            <obj_property name="label">s12[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[0]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[0][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[0][31:0]</obj_property>
+            <obj_property name="label">r0_reps[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[1]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="label">r1_seed[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[2]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[2][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[2][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="label">r2_loop[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[3]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[3][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[3][31:0]</obj_property>
+            <obj_property name="label">r3_rand[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[4]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[4][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[4][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="label">r4_wave_idx[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group1521">
+         <obj_property name="label">TIME</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/c_time_usr">
+            <obj_property name="ElementShortName">c_time_usr[31:0]</obj_property>
+            <obj_property name="ObjectShortName">c_time_usr[31:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/c_time_ref_dt">
+            <obj_property name="ElementShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="ObjectShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/time_abs_o">
+            <obj_property name="ElementShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="ObjectShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group1468">
+         <obj_property name="label">PMEM</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_MEM/P_MEM/addr_a_i">
+            <obj_property name="ElementShortName">addr_a_i[11:0]</obj_property>
+            <obj_property name="ObjectShortName">addr_a_i[11:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_MEM/P_MEM/dt_a_o">
+            <obj_property name="ElementShortName">dt_a_o[71:0]</obj_property>
+            <obj_property name="ObjectShortName">dt_a_o[71:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/r_if_op_code">
+            <obj_property name="ElementShortName">r_if_op_code[15:0]</obj_property>
+            <obj_property name="ObjectShortName">r_if_op_code[15:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/r_if_op_data">
+            <obj_property name="ElementShortName">r_if_op_data[55:0]</obj_property>
+            <obj_property name="ObjectShortName">r_if_op_data[55:0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/some_fifo_full">
          <obj_property name="ElementShortName">some_fifo_full</obj_property>
@@ -86,6 +351,19 @@
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/all_fifo_full">
          <obj_property name="ElementShortName">all_fifo_full</obj_property>
          <obj_property name="ObjectShortName">all_fifo_full</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1502">
+         <obj_property name="label">WAVE_DISPATCHER_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /push_i">
+            <obj_property name="ElementShortName">push_i</obj_property>
+            <obj_property name="ObjectShortName">push_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_i">
+            <obj_property name="ElementShortName">data_i[215:0]</obj_property>
+            <obj_property name="ObjectShortName">data_i[215:0]</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/s0_axis_tdata">
          <obj_property name="ElementShortName">s0_axis_tdata[63:0]</obj_property>
@@ -114,11 +392,6 @@
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/trig_0_o">
          <obj_property name="ElementShortName">trig_0_o</obj_property>
          <obj_property name="ObjectShortName">trig_0_o</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/time_abs_o">
-         <obj_property name="ElementShortName">time_abs_o[47:0]</obj_property>
-         <obj_property name="ObjectShortName">time_abs_o[47:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group531">
@@ -820,6 +1093,51 @@
       <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/m2_axis_tdata">
          <obj_property name="ElementShortName">m2_axis_tdata[63:0]</obj_property>
          <obj_property name="ObjectShortName">m2_axis_tdata[63:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/A_i">
+      <obj_property name="ElementShortName">A_i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">A_i[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/B_i">
+      <obj_property name="ElementShortName">B_i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">B_i[31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/alu_op_i">
+      <obj_property name="ElementShortName">alu_op_i[3:0]</obj_property>
+      <obj_property name="ObjectShortName">alu_op_i[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/alu_result_o">
+      <obj_property name="ElementShortName">alu_result_o[31:0]</obj_property>
+      <obj_property name="ObjectShortName">alu_result_o[31:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/Z_o">
+      <obj_property name="ElementShortName">Z_o</obj_property>
+      <obj_property name="ObjectShortName">Z_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/C_o">
+      <obj_property name="ElementShortName">C_o</obj_property>
+      <obj_property name="ObjectShortName">C_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/alu/S_o">
+      <obj_property name="ElementShortName">S_o</obj_property>
+      <obj_property name="ObjectShortName">S_o</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_D_fwd_dt">
+      <obj_property name="ElementShortName">reg_D_fwd_dt[0:1][31:0]</obj_property>
+      <obj_property name="ObjectShortName">reg_D_fwd_dt[0:1][31:0]</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_D_fwd_dt[0]">
+         <obj_property name="ElementShortName">[0][31:0]</obj_property>
+         <obj_property name="ObjectShortName">[0][31:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_D_fwd_dt[1]">
+         <obj_property name="ElementShortName">[1][31:0]</obj_property>
+         <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
