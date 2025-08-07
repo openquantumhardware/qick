@@ -1384,6 +1384,9 @@ class AbsQickProgram(ABC):
         if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
+        # scale to get number of gen samples
+        length *= samps_per_clk
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1392,8 +1395,6 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
-        # convert to number of samples
-        lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=cosine(length=lenreg, maxv=maxv))
 
@@ -1425,6 +1426,10 @@ class AbsQickProgram(ABC):
         if self.GAUSS_BUG:
             sigma /= np.sqrt(2.0)
 
+        # scale to get number of gen samples
+        length *= samps_per_clk
+        sigma  *= samps_per_clk
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1435,10 +1440,6 @@ class AbsQickProgram(ABC):
         else:
             lenreg = np.round(length)
             sigreg = np.round(sigma)
-
-        # convert to number of samples
-        lenreg *= samps_per_clk
-        sigreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
@@ -1476,6 +1477,10 @@ class AbsQickProgram(ABC):
 
         delta /= samps_per_clk*f_fabric
 
+        # scale to get number of gen samples
+        length *= samps_per_clk
+        sigma  *= samps_per_clk
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1486,10 +1491,6 @@ class AbsQickProgram(ABC):
         else:
             lenreg = np.round(length)
             sigreg = np.round(sigma)
-
-        # convert to number of samples
-        lenreg *= samps_per_clk
-        sigreg *= samps_per_clk
 
         idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
 
@@ -1518,6 +1519,9 @@ class AbsQickProgram(ABC):
         if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
+        # scale to get number of gen samples
+        length *= samps_per_clk
+
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1526,8 +1530,6 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
-        # convert to number of samples
-        lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
 
@@ -2272,3 +2274,30 @@ class AcquireMixin:
             pass
         else: # accumulated
             return self._summarize_accumulated(self.rounds_buf)
+
+    def print_sg_mem(self, sg_idx=0, gen_file=False):
+        """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
+
+        Parameters
+        ----------
+        sg_idx : int
+            Signal Generator index to dump.
+        gen_file : bool
+            If True, dumps content to a file with name sg_{sg_idx}.mem. If False, prints content to stdout
+        """
+
+        # Get the envelopes defined for the SG channel
+        sg_env = self.envelopes[sg_idx]
+
+        s = ""
+        for name, pulse in sg_env['envs'].items():
+            for val in pulse['data']:
+                s += "%0d,%0d\n" % (val[0], val[1])
+
+        if gen_file:
+            with open("sg_%0d.mem"%(sg_idx), "w") as file:
+                print(s, file=file)
+            print("Dumped SG envelope table memory to file sg_%0d.mem"%(sg_idx))
+        else:
+            print(s)
+
