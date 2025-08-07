@@ -688,7 +688,13 @@ class QICK_XTalk_Compensation(SocIP):
     K1             Write / Read 18-Bits
     K2             Write / Read 18-Bits
     K3             Write / Read 18-Bits
-    K4             Read Only    18-Bits
+    K4             Write / Read 18-Bits
+    K5             Write / Read 18-Bits
+    K6             Write / Read 18-Bits
+    K7             Write / Read 18-Bits
+    K8             Write / Read 18-Bits
+    K9             Write / Read 18-Bits
+    K10            Write / Read 18-Bits
     XCOM_STATUS    Read Only    32-Bits
     XCOM_DEBUG     Read Only    32-Bits
     """
@@ -702,6 +708,12 @@ class QICK_XTalk_Compensation(SocIP):
             'k2'        :3 ,
             'k3'        :4 ,
             'k4'        :5 ,
+            'k5'        :6 ,
+            'k6'        :7 ,
+            'k7'        :8 ,
+            'k8'        :9 ,
+            'k9'        :10 ,
+            'k10'       :11 ,
             'status'    :14,
             'debug'     :15
             }
@@ -718,6 +730,12 @@ class QICK_XTalk_Compensation(SocIP):
         self.k2    = 0
         self.k3    = 0
         self.k4    = 0
+        self.k5    = 0
+        self.k6    = 0
+        self.k7    = 0
+        self.k8    = 0
+        self.k9    = 0
+        self.k10   = 0
 
     def __str__(self):
         lines = []
@@ -788,6 +806,60 @@ class QICK_XTalk_Compensation(SocIP):
             dt_int_bin = self.dec_to_bin(dt, dw)
             dt_int_32  = int(dt_int_bin, 2)
             self.k4   = dt_int_32
+
+    def set_k5 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k5   = dt_int_32
+
+    def set_k6 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k6   = dt_int_32
+
+    def set_k7 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k7   = dt_int_32
+
+    def set_k8 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k8   = dt_int_32
+
+    def set_k9 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k9   = dt_int_32
+
+    def set_k10 (self, dt):
+        if (dt > 1) or (dt < -1):
+            raise RuntimeError('K parameter should be less than 1 (1, -1) current Value : %d' % (dt))
+        else:
+            dw = self.cfg['coeff_dw']
+            dt_int_bin = self.dec_to_bin(dt, dw)
+            dt_int_32  = int(dt_int_bin, 2)
+            self.k10   = dt_int_32
 
     def print_axi_regs(self):
         print('---------------------------------------------')
