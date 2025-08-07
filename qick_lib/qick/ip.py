@@ -277,7 +277,7 @@ class QickMetadata:
     def trace_forward(self, start_block, start_port, goal_types):
         """Follow the AXI-Stream bus forwards from a given block and port.
         If a broadcaster is encountered, follow all outputs.
-        Raise an error if ~=1 matching block is found.
+        Raise an error if !=1 matching block is found.
 
         Parameters
         ----------
@@ -303,7 +303,13 @@ class QickMetadata:
 
         while to_check:
             block, port = to_check.pop(0)
-            ((block, port),) = self.trace_bus(block, port)
+            #print("block: %s, port: %s" % (block, port))
+            trace_result = self.trace_bus(block, port)
+            # if the port we tried to trace is unconnected, mark as a dead end
+            if len(trace_result)==0:
+                dead_ends.append(block)
+                continue
+            ((block, port),) = trace_result
             blocktype = self.mod2type(block)
             if blocktype in goal_types:
                 found.append((block, port, blocktype))
@@ -325,6 +331,7 @@ class QickMetadata:
                 # we only want to trace the "primary" xtalk port
                 to_check.append((block, "wave_o"))
             else:
+                # if we traced to a block that we don't recognize, mark as a dead end
                 dead_ends.append(block)
         if len(found) != 1:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
