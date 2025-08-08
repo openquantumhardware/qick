@@ -41,12 +41,18 @@ import axi_mst_0_pkg::*;
 
 module tb_qick ();
 
+//----------------------------------------------------
 // Define Test to run
-// string TEST_NAME = "test_tproc_basic";
+//----------------------------------------------------
 // string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_many_envelopes";
+// string TEST_NAME = "test_tproc_basic";
+//----------------------------------------------------
+
+// Default TEST_TIME (time for the tProc execution)
+time TEST_TIME = 10us;
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -56,29 +62,6 @@ axi_mst_0_mst_t     axi_mst_avg_agent;
 xil_axi_prot_t  prot        = 0;
 reg[31:0]       data_wr     = 32'h12345678;
 xil_axi_resp_t  resp;
-
-//AXI-LITE TPROC
-wire                   s_ps_dma_aresetn    ;
-wire [7:0]             s_axi_tproc_awaddr     ;
-wire [2:0]             s_axi_tproc_awprot     ;
-wire                   s_axi_tproc_awvalid    ;
-wire                   s_axi_tproc_awready    ;
-wire [31:0]            s_axi_tproc_wdata      ;
-wire [3:0]             s_axi_tproc_wstrb      ;
-wire [3:0]             s_axi_tproc_wstrb      ;
-wire                   s_axi_tproc_wvalid     ;
-wire                   s_axi_tproc_wready     ;
-wire  [1:0]            s_axi_tproc_bresp      ;
-wire                   s_axi_tproc_bvalid     ;
-wire                   s_axi_tproc_bready     ;
-wire [7:0]             s_axi_tproc_araddr     ;
-wire [2:0]             s_axi_tproc_arprot     ;
-wire                   s_axi_tproc_arvalid    ;
-wire                   s_axi_tproc_arready    ;
-wire  [31:0]           s_axi_tproc_rdata      ;
-wire  [1:0]            s_axi_tproc_rresp      ;
-wire                   s_axi_tproc_rvalid     ;
-wire                   s_axi_tproc_rready     ;
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
@@ -103,17 +86,18 @@ initial begin
   forever # (`T_SCLK) s_ps_dma_aclk = ~s_ps_dma_aclk;
 end
 
+//////////////////////////////////////////////////////////////////////////
+//  RST Generation
 logic rst_ni;
 assign s_ps_dma_aresetn  = rst_ni;
+
+wire  s_ps_dma_aresetn;
+
 //////////////////////////////////////////////////////////////////////////
 
+// reg [255:0] max_value ;
+// reg axis_dma_start  ;
 
-reg [255:0] max_value ;
-reg axis_dma_start  ;
-
-   
-
-  
 reg [255 :0]       s_dma_axis_tdata_i   ;
 reg                s_dma_axis_tlast_i   ;
 reg                s_dma_axis_tvalid_i  ;
@@ -136,7 +120,6 @@ wire [255 :0]      m_dma_axis_tdata_o   ;
 wire               m_dma_axis_tlast_o   ;
 wire               m_dma_axis_tvalid_o  ;
 
-
 wire [167:0]       tproc_sgt_0_axis_tdata ;
 wire               tproc_sgt_0_axis_tvalid;
 logic              tproc_sgt_0_axis_tready;
@@ -153,7 +136,6 @@ wire [87:0]        rot_ro_0_axis_tdata ;
 wire               rot_ro_0_axis_tvalid;
 logic              rot_ro_0_axis_tready;
 
-
 wire [167:0]       m1_axis_tdata        ;
 wire               m1_axis_tvalid       ;
 wire [167:0]       m2_axis_tdata        ;
@@ -168,10 +150,11 @@ wire               m6_axis_tvalid       ;
 wire [167:0]       m7_axis_tdata        ;
 wire               m7_axis_tvalid       ;
 
-wire                 trigger_0;
+wire               trigger_0;
 
-wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o         ;
+wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
+// QNET Peripheral
 wire                qnet_en_o   ;
 wire  [4 :0]        qnet_op_o   ;
 wire  [31:0]        qnet_a_dt_o ;
@@ -210,6 +193,7 @@ reg time_updt_i;
 
 wire [31:0] ps_debug_do;
 
+// Q Peripheral
 wire qp1_en_o;
 reg qp1_en_r;
 reg [31:0] qp1_a_dt_r, qp1_b_dt_r;
@@ -233,8 +217,8 @@ assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3]
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
 assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
 
-reg  periph_vld_i  ;
-reg qcom_rdy_i, qpb_rdy_i;
+// reg  periph_vld_i  ;
+reg qcom_rdy_i, qp2_rdy_i;
 
 
    // DAC-ADC connections
@@ -250,6 +234,28 @@ reg qcom_rdy_i, qpb_rdy_i;
    //--------------------------------------
    // QICK PROCESSOR
    //--------------------------------------
+
+   //AXI-LITE TPROC
+   wire [7:0]             s_axi_tproc_awaddr     ;
+   wire [2:0]             s_axi_tproc_awprot     ;
+   wire                   s_axi_tproc_awvalid    ;
+   wire                   s_axi_tproc_awready    ;
+   wire [31:0]            s_axi_tproc_wdata      ;
+   wire [3:0]             s_axi_tproc_wstrb      ;
+   wire [3:0]             s_axi_tproc_wstrb      ;
+   wire                   s_axi_tproc_wvalid     ;
+   wire                   s_axi_tproc_wready     ;
+   wire  [1:0]            s_axi_tproc_bresp      ;
+   wire                   s_axi_tproc_bvalid     ;
+   wire                   s_axi_tproc_bready     ;
+   wire [7:0]             s_axi_tproc_araddr     ;
+   wire [2:0]             s_axi_tproc_arprot     ;
+   wire                   s_axi_tproc_arvalid    ;
+   wire                   s_axi_tproc_arready    ;
+   wire  [31:0]           s_axi_tproc_rdata      ;
+   wire  [1:0]            s_axi_tproc_rresp      ;
+   wire                   s_axi_tproc_rvalid     ;
+   wire                   s_axi_tproc_rready     ;
 
    // Register ADDRESS
    parameter REG_TPROC_CTRL      = 0  * 4 ;
@@ -372,7 +378,7 @@ reg qcom_rdy_i, qpb_rdy_i;
       .qp2_b_dt_o         ( qp2_b_dt_o        ) ,
       .qp2_c_dt_o         ( qp2_c_dt_o        ) ,
       .qp2_d_dt_o         ( qp2_d_dt_o        ) ,
-      .qp2_rdy_i          ( qpb_rdy_i         ) ,
+      .qp2_rdy_i          ( qp2_rdy_i         ) ,
       .qp2_dt1_i          ( qp2_dt_i[0]       ) ,
       .qp2_dt2_i          ( qp2_dt_i[1]       ) ,
       .qp2_vld_i          ( qp2_vld_i         ) ,
@@ -654,6 +660,115 @@ reg qcom_rdy_i, qpb_rdy_i;
 
 
    //--------------------------------------
+   // Qubit Emulator
+   //--------------------------------------
+
+   wire  [5:0]       s_axi_qemu_araddr;
+   wire  [2:0]       s_axi_qemu_arprot;
+   wire              s_axi_qemu_arready;
+   wire              s_axi_qemu_arvalid;
+   wire  [5:0]       s_axi_qemu_awaddr;
+   wire  [2:0]       s_axi_qemu_awprot;
+   wire              s_axi_qemu_awready;
+   wire              s_axi_qemu_awvalid;
+   wire              s_axi_qemu_bready;
+   wire  [1:0]       s_axi_qemu_bresp;
+   wire              s_axi_qemu_bvalid;
+   wire  [31:0]      s_axi_qemu_rdata;
+   wire              s_axi_qemu_rready;
+   wire  [1:0]       s_axi_qemu_rresp;
+   wire              s_axi_qemu_rvalid;
+   wire  [31:0]      s_axi_qemu_wdata;
+   wire              s_axi_qemu_wready;
+   wire  [3:0]       s_axi_qemu_wstrb;
+   wire              s_axi_qemu_wvalid;
+   
+   // AXI VIP master address.
+   xil_axi_ulong   QEMU_DDS_BVAL_REG     = 4 * 0;
+   xil_axi_ulong   QEMU_DDS_SLOPE_REG    = 4 * 1;
+   xil_axi_ulong   QEMU_DDS_STEPS_REG    = 4 * 2;
+   xil_axi_ulong   QEMU_DDS_WAIT_REG     = 4 * 3;
+   xil_axi_ulong   QEMU_DDS_FREQ_REG     = 4 * 4;
+   xil_axi_ulong   QEMU_IIR_C0_REG       = 4 * 5;
+   xil_axi_ulong   QEMU_IIR_C1_REG       = 4 * 6;
+   xil_axi_ulong   QEMU_IIR_G_REG        = 4 * 7;
+   xil_axi_ulong   QEMU_OUTSEL_REG       = 4 * 8;
+   xil_axi_ulong   QEMU_PUNCT_ID_REG     = 4 * 9;
+   xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
+   xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
+
+
+   axi_mst_0 u_axi_mst_qemu_0 (
+      .aclk          (s_ps_dma_aclk       ),
+      .aresetn       (s_ps_dma_aresetn    ),
+      .m_axi_araddr  (s_axi_qemu_araddr    ),
+      .m_axi_arprot  (s_axi_qemu_arprot    ),
+      .m_axi_arready (s_axi_qemu_arready   ),
+      .m_axi_arvalid (s_axi_qemu_arvalid   ),
+      .m_axi_awaddr  (s_axi_qemu_awaddr    ),
+      .m_axi_awprot  (s_axi_qemu_awprot    ),
+      .m_axi_awready (s_axi_qemu_awready   ),
+      .m_axi_awvalid (s_axi_qemu_awvalid   ),
+      .m_axi_bready  (s_axi_qemu_bready    ),
+      .m_axi_bresp   (s_axi_qemu_bresp     ),
+      .m_axi_bvalid  (s_axi_qemu_bvalid    ),
+      .m_axi_rdata   (s_axi_qemu_rdata     ),
+      .m_axi_rready  (s_axi_qemu_rready    ),
+      .m_axi_rresp   (s_axi_qemu_rresp     ),
+      .m_axi_rvalid  (s_axi_qemu_rvalid    ),
+      .m_axi_wdata   (s_axi_qemu_wdata     ),
+      .m_axi_wready  (s_axi_qemu_wready    ),
+      .m_axi_wstrb   (s_axi_qemu_wstrb     ),
+      .m_axi_wvalid  (s_axi_qemu_wvalid    )
+   );
+
+   axis_kidsim_v3 #(
+      .L                      (1)   // Number of lanes.
+   )
+   u_axis_kidsim_v3 (
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk             (s_ps_dma_aclk),
+      .s_axi_aresetn          (s_ps_dma_aresetn),
+      .s_axi_araddr           (s_axi_qemu_araddr    ),
+      .s_axi_arprot           (s_axi_qemu_arprot    ),
+      .s_axi_arready          (s_axi_qemu_arready   ),
+      .s_axi_arvalid          (s_axi_qemu_arvalid   ),
+      .s_axi_awaddr           (s_axi_qemu_awaddr    ),
+      .s_axi_awprot           (s_axi_qemu_awprot    ),
+      .s_axi_awready          (s_axi_qemu_awready   ),
+      .s_axi_awvalid          (s_axi_qemu_awvalid   ),
+      .s_axi_bready           (s_axi_qemu_bready    ),
+      .s_axi_bresp            (s_axi_qemu_bresp     ),
+      .s_axi_bvalid           (s_axi_qemu_bvalid    ),
+      .s_axi_rdata            (s_axi_qemu_rdata     ),
+      .s_axi_rready           (s_axi_qemu_rready    ),
+      .s_axi_rresp            (s_axi_qemu_rresp     ),
+      .s_axi_rvalid           (s_axi_qemu_rvalid    ),
+      .s_axi_wdata            (s_axi_qemu_wdata     ),
+      .s_axi_wready           (s_axi_qemu_wready    ),
+      .s_axi_wstrb            (s_axi_qemu_wstrb     ),
+      .s_axi_wvalid           (s_axi_qemu_wvalid    ),
+
+      // Modulation trigger.
+      .trigger                (trigger_0           ),
+
+      // Reset and clock for axis_*.
+      .aresetn                (s_ps_dma_aresetn    ),
+      .aclk                   (s_ps_dma_aclk       ),
+
+      // s_axis_* for input.
+      .s_axis_tvalid          (axis_adc_ro_tvalid_dly),
+      .s_axis_tdata           (axis_adc_ro_tdata_dly),   // width: 32*L
+      .s_axis_tlast           (),
+
+      // m_axis_* for output.
+      .m_axis_tvalid          (),
+      .m_axis_tdata           (),   // width: 32*L
+      .m_axis_tlast           ()
+   );
+
+
+   //--------------------------------------
    // READOUT
    //--------------------------------------
 
@@ -894,11 +1009,11 @@ initial begin
    qnet_dt_i               = '{default:'0} ;
    rst_ni                  = 1'b0;
    axi_dt                  = 0 ;
-   axis_dma_start          = 1'b0;
+   // axis_dma_start          = 1'b0;
    s1_axis_tvalid          = 1'b0 ;
    port_1_dt_i             = 0;
    qcom_rdy_i              = 0 ;
-   qpb_rdy_i               = 0 ;
+   qp2_rdy_i               = 0 ;
    periph_dt_i             = {0,0} ;
    qnet_rdy_i              = 0 ;
    qnet_dt_i [2]           = {0,0} ;
@@ -910,7 +1025,7 @@ initial begin
    time_init_i             = 1'b0;
    time_updt_i             = 1'b0;
    offset_dt_i             = 0 ;
-   periph_vld_i            = 1'b0;
+   // periph_vld_i            = 1'b0;
 
    tb_load_mem             = 1'b0;
    tb_load_mem_done        = 1'b0;
@@ -920,7 +1035,7 @@ initial begin
 
 
    m_dma_axis_tready_i     = 1'b1; 
-   max_value               = 0;
+   // max_value               = 0;
    #10ns;
 
    // Hold Reset
@@ -961,7 +1076,7 @@ initial begin
 
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
-      #10us;
+      #(TEST_TIME);
 
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
 
@@ -1000,6 +1115,29 @@ initial begin
    $finish();
 end
 
+initial begin
+   integer N;
+   if (TEST_NAME == "test_tproc_basic") begin
+      TEST_TIME = 50us;
+      $display("*** %t - Start test_tproc_basic Test ***", $realtime());
+      N = 10;
+      wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+      while (N < 48) begin
+         N = N+1;
+         $display("*** %t - Changing time_abs to get to %0d ***", $realtime(), (2**N)-100);
+
+         force tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT = (2**N)-100;
+         #100ns;
+         release tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT;
+
+         $display("*** Waiting for trigger ***");
+         wait (tb_qick.AXIS_QPROC.trig_0_o);
+         $display("*** %t - Waiting for time_abs to get to %0d ***", $realtime(), 2**N+100);
+         wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+      end
+      $display("*** %t - End of test_tproc_basic Test ***", $realtime());
+   end
+end
 
 task WRITE_AXI(integer PORT_AXI, DATA_AXI);
    $display("Running WRITE_AXI() Task");
