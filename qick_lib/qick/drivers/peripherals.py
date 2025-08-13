@@ -5,7 +5,6 @@ Drivers for qick_processor Peripherals.
 from pynq.buffer import allocate
 import numpy as np
 from qick.ip import SocIP
-import re
 
 class QICK_Time_Tagger(SocIP):
     """
@@ -25,6 +24,8 @@ class QICK_Time_Tagger(SocIP):
 
         # DMA block
         self.dma = None
+        self.switch = None
+        self.switch_ch = None
 
         # DMA buffer
         self.buff_rd = None
@@ -78,8 +79,11 @@ class QICK_Time_Tagger(SocIP):
     def configure_connections(self, soc):
         self.cfg['f_fabric'] = soc.metadata.get_fclk(self['fullpath'], 'adc_clk')
 
-        ((block, port),) = soc.metadata.trace_bus(self['fullpath'], "m_axis_dma")
-        self.dma = soc._get_block(block)
+        # which switch_avg port does this buffer drive?
+        dma_path, switch_path, self.switch_ch = soc.metadata.trace_dma('forward', self['fullpath'], 'm_axis_dma')
+        self.dma = soc._get_block(dma_path)
+        if switch_path is not None:
+            self.switch = soc._get_block(switch_path)
 
         dma_maxlen = 2**int(self.dma.description["parameters"]["c_sg_length_width"])//4 - 1
         buflen = max(self['tag_mem_size'], self['arm_mem_size'], self['smp_mem_size'])
@@ -134,6 +138,9 @@ class QICK_Time_Tagger(SocIP):
             print('No Data to read in ', mem_sel)
             return np.array([])
         else:
+            # Route switch to channel.
+            if self.switch is not None:
+                self.switch.sel(slv=self.switch_ch)
             #Start DMA Transfer
             self.qtt_ctrl     = 32
             # DMA data.
