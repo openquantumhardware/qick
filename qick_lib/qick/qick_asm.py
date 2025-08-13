@@ -645,7 +645,7 @@ class QickConfig():
             fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
 
-    def us2cycles(self, us, gen_ch=None, ro_ch=None):
+    def us2cycles(self, us, gen_ch=None, ro_ch=None, as_float=False):
         """Converts microseconds to integer number of clock cycles.
         Uses tProc clock frequency by default.
         If gen_ch or ro_ch is specified, uses that generator/readout channel's fabric clock.
@@ -658,6 +658,8 @@ class QickConfig():
             generator channel (index in 'gens' list)
         ro_ch : int
             readout channel (index in 'readouts' list)
+        as_float : bool
+            leave as float, instead of rounding to int
 
         Returns
         -------
@@ -673,8 +675,10 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
-        #return np.int64(np.round(obtain(us)*fclk))
-        return to_int(obtain(us), fclk, parname='length')
+        if as_float:
+            return us/fclk
+        else:
+            return to_int(obtain(us), fclk, parname='length')
 
     def calc_mixer_freq(self, gen_ch, mixer_freq, nqz, ro_ch):
         """
@@ -1440,10 +1444,10 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # convert to number of samples
         lenreg *= samps_per_clk
@@ -1491,10 +1495,10 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # convert to number of samples
         lenreg *= samps_per_clk
