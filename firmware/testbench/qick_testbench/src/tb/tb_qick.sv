@@ -23,7 +23,7 @@ import axi_mst_0_pkg::*;
 `define DEBUG            3
 `define TNET             0
 `define QCOM             0
-`define CUSTOM_PERIPH    1
+`define CUSTOM_PERIPH    2
 `define LFSR             1
 `define DIVIDER          1
 `define ARITH            1
@@ -46,9 +46,11 @@ module tb_qick ();
 //----------------------------------------------------
 // string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
-string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_many_envelopes";
-// string TEST_NAME = "test_tproc_basic";
+string TEST_NAME = "test_tproc_basic";
+// string TEST_NAME = "test_issue359";
+// string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
 // Default TEST_TIME (time for the tProc execution)
@@ -58,7 +60,10 @@ time TEST_TIME = 10us;
 axi_mst_0_mst_t     axi_mst_tproc_agent;
 axi_mst_0_mst_t     axi_mst_sg_agent;
 axi_mst_0_mst_t     axi_mst_avg_agent;
+axi_mst_0_mst_t     axi_mst_qemu_agent;
 
+
+// AXI Master VIP variables
 xil_axi_prot_t  prot        = 0;
 reg[31:0]       data_wr     = 32'h12345678;
 xil_axi_resp_t  resp;
@@ -164,6 +169,7 @@ wire  [31:0]        qnet_d_dt_o ;
 reg                 qnet_rdy_i      ;
 reg  [31 :0]        qnet_dt_i [2]   ;
 reg  [31 :0]        qcom_dt_i [2]   ;
+
 reg  [31 :0]        qp1_dt_i [2]   ;
 reg  [31 :0]        qp2_dt_i [2]   ;
 
@@ -193,7 +199,7 @@ reg time_updt_i;
 
 wire [31:0] ps_debug_do;
 
-// Q Peripheral
+// Q Peripheral A loopback
 wire qp1_en_o;
 reg qp1_en_r;
 reg [31:0] qp1_a_dt_r, qp1_b_dt_r;
@@ -372,16 +378,16 @@ reg qcom_rdy_i, qp2_rdy_i;
       .qp1_vld_i          ( qp1_vld_i         ) ,
       .qp1_flag_i         ( qp1_flag_i        ) ,
       // QP2
-      .qp2_en_o           ( qp2_en_o          ) ,
-      .qp2_op_o           ( qp2_op_o          ) ,
-      .qp2_a_dt_o         ( qp2_a_dt_o        ) ,
-      .qp2_b_dt_o         ( qp2_b_dt_o        ) ,
-      .qp2_c_dt_o         ( qp2_c_dt_o        ) ,
-      .qp2_d_dt_o         ( qp2_d_dt_o        ) ,
-      .qp2_rdy_i          ( qp2_rdy_i         ) ,
-      .qp2_dt1_i          ( qp2_dt_i[0]       ) ,
-      .qp2_dt2_i          ( qp2_dt_i[1]       ) ,
-      .qp2_vld_i          ( qp2_vld_i         ) ,
+      .qp2_en_o           ( /*qp2_en_o   */   ) ,
+      .qp2_op_o           ( /*qp2_op_o   */   ) ,
+      .qp2_a_dt_o         ( /*qp2_a_dt_o */   ) ,
+      .qp2_b_dt_o         ( /*qp2_b_dt_o */   ) ,
+      .qp2_c_dt_o         ( /*qp2_c_dt_o */   ) ,
+      .qp2_d_dt_o         ( /*qp2_d_dt_o */   ) ,
+      .qp2_rdy_i          ( /*qp2_rdy_i  */   ) ,
+      .qp2_dt1_i          ( /*qp2_dt_i[0]*/   ) ,
+      .qp2_dt2_i          ( /*qp2_dt_i[1]*/   ) ,
+      .qp2_vld_i          ( /*qp2_vld_i  */   ) ,
       // DMA AXIS FOR READ AND WRITE MEMORY
       .s_dma_axis_tdata_i   ( s_dma_axis_tdata_i  ) ,
       .s_dma_axis_tlast_i   ( s_dma_axis_tlast_i  ) ,
@@ -983,6 +989,13 @@ initial begin
    // Start agents.
    axi_mst_avg_agent.start_master();
 
+   // Create agents.
+   axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
+   // Set tag for agents.
+   axi_mst_qemu_agent.set_agent_tag("axi_mst_qemu_0 VIP");
+   // Start agents.
+   axi_mst_qemu_agent.start_master();
+
    $display("*** Start Test ***");
    
    $display("AXI_WDATA_WIDTH %0d",  `AXI_WDATA_WIDTH);
@@ -1119,23 +1132,49 @@ initial begin
    integer N;
    if (TEST_NAME == "test_tproc_basic") begin
       TEST_TIME = 50us;
-      $display("*** %t - Start test_tproc_basic Test ***", $realtime());
-      N = 10;
-      wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
-      while (N < 48) begin
-         N = N+1;
-         $display("*** %t - Changing time_abs to get to %0d ***", $realtime(), (2**N)-100);
-
-         force tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT = (2**N)-100;
-         #100ns;
-         release tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT;
-
-         $display("*** Waiting for trigger ***");
-         wait (tb_qick.AXIS_QPROC.trig_0_o);
-         $display("*** %t - Waiting for time_abs to get to %0d ***", $realtime(), 2**N+100);
+      forever begin
+         $display("*** %t - Start test_tproc_basic Test ***", $realtime());
+         wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b1);
+         N = 11;
          wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+         fork
+            begin
+               while (N < 48) begin
+                  N = N+1;
+                  
+                  // Force time_abs
+                  $display("*** %t - Changing time_abs to get to %0u ***", $realtime(), (2**N)-100);
+                  force tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT = (2**N)-100;
+                  #100ns;
+                  release tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT;
+         
+                  $display("*** Waiting for trigger ***");
+                  wait (tb_qick.AXIS_QPROC.trig_0_o);
+
+                  $display("*** %t - Waiting for time_abs to get to %0u ***", $realtime(), 2**N+100);
+                  wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+               end
+            end
+            begin
+               integer M = 31;
+               logic [47:0] new_ref_time;
+               while (M < 48) begin
+                  $display("*** %t - Waiting for r15 == %0d ***", $realtime(), M);
+                  wait (tb_qick.AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[15] == M);
+                  new_ref_time = 2**M;
+
+                  $display("*** %t - Changing c_time_ref_dt to get to %0u ***", $realtime(), new_ref_time);
+                  force tb_qick.AXIS_QPROC.QPROC.c_time_ref_dt = new_ref_time;
+                  #100ns;
+                  release tb_qick.AXIS_QPROC.QPROC.c_time_ref_dt;
+
+                  M = M + 1;
+               end
+            end
+         join
+         $display("*** %t - End of test_tproc_basic Test ***", $realtime());
+         wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b0);
       end
-      $display("*** %t - End of test_tproc_basic Test ***", $realtime());
    end
 end
 
@@ -1172,7 +1211,7 @@ task tproc_load_mem(string test_name);
 
    $display("### Task sg_load_mem() end ###");
 
-endtask;
+endtask
 
 
 // Load pulse data into memory.
@@ -1230,5 +1269,65 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
 endtask
 
 
+task qubit_emulator_config();
+
+   // soc.config_resonator(c0=0.85, c1=0.8, verbose=True)
+      // SimuChain: f = 500.0 MHz, fd = -114.39999999999998 MHz, k = 232, fdds = 0.8000000000000114 MHz
+      // AxisKidsimV3: sel        = resonator
+      // AxisKidsimV3: channel    = 232
+      // AxisKidsimV3: lane       = 0
+      // AxisKidsimV3: punct_id   = 29
+      // AxisKidsimV3: iir_c0     = 0.85
+      // AxisKidsimV3: iir_c1     = 0.8
+      // AxisKidsimV3: iir_g      = 0.9729729729729729
+      // AxisKidsimV3: dds_freq   = 0.8000000000000114
+      // AxisKidsimV3: dds_wait   = 95
+      // AxisKidsimV3: sweep_freq = 2.0
+      // AxisKidsimV3: sweep_time = 10.0
+      // AxisKidsimV3: nstep      = 1
+      // freq = 5461, bval = 13653, slope = 13653, steps = 1, wait = 95
+      // c0 = 27853, c1 = 26214, g = 31882
+      // sel = 0, punct_id = 29, addr = 0
+      // def config_resonator(self, simu_ch=0, q_adc=6, q_dac=0, f=500.0, df=2.0, dt=10.0, c0=0.99, c1=0.8, verbose=False):
+         // simu.set_resonator(cfg, verbose=verbose)
+            // kidsim_b.set_resonator(cfg, verbose=verbose)
+               // self.set_resonator_config(config, verbose)
+               // self.set_resonator_regs(config, verbose)
+
+   real     qemu_f      = 500.0;    // in MHz
+   real     qemu_df     = 2.0;      // in MHz
+   real     qemu_dt     = 10.0;     // in us
+   real     qemu_c0     = 0.85;
+   real     qemu_c1     = 0.8;
+   real     qemu_g      = 0.9;
+   integer  qemu_sel    = 0;        // 0: 'resonator', 1: 'dds', 2: 'bypass'
+
+   // xil_axi_ulong   QEMU_DDS_BVAL_REG     = 4 * 0;
+   // xil_axi_ulong   QEMU_DDS_SLOPE_REG    = 4 * 1;
+   // xil_axi_ulong   QEMU_DDS_STEPS_REG    = 4 * 2;
+   // xil_axi_ulong   QEMU_DDS_WAIT_REG     = 4 * 3;
+   // xil_axi_ulong   QEMU_DDS_FREQ_REG     = 4 * 4;
+   // xil_axi_ulong   QEMU_IIR_C0_REG       = 4 * 5;
+   // xil_axi_ulong   QEMU_IIR_C1_REG       = 4 * 6;
+   // xil_axi_ulong   QEMU_IIR_G_REG        = 4 * 7;
+   // xil_axi_ulong   QEMU_OUTSEL_REG       = 4 * 8;
+   // xil_axi_ulong   QEMU_PUNCT_ID_REG     = 4 * 9;
+   // xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
+   // xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
+
+   data_wr = qemu_c0 * 2**16-1;
+   axi_mst_qemu_agent.AXI4LITE_WRITE_BURST(QEMU_IIR_C0_REG, prot, data_wr, resp);
+   #100ns;
+
+   data_wr = qemu_c1 * 2**16-1;
+   axi_mst_qemu_agent.AXI4LITE_WRITE_BURST(QEMU_IIR_C1_REG, prot, data_wr, resp);
+   #100ns;
+
+   data_wr = qemu_g * 2**16-1;
+   axi_mst_qemu_agent.AXI4LITE_WRITE_BURST(QEMU_IIR_G_REG, prot, data_wr, resp);
+   #100ns;
+
+
+endtask
 
 endmodule
