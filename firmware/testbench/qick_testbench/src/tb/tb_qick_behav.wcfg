@@ -15,18 +15,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="36.315501 us"></ZoomEndTime>
-      <Cursor1Time time="36.315500 us"></Cursor1Time>
+      <ZoomStartTime time="13,338.388 ns"></ZoomStartTime>
+      <ZoomEndTime time="13,486.020 ns"></ZoomEndTime>
+      <Cursor1Time time="13,412.500 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="218"></NameColumnWidth>
-      <ValueColumnWidth column_width="93"></ValueColumnWidth>
+      <NameColumnWidth column_width="243"></NameColumnWidth>
+      <ValueColumnWidth column_width="131"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="7" />
-   <wave_markers>
-      <marker label="" time="13229622" />
-   </wave_markers>
+   <WVObjectSize size="9" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -58,6 +55,7 @@
    <wvobject type="group" fp_name="group500">
       <obj_property name="label">TPROC_V2</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/proc_start_i">
          <obj_property name="ElementShortName">proc_start_i</obj_property>
          <obj_property name="ObjectShortName">proc_start_i</obj_property>
@@ -77,6 +75,748 @@
          <obj_property name="ObjectShortName">time_st[31:0]</obj_property>
          <obj_property name="CustomSignalColor">#FF00FF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/stall">
+         <obj_property name="ElementShortName">stall</obj_property>
+         <obj_property name="ObjectShortName">stall</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/stall_rd_core_rdt">
+         <obj_property name="ElementShortName">stall_rd_core_rdt</obj_property>
+         <obj_property name="ObjectShortName">stall_rd_core_rdt</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/wto_qp">
+         <obj_property name="ElementShortName">wto_qp</obj_property>
+         <obj_property name="ObjectShortName">wto_qp</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/rfrom_core_r">
+         <obj_property name="ElementShortName">rfrom_core_r[1:0]</obj_property>
+         <obj_property name="ObjectShortName">rfrom_core_r[1:0]</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/rd_periph_use">
+         <obj_property name="ElementShortName">rd_periph_use</obj_property>
+         <obj_property name="ObjectShortName">rd_periph_use</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/x1_periph_use">
+         <obj_property name="ElementShortName">x1_periph_use</obj_property>
+         <obj_property name="ObjectShortName">x1_periph_use</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/ctrl_hzrd/x2_periph_use">
+         <obj_property name="ElementShortName">x2_periph_use</obj_property>
+         <obj_property name="ObjectShortName">x2_periph_use</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/rd_stage_keep">
+         <obj_property name="ElementShortName">rd_stage_keep</obj_property>
+         <obj_property name="ObjectShortName">rd_stage_keep</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/bubble_id">
+         <obj_property name="ElementShortName">bubble_id</obj_property>
+         <obj_property name="ObjectShortName">bubble_id</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/bubble_rd">
+         <obj_property name="ElementShortName">bubble_rd</obj_property>
+         <obj_property name="ObjectShortName">bubble_rd</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/\QPER_ARITH.ARITH /ready_o">
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="ElementShortName">ready_o</obj_property>
+         <obj_property name="ObjectShortName">ready_o</obj_property>
+         <obj_property name="label">arith.ready_o</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/halt">
+         <obj_property name="ElementShortName">halt</obj_property>
+         <obj_property name="ObjectShortName">halt</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1522">
+         <obj_property name="label">REGS</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt">
+            <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt">
+            <obj_property name="ElementShortName">dreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">dreg_32_dt[0:15][31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt">
+            <obj_property name="ElementShortName">wreg_32_dt[0:5][31:0]</obj_property>
+            <obj_property name="ObjectShortName">wreg_32_dt[0:5][31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[1]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="label">s1_rand[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[11]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[11][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[11][31:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+            <obj_property name="label">s11[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[12]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[12][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[12][31:0]</obj_property>
+            <obj_property name="label">s12[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[0]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[0][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[0][31:0]</obj_property>
+            <obj_property name="label">r0_reps[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[1]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[1][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="label">r1_seed[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[2]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[2][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[2][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="label">r2_loop[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[3]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[3][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[3][31:0]</obj_property>
+            <obj_property name="label">r3_rand[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[4]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[4][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[4][31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <obj_property name="label">r4_wave_idx[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[9]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[9][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[9][31:0]</obj_property>
+            <obj_property name="label">r9[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[10]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[10][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[10][31:0]</obj_property>
+            <obj_property name="label">r10[31:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[15]">
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="ElementShortName">[15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[15][31:0]</obj_property>
+            <obj_property name="label">r15[31:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group1468">
+         <obj_property name="label">PMEM</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_MEM/P_MEM/addr_a_i">
+            <obj_property name="ElementShortName">addr_a_i[11:0]</obj_property>
+            <obj_property name="ObjectShortName">addr_a_i[11:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_MEM/P_MEM/dt_a_o">
+            <obj_property name="ElementShortName">dt_a_o[71:0]</obj_property>
+            <obj_property name="ObjectShortName">dt_a_o[71:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/r_if_op_code">
+            <obj_property name="ElementShortName">r_if_op_code[15:0]</obj_property>
+            <obj_property name="ObjectShortName">r_if_op_code[15:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/r_if_op_data">
+            <obj_property name="ElementShortName">r_if_op_data[55:0]</obj_property>
+            <obj_property name="ObjectShortName">r_if_op_data[55:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group1521">
+         <obj_property name="label">TIME</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/c_time_usr">
+            <obj_property name="ElementShortName">c_time_usr[31:0]</obj_property>
+            <obj_property name="ObjectShortName">c_time_usr[31:0]</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/c_time_ref_dt">
+            <obj_property name="ElementShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="ObjectShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/c_time_ref_dt">
+            <obj_property name="ElementShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="ObjectShortName">c_time_ref_dt[47:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/time_abs_o">
+            <obj_property name="ElementShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="ObjectShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/time_abs_o">
+            <obj_property name="ElementShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="ObjectShortName">time_abs_o[47:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group3200">
+         <obj_property name="label">QPA</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp1_en_o">
+            <obj_property name="ElementShortName">qp1_en_o</obj_property>
+            <obj_property name="ObjectShortName">qp1_en_o</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_op_o">
+            <obj_property name="ElementShortName">qp1_op_o[4:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_op_o[4:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_a_dt_o">
+            <obj_property name="ElementShortName">qp1_a_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_a_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_b_dt_o">
+            <obj_property name="ElementShortName">qp1_b_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_b_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_c_dt_o">
+            <obj_property name="ElementShortName">qp1_c_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_c_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_d_dt_o">
+            <obj_property name="ElementShortName">qp1_d_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_d_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp1_rdy_i">
+            <obj_property name="ElementShortName">qp1_rdy_i</obj_property>
+            <obj_property name="ObjectShortName">qp1_rdy_i</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp1_vld_i">
+            <obj_property name="ElementShortName">qp1_vld_i</obj_property>
+            <obj_property name="ObjectShortName">qp1_vld_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_dt1_i">
+            <obj_property name="ElementShortName">qp1_dt1_i[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_dt1_i[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp1_dt2_i">
+            <obj_property name="ElementShortName">qp1_dt2_i[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp1_dt2_i[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp1_flag_i">
+            <obj_property name="ElementShortName">qp1_flag_i</obj_property>
+            <obj_property name="ObjectShortName">qp1_flag_i</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group3194">
+         <obj_property name="label">QPB</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp2_en_o">
+            <obj_property name="ElementShortName">qp2_en_o</obj_property>
+            <obj_property name="ObjectShortName">qp2_en_o</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_op_o">
+            <obj_property name="ElementShortName">qp2_op_o[4:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_op_o[4:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_a_dt_o">
+            <obj_property name="ElementShortName">qp2_a_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_a_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_b_dt_o">
+            <obj_property name="ElementShortName">qp2_b_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_b_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_c_dt_o">
+            <obj_property name="ElementShortName">qp2_c_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_c_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_d_dt_o">
+            <obj_property name="ElementShortName">qp2_d_dt_o[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_d_dt_o[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp2_rdy_i">
+            <obj_property name="ElementShortName">qp2_rdy_i</obj_property>
+            <obj_property name="ObjectShortName">qp2_rdy_i</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/qp2_vld_i">
+            <obj_property name="ElementShortName">qp2_vld_i</obj_property>
+            <obj_property name="ObjectShortName">qp2_vld_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_dt1_i">
+            <obj_property name="ElementShortName">qp2_dt1_i[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_dt1_i[31:0]</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/qp2_dt2_i">
+            <obj_property name="ElementShortName">qp2_dt2_i[31:0]</obj_property>
+            <obj_property name="ObjectShortName">qp2_dt2_i[31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/some_fifo_full">
+         <obj_property name="ElementShortName">some_fifo_full</obj_property>
+         <obj_property name="ObjectShortName">some_fifo_full</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/all_fifo_full">
+         <obj_property name="ElementShortName">all_fifo_full</obj_property>
+         <obj_property name="ObjectShortName">all_fifo_full</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group2246">
+         <obj_property name="label">TRIG_DISPATCHER_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /push_i">
+            <obj_property name="ElementShortName">push_i</obj_property>
+            <obj_property name="ObjectShortName">push_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_i">
+            <obj_property name="ElementShortName">data_i[48:0]</obj_property>
+            <obj_property name="ObjectShortName">data_i[48:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /pop_i">
+            <obj_property name="ElementShortName">pop_i</obj_property>
+            <obj_property name="ObjectShortName">pop_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o">
+            <obj_property name="ElementShortName">data_o[48:0]</obj_property>
+            <obj_property name="ObjectShortName">data_o[48:0]</obj_property>
+         </wvobject>
+         <wvobject type="vbus" fp_name="vbus2296">
+            <obj_property name="label">trigger_0_time</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[47]">
+               <obj_property name="ElementShortName">[47]</obj_property>
+               <obj_property name="ObjectShortName">[47]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[46]">
+               <obj_property name="ElementShortName">[46]</obj_property>
+               <obj_property name="ObjectShortName">[46]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[45]">
+               <obj_property name="ElementShortName">[45]</obj_property>
+               <obj_property name="ObjectShortName">[45]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[44]">
+               <obj_property name="ElementShortName">[44]</obj_property>
+               <obj_property name="ObjectShortName">[44]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[43]">
+               <obj_property name="ElementShortName">[43]</obj_property>
+               <obj_property name="ObjectShortName">[43]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[42]">
+               <obj_property name="ElementShortName">[42]</obj_property>
+               <obj_property name="ObjectShortName">[42]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[41]">
+               <obj_property name="ElementShortName">[41]</obj_property>
+               <obj_property name="ObjectShortName">[41]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[40]">
+               <obj_property name="ElementShortName">[40]</obj_property>
+               <obj_property name="ObjectShortName">[40]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[39]">
+               <obj_property name="ElementShortName">[39]</obj_property>
+               <obj_property name="ObjectShortName">[39]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[38]">
+               <obj_property name="ElementShortName">[38]</obj_property>
+               <obj_property name="ObjectShortName">[38]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[37]">
+               <obj_property name="ElementShortName">[37]</obj_property>
+               <obj_property name="ObjectShortName">[37]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[36]">
+               <obj_property name="ElementShortName">[36]</obj_property>
+               <obj_property name="ObjectShortName">[36]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[35]">
+               <obj_property name="ElementShortName">[35]</obj_property>
+               <obj_property name="ObjectShortName">[35]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[34]">
+               <obj_property name="ElementShortName">[34]</obj_property>
+               <obj_property name="ObjectShortName">[34]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[33]">
+               <obj_property name="ElementShortName">[33]</obj_property>
+               <obj_property name="ObjectShortName">[33]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[32]">
+               <obj_property name="ElementShortName">[32]</obj_property>
+               <obj_property name="ObjectShortName">[32]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[31]">
+               <obj_property name="ElementShortName">[31]</obj_property>
+               <obj_property name="ObjectShortName">[31]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[30]">
+               <obj_property name="ElementShortName">[30]</obj_property>
+               <obj_property name="ObjectShortName">[30]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[29]">
+               <obj_property name="ElementShortName">[29]</obj_property>
+               <obj_property name="ObjectShortName">[29]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[28]">
+               <obj_property name="ElementShortName">[28]</obj_property>
+               <obj_property name="ObjectShortName">[28]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[27]">
+               <obj_property name="ElementShortName">[27]</obj_property>
+               <obj_property name="ObjectShortName">[27]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[26]">
+               <obj_property name="ElementShortName">[26]</obj_property>
+               <obj_property name="ObjectShortName">[26]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[25]">
+               <obj_property name="ElementShortName">[25]</obj_property>
+               <obj_property name="ObjectShortName">[25]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[24]">
+               <obj_property name="ElementShortName">[24]</obj_property>
+               <obj_property name="ObjectShortName">[24]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[23]">
+               <obj_property name="ElementShortName">[23]</obj_property>
+               <obj_property name="ObjectShortName">[23]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[22]">
+               <obj_property name="ElementShortName">[22]</obj_property>
+               <obj_property name="ObjectShortName">[22]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[21]">
+               <obj_property name="ElementShortName">[21]</obj_property>
+               <obj_property name="ObjectShortName">[21]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[20]">
+               <obj_property name="ElementShortName">[20]</obj_property>
+               <obj_property name="ObjectShortName">[20]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[19]">
+               <obj_property name="ElementShortName">[19]</obj_property>
+               <obj_property name="ObjectShortName">[19]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[18]">
+               <obj_property name="ElementShortName">[18]</obj_property>
+               <obj_property name="ObjectShortName">[18]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[17]">
+               <obj_property name="ElementShortName">[17]</obj_property>
+               <obj_property name="ObjectShortName">[17]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[16]">
+               <obj_property name="ElementShortName">[16]</obj_property>
+               <obj_property name="ObjectShortName">[16]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[15]">
+               <obj_property name="ElementShortName">[15]</obj_property>
+               <obj_property name="ObjectShortName">[15]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[14]">
+               <obj_property name="ElementShortName">[14]</obj_property>
+               <obj_property name="ObjectShortName">[14]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[13]">
+               <obj_property name="ElementShortName">[13]</obj_property>
+               <obj_property name="ObjectShortName">[13]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[12]">
+               <obj_property name="ElementShortName">[12]</obj_property>
+               <obj_property name="ObjectShortName">[12]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[11]">
+               <obj_property name="ElementShortName">[11]</obj_property>
+               <obj_property name="ObjectShortName">[11]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[10]">
+               <obj_property name="ElementShortName">[10]</obj_property>
+               <obj_property name="ObjectShortName">[10]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[9]">
+               <obj_property name="ElementShortName">[9]</obj_property>
+               <obj_property name="ObjectShortName">[9]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[8]">
+               <obj_property name="ElementShortName">[8]</obj_property>
+               <obj_property name="ObjectShortName">[8]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[7]">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">[7]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[6]">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">[6]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[5]">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">[5]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[4]">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">[4]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[3]">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">[3]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[2]">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">[2]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[1]">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">[1]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /data_o[0]">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">[0]</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\TRIG_PORT[0].trig_fifo_inst /async_empty_o">
+            <obj_property name="ElementShortName">async_empty_o</obj_property>
+            <obj_property name="ObjectShortName">async_empty_o</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject type="group" fp_name="group1502">
+         <obj_property name="label">WAVE_DISPATCHER_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /push_i">
+            <obj_property name="ElementShortName">push_i</obj_property>
+            <obj_property name="ObjectShortName">push_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_i">
+            <obj_property name="ElementShortName">data_i[215:0]</obj_property>
+            <obj_property name="ObjectShortName">data_i[215:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /pop_i">
+            <obj_property name="ElementShortName">pop_i</obj_property>
+            <obj_property name="ObjectShortName">pop_i</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o">
+            <obj_property name="ElementShortName">data_o[215:0]</obj_property>
+            <obj_property name="ObjectShortName">data_o[215:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /async_empty_o">
+            <obj_property name="ElementShortName">async_empty_o</obj_property>
+            <obj_property name="ObjectShortName">async_empty_o</obj_property>
+         </wvobject>
+         <wvobject type="vbus" fp_name="vbus2900">
+            <obj_property name="label">wave_0_time</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[47]">
+               <obj_property name="ElementShortName">[47]</obj_property>
+               <obj_property name="ObjectShortName">[47]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[46]">
+               <obj_property name="ElementShortName">[46]</obj_property>
+               <obj_property name="ObjectShortName">[46]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[45]">
+               <obj_property name="ElementShortName">[45]</obj_property>
+               <obj_property name="ObjectShortName">[45]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[44]">
+               <obj_property name="ElementShortName">[44]</obj_property>
+               <obj_property name="ObjectShortName">[44]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[43]">
+               <obj_property name="ElementShortName">[43]</obj_property>
+               <obj_property name="ObjectShortName">[43]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[42]">
+               <obj_property name="ElementShortName">[42]</obj_property>
+               <obj_property name="ObjectShortName">[42]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[41]">
+               <obj_property name="ElementShortName">[41]</obj_property>
+               <obj_property name="ObjectShortName">[41]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[40]">
+               <obj_property name="ElementShortName">[40]</obj_property>
+               <obj_property name="ObjectShortName">[40]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[39]">
+               <obj_property name="ElementShortName">[39]</obj_property>
+               <obj_property name="ObjectShortName">[39]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[38]">
+               <obj_property name="ElementShortName">[38]</obj_property>
+               <obj_property name="ObjectShortName">[38]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[37]">
+               <obj_property name="ElementShortName">[37]</obj_property>
+               <obj_property name="ObjectShortName">[37]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[36]">
+               <obj_property name="ElementShortName">[36]</obj_property>
+               <obj_property name="ObjectShortName">[36]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[35]">
+               <obj_property name="ElementShortName">[35]</obj_property>
+               <obj_property name="ObjectShortName">[35]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[34]">
+               <obj_property name="ElementShortName">[34]</obj_property>
+               <obj_property name="ObjectShortName">[34]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[33]">
+               <obj_property name="ElementShortName">[33]</obj_property>
+               <obj_property name="ObjectShortName">[33]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[32]">
+               <obj_property name="ElementShortName">[32]</obj_property>
+               <obj_property name="ObjectShortName">[32]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[31]">
+               <obj_property name="ElementShortName">[31]</obj_property>
+               <obj_property name="ObjectShortName">[31]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[30]">
+               <obj_property name="ElementShortName">[30]</obj_property>
+               <obj_property name="ObjectShortName">[30]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[29]">
+               <obj_property name="ElementShortName">[29]</obj_property>
+               <obj_property name="ObjectShortName">[29]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[28]">
+               <obj_property name="ElementShortName">[28]</obj_property>
+               <obj_property name="ObjectShortName">[28]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[27]">
+               <obj_property name="ElementShortName">[27]</obj_property>
+               <obj_property name="ObjectShortName">[27]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[26]">
+               <obj_property name="ElementShortName">[26]</obj_property>
+               <obj_property name="ObjectShortName">[26]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[25]">
+               <obj_property name="ElementShortName">[25]</obj_property>
+               <obj_property name="ObjectShortName">[25]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[24]">
+               <obj_property name="ElementShortName">[24]</obj_property>
+               <obj_property name="ObjectShortName">[24]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[23]">
+               <obj_property name="ElementShortName">[23]</obj_property>
+               <obj_property name="ObjectShortName">[23]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[22]">
+               <obj_property name="ElementShortName">[22]</obj_property>
+               <obj_property name="ObjectShortName">[22]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[21]">
+               <obj_property name="ElementShortName">[21]</obj_property>
+               <obj_property name="ObjectShortName">[21]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[20]">
+               <obj_property name="ElementShortName">[20]</obj_property>
+               <obj_property name="ObjectShortName">[20]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[19]">
+               <obj_property name="ElementShortName">[19]</obj_property>
+               <obj_property name="ObjectShortName">[19]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[18]">
+               <obj_property name="ElementShortName">[18]</obj_property>
+               <obj_property name="ObjectShortName">[18]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[17]">
+               <obj_property name="ElementShortName">[17]</obj_property>
+               <obj_property name="ObjectShortName">[17]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[16]">
+               <obj_property name="ElementShortName">[16]</obj_property>
+               <obj_property name="ObjectShortName">[16]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[15]">
+               <obj_property name="ElementShortName">[15]</obj_property>
+               <obj_property name="ObjectShortName">[15]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[14]">
+               <obj_property name="ElementShortName">[14]</obj_property>
+               <obj_property name="ObjectShortName">[14]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[13]">
+               <obj_property name="ElementShortName">[13]</obj_property>
+               <obj_property name="ObjectShortName">[13]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[12]">
+               <obj_property name="ElementShortName">[12]</obj_property>
+               <obj_property name="ObjectShortName">[12]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[11]">
+               <obj_property name="ElementShortName">[11]</obj_property>
+               <obj_property name="ObjectShortName">[11]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[10]">
+               <obj_property name="ElementShortName">[10]</obj_property>
+               <obj_property name="ObjectShortName">[10]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[9]">
+               <obj_property name="ElementShortName">[9]</obj_property>
+               <obj_property name="ObjectShortName">[9]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[8]">
+               <obj_property name="ElementShortName">[8]</obj_property>
+               <obj_property name="ObjectShortName">[8]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[7]">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">[7]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[6]">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">[6]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[5]">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">[5]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[4]">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">[4]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[3]">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">[3]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[2]">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">[2]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[1]">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">[1]</obj_property>
+            </wvobject>
+            <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/QPROC/DISPATCHER/\WAVE_PORT[0].wave_fifo_inst /data_o[0]">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">[0]</obj_property>
+            </wvobject>
+         </wvobject>
       </wvobject>
       <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/s0_axis_tdata">
          <obj_property name="ElementShortName">s0_axis_tdata[63:0]</obj_property>
@@ -105,11 +845,6 @@
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/trig_0_o">
          <obj_property name="ElementShortName">trig_0_o</obj_property>
          <obj_property name="ObjectShortName">trig_0_o</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/AXIS_QPROC/QPROC/time_abs_o">
-         <obj_property name="ElementShortName">time_abs_o[47:0]</obj_property>
-         <obj_property name="ObjectShortName">time_abs_o[47:0]</obj_property>
-         <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group531">
@@ -142,6 +877,38 @@
       <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/aclk">
          <obj_property name="ElementShortName">aclk</obj_property>
          <obj_property name="ObjectShortName">aclk</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1352">
+         <obj_property name="label">SG_FIFO</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/clk">
+            <obj_property name="ElementShortName">clk</obj_property>
+            <obj_property name="ObjectShortName">clk</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/wr_en">
+            <obj_property name="ElementShortName">wr_en</obj_property>
+            <obj_property name="ObjectShortName">wr_en</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/din">
+            <obj_property name="ElementShortName">din[159:0]</obj_property>
+            <obj_property name="ObjectShortName">din[159:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/full">
+            <obj_property name="ElementShortName">full</obj_property>
+            <obj_property name="ObjectShortName">full</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/rd_en">
+            <obj_property name="ElementShortName">rd_en</obj_property>
+            <obj_property name="ObjectShortName">rd_en</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/dout">
+            <obj_property name="ElementShortName">dout[159:0]</obj_property>
+            <obj_property name="ObjectShortName">dout[159:0]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/empty">
+            <obj_property name="ElementShortName">empty</obj_property>
+            <obj_property name="ObjectShortName">empty</obj_property>
+         </wvobject>
       </wvobject>
       <wvobject type="group" fp_name="group1024">
          <obj_property name="label">SG_CTRL</obj_property>
@@ -216,7 +983,6 @@
          <obj_property name="CellHeight">100</obj_property>
          <obj_property name="AnalogYRangeMin">-22340.400000</obj_property>
          <obj_property name="AnalogYRRangeMax">97658.600000</obj_property>
-         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
          <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
@@ -285,15 +1051,94 @@
             <obj_property name="ObjectShortName">[0]</obj_property>
          </wvobject>
       </wvobject>
+      <wvobject type="vbus" fp_name="vbus216">
+         <obj_property name="label">Imag_Data_0</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[31]">
+            <obj_property name="ElementShortName">[31]</obj_property>
+            <obj_property name="ObjectShortName">[31]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[30]">
+            <obj_property name="ElementShortName">[30]</obj_property>
+            <obj_property name="ObjectShortName">[30]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[29]">
+            <obj_property name="ElementShortName">[29]</obj_property>
+            <obj_property name="ObjectShortName">[29]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[28]">
+            <obj_property name="ElementShortName">[28]</obj_property>
+            <obj_property name="ObjectShortName">[28]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[27]">
+            <obj_property name="ElementShortName">[27]</obj_property>
+            <obj_property name="ObjectShortName">[27]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[26]">
+            <obj_property name="ElementShortName">[26]</obj_property>
+            <obj_property name="ObjectShortName">[26]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[25]">
+            <obj_property name="ElementShortName">[25]</obj_property>
+            <obj_property name="ObjectShortName">[25]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[24]">
+            <obj_property name="ElementShortName">[24]</obj_property>
+            <obj_property name="ObjectShortName">[24]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[23]">
+            <obj_property name="ElementShortName">[23]</obj_property>
+            <obj_property name="ObjectShortName">[23]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[22]">
+            <obj_property name="ElementShortName">[22]</obj_property>
+            <obj_property name="ObjectShortName">[22]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[21]">
+            <obj_property name="ElementShortName">[21]</obj_property>
+            <obj_property name="ObjectShortName">[21]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[20]">
+            <obj_property name="ElementShortName">[20]</obj_property>
+            <obj_property name="ObjectShortName">[20]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[19]">
+            <obj_property name="ElementShortName">[19]</obj_property>
+            <obj_property name="ObjectShortName">[19]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[18]">
+            <obj_property name="ElementShortName">[18]</obj_property>
+            <obj_property name="ObjectShortName">[18]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[17]">
+            <obj_property name="ElementShortName">[17]</obj_property>
+            <obj_property name="ObjectShortName">[17]</obj_property>
+         </wvobject>
+         <wvobject type="logic" fp_name="/tb_qick/u_axis_signal_gen_v6_0/m_axis_tdata[16]">
+            <obj_property name="ElementShortName">[16]</obj_property>
+            <obj_property name="ObjectShortName">[16]</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group582">
+      <obj_property name="label">DAC_MODEL</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
    <wvobject type="vbus" fp_name="vbus557">
       <obj_property name="label">axis_adc_ro_tdata_dly[15:0]</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
       <obj_property name="CellHeight">100</obj_property>
-      <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
-      <obj_property name="AnalogYRangeMin">0.000000</obj_property>
-      <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+      <obj_property name="AnalogYRangeMin">-2654</obj_property>
+      <obj_property name="AnalogYRRangeMax">4996</obj_property>
       <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
       <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
       <obj_property name="AnalogHorizLine">0.000000</obj_property>
@@ -686,6 +1531,67 @@
       <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/m2_axis_tdata">
          <obj_property name="ElementShortName">m2_axis_tdata[63:0]</obj_property>
          <obj_property name="ObjectShortName">m2_axis_tdata[63:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group1945">
+      <obj_property name="label">QUBIT_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="group" fp_name="group3171">
+         <obj_property name="label">QEMU_CONFIG_REGS</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus1844">
+         <obj_property name="label">qemu_in_real</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus1861">
+         <obj_property name="label">qemu_in_imag</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus1910">
+         <obj_property name="label">qemu_out_real</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
+      </wvobject>
+      <wvobject type="vbus" fp_name="vbus1927">
+         <obj_property name="label">qemu_out_imag</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+         <obj_property name="CellHeight">100</obj_property>
+         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
+         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
+         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
+         <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
+         <obj_property name="AnalogHorizLine">0.000000</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

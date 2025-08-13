@@ -40,8 +40,9 @@ import axi_mst_0_pkg::*;
 module tb_qick ();
 
 // Define Test to run
-string TEST_NAME = "test01";    // basic multi pulse
+// string TEST_NAME = "test01";    // basic multi pulse
 //string TEST_NAME = "test02";  // fast short pulses
+string TEST_NAME = "test_issue359";  // Test to replicate issue 359
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -1025,7 +1026,7 @@ task tproc_load_mem(string test_name);
 
    $display("### Task sg_load_mem() end ###");
 
-endtask;
+endtask
 
 
 // Load pulse data into memory.
