@@ -725,9 +725,9 @@ class RFDC(SocIP, xrfdc.RFdc):
         adc.CalFreeze['FreezeCalibration'] = 0
         if calblocks is None:
             if self['ip_type'] < self.XRFDC_GEN3:
-                calblocks = ['OCB1', 'OCB2', 'GCB', 'TSCB']
-            else:
                 calblocks = ['OCB2', 'GCB', 'TSCB']
+            else:
+                calblocks = ['OCB1', 'OCB2', 'GCB', 'TSCB']
         for calblock in calblocks:
             adc.DisableCoefficientsOverride(self.ADC_CAL_BLOCKS[calblock][0])
 
