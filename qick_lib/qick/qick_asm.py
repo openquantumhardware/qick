@@ -676,7 +676,7 @@ class QickConfig():
         else:
             fclk = self['tprocs'][0]['f_time']
         if as_float:
-            return us/fclk
+            return us * fclk
         else:
             return to_int(obtain(us), fclk, parname='length')
 
