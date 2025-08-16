@@ -97,11 +97,11 @@ def gauss(mu=0, si=25, length=100, maxv=30000):
     y = maxv * np.exp(-(x-mu)**2/(2*si**2))
     return y
 
-
-def DRAG(mu, si, length, maxv, delta, alpha):
+def DRAG(mu, si, length, maxv, delta, alpha, det):
     """
     Create I and Q arrays for a DRAG pulse.
     Based on QubiC and Qiskit-Pulse implementations.
+    Follows the definition in https://doi.org/10.1103/PhysRevLett.116.020501.
 
     :param mu: Mu (peak offset) of Gaussian
     :type mu: float
@@ -115,17 +115,25 @@ def DRAG(mu, si, length, maxv, delta, alpha):
     :type delta: float
     :param alpha: alpha parameter of DRAG (order-1 scale factor)
     :type alpha: float
+    :param det: constant detuning (units of 1/sample time)
+    :type det: float
     :return: Numpy array with I and Q components of the DRAG pulse
     :rtype: numpy.ndarray, numpy.ndarray
     """
     x = np.arange(0, length)
     gaus = maxv * np.exp(-(x-mu)**2/(2*si**2))
     # derivative of the gaussian
-    dgaus = -(x-mu)/(2*si**2)*gaus
-    idata = gaus
-    qdata = -1 * alpha * dgaus / delta
-    return idata, qdata
+    dgaus = -(x-mu)/(si**2)*gaus
 
+    ipulse = gaus
+    qpulse = -1 * alpha * dgaus / (2 * np.pi * (delta-det))
+
+    # mix the pulse with the detuning
+    idet = np.cos(2 * np.pi * det * x)
+    qdet = np.sin(2 * np.pi * det * x)
+    idata = ipulse*idet - qpulse*qdet
+    qdata = qpulse*idet + ipulse*qdet
+    return idata, qdata
 
 def triang(length=100, maxv=30000):
     """

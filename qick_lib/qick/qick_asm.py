@@ -645,7 +645,7 @@ class QickConfig():
             fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
 
-    def us2cycles(self, us, gen_ch=None, ro_ch=None):
+    def us2cycles(self, us, gen_ch=None, ro_ch=None, as_float=False):
         """Converts microseconds to integer number of clock cycles.
         Uses tProc clock frequency by default.
         If gen_ch or ro_ch is specified, uses that generator/readout channel's fabric clock.
@@ -658,6 +658,8 @@ class QickConfig():
             generator channel (index in 'gens' list)
         ro_ch : int
             readout channel (index in 'readouts' list)
+        as_float : bool
+            leave as float, instead of rounding to int
 
         Returns
         -------
@@ -673,8 +675,10 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
-        #return np.int64(np.round(obtain(us)*fclk))
-        return to_int(obtain(us), fclk, parname='length')
+        if as_float:
+            return us * fclk
+        else:
+            return to_int(obtain(us), fclk, parname='length')
 
     def calc_mixer_freq(self, gen_ch, mixer_freq, nqz, ro_ch):
         """
@@ -1440,10 +1444,10 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # convert to number of samples
         lenreg *= samps_per_clk
@@ -1451,8 +1455,10 @@ class AbsQickProgram(ABC):
 
         self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
-    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None, even_length=False):
-        """Adds a DRAG to the envelope library.
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, det=0, maxv=None, even_length=False):
+        """Adds a DRAG pulse to the envelope library.
+        DRAG with constant detuning is implemented as defined in https://doi.org/10.1103/PhysRevLett.116.020501.
+
         The envelope will peak at length/2.
 
         Parameters
@@ -1465,12 +1471,14 @@ class AbsQickProgram(ABC):
             Standard deviation of the Gaussian (in fabric clocks or us)
         length : int or float
             Total envelope length (in fabric clocks or us)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
         delta : float
-            anharmonicity of the qubit (units of MHz)
+            anharmonicity of the qubit, the difference between f_ge and f_ef (units of MHz)
         alpha : float
             alpha parameter of DRAG (order-1 scale factor)
+        det : float
+            constant detuning (units of MHz)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
         even_length : bool
             If length is in us, round the envelope length to an even number of fabric clock cycles.
             This is useful for flat_top pulses, where the envelope gets split into two halves.
@@ -1484,6 +1492,7 @@ class AbsQickProgram(ABC):
             sigma /= np.sqrt(2.0)
 
         delta /= samps_per_clk*f_fabric
+        det /= samps_per_clk*f_fabric
 
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
@@ -1491,16 +1500,16 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # convert to number of samples
         lenreg *= samps_per_clk
         sigreg *= samps_per_clk
 
-        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
+        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, delta=delta, alpha=alpha, det=det)
 
         self.add_envelope(ch, name, idata=idata, qdata=qdata)
 

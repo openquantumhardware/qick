@@ -68,7 +68,7 @@ Superconducting circuits - quantum acoustic systems
 * `Undershute, C. et al. Decoherence of surface phonons in a quantum acoustic system. (2024) <https://arxiv.org/abs/2410.03005>`_.
 
 Neutral atoms
-------------
+-------------
 * `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
 
 Spin defects
