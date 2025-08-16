@@ -2076,7 +2076,7 @@ class RFQickSoc111V1(RFQickSoc):
                 tile, block = [int(a) for a in gen['dac']]
                 gen.rfb_ch = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout.adc]
+                tile, block = [int(a) for a in avg_buf.readout['adc']]
                 avg_buf.rfb_ch = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f):
@@ -2253,7 +2253,7 @@ class RFQickSoc216V1(RFQickSoc):
                     gen.rfb_ch = None
             # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
             for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout.adc]
+                tile, block = [int(a) for a in avg_buf.readout['adc']]
                 card = self.adc_cards[2*(tile-1) + block//2]
                 chain_num = block % 2
                 if card is not None:
