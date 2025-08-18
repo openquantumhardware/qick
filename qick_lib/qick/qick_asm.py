@@ -1384,9 +1384,6 @@ class AbsQickProgram(ABC):
         if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
-        # scale to get number of gen samples
-        length *= samps_per_clk
-
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1395,6 +1392,9 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
+
+        # scale to get number of gen samples
+        lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=cosine(length=lenreg, maxv=maxv))
 
@@ -1427,7 +1427,6 @@ class AbsQickProgram(ABC):
             sigma /= np.sqrt(2.0)
 
         # scale to get number of gen samples
-        length *= samps_per_clk
         sigma  *= samps_per_clk
 
         # convert to integer number of fabric clocks
@@ -1440,6 +1439,9 @@ class AbsQickProgram(ABC):
         else:
             lenreg = np.round(length)
             sigreg = np.round(sigma)
+
+        # scale to get number of gen samples
+        lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
@@ -1478,7 +1480,6 @@ class AbsQickProgram(ABC):
         delta /= samps_per_clk*f_fabric
 
         # scale to get number of gen samples
-        length *= samps_per_clk
         sigma  *= samps_per_clk
 
         # convert to integer number of fabric clocks
@@ -1491,6 +1492,9 @@ class AbsQickProgram(ABC):
         else:
             lenreg = np.round(length)
             sigreg = np.round(sigma)
+
+        # scale to get number of gen samples
+        lenreg *= samps_per_clk
 
         idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
 
@@ -1519,9 +1523,6 @@ class AbsQickProgram(ABC):
         if maxv is None: maxv = self.soccfg.get_maxv(ch)
         samps_per_clk = gencfg['samps_per_clk']
 
-        # scale to get number of gen samples
-        length *= samps_per_clk
-
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1530,6 +1531,9 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
+
+        # scale to get number of gen samples
+        lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
 
