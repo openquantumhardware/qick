@@ -12,10 +12,10 @@
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
-`define T_TCLK         1.302  // Half Clock Period for Simulation
-`define T_CCLK         2.5    // Half Clock Period for Simulation
-`define T_SCLK         5      // Half Clock Period for Simulation
-
+`define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
+`define T_CCLK          2.5   // Half Clock Period for tProc Core (200MHz)
+`define T_SCLK          5.0   // Half Clock Period for PS & AXI (100MHz)
+`define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
 
 `define GEN_SYNC         1
 `define DUAL_CORE        0
@@ -48,13 +48,14 @@ module tb_qick ();
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_many_envelopes";
-string TEST_NAME = "test_tproc_basic";
+// string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
-// string TEST_NAME = "test_qubit_emulator";
+string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
-// Default TEST_TIME (time for the tProc execution)
-time TEST_TIME = 10us;
+// Default Simulation Settings
+time TEST_TIME    = 10us;  // Time to run tProc execution
+time REPEAT_EXEC  = 2;     // Number of Times to Repeat tProc Program Execution
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -70,7 +71,7 @@ xil_axi_resp_t  resp;
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
-logic   c_clk, t_clk, s_ps_dma_aclk, dac_clk;
+logic   c_clk, t_clk, s_ps_dma_aclk, dac_clk, ro_clk;
 logic [4:0]    dac_clk_gen;
 
 initial begin
@@ -89,6 +90,12 @@ initial begin
   s_ps_dma_aclk = 1'b0;
   #0.5
   forever # (`T_SCLK) s_ps_dma_aclk = ~s_ps_dma_aclk;
+end
+
+initial begin
+  ro_clk = 1'b0;
+  #0.5
+  forever # (`T_RO_CLK) ro_clk = ~ro_clk;
 end
 
 //////////////////////////////////////////////////////////////////////////
@@ -228,13 +235,16 @@ reg qcom_rdy_i, qp2_rdy_i;
 
 
    // DAC-ADC connections
-   wire                    axis_sg_dac_tready;
-   wire                    axis_sg_dac_tvalid;
-   wire    [N_DDS*16-1:0]  axis_sg_dac_tdata;
+   logic                   axis_sg_dac_tready;
+   logic                   axis_sg_dac_tvalid;
+   logic [N_DDS*16-1:0]    axis_sg_dac_tdata;
 
-   wire                    axis_adc_ro_tready;
-   wire                    axis_adc_ro_tvalid;
-   wire    [8*16-1:0]      axis_adc_ro_tdata;
+   logic                   axis_rf_tvalid;
+   logic [8*16-1:0]        axis_rf_tdata;
+
+   logic                   axis_adc_ro_tready;
+   logic                   axis_adc_ro_tvalid;
+   logic [8*16-1:0]        axis_adc_ro_tdata;
 
 
    //--------------------------------------
@@ -247,7 +257,6 @@ reg qcom_rdy_i, qp2_rdy_i;
    wire                   s_axi_tproc_awvalid    ;
    wire                   s_axi_tproc_awready    ;
    wire [31:0]            s_axi_tproc_wdata      ;
-   wire [3:0]             s_axi_tproc_wstrb      ;
    wire [3:0]             s_axi_tproc_wstrb      ;
    wire                   s_axi_tproc_wvalid     ;
    wire                   s_axi_tproc_wready     ;
@@ -646,34 +655,38 @@ reg qcom_rdy_i, qp2_rdy_i;
       end
    end
 
-   // SG to DAC RF processes 4 samples per clock
+   // SG to DAC RF processes 16 samples per clock
    // ADC RF to RO processes 8 samples per clock
 
    assign axis_sg_dac_tready        = axis_adc_ro_tready;
-   assign axis_adc_ro_tvalid        = axis_sg_dac_tvalid;
-   assign axis_adc_ro_tdata[127:0]  = { axis_sg_dac_tdata[ 48 +: 16], axis_sg_dac_tdata[ 48 +: 16], axis_sg_dac_tdata[ 32 +: 16], axis_sg_dac_tdata[ 32 +: 16],
-                                        axis_sg_dac_tdata[ 16 +: 16], axis_sg_dac_tdata[ 16 +: 16], axis_sg_dac_tdata[  0 +: 16], axis_sg_dac_tdata[  0 +: 16]
+   assign axis_rf_tvalid            = axis_sg_dac_tvalid;
+   assign axis_rf_tdata[127:0]      = { axis_sg_dac_tdata[N_DDS*14 +: 16], axis_sg_dac_tdata[N_DDS*12 +: 16], axis_sg_dac_tdata[N_DDS*10 +: 16], axis_sg_dac_tdata[N_DDS*8 +: 16],
+                                        axis_sg_dac_tdata[N_DDS*6 +: 16], axis_sg_dac_tdata[N_DDS*4 +: 16], axis_sg_dac_tdata[N_DDS*2 +: 16], axis_sg_dac_tdata[N_DDS*0 +: 16]
                                        };
 
-   reg           axis_adc_ro_tvalid_dly;
-   reg [127:0]   axis_adc_ro_tdata_dly;
-
    // Model Transport delay
+   // NOTE: THESE MUST BE REG TO WORK!!!
+   reg                    axis_rf_tvalid_dly;
+   reg [8*16-1:0]         axis_rf_tdata_dly;
    always @(*) begin
-      axis_adc_ro_tvalid_dly <= #(250ns) axis_adc_ro_tvalid;
-      axis_adc_ro_tdata_dly  <= #(250ns) axis_adc_ro_tdata;
+      axis_rf_tvalid_dly <= #(150ns) axis_rf_tvalid;
+      axis_rf_tdata_dly  <= #(150ns) axis_rf_tdata;
    end
 
+   always_ff @(posedge ro_clk) begin
+      axis_adc_ro_tvalid         <= axis_rf_tvalid_dly;
+      axis_adc_ro_tdata[127:0]   <= axis_rf_tdata_dly;
+   end
 
    //--------------------------------------
    // Qubit Emulator
    //--------------------------------------
 
-   wire  [5:0]       s_axi_qemu_araddr;
+   wire  [7:0]       s_axi_qemu_araddr;
    wire  [2:0]       s_axi_qemu_arprot;
    wire              s_axi_qemu_arready;
    wire              s_axi_qemu_arvalid;
-   wire  [5:0]       s_axi_qemu_awaddr;
+   wire  [7:0]       s_axi_qemu_awaddr;
    wire  [2:0]       s_axi_qemu_awprot;
    wire              s_axi_qemu_awready;
    wire              s_axi_qemu_awvalid;
@@ -733,8 +746,8 @@ reg qcom_rdy_i, qp2_rdy_i;
    )
    u_axis_kidsim_v3 (
       // AXI Slave I/F for configuration.
-      .s_axi_aclk             (s_ps_dma_aclk),
-      .s_axi_aresetn          (s_ps_dma_aresetn),
+      .s_axi_aclk             (s_ps_dma_aclk       ),
+      .s_axi_aresetn          (s_ps_dma_aresetn    ),
       .s_axi_araddr           (s_axi_qemu_araddr    ),
       .s_axi_arprot           (s_axi_qemu_arprot    ),
       .s_axi_arready          (s_axi_qemu_arready   ),
@@ -763,8 +776,8 @@ reg qcom_rdy_i, qp2_rdy_i;
       .aclk                   (s_ps_dma_aclk       ),
 
       // s_axis_* for input.
-      .s_axis_tvalid          (axis_adc_ro_tvalid_dly),
-      .s_axis_tdata           (axis_adc_ro_tdata_dly),   // width: 32*L
+      .s_axis_tvalid          (axis_sg_dac_tvalid),
+      .s_axis_tdata           (axis_sg_dac_tdata),   // width: 32*L
       .s_axis_tlast           (),
 
       // m_axis_* for output.
@@ -818,7 +831,7 @@ reg qcom_rdy_i, qp2_rdy_i;
    u_axis_dyn_readout_v1_0 (
       // Reset and clock.
       .aresetn          (s_ps_dma_aresetn),
-      .aclk             (s_ps_dma_aclk),
+      .aclk             (ro_clk),
 
       // s0_axis for pushing waveforms.
       .s0_axis_tready   (rot_ro_0_axis_tready),
@@ -827,8 +840,8 @@ reg qcom_rdy_i, qp2_rdy_i;
 
       // s1_axis for input data
       .s1_axis_tready   (axis_adc_ro_tready),
-      .s1_axis_tvalid   (axis_adc_ro_tvalid_dly),
-      .s1_axis_tdata    (axis_adc_ro_tdata_dly),
+      .s1_axis_tvalid   (axis_adc_ro_tvalid),
+      .s1_axis_tdata    (axis_adc_ro_tdata),
 
       // m0_axis to MR_Buffer
       .m0_axis_tready   (1'b1),
@@ -902,8 +915,8 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
    axis_avg_buffer #(
-      .N_AVG                  (10               ),
-      .N_BUF                  (10               ),
+      .N_AVG                  (13               ),
+      .N_BUF                  (12               ),
       .B                      (16               )
    )
    u_axis_avg_buffer_0 ( 
@@ -934,10 +947,10 @@ reg qcom_rdy_i, qp2_rdy_i;
       .trigger                (trigger_0           ),
 
       // AXIS Slave for input data.
-      .s_axis_aclk            (s_ps_dma_aclk         ),
+      .s_axis_aclk            (ro_clk                ),
       .s_axis_aresetn         (s_ps_dma_aresetn      ),
-      .s_axis_tvalid          (axis_ro_avg_tvalid    ),
       .s_axis_tready          (axis_ro_avg_tready    ),
+      .s_axis_tvalid          (axis_ro_avg_tvalid    ),
       .s_axis_tdata           (axis_ro_avg_tdata     ),
 
       // Reset and clock for m0 and m1.
@@ -1075,17 +1088,10 @@ initial begin
 
    #1us;
 
-   repeat (2) begin
+   repeat (REPEAT_EXEC) begin
 
-      // Set Raw Buffer Capture Length
-      data_wr = 300;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_LEN_REG, prot, data_wr, resp);
-      #100ns;
-
-      // Start Raw Buffer Capture
-      data_wr = 1;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
-      #100ns;
+      config_decimated_readout(0, 157);
+      config_average_readout(0, 157);
 
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
@@ -1093,28 +1099,13 @@ initial begin
 
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
 
-      // Stop Raw Buffer Capture
-      data_wr = 0;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
-      #100ns;
+      // Read Decimated Buffer
+      read_decimated_readout(0, 157*10);
 
-      // Set Raw Buffer Read Length
-      data_wr = 300;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_LEN_REG, prot, data_wr, resp);
-      #100ns;
+      // Read Averaged Buffer (number of triggers in experiment)
+      read_average_readout(0, 10);
 
-      // Readout Raw Buffer Data
-      data_wr = 1;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
-      #100ns;
-
-      #5us;
-
-      // Readout Raw Buffer Data
-      data_wr = 0;
-      axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
-      #100ns;
-
+      #20us;
    end
     
 //   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START 
@@ -1130,6 +1121,8 @@ end
 
 initial begin
    integer N;
+   $display("*** %t - Waiting for general reset to deassert ***", $realtime());
+   wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
    if (TEST_NAME == "test_tproc_basic") begin
       TEST_TIME = 50us;
       forever begin
@@ -1176,6 +1169,30 @@ initial begin
          wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b0);
       end
    end
+
+   if (TEST_NAME == "test_qubit_emulator") begin
+         $display("*** %t - Start test_qubit_emulator Test ***", $realtime());
+         TEST_TIME   = 25us;
+         REPEAT_EXEC = 1;
+         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+         #100ns;
+         qubit_emulator_config();
+         #100ns;
+         // Configure Readout
+
+         $display("*** %t - End of test_qubit_emulator Test ***", $realtime());
+   end
+
+   if (TEST_NAME == "test_randomized_benchmarking") begin
+         $display("*** %t - Start test_randomized_benchmarking Test ***", $realtime());
+         TEST_TIME   = 25us;
+         REPEAT_EXEC = 1;
+         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+         #100ns;
+         qubit_emulator_config();
+         $display("*** %t - End of test_randomized_benchmarking Test ***", $realtime());
+   end
+
 end
 
 task WRITE_AXI(integer PORT_AXI, DATA_AXI);
@@ -1269,8 +1286,91 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
 endtask
 
 
+task config_decimated_readout(integer channel, integer length);
+
+   // Stop Decimated Buffer Capture
+   data_wr = 0;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Length
+   data_wr = length;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_LEN_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Start Decimated Buffer Capture
+   data_wr = 1;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+   #100ns;
+
+   // // Readout Decimated Buffer Data
+   // data_wr = 0;
+   // axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+   // #100ns;
+
+endtask
+
+task config_average_readout(integer channel, integer length);
+
+   // Stop Average Buffer Capture
+   data_wr = 0;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_START_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Average Buffer Capture Length
+   data_wr = length;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_LEN_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Start Average Buffer Capture
+   data_wr = 1;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_START_REG, prot, data_wr, resp);
+   #100ns;
+
+endtask
+
+task read_decimated_readout(integer channel, integer length);
+
+   // // Stop Readout Decimated Buffer Data
+   // data_wr = 0;
+   // axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+   // #100ns;
+
+   // Set Decimated Buffer Read Length
+   data_wr = length;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_LEN_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Readout Decimated Buffer Data
+   data_wr = 1;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+   #100ns;
+
+   #1us;
+
+endtask
+
+task read_average_readout(integer channel, integer length);
+
+   // Set Average Buffer Capture Length
+   data_wr = length;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_LEN_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Start Average Buffer Capture
+   data_wr = 1;
+   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_START_REG, prot, data_wr, resp);
+   #100ns;
+
+   #1us;
+
+endtask
+
+
+
 task qubit_emulator_config();
 
+   // From https://github.com/openquantumhardware/QCE2024/blob/main/labs_solns/LabDay1_Resonator.ipynb
    // soc.config_resonator(c0=0.85, c1=0.8, verbose=True)
       // SimuChain: f = 500.0 MHz, fd = -114.39999999999998 MHz, k = 232, fdds = 0.8000000000000114 MHz
       // AxisKidsimV3: sel        = resonator
@@ -1326,6 +1426,7 @@ task qubit_emulator_config();
    data_wr = qemu_g * 2**16-1;
    axi_mst_qemu_agent.AXI4LITE_WRITE_BURST(QEMU_IIR_G_REG, prot, data_wr, resp);
    #100ns;
+
 
 
 endtask
