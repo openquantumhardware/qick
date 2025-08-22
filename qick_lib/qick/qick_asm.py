@@ -62,20 +62,29 @@ class QickConfig():
     def _describe_dac(self, dacname):
         tile, block = [int(c) for c in dacname]
         if self['board']=='ZCU111':
-            label = "DAC%d_T%d_CH%d or RF board output %d" % (tile + 228, tile, block, tile*4 + block)
+            label = "DAC%d_T%d_CH%d, or RF board DAC port %d" % (tile + 228, tile, block, tile*4 + block)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 228, 1 + (block%2) + 2*(tile//2))
+            jhc_connector = 1 + (block%2) + 2*(tile//2)
+            box_port = tile*4 + block
+            label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
         tile, block = [int(c) for c in adcname]
+        # we don't print the coupling because it might be confusing, but we could?
+        coupling = self['rf']['adcs'][adcname]['coupling']
         if self['board']=='ZCU111':
             rfbtype = "DC" if tile > 1 else "AC"
-            label = "ADC%d_T%d_CH%d or RF board %s input %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
+            label = "ADC%d_T%d_CH%d, or RF board ADC %s port %d" % (tile + 224, tile, block//2, rfbtype, (tile%2)*2 + block//2)
         elif self['board']=='ZCU216':
-            label = "%d_%d, on JHC%d" % (block, tile + 224, 5 + (block%2) + 2*(tile//2))
+            jhc_connector = 5 + (block%2) + 2*(tile//2)
+            if tile in [1, 2]:
+                box_port = (tile-1)*4 + block
+                label = "%d_%d on JHC%d, or QICK box ADC port %d" % (block, tile + 224, jhc_connector, box_port)
+            else:
+                label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
@@ -636,7 +645,7 @@ class QickConfig():
             fclk = self['tprocs'][0]['f_time']
         return cycles/fclk
 
-    def us2cycles(self, us, gen_ch=None, ro_ch=None):
+    def us2cycles(self, us, gen_ch=None, ro_ch=None, as_float=False):
         """Converts microseconds to integer number of clock cycles.
         Uses tProc clock frequency by default.
         If gen_ch or ro_ch is specified, uses that generator/readout channel's fabric clock.
@@ -649,6 +658,8 @@ class QickConfig():
             generator channel (index in 'gens' list)
         ro_ch : int
             readout channel (index in 'readouts' list)
+        as_float : bool
+            leave as float, instead of rounding to int
 
         Returns
         -------
@@ -664,8 +675,10 @@ class QickConfig():
             fclk = self['readouts'][ro_ch]['f_output']
         else:
             fclk = self['tprocs'][0]['f_time']
-        #return np.int64(np.round(obtain(us)*fclk))
-        return to_int(obtain(us), fclk, parname='length')
+        if as_float:
+            return us * fclk
+        else:
+            return to_int(obtain(us), fclk, parname='length')
 
     def calc_mixer_freq(self, gen_ch, mixer_freq, nqz, ro_ch):
         """
@@ -1435,18 +1448,20 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # scale to get number of gen samples
         lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
-    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, maxv=None, even_length=False):
-        """Adds a DRAG to the envelope library.
+    def add_DRAG(self, ch, name, sigma, length, delta, alpha=0.5, det=0, maxv=None, even_length=False):
+        """Adds a DRAG pulse to the envelope library.
+        DRAG with constant detuning is implemented as defined in https://doi.org/10.1103/PhysRevLett.116.020501.
+
         The envelope will peak at length/2.
 
         Parameters
@@ -1459,12 +1474,14 @@ class AbsQickProgram(ABC):
             Standard deviation of the Gaussian (in fabric clocks or us)
         length : int or float
             Total envelope length (in fabric clocks or us)
-        maxv : float
-            Value at the peak (if None, the max value for this generator will be used)
         delta : float
-            anharmonicity of the qubit (units of MHz)
+            anharmonicity of the qubit, the difference between f_ge and f_ef (units of MHz)
         alpha : float
             alpha parameter of DRAG (order-1 scale factor)
+        det : float
+            constant detuning (units of MHz)
+        maxv : float
+            Value at the peak (if None, the max value for this generator will be used)
         even_length : bool
             If length is in us, round the envelope length to an even number of fabric clock cycles.
             This is useful for flat_top pulses, where the envelope gets split into two halves.
@@ -1478,6 +1495,7 @@ class AbsQickProgram(ABC):
             sigma /= np.sqrt(2.0)
 
         delta /= samps_per_clk*f_fabric
+        det /= samps_per_clk*f_fabric
 
         # scale to get number of gen samples
         sigma  *= samps_per_clk
@@ -1488,15 +1506,15 @@ class AbsQickProgram(ABC):
                 lenreg = 2*self.us2cycles(gen_ch=ch, us=length/2)
             else:
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
-            sigreg = self.us2cycles(gen_ch=ch, us=sigma)
+            sigreg = self.us2cycles(gen_ch=ch, us=sigma, as_float=True)
         else:
             lenreg = np.round(length)
-            sigreg = np.round(sigma)
+            sigreg = sigma
 
         # scale to get number of gen samples
         lenreg *= samps_per_clk
 
-        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, alpha=alpha, delta=delta)
+        idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, delta=delta, alpha=alpha, det=det)
 
         self.add_envelope(ch, name, idata=idata, qdata=qdata)
 
@@ -1808,7 +1826,7 @@ class AcquireMixin:
         """
         return np.arange(data.shape[0])/self.soccfg['readouts'][ro_ch]['fs']
 
-    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire(self, soc, rounds=1, load_envelopes=True, start_src="internal", threshold=None, angle=None, progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the accumulated readout.
 
         Parameters
@@ -1839,6 +1857,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -1859,9 +1879,8 @@ class AcquireMixin:
                 'threshold': threshold,
                 'angle': angle,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
@@ -2071,7 +2090,7 @@ class AcquireMixin:
 
         return self.finish_acquire()
 
-    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, **kwargs):
+    def acquire_decimated(self, soc, rounds=1, load_envelopes=True, start_src="internal", progress=True, remove_offset=True, step_rounds=False, extra_args=None):
         """Acquire data using the decimating readout.
 
         Parameters
@@ -2091,6 +2110,8 @@ class AcquireMixin:
         step_rounds: bool
             Return after setting up the acquisition and preparing the first round.
             You will need to step through and complete the acquisition with prepare_round(), finish_round(), and finish_acquire().
+        extra_args: dict or None
+            If the data-processing methods have been overriden and need extra arguments, those are supplied here and will be added to acquire_params.
 
         Returns
         -------
@@ -2107,9 +2128,8 @@ class AcquireMixin:
                 'rounds_remaining': rounds,
                 'remove_offset': remove_offset,
                 }
-        # any unrecognized keyword arguments get inserted in the acquire_params
-        # this is for subclasses that override the data-processing methods and need to supply special arguments
-        self.acquire_params.update(kwargs)
+        if extra_args is not None:
+            self.acquire_params.update(extra_args)
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")

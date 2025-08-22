@@ -1796,6 +1796,7 @@ class DaughterCard216(ABC):
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
     CHAIN_CLASS = None # signal chain class to instantiate for each channel
     GPIO_OUTPUTS = [None]*4 # nets controlled by the daughter card's GPIO chip
+    NAME = '' # name for this card type
     def __init__(self, card_num, soc, gpio):
         self.card_num = card_num
         self.soc = soc
@@ -1820,7 +1821,7 @@ class DacRfCard216(DaughterCard216):
     CHAIN_CLASS = DacRfChain216
     # disable all outputs by default
     GPIO_OUTPUTS = [("RFOUT5V0_EN%d"%(i), 0) for i in range(2)] + [None]*2
-
+    NAME = 'RF Out'
     def disable_all(self):
         for i in range(2):
             self.switch_control["RFIN5V0CH%d_EN"%(i)] = 0
@@ -1831,6 +1832,7 @@ class DacDcCard216(DaughterCard216):
     CHAIN_CLASS = DacDcChain216
     # power-on all outputs by default, because in power-down state the LMH5401 just lets through the DAC common-mode voltage
     GPIO_OUTPUTS = [("PD%d"%(i), 0) for i in range(4)]
+    NAME = 'DC Out'
 
 class AdcRfCard216(DaughterCard216):
     NCH = 2
@@ -1838,6 +1840,7 @@ class AdcRfCard216(DaughterCard216):
     CHAIN_CLASS = AdcRfChain216
     # disable all outputs by default
     GPIO_OUTPUTS = [("RFIN5V0CH%d_EN"%(i), 0) for i in range(2)] + [None]*2
+    NAME = 'RF In'
 
 class AdcDcCard216(DaughterCard216):
     NCH = 2
@@ -1845,6 +1848,7 @@ class AdcDcCard216(DaughterCard216):
     CHAIN_CLASS = AdcDcChain216
     # power-down all outputs by default
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
+    NAME = 'DC In'
 
 class BoardSelection:
     """
@@ -2072,7 +2076,7 @@ class RFQickSoc111V1(RFQickSoc):
                 tile, block = [int(a) for a in gen['dac']]
                 gen.rfb_ch = self.dac_chains[4*tile + block]
             for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout.adc]
+                tile, block = [int(a) for a in avg_buf.readout['adc']]
                 avg_buf.rfb_ch = self.adc_chains[2*tile + block]
 
     def rfb_set_lo(self, f):
@@ -2162,28 +2166,19 @@ class RFQickSoc216V1(RFQickSoc):
     def __init__(self, bitfile, **kwargs):
         super().__init__(bitfile, **kwargs)
 
-        self['extra_description'].append("\nDaughter cards detected:")
-        with suppress(AttributeError):
-            for slot, card in enumerate(self.dac_cards):
-                if card is None:
-                    self['extra_description'].append(f"\tslot {slot}: No card detected")
-                else:
-                    try:
-                        channels = [chain.global_ch for chain in card.chains]
-                    except AttributeError:
-                        channels = "[UNKNOWN]"
-                    self['extra_description'].append(f"\tslot {slot}: DAC card {type(card)} has channels {channels}")
-
-            for raw_slot, card in enumerate(self.adc_cards):
-                slot = raw_slot + 4
-                if card is None:
-                    self['extra_description'].append(f"\tslot {slot}: No card detected")
-                else:
-                    try:
-                        channels = [chain.global_ch for chain in card.chains]
-                    except AttributeError:
-                        channels = "[UNKNOWN]"
-                    self['extra_description'].append(f"\tslot {slot}: ADC card {type(card)} has channels {channels}")
+        self['extra_description'].append("\nQICK box daughter cards detected:")
+        for slot, card in enumerate(self.adc_cards):
+            if card is None:
+                self['extra_description'].append(f"\tADC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tADC slot {slot}: {card.NAME} card has ports {channels}")
+        for slot, card in enumerate(self.dac_cards):
+            if card is None:
+                self['extra_description'].append(f"\tDAC slot {slot}: No card detected")
+            else:
+                channels = [chain.global_ch for chain in card.chains]
+                self['extra_description'].append(f"\tDAC slot {slot}: {card.NAME} card has ports {channels}")
 
     def rfb_config(self, no_tproc):
         """
@@ -2258,7 +2253,7 @@ class RFQickSoc216V1(RFQickSoc):
                     gen.rfb_ch = None
             # Each of the middle two ADC tiles (225+226) maps to a pair of daughter cards.
             for avg_buf in self.avg_bufs:
-                tile, block = [int(a) for a in avg_buf.readout.adc]
+                tile, block = [int(a) for a in avg_buf.readout['adc']]
                 card = self.adc_cards[2*(tile-1) + block//2]
                 chain_num = block % 2
                 if card is not None:

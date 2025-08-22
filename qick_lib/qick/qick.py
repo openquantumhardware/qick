@@ -21,6 +21,8 @@ from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
+from .drivers.peripherals import *
+from .drivers.xcom import *
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +139,9 @@ class RFDC(SocIP, xrfdc.RFdc):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 tilecfg = {}
                 self['tiles'][tiletype][iTile] = tilecfg
+                # some firmwares (older versions of Vivado?) do not have link coupling params for the DAC
+                if ('C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)) in ip_params:
+                    tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
                 f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
                 f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
                 fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
@@ -298,6 +303,7 @@ class RFDC(SocIP, xrfdc.RFdc):
     def valid_sample_rates(self, tiletype, tile):
         """
         Return an array of valid sample rates.
+        This code is based on XRFdc_SetPLLConf().
         """
         if tiletype not in ['dac', 'adc']:
             raise RuntimeError('tiletype must be "dac" or "adc"')
@@ -311,10 +317,12 @@ class RFDC(SocIP, xrfdc.RFdc):
 
         # Allowed divider values, see PG269 "PLL Parameters"
         # https://docs.amd.com/r/en-US/pg269-rf-data-converter/PLL-Parameters
+        # Note that the values in PG269 (in comments) are rounded and can't be used literally.
+        # The values here are the VCO_RANGE_* constants used by XRFdc_SetPLLConf().
         Fb_div_vals = np.arange(13,161, dtype=int)
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             M_vals = np.concatenate([[1,2,3], np.arange(4,66,2)])
-            VCO_range = [7863, 13760]
+            VCO_range = [7800, 13800] # [7863, 13760]
         else:
             M_vals = np.concatenate([[2,3], np.arange(4,66,2)])
             VCO_range = [8500, 13200]
@@ -363,6 +371,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         if self['ip_type'] == self.XRFDC_GEN3 and tiletype=='dac':
             # forbidden "hole" for Gen3 RFSoC DAC PLL
             # https://docs.amd.com/r/en-US/ds926-zynq-ultrascale-plus-rfsoc/RF-Converters-Clocking-Characteristics
+            # actually, this is a consequence of the VCO range
             fs_possible = fs_possible[(fs_possible<=6882) | (fs_possible>=7863)]
 
             # in datapath mode 1, Gen3 DACs can't go above 7 Gsps
@@ -716,9 +725,9 @@ class RFDC(SocIP, xrfdc.RFdc):
         adc.CalFreeze['FreezeCalibration'] = 0
         if calblocks is None:
             if self['ip_type'] < self.XRFDC_GEN3:
-                calblocks = ['OCB1', 'OCB2', 'GCB', 'TSCB']
-            else:
                 calblocks = ['OCB2', 'GCB', 'TSCB']
+            else:
+                calblocks = ['OCB1', 'OCB2', 'GCB', 'TSCB']
         for calblock in calblocks:
             adc.DisableCoefficientsOverride(self.ADC_CAL_BLOCKS[calblock][0])
 
@@ -795,6 +804,9 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
+        # list of objects that need to be registered for autoproxying over Pyro
+        self.autoproxy = []
+
         # Initialize lists of IP blocks.
         # Signal generators (anything driven by the tProc)
         self.gens = []
@@ -848,8 +860,7 @@ class QickSoc(Overlay, QickConfig):
 
             self._streamer = DataStreamer(self)
 
-            # list of objects that need to be registered for autoproxying over Pyro
-            self.autoproxy = [self.streamer, self.tproc]
+            self.autoproxy.extend([self.streamer, self.tproc])
 
     @property
     def tproc(self):
@@ -920,8 +931,8 @@ class QickSoc(Overlay, QickConfig):
         self.gens.sort(key=lambda x:(x['tproc_ch'], x._cfg.get('tmux_ch')))
         self.avg_bufs.sort(key=lambda x: x.switch_ch)
         # The IQ and readout orderings aren't critical for anything.
-        self.iqs.sort(key=lambda x: x.dac)
-        self.readouts.sort(key=lambda x: x.adc)
+        self.iqs.sort(key=lambda x: x['dac'])
+        self.readouts.sort(key=lambda x: x['adc'])
 
         # Configure the drivers.
         for i, gen in enumerate(self.gens):

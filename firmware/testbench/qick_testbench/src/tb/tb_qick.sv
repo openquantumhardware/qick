@@ -649,6 +649,12 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_axis_tdata        (axis_sg_dac_tdata       )
    );
 
+   logic [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];
+   always @* begin
+      for (int i=0; i<N_DDS; i=i+1) begin
+         axis_sg_dac_tdata_dbg[i] = axis_sg_dac_tdata[16*i +: 16];
+      end
+   end
 
    // For Waveform Debug
    logic signed [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];

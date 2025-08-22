@@ -14,19 +14,12 @@ class AbsSignalGen(SocIP):
 
     # these must be defined by the subclass
     HAS_MIXER = None # the DAC has a mixer
-    B_DDS = None
-    B_PHASE = None
 
     def _init_config(self, description):
         self.cfg['maxv'] = self.MAXV
 
         assert self.HAS_MIXER is not None
-        assert self.B_DDS is not None
-        assert self.B_PHASE is not None
-
         self.cfg['has_mixer'] = self.HAS_MIXER
-        self.cfg['b_dds'] = self.B_DDS
-        if self.B_PHASE is not None: self.cfg['b_phase'] = self.B_PHASE
 
         super()._init_config(description)
 
@@ -213,12 +206,19 @@ class AbsPulsedSignalGen(AbsSignalGen):
     TPROC_PORT = 's1_axis'
 
     HAS_DDS = True    # Default
+    B_DDS = None
+    B_PHASE = None
 
     def _init_config(self, description):
         if 'GEN_DDS' in description['parameters']:
             self.cfg['has_dds'] = {'TRUE': True, 'FALSE': False}[description['parameters']['GEN_DDS']]
         else:
             self.cfg['has_dds'] = self.HAS_DDS
+
+        assert self.B_DDS is not None
+        assert self.B_PHASE is not None
+        self.cfg['b_dds'] = self.B_DDS
+        self.cfg['b_phase'] = self.B_PHASE
 
         super()._init_config(description)
 
