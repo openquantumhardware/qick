@@ -12,10 +12,12 @@
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
-`define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
+// `define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
+`define T_TCLK          0.833 // Half Clock Period for Signal Gens (600MHz)
 `define T_CCLK          2.5   // Half Clock Period for tProc Core (200MHz)
 `define T_SCLK          5.0   // Half Clock Period for PS & AXI (100MHz)
-`define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
+// `define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
+`define T_RO_CLK        1.627  // Half Clock Period for Readout (307.2MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -45,13 +47,14 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-// string TEST_NAME = "test_basic_pulses";
+string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
-string TEST_NAME = "test_qubit_emulator";
+// string TEST_NAME = "test_issue361";
+// string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
 // Default Simulation Settings
@@ -145,9 +148,13 @@ wire [159:0]       sgt_sg_0_axis_tdata ;
 wire               sgt_sg_0_axis_tvalid;
 logic              sgt_sg_0_axis_tready;
 
-wire [167:0]       tproc_rot_0_axis_tdata ;
-wire               tproc_rot_0_axis_tvalid;
-logic              tproc_rot_0_axis_tready;
+wire [167:0]       tproc_cdc_0_axis_tdata ;
+wire               tproc_cdc_0_axis_tvalid;
+logic              tproc_cdc_0_axis_tready;
+
+wire [167:0]       cdc_rot_0_axis_tdata ;
+wire               cdc_rot_0_axis_tvalid;
+logic              cdc_rot_0_axis_tready;
 
 wire [87:0]        rot_ro_0_axis_tdata ;
 wire               rot_ro_0_axis_tvalid;
@@ -461,9 +468,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m3_axis_tdata        ( /*m3_axis_tdata*/       ) ,
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/      ) ,
       .m3_axis_tready       ( m3_axis_tready          ) ,
-      .m4_axis_tdata        ( tproc_rot_0_axis_tdata  ) ,
-      .m4_axis_tvalid       ( tproc_rot_0_axis_tvalid ) ,
-      .m4_axis_tready       ( tproc_rot_0_axis_tready ) ,
+      .m4_axis_tdata        ( tproc_cdc_0_axis_tdata  ) ,
+      .m4_axis_tvalid       ( tproc_cdc_0_axis_tvalid ) ,
+      .m4_axis_tready       ( tproc_cdc_0_axis_tready ) ,
       .m5_axis_tdata        ( /*m5_axis_tdata*/       ) ,
       .m5_axis_tvalid       ( /*m5_axis_tvalid*/      ) ,
       .m5_axis_tready       ( m5_axis_tready          ) ,
@@ -643,6 +650,14 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
 
+   // For Waveform Debug
+   logic signed [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];
+   always @* begin
+      for (int i=0; i<N_DDS; i=i+1) begin
+         axis_sg_dac_tdata_dbg[i] = axis_sg_dac_tdata[16*i +: 16];
+      end
+   end
+
    //--------------------------------------
    // TODO: RF DATA CONVERTER IP
    //--------------------------------------
@@ -796,22 +811,140 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
 
+   localparam N_DDS_RO = 8;
+
    // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
    always_ff @(posedge ro_clk) begin
       if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
-         axis_adc_ro_tvalid            <= axis_qemu_ro_tvalid;
-         axis_adc_ro_tdata[8*16-1:0]   <= axis_qemu_ro_tdata;
+         axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
+         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= axis_qemu_ro_tdata;
       end
       else if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-         axis_adc_ro_tvalid            <= rf_signal_valid_dly;
-         axis_adc_ro_tdata[8*16-1:0]   <= rf_signal_data_dly;
+         axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
+         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
       end
    end
 
+   // For Waveform Debug
+   logic signed [15:0] axis_adc_ro_tdata_dbg [0:N_DDS_RO-1];
+   always @* begin
+      for (int i=0; i < N_DDS_RO; i=i+1) begin
+         axis_adc_ro_tdata_dbg[i] = axis_adc_ro_tdata[16*i +: 16];
+      end
+   end
 
    //--------------------------------------
    // READOUT
    //--------------------------------------
+
+   axis_cdcsync_v1 #(
+      .N                         (1),     // Number of inputs/outputs.
+      .B                         (168)    // Number of data bits.
+   )
+   u_axis_cdcsync_v1 (
+      // S_AXIS for input data.
+      .s_axis_aresetn            (rst_ni),
+      .s_axis_aclk               (t_clk),
+      .s0_axis_tready            (tproc_cdc_0_axis_tready),
+      .s0_axis_tvalid            (tproc_cdc_0_axis_tvalid),
+      .s0_axis_tdata             (tproc_cdc_0_axis_tdata),
+      .s1_axis_tready            (/*s1_axis_tready*/),
+      .s1_axis_tvalid            (/*s1_axis_tvalid*/),
+      .s1_axis_tdata             (/*s1_axis_tdata*/),
+      .s2_axis_tready            (/*s2_axis_tready*/),
+      .s2_axis_tvalid            (/*s2_axis_tvalid*/),
+      .s2_axis_tdata             (/*s2_axis_tdata*/),
+      .s3_axis_tready            (/*s3_axis_tready*/),
+      .s3_axis_tvalid            (/*s3_axis_tvalid*/),
+      .s3_axis_tdata             (/*s3_axis_tdata*/),
+      .s4_axis_tready            (/*s4_axis_tready*/),
+      .s4_axis_tvalid            (/*s4_axis_tvalid*/),
+      .s4_axis_tdata             (/*s4_axis_tdata*/),
+      .s5_axis_tready            (/*s5_axis_tready*/),
+      .s5_axis_tvalid            (/*s5_axis_tvalid*/),
+      .s5_axis_tdata             (/*s5_axis_tdata*/),
+      .s6_axis_tready            (/*s6_axis_tready*/),
+      .s6_axis_tvalid            (/*s6_axis_tvalid*/),
+      .s6_axis_tdata             (/*s6_axis_tdata*/),
+      .s7_axis_tready            (/*s7_axis_tready*/),
+      .s7_axis_tvalid            (/*s7_axis_tvalid*/),
+      .s7_axis_tdata             (/*s7_axis_tdata*/),
+      .s8_axis_tready            (/*s8_axis_tready*/),
+      .s8_axis_tvalid            (/*s8_axis_tvalid*/),
+      .s8_axis_tdata             (/*s8_axis_tdata*/),
+      .s9_axis_tready            (/*s9_axis_tready*/),
+      .s9_axis_tvalid            (/*s9_axis_tvalid*/),
+      .s9_axis_tdata             (/*s9_axis_tdata*/),
+      .s10_axis_tready           (/*s10_axis_tready*/),
+      .s10_axis_tvalid           (/*s10_axis_tvalid*/),
+      .s10_axis_tdata            (/*s10_axis_tdata*/),
+      .s11_axis_tready           (/*s11_axis_tready*/),
+      .s11_axis_tvalid           (/*s11_axis_tvalid*/),
+      .s11_axis_tdata            (/*s11_axis_tdata*/),
+      .s12_axis_tready           (/*s12_axis_tready*/),
+      .s12_axis_tvalid           (/*s12_axis_tvalid*/),
+      .s12_axis_tdata            (/*s12_axis_tdata*/),
+      .s13_axis_tready           (/*s13_axis_tready*/),
+      .s13_axis_tvalid           (/*s13_axis_tvalid*/),
+      .s13_axis_tdata            (/*s13_axis_tdata*/),
+      .s14_axis_tready           (/*s14_axis_tready*/),
+      .s14_axis_tvalid           (/*s14_axis_tvalid*/),
+      .s14_axis_tdata            (/*s14_axis_tdata*/),
+      .s15_axis_tready           (/*s15_axis_tready*/),
+      .s15_axis_tvalid           (/*s15_axis_tvalid*/),
+      .s15_axis_tdata            (/*s15_axis_tdata*/),
+      // M_AXIS for output data.
+      .m_axis_aresetn            (rst_ni),
+      .m_axis_aclk               (ro_clk),
+      .m0_axis_tready            (cdc_rot_0_axis_tready),
+      .m0_axis_tvalid            (cdc_rot_0_axis_tvalid),
+      .m0_axis_tdata             (cdc_rot_0_axis_tdata),
+      .m1_axis_tready            (/*m1_axis_tready*/),
+      .m1_axis_tvalid            (/*m1_axis_tvalid*/),
+      .m1_axis_tdata             (/*m1_axis_tdata*/),
+      .m2_axis_tready            (/*m2_axis_tready*/),
+      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
+      .m2_axis_tdata             (/*m2_axis_tdata*/),
+      .m3_axis_tready            (/*m3_axis_tready*/),
+      .m3_axis_tvalid            (/*m3_axis_tvalid*/),
+      .m3_axis_tdata             (/*m3_axis_tdata*/),
+      .m4_axis_tready            (/*m4_axis_tready*/),
+      .m4_axis_tvalid            (/*m4_axis_tvalid*/),
+      .m4_axis_tdata             (/*m4_axis_tdata*/),
+      .m5_axis_tready            (/*m5_axis_tready*/),
+      .m5_axis_tvalid            (/*m5_axis_tvalid*/),
+      .m5_axis_tdata             (/*m5_axis_tdata*/),
+      .m6_axis_tready            (/*m6_axis_tready*/),
+      .m6_axis_tvalid            (/*m6_axis_tvalid*/),
+      .m6_axis_tdata             (/*m6_axis_tdata*/),
+      .m7_axis_tready            (/*m7_axis_tready*/),
+      .m7_axis_tvalid            (/*m7_axis_tvalid*/),
+      .m7_axis_tdata             (/*m7_axis_tdata*/),
+      .m8_axis_tready            (/*m8_axis_tready*/),
+      .m8_axis_tvalid            (/*m8_axis_tvalid*/),
+      .m8_axis_tdata             (/*m8_axis_tdata*/),
+      .m9_axis_tready            (/*m9_axis_tready*/),
+      .m9_axis_tvalid            (/*m9_axis_tvalid*/),
+      .m9_axis_tdata             (/*m9_axis_tdata*/),
+      .m10_axis_tready           (/*m10_axis_tready*/),
+      .m10_axis_tvalid           (/*m10_axis_tvalid*/),
+      .m10_axis_tdata            (/*m10_axis_tdata*/),
+      .m11_axis_tready           (/*m11_axis_tready*/),
+      .m11_axis_tvalid           (/*m11_axis_tvalid*/),
+      .m11_axis_tdata            (/*m11_axis_tdata*/),
+      .m12_axis_tready           (/*m12_axis_tready*/),
+      .m12_axis_tvalid           (/*m12_axis_tvalid*/),
+      .m12_axis_tdata            (/*m12_axis_tdata*/),
+      .m13_axis_tready           (/*m13_axis_tready*/),
+      .m13_axis_tvalid           (/*m13_axis_tvalid*/),
+      .m13_axis_tdata            (/*m13_axis_tdata*/),
+      .m14_axis_tready           (/*m14_axis_tready*/),
+      .m14_axis_tvalid           (/*m14_axis_tvalid*/),
+      .m14_axis_tdata            (/*m14_axis_tdata*/),
+      .m15_axis_tready           (/*m15_axis_tready*/),
+      .m15_axis_tvalid           (/*m15_axis_tvalid*/),
+      .m15_axis_tdata            (/*m15_axis_tdata*/)
+   );
 
    sg_translator # (
       .OUT_TYPE               (3) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
@@ -821,9 +954,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (tproc_rot_0_axis_tdata),
-      .s_axis_tvalid          (tproc_rot_0_axis_tvalid),
-      .s_axis_tready          (tproc_rot_0_axis_tready),
+      .s_axis_tdata           (cdc_rot_0_axis_tdata),
+      .s_axis_tvalid          (cdc_rot_0_axis_tvalid),
+      .s_axis_tready          (cdc_rot_0_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tready   (),
       .m_gen_v6_axis_tvalid   (),
@@ -876,8 +1009,16 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m1_axis_tdata    (axis_ro_avg_tdata)
    );
 
-   // For Debug
-   logic [32:0] m1_ro_avg_abs_dbg;
+   // For Waveform Debug
+   logic signed [15:0] axis_ro_avg_tdata_dbg [0:1];
+   always @* begin
+      for (int i=0; i<2; i=i+1) begin
+         axis_ro_avg_tdata_dbg[i] = axis_ro_avg_tdata[16*i +: 16];
+      end
+   end
+
+   // For Waveform Debug
+   logic signed [32:0] m1_ro_avg_abs_dbg;
    assign m1_ro_avg_abs_dbg = $signed(axis_ro_avg_tdata[15:0])*$signed(axis_ro_avg_tdata[15:0]) + $signed(axis_ro_avg_tdata[31:16])*$signed(axis_ro_avg_tdata[31:16]);
 
 
@@ -942,6 +1083,8 @@ reg qcom_rdy_i, qp2_rdy_i;
 
    wire        m0_axis_avg_tvalid;
    wire [63:0] m0_axis_avg_tdata;
+
+   logic       m1_axis_ro_dec_tready;
    axis_avg_buffer #(
       .N_AVG                  (13               ),
       .N_BUF                  (12               ),
@@ -991,8 +1134,8 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m0_axis_tdata          (m0_axis_avg_tdata     ),
       .m0_axis_tlast          (/*m0_axis_tlast*/     ),
 
-      // AXIS Master for raw output.
-      .m1_axis_tready         (1'b1/*m1_axis_tready*/),
+      // AXIS Master for decimated output.
+      .m1_axis_tready         (m1_axis_ro_dec_tready ),
       .m1_axis_tvalid         (/*m1_axis_tvalid*/    ),
       .m1_axis_tdata          (/*m1_axis_tdata*/     ),
       .m1_axis_tlast          (/*m1_axis_tlast*/     ),
@@ -1009,6 +1152,15 @@ reg qcom_rdy_i, qp2_rdy_i;
 //--------------------------------------
 // TEST STIMULI
 //--------------------------------------
+
+logic tb_test_run_start;
+logic tb_test_run_done;
+logic tb_test_read_start;
+logic tb_test_read_done;
+
+integer ro_length;
+integer ro_decimated_length;
+integer ro_average_length;
 
 initial begin
 
@@ -1087,9 +1239,19 @@ initial begin
    tb_load_mem             = 1'b0;
    tb_load_mem_done        = 1'b0;
 
+   tb_test_run_start       = 1'b1;
+   tb_test_run_done        = 1'b0;
+   tb_test_read_start      = 1'b1;
+   tb_test_read_done       = 1'b0;
+
+   ro_length               = 0;
+   ro_decimated_length     = 0;
+   ro_average_length       = 0;
+
    sg_s0_axis_tvalid       = 0;
    sg_s0_axis_tdata        = 0;
 
+   m1_axis_ro_dec_tready   = 1'b1;
 
    m_dma_axis_tready_i     = 1'b1; 
    // max_value               = 0;
@@ -1121,22 +1283,32 @@ initial begin
 
    repeat (REPEAT_EXEC) begin
 
-      config_decimated_readout(0, 3*150);
-      config_average_readout(0, 3*150);
+      config_decimated_readout(0, ro_length);
+      config_average_readout(0, ro_length);
+
+      wait(tb_test_run_start);
 
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
       #(TEST_RUN_TIME);
 
+      
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+      
+      tb_test_run_done = 1'b1;
+
+      wait(tb_test_read_start);
 
       // Read Decimated Buffer
-      read_decimated_readout(0, 3*150);
+      read_decimated_readout(0, ro_decimated_length);
 
       // Read Averaged Buffer (number of triggers in experiment)
-      read_average_readout(0, 11);
+      read_average_readout(0, ro_average_length);
 
       #(TEST_READ_TIME);
+
+      tb_test_read_done = 1'b1;
+
    end
     
 //   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START 
@@ -1152,8 +1324,18 @@ end
 
 initial begin
    integer N;
+
    $display("*** %t - Waiting for general reset to deassert ***", $realtime());
    wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+
+   tb_test_run_start    = 1'b1;
+   tb_test_read_start   = 1'b1;
+   
+   ro_length            = 100;
+   ro_decimated_length  = 100;
+   ro_average_length    = 1;
+
+
    if (TEST_NAME == "test_tproc_basic") begin
       TEST_RUN_TIME = 50us;
       forever begin
@@ -1223,6 +1405,28 @@ initial begin
          wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
          #100ns;
          $display("*** %t - End of test_randomized_benchmarking Test ***", $realtime());
+   end
+
+   if (TEST_NAME == "test_issue361") begin
+         $display("*** %t - Start test_issue361 Test ***", $realtime());
+         TEST_RUN_TIME   = 25us;
+         REPEAT_EXEC = 1;
+
+         ro_length            = 200;
+         ro_decimated_length  = 30;
+         ro_average_length    = 5;
+
+         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+         #100ns;
+
+         wait(tb_test_run_done);
+
+         for (int i=0; i<1000; i++) begin
+            @(negedge s_ps_dma_aclk);
+            m1_axis_ro_dec_tready   = i[4:0] > 15;
+         end
+
+         $display("*** %t - End of test_issue361 Test ***", $realtime());
    end
 
 end
@@ -1377,8 +1581,6 @@ task read_decimated_readout(integer channel, integer length);
    axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
    #100ns;
 
-   #1us;
-
 endtask
 
 task read_average_readout(integer channel, integer length);
@@ -1392,8 +1594,6 @@ task read_average_readout(integer channel, integer length);
    data_wr = 1;
    axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_START_REG, prot, data_wr, resp);
    #100ns;
-
-   #1us;
 
 endtask
 
