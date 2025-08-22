@@ -138,7 +138,7 @@ fifo_i : fifo_axi
    );
 
 -- Fifo connections.
-fifo_wr_en  <= write_state;
+fifo_wr_en  <= write_state and not fifo_full;
 fifo_din    <= mem_dout;
 fifo_rd_en  <= dready when read_en = '1' else
                '0';
@@ -176,8 +176,11 @@ begin
             cnt            <= (others => '0');
             addr_cnt       <= unsigned(ADDR_REG);
             len_r          <= unsigned(LEN_REG);
-         elsif ( read_state = '1' ) then
+         end if;
+         if ( read_state = '1' ) then
             cnt            <= cnt + 1;
+         end if;
+         if ( write_state = '1' and fifo_full = '0') then
             addr_cnt       <= addr_cnt + 1;
          end if;
 
@@ -289,7 +292,7 @@ mem_we      <= '0';
 mem_addr    <= std_logic_vector(addr_cnt);
 
 dout        <= fifo_dout_r;
-dvalid      <= not(fifo_empty_r);
+dvalid      <= not(fifo_empty_r) and dready;
 dlast       <= dlast_i;
 
 end rtl;
