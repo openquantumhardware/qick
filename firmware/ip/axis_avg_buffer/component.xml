@@ -1441,102 +1441,12 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>2</xilinx:coreRevision>
+      <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_avg_buffer:1.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_avg_buffer:1.1</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
       <xilinx:coreCreationDateTime>2025-05-22T20:39:14Z</xilinx:coreCreationDateTime>
-      <xilinx:tags>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6e6d4e17_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@255f9cf0_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1301e167_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@185eaefb_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@13a0131f_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@62dacd33_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@8949dce_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5b1c70aa_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7e0357e3_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@502c84a1_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1da56fa1_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6a970e68_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4f7bbdc9_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@d058842_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7f67d0aa_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@41e66649_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@58515977_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@14f219b6_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@51601e1f_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e0086ff_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@54b74400_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@12a56132_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4de0609d_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@85d0857_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@691ab078_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d2aadf6_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1da0cae5_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ca30118_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4f13303e_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@15af7194_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@25e56fb4_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@63cd6ea_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@50ded995_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2aa78276_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3fce71d0_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@816e03e_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@60c1cbf_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@b580222_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@14b8c071_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7bc380df_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@593f9da0_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5820df6c_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@679da04b_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5760f67_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@32c63ad3_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@69b7f029_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@686bb98f_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a41c7b2_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5773f84d_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e686549_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4bfccec1_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@4d298663_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@61996554_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e9ab349_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@44bf8962_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@bb592c_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@67bf8fab_ARCHIVE_LOCATION">/home/lstefana/v19.1/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@11a8a4f7_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d96c92f_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1be2dc34_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6546f2fb_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@152321df_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@14f8a41_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d6001fb_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6e827a36_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@398554a3_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ed29e91_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@79182289_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1fe1014d_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d9f5b11_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@166de8f7_ARCHIVE_LOCATION">/home/lstefana/qsystem_2/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5a784f0e_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@11cf4d5b_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@5a3d21b9_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@790fde1d_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7959183d_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3432cf71_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@79724e16_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7facdba6_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@1bfd035d_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@3c0e269f_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@7a49b62c_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6c2449b9_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@810b71f_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@24a0be41_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@6c3d91e8_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@40fc4d4f_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-        <xilinx:tag xilinx:name="ui.data.coregen.dd@b2cfa70_ARCHIVE_LOCATION">c:/Users/rcdansr/Documents/FPGA_work/firmware/ip/axis_avg_buffer</xilinx:tag>
-      </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
