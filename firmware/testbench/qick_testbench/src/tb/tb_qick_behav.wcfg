@@ -17,9 +17,9 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="39,309.743 ns"></ZoomStartTime>
-      <ZoomEndTime time="39,868.576 ns"></ZoomEndTime>
-      <Cursor1Time time="39,365.500 ns"></Cursor1Time>
+      <ZoomStartTime time="39,422.700 ns"></ZoomStartTime>
+      <ZoomEndTime time="39,664.101 ns"></ZoomEndTime>
+      <Cursor1Time time="39,555.500 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="243"></NameColumnWidth>
@@ -2709,6 +2709,8 @@
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/buffer_top_i/data_reader_i/fifo_i/full">
          <obj_property name="ElementShortName">full</obj_property>
          <obj_property name="ObjectShortName">full</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/avg_buffer_i/buffer_top_i/data_reader_i/fifo_i/rd_en">
          <obj_property name="ElementShortName">rd_en</obj_property>
@@ -2735,15 +2737,27 @@
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tready">
          <obj_property name="ElementShortName">m1_axis_tready</obj_property>
          <obj_property name="ObjectShortName">m1_axis_tready</obj_property>
+         <obj_property name="CustomSignalColor">#FF00FF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tvalid">
          <obj_property name="ElementShortName">m1_axis_tvalid</obj_property>
          <obj_property name="ObjectShortName">m1_axis_tvalid</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tdata">
          <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_avg_buffer_0/m1_axis_tlast">
+         <obj_property name="ElementShortName">m1_axis_tlast</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tlast</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

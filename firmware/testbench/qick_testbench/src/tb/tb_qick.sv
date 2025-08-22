@@ -1293,7 +1293,7 @@ initial begin
          REPEAT_EXEC = 1;
 
          ro_length            = 200;
-         ro_decimated_length  = 200;
+         ro_decimated_length  = 30;
          ro_average_length    = 5;
 
          wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
