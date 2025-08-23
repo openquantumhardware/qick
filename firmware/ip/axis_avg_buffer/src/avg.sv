@@ -166,7 +166,7 @@ always @(posedge clk) begin
 					state <= AVG_ST;
 
 			AVG_ST:
-				if ( cnt == len_r-1 && din_valid_i == 1'b1 )
+				if ( cnt == len_r && din_valid_i == 1'b1 )
 					state <= QOUT_ST;
 
 			QOUT_ST:
@@ -195,7 +195,7 @@ always @(posedge clk) begin
 		// Registers.
 		if ( start_state == 1'b1 ) begin
 			addr_r	<= ADDR_REG;
-			len_r	<= LEN_REG;
+			len_r	<= LEN_REG - 1;
 			photon_mode_r <= PHOTON_MODE_REG;
 			h_thrsh_r <= H_THRSH_REG;
 			l_thrsh_r <= L_THRSH_REG;
@@ -231,12 +231,10 @@ always @(posedge clk) begin
 			high_state <= 1'b0;
 		
 		// Quantized outputs.
-		if ( qout_state == 1'b1 ) begin
-			if ( photon_mode_r == 1'b0 )
-				out_result_r <= {acc_q,acc_i};
-			else
-				out_result_r <= acc_photon;
-		end
+        if ( photon_mode_r == 1'b0 )
+            out_result_r <= {acc_q,acc_i};
+        else
+            out_result_r <= acc_photon;
 	end
 end 
 

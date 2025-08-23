@@ -119,7 +119,7 @@ always @(posedge clk) begin
 					state <= MEMW_ST;
 
 			MEMW_ST:
-				if ( cnt == len_r-1 && din_valid_i == 1'b1 )
+				if ( cnt == len_r && din_valid_i == 1'b1 )
 					state <= WAIT_TRIGGER_ST;
 
 			WAIT_TRIGGER_ST:
@@ -142,7 +142,7 @@ always @(posedge clk) begin
 		// Registers.
 		if ( start_state == 1'b1 ) begin
 			addr_r	<= ADDR_REG;
-			len_r	<= LEN_REG;
+			len_r	<= LEN_REG - 1;
 		end
 		else if ( memw_state == 1'b1 && din_valid_i == 1'b1) begin
 			addr_r	<= addr_r + 1;

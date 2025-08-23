@@ -66,6 +66,7 @@ architecture rtl of matched_filter is
   signal mem_envelope_addrb                     : std_logic_vector(31 downto 0);
   signal mem_envelope_dia                       : std_logic_vector(2*B-1 downto 0);
   signal envelope_iq                            : std_logic_vector(2*B-1 downto 0);
+  signal envelope_iq_r                          : std_logic_vector(2*B-1 downto 0);
   signal envelope_ii, envelope_qq               : std_logic_vector (B-1 downto 0);
 
   signal ac, bd, ad, bc                             : std_logic_vector(47 downto 0);
@@ -80,7 +81,7 @@ architecture rtl of matched_filter is
   signal dfiltered_ii, dfiltered_qq : std_logic_vector (2*N-1 downto 0);
 
   -- Compensate memory latency for data
-  constant WGT_LATENCY  : natural := 3;
+  constant WGT_LATENCY  : natural := 4;
   -- Compensate DSP latency for trigger & valid
   constant DSP_LATENCY  : natural := 3;
   
@@ -240,6 +241,7 @@ begin
   reg_output : process(clk) is
   begin
     if (rising_edge(clk)) then
+      envelope_iq_r <= envelope_iq;
       filt_ii_quant_r <= filt_ii_quant;
       filt_qq_quant_r <= filt_qq_quant;
     end if;
@@ -252,8 +254,8 @@ begin
   dout_valid_o <= dout_valid_reg(WGT_LATENCY+DSP_LATENCY - 1);
 
   mem_envelope_addrb <= std_logic_vector(cnt);
-  envelope_ii <= envelope_iq(2*B-1 downto B);
-  envelope_qq <= envelope_iq(B-1 downto 0);
+  envelope_ii <= envelope_iq_r(2*B-1 downto B);
+  envelope_qq <= envelope_iq_r(B-1 downto 0);
 
 
   ac_signed <= signed(ac(2*B-1 downto 0));

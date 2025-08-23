@@ -90,14 +90,28 @@ class QICK_Time_Tagger(SocIP):
         buflen = min(buflen, dma_maxlen)
         self.buff_rd = allocate(shape=buflen, dtype=np.int32)
 
-        for iADC in range(4):
+        for iADC in range(self['adc_qty']):
             try:
                 block, port, _ = soc.metadata.trace_back(self['fullpath'], "s%d_axis_adc%d"%(iADC, iADC), ["usp_rf_data_converter"])
                 # port names are of the form 'm02_axis' where the block number is always even
                 adc = port[1:3]
-                self.cfg['adcs'].append([adc, soc._describe_adc(adc)])
+                self.cfg['adcs'].append(adc)
             except: # skip disconnected ADC Ports
-                self.cfg['adcs'].append([None, "not connected"])
+                self.cfg['adcs'].append(None)
+
+        try:
+            trigcfg = {}
+            trigcfg['type'], trigcfg['port'], trigcfg['bit'] = soc.metadata.trace_trigger(self['fullpath'], 'arm_i')
+            self.cfg['trigger'] = trigcfg
+        except:
+            self.cfg['trigger'] = None
+
+        try:
+            block, port, _ = soc.metadata.trace_back(self['fullpath'], "qick_peripheral", ["qick_processor"])
+            # port names are 'QPeriphA/B'
+            self.cfg['peripheral'] = port[-1]
+        except:
+            self.cfg['peripheral'] = None
                 
     def __str__(self):
         lines = []
