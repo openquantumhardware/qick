@@ -183,7 +183,7 @@ class QickConfig():
                 if tt['cmp_inter']:
                     options.append('%d-bit interpolation' % (tt['cmp_inter']))
                 if options:
-                    lines.append("\t\tsupports " + ', '.join(options))
+                    lines[-1] + ", supports " + ', '.join(options)
 
                 lines.append("\t\tmemories: %d time-tags (TAG)" % (tt['tag_mem_size']))
                 if tt['arm_store']:
