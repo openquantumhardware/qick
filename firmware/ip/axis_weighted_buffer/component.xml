@@ -529,7 +529,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>55cfdef7</spirit:value>
+            <spirit:value>313e7770</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -548,7 +548,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>55cfdef7</spirit:value>
+            <spirit:value>313e7770</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1536,20 +1536,20 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>1</xilinx:coreRevision>
+      <xilinx:coreRevision>3</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.1</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.2</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_weighted_buffer:1.2</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-08-22T17:52:02Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-08-23T03:54:43Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="22f6451b"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="fcf32f80"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7466d52e"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="af5b0189"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="e04a2560"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="1703ee19"/>

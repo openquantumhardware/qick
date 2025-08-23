@@ -5,7 +5,7 @@
     "cell_name": "avg_buffer_i/matchfilt_i/matched_filter_mult_ac",
     "component_reference": "xilinx.com:ip:dsp_macro:1.0",
     "ip_revision": "3",
-    "gen_directory": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_2_project/axis_weighted_buffer_v1_2_project.gen/sources_1/ip/dsp_macro_0",
+    "gen_directory": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_3_project/axis_weighted_buffer_v1_3_project.gen/sources_1/ip/dsp_macro_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "dsp_macro_0", "resolve_type": "user", "usage": "all" } ],
@@ -169,7 +169,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "3" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_2_project/axis_weighted_buffer_v1_2_project.gen/sources_1/ip/dsp_macro_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../qick_fw_sho/qick_tprocv2_111_weightedbuf/top/top.tmp/axis_weighted_buffer_v1_3_project/axis_weighted_buffer_v1_3_project.gen/sources_1/ip/dsp_macro_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
