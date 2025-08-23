@@ -476,6 +476,31 @@ class QickMetadata:
                             }
         raise RuntimeError("tried to trace clock %s from IP block %s, but this clock doesn't seem to come from Zynq PS or RFDC"%(start_port, start_block))
 
+    def trace_trigger(self, start_block, start_port):
+        """Helper function for finding the tProc port that triggers a buffer.
+        """
+        # which tProc output bit triggers this buffer?
+        ((block, port),) = self.trace_sig(start_block, start_port)
+        blocktype = self.mod2type(block)
+        if blocktype=='qick_vec2bit' or 'vect2bits' in blocktype:
+            # vect2bits/qick_vec2bit port names are of the form 'dout14'
+            trigger_bit = int(port[4:])
+
+            # which tProc output port triggers this buffer?
+            # three possibilities:
+            # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
+            # tproc v2 data port -> vect2bits -> buffer
+            # tproc v3 trigger port -> buffer
+            ((block, port),) = self.trace_sig(block, 'din')
+            if self.mod2type(block) == "axis_set_reg":
+                ((block, port),) = self.trace_bus(block, 's_axis')
+            # ask the tproc to translate this port name to a channel number
+            trigger_port, trigger_type = self.soc._get_block(block).port2ch(port)
+        else:
+            trigger_bit = 0
+            trigger_port, trigger_type = self.soc._get_block(block).port2ch(port)
+        return trigger_type, trigger_port, trigger_bit
+
 class BusParser:
     """Parses the HWH XML file to extract information on the buses connecting IP blocks.
     """
