@@ -914,9 +914,7 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
 class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
     """
-    AxisAvgBufferV1pt2 class
-
-    Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
+    Same as AxisAvgBufferV1pt1 but firmware has the first output sample bug fixed.
     """
     bindto = ['user.org:user:axis_avg_buffer:1.2',
               'QICK:QICK:axis_avg_buffer:1.2']
@@ -1053,6 +1051,14 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
 
         # Disable writes.
         self._stop_transfer()
+
+class AxisWeightedBufferV1pt3(AxisWeightedBuffer):
+    """
+    Same as AxisWeightedBuffer, but firmware has the first output sample bug fixed.
+    """
+    bindto = ['QICK:QICK:axis_weighted_buffer:1.3']
+
+    FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.3
 
 class MrBufferEt(SocIP):
     # Registers.
