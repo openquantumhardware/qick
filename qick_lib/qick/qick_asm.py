@@ -2238,6 +2238,8 @@ class AcquireMixin:
         soc.reload_mem()
         # make sure count variable is reset to 0
         soc.clear_tproc_counter(addr=self.counter_addr)
+        # do any other pre-execution setup
+        soc.prepare_round()
         # configure tproc for internal/external start
         soc.start_src(self.acquire_params['start_src'])
 
@@ -2298,6 +2300,9 @@ class AcquireMixin:
                         self.stats.append(s)
                         pbar.update(new_points)
             self.rounds_buf.append(self._process_accumulated(self.acc_buf))
+
+        # do any post-execution cleanup
+        soc.cleanup_round()
 
         self.rounds_pbar.update()
         self.acquire_params['rounds_remaining'] -= 1

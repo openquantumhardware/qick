@@ -1644,6 +1644,22 @@ class QickSoc(Overlay, QickConfig):
                 break
         return new_data
 
+    def prepare_round(self):
+        """This runs before a program starts running.
+        This is called by acquire/acquire_decimated/run_rounds; user code should not call it.
+
+        By default this does nothing, but a subclass of QickSoc may override this.
+        """
+        pass
+
+    def cleanup_round(self):
+        """This runs after a program has finished running.
+        This is called by acquire/acquire_decimated/run_rounds; user code should not call it.
+
+        By default this does nothing, but a subclass of QickSoc may override this.
+        """
+        pass
+
     def clear_ddr4(self, length=None):
         """Clear the DDR4 buffer, filling it with 0's.
         This is not necessary (the buffer will overwrite old data), but may be useful for debugging.
