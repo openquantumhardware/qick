@@ -14,6 +14,7 @@ import axi_mst_0_pkg::*;
 
 // `define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
 `define T_TCLK          0.833 // Half Clock Period for Signal Gens (600MHz)
+`define T_TCLK          1.162 // Half Clock Period for Signal Gens (430MHz)
 `define T_CCLK          2.5   // Half Clock Period for tProc Core (200MHz)
 `define T_SCLK          5.0   // Half Clock Period for PS & AXI (100MHz)
 // `define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
@@ -47,13 +48,13 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
-// string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
 // string TEST_NAME = "test_issue361";
+string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
@@ -601,6 +602,7 @@ reg qcom_rdy_i, qp2_rdy_i;
       .N                   (N                ),
       .N_DDS               (N_DDS            ),
       .GEN_DDS             ("TRUE"           ),
+      // .GEN_DDS             ("FALSE"           ),
       .ENVELOPE_TYPE       ("COMPLEX"        )
    )
    u_axis_signal_gen_v6_0 ( 
@@ -1391,10 +1393,15 @@ initial begin
 
    if (TEST_NAME == "test_qubit_emulator") begin
          $display("*** %t - Start test_qubit_emulator Test ***", $realtime());
-         TEST_OUT_CONNECTION = "TEST_OUT_QEMU";
-         TEST_RUN_TIME     = 40us;
+         // TEST_OUT_CONNECTION = "TEST_OUT_QEMU";
+         TEST_RUN_TIME     = 50us;
          TEST_READ_TIME    = 10us;
          REPEAT_EXEC = 1;
+
+         ro_length            = 500;
+         ro_decimated_length  = 500;
+         ro_average_length    = 21;
+
          wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
          #100ns;
          qubit_emulator_config();
@@ -1406,7 +1413,7 @@ initial begin
 
    if (TEST_NAME == "test_randomized_benchmarking") begin
          $display("*** %t - Start test_randomized_benchmarking Test ***", $realtime());
-         TEST_RUN_TIME   = 25us;
+         TEST_RUN_TIME   = 50us;
          REPEAT_EXEC = 1;
          wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
          #100ns;
