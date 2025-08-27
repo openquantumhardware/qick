@@ -986,6 +986,7 @@ class Trigger(TimedMacro):
         if self.width is None: self.width = prog.cycles2us(10)
         if self.ros is None: self.ros = []
         if self.pins is None: self.pins = []
+        if self.tts is None: self.tts = []
         self.outdict = defaultdict(int)
         self.trigset = set()
 
@@ -1018,6 +1019,12 @@ class Trigger(TimedMacro):
                 prog.set_timestamp(self.t + ro_length, ro_ch=ro)
             # update trigger count for this readout
             prog.ro_chs[ro]['trigs'] += 1
+        for tt in self.tts:
+            tt_trigcfg = prog.soccfg['time_taggers'][tt]['trigger']
+            if tt_trigcfg['type'] == 'dport':
+                self.outdict[tt_trigcfg['port']] |= (1 << tt_trigcfg['bit'])
+            else:
+                self.trigset.add(tt_trigcfg['port'])
         for pin in self.pins:
             porttype, portnum, pinnum, _ = prog.tproccfg['output_pins'][pin]
             if porttype == 'dport':
@@ -1454,29 +1461,34 @@ class AsmV2:
         """
         self.append_macro(ConfigReadout(ch=ch, name=name, t=t, tag=tag))
 
-    def trigger(self, ros=None, pins=None, t=0, width=None, ddr4=False, mr=False, tag=None):
+    def trigger(self, ros=None, tts=None, pins=None, t=0, width=None, ddr4=False, mr=False, tag=None):
         """Pulse readout triggers and output pins.
 
         Parameters
         ----------
         ros : list of int
-            readout channels to trigger (index in 'readouts' list)
+            Readout channels to trigger (index in 'readouts' list).
+        tts : list of int
+            Time tagger blocks to arm (index in 'time_taggers' list).
+            Note that the time tagger captures data only for the duration of the arm signal;
+            you must therefore pay attention to the `width` parameter.
+            This differs from the other readouts and buffers, which don't care about the width of the trigger pulse.
         pins : list of int
-            output pins to trigger (index in output pins list in QickCOnfig printout)
+            Output pins to trigger (index in output pins list in QickConfig printout).
         t : float, QickParam, or None
-            time (us)
-            if None, the current value of the time register (s_out_time) will be used
-            in this case, the channel timestamps will not be updated
+            Time (us).
+            If None, the current value of the time register (s_out_time) will be used;
+            in this case, the channel timestamps will not be updated.
         width : float or QickParam
-            pulse width (us), default of 10 cycles of the tProc timing clock
+            Pulse width (us), default of 10 cycles of the tProc timing clock.
         ddr4 : bool
-            trigger the DDR4 buffer
+            Trigger the DDR4 buffer.
         mr : bool
-            trigger the MR buffer
+            Trigger the MR buffer.
         tag: str
             arbitrary name for use with get_time_param()
         """
-        self.append_macro(Trigger(ros=ros, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
+        self.append_macro(Trigger(ros=ros, tts=tts, pins=pins, t=t, width=width, ddr4=ddr4, mr=mr, tag=tag))
 
 
 class AbsRegisterManager(ABC):
