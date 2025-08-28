@@ -137,42 +137,44 @@ class QICK_Time_Tagger(SocIP):
             TAG0, TAG1, TAG2, TAG3, ARM, SMP
         length : int
             Number of values to read.
-            If None, read as many as possible (all the values, or the DMA max.
+            If None, read all the values.
         """
         if mem_sel not in self.MEMS:
             raise RuntimeError('Source Memory error. Options are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
         mem_id, mem_counter = self.MEMS[mem_sel]
 
-        # Configure FIFO Read.
         if length is None:
-            length = min(getattr(self, mem_counter), len(self.buff_rd))
-        self.dma_cfg = mem_id + 16*length
+            #length = min(getattr(self, mem_counter), len(self.buff_rd))
+            length = getattr(self, mem_counter)
+        data = np.zeros(length, dtype=np.int32)
+
+        already_read = 0
+        while length > already_read:
+            thislen = min(length - already_read, len(self.buff_rd))
+            # Configure FIFO Read.
+            self.dma_cfg = mem_id + 16*thislen
        
-        if length==0:
-            print('No Data to read in ', mem_sel)
-            return np.array([])
-        else:
             # Route switch to channel.
             if self.switch is not None:
                 self.switch.sel(slv=self.switch_ch)
             #Start DMA Transfer
             self.qtt_ctrl     = 32
             # DMA data.
-            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(length*4))
+            self.dma.recvchannel.transfer(self.buff_rd, nbytes=int(thislen*4))
             self.dma.recvchannel.wait()
-            # truncate, copy, convert PynqBuffer to ndarray
-            return np.array(self.buff_rd[:length], copy=True)
+            # truncate, copy
+            np.copyto(data[already_read:already_read+thislen], self.buff_rd[:thislen])
+            already_read += thislen
+
+        return data
     
     def flush_mems(self, verbose=False):
         """Flush the time-tagger memories by reading them.
         This does not clear the tag queue to the tProc, only the memories readable by DMA.
         """
         for memname, (_, countname) in self.MEMS.items():
-            while True:
-                to_read = getattr(self, countname)
-                if verbose: print(memname, to_read)
-                if to_read == 0: break
-                self.read_mem(memname)
+            data = self.read_mem(memname)
+            self.logger.info("read %d words from %s" % (len(data), memname))
 
     def set_config(self, filt, slope, interp, wr_smp, invert):
         """
