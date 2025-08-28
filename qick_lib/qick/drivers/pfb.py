@@ -166,7 +166,7 @@ class AbsPfbAnalysis(SocIp):
             elif blocktype == "axis_clock_converter":
                 # Trace port.
                 ((block, port),) = soc.metadata.trace_bus(block, 'M_AXIS')
-            elif blocktype == "axis_xfft_16x16384":
+            elif blocktype == "axis_xfft_16x16384" or blocktype == "axis_xfft_16x32768":
                 self.HAS_XFFT = True
 
                 # Add block into dictionary.

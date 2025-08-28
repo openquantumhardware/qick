@@ -175,11 +175,11 @@ class AxisAccumulatorV6(SocIp):
 #        if (self.FFT_AW != 14):
 #            raise ValueError('FFT length=%d not supported. Must be 16384'%2**(self.FFT_AW))
 
-        if (self.BANK_ARRAY_AW != 4):
-            raise ValueError('Number of parallel input=%d not supported. Must be 16'%2**(self.BANK_ARRAY_AW))
+#        if (self.BANK_ARRAY_AW != 4):
+#            raise ValueError('Number of parallel input=%d not supported. Must be 16'%2**(self.BANK_ARRAY_AW))
 
-        if (self.FFT_STORE != 1):
-            raise ValueError('FFT_STORE must be set to half (1)')
+#        if (self.FFT_STORE != 1):
+#            raise ValueError('FFT_STORE must be set to half (1)')
             
         if (self.IQ_FORMAT != 1):
             raise ValueError('IQ_FORMAT must be set QIQIQIQI (1)')            
