@@ -816,6 +816,8 @@ class QickSoc(Overlay, QickConfig):
         self.avg_bufs = []
         # Readout blocks.
         self.readouts = []
+        # Time-tagger blocks.
+        self.time_taggers = []
 
         if not no_rf:
             # RF data converter (for configuring ADCs and DACs, and setting NCOs)
@@ -918,6 +920,8 @@ class QickSoc(Overlay, QickConfig):
                 ddr4_buf.append(self._get_block(key))
             elif issubclass(val['driver'], MrBufferEt):
                 mr_buf.append(self._get_block(key))
+            elif val['driver'] == QICK_Time_Tagger:
+                self.time_taggers.append(self._get_block(key))
 
         # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
         for buf in self.avg_bufs:
@@ -961,6 +965,7 @@ class QickSoc(Overlay, QickConfig):
         # Fill the config dictionary with driver parameters.
         self['gens'] = [gen.cfg for gen in self.gens]
         self['iqs'] = [iq.cfg for iq in self.iqs]
+        self['time_taggers'] = [x.cfg for x in self.time_taggers]
 
         # In the config, we define a "readout" as the chain of ADC+readout+buffer.
         def merge_cfgs(bufcfg, rocfg):

@@ -5,31 +5,6 @@ from pynq.buffer import allocate
 import numpy as np
 from qick.ip import SocIP, QickIP, DummyIP
 
-def _trace_trigger(soc, start_block):
-    """Helper function for finding the tProc port that triggers a buffer.
-    """
-    # which tProc output bit triggers this buffer?
-    ((block, port),) = soc.metadata.trace_sig(start_block, 'trigger')
-    blocktype = soc.metadata.mod2type(block)
-    if blocktype=='qick_vec2bit' or 'vect2bits' in blocktype:
-        # vect2bits/qick_vec2bit port names are of the form 'dout14'
-        trigger_bit = int(port[4:])
-
-        # which tProc output port triggers this buffer?
-        # three possibilities:
-        # tproc v1 output port -> axis_set_reg -> vect2bits -> buffer
-        # tproc v2 data port -> vect2bits -> buffer
-        # tproc v3 trigger port -> buffer
-        ((block, port),) = soc.metadata.trace_sig(block, 'din')
-        if soc.metadata.mod2type(block) == "axis_set_reg":
-            ((block, port),) = soc.metadata.trace_bus(block, 's_axis')
-        # ask the tproc to translate this port name to a channel number
-        trigger_port, trigger_type = soc._get_block(block).port2ch(port)
-    else:
-        trigger_bit = 0
-        trigger_port, trigger_type = soc._get_block(block).port2ch(port)
-    return trigger_type, trigger_port, trigger_bit
-
 RO_TYPES = ["axis_readout_v2", "axis_readout_v3", "axis_pfb_readout_v2", "axis_pfb_readout_v3", "axis_pfb_readout_v4", "axis_dyn_readout_v1"]
 BUF_TYPES = ['axis_avg_buffer', 'axis_weighted_buffer']
 
@@ -629,7 +604,7 @@ class AxisAvgBuffer(SocIP):
 
         self.switch_ch = switch_avg_ch
 
-        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self['fullpath'])
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = soc.metadata.trace_trigger(self['fullpath'], 'trigger')
 
         # which tProc input port does this buffer drive?
         try:
@@ -914,9 +889,7 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
 class AxisAvgBufferV1pt2(AxisAvgBufferV1pt1):
     """
-    AxisAvgBufferV1pt2 class
-
-    Same as AxisAvgBufferV1pt1 but Firmware has the first output sample bug fixed.
+    Same as AxisAvgBufferV1pt1 but firmware has the first output sample bug fixed.
     """
     bindto = ['user.org:user:axis_avg_buffer:1.2',
               'QICK:QICK:axis_avg_buffer:1.2']
@@ -1054,6 +1027,14 @@ class AxisWeightedBuffer(AxisAvgBufferV1pt1):
         # Disable writes.
         self._stop_transfer()
 
+class AxisWeightedBufferV1pt3(AxisWeightedBuffer):
+    """
+    Same as AxisWeightedBuffer, but firmware has the first output sample bug fixed.
+    """
+    bindto = ['QICK:QICK:axis_weighted_buffer:1.3']
+
+    FIRST_OUT_SAMPLE_BUG_FIX = True   # Bug is fixed in IP version >= 1.3
+
 class MrBufferEt(SocIP):
     # Registers.
     # DW_CAPTURE_REG
@@ -1150,7 +1131,7 @@ class MrBufferEt(SocIP):
             self.cfg['readouts'].append(block)
 
 
-        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self['fullpath'])
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = soc.metadata.trace_trigger(self['fullpath'], 'trigger')
 
     def route(self, ch):
         # Route switch to channel.
@@ -1291,7 +1272,7 @@ class AxisBufferDdrV1(SocIP):
             self.buf2switch[block] = 0
             self.cfg['readouts'].append(block)
 
-        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = _trace_trigger(soc, self['fullpath'])
+        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = soc.metadata.trace_trigger(self['fullpath'], 'trigger')
 
     def rstop(self):
         self.rstart_reg = 0

@@ -173,6 +173,34 @@ class QickConfig():
                     readout['trigger_type'], readout['trigger_port'], readout['trigger_bit'], readout['tproc_ch']))
                 lines.append("\t\t" + self._describe_adc(adcname))
 
+        if 'time_taggers' in self._cfg and self['time_taggers']: # only print if we have time taggers
+            lines.append("\n\t%d time-tagger blocks:" % (len(self['time_taggers'])))
+            for iTT, tt in enumerate(self['time_taggers']):
+                lines.append("\t%d:\t%s" % (iTT, tt['type']))
+                options = []
+                if tt['cmp_slope']:
+                    options.append('constant-frac discrimination')
+                if tt['cmp_inter']:
+                    options.append('%d-bit interpolation' % (tt['cmp_inter']))
+                if options:
+                    lines[-1] + ", supports " + ', '.join(options)
+
+                lines.append("\t\tmemories: %d time-tags (TAG)" % (tt['tag_mem_size']))
+                if tt['arm_store']:
+                    lines[-1] += ", %d counts (ARM)" % (tt['arm_mem_size'])
+                if tt['smp_store']:
+                    lines[-1] += ", %d samples (SMP)" % (tt['smp_mem_size'])
+
+                if tt['trigger'] is not None:
+                    trigcfg = tt['trigger']
+                    lines.append("\t\ttriggered by %s %d, pin %d" % (
+                        trigcfg['type'], trigcfg['port'], trigcfg['bit']))
+                if tt['peripheral'] is not None:
+                    lines.append("\t\tis tProc peripheral %s" % (tt['peripheral']))
+                lines.append("\t\t%d ADC ports:" % (tt['adc_qty']))
+                for iADC, adcname in enumerate(tt['adcs']):
+                    lines.append("\t\t  %d_%d: %s" % (iTT, iADC, self._describe_adc(adcname)))
+
         if tproc: # tproc may be an empty dict
             lines.append("\n\t%d digital output pins:" % (len(tproc['output_pins'])))
             for iPin, (porttype, port, pin, name) in enumerate(tproc['output_pins']):
