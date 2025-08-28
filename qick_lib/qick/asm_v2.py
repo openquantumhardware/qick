@@ -1913,7 +1913,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     FLIP_DOWNCONVERSION = True
 
     # supported revisions of the tProc v2 core
-    ASM_REVISIONS = [21, 22, 23]
+    ASM_REVISIONS = [21, 22, 23, 26]
 
     def __init__(self, soccfg):
         super().__init__(soccfg)
