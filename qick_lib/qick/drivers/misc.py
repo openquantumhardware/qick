@@ -172,8 +172,8 @@ class AxisAccumulatorV6(SocIp):
         if (self.AXIS_IN_DW != 64):
             raise ValueError('Data Width=%d not supported. Must be 64-bit'%self.AXIS_IN_DW)
 
-        if (self.FFT_AW != 14):
-            raise ValueError('FFT length=%d not supported. Must be 16384'%2**(self.FFT_AW))
+#        if (self.FFT_AW != 14):
+#            raise ValueError('FFT length=%d not supported. Must be 16384'%2**(self.FFT_AW))
 
         if (self.BANK_ARRAY_AW != 4):
             raise ValueError('Number of parallel input=%d not supported. Must be 16'%2**(self.BANK_ARRAY_AW))
