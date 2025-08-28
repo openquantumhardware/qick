@@ -1120,6 +1120,7 @@ class QickSoc(Overlay, QickConfig):
         if self.TPROC_VERSION == 1:
             self.tproc.start()
         elif self.TPROC_VERSION == 2:
+            self.tproc.reset()
             self.tproc.stop()
             self.tproc.start()
 

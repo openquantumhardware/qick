@@ -417,19 +417,8 @@ class SpectrumSoc(QickSoc):
     def __init__(self, bitfile=None, **kwargs):
         super().__init__(bitfile=bitfile, **kwargs)
 
-    def description(self):
-        """Generate a printable description of the QICK configuration.
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        str
-            description
-
-        """
         lines = []
+        lines = ["\nSPECTRUM configuration:\n"]
         lines.append("\n\tBoard: " + self['board'])
 
         # Analysis Chains.
@@ -442,7 +431,7 @@ class SpectrumSoc(QickSoc):
                 lines.append("\t\tPFB: fs = %.1f MHz, fc = %.1f MHz, %d channels" %
                              (chain['fs_ch'], chain['fc_ch'], chain['nch']))
                 #lines.append("\t\tXFFT
-        return "\nSPECTRUM configuration:\n"+"\n".join(lines)
+        self['extra_description'].extend(lines)
 
     def map_signal_paths(self, no_tproc):
         super().map_signal_paths(no_tproc)
@@ -491,7 +480,7 @@ class SpectrumSoc(QickSoc):
                 block = getattr(self, pfb.dict['buff_xfft'])
                 dma = getattr(self, pfb.dict['buff_xfft_dma'])
                 block.configure(dma, sync="yes")
-                self.FFT_N = block.BUFFER_LENGTH
+                self.FFT_N = int(block.BUFFER_LENGTH/2)
 
             # ACCUMULATOR: axis_accumulator_v1.
             if pfb.HAS_ACCUMULATOR:
