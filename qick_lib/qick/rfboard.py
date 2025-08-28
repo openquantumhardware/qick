@@ -1935,7 +1935,7 @@ class RFQickSoc(QickSoc):
         """
         rfb_ch = self.gens[gen_ch].rfb_ch
         if not isinstance(rfb_ch, AbsDacRfChain):
-            raise RuntimeError("generator %d is not connected to an RF signal chain")
+            raise RuntimeError("generator %d is not connected to an RF signal chain" % (gen_ch))
         return rfb_ch.enable_rf(att1, att2)
 
     def rfb_set_gen_dc(self, gen_ch):
@@ -1948,7 +1948,44 @@ class RFQickSoc(QickSoc):
         """
         rfb_ch = self.gens[gen_ch].rfb_ch
         if not isinstance(rfb_ch, AbsDacDcChain):
-            raise RuntimeError("generator %d is not connected to a DC signal chain")
+            raise RuntimeError("generator %d is not connected to an RF signal chain" % (gen_ch))
+        rfb_ch.enable_dc()
+
+    def rfb_set_dac_rf(self, dac_port, att1, att2):
+        """Enable and configure a QICK box or RF board DAC port for RF output.
+
+        Parameters
+        ----------
+        dac_port : int
+            QICK box or RF board DAC port number (0-15 for ZCU216, 0-7 for ZCU111)
+        att1 : float
+            Attenuation for first stage (0-31.75 dB)
+        att2 : float
+            Attenuation for second stage (0-31.75 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) att1 value that was set
+        float
+            actual (rounded) att2 value that was set
+        """
+        rfb_ch = self.dac_chains[dac_port]
+        if not isinstance(rfb_ch, AbsDacRfChain):
+            raise RuntimeError("DAC port %d does not have an RF signal chain" % (dac_port))
+        return rfb_ch.enable_rf(att1, att2)
+
+    def rfb_set_dac_dc(self, dac_port):
+        """Enable and configure a QICK box or RF board DAC port for DC output.
+
+        Parameters
+        ----------
+        dac_port : int
+            QICK box or RF board DAC port number (0-15 for ZCU216, 0-7 for ZCU111)
+        """
+        rfb_ch = self.dac_chains[dac_port]
+        if not isinstance(rfb_ch, AbsDacDcChain):
+            raise RuntimeError("DAC port %d does not have a DC signal chain" % (dac_port))
         rfb_ch.enable_dc()
 
     def rfb_set_ro_rf(self, ro_ch, att):
@@ -1969,7 +2006,7 @@ class RFQickSoc(QickSoc):
         """
         rfb_ch = self.avg_bufs[ro_ch].rfb_ch
         if not isinstance(rfb_ch, AbsAdcRfChain):
-            raise RuntimeError("readout %d is not connected to an RF signal chain")
+            raise RuntimeError("readout %d is not connected to an RF signal chain" % (ro_ch))
         return rfb_ch.enable_rf(att)
 
     def rfb_set_ro_dc(self, ro_ch, gain):
@@ -1990,7 +2027,49 @@ class RFQickSoc(QickSoc):
         """
         rfb_ch = self.avg_bufs[ro_ch].rfb_ch
         if not isinstance(rfb_ch, AbsAdcDcChain):
-            raise RuntimeError("readout %d is not connected to a DC signal chain")
+            raise RuntimeError("readout %d is not connected to a DC signal chain" % (ro_ch))
+        return rfb_ch.enable_dc(gain)
+
+    def rfb_set_adc_rf(self, adc_port, att):
+        """Enable and configure an RF-board RF input channel.
+        Will fail if this is not an RF input.
+
+        Parameters
+        ----------
+        adc_port : int
+            QICK box or RF board ADC port number (0-7 for ZCU216, 0-3 for ZCU111)
+        att : float
+            Attenuation (0 to 31.75 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) value that was set
+        """
+        rfb_ch = self.adc_chains[adc_port]
+        if not isinstance(rfb_ch, AbsAdcRfChain):
+            raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
+        return rfb_ch.enable_rf(att)
+
+    def rfb_set_adc_dc(self, adc_port, gain):
+        """Enable and configure an RF-board DC input channel.
+        Will fail if this is not a DC input.
+
+        Parameters
+        ----------
+        adc_port : int
+            QICK box or RF board ADC port number (0-7 for ZCU216, 4-7 for ZCU111)
+        gain : float
+            Gain (-6 to 26 dB)
+
+        Returns
+        -------
+        float
+            actual (rounded) value that was set
+        """
+        rfb_ch = self.adc_chains[adc_port]
+        if not isinstance(rfb_ch, AbsAdcDcChain):
+            raise RuntimeError("ADC port %d does not have a DC signal chain" % (adc_port))
         return rfb_ch.enable_dc(gain)
 
     def rfb_set_bias(self, bias_ch, v):
@@ -2213,6 +2292,12 @@ class RFQickSoc216V1(RFQickSoc):
         self.biases = [BiasDAC11001(self.bias_spi, ch_en=ii) for ii in range(8)]
         self.rfb_enable_bias()
 
+        # ADC channels.
+        self.adc_chains = []
+
+        # DAC channels.
+        self.dac_chains = []
+
         # DAC daughter cards are the lower 4.
         self.dac_cards = []
         for card_num in range(4):
@@ -2226,6 +2311,10 @@ class RFQickSoc216V1(RFQickSoc):
                     card = DacRfCard216(card_num, self, gpio)
                 else:
                     card = None
+            if card is None:
+                self.dac_chains.extend([None]*4)
+            else:
+                self.dac_chains.extend(card.chains)
             self.dac_cards.append(card)
 
         # ADC daughter cards are the upper 4.
@@ -2244,6 +2333,10 @@ class RFQickSoc216V1(RFQickSoc):
                     card = AdcRfCard216(card_num, self, gpio)
                 else:
                     card = None
+            if card is None:
+                self.adc_chains.extend([None]*2)
+            else:
+                self.adc_chains.extend(card.chains)
             self.adc_cards.append(card)
 
         # Link gens/readouts to the corresponding RF board channels.
@@ -2281,7 +2374,7 @@ class RFQickSoc216V1(RFQickSoc):
         self.bias_gpio.channel1.write(0, 0x1)
 
     def rfb_set_gen_filter(self, gen_ch, fc, bw=1, ftype='bandpass'):
-        """Set the programmable Analog Filter of the chain.
+        """Set the programmable analog filter of the QICK box DAC port connected to a specified generator.
 
         Parameters
         ----------
@@ -2294,11 +2387,13 @@ class RFQickSoc216V1(RFQickSoc):
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
-        self.gens[gen_ch].rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+        rfb_ch = self.gens[gen_ch].rfb_ch
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("generator %d is not connected to an RF signal chain" % (gen_ch))
+        rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
     def rfb_set_ro_filter(self, ro_ch, fc, bw=1, ftype='bandpass'):
-        """Enable and configure an RF-board RF input channel.
-        Will fail if this is not an RF input.
+        """Set the programmable analog filter of the QICK box ADC port connected to a specified readout channel.
 
         Parameters
         ----------
@@ -2311,7 +2406,48 @@ class RFQickSoc216V1(RFQickSoc):
         ftype : str
             Filter type: bypass, lowpass, highpass or bandpass.
         """
-        self.avg_bufs[ro_ch].rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+        rfb_ch = self.avg_bufs[ro_ch].rfb_ch
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("readout %d is not connected to an RF signal chain" % (ro_ch))
+        rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_dac_filter(self, dac_port, fc, bw=1, ftype='bandpass'):
+        """Set the programmable analog filter of the specified QICK box ADC port.
+
+        Parameters
+        ----------
+        dac_port : int
+            QICK box DAC port number (0-15)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : str
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        rfb_ch = self.dac_chains[dac_port]
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("DAC port %d does not have a RF signal chain" % (dac_port))
+        rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_adc_filter(self, adc_port, fc, bw=1, ftype='bandpass'):
+        """Set the programmable analog filter of the specified QICK box DAC port.
+
+        Parameters
+        ----------
+        adc_port : int
+            QICK box ADC port number (0-7)
+        fc : float
+            Center frequency for bandpass, cut-off frequency of lowpass and highpass.
+        bw : float
+            Bandwidth.
+        ftype : str
+            Filter type: bypass, lowpass, highpass or bandpass.
+        """
+        rfb_ch = self.adc_chains[adc_port]
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
+        rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
     def clear_interrupts(self, max_attempts=5, error_on_interrupt=False, error_on_persist=True):
         """
