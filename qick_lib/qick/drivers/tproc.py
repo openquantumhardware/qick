@@ -338,7 +338,7 @@ class Axis_QICK_Proc(SocIp):
     :param axi_dma: axi_dma address
     :type axi_dma: int
     """
-    bindto = ['Fermi:user:qick_processor:2.0']
+    bindto = ['Fermi:user:qick_processor:2.0', 'QICK:QICK:qick_processor:2.0']
     
     def __init__(self, description):
         """

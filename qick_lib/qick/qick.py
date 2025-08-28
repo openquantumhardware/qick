@@ -1,5 +1,6 @@
 """
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
+
 """
 import os
 from pynq.overlay import Overlay
@@ -19,6 +20,8 @@ from .asm_v2 import QickProgramV2
 from .drivers.generator import *
 from .drivers.readout import *
 from .drivers.tproc import *
+from .drivers.misc import *
+from .drivers.pfb import *
 
 
 class AxisSwitch(SocIp):
@@ -468,24 +471,13 @@ class QickSoc(Overlay, QickConfig):
         self.metadata = QickMetadata(self)
         self['fw_timestamp'] = self.metadata.timestamp
 
+        self.map_signal_paths(no_tproc)
+
         if no_tproc:
             self.TPROC_VERSION = 0
         else:
-            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-            if 'axis_tproc64x32_x8_0' in self.ip_dict:
-                self.TPROC_VERSION = 1
-                self._tproc = self.axis_tproc64x32_x8_0
-                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-            elif 'qick_processor_0' in self.ip_dict:
-                self.TPROC_VERSION = 2
-                self._tproc = self.qick_processor_0
-                self._tproc.configure(self.axi_dma_tproc)
-            else:
-                raise RuntimeError('No tProcessor found')
-
             #self.tnet = self.qick_net_0
 
-            self.map_signal_paths()
 
             self._streamer = DataStreamer(self)
 
@@ -510,100 +502,113 @@ class QickSoc(Overlay, QickConfig):
             block = getattr(block, x)
         return block
 
-    def map_signal_paths(self):
+    def map_signal_paths(self, no_tproc):
         """
         Make lists of signal generator, readout, and buffer blocks in the firmware.
         Also map the switches connecting the generators and buffers to DMA.
         Fill the config dictionary with parameters of the DAC and ADC channels.
         """
-        # Use the HWH parser to trace connectivity and deduce the channel numbering.
-        # Some blocks (e.g. DDR4) are inside hierarchies.
-        # We access these through the hierarchy (e.g. self.ddr4.axis_buffer_ddr_v1_0)
-        # but list them using ip_dict, which has all blocks, even those inside hierarchies
-        for key, val in self.ip_dict.items():
-            if hasattr(val['driver'], 'configure_connections'):
-                self._get_block(val['fullpath']).configure_connections(self)
+        if not no_tproc:
+            # Use the HWH parser to trace connectivity and deduce the channel numbering.
+            # Some blocks (e.g. DDR4) are inside hierarchies.
+            # We access these through the hierarchy (e.g. self.ddr4.axis_buffer_ddr_v1_0)
+            # but list them using ip_dict, which has all blocks, even those inside hierarchies
+            for key, val in self.ip_dict.items():
+                if hasattr(val['driver'], 'configure_connections'):
+                    self._get_block(val['fullpath']).configure_connections(self)
 
-        # Signal generators (anything driven by the tProc)
-        self.gens = []
+            # Signal generators (anything driven by the tProc)
+            self.gens = []
 
-        # Constant generators
-        self.iqs = []
+            # Constant generators
+            self.iqs = []
 
-        # Average + Buffer blocks.
-        self.avg_bufs = []
+            # Average + Buffer blocks.
+            self.avg_bufs = []
 
-        # Readout blocks.
-        self.readouts = []
+            # Readout blocks.
+            self.readouts = []
 
-        # Populate the lists with the registered IP blocks.
-        for key, val in self.ip_dict.items():
-            if issubclass(val['driver'], AbsPulsedSignalGen):
-                self.gens.append(getattr(self, key))
-            elif val['driver'] == AxisConstantIQ:
-                self.iqs.append(getattr(self, key))
-            elif issubclass(val['driver'], AbsReadout):
-                self.readouts.append(getattr(self, key))
-            elif issubclass(val['driver'], AxisAvgBuffer):
-                self.avg_bufs.append(getattr(self, key))
+            # Populate the lists with the registered IP blocks.
+            for key, val in self.ip_dict.items():
+                if issubclass(val['driver'], AbsPulsedSignalGen):
+                    self.gens.append(getattr(self, key))
+                elif val['driver'] == AxisConstantIQ:
+                    self.iqs.append(getattr(self, key))
+                elif issubclass(val['driver'], AbsReadout):
+                    self.readouts.append(getattr(self, key))
+                elif issubclass(val['driver'], AxisAvgBuffer):
+                    self.avg_bufs.append(getattr(self, key))
 
-        # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
-        for buf in self.avg_bufs:
-            if buf.readout not in self.readouts:
-                self.readouts.append(buf.readout)
+            # AxisReadoutV3 isn't a PYNQ-registered IP block, so we add it here
+            for buf in self.avg_bufs:
+                if buf.readout not in self.readouts:
+                    self.readouts.append(buf.readout)
 
-        # Sort the lists.
-        # We order gens by the tProc port number and tProc mux port number (if present).
-        # We order buffers by the switch port number.
-        # Those orderings are important, since those indices get used in programs.
-        self.gens.sort(key=lambda x:(x['tproc_ch'], x._cfg.get('tmux_ch')))
-        self.avg_bufs.sort(key=lambda x: x.switch_ch)
-        # The IQ and readout orderings aren't critical for anything.
-        self.iqs.sort(key=lambda x: x.dac)
-        self.readouts.sort(key=lambda x: x.adc)
+            # Sort the lists.
+            # We order gens by the tProc port number and tProc mux port number (if present).
+            # We order buffers by the switch port number.
+            # Those orderings are important, since those indices get used in programs.
+            self.gens.sort(key=lambda x:(x['tproc_ch'], x._cfg.get('tmux_ch')))
+            self.avg_bufs.sort(key=lambda x: x.switch_ch)
+            # The IQ and readout orderings aren't critical for anything.
+            self.iqs.sort(key=lambda x: x.dac)
+            self.readouts.sort(key=lambda x: x.adc)
 
-        # Configure the drivers.
-        for i, gen in enumerate(self.gens):
-            gen.configure(i, self.rf)
+            # Configure the drivers.
+            for i, gen in enumerate(self.gens):
+                gen.configure(i, self.rf)
 
-        for i, iq in enumerate(self.iqs):
-            iq.configure(i, self.rf)
+            for i, iq in enumerate(self.iqs):
+                iq.configure(i, self.rf)
 
-        for readout in self.readouts:
-            readout.configure(self.rf)
+            for readout in self.readouts:
+                readout.configure(self.rf)
 
-        # Find the MR buffer, if present.
-        try:
-            self.mr_buf = self.mr_buffer_et_0
-            self['mr_buf'] = self.mr_buf.cfg
-        except:
-            pass
+            # Find the MR buffer, if present.
+            try:
+                self.mr_buf = self.mr_buffer_et_0
+                self['mr_buf'] = self.mr_buf.cfg
+            except:
+                pass
 
-        # Find the DDR4 controller and buffer, if present.
-        try:
-            if hasattr(self, 'ddr4'):
-                self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
+            # Find the DDR4 controller and buffer, if present.
+            try:
+                if hasattr(self, 'ddr4'):
+                    self.ddr4_buf = self.ddr4.axis_buffer_ddr_v1_0
+                else:
+                    self.ddr4_buf = self.axis_buffer_ddr_v1_0
+                self['ddr4_buf'] = self.ddr4_buf.cfg
+            except:
+                pass
+
+            # Fill the config dictionary with driver parameters.
+            self['gens'] = [gen.cfg for gen in self.gens]
+            self['iqs'] = [iq.cfg for iq in self.iqs]
+
+            # In the config, we define a "readout" as the chain of ADC+readout+buffer.
+            def merge_cfgs(bufcfg, rocfg):
+                merged = {**bufcfg, **rocfg}
+                for k in set(bufcfg.keys()) & set(rocfg.keys()):
+                    del merged[k]
+                    merged["avgbuf_"+k] = bufcfg[k]
+                    merged["ro_"+k] = rocfg[k]
+                return merged
+            self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
+
+            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+            if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self.TPROC_VERSION = 1
+                self._tproc = self.axis_tproc64x32_x8_0
+                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+            elif 'qick_processor_0' in self.ip_dict:
+                self.TPROC_VERSION = 2
+                self._tproc = self.qick_processor_0
+                self._tproc.configure(self.axi_dma_tproc)
             else:
-                self.ddr4_buf = self.axis_buffer_ddr_v1_0
-            self['ddr4_buf'] = self.ddr4_buf.cfg
-        except:
-            pass
+                raise RuntimeError('No tProcessor found')
 
-        # Fill the config dictionary with driver parameters.
-        self['gens'] = [gen.cfg for gen in self.gens]
-        self['iqs'] = [iq.cfg for iq in self.iqs]
-
-        # In the config, we define a "readout" as the chain of ADC+readout+buffer.
-        def merge_cfgs(bufcfg, rocfg):
-            merged = {**bufcfg, **rocfg}
-            for k in set(bufcfg.keys()) & set(rocfg.keys()):
-                del merged[k]
-                merged["avgbuf_"+k] = bufcfg[k]
-                merged["ro_"+k] = rocfg[k]
-            return merged
-        self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
-
-        self['tprocs'] = [self.tproc.cfg]
+            self['tprocs'] = [self.tproc.cfg]
 
     def config_clocks(self, force_init_clks):
         """

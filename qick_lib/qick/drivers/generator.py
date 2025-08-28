@@ -221,7 +221,8 @@ class AxisSignalGen(AbsArbSignalGen, AbsPulsedSignalGen):
     """
     bindto = ['user.org:user:axis_signal_gen_v4:1.0',
               'user.org:user:axis_signal_gen_v5:1.0',
-              'user.org:user:axis_signal_gen_v6:1.0']
+              'user.org:user:axis_signal_gen_v6:1.0',
+              'QICK:QICK:axis_signal_gen_v6:1.0']
     SAMPS_PER_CLK = 16
     B_DDS = 32
     B_PHASE = 32
@@ -515,13 +516,15 @@ class AxisSgMixMux8V1(AbsMuxSignalGen):
     B_PHASE = 32
 
 class AxisConstantIQ(AbsSignalGen):
-    """Plays a constant IQ value, which gets mixed with the DAC's built-in oscillator.
+    """
+    Plays a constant IQ value, which gets mixed with the DAC's built-in oscillator.
+
     """
     # AXIS Constant IQ registers:
     # REAL_REG : 16-bit.
     # IMAG_REG : 16-bit.
     # WE_REG   : 1-bit. Update registers.
-    bindto = ['user.org:user:axis_constant_iq:1.0']
+    bindto = ['user.org:user:axis_constant_iq:1.0', 'QICK:QICK:axis_constant_iq:1.0']
     HAS_MIXER = True
 
     def __init__(self, description):
