@@ -61,7 +61,7 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="589"/>
+    <Option Name="WTXSimLaunchSim" Val="667"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
