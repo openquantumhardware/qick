@@ -214,7 +214,7 @@ data_reader
     );
 
 // Output data register (dc fifo to cross domain).
-fifo_dc_axi
+fifo_dc_axi_xpm
     #(
         // Data width.
         .B	(4*B	),
