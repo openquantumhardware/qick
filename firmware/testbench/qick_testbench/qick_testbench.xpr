@@ -61,7 +61,7 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="667"/>
+    <Option Name="WTXSimLaunchSim" Val="710"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -92,6 +92,113 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/cdcsync.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/axis_cdcsync_v1.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo_axi.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/rd2axi.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/gray2bin.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo_dc.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bin2gray.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_simple_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/synchronizer_vect.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo_dc_axi.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_simple_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/axis_dyn_readout_v1.v">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
@@ -455,159 +562,11 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/rd2axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_dc.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_simple_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/gray2bin.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bin2gray.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_dc_axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/synchronizer_vect.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/fifo_axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/bin2gray.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/rd2axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/bram_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/bram_simple_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/fifo_dc.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/cdcsync.sv">
+      <File Path="$PPRDIR/../../hdl/fifo_dc_axi_xpm.sv">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/fifo.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/gray2bin.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/synchronizer_vect.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/axis_cdcsync_v1.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/fifo/fifo_dc_axi.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>

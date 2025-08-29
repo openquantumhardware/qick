@@ -13,8 +13,8 @@ import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
 // `define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
-`define T_TCLK          0.833 // Half Clock Period for Signal Gens (600MHz)
-// `define T_TCLK          1.162 // Half Clock Period for Signal Gens (430MHz)
+// `define T_TCLK          0.833 // Half Clock Period for Signal Gens (600MHz)
+`define T_TCLK          1.162 // Half Clock Period for Signal Gens (430MHz)
 `define T_CCLK          2.5   // Half Clock Period for tProc Core (200MHz)
 `define T_SCLK          5.0   // Half Clock Period for PS & AXI (100MHz)
 // `define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
@@ -48,18 +48,19 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
 // string TEST_NAME = "test_issue361";
+string TEST_NAME = "test_issue53";
 // string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
 // Default Simulation Settings
-time TEST_RUN_TIME         = 5us;   // Time to run tProc execution
+time TEST_RUN_TIME         = 6us;   // Time to run tProc execution
 time TEST_READ_TIME        = 1us;   // Time to read data from buffers
 time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
 string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
@@ -144,26 +145,7 @@ wire [255 :0]      m_dma_axis_tdata_o   ;
 wire               m_dma_axis_tlast_o   ;
 wire               m_dma_axis_tvalid_o  ;
 
-wire [167:0]       tproc_sgt_0_axis_tdata ;
-wire               tproc_sgt_0_axis_tvalid;
-logic              tproc_sgt_0_axis_tready;
-
-wire [159:0]       sgt_sg_0_axis_tdata ;
-wire               sgt_sg_0_axis_tvalid;
-logic              sgt_sg_0_axis_tready;
-
-wire [167:0]       tproc_cdc_0_axis_tdata ;
-wire               tproc_cdc_0_axis_tvalid;
-logic              tproc_cdc_0_axis_tready;
-
-wire [167:0]       cdc_rot_0_axis_tdata ;
-wire               cdc_rot_0_axis_tvalid;
-logic              cdc_rot_0_axis_tready;
-
-wire [87:0]        rot_ro_0_axis_tdata ;
-wire               rot_ro_0_axis_tvalid;
-logic              rot_ro_0_axis_tready;
-
+// tProc Interface
 wire [167:0]       m1_axis_tdata        ;
 wire               m1_axis_tvalid       ;
 wire [167:0]       m2_axis_tdata        ;
@@ -181,6 +163,32 @@ wire               m7_axis_tvalid       ;
 wire               trigger_0;
 
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
+
+// Signal Generator Path signals
+wire [167:0]       tproc_sgcdc_0_axis_tdata ;
+wire               tproc_sgcdc_0_axis_tvalid;
+logic              tproc_sgcdc_0_axis_tready;
+
+wire [167:0]       sgcdc_sgt_0_axis_tdata ;
+wire               sgcdc_sgt_0_axis_tvalid;
+logic              sgcdc_sgt_0_axis_tready;
+
+wire [159:0]       sgt_sg_0_axis_tdata ;
+wire               sgt_sg_0_axis_tvalid;
+logic              sgt_sg_0_axis_tready;
+
+// Readout Path signals
+wire [167:0]       tproc_rocdc_0_axis_tdata ;
+wire               tproc_rocdc_0_axis_tvalid;
+logic              tproc_rocdc_0_axis_tready;
+
+wire [167:0]       rocdc_rot_0_axis_tdata ;
+wire               rocdc_rot_0_axis_tvalid;
+logic              rocdc_rot_0_axis_tready;
+
+wire [87:0]        rot_ro_0_axis_tdata ;
+wire               rot_ro_0_axis_tvalid;
+logic              rot_ro_0_axis_tready;
 
 // QNET Peripheral
 wire                qnet_en_o   ;
@@ -460,9 +468,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .s7_axis_tdata        ( 64'd7          ) ,
       .s7_axis_tvalid       ( 1'b0           ) ,
       // OUT WAVE PORTS
-      .m0_axis_tdata        ( tproc_sgt_0_axis_tdata  ) ,
-      .m0_axis_tvalid       ( tproc_sgt_0_axis_tvalid ) ,
-      .m0_axis_tready       ( tproc_sgt_0_axis_tready ) ,
+      .m0_axis_tdata        ( tproc_sgcdc_0_axis_tdata  ) ,
+      .m0_axis_tvalid       ( tproc_sgcdc_0_axis_tvalid ) ,
+      .m0_axis_tready       ( tproc_sgcdc_0_axis_tready ) ,
       .m1_axis_tdata        ( /*m1_axis_tdata*/       ) ,
       .m1_axis_tvalid       ( /*m1_axis_tvalid*/      ) ,
       .m1_axis_tready       ( m1_axis_tready          ) ,
@@ -472,9 +480,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m3_axis_tdata        ( /*m3_axis_tdata*/       ) ,
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/      ) ,
       .m3_axis_tready       ( m3_axis_tready          ) ,
-      .m4_axis_tdata        ( tproc_cdc_0_axis_tdata  ) ,
-      .m4_axis_tvalid       ( tproc_cdc_0_axis_tvalid ) ,
-      .m4_axis_tready       ( tproc_cdc_0_axis_tready ) ,
+      .m4_axis_tdata        ( tproc_rocdc_0_axis_tdata  ) ,
+      .m4_axis_tvalid       ( tproc_rocdc_0_axis_tvalid ) ,
+      .m4_axis_tready       ( tproc_rocdc_0_axis_tready ) ,
       .m5_axis_tdata        ( /*m5_axis_tdata*/       ) ,
       .m5_axis_tvalid       ( /*m5_axis_tvalid*/      ) ,
       .m5_axis_tready       ( m5_axis_tready          ) ,
@@ -568,6 +576,117 @@ reg qcom_rdy_i, qp2_rdy_i;
 
    logic tb_load_mem, tb_load_mem_done;
 
+
+   axis_cdcsync_v1 #(
+      .N                         (1),     // Number of inputs/outputs.
+      .B                         (168)    // Number of data bits.
+   )
+   u_axis_sgcdcsync_v1 (
+      // S_AXIS for input data.
+      .s_axis_aresetn            (rst_ni),
+      .s_axis_aclk               (t_clk),
+      .s0_axis_tready            (tproc_sgcdc_0_axis_tready),
+      .s0_axis_tvalid            (tproc_sgcdc_0_axis_tvalid),
+      .s0_axis_tdata             (tproc_sgcdc_0_axis_tdata),
+      .s1_axis_tready            (/*s1_axis_tready*/),
+      .s1_axis_tvalid            (/*s1_axis_tvalid*/),
+      .s1_axis_tdata             (/*s1_axis_tdata*/),
+      .s2_axis_tready            (/*s2_axis_tready*/),
+      .s2_axis_tvalid            (/*s2_axis_tvalid*/),
+      .s2_axis_tdata             (/*s2_axis_tdata*/),
+      .s3_axis_tready            (/*s3_axis_tready*/),
+      .s3_axis_tvalid            (/*s3_axis_tvalid*/),
+      .s3_axis_tdata             (/*s3_axis_tdata*/),
+      .s4_axis_tready            (/*s4_axis_tready*/),
+      .s4_axis_tvalid            (/*s4_axis_tvalid*/),
+      .s4_axis_tdata             (/*s4_axis_tdata*/),
+      .s5_axis_tready            (/*s5_axis_tready*/),
+      .s5_axis_tvalid            (/*s5_axis_tvalid*/),
+      .s5_axis_tdata             (/*s5_axis_tdata*/),
+      .s6_axis_tready            (/*s6_axis_tready*/),
+      .s6_axis_tvalid            (/*s6_axis_tvalid*/),
+      .s6_axis_tdata             (/*s6_axis_tdata*/),
+      .s7_axis_tready            (/*s7_axis_tready*/),
+      .s7_axis_tvalid            (/*s7_axis_tvalid*/),
+      .s7_axis_tdata             (/*s7_axis_tdata*/),
+      .s8_axis_tready            (/*s8_axis_tready*/),
+      .s8_axis_tvalid            (/*s8_axis_tvalid*/),
+      .s8_axis_tdata             (/*s8_axis_tdata*/),
+      .s9_axis_tready            (/*s9_axis_tready*/),
+      .s9_axis_tvalid            (/*s9_axis_tvalid*/),
+      .s9_axis_tdata             (/*s9_axis_tdata*/),
+      .s10_axis_tready           (/*s10_axis_tready*/),
+      .s10_axis_tvalid           (/*s10_axis_tvalid*/),
+      .s10_axis_tdata            (/*s10_axis_tdata*/),
+      .s11_axis_tready           (/*s11_axis_tready*/),
+      .s11_axis_tvalid           (/*s11_axis_tvalid*/),
+      .s11_axis_tdata            (/*s11_axis_tdata*/),
+      .s12_axis_tready           (/*s12_axis_tready*/),
+      .s12_axis_tvalid           (/*s12_axis_tvalid*/),
+      .s12_axis_tdata            (/*s12_axis_tdata*/),
+      .s13_axis_tready           (/*s13_axis_tready*/),
+      .s13_axis_tvalid           (/*s13_axis_tvalid*/),
+      .s13_axis_tdata            (/*s13_axis_tdata*/),
+      .s14_axis_tready           (/*s14_axis_tready*/),
+      .s14_axis_tvalid           (/*s14_axis_tvalid*/),
+      .s14_axis_tdata            (/*s14_axis_tdata*/),
+      .s15_axis_tready           (/*s15_axis_tready*/),
+      .s15_axis_tvalid           (/*s15_axis_tvalid*/),
+      .s15_axis_tdata            (/*s15_axis_tdata*/),
+      // M_AXIS for output data.
+      .m_axis_aresetn            (rst_ni),
+      .m_axis_aclk               (t_clk),
+      .m0_axis_tready            (sgcdc_sgt_0_axis_tready),
+      .m0_axis_tvalid            (sgcdc_sgt_0_axis_tvalid),
+      .m0_axis_tdata             (sgcdc_sgt_0_axis_tdata),
+      .m1_axis_tready            (/*m1_axis_tready*/),
+      .m1_axis_tvalid            (/*m1_axis_tvalid*/),
+      .m1_axis_tdata             (/*m1_axis_tdata*/),
+      .m2_axis_tready            (/*m2_axis_tready*/),
+      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
+      .m2_axis_tdata             (/*m2_axis_tdata*/),
+      .m3_axis_tready            (/*m3_axis_tready*/),
+      .m3_axis_tvalid            (/*m3_axis_tvalid*/),
+      .m3_axis_tdata             (/*m3_axis_tdata*/),
+      .m4_axis_tready            (/*m4_axis_tready*/),
+      .m4_axis_tvalid            (/*m4_axis_tvalid*/),
+      .m4_axis_tdata             (/*m4_axis_tdata*/),
+      .m5_axis_tready            (/*m5_axis_tready*/),
+      .m5_axis_tvalid            (/*m5_axis_tvalid*/),
+      .m5_axis_tdata             (/*m5_axis_tdata*/),
+      .m6_axis_tready            (/*m6_axis_tready*/),
+      .m6_axis_tvalid            (/*m6_axis_tvalid*/),
+      .m6_axis_tdata             (/*m6_axis_tdata*/),
+      .m7_axis_tready            (/*m7_axis_tready*/),
+      .m7_axis_tvalid            (/*m7_axis_tvalid*/),
+      .m7_axis_tdata             (/*m7_axis_tdata*/),
+      .m8_axis_tready            (/*m8_axis_tready*/),
+      .m8_axis_tvalid            (/*m8_axis_tvalid*/),
+      .m8_axis_tdata             (/*m8_axis_tdata*/),
+      .m9_axis_tready            (/*m9_axis_tready*/),
+      .m9_axis_tvalid            (/*m9_axis_tvalid*/),
+      .m9_axis_tdata             (/*m9_axis_tdata*/),
+      .m10_axis_tready           (/*m10_axis_tready*/),
+      .m10_axis_tvalid           (/*m10_axis_tvalid*/),
+      .m10_axis_tdata            (/*m10_axis_tdata*/),
+      .m11_axis_tready           (/*m11_axis_tready*/),
+      .m11_axis_tvalid           (/*m11_axis_tvalid*/),
+      .m11_axis_tdata            (/*m11_axis_tdata*/),
+      .m12_axis_tready           (/*m12_axis_tready*/),
+      .m12_axis_tvalid           (/*m12_axis_tvalid*/),
+      .m12_axis_tdata            (/*m12_axis_tdata*/),
+      .m13_axis_tready           (/*m13_axis_tready*/),
+      .m13_axis_tvalid           (/*m13_axis_tvalid*/),
+      .m13_axis_tdata            (/*m13_axis_tdata*/),
+      .m14_axis_tready           (/*m14_axis_tready*/),
+      .m14_axis_tvalid           (/*m14_axis_tvalid*/),
+      .m14_axis_tdata            (/*m14_axis_tdata*/),
+      .m15_axis_tready           (/*m15_axis_tready*/),
+      .m15_axis_tvalid           (/*m15_axis_tvalid*/),
+      .m15_axis_tdata            (/*m15_axis_tdata*/)
+   );
+
+
    sg_translator # (
       .OUT_TYPE               (0) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
    ) 
@@ -576,9 +695,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (tproc_sgt_0_axis_tdata),
-      .s_axis_tvalid          (tproc_sgt_0_axis_tvalid),
-      .s_axis_tready          (tproc_sgt_0_axis_tready),
+      .s_axis_tdata           (sgcdc_sgt_0_axis_tdata),
+      .s_axis_tvalid          (sgcdc_sgt_0_axis_tvalid),
+      .s_axis_tready          (sgcdc_sgt_0_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tdata    (sgt_sg_0_axis_tdata),
       .m_gen_v6_axis_tvalid   (sgt_sg_0_axis_tvalid),
@@ -881,9 +1000,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       // S_AXIS for input data.
       .s_axis_aresetn            (rst_ni),
       .s_axis_aclk               (t_clk),
-      .s0_axis_tready            (tproc_cdc_0_axis_tready),
-      .s0_axis_tvalid            (tproc_cdc_0_axis_tvalid),
-      .s0_axis_tdata             (tproc_cdc_0_axis_tdata),
+      .s0_axis_tready            (tproc_rocdc_0_axis_tready),
+      .s0_axis_tvalid            (tproc_rocdc_0_axis_tvalid),
+      .s0_axis_tdata             (tproc_rocdc_0_axis_tdata),
       .s1_axis_tready            (/*s1_axis_tready*/),
       .s1_axis_tvalid            (/*s1_axis_tvalid*/),
       .s1_axis_tdata             (/*s1_axis_tdata*/),
@@ -932,9 +1051,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       // M_AXIS for output data.
       .m_axis_aresetn            (rst_ni),
       .m_axis_aclk               (ro_clk),
-      .m0_axis_tready            (cdc_rot_0_axis_tready),
-      .m0_axis_tvalid            (cdc_rot_0_axis_tvalid),
-      .m0_axis_tdata             (cdc_rot_0_axis_tdata),
+      .m0_axis_tready            (rocdc_rot_0_axis_tready),
+      .m0_axis_tvalid            (rocdc_rot_0_axis_tvalid),
+      .m0_axis_tdata             (rocdc_rot_0_axis_tdata),
       .m1_axis_tready            (/*m1_axis_tready*/),
       .m1_axis_tvalid            (/*m1_axis_tvalid*/),
       .m1_axis_tdata             (/*m1_axis_tdata*/),
@@ -990,9 +1109,9 @@ reg qcom_rdy_i, qp2_rdy_i;
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (cdc_rot_0_axis_tdata),
-      .s_axis_tvalid          (cdc_rot_0_axis_tvalid),
-      .s_axis_tready          (cdc_rot_0_axis_tready),
+      .s_axis_tdata           (rocdc_rot_0_axis_tdata),
+      .s_axis_tvalid          (rocdc_rot_0_axis_tvalid),
+      .s_axis_tready          (rocdc_rot_0_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tready   (),
       .m_gen_v6_axis_tvalid   (),
@@ -1507,8 +1626,8 @@ initial begin
 
    if (TEST_NAME == "test_issue361") begin
          $display("*** %t - Start test_issue361 Test ***", $realtime());
-         TEST_RUN_TIME   = 25us;
-         REPEAT_EXEC = 1;
+         TEST_RUN_TIME     = 25us;
+         REPEAT_EXEC       = 1;
 
          ro_length            = 200;
          ro_decimated_length  = 30;
@@ -1525,6 +1644,23 @@ initial begin
          end
 
          $display("*** %t - End of test_issue361 Test ***", $realtime());
+   end
+
+   if (TEST_NAME == "test_issue53") begin
+         $display("*** %t - Start test_issue53 Test ***", $realtime());
+         TEST_RUN_TIME     = 10us;
+         REPEAT_EXEC       = 2;
+
+         ro_length            = 500;
+         ro_decimated_length  = 50;
+         ro_average_length    = 10;
+
+         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+         #100ns;
+
+         wait(tb_test_run_done);
+
+         $display("*** %t - End of test_issue53 Test ***", $realtime());
    end
 
 end
