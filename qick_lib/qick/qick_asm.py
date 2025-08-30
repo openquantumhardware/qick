@@ -179,7 +179,7 @@ class QickConfig():
                 lines.append("\t%d:\t%s" % (iTT, tt['type']))
                 options = []
                 if tt['cmp_slope']:
-                    options.append('constant-frac discrimination')
+                    options.append('slope-trigger mode')
                 if tt['cmp_inter']:
                     options.append('%d-bit interpolation' % (tt['cmp_inter']))
                 if options:
@@ -193,7 +193,7 @@ class QickConfig():
 
                 if tt['trigger'] is not None:
                     trigcfg = tt['trigger']
-                    lines.append("\t\ttriggered by %s %d, pin %d" % (
+                    lines.append("\t\tarmed by %s %d, pin %d" % (
                         trigcfg['type'], trigcfg['port'], trigcfg['bit']))
                 if tt['peripheral'] is not None:
                     lines.append("\t\tis tProc peripheral %s" % (tt['peripheral']))
@@ -2238,6 +2238,8 @@ class AcquireMixin:
         soc.reload_mem()
         # make sure count variable is reset to 0
         soc.clear_tproc_counter(addr=self.counter_addr)
+        # do any other pre-execution setup
+        soc.prepare_round()
         # configure tproc for internal/external start
         soc.start_src(self.acquire_params['start_src'])
 
@@ -2298,6 +2300,9 @@ class AcquireMixin:
                         self.stats.append(s)
                         pbar.update(new_points)
             self.rounds_buf.append(self._process_accumulated(self.acc_buf))
+
+        # do any post-execution cleanup
+        soc.cleanup_round()
 
         self.rounds_pbar.update()
         self.acquire_params['rounds_remaining'] -= 1

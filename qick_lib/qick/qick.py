@@ -169,6 +169,11 @@ class RFDC(SocIP, xrfdc.RFdc):
         tiles = {'dac':self.dac_tiles, 'adc':self.adc_tiles}[tiletype]
         return tiles[iTile]
 
+    def _get_block(self, blocktype, blockname):
+        iTile, iBlock = self[blocktype+'s'][blockname]['index']
+        tiles = {'dac':self.dac_tiles, 'adc':self.adc_tiles}[blocktype]
+        return tiles[iTile].blocks[iBlock]
+
     def _read_freqs(self):
         for tiletype in ['dac', 'adc']:
             for iTile, tilecfg in self['tiles'][tiletype].items():
@@ -503,9 +508,10 @@ class RFDC(SocIP, xrfdc.RFdc):
         if not force and f == self.get_mixer_freq(dacname):
             return
 
+        dac = self._get_block('dac', dacname)
         tile, channel = self['dacs'][dacname]['index']
         # Make a copy of mixer settings.
-        dac_mixer = self.dac_tiles[tile].blocks[channel].MixerSettings
+        dac_mixer = dac.MixerSettings
         new_mixcfg = dac_mixer.copy()
 
         # Update the copy
@@ -516,19 +522,19 @@ class RFDC(SocIP, xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
-        self.dac_tiles[tile].blocks[channel].MixerSettings = new_mixcfg
-        self.dac_tiles[tile].blocks[channel].UpdateEvent(xrfdc.EVENT_MIXER)
+        dac.MixerSettings = new_mixcfg
+        dac.UpdateEvent(xrfdc.EVENT_MIXER)
         # The phase reset is mostly important when setting the frequency to 0: you want the NCO to end up at 1 instead of a complex value.
         # So we apply the reset after setting the new frequency (otherwise you accumulate some rotation before stopping the NCO).
-        if phase_reset: self.dac_tiles[tile].blocks[channel].ResetNCOPhase()
+        if phase_reset: dac.ResetNCOPhase()
         self.mixer_dict[dacname] = f
 
     def get_mixer_freq(self, dacname):
         try:
             return self.mixer_dict[dacname]
         except KeyError:
-            tile, channel = self['dacs'][dacname]['index']
-            self.mixer_dict[dacname] = self.dac_tiles[tile].blocks[channel].MixerSettings['Freq']
+            dac = self._get_block('dac', dacname)
+            self.mixer_dict[dacname] = dac.MixerSettings['Freq']
             return self.mixer_dict[dacname]
 
     def set_nyquist(self, blockname, nqz, blocktype='dac', force=False):
@@ -554,12 +560,8 @@ class RFDC(SocIP, xrfdc.RFdc):
             raise RuntimeError("Block type must be adc or dac")
         if not force and self.get_nyquist(blockname, blocktype) == nqz:
             return
-        if blocktype=='dac':
-            tile, channel = self['dacs'][blockname]['index']
-            self.dac_tiles[tile].blocks[channel].NyquistZone = nqz
-        else:
-            tile, channel = self['adcs'][blockname]['index']
-            self.adc_tiles[tile].blocks[channel].NyquistZone = nqz
+        blk = self._get_block(blocktype, blockname)
+        blk.NyquistZone = nqz
         self.nqz_dict[blocktype][blockname] = nqz
 
     def get_nyquist(self, blockname, blocktype='dac'):
@@ -583,12 +585,8 @@ class RFDC(SocIP, xrfdc.RFdc):
         try:
             return self.nqz_dict[blocktype][blockname]
         except KeyError:
-            if blocktype=='dac':
-                tile, channel = self['dacs'][blockname]['index']
-                self.nqz_dict[blocktype][blockname] = self.dac_tiles[tile].blocks[channel].NyquistZone
-            else:
-                tile, channel = self['adcs'][blockname]['index']
-                self.nqz_dict[blocktype][blockname] = self.adc_tiles[tile].blocks[channel].NyquistZone
+            blk = self._get_block(blocktype, blockname)
+            self.nqz_dict[blocktype][blockname] = blk.NyquistZone
             return self.nqz_dict[blocktype][blockname]
 
     def get_adc_attenuator(self, blockname):
@@ -606,8 +604,9 @@ class RFDC(SocIP, xrfdc.RFdc):
         float
             Attenuation value (dB)
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
+        if self['ip_type'] < self.XRFDC_GEN3:
+            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2).")
+        adc = self._get_block('adc', blockname)
         return adc.DSA['Attenuation']
 
     def set_adc_attenuator(self, blockname, attenuation):
@@ -623,9 +622,12 @@ class RFDC(SocIP, xrfdc.RFdc):
         attenuation : float
             Attenuation value (dB)
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
-        adc.DSA['Attenuation'] = np.round(attenuation)
+        if self['ip_type'] < self.XRFDC_GEN3:
+            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2).")
+        adc = self._get_block('adc', blockname)
+        attenuation = np.round(attenuation)
+        adc.DSA['Attenuation'] = attenuation
+        return attenuation
 
     def get_adc_cal(self, blockname):
         """Get the current calibration coefficients for an ADC.
@@ -640,8 +642,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         dict of list
             Calibration coefficients
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
+        adc = self._get_block('adc', blockname)
         a = xrfdc._ffi.new("XRFdc_Calibration_Coefficients *")
         cal = {}
         for name, (const, n) in self.ADC_CAL_BLOCKS.items():
@@ -671,8 +672,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         dict of list
             Calibration coefficients
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
+        adc = self._get_block('adc', blockname)
         for name, (const, n) in self.ADC_CAL_BLOCKS.items():
             a = xrfdc._ffi.new("XRFdc_Calibration_Coefficients *")
             for i in range(n):
@@ -704,8 +704,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         blockname : str
             Channel ID (2-digit string)
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
+        adc = self._get_block('adc', blockname)
         adc.CalFreeze['FreezeCalibration'] = 1
 
     def unfreeze_adc_cal(self, blockname, calblocks=None):
@@ -720,8 +719,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         blockname : str
             Channel ID (2-digit string)
         """
-        tile, block = [int(x) for x in blockname]
-        adc = self.adc_tiles[tile].blocks[block]
+        adc = self._get_block('adc', blockname)
         adc.CalFreeze['FreezeCalibration'] = 0
         if calblocks is None:
             if self['ip_type'] < self.XRFDC_GEN3:
@@ -1310,6 +1308,81 @@ class QickSoc(Overlay, QickConfig):
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
+    def set_adc_attenuator(self, blockname, attenuation):
+        """Set the RFSoC ADC's built-in step attenuator.
+        The requested value will be rounded to the nearest valid value (0-27 dB inclusive, 1 dB steps).
+
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        See https://docs.amd.com/r/en-US/pg269-rf-data-converter/Digital-Step-Attenuator-Gen-3/DFE.
+
+        Parameters
+        ----------
+        blockname : str
+            RF-ADC ID (2-digit string).
+            This is the concatenation of the tile and block numbers displayed in the firmware configuration:
+            in other words, for "ADC tile 2, blk 1" the blockname is "21".
+        attenuation : float
+            Attenuation value (dB)
+
+        Returns
+        -------
+        float
+            The rounded attenuation value that was actually set (dB)
+        """
+        return self.rf.set_adc_attenuator(blockname, attenuation)
+
+    def get_adc_attenuator(self, blockname):
+        """Read the RFSoC ADC's built-in step attenuator.
+
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        See https://docs.amd.com/r/en-US/pg269-rf-data-converter/Digital-Step-Attenuator-Gen-3/DFE.
+
+        Parameters
+        ----------
+        blockname : str
+            RF-ADC ID (2-digit string).
+            This is the concatenation of the tile and block numbers displayed in the firmware configuration:
+            in other words, for "ADC tile 2, blk 1" the blockname is "21".
+
+        Returns
+        -------
+        float
+            Attenuation value (dB)
+        """
+        return self.rf.get_adc_attenuator(blockname)
+
+    def freeze_adc_cals(self, blocknames):
+        """Freeze the calibrations (stop the background calibration) of a list of RFSoC ADCs.
+
+        See the Xilinx documentation:
+
+        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Background-Calibration-Process
+
+        Parameters
+        ----------
+        blocknames : list of str
+            List of RF-ADC IDs (2-digit strings).
+            An ADC's ID is the concatenation of the tile and block numbers displayed in the firmware configuration:
+            in other words, for "ADC tile 2, blk 1" the blockname is "21".
+        """
+        for adc in blocknames: self.rf.freeze_adc_cal(adc)
+
+    def unfreeze_adc_cals(self, blocknames):
+        """Unfreeze the calibrations (resume the background calibration) of a list of RFSoC ADCs.
+
+        See the Xilinx documentation:
+
+        https://docs.amd.com/r/en-US/pg269-rf-data-converter/Background-Calibration-Process
+
+        Parameters
+        ----------
+        blocknames : list of str
+            List of RF-ADC IDs (2-digit strings).
+            An ADC's ID is the concatenation of the tile and block numbers displayed in the firmware configuration:
+            in other words, for "ADC tile 2, blk 1" the blockname is "21".
+        """
+        for adc in blocknames: self.rf.unfreeze_adc_cal(adc)
+
     def config_mux_gen(self, ch, tones):
         """Set up a list of tones all at once, using raw (integer) units.
         If the supplied list of tones is shorter than the number supported, the extra tones will have their gains set to 0.
@@ -1644,6 +1717,22 @@ class QickSoc(Overlay, QickConfig):
                 break
         return new_data
 
+    def prepare_round(self):
+        """This runs before a program starts running.
+        This is called by acquire/acquire_decimated/run_rounds; user code should not call it.
+
+        By default this does nothing, but a subclass of QickSoc may override this.
+        """
+        pass
+
+    def cleanup_round(self):
+        """This runs after a program has finished running.
+        This is called by acquire/acquire_decimated/run_rounds; user code should not call it.
+
+        By default this does nothing, but a subclass of QickSoc may override this.
+        """
+        pass
+
     def clear_ddr4(self, length=None):
         """Clear the DDR4 buffer, filling it with 0's.
         This is not necessary (the buffer will overwrite old data), but may be useful for debugging.
@@ -1720,6 +1809,88 @@ class QickSoc(Overlay, QickConfig):
             If None, the junk at the start of the buffer is skipped.
         """
         return self.mr_buf.transfer(start)
+
+    def tt_arm(self, blk):
+        """Start data capture on the specified time-tagger block.
+
+        Parameters
+        ----------
+        blk : int
+            The time tagger block to arm (index in `time_taggers' list).
+        """
+        self.time_taggers[blk].disarm()
+        self.time_taggers[blk].arm()
+
+    def tt_disarm(self, blk):
+        """Stop data capture on the specified time-tagger block.
+
+        Parameters
+        ----------
+        blk : int
+            The time tagger block to arm (index in `time_taggers' list).
+        """
+        self.time_taggers[blk].disarm()
+
+    def tt_readmem(self, blk, mem):
+        """Read one of the specified time-tagger block's memories.
+        Reading a time-tagger memory clears it.
+
+        Parameters
+        ----------
+        blk : int
+            The time tagger block to read (index in `time_taggers' list).
+        mem : str
+            "ARM", "SMP", "TAG0"/"TAG1"/"TAG2"/"TAG3"
+        """
+        return self.time_taggers[blk].read_mem(mem)
+
+    def tt_reset(self, blk):
+        """Reset and flush the memories of the specified time-tagger block.
+
+        Parameters
+        ----------
+        blk : int
+            The time tagger block to reset (index in `time_taggers' list).
+        """
+        #self.time_taggers[blk].reset()
+        self.time_taggers[blk].flush_mems()
+
+    def tt_config(self, blk, threshold, wr_smp=32, filt=False, slope=False, invert=False, interp=0, deadtime=5):
+        """Configure the specified time-tagger block.
+
+        Parameters
+        ----------
+        blk : int
+            The time tagger block to flush (index in `time_taggers' list).
+        threshold : int
+            Tag threshold (-2^15 through 2^15-1).
+        wr_smp : int
+            Number of 8-sample chunks to capture per tag in the SMP memory (1 through 32).
+            If this time tagger has no SMP memory, this is ignored.
+        filt : bool
+            Trigger on signal after a 2-sample smoothing filter.
+        slope : bool
+            Trigger on slope (difference between consecutive samples), not level.
+        invert : bool
+            Trigger on inverted signal.
+        interp : int
+            Number of bits for interpolation (0 through 7).
+        deadtime : int
+            Minimum time (in fabric ticks, 8 samples) between one tag and the next (5 through 255).
+            This should be larger than the expected pulse width, otherwise you will get double-triggering on the same pulse.
+        """
+        filt = 1 if filt else 0
+        slope = 1 if slope else 0
+        invert = 1 if invert else 0
+        self.time_taggers[blk].set_config(
+                filt=filt,
+                slope=slope,
+                invert=invert,
+                wr_smp=wr_smp,
+                interp=interp
+                )
+        self.time_taggers[blk].set_dead_time(deadtime)
+        self.time_taggers[blk].set_threshold(threshold)
 
     def print_sg_mem(self, sg_idx=0, n_mem=None, n_dds=None, gen_file=False):
         """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
