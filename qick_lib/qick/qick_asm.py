@@ -179,7 +179,7 @@ class QickConfig():
                 lines.append("\t%d:\t%s" % (iTT, tt['type']))
                 options = []
                 if tt['cmp_slope']:
-                    options.append('constant-frac discrimination')
+                    options.append('slope-trigger mode')
                 if tt['cmp_inter']:
                     options.append('%d-bit interpolation' % (tt['cmp_inter']))
                 if options:
@@ -193,7 +193,7 @@ class QickConfig():
 
                 if tt['trigger'] is not None:
                     trigcfg = tt['trigger']
-                    lines.append("\t\ttriggered by %s %d, pin %d" % (
+                    lines.append("\t\tarmed by %s %d, pin %d" % (
                         trigcfg['type'], trigcfg['port'], trigcfg['bit']))
                 if tt['peripheral'] is not None:
                     lines.append("\t\tis tProc peripheral %s" % (tt['peripheral']))
