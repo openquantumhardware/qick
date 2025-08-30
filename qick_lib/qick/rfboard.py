@@ -1922,9 +1922,9 @@ class RFQickSoc(QickSoc):
         gen_ch : int
             DAC channel (index in 'gens' list)
         att1 : float
-            Attenuation for first stage (0-31.75 dB)
+            Attenuation for first stage (0 through 31.75 dB in 0.25-dB increments)
         att2 : float
-            Attenuation for second stage (0-31.75 dB)
+            Attenuation for second stage (0 through 31.75 dB in 0.25-dB increments)
 
         Returns
         -------
@@ -1959,9 +1959,9 @@ class RFQickSoc(QickSoc):
         dac_port : int
             QICK box or RF board DAC port number (0-15 for ZCU216, 0-7 for ZCU111)
         att1 : float
-            Attenuation for first stage (0-31.75 dB)
+            Attenuation for first stage (0 through 31.75 dB in 0.25-dB increments)
         att2 : float
-            Attenuation for second stage (0-31.75 dB)
+            Attenuation for second stage (0 through 31.75 dB in 0.25-dB increments)
 
         Returns
         -------
@@ -1997,7 +1997,7 @@ class RFQickSoc(QickSoc):
         ro_ch : int
             ADC channel (index in 'avg_bufs' list)
         att : float
-            Attenuation (0 to 31.75 dB)
+            Attenuation (0 through 31.75 dB in 0.25-dB increments)
 
         Returns
         -------
@@ -2018,7 +2018,7 @@ class RFQickSoc(QickSoc):
         ro_ch : int
             ADC channel (index in 'readouts' list)
         gain : float
-            Gain (-6 to 26 dB)
+            Gain (-6 through 26 dB in 1-dB increments)
 
         Returns
         -------
@@ -2039,7 +2039,7 @@ class RFQickSoc(QickSoc):
         adc_port : int
             QICK box or RF board ADC port number (0-7 for ZCU216, 0-3 for ZCU111)
         att : float
-            Attenuation (0 to 31.75 dB)
+            Attenuation (0 through 31.75 dB in 0.25-dB increments)
 
         Returns
         -------
@@ -2060,7 +2060,7 @@ class RFQickSoc(QickSoc):
         adc_port : int
             QICK box or RF board ADC port number (0-7 for ZCU216, 4-7 for ZCU111)
         gain : float
-            Gain (-6 to 26 dB)
+            Gain (-6 through 26 dB in 1-dB increments)
 
         Returns
         -------
@@ -2359,6 +2359,12 @@ class RFQickSoc216V1(RFQickSoc):
                 else:
                     avg_buf.rfb_ch = None
 
+        # DC-in ADCs need to be restarted after initial power-up
+        for tile in self['rf']['tiles']['adc']:
+            self.rf.restart_adc_tile(tile)
+        # now, clear any ADC interrupts
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False)
+
     def rfb_enable_bias(self):
         """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
 
@@ -2448,6 +2454,19 @@ class RFQickSoc216V1(RFQickSoc):
         if not isinstance(rfb_ch, FilterChain):
             raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_rfadc_attenuator(self, adc_port, att):
+        """Set the programmable attenuator of the RFSoC RF-ADC connected to the specified QICK box ADC port.
+
+        Parameters
+        ----------
+        adc_port : int
+            QICK box ADC port number (0-7)
+        att : float
+            Attenuation value (0 through 27 dB in 1-dB increments)
+        """
+        adcname = "%d%d"%(adc_port//4 + 1, adc_port%4)
+        return self.set_adc_attenuator(adcname, att)
 
     def clear_interrupts(self, max_attempts=5, error_on_interrupt=False, error_on_persist=True):
         """
