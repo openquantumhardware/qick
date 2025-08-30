@@ -49,13 +49,6 @@ class QICK_Time_Tagger(SocIP):
             'qtt_debug'    :15,
         }
         
-        # dict to map from memory names to IDs and counter names
-        self.MEMS = {}
-        for i in range(4):
-            self.MEMS['TAG%d'%(i)] = (i, 'tag%d_qty'%(i))
-        self.MEMS['ARM'] = (4, 'arm_qty')
-        self.MEMS['SMP'] = (5, 'smp_qty')
-
         # state names
         self.DMA_STATES = ['ST_IDLE','ST_TX','ST_LAST','ST_END']
 
@@ -67,6 +60,13 @@ class QICK_Time_Tagger(SocIP):
         for param in ['adc_qty','cmp_inter','arm_store','smp_store','cmp_slope']:
             self.cfg[param] = int(description['parameters'][param.upper()])
         self.cfg['debug']  = int(description['parameters']['DEBUG'])
+
+        # dict to map from memory names to IDs and counter names
+        self.MEMS = {}
+        for i in range(4):
+            self.MEMS['TAG%d'%(i)] = (i, 'tag%d_qty'%(i), self['tag_mem_size'])
+        self.MEMS['ARM'] = (4, 'arm_qty', self['arm_mem_size'])
+        self.MEMS['SMP'] = (5, 'smp_qty', self['smp_mem_size'])
 
     def _init_firmware(self):
         # Initial Values 
@@ -112,6 +112,9 @@ class QICK_Time_Tagger(SocIP):
             self.cfg['peripheral'] = port[-1]
         except:
             self.cfg['peripheral'] = None
+
+        # now that the DMA is connected, let's flush the memories
+        self.flush_mems()
                 
     def __str__(self):
         lines = []
@@ -127,7 +130,7 @@ class QICK_Time_Tagger(SocIP):
         lines.append("----------\n")
         return "\n".join(lines)
     
-    def read_mem(self, mem_sel:str, length=None):
+    def read_mem(self, mem_sel:str, length=None, warn_full=True):
         """
         Read selected time-tagger memory using DMA.
 
@@ -141,16 +144,18 @@ class QICK_Time_Tagger(SocIP):
         """
         if mem_sel not in self.MEMS:
             raise RuntimeError('Source Memory error. Options are TAG0, TAG1, TAG2, TAG3, ARM, SMP current Value : %s' % (mem_sel))
-        mem_id, mem_counter = self.MEMS[mem_sel]
+        mem_id, mem_counter, mem_size = self.MEMS[mem_sel]
 
         if length is None:
-            #length = min(getattr(self, mem_counter), len(self.buff_rd))
             length = getattr(self, mem_counter)
+            if warn_full and length >= mem_size-1:
+                self.logger.warning("Memory %s is at its max capacity of %d words. Some data was probably lost." % (mem_sel, mem_size))
         data = np.zeros(length, dtype=np.int32)
 
         already_read = 0
         while length > already_read:
             thislen = min(length - already_read, len(self.buff_rd))
+            self.logger.info("reading %d words from %s" % (thislen, mem_sel))
             # Configure FIFO Read.
             self.dma_cfg = mem_id + 16*thislen
        
@@ -172,9 +177,8 @@ class QICK_Time_Tagger(SocIP):
         """Flush the time-tagger memories by reading them.
         This does not clear the tag queue to the tProc, only the memories readable by DMA.
         """
-        for memname, (_, countname) in self.MEMS.items():
-            data = self.read_mem(memname)
-            self.logger.info("read %d words from %s" % (len(data), memname))
+        for memname in self.MEMS:
+            data = self.read_mem(memname, warn_full=False)
 
     def set_config(self, filt, slope, interp, wr_smp, invert):
         """
