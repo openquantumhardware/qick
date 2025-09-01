@@ -48,9 +48,10 @@ More examples and resources
 
 Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
 
-* `IEEE Quantum Week 2023 <https://github.com/openquantumhardware/QCE2023_public>`_
-* `US QIS Summer School 2024 <https://github.com/openquantumhardware/QIS_SummerSchool_2024>`_
+* `IEEE Quantum Week 2025 <https://github.com/openquantumhardware/QCE2025>`_
 * `IEEE Quantum Week 2024 <https://github.com/openquantumhardware/QCE2024>`_
+* `US QIS Summer School 2024 <https://github.com/openquantumhardware/QIS_SummerSchool_2024>`_
+* `IEEE Quantum Week 2023 <https://github.com/openquantumhardware/QCE2023_public>`_
 
 Talk to us
 ------------
