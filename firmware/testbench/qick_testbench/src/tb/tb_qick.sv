@@ -12,13 +12,15 @@
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
 
-// `define T_TCLK          0.8   // Half Clock Period for Signal Gens (625MHz)
-// `define T_TCLK          0.833 // Half Clock Period for Signal Gens (600MHz)
-`define T_TCLK          1.162 // Half Clock Period for Signal Gens (430MHz)
-`define T_CCLK          2.5   // Half Clock Period for tProc Core (200MHz)
-`define T_SCLK          5.0   // Half Clock Period for PS & AXI (100MHz)
-// `define T_RO_CLK        1.66  // Half Clock Period for Readout (300MHz)
-`define T_RO_CLK        1.627  // Half Clock Period for Readout (307.2MHz)
+real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
+real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
+real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
+
+// real T_SG_CLK     =    0.8;      // Half Clock Period for Signal Gens (625MHz)
+real T_SG_CLK        =  0.833;      // Half Clock Period for Signal Gens (600MHz)
+
+// real T_RO_CLK     =   1.66;      // Half Clock Period for Readout (300MHz)
+real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -54,8 +56,8 @@ module tb_qick ();
 // string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
 // string TEST_NAME = "test_issue361";
-string TEST_NAME = "test_issue53";
-// string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_issue53";
+string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
@@ -81,34 +83,43 @@ xil_axi_resp_t  resp;
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
-logic   c_clk, t_clk, s_ps_dma_aclk, dac_clk, adc_clk, ro_clk;
+logic          c_clk, t_clk, s_ps_dma_aclk;
+
 logic [4:0]    dac_clk_gen;
+logic          dac_clk, sg_clk;
+
 logic [4:0]    adc_clk_gen;
+logic          adc_clk, ro_clk;
 
 initial begin
-   dac_clk_gen = 'd0;
-   forever # (`T_TCLK/N_DDS) dac_clk_gen = dac_clk_gen + 'd1;
+  t_clk = 1'b0;
+  forever # (T_TCLK*1.0ns) t_clk = ~t_clk;
 end
-assign dac_clk = dac_clk_gen[0];
-assign t_clk   = dac_clk_gen[4];
 
 initial begin
   c_clk = 1'b0;
-  forever # (`T_CCLK) c_clk = ~c_clk;
+  forever # (T_CCLK*1.0ns) c_clk = ~c_clk;
 end
 
 initial begin
   s_ps_dma_aclk = 1'b0;
-  #0.5
-  forever # (`T_SCLK) s_ps_dma_aclk = ~s_ps_dma_aclk;
+  #0.5ns
+  forever # (T_SCLK*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
 end
 
 initial begin
+   dac_clk_gen = 'd0;
+   forever # (T_SG_CLK*1.0ns/N_DDS) dac_clk_gen = dac_clk_gen + 'd1;
+end
+assign dac_clk = dac_clk_gen[0];
+assign sg_clk  = dac_clk_gen[4];
+
+initial begin
    adc_clk_gen = 'd0;
-   forever # (`T_RO_CLK/8) adc_clk_gen = adc_clk_gen + 'd1;
+   forever # (T_RO_CLK*1.0ns/8) adc_clk_gen = adc_clk_gen + 'd1;
 end
 assign adc_clk = adc_clk_gen[0];
-assign ro_clk   = adc_clk_gen[4];
+assign ro_clk  = adc_clk_gen[4];
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -635,7 +646,7 @@ reg qcom_rdy_i, qp2_rdy_i;
       .s15_axis_tdata            (/*s15_axis_tdata*/),
       // M_AXIS for output data.
       .m_axis_aresetn            (rst_ni),
-      .m_axis_aclk               (t_clk),
+      .m_axis_aclk               (sg_clk),
       .m0_axis_tready            (sgcdc_sgt_0_axis_tready),
       .m0_axis_tvalid            (sgcdc_sgt_0_axis_tvalid),
       .m0_axis_tdata             (sgcdc_sgt_0_axis_tdata),
@@ -760,7 +771,7 @@ reg qcom_rdy_i, qp2_rdy_i;
 
       // s1_* and m_* reset/clock.
       .aresetn             (rst_ni           ),
-      .aclk                (t_clk            ),
+      .aclk                (sg_clk           ),
 
       // AXIS Slave to queue waveforms - From TPROC
       .s1_axis_tdata       (sgt_sg_0_axis_tdata    ),
@@ -1314,17 +1325,17 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
    logic [64:0] buf_avg_abs_dbg;
-   always_ff @(posedge s_ps_dma_aclk) begin
+   always @* begin
       if (m0_axis_buf_avg_tvalid) begin
-         buf_avg_abs_dbg <= $signed(m0_axis_buf_avg_tdata[31:0]) * $signed(m0_axis_buf_avg_tdata[31:0]) + 
+         buf_avg_abs_dbg = $signed(m0_axis_buf_avg_tdata[31:0]) * $signed(m0_axis_buf_avg_tdata[31:0]) + 
                               $signed(m0_axis_buf_avg_tdata[63:32]) * $signed(m0_axis_buf_avg_tdata[63:32]);
       end
    end
 
    logic [32:0] buf_dec_abs_dbg;
-   always_ff @(posedge s_ps_dma_aclk) begin
+   always @* begin
       if (m1_axis_buf_dec_tvalid) begin
-         buf_dec_abs_dbg <= $signed(m1_axis_buf_dec_tdata[15:0]) * $signed(m1_axis_buf_dec_tdata[15:0]) + 
+         buf_dec_abs_dbg = $signed(m1_axis_buf_dec_tdata[15:0]) * $signed(m1_axis_buf_dec_tdata[15:0]) + 
                               $signed(m1_axis_buf_dec_tdata[31:16]) * $signed(m1_axis_buf_dec_tdata[31:16]);
       end
    end
@@ -1547,7 +1558,6 @@ initial begin
    end
 
 
-
    if (TEST_NAME == "test_tproc_basic") begin
       TEST_RUN_TIME = 50us;
       forever begin
@@ -1595,6 +1605,7 @@ initial begin
       end
    end
 
+
    if (TEST_NAME == "test_qubit_emulator") begin
       $display("*** %t - Start test_qubit_emulator Test ***", $realtime());
       TEST_OUT_CONNECTION = "TEST_OUT_QEMU";
@@ -1615,14 +1626,22 @@ initial begin
       $display("*** %t - End of test_qubit_emulator Test ***", $realtime());
    end
 
+
    if (TEST_NAME == "test_randomized_benchmarking") begin
       $display("*** %t - Start test_randomized_benchmarking Test ***", $realtime());
-      TEST_RUN_TIME   = 50us;
-      REPEAT_EXEC = 1;
+      TEST_RUN_TIME  = 60us;
+      REPEAT_EXEC    = 1;
+
+      ro_length            = 1000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
+      // ro_average_length    = 9 + (9 % 2);
+      ro_average_length    = 9;
+
       wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
       $display("*** %t - End of test_randomized_benchmarking Test ***", $realtime());
    end
+
 
    if (TEST_NAME == "test_issue361") begin
          $display("*** %t - Start test_issue361 Test ***", $realtime());
@@ -1885,8 +1904,8 @@ task qubit_emulator_config();
    // xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
    // xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
 
-   // data_wr = qemu_f * 1e6 / (/*f_adc*/ (1/(2.0*`T_RO_CLK*1e-9)) / 2.0**16);
-   data_wr = qemu_f * 1e6 / (/*f_adc*/ (1*8/(2.0*`T_RO_CLK*1e-9)) / 2.0**16);
+   // data_wr = qemu_f * 1e6 / (/*f_adc*/ (1/(2.0*T_RO_CLK*1e-9)) / 2.0**16);
+   data_wr = qemu_f * 1e6 / (/*f_adc*/ (1*8/(2.0*T_RO_CLK*1e-9)) / 2.0**16);
    axi_mst_qemu_agent.AXI4LITE_WRITE_BURST(QEMU_DDS_FREQ_REG, prot, data_wr, resp);
    #100ns;
 

@@ -17,15 +17,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="5.083445 us"></ZoomStartTime>
-      <ZoomEndTime time="18.402479 us"></ZoomEndTime>
-      <Cursor1Time time="9.687769 us"></Cursor1Time>
+      <ZoomStartTime time="9.290812 us"></ZoomStartTime>
+      <ZoomEndTime time="15.990813 us"></ZoomEndTime>
+      <Cursor1Time time="10.029616 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="271"></NameColumnWidth>
-      <ValueColumnWidth column_width="165"></ValueColumnWidth>
+      <ValueColumnWidth column_width="161"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="15" />
+   <WVObjectSize size="9" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -831,6 +831,70 @@
       <wvobject type="logic" fp_name="/tb_qick/AXIS_QPROC/trig_0_o">
          <obj_property name="ElementShortName">trig_0_o</obj_property>
          <obj_property name="ObjectShortName">trig_0_o</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group3473">
+      <obj_property name="label">SG_CDC_SYNC</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s_axis_aresetn">
+         <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
+         <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s_axis_aclk">
+         <obj_property name="ElementShortName">s_axis_aclk</obj_property>
+         <obj_property name="ObjectShortName">s_axis_aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/fifo_i/full">
+         <obj_property name="ElementShortName">full</obj_property>
+         <obj_property name="ObjectShortName">full</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tready">
+         <obj_property name="ElementShortName">s0_axis_tready</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tready</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tvalid">
+         <obj_property name="ElementShortName">s0_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tvalid</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tdata">
+         <obj_property name="ElementShortName">s0_axis_tdata[167:0]</obj_property>
+         <obj_property name="ObjectShortName">s0_axis_tdata[167:0]</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m_axis_aresetn">
+         <obj_property name="ElementShortName">m_axis_aresetn</obj_property>
+         <obj_property name="ObjectShortName">m_axis_aresetn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m_axis_aclk">
+         <obj_property name="ElementShortName">m_axis_aclk</obj_property>
+         <obj_property name="ObjectShortName">m_axis_aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/fifo_i/empty">
+         <obj_property name="ElementShortName">empty</obj_property>
+         <obj_property name="ObjectShortName">empty</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tready">
+         <obj_property name="ElementShortName">m0_axis_tready</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tready</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tvalid">
+         <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
+         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tdata">
+         <obj_property name="ElementShortName">m0_axis_tdata[167:0]</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tdata[167:0]</obj_property>
          <obj_property name="CustomSignalColor">#00FFFF</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
@@ -2350,74 +2414,5 @@
          <obj_property name="ElementShortName">m_axis_tlast</obj_property>
          <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject type="group" fp_name="group3473">
-      <obj_property name="label">SG_CDC_SYNC</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s_axis_aresetn">
-         <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
-         <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s_axis_aclk">
-         <obj_property name="ElementShortName">s_axis_aclk</obj_property>
-         <obj_property name="ObjectShortName">s_axis_aclk</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tready">
-         <obj_property name="ElementShortName">s0_axis_tready</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tready</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tvalid">
-         <obj_property name="ElementShortName">s0_axis_tvalid</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tvalid</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tdata">
-         <obj_property name="ElementShortName">s0_axis_tdata[167:0]</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tdata[167:0]</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m_axis_aresetn">
-         <obj_property name="ElementShortName">m_axis_aresetn</obj_property>
-         <obj_property name="ObjectShortName">m_axis_aresetn</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m_axis_aclk">
-         <obj_property name="ElementShortName">m_axis_aclk</obj_property>
-         <obj_property name="ObjectShortName">m_axis_aclk</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tready">
-         <obj_property name="ElementShortName">m0_axis_tready</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tready</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tvalid">
-         <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tdata">
-         <obj_property name="ElementShortName">m0_axis_tdata[167:0]</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tdata[167:0]</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/din_valid_v">
-      <obj_property name="ElementShortName">din_valid_v[15:0]</obj_property>
-      <obj_property name="ObjectShortName">din_valid_v[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/din_ready_v">
-      <obj_property name="ElementShortName">din_ready_v[15:0]</obj_property>
-      <obj_property name="ObjectShortName">din_ready_v[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/dout_valid_v">
-      <obj_property name="ElementShortName">dout_valid_v[15:0]</obj_property>
-      <obj_property name="ObjectShortName">dout_valid_v[15:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/fifo_full">
-      <obj_property name="ElementShortName">fifo_full</obj_property>
-      <obj_property name="ObjectShortName">fifo_full</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/fifo_empty">
-      <obj_property name="ElementShortName">fifo_empty</obj_property>
-      <obj_property name="ObjectShortName">fifo_empty</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/u_axis_sgcdcsync_v1/cdcsync_i/fifo_rd_en">
-      <obj_property name="ElementShortName">fifo_rd_en</obj_property>
-      <obj_property name="ObjectShortName">fifo_rd_en</obj_property>
    </wvobject>
 </wave_config>
