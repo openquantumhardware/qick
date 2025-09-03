@@ -220,7 +220,7 @@ fifo_dc_axi_xpm
         .B	(4*B	),
         
         // Fifo depth.
-        .N	(4		)
+        .N	(16		)
     )
     fifo_i
     ( 
