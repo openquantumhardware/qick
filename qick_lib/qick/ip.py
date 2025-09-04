@@ -270,7 +270,6 @@ class QickMetadata:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
         return found[0]
 
-
 class BusParser:
     """Parses the HWH XML file to extract information on the buses connecting IP blocks.
     """

@@ -827,7 +827,6 @@ class AxisAvgBuffer(SocIp):
         """
         self.buf_start_reg = 0
 
-
 class AxisAvgBufferV1pt1(AxisAvgBuffer):
 
     bindto = ['user.org:user:axis_avg_buffer:1.1']
@@ -872,7 +871,6 @@ class AxisAvgBufferV1pt1(AxisAvgBuffer):
         if edge_counting:
             self.avg_h_threshold_reg = high_threshold
             self.avg_l_threshold_reg = low_threshold
-
 
 class MrBufferEt(SocIp):
     # Registers.
@@ -999,7 +997,6 @@ class MrBufferEt(SocIp):
 
     def disable(self):
         self.dw_capture_reg = 0
-
 
 class AxisBufferDdrV1(SocIp):
     """

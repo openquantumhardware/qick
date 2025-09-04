@@ -3,7 +3,6 @@ import numpy as np
 from qick import SocIp
 import time
 
-
 class AxisBufferUram(SocIp):
     """
      AXIS_buffer URAM registers.
@@ -32,14 +31,14 @@ class AxisBufferUram(SocIp):
      without waiting for Tlast to happen.
 
     """
-    bindto = ['user.org:user:axis_buffer_uram_v1:1.0']
+    bindto = ['user.org:user:axis_buffer_uram_v1:1.0', 'QICK:QICK:axis_buffer_uram_v1:1.0']
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
 
-        self.REGISTERS = {   'rw_reg'    : 0, 
-                    'start_reg' : 1, 
-                    'sync_reg'  : 2}
+        self.REGISTERS = {  'rw_reg'    : 0, 
+                            'start_reg' : 1, 
+                            'sync_reg'  : 2}
     
         # Generics.
         self.BDATA = int(description['parameters']['BDATA'])
@@ -135,21 +134,21 @@ class AxisBufferUram(SocIp):
         return self.transfer()
 
 class AxisAccumulatorV6(SocIp):
-    bindto = ['user.org:user:axis_accumulator_v1:1.0']
+    bindto = ['user.org:user:axis_accumulator:1.0','user.org:user:axis_accumulator_v1:1.0','QICK:QICK:axis_accumulator_v1:1.0']
 
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
         
-        self.REGISTERS = {   'process_reg'           :0, 
-                    'tx_and_cnt_reg'        :1, 
-                    'tx_and_rst_reg'        :2, 
-                    'usr_round_samples_reg' :3, 
-                    'usr_epoch_rounds_reg'  :4, 
-                    'debug_reg'             :12, 
-                    'round_cnt_reg'         :13, 
-                    'epoch_cnt_reg'         :14, 
-                    'transmitting_reg'      :15}
+        self.REGISTERS = {  'process_reg'           :0, 
+                            'tx_and_cnt_reg'        :1, 
+                            'tx_and_rst_reg'        :2, 
+                            'usr_round_samples_reg' :3, 
+                            'usr_epoch_rounds_reg'  :4, 
+                            'debug_reg'             :12, 
+                            'round_cnt_reg'         :13, 
+                            'epoch_cnt_reg'         :14, 
+                            'transmitting_reg'      :15}
         
         # Default registers.
         self.process_reg            = 0
@@ -172,26 +171,51 @@ class AxisAccumulatorV6(SocIp):
         if (self.AXIS_IN_DW != 64):
             raise ValueError('Data Width=%d not supported. Must be 64-bit'%self.AXIS_IN_DW)
 
-#        if (self.FFT_AW != 14):
-#            raise ValueError('FFT length=%d not supported. Must be 16384'%2**(self.FFT_AW))
+        # 16 inputs.
+        if (self.BANK_ARRAY_AW == 4):
+            # FFT Length.
+            if not (self.FFT_AW != 14 ^ self.FFT_AW != 15):
+                raise ValueError('FFT length=%d not supported. Must be 16384 or 32768'%2**(self.FFT_AW))
 
-#        if (self.BANK_ARRAY_AW != 4):
-#            raise ValueError('Number of parallel input=%d not supported. Must be 16'%2**(self.BANK_ARRAY_AW))
+            # Store half the bins.
+            if (self.FFT_STORE != 1):
+                raise ValueError('FFT_STORE must be set to half (1)')
 
-#        if (self.FFT_STORE != 1):
-#            raise ValueError('FFT_STORE must be set to half (1)')
+            # IQ Format.
+            if (self.IQ_FORMAT != 1):
+                raise ValueError('IQ_FORMAT must be set QIQIQIQI (1)')            
+
+            # Buffer length:
+            # * Half the FFT Bins x Number of inputs.
+            # * One more for metadata.
+            # NOTE: each sample is 128 bits.
+            self.BUFFER_LENGTH = 2**(self.FFT_AW-1) * 2**self.BANK_ARRAY_AW + 1
+
+
+        # 1 input.
+        elif (self.BANK_ARRAY_AW == 0):
+            # FFT Length.
+            if (self.FFT_AW != 16):
+                raise ValueError('FFT length=%d not supported. Must be 65536'%2**(self.FFT_AW))
+
+            # Store all bins.
+            if (self.FFT_STORE != 0):
+                raise ValueError('FFT_STORE must be set to all (0)')
+
+            # Buffer length:
+            # * FFT Bins x 1.
+            # * One more for metadata.
+            # NOTE: each sample is 128 bits.
+            self.BUFFER_LENGTH = 2**self.FFT_AW + 1
             
-        if (self.IQ_FORMAT != 1):
-            raise ValueError('IQ_FORMAT must be set QIQIQIQI (1)')            
+        else:
+            raise ValueError('Number of parallel input=%d not supported. Must be 1 or 16'%2**(self.BANK_ARRAY_AW))
 
-        # Buffer length:
-        # * Half the FFT Bins x Number of inputs.
-        # * One more for metadata.
-        # NOTE: each sample is 128 bits.
-        self.BUFFER_LENGTH = 2**(self.FFT_AW-1) * 2**self.BANK_ARRAY_AW + 1
-        
         # Define buffer:         
         self.buff = allocate(shape=(self.BUFFER_LENGTH,2), dtype=np.int64)
+
+        # FFT Length.
+        self.FFT_N = 2**self.FFT_AW
 
     def configure(self, dma):
         self.dma = dma
@@ -245,16 +269,13 @@ class AxisAccumulatorV6(SocIp):
 
         return samples/nsamp
 
-
-
-
 class AxisChSelPfbx1(SocIp):
     """
      AXIS Channel Selection PFB Registers
      CHID_REG
 
     """
-    bindto = ['user.org:user:axis_chsel_pfb_x1:1.0']
+    bindto = ['user.org:user:axis_chsel_pfb_x1:1.0','QICK:QICK:axis_chsel_pfb_x1:1.0']
     
     def __init__(self, description):
         # Initialize ip
@@ -271,7 +292,7 @@ class AxisChSelPfbx1(SocIp):
     def set(self,ch=0):
         if ch<self.N:
             # Change channel
-            self.chid_reg = ch         
+            self.chid_reg = ch        
 
 class AxisReorderIQ(SocIp):
     """
@@ -296,7 +317,7 @@ class AxisBuffer(SocIp):
     # DR_START_REG
     # * 0 : start reader.
     # * 1 : stop reader.
-    bindto = ['user.org:user:axis_buffer_v1:1.0']
+    bindto = ['user.org:user:axis_buffer:1.0','user.org:user:axis_buffer_v1:1.0', 'QICK:QICK:axis_buffer_v1:1.0']
     
     def __init__(self, description):
         # Initialize ip
@@ -313,8 +334,8 @@ class AxisBuffer(SocIp):
         self.N = int(description['parameters']['N'])
         self.BUFFER_LENGTH = (1 << self.N)
         
-    def configure(self,dma):
-        self.dma = dma
+    def configure(self,axi_dma):
+        self.dma = axi_dma
     
     def capture(self):
         # Enable capture
@@ -360,4 +381,193 @@ class AxisBuffer(SocIp):
         # Transfer data.
         return self.transfer()    
 
+class AxisWxfft65536(SocIp):
+    bindto = ['user.org:user:axis_wxfft_65536:1.0','QICK:QICK:axis_wxfft_65536:1.0']
+    
+    # Number of FFT points.
+    N = 65536
+    
+    # Number of bits.
+    B = 16
+    
+    # Window Gain.
+    Aw = 1
+    
+    def __init__(self, description):
+        # Initialize ip
+        super().__init__(description)
+        
+        self.REGISTERS = {'dw_addr_reg'   : 0, 
+                          'dw_we_reg'     : 1}
+        # Default registers.
+        self.dw_addr_reg    = 0
+        self.dw_we_reg      = 0 # Don't write.
+
+        # Define buffer for window.
+        self.buff = allocate(shape=self.N, dtype=np.int16)
+
+    def configure(self, axi_dma):
+        # dma.
+        self.dma = axi_dma
+
+    def window(self, wtype="hanning"):
+        w = self.gen_window(wtype)
+        self.load(win=w)
+        self.Aw = len(w)/np.sum(w)
+        
+    def gen_window(self, wtype="hanning"):
+        if wtype == "hanning":
+            w = (2**(self.B-1)-1)*np.hanning(self.N)
+        elif wtype == "rect":
+            w = (2**(self.B-1)-1)*np.ones(self.N)
+            
+        return w
+
+    # Load window coefficients.
+    def load(self, win, addr=0):
+        # Check for max length.
+        if len(win) != self.N:
+            raise RuntimeError("%s: buffer length must be %d samples." %(self.__class__.__name__, self.N))
+
+        # Check for max value.
+        if np.max(win) > np.iinfo(np.int16).max or np.min(win) < np.iinfo(np.int16).min:
+            raise ValueError("window data exceeds limits of int16 datatype")
+
+        # Format data.
+        win = win.astype(np.int16)
+        np.copyto(self.buff, win)
+
+        #################
+        ### Load data ###
+        #################
+        # Enable writes.
+        self._wr_enable(addr)
+
+        # DMA data.
+        self.dma.sendchannel.transfer(self.buff)
+        self.dma.sendchannel.wait()
+
+        # Disable writes.
+        self._wr_disable()
+
+    def _wr_enable(self, addr=0):
+        self.dw_addr_reg = addr
+        self.dw_we_reg = 1
+
+    def _wr_disable(self):
+        self.dw_we_reg = 0
+
+class AxisDdsCicV3(SocIp):
+    bindto = ['user.org:user:axis_ddscic_v3:1.0','QICK:QICK:axis_ddscic_v3:1.0']
+    
+    # Decimation range.
+    MIN_D       = 2
+    MAX_D       = 1000
+    
+    # Quantization range for product.
+    MIN_QPROD   = 0
+    MAX_QPROD   = 16
+
+    # Quantization range for cic.
+    MIN_QCIC    = 0
+    MAX_QCIC    = 30
+    
+    # Sampling frequency and frequency resolution (Hz).
+    FS_DDS      = 1000
+    DF_DDS      = 1
+    
+    # DDS bits.
+    B_DDS       = 32
+    
+    def __init__(self, description):
+        # Initialize ip
+        super().__init__(description)
+
+        self.REGISTERS = {'pinc_reg'     : 0, 
+                          'pinc_we_reg'  : 1, 
+                          'prodsel_reg'  : 2,
+                          'cicsel_reg'   : 3,
+                          'qprod_reg'    : 4, 
+                          'qcic_reg'     : 5, 
+                          'dec_reg'      : 6}
+        
+        # Default registers.
+        self.pinc_reg       = 0              # DC frequency.
+        self.pinc_we_reg    = 0              # Don't write.
+        self.prodsel_reg    = 2              # By-pass DDS.
+        self.cicsel_reg     = 1              # By-pass CIC.
+        self.qprod_reg      = self.MIN_QPROD # Lower bits.
+        self.qcic_reg       = self.MIN_QCIC  # Lower bits.
+        self.dec_reg        = self.MIN_D     # Minimum decimation.
+        
+    def configure(self, fs):
+        fs_hz = fs*1000*1000
+        self.FS_DDS = fs_hz
+        self.DF_DDS = self.FS_DDS/2**self.B_DDS
+
+    def ddsfreq(self, f=0):
+        # Sanity check.
+        if (f >= 0 and f < self.FS_DDS):
+            # Compute register value.
+            ki = int(round(f/self.DF_DDS))
+            
+            # Write value into hardware.
+            self.pinc_reg       = ki
+            self.pinc_we_reg    = 1
+            self.pinc_we_reg    = 0
+        
+    def prodsel(self, sel="product"):
+        if sel == "product":
+            self.prodsel_reg = 0
+        elif sel == "dds":
+            self.prodsel_reg = 1
+        elif sel == "input":
+            self.prodsel_reg = 2
+
+    def cicsel(self, sel="yes"):
+        if sel == "yes":
+            self.cicsel_reg = 0
+        if sel == "no":
+            self.cicsel_reg = 1
+
+    def outsel(self, data="product", cic="yes"):
+        self.prodsel(data)
+        self.cicsel(cic)
+
+    def set_qprod(self, value=0):
+        # Sanity check.
+        if (value >= self.MIN_QPROD and value <= self.MAX_QPROD):
+            self.qprod_reg = value
+            
+    def get_qprod(self):
+        return self.qprod_reg            
+
+    def set_qcic(self, value=0):
+        # Sanity check.
+        if (value >= self.MIN_QCIC and value <= self.MAX_QCIC):
+            self.qcic_reg = value
+            
+    def get_qcic(self):
+        return self.qcic_reg
+            
+    def set_dec(self, value):
+        # Sanity check.
+        if (value >= self.MIN_D and value <= self.MAX_D):
+            self.dec_reg = value
+
+    def decimation(self, value):
+        # Sanity check.
+        if (value >= self.MIN_D and value <= self.MAX_D):
+            # Compute CIC output quantization.
+            qsel = np.ceil(3*np.log2(value))
+            
+            # Set values.
+            self.set_dec(value)
+            self.set_qcic(qsel)
+            
+    def get_decimation(self):
+        if self.cicsel_reg:
+            return 1
+        else:
+            return self.dec_reg
 

@@ -214,7 +214,7 @@ class AnalysisChain():
 
     def get_data_acc(self, N=1, verbose=False):
         # Get blocks.
-        acc_b = getattr(self.soc, self.dict['chain']['accumulator'])
+        acc_b = getattr(self.soc, self.dict['chain']['acc_xfft'])
         x = acc_b.single_shot(N=N)
         x = np.roll(x, -int(self.soc.FFT_N/4))
         return x
@@ -462,34 +462,40 @@ class SpectrumSoc(QickSoc):
             adc = pfb.dict['adc']['id']
             pfb.configure(self['adcs'][adc]['fs']/self['adcs'][adc]['decimation'])
 
-            """# BUFF_ADC: mr_buffer_et.
-            if pfb.HAS_BUFF_ADC:
-                block = getattr(self, pfb.dict['buff_adc'])
-                dma = getattr(self, pfb.dict['buff_adc_dma'])
-                block.configure(dma)
-            """
-
             # BUFF_PFB: axis_buffer_v1.
             if pfb.HAS_BUFF_PFB:
                 block = getattr(self, pfb.dict['buff_pfb'])
                 dma = getattr(self, pfb.dict['buff_pfb_dma'])
                 block.configure(dma)
 
+            # WXFFT: axis_wxfft_65536_v1.
+            if pfb.HAS_WXFFT:
+                block = getattr(self, pfb.dict['wxfft'])
+                dma = getattr(self, pfb.dict['buff_wxfft_dma'])
+                block.configure(dma)
+                block.window(wtype="hanning")
+
+            # ACC_ZOOM: axis_accumulator_v1.
+            if pfb.HAS_ACC_ZOOM:
+                block = getattr(self, pfb.dict['acc_zoom'])
+                dma = getattr(self, pfb.dict['buff_wxfft_dma'])
+                block.configure(dma)
+                self.WFFT_N = int(block.FFT_N)
+
             # BUFF_XFFT: axis_buffer_uram.
             if pfb.HAS_BUFF_XFFT:
                 block = getattr(self, pfb.dict['buff_xfft'])
                 dma = getattr(self, pfb.dict['buff_xfft_dma'])
                 block.configure(dma, sync="yes")
-                self.FFT_N = int(block.BUFFER_LENGTH/2)
 
-            # ACCUMULATOR: axis_accumulator_v1.
-            if pfb.HAS_ACCUMULATOR:
-                block = getattr(self, pfb.dict['accumulator'])
+            # ACC_XFFT: axis_accumulator_v1.
+            if pfb.HAS_ACC_XFFT:
+                block = getattr(self, pfb.dict['acc_xfft'])
                 dma = getattr(self, pfb.dict['dma'])
                 block.configure(dma)
+                self.FFT_N = int(block.FFT_N)
 
-        #self['adcs'] = list(self.adcs.keys())
-        #self['dacs'] = list(self.dacs.keys())
+
         self['analysis'] = []
         self['synthesis'] = []
         for pfb in self.pfbs_in:
@@ -504,14 +510,20 @@ class SpectrumSoc(QickSoc):
                 thiscfg['adc'] = pfb.dict['adc']
             if pfb.HAS_XFFT:
                 thiscfg['xfft'] = pfb.dict['xfft']
-            if pfb.HAS_ACCUMULATOR:
-                thiscfg['accumulator'] = pfb.dict['accumulator']
+            if pfb.HAS_ACC_XFFT:
+                thiscfg['acc_xfft'] = pfb.dict['acc_xfft']
             if pfb.HAS_BUFF_ADC:
                 thiscfg['buff_adc'] = pfb.dict['buff_adc']
             if pfb.HAS_BUFF_PFB:
                 thiscfg['buff_pfb'] = pfb.dict['buff_pfb']
             if pfb.HAS_BUFF_XFFT:
                 thiscfg['buff_xfft'] = pfb.dict['buff_xfft']
+            if pfb.HAS_DDSCIC:
+                thiscfg['ddscic'] = pfb.dict['ddscic']
+            if pfb.HAS_WXFFT:
+                thiscfg['wxfft'] = pfb.dict['wxfft']
+            if pfb.HAS_ACC_ZOOM:
+                thiscfg['acc_zoom'] = pfb.dict['acc_zoom']
 
             self['analysis'].append(thiscfg)
 

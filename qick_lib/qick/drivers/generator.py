@@ -533,9 +533,15 @@ class AxisConstantIQ(AbsSignalGen):
 
         self.REGISTERS = {'real_reg': 0, 'imag_reg': 1, 'we_reg': 2}
 
+        # Generics.
+        self.B    = int(description['parameters']['B'])
+        self.N    = int(description['parameters']['N'])
+        self.MAXV = 2**(self.B-1)-1
+
         # Default registers.
         self.real_reg = self.MAXV
         self.imag_reg = self.MAXV
+        self.we_reg   = 0
 
         # Register update.
         self.update()

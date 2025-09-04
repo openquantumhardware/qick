@@ -92,7 +92,6 @@ class AxisSwitch(SocIp):
         # Enable register update.
         self.ctrl = 2
 
-
 class RFDC(xrfdc.RFdc, SocIp):
     """
     Extends the xrfdc driver.

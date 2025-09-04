@@ -10,10 +10,13 @@ class AbsPfbAnalysis(SocIp):
     HAS_ADC         = False
     HAS_DMA         = False
     HAS_XFFT        = False
-    HAS_ACCUMULATOR = False
+    HAS_ACC_XFFT = False
     HAS_BUFF_ADC    = False
     HAS_BUFF_PFB    = False
     HAS_BUFF_XFFT   = False
+    HAS_WXFFT       = False
+    HAS_ACC_ZOOM   = False
+    HAS_DDSCIC      = False
 
     def configure(self, fs):
         # Channel centers.
@@ -26,6 +29,8 @@ class AbsPfbAnalysis(SocIp):
         self.dict['freq'] = {'fs' : fs, 'fc' : fc, 'fb' : fb}
     
     def configure_connections(self, soc):
+        block2     = None
+        block_tmp2 = None
         self.soc = soc
 
         ##################################################
@@ -132,7 +137,54 @@ class AbsPfbAnalysis(SocIp):
 
                         # Trace port.
                         ((block_tmp, port_tmp),) = soc.metadata.trace_bus(block_tmp, 'm_axis')
-                    elif blocktype == "axis_buffer_v1":
+
+                    #bt = soc.metadata.mod2type(block_tmp)
+                    if blocktype == "axis_broadcaster":
+                        # Block/port for forward tracing second broadcaster port.
+                        ((block_tmp2, port_tmp2),) = soc.metadata.trace_bus(block_tmp, 'M01_AXIS')
+
+                        # Normal block/port to continue with backwards trace.
+                        ((block2, port2),) = soc.metadata.trace_bus(block_tmp, 'M00_AXIS')
+
+                        # Forward tracing: should end at DMA.
+                        while True:
+                            blocktype = soc.metadata.mod2type(block_tmp2)
+
+                            if blocktype == "axis_ddscic_v3":
+                                self.HAS_DDSCIC = True
+                                # Temp ddscic_v3.
+                                ddscic_v3_ = block_tmp2
+
+                                # Add block into dictionary.
+                                self.dict['ddscic'] = block_tmp2
+
+                                # Trace port.
+                                ((block_tmp2, port_tmp2),) = soc.metadata.trace_bus(block_tmp2, 'm_axis')
+                            elif blocktype == "axis_wxfft_65536":
+                                self.HAS_WXFFT = True
+
+                                # Add block into dictionary.
+                                self.dict['wxfft'] = block_tmp2
+
+                                # Trace port.
+                                ((block_tmp2, port_tmp2),) = soc.metadata.trace_bus(block_tmp2,'m_axis_data')
+                            elif blocktype == "axis_accumulator_v1" or blocktype == "axis_accumulator":
+                                self.HAS_ACC_ZOOM = True
+
+                                # Add block into dictionary.
+                                self.dict['acc_zoom'] = block_tmp2
+
+                                ((block_tmp2, port_tmp2),) = soc.metadata.trace_bus(block_tmp2, 'm_axis')
+                            elif blocktype == "axis_clock_converter":
+                                # Trace port.
+                                ((block_tmp2, port_tmp2),) = soc.metadata.trace_bus(block_tmp2, 'M_AXIS')
+                            elif blocktype == "axi_dma":
+                                # Add dma into dictionary.
+                                self.dict['buff_wxfft_dma'] = block_tmp2
+                                block_tmp = block2
+                                break
+                    #elif blocktype == "axis_buffer_v1" or (blocktype == "axis_buffer_uram_v1" and block2 != None): 
+                    elif blocktype == "axis_buffer_v1" or blocktype == "axis_buffer":
                         self.HAS_BUFF_PFB = True
 
                         # Add block into dictionary.
@@ -144,6 +196,7 @@ class AbsPfbAnalysis(SocIp):
 
                         # Trace port.
                         ((block_tmp, port_tmp),) = soc.metadata.trace_bus(block_tmp, 'm_axis')
+                    #elif blocktype == "axis_buffer_uram_v1" and block2 == None:
                     elif blocktype == "axis_buffer_uram_v1":
                         self.HAS_BUFF_XFFT = True
 
@@ -173,11 +226,11 @@ class AbsPfbAnalysis(SocIp):
                 self.dict['xfft'] = block
 
                 ((block, port),) = soc.metadata.trace_bus(block, 'm_axis')
-            elif blocktype == "axis_accumulator_v1":
-                self.HAS_ACCUMULATOR = True
+            elif blocktype == "axis_accumulator_v1" or blocktype == "axis_accumulator":
+                self.HAS_ACC_XFFT = True
 
                 # Add block into dictionary.
-                self.dict['accumulator'] = block
+                self.dict['acc_xfft'] = block
 
                 ((block, port),) = soc.metadata.trace_bus(block, 'm_axis')
 
@@ -266,7 +319,6 @@ class AbsPfbAnalysis(SocIp):
         # If I got here, adc not found.
         raise RuntimeError("Cannot find correspondance with any ADC for ports %s,%s" % (port0,port1))
 
-
     def freq2ch(self,f):
         """
         Convert from frequency to PFB channel number
@@ -351,18 +403,22 @@ class AxisPfbAnalysis(AbsPfbAnalysis):
     bindto = ['user.org:user:axis_pfb_4x1024_v1:1.0'   ,
               'user.org:user:axis_pfb_4x64_v1:1.0'     ,
               'user.org:user:axis_pfba_pr_4x256_v1:1.0',
-              'user.org:user:axis_pfb_8x16_v1:1.0'     ]
+              'user.org:user:axis_pfb_8x16_v1:1.0'     ,
+              'QICK:QICK:axis_pfb_8x16_v1:1.0'         ]
     
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
 
-        self.REGISTERS = {'qout_reg' : 0}
+        self.REGISTERS = {  'scale_reg' : 0,
+                            'qout_reg'  : 1 }
         
         # Default registers.
-        self.qout_reg = 0
+        self.scale_reg  = 0
+        self.qout_reg   = 0
 
         # Dictionary.
         self.dict = {}
-        self.dict['N'] = int(description['parameters']['N'])
+        #self.dict['N'] = int(description['parameters']['N'])
+        self.dict['N'] = 16 #int(description['parameters']['N'])
 
