@@ -64,8 +64,8 @@ avg_buffer
       .trigger                   (trigger             ),
 
       // AXIS Slave for input data.
-      .s_axis_tvalid             (s_axis_tvalid       ),
       .s_axis_tready             (s_axis_tready       ),
+      .s_axis_tvalid             (s_axis_tvalid       ),
       .s_axis_tdata              (s_axis_tdata        ),
 
       // Reset and clock for m0 and m1.
@@ -73,8 +73,8 @@ avg_buffer
       .m_axis_aresetn            (m_axis_aresetn      ),
 
       // AXIS Master for averaged output.
-      .m0_axis_tvalid            (m0_axis_tvalid      ),
       .m0_axis_tready            (m0_axis_tready      ),
+      .m0_axis_tvalid            (m0_axis_tvalid      ),
       .m0_axis_tdata             (m0_axis_tdata       ),
       .m0_axis_tlast             (m0_axis_tlast       ),
 
@@ -99,8 +99,8 @@ avg_buffer
       .BUF_LEN_REG               (BUF_LEN_REG         ),
       .BUF_DR_START_REG          (BUF_DR_START_REG    ),
       .BUF_DR_ADDR_REG           (BUF_DR_ADDR_REG     ),
-      .BUF_DR_LEN_REG            (BUF_DR_LEN_REG      ),
-      .DEBUG_REG                 (DEBUG_REG           )
+      .BUF_DR_LEN_REG            (BUF_DR_LEN_REG      )/*,
+      .DEBUG_REG                 (DEBUG_REG           )*/
    );
 
 assign s_axis_tdata = {dq_r,di_r};
@@ -140,8 +140,8 @@ initial begin
 
    for (int i=1; i<=10; i = i + 1) begin
       @(posedge s_axis_aclk);
-      di_r     <= 2*i;
-      dq_r     <= -5*i;
+      di_r        <= i;
+      dq_r        <= -i;
       trigger     <= 1;
       @(posedge s_axis_aclk);
       trigger     <= 0;
@@ -154,6 +154,8 @@ initial begin
    BUF_START_REG     <= 0;
 
    #10000;
+
+   $finish();
 end
 
 initial begin
@@ -174,13 +176,18 @@ initial begin
 
    @(posedge m_axis_aclk);
    AVG_DR_ADDR_REG   <= 5;
-   AVG_DR_LEN_REG    <= 10;
+   AVG_DR_LEN_REG    <= 8;
    BUF_DR_ADDR_REG   <= 0;
    BUF_DR_LEN_REG    <= 100;
 
    @(posedge m_axis_aclk);
    AVG_DR_START_REG  <= 1;
    BUF_DR_START_REG  <= 1;
+
+   for (int i=1; i<=100; i = i + 1) begin
+      @(posedge m_axis_aclk);
+      m0_axis_tready    <= i[3:0] >= 4;
+   end
 
 end
 
