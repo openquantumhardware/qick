@@ -194,13 +194,12 @@ qproc_ctrl # (
    .int_time_cmd    ( core_usr_operation[3:0] ),
    .int_time_dt     ( core_usr_b_dt      ),
    .PS_TPROC_CTRL   ( xreg_TPROC_CTRL    ),
-   .PS_TPROC_CFG    ( xreg_TPROC_CFG[10:9]),
-   // .xreg_TPROC_CTRL ( xreg_TPROC_CTRL    ),
-   // .xreg_TPROC_CFG  ( xreg_TPROC_CFG     ),
+   .PS_TPROC_CFG    ( xreg_TPROC_CFG[11:9]),
    .xreg_TPROC_W_DT ( xreg_TPROC_W_DT[0] ),
    .all_fifo_full_i ( all_fifo_full      ),
+   .some_fifo_full_i( some_fifo_full     ),
    .core_rst_o      ( core_rst           ),
-   .core_en_o       ( core_en_s          ),
+   .core_en_o       ( core_en            ),
    .time_rst_o      ( time_rst           ),
    .time_en_o       ( time_en            ),
    .time_abs_o      ( time_abs           ),
@@ -212,8 +211,6 @@ qproc_ctrl # (
    .c_debug_do      ( ctrl_c_ds)
 );
 
-assign fifo_ok    = ~(some_fifo_full)  | xreg_TPROC_CFG[11] ;  // With 1 in TPROC_CFG[11] Continue
-assign core_en    = core_en_s  & fifo_ok;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Processor STATUS 

@@ -108,7 +108,8 @@ always @(state) begin
 		end
 
 		//END_ST:
-
+		default:;
+		
 	endcase
 end
 

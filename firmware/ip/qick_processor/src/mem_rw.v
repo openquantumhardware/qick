@@ -90,6 +90,7 @@ always @(state) begin
          we_int		= 1;
       ACK_ST:
          ack_int		= 1;
+      default:;
    endcase
 end
 

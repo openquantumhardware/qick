@@ -120,6 +120,7 @@ always @(state) begin
 		SEND_ST:    send_state  = 1;
 		ACK_ST:     ack_int     = 1;
 		//END_ST:
+		default:;
 	endcase
 end
 

@@ -152,14 +152,19 @@ end
 // cfg_i 00_FreeRunning 10_Change WHen Read 11_Change when writes to 0
 generate
    if (LFSR == 1) begin : LFSR_YES
+      (* ASYNC_REG = "TRUE" *) logic [1:0] lfsr_cfg_cdc, lfsr_cfg_sync;
+      always_ff @ (posedge clk_i) begin
+         lfsr_cfg_cdc   <= lfsr_cfg_i;
+         lfsr_cfg_sync  <= lfsr_cfg_cdc;
+      end
       always_comb
-         unique case (lfsr_cfg_i)
+         unique case (lfsr_cfg_sync)
             2'b00 : lfsr_en = 1'b0     ;
             2'b01 : lfsr_en = 1'b1     ;
             2'b10 : lfsr_en = lfsr_sel  ;
             2'b11 : lfsr_en = lfsr_step  ;
          endcase
-      assign lfsr_sel   = (rs_D_addr_i[0]   == 7'b0000001) ;
+      assign lfsr_sel   = (rs_D_addr_i[0]  == 7'b0000001) ;
       assign lfsr_we    = we_i & (w_addr_i == 7'b0000001) ;
       assign lfsr_step  = we_i & (w_addr_i == 7'b0000000) ;
       LFSR lfsr (

@@ -23,9 +23,6 @@ module qproc_axi_reg(
    input  wire  [31:0]   TPROC_DEBUG     
 );
 
-
-// wire [15:0] PS_TPROC_CTRL, PS_TPROC_CFG;
-
 // AXI Slave.
 axi_slv_qproc QPROC_xREG (
    .aclk          ( ps_aclk           ) , 
@@ -62,32 +59,7 @@ axi_slv_qproc QPROC_xREG (
    .TPROC_R_DT1   ( TPROC_R_DT1               ) ,
    .TPROC_R_DT2   ( TPROC_R_DT2               ) ,
    .TIME_USR      ( TIME_USR                  ) ,
-   .TPROC_STATUS  ( TPROC_STATUS           ) ,
-   .TPROC_DEBUG   ( TPROC_DEBUG            ) );
-
-//-------------------------------------------------------
-// Moved to qproc_ctrl due to issue #33
-
-// reg [15:0] tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
-// reg [15:0] tproc_cfg_rcd;
-
-// // From PS_CLK to C_CLK
-// always_ff @(posedge c_clk_i) 
-//    if (!c_rst_ni) begin
-//       tproc_ctrl_rcd  <= 0 ;
-//       tproc_ctrl_r    <= 0 ;
-//       tproc_ctrl_2r   <= 0 ;
-//       tproc_cfg_rcd   <= 0 ;
-//    end else begin 
-//       tproc_ctrl_rcd  <= PS_TPROC_CTRL    ;
-//       tproc_ctrl_r    <= tproc_ctrl_rcd  ;
-//       tproc_ctrl_2r   <= tproc_ctrl_r  ;
-//       tproc_cfg_rcd   <= PS_TPROC_CFG     ;
-//       TPROC_CFG     <= tproc_cfg_rcd ;
-//    end
-
-// // The C_TPROC_CTRL is only ONE clock.
-// assign TPROC_CTRL       = tproc_ctrl_r & ~tproc_ctrl_2r ;
-//-------------------------------------------------------
+   .TPROC_STATUS  ( TPROC_STATUS              ) ,
+   .TPROC_DEBUG   ( TPROC_DEBUG               ) );
 
 endmodule
