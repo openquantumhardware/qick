@@ -50,14 +50,14 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-// string TEST_NAME = "test_basic_pulses";
+string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
 // string TEST_NAME = "test_issue359";
 // string TEST_NAME = "test_issue361";
 // string TEST_NAME = "test_issue53";
-string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_randomized_benchmarking";
 // string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
@@ -85,11 +85,11 @@ xil_axi_resp_t  resp;
 //  CLK Generation
 logic          c_clk, t_clk, s_ps_dma_aclk;
 
-logic [4:0]    dac_clk_gen;
-logic          dac_clk, sg_clk;
+logic [4:0]    dac_fs_gen;
+logic          dac_fs, sg_clk;
 
-logic [4:0]    adc_clk_gen;
-logic          adc_clk, ro_clk;
+logic [4:0]    adc_fs_gen;
+logic          adc_fs, ro_clk;
 
 initial begin
   t_clk = 1'b0;
@@ -108,18 +108,18 @@ initial begin
 end
 
 initial begin
-   dac_clk_gen = 'd0;
-   forever # (T_SG_CLK*1.0ns/N_DDS) dac_clk_gen = dac_clk_gen + 'd1;
+   dac_fs_gen = 'd0;
+   forever # (T_SG_CLK*1.0ns/N_DDS) dac_fs_gen = dac_fs_gen + 'd1;
 end
-assign dac_clk = dac_clk_gen[0];
-assign sg_clk  = dac_clk_gen[4];
+assign dac_fs  = dac_fs_gen[0];
+assign sg_clk  = dac_fs_gen[4];
 
 initial begin
-   adc_clk_gen = 'd0;
-   forever # (T_RO_CLK*1.0ns/8) adc_clk_gen = adc_clk_gen + 'd1;
+   adc_fs_gen = 'd0;
+   forever # (T_RO_CLK*1.0ns/8.0) adc_fs_gen = adc_fs_gen + 'd1;
 end
-assign adc_clk = adc_clk_gen[0];
-assign ro_clk  = adc_clk_gen[4];
+assign adc_fs  = adc_fs_gen[0];
+assign ro_clk  = adc_fs_gen[3];
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -784,12 +784,6 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_axis_tdata        (axis_sg_dac_tdata       )
    );
 
-   logic [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];
-   always @* begin
-      for (int i=0; i<N_DDS; i=i+1) begin
-         axis_sg_dac_tdata_dbg[i] = axis_sg_dac_tdata[16*i +: 16];
-      end
-   end
 
    // For Waveform Debug
    logic signed [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];
@@ -804,26 +798,30 @@ reg qcom_rdy_i, qp2_rdy_i;
    // TODO: RF DATA CONVERTER IP
    //--------------------------------------
 
-   logic [15:0] dac_data;
-   logic [15:0] adc_data;
+   localparam DAC_W = 16;
+   logic signed [DAC_W-1:0] dac_data;
+   localparam ADC_W = 14;
+   logic signed [ADC_W-1:0] adc_sample;
+   logic signed [15:0] adc_data;
 
    model_DAC_ADC #(
-      .DAC_W               (16),
-      .ADC_W               (16),
+      .DAC_W               (DAC_W),
+      .ADC_W               (ADC_W),
       .BUFFER_SIZE         (16)
    ) u_model_DAC_ADC (
-      .clk_DAC             (dac_clk),
+      .clk_DAC             (dac_fs),
       .dac_sample          (dac_data),
 
-      .clk_ADC             (adc_clk),
-      .adc_sample          (adc_data),
+      .clk_ADC             (adc_fs),
+      .adc_sample          (adc_sample),
 
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
+   assign adc_data = $signed(adc_sample);
 
    logic [$clog2(N_DDS)-1:0] dac_samp_cnt;
-   always @(posedge dac_clk) begin
+   always @(posedge dac_fs) begin
       if (axis_sg_dac_tvalid) begin
          dac_data       <= axis_sg_dac_tdata[ 16*dac_samp_cnt +: 16];
          dac_samp_cnt   <= dac_samp_cnt + 'd1;
@@ -840,8 +838,8 @@ reg qcom_rdy_i, qp2_rdy_i;
    assign axis_sg_dac_tready        = 1'b1;  // DAC always ready to receive samples
 
    logic [$clog2(N_DDS)-1:0] adc_samp_cnt;
-   always @(posedge adc_clk) begin
-      if (adc_samp_cnt < 8) begin
+   always @(posedge adc_fs) begin
+      if (adc_samp_cnt < 7) begin
          adc_samp_cnt      <= adc_samp_cnt + 1;
          rf_signal_valid   <= 0;
       end
@@ -849,7 +847,7 @@ reg qcom_rdy_i, qp2_rdy_i;
          adc_samp_cnt      <= 0;
          rf_signal_valid   <= 1;
       end
-      rf_signal_data <= {rf_signal_data[N_DDS*14-1:0], adc_data};
+      rf_signal_data[16*adc_samp_cnt +: 16] <= adc_data;
    end
 
    // Model Transport delay
@@ -960,7 +958,7 @@ reg qcom_rdy_i, qp2_rdy_i;
 
       // Reset and clock for axis_*.
       .aresetn                (s_ps_dma_aresetn    ),
-      .aclk                   (adc_clk             ),
+      .aclk                   (adc_fs             ),
 
       // s_axis_* for input.
       .s_axis_tvalid          (1'b1),
@@ -978,15 +976,33 @@ reg qcom_rdy_i, qp2_rdy_i;
    localparam N_DDS_RO = 8;
 
    // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
-   always_ff @(posedge ro_clk) begin
+   // always_ff @(posedge ro_clk) begin
+   //    if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
+   //       axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
+   //       axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+   //    end
+   //    else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
+   //       axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
+   //       for (int i=0; i<N_DDS_RO; i=i+1) begin
+   //          axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
+   //       end
+   //    end
+   // end
+
+   logic [2:0] rf_signal_cnt;
+   always_ff @(posedge adc_fs) begin
       if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-         axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-      end
-      else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
-         axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
-         for (int i=0; i<8; i=i+1) begin
-            axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
+         if (rf_signal_cnt == 0) begin
+            axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
+            axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+         end
+         else begin
+         end
+         if (rf_signal_valid_dly || axis_adc_ro_tvalid) begin
+            rf_signal_cnt  <= rf_signal_cnt + 1;
+         end
+         else begin
+            rf_signal_cnt  <= 0;
          end
       end
    end
@@ -1180,12 +1196,12 @@ reg qcom_rdy_i, qp2_rdy_i;
 
    // For Waveform Debug
    logic signed [15:0] axis_ro_avg_tdata_dbg [0:1];
-   logic signed [15:0] axis_ro_mrbuf_tdata_dbg [0:15][0:2];
+   logic signed [15:0] axis_ro_mrbuf_tdata_dbg [0:7][0:1];
    always @* begin
       for (int i=0; i<2; i=i+1) begin
          axis_ro_avg_tdata_dbg[i] = axis_ro_avg_tdata[16*i +: 16];
       end
-      for (int i=0; i<16; i=i+1) begin
+      for (int i=0; i<8; i=i+1) begin
          for (int j=0; j<2; j=j+1) begin
             axis_ro_mrbuf_tdata_dbg[i][j] = axis_ro_mrbuf_tdata[16*(2*i+j) +: 16];
          end
@@ -1194,7 +1210,8 @@ reg qcom_rdy_i, qp2_rdy_i;
 
    // For Waveform Debug
    logic signed [32:0] m1_ro_avg_abs_dbg;
-   assign m1_ro_avg_abs_dbg = $signed(axis_ro_avg_tdata[15:0])*$signed(axis_ro_avg_tdata[15:0]) + $signed(axis_ro_avg_tdata[31:16])*$signed(axis_ro_avg_tdata[31:16]);
+   assign m1_ro_avg_abs_dbg = $signed(axis_ro_avg_tdata[15:0])*$signed(axis_ro_avg_tdata[15:0]) + 
+                                 $signed(axis_ro_avg_tdata[31:16])*$signed(axis_ro_avg_tdata[31:16]);
 
 
    wire  [5:0]       s_axi_avg_araddr;
@@ -1233,8 +1250,8 @@ reg qcom_rdy_i, qp2_rdy_i;
 
 
    axi_mst_0 u_axi_mst_avg_0 (
-      .aclk          (s_ps_dma_aclk       ),
       .aresetn       (s_ps_dma_aresetn    ),
+      .aclk          (s_ps_dma_aclk       ),
       .m_axi_araddr  (s_axi_avg_araddr    ),
       .m_axi_arprot  (s_axi_avg_arprot    ),
       .m_axi_arready (s_axi_avg_arready   ),
@@ -1296,8 +1313,8 @@ reg qcom_rdy_i, qp2_rdy_i;
       .trigger                (trigger_0           ),
 
       // AXIS Slave for input data.
-      .s_axis_aclk            (ro_clk                ),
       .s_axis_aresetn         (s_ps_dma_aresetn      ),
+      .s_axis_aclk            (ro_clk                ),
       .s_axis_tready          (axis_ro_avg_tready    ),
       .s_axis_tvalid          (axis_ro_avg_tvalid    ),
       .s_axis_tdata           (axis_ro_avg_tdata     ),
@@ -1325,7 +1342,7 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
    logic [64:0] buf_avg_abs_dbg;
-   always @* begin
+   always @(posedge s_ps_dma_aclk) begin
       if (m0_axis_buf_avg_tvalid) begin
          buf_avg_abs_dbg = $signed(m0_axis_buf_avg_tdata[31:0]) * $signed(m0_axis_buf_avg_tdata[31:0]) + 
                               $signed(m0_axis_buf_avg_tdata[63:32]) * $signed(m0_axis_buf_avg_tdata[63:32]);
@@ -1333,7 +1350,7 @@ reg qcom_rdy_i, qp2_rdy_i;
    end
 
    logic [32:0] buf_dec_abs_dbg;
-   always @* begin
+   always @(posedge s_ps_dma_aclk) begin
       if (m1_axis_buf_dec_tvalid) begin
          buf_dec_abs_dbg = $signed(m1_axis_buf_dec_tdata[15:0]) * $signed(m1_axis_buf_dec_tdata[15:0]) + 
                               $signed(m1_axis_buf_dec_tdata[31:16]) * $signed(m1_axis_buf_dec_tdata[31:16]);
@@ -1523,15 +1540,15 @@ initial begin
    tb_test_read_start   = 1'b1;
    
    // Default Readout Config
-   ro_length            = 100;
-   ro_decimated_length  = 100;
+   ro_length            = 1000.0 / (2.0*T_RO_CLK);
+   ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
    ro_average_length    = 1;
 
 
    if (TEST_NAME == "test_basic_pulses") begin
       $display("*** %t - Start test_basic_pulses Test ***", $realtime());
-      ro_length            = 350;
-      ro_decimated_length  = 350;
+      ro_length            = 2000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 2000.0 / (2.0*T_RO_CLK);
       ro_average_length    = 1;
 
       TEST_READ_TIME       = 10us;
@@ -1545,8 +1562,8 @@ initial begin
 
    if (TEST_NAME == "test_many_envelopes") begin
       $display("*** %t - Start test_many_envelopes Test ***", $realtime());
-      ro_length            = 350;
-      ro_decimated_length  = 350;
+      ro_length            = 2000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 2000.0 / (2.0*T_RO_CLK);
       ro_average_length    = 1;
 
       TEST_READ_TIME       = 10us;
@@ -1608,10 +1625,10 @@ initial begin
 
    if (TEST_NAME == "test_qubit_emulator") begin
       $display("*** %t - Start test_qubit_emulator Test ***", $realtime());
-      TEST_OUT_CONNECTION = "TEST_OUT_QEMU";
-      TEST_RUN_TIME     = 50us;
-      TEST_READ_TIME    = 10us;
-      REPEAT_EXEC       = 1;
+      // TEST_OUT_CONNECTION  = "TEST_OUT_QEMU";
+      TEST_RUN_TIME        = 50us;
+      TEST_READ_TIME       = 10us;
+      REPEAT_EXEC          = 1;
 
       ro_length            = 500;
       ro_decimated_length  = 500;
@@ -1629,8 +1646,8 @@ initial begin
 
    if (TEST_NAME == "test_randomized_benchmarking") begin
       $display("*** %t - Start test_randomized_benchmarking Test ***", $realtime());
-      TEST_RUN_TIME  = 60us;
-      REPEAT_EXEC    = 1;
+      TEST_RUN_TIME        = 60us;
+      REPEAT_EXEC          = 1;
 
       ro_length            = 1000.0 / (2.0*T_RO_CLK);
       ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
@@ -1644,42 +1661,42 @@ initial begin
 
 
    if (TEST_NAME == "test_issue361") begin
-         $display("*** %t - Start test_issue361 Test ***", $realtime());
-         TEST_RUN_TIME     = 25us;
-         REPEAT_EXEC       = 1;
+      $display("*** %t - Start test_issue361 Test ***", $realtime());
+      TEST_RUN_TIME        = 25us;
+      REPEAT_EXEC          = 1;
 
-         ro_length            = 200;
-         ro_decimated_length  = 30;
-         ro_average_length    = 5;
+      ro_length            = 200;
+      ro_decimated_length  = 30;
+      ro_average_length    = 5;
 
-         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
-         #100ns;
+      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
 
-         wait(tb_test_run_done);
+      wait(tb_test_run_done);
 
-         for (int i=0; i<1000; i++) begin
-            @(negedge s_ps_dma_aclk);
-            m1_axis_buf_dec_tready   = i[4:0] > 15;
-         end
+      for (int i=0; i<1000; i++) begin
+         @(negedge s_ps_dma_aclk);
+         m1_axis_buf_dec_tready   = i[4:0] > 15;
+      end
 
-         $display("*** %t - End of test_issue361 Test ***", $realtime());
+      $display("*** %t - End of test_issue361 Test ***", $realtime());
    end
 
    if (TEST_NAME == "test_issue53") begin
-         $display("*** %t - Start test_issue53 Test ***", $realtime());
-         TEST_RUN_TIME     = 10us;
-         REPEAT_EXEC       = 2;
+      $display("*** %t - Start test_issue53 Test ***", $realtime());
+      TEST_RUN_TIME        = 10us;
+      REPEAT_EXEC          = 2;
 
-         ro_length            = 500;
-         ro_decimated_length  = 50;
-         ro_average_length    = 10;
+      ro_length            = 500;
+      ro_decimated_length  = 50;
+      ro_average_length    = 10;
 
-         wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
-         #100ns;
+      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
 
-         wait(tb_test_run_done);
+      wait(tb_test_run_done);
 
-         $display("*** %t - End of test_issue53 Test ***", $realtime());
+      $display("*** %t - End of test_issue53 Test ***", $realtime());
    end
 
 end
