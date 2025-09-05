@@ -82,8 +82,10 @@ wire signed [15:0]      prod_b_real             [0:N_DDS-1];
 wire signed [15:0]      prod_b_imag             [0:N_DDS-1];
 wire signed [31:0]      prod_y_full_real_a      [0:N_DDS-1];
 wire signed [31:0]      prod_y_full_real_b      [0:N_DDS-1];
-reg  signed [31:0]      prod_y_full_real_a_r    [0:N_DDS-1];
-reg  signed [31:0]      prod_y_full_real_b_r    [0:N_DDS-1];
+reg  signed [31:0]      prod_y_full_real_a_r1   [0:N_DDS-1];
+reg  signed [31:0]      prod_y_full_real_b_r1   [0:N_DDS-1];
+reg  signed [31:0]      prod_y_full_real_a_r2   [0:N_DDS-1];
+reg  signed [31:0]      prod_y_full_real_b_r2   [0:N_DDS-1];
 //wire signed [31:0]    prod_y_full_imag_a      [0:N_DDS-1];
 //wire signed [31:0]    prod_y_full_imag_b      [0:N_DDS-1];
 //reg  signed [31:0]    prod_y_full_imag_a_r    [0:N_DDS-1];
@@ -92,7 +94,6 @@ wire signed [31:0]      prod_y_full_real        [0:N_DDS-1];
 wire        [15:0]      prod_y_real             [0:N_DDS-1];
 wire        [15:0]      prod_y                  [0:N_DDS-1];
 reg         [15:0]      prod_y_r1               [0:N_DDS-1];
-reg         [15:0]      prod_y_r2               [0:N_DDS-1];
 wire        [15:0]      prod_y_mux              [0:N_DDS-1];
 
 // Muxed output.
@@ -104,11 +105,11 @@ wire        [15:0]      gain_int;
 wire signed [15:0]      gain_la;
 wire signed [15:0]      prodg_a_real            [0:N_DDS-1];
 wire signed [31:0]      prodg_y_full_real       [0:N_DDS-1];
-reg signed  [31:0]      prodg_y_full_real_r     [0:N_DDS-1];
+reg signed  [31:0]      prodg_y_full_real_r1    [0:N_DDS-1];
+reg signed  [31:0]      prodg_y_full_real_r2    [0:N_DDS-1];
 
 // Rounding.
 wire        [15:0]      round                   [0:N_DDS-1];
-reg         [15:0]      round_r                 [0:N_DDS-1];
 
 // Last sample register.
 reg         [15:0]      last_r                  [0:N_DDS-1];
@@ -288,25 +289,22 @@ genvar i;
                dds_dout_r1           [i]   <= 0;
 
                // Product.
-               prod_y_full_real_a_r  [i]   <= 0;
-               prod_y_full_real_b_r  [i]   <= 0;
-               // prod_y_full_imag_a_r   [i]   <= 0;
-               // prod_y_full_imag_b_r   [i]   <= 0;
                prod_y_r1            [i]   <= 0;
-               prod_y_r2            [i]   <= 0;
             end
             else begin
                // DDS output.
                dds_dout_r1           [i]   <= dds_dout          [i];
 
                // Product.
-               prod_y_full_real_a_r  [i]   <= prod_y_full_real_a   [i];
-               prod_y_full_real_b_r  [i]   <= prod_y_full_real_b   [i];
-               // prod_y_full_imag_a_r   [i]   <= prod_y_full_imag_a   [i];
-               // prod_y_full_imag_b_r   [i]   <= prod_y_full_imag_b   [i];
                prod_y_r1            [i]   <= prod_y            [i];
-               prod_y_r2            [i]   <= prod_y_r1         [i];
             end
+         end
+         always @(posedge clk) begin
+            // Product.
+            prod_y_full_real_a_r1 [i]   <= prod_y_full_real_a     [i];
+            prod_y_full_real_b_r1 [i]   <= prod_y_full_real_b     [i];
+            prod_y_full_real_a_r2 [i]   <= prod_y_full_real_a_r1  [i];
+            prod_y_full_real_b_r2 [i]   <= prod_y_full_real_b_r1  [i];
          end
       end
 
@@ -316,12 +314,6 @@ genvar i;
             mem_real_r1          [i]   <= 0;
             mem_imag_r1          [i]   <= 0;
 
-            // Product with Gain.
-            prodg_y_full_real_r  [i]   <= 0;
-
-            // Rounding.
-            round_r              [i]   <= 0;
-
             // Last sample register.
             last_r               [i]   <= 0;
          end
@@ -330,18 +322,16 @@ genvar i;
             mem_real_r1          [i]   <= mem_dout_real_i      [i*16 +: 16];
             mem_imag_r1          [i]   <= mem_dout_imag_i      [i*16 +: 16];
 
-            // Product with gain.
-            prodg_y_full_real_r  [i]   <= prodg_y_full_real   [i];
-
-            // Rounding.
-            round_r              [i]   <= round            [i];
-
             // Last sample register.
             if (en_la)
                last_r [i]   <= round[N_DDS-1];
          end
       end
-
+      always @(posedge clk) begin
+         // Product with gain.
+         prodg_y_full_real_r1 [i]   <= prodg_y_full_real   [i];
+         prodg_y_full_real_r2 [i]   <= prodg_y_full_real_r1[i];
+      end
       /*****************************/
       /* Combinatorial assignments */
       /*****************************/
@@ -360,13 +350,13 @@ genvar i;
          // assign prod_y_full_imag_b[i]  = prod_a_imag[i]*prod_b_real[i];
 
          // Addition or partial products.
-         assign prod_y_full_real[i]    = prod_y_full_real_a_r[i] - prod_y_full_real_b_r[i];
+         assign prod_y_full_real[i]    = prod_y_full_real_a_r2[i] - prod_y_full_real_b_r2[i];
          
          // Quantization.  
          assign prod_y_real[i]         = prod_y_full_real[i][31:16];
          assign prod_y[i]              = prod_y_real[i];
 
-         assign prod_y_mux[i]          = prod_y_r2[i];
+         assign prod_y_mux[i]          = prod_y_r1[i];
       end
       else begin
          assign prod_y_mux[i]          = mem_la_mux[i] >> 1;   // divide by 2 to match product path scaling
@@ -380,15 +370,15 @@ genvar i;
                                     16'h0000;
       // Product with Gain.
       assign prodg_a_real[i]      = dout_mux_la[i];
-      assign prodg_y_full_real[i] = prodg_a_real[i]*gain_la;
+      assign prodg_y_full_real[i] = prodg_a_real[i] * gain_la;
 
       // Rounding.
-      assign round[i]          = prodg_y_full_real_r[i][30 -: 16];
+      assign round[i]            = prodg_y_full_real_r2[i][30 -: 16];
 
       /***********/
       /* Outputs */
       /***********/
-      assign m_axis_tdata_o[i*16 +: 16] =  (en_la_r == 1'b1)? round_r[i]   : 
+      assign m_axis_tdata_o[i*16 +: 16] =  (en_la_r == 1'b1)? round[i]   : 
                                           (stdy_la == 1'b0)? last_r[i]     :
                                           16'h0000;
    end

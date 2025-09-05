@@ -86,10 +86,11 @@ reg   [31:0]   pinc_N_r2;
 reg   [31:0]   pinc_N_r3;
 reg   [31:0]   pinc_N_r4;
 reg   [31:0]   pinc_N_r5;
-wire  [31:0]   pinc_Nm;
-reg   [31:0]   pinc_Nm_r1;
-reg   [31:0]   pinc_Nm_r2;
-reg   [31:0]   pinc_Nm_r3;
+
+// wire  [31:0]   pinc_Nm;
+// reg   [31:0]   pinc_Nm_r1;
+// reg   [31:0]   pinc_Nm_r2;
+// reg   [31:0]   pinc_Nm_r3;
 
 wire  [31:0]   phase_int;
 reg   [31:0]   phase_r1; 
@@ -178,7 +179,7 @@ reg            rd_en_r1;
 reg            rd_en_r2;
 
 // Counter.
-reg   [31:0]   cnt;
+reg   [15:0]   cnt_nsamp_r;
 
 // Output enable register.
 reg            en_reg;
@@ -207,14 +208,16 @@ always @(posedge clk) begin
       // Pinc/phase/sync.
       pinc_r1        <= 0;
       pinc_r2        <= 0;
+
       pinc_N_r1      <= 0;
       pinc_N_r2      <= 0;
       pinc_N_r3      <= 0;
       pinc_N_r4      <= 0;
       pinc_N_r5      <= 0;
-      pinc_Nm_r1     <= 0;
-      pinc_Nm_r2     <= 0;
-      pinc_Nm_r3     <= 0;
+
+      // pinc_Nm_r1     <= 0;
+      // pinc_Nm_r2     <= 0;
+      // pinc_Nm_r3     <= 0;
 
       phase_r1       <= 0;
       phase_r2       <= 0;
@@ -276,7 +279,7 @@ always @(posedge clk) begin
       rd_en_r2       <= 0;
 
       // Counter.
-      cnt            <= 0;
+      cnt_nsamp_r    <= 0;
 
       // Output enable register.
       en_reg         <= 0;
@@ -296,7 +299,8 @@ always @(posedge clk) begin
             if (mode_int || ~fifo_empty_i)
                state <= CNT_ST;
          CNT_ST:
-            if ( cnt == nsamp_int-2 )
+            // if ( cnt_nsamp_r == nsamp_int-2 )
+            if ( cnt_nsamp_r == 2 )
                state <= READ_ST;
       endcase
 
@@ -316,14 +320,16 @@ always @(posedge clk) begin
       // Pinc/phase/sync.
       pinc_r1        <= pinc_int;
       pinc_r2        <= pinc_r1;
+
       pinc_N_r1      <= pinc_N;
       pinc_N_r2      <= pinc_N_r1;
       pinc_N_r3      <= pinc_N_r2;
       pinc_N_r4      <= pinc_N_r3;
       pinc_N_r5      <= pinc_N_r4;
-      pinc_Nm_r1     <= pinc_Nm;
-      pinc_Nm_r2     <= pinc_Nm_r1;
-      pinc_Nm_r3     <= pinc_Nm_r2;
+
+      // pinc_Nm_r1     <= pinc_Nm;
+      // pinc_Nm_r2     <= pinc_Nm_r1;
+      // pinc_Nm_r3     <= pinc_Nm_r2;
 
       phase_r1       <= phase_int;
       phase_r2       <= phase_r1;
@@ -390,9 +396,10 @@ always @(posedge clk) begin
 
       // Counter.
       if (rd_en_int)
-         cnt   <= 0;
+         // cnt_nsamp_r <= nsamp_int;
+         cnt_nsamp_r <= fifo_dout_i[143:128];
       else
-         cnt <= cnt + 1;
+         cnt_nsamp_r <= cnt_nsamp_r - 1;
 
       // Output enable register.
       if (~mode_int && rd_en_int)
@@ -441,8 +448,43 @@ assign phrst_int     = fifo_dout_r[148];
 assign pinc_N     = pinc_r2*N_DDS;
 
 // Phase calculation.
-assign pinc_Nm    = pinc_r2*cnt_n_reg;
-assign phase_0    = pinc_Nm_r3 + phase_r5;
+// Original code - 48bits multiplier and mod32 operation
+// doesn't map to DSPs and doesn't meet timing
+// assign pinc_Nm    = pinc_r2 * cnt_n_reg;
+// assign phase_0    = pinc_Nm_r3 + phase_r5;
+
+// Phase calculation.
+// Alternate Implementation - split multiplier and mod32 in more operations
+// maps to DSPs and improves timing
+logic [16:0] pinc_r2_lo, cnt_n_reg_lo;
+logic [14:0] pinc_r2_hi, cnt_n_reg_hi;
+assign pinc_r2_lo    = pinc_r2[16:0];
+assign pinc_r2_hi    = pinc_r2[31:17];
+assign cnt_n_reg_lo  = cnt_n_reg[16:0];
+assign cnt_n_reg_hi  = cnt_n_reg[31:17];
+
+logic [35:0] pinc_Nm_dsp_p0;
+logic [14:0] pinc_Nm_dsp_p1;
+logic [14:0] pinc_Nm_dsp_p2;
+logic [35:0] pinc_Nm_dsp_p0_r;
+logic [14:0] pinc_Nm_dsp_p1_r;
+logic [14:0] pinc_Nm_dsp_p2_r;
+logic [31:0] pinc_Nm_dsp_r2;
+
+always @(posedge clk) begin
+   pinc_Nm_dsp_p0     <= pinc_r2_lo * cnt_n_reg_lo;
+   pinc_Nm_dsp_p1     <= pinc_r2_hi * cnt_n_reg_lo;
+   pinc_Nm_dsp_p2     <= pinc_r2_lo * cnt_n_reg_hi;
+
+   pinc_Nm_dsp_p0_r   <= pinc_Nm_dsp_p0;
+   pinc_Nm_dsp_p1_r   <= pinc_Nm_dsp_p1;
+   pinc_Nm_dsp_p2_r   <= pinc_Nm_dsp_p2;
+
+   pinc_Nm_dsp_r2     <= pinc_Nm_dsp_p0_r[31:0] + ((pinc_Nm_dsp_p1_r + pinc_Nm_dsp_p2_r) << 17);
+end
+
+assign phase_0    = pinc_Nm_dsp_r2 + phase_r5;
+
 
 // Phase vectors.
 generate

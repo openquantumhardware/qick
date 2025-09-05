@@ -2,10 +2,9 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dds_compiler_0",
-    "cell_name": "signal_gen_top_i/signal_gen_i/GEN_dds[0].genblk1.dds_i",
     "component_reference": "xilinx.com:ip:dds_compiler:6.0",
     "ip_revision": "22",
-    "gen_directory": "../../../../projects/qick_tprocv2_216_rfbv2_issue28/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0",
+    "gen_directory": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "dds_compiler_0", "resolve_type": "user", "usage": "all" } ],
@@ -163,10 +162,10 @@
       },
       "project_parameters": {
         "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
-        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu216:part0:2.0" } ],
+        "BASE_BOARD_PART": [ { "value": "realdigital.org:rfsoc4x2:part0:1.0" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
-        "DEVICE": [ { "value": "xczu49dr" } ],
-        "PACKAGE": [ { "value": "ffvf1760" } ],
+        "DEVICE": [ { "value": "xczu48dr" } ],
+        "PACKAGE": [ { "value": "ffvg1517" } ],
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
@@ -180,7 +179,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "22" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_216_rfbv2_issue28/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],

@@ -89,7 +89,7 @@ wire  [N_DDS*16-1:0] mem_dob_imag;
 /**********************/
 
 // Fifo.
-fifo
+fifo_xpm
    #(
       // Data width.
       .B  (160),
@@ -156,7 +156,7 @@ generate
       /* Block instantiation */
       /***********************/
       // Memory for Real Part.
-      bram_dp
+      bram_dp_xpm
       #(
          // Memory address size.
          .N  (N),
@@ -181,7 +181,7 @@ generate
 
         if (ENVELOPE_TYPE == "COMPLEX") begin
             // Memory for Imaginary Part.
-            bram_dp
+            bram_dp_xpm
             #(
                // Memory address size.
                .N  (N),
