@@ -29,6 +29,9 @@ architecture rtl of synchronizer_vect is
 type reg_t is array (N-1 downto 0) of std_logic_vector (B-1 downto 0);
 signal data_int_reg : reg_t;
 
+attribute ASYNC_REG : string;
+attribute ASYNC_REG of data_int_reg: signal is "TRUE";
+
 begin
 
 process(clk)

@@ -22,6 +22,9 @@ architecture rtl of synchronizer is
 -- Internal register.
 signal data_int_reg : std_logic_vector (N-1 downto 0);
 
+attribute ASYNC_REG : string;
+attribute ASYNC_REG of data_int_reg: signal is "TRUE";
+
 begin
 
 process(clk,rstn)
