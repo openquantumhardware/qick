@@ -272,7 +272,7 @@ generate
       always_comb begin : WAVE_DISPATCHER
          wave_pop[ind_wfifo]   = 0;
          wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo]});
-         if (time_en & ~t_fifo_wave_empty[ind_wfifo] & m_axis_tready[ind_wfifo]) 
+         if (time_en & ~t_fifo_wave_empty_r[ind_wfifo] & m_axis_tready[ind_wfifo]) 
             if ( wave_t_gr_r[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
                wave_pop      [ind_wfifo] = 1'b1 ;
       end //ALWAYS
