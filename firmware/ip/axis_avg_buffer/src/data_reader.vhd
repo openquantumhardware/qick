@@ -73,8 +73,8 @@ type fsm_state is (  INIT_ST,
                      REGS_ST,
                      READ_BRAM_ST,
                      WRITE_FIFO_ST,
-                     READ_LAST_ST,
-                     WRITE_LAST_ST,
+                     -- READ_LAST_ST,
+                     -- WRITE_LAST_ST,
                      FIFO_ST,
                      END_ST);
 signal current_state, next_state : fsm_state;
@@ -173,7 +173,7 @@ begin
          elsif ( regs_state = '1' ) then
             cnt_wr         <= (others => '0');
             addr_cnt       <= unsigned(ADDR_REG);
-            len_r          <= unsigned(LEN_REG)-1;
+            len_r          <= unsigned(LEN_REG);
             cnt_rd         <= unsigned(LEN_REG)-1;
          end if;
          if ( read_state = '1' ) then
@@ -219,18 +219,18 @@ begin
          elsif ( cnt_wr < len_r ) then
             next_state <= READ_BRAM_ST;
          else
-            next_state <= READ_LAST_ST;
-         end if;
-
-      when READ_LAST_ST =>
-         next_state <= WRITE_LAST_ST;
-
-      when WRITE_LAST_ST =>
-         if ( fifo_full = '1' ) then
-            next_state <= WRITE_LAST_ST;
-         else
             next_state <= FIFO_ST;
          end if;
+
+      -- when READ_LAST_ST =>
+      --    next_state <= WRITE_LAST_ST;
+
+      -- when WRITE_LAST_ST =>
+      --    if ( fifo_full = '1' ) then
+      --       next_state <= WRITE_LAST_ST;
+      --    else
+      --       next_state <= FIFO_ST;
+      --    end if;
 
       when FIFO_ST =>
          if ( cnt_rd = 0 and fifo_rd_en = '1' ) then
@@ -272,13 +272,13 @@ begin
          write_state <= '1';
          read_en     <= '1';
 
-      when READ_LAST_ST =>
-         read_state  <= '1';
-         read_en     <= '1';
+      -- when READ_LAST_ST =>
+      --    read_state  <= '1';
+      --    read_en     <= '1';
 
-      when WRITE_LAST_ST =>
-         write_state <= '1';
-         read_en     <= '1';
+      -- when WRITE_LAST_ST =>
+      --    write_state <= '1';
+      --    read_en     <= '1';
 
       when FIFO_ST =>
          fifo_state  <= '1';

@@ -176,7 +176,7 @@ initial begin
 
    @(posedge m_axis_aclk);
    AVG_DR_ADDR_REG   <= 5;
-   AVG_DR_LEN_REG    <= 8;
+   AVG_DR_LEN_REG    <= 7;
    BUF_DR_ADDR_REG   <= 0;
    BUF_DR_LEN_REG    <= 100;
 
@@ -186,7 +186,7 @@ initial begin
 
    for (int i=1; i<=100; i = i + 1) begin
       @(posedge m_axis_aclk);
-      m0_axis_tready    <= i[3:0] >= 4;
+      m0_axis_tready    <= i[3:0] <= 4;
    end
 
 end
