@@ -500,11 +500,11 @@ module bram_dp_xpm #(
       .regceb(1'b1),                 // 1-bit input: Clock Enable for the last register stage on the output
                                        // data path.
 
-      .rsta(1'b1),                     // 1-bit input: Reset signal for the final port A output register stage.
+      .rsta(1'b0),                     // 1-bit input: Reset signal for the final port A output register stage.
                                        // Synchronously resets output port douta to the value specified by
                                        // parameter READ_RESET_VALUE_A.
 
-      .rstb(1'b1),                     // 1-bit input: Reset signal for the final port B output register stage.
+      .rstb(1'b0),                     // 1-bit input: Reset signal for the final port B output register stage.
                                        // Synchronously resets output port doutb to the value specified by
                                        // parameter READ_RESET_VALUE_B.
 

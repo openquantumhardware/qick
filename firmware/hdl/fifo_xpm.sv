@@ -293,6 +293,18 @@ module fifo_xpm #(
 // | Write Reset Busy: Active-High indicator that the FIFO write domain is currently in a reset state.                   |
 // +---------------------------------------------------------------------------------------------------------------------+
 
+//--------------------------------------------------------
+// NOTE: workaround to work identically to custom fifo.vhd
+logic [B-1:0] dout_int, dout_r;
+
+assign dout = (rd_en & ~empty) ? dout_int : dout_r;
+
+always @(posedge clk) begin
+   if (rd_en & ~empty) begin
+      dout_r <= dout_int;
+   end
+end
+//--------------------------------------------------------
 
 // xpm_fifo_sync : In order to incorporate this function into the design,
 //    Verilog    : the following instance declaration needs to be placed
@@ -321,7 +333,8 @@ module fifo_xpm #(
       .PROG_FULL_THRESH                (10),             // DECIMAL
       .RD_DATA_COUNT_WIDTH             (1),              // DECIMAL
       .READ_DATA_WIDTH                 (B),              // DECIMAL
-      .READ_MODE                       ("std"),          // String
+      // .READ_MODE                       ("std"),          // String
+      .READ_MODE                       ("fwft"),         // String
       .SIM_ASSERT_CHK                  (0),              // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
       .USE_ADV_FEATURES                ("0000"),         // String
       .WAKEUP_TIME                     (0),              // DECIMAL
@@ -341,7 +354,7 @@ module fifo_xpm #(
       .dbiterr(),             // 1-bit output: Double Bit Error: Indicates that the ECC decoder detected
                                      // a double-bit error and data in the FIFO core is corrupted.
 
-      .dout(dout),                   // READ_DATA_WIDTH-bit output: Read Data: The output data bus is driven
+      .dout(dout_int),                   // READ_DATA_WIDTH-bit output: Read Data: The output data bus is driven
                                      // when reading the FIFO.
 
       .empty(empty),                 // 1-bit output: Empty Flag: When asserted, this signal indicates that the
