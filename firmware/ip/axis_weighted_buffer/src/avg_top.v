@@ -218,7 +218,7 @@ module avg_top (
        .B (4*B ),
 
        // Fifo depth.
-       .N (4 )
+       .N (16 )
        )
    fifo_i
      (
