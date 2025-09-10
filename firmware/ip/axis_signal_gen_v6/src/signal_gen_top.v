@@ -158,6 +158,7 @@ generate
       // Memory for Real Part.
       bram_dp_xpm
       #(
+         .OUT_REG_ENA   (1),
          // Memory address size.
          .N  (N),
          // Data width.
@@ -183,6 +184,7 @@ generate
             // Memory for Imaginary Part.
             bram_dp_xpm
             #(
+               .OUT_REG_ENA   (1),
                // Memory address size.
                .N  (N),
                // Data width.

@@ -222,7 +222,7 @@ genvar i;
       // Latency for real memory data (product).
       latency_reg
          #(
-            .N(10),
+            .N(9),
             .B(16)
          )
          mem_real_latency_reg_i
@@ -237,7 +237,7 @@ genvar i;
       // Latency for imaginary memory data (product).
       latency_reg
          #(
-            .N(10),
+            .N(9),
             .B(16)
          )
          mem_imag_latency_reg_i

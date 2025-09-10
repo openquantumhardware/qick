@@ -1,7 +1,8 @@
 // Dual Port Dual Clock Block RAM using XPM_MACRO
 module bram_dp_xpm #(
-   integer N   = 16,    // Memory address size.
-   integer B   = 16     // Data width.
+   integer OUT_REG_ENA = 0,   // set to 1 for output reg
+   integer N   = 16,          // Memory address size.
+   integer B   = 16           // Data width.
 ) ( 
    input wire              clka,
    input wire              clkb,
@@ -427,8 +428,8 @@ module bram_dp_xpm #(
       .RAM_DECOMP                      ("auto"),               // String
       .READ_DATA_WIDTH_A               (B),                    // DECIMAL
       .READ_DATA_WIDTH_B               (B),                    // DECIMAL
-      .READ_LATENCY_A                  (1),                    // DECIMAL
-      .READ_LATENCY_B                  (1),                    // DECIMAL
+      .READ_LATENCY_A                  (1+OUT_REG_ENA),        // DECIMAL
+      .READ_LATENCY_B                  (1+OUT_REG_ENA),        // DECIMAL
       .READ_RESET_VALUE_A              ("0"),                  // String
       .READ_RESET_VALUE_B              ("0"),                  // String
       .RST_MODE_A                      ("SYNC"),               // String
