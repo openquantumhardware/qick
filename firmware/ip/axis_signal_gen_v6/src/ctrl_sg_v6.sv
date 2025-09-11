@@ -215,10 +215,6 @@ always @(posedge clk) begin
       pinc_N_r4      <= 0;
       pinc_N_r5      <= 0;
 
-      // pinc_Nm_r1     <= 0;
-      // pinc_Nm_r2     <= 0;
-      // pinc_Nm_r3     <= 0;
-
       phase_r1       <= 0;
       phase_r2       <= 0;
       phase_r3       <= 0;
@@ -299,7 +295,6 @@ always @(posedge clk) begin
             if (mode_int || ~fifo_empty_i)
                state <= CNT_ST;
          CNT_ST:
-            // if ( cnt_nsamp_r == nsamp_int-2 )
             if ( cnt_nsamp_r == 2 )
                state <= READ_ST;
       endcase
@@ -326,10 +321,6 @@ always @(posedge clk) begin
       pinc_N_r3      <= pinc_N_r2;
       pinc_N_r4      <= pinc_N_r3;
       pinc_N_r5      <= pinc_N_r4;
-
-      // pinc_Nm_r1     <= pinc_Nm;
-      // pinc_Nm_r2     <= pinc_Nm_r1;
-      // pinc_Nm_r3     <= pinc_Nm_r2;
 
       phase_r1       <= phase_int;
       phase_r2       <= phase_r1;
@@ -396,7 +387,6 @@ always @(posedge clk) begin
 
       // Counter.
       if (rd_en_int)
-         // cnt_nsamp_r <= nsamp_int;
          cnt_nsamp_r <= fifo_dout_i[143:128];
       else
          cnt_nsamp_r <= cnt_nsamp_r - 1;
@@ -450,40 +440,55 @@ assign pinc_N     = pinc_r2*N_DDS;
 // Phase calculation.
 // Original code - 48bits multiplier and mod32 operation
 // doesn't map to DSPs and doesn't meet timing
+
 // assign pinc_Nm    = pinc_r2 * cnt_n_reg;
-// assign phase_0    = pinc_Nm_r3 + phase_r5;
+
+// pinc_Nm Registers
+// always @(posedge clk) begin
+//    if (~rstn) begin
+//       pinc_Nm_r1     <= 0;
+//       pinc_Nm_r2     <= 0;
+//       pinc_Nm_r3     <= 0;
+//    end
+//    else begin
+//       pinc_Nm_r1     <= pinc_Nm;
+//       pinc_Nm_r2     <= pinc_Nm_r1;
+//       pinc_Nm_r3     <= pinc_Nm_r2;
+//    end
+// end
 
 // Phase calculation.
 // Alternate Implementation - split multiplier and mod32 in more operations
 // maps to DSPs and improves timing
-logic [16:0] pinc_r2_lo, cnt_n_reg_lo;
-logic [14:0] pinc_r2_hi, cnt_n_reg_hi;
-assign pinc_r2_lo    = pinc_r2[16:0];
-assign pinc_r2_hi    = pinc_r2[31:17];
-assign cnt_n_reg_lo  = cnt_n_reg[16:0];
-assign cnt_n_reg_hi  = cnt_n_reg[31:17];
+localparam WL = 17; localparam WH = 32-WL;
+logic [WL:0] pinc_r2_lo_r, cnt_n_reg_lo_r;
+logic [WH:0] pinc_r2_hi_r, cnt_n_reg_hi_r;
+assign pinc_r2_lo_r    = $signed({1'b0,pinc_r2[WL-1:0]});
+assign pinc_r2_hi_r    = $signed({1'b0,pinc_r2[31:WL]});
+assign cnt_n_reg_lo_r  = $signed({1'b0,cnt_n_reg[WL-1:0]});
+assign cnt_n_reg_hi_r  = $signed({1'b0,cnt_n_reg[31:WL]});
 
-logic [35:0] pinc_Nm_dsp_p0;
-logic [14:0] pinc_Nm_dsp_p1;
-logic [14:0] pinc_Nm_dsp_p2;
-logic [35:0] pinc_Nm_dsp_p0_r;
-logic [14:0] pinc_Nm_dsp_p1_r;
-logic [14:0] pinc_Nm_dsp_p2_r;
-logic [31:0] pinc_Nm_dsp_r2;
+logic signed [2*(WL+1)-1:0] pinc_Nm_dsp_p0_r1_3;
+logic signed [2*(WL+1)-1:0] pinc_Nm_dsp_p0_r2_3;
+logic signed [2*(WH+1)-1:0] pinc_Nm_dsp_p1_r1_3;
+logic signed [2*(WH+1)-1:0] pinc_Nm_dsp_p1_r2_3;
+logic signed [2*(WH+1)-1:0] pinc_Nm_dsp_p2_r1_3;
+logic signed [2*(WH+1)-1:0] pinc_Nm_dsp_p2_r2_3;
+
+logic signed [31:0] pinc_Nm_dsp_r3_3;
 
 always @(posedge clk) begin
-   pinc_Nm_dsp_p0     <= pinc_r2_lo * cnt_n_reg_lo;
-   pinc_Nm_dsp_p1     <= pinc_r2_hi * cnt_n_reg_lo;
-   pinc_Nm_dsp_p2     <= pinc_r2_lo * cnt_n_reg_hi;
+   pinc_Nm_dsp_p0_r1_3     <= pinc_r2_lo_r * cnt_n_reg_lo_r;   // WL x WL   : MREG
+   pinc_Nm_dsp_p1_r1_3     <= pinc_r2_hi_r * cnt_n_reg_lo_r;   // WH x WL   : MREG
+   pinc_Nm_dsp_p2_r1_3     <= pinc_r2_lo_r * cnt_n_reg_hi_r;   // WL x WH   : MREG
 
-   pinc_Nm_dsp_p0_r   <= pinc_Nm_dsp_p0;
-   pinc_Nm_dsp_p1_r   <= pinc_Nm_dsp_p1;
-   pinc_Nm_dsp_p2_r   <= pinc_Nm_dsp_p2;
-
-   pinc_Nm_dsp_r2     <= pinc_Nm_dsp_p0_r[31:0] + ((pinc_Nm_dsp_p1_r + pinc_Nm_dsp_p2_r) << 17);
+   pinc_Nm_dsp_p0_r2_3     <= pinc_Nm_dsp_p0_r1_3;
+   pinc_Nm_dsp_p1_r2_3     <= pinc_Nm_dsp_p1_r1_3 << 17;
+   pinc_Nm_dsp_p2_r2_3     <= pinc_Nm_dsp_p2_r1_3 << 17;
+   pinc_Nm_dsp_r3_3        <= pinc_Nm_dsp_p0_r2_3[31:0] + pinc_Nm_dsp_p1_r2_3 + pinc_Nm_dsp_p2_r2_3;
 end
 
-assign phase_0    = pinc_Nm_dsp_r2 + phase_r5;
+assign phase_0    = pinc_Nm_dsp_r3_3 + phase_r5;
 
 
 // Phase vectors.
