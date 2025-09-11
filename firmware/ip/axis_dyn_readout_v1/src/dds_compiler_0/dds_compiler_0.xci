@@ -1,479 +1,358 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<spirit:design xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <spirit:vendor>xilinx.com</spirit:vendor>
-  <spirit:library>xci</spirit:library>
-  <spirit:name>unknown</spirit:name>
-  <spirit:version>1.0</spirit:version>
-  <spirit:componentInstances>
-    <spirit:componentInstance>
-      <spirit:instanceName>dds_compiler_0</spirit:instanceName>
-      <spirit:componentRef spirit:vendor="xilinx.com" spirit:library="ip" spirit:name="dds_compiler" spirit:version="6.0"/>
-      <spirit:configurableElementValues>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.ASSOCIATED_PORT"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.CLK_DOMAIN"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.FREQ_HZ">100000000</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.FREQ_TOLERANCE_HZ">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ACLK_INTF.PHASE">0.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.ARESETN_INTF.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_PHASE_IN_INVALID_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_PINC_INVALID_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_POFF_INVALID_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_S_CONFIG_TLAST_MISSING_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_S_CONFIG_TLAST_UNEXPECTED_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_S_PHASE_CHANID_INCORRECT_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_S_PHASE_TLAST_MISSING_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.EVENT_S_PHASE_TLAST_UNEXPECTED_INTF.PortWidth">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.CLK_DOMAIN"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.FREQ_HZ">100000000</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TKEEP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TLAST">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TREADY">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TSTRB">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.LAYERED_METADATA">undef</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.PHASE">0.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TDATA_NUM_BYTES">4</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TDEST_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TID_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TUSER_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.CLK_DOMAIN"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.FREQ_HZ">100000000</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TKEEP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TLAST">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TREADY">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TSTRB">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.LAYERED_METADATA">undef</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.PHASE">0.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TDATA_NUM_BYTES">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TDEST_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TID_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TUSER_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.CLK_DOMAIN"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.FREQ_HZ">100000000</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TKEEP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TLAST">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TREADY">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TSTRB">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.LAYERED_METADATA">undef</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.PHASE">0.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TDATA_NUM_BYTES">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TDEST_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TID_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TUSER_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.CLK_DOMAIN"/>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.FREQ_HZ">100000000</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TKEEP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TLAST">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TREADY">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TSTRB">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.INSERT_VIP">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.LAYERED_METADATA">undef</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.PHASE">0.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TDATA_NUM_BYTES">9</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TDEST_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TID_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TUSER_WIDTH">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_ACCUMULATOR_WIDTH">32</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_AMPLITUDE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_CHANNELS">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_CHAN_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_DEBUG_INTERFACE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_ACLKEN">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_ARESETN">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_M_DATA">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_M_PHASE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_PHASEGEN">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_PHASE_OUT">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_SINCOS">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_S_CONFIG">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_S_PHASE">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_TLAST">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_HAS_TREADY">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_LATENCY">8</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_MEM_TYPE">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_MODE_OF_OPERATION">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_MODULUS">9</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_DATA_HAS_TUSER">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_DATA_TDATA_WIDTH">32</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_DATA_TUSER_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_PHASE_HAS_TUSER">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_PHASE_TDATA_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_M_PHASE_TUSER_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_NEGATIVE_COSINE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_NEGATIVE_SINE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_NOISE_SHAPING">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_OPTIMISE_GOAL">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_OUTPUTS_REQUIRED">2</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_OUTPUT_FORM">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_OUTPUT_WIDTH">16</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_PHASE_ANGLE_WIDTH">14</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_PHASE_INCREMENT">3</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_PHASE_INCREMENT_VALUE">0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_PHASE_OFFSET">3</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_PHASE_OFFSET_VALUE">0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_POR_MODE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_RESYNC">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_S_CONFIG_SYNC_MODE">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_S_CONFIG_TDATA_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_S_PHASE_HAS_TUSER">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_S_PHASE_TDATA_WIDTH">72</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_S_PHASE_TUSER_WIDTH">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_USE_DSP48">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="MODELPARAM_VALUE.C_XDEVICEFAMILY">zynquplus</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Amplitude_Mode">Full_Range</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Channels">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Component_Name">dds_compiler_0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.DATA_Has_TLAST">Not_Required</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.DDS_Clock_Rate">256</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.DSP48_Use">Maximal</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Frequency_Resolution">0.06</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.GUI_Behaviour">Coregen</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Has_ACLKEN">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Has_ARESETn">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Has_Phase_Out">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Has_TREADY">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Latency">8</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Latency_Configuration">Configurable</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.M_DATA_Has_TUSER">Not_Required</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.M_PHASE_Has_TUSER">Not_Required</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Memory_Type">Auto</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Mode_of_Operation">Standard</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Modulus">9</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Negative_Cosine">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Negative_Sine">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Noise_Shaping">Auto</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.OUTPUT_FORM">Twos_Complement</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Optimization_Goal">Speed</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency1">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency10">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency11">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency12">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency13">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency14">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency15">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency16">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency2">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency3">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency4">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency5">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency6">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency7">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency8">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Frequency9">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Selection">Sine_and_Cosine</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Output_Width">16</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC1">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC10">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC11">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC12">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC13">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC14">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC15">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC16">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC2">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC3">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC4">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC5">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC6">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC7">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC8">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PINC9">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF1">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF10">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF11">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF12">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF13">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF14">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF15">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF16">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF2">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF3">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF4">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF5">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF6">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF7">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF8">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POFF9">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.POR_mode">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Parameter_Entry">System_Parameters</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.PartsPresent">Phase_Generator_and_SIN_COS_LUT</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Increment">Streaming</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles1">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles10">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles11">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles12">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles13">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles14">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles15">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles16">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles2">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles3">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles4">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles5">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles6">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles7">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles8">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Offset_Angles9">0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_Width">32</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Phase_offset">Streaming</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Resync">true</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.S_CONFIG_Sync_Mode">On_Vector</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.S_PHASE_Has_TUSER">Not_Required</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.S_PHASE_TUSER_Width">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.Spurious_Free_Dynamic_Range">96</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.explicit_period">false</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PARAM_VALUE.period">1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.ARCHITECTURE">zynquplusRFSOC</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.BASE_BOARD_PART">xilinx.com:zcu216:part0:2.0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.BOARD_CONNECTIONS"/>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.DEVICE">xczu49dr</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.PACKAGE">ffvf1760</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.PREFHDL">VERILOG</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.SILICON_REVISION"/>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.SIMULATOR_LANGUAGE">MIXED</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.SPEEDGRADE">-2</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.STATIC_POWER"/>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.TEMPERATURE_GRADE">E</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.USE_RDI_CUSTOMIZATION">TRUE</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="PROJECT_PARAM.USE_RDI_GENERATION">TRUE</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.IPCONTEXT">IP_Flow</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.IPREVISION">22</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.MANAGED">TRUE</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.OUTPUTDIR">../../../../qick_fw_sho/qick_tprocv2_216_kidsim/top/top.tmp/axis_dyn_readout_v1_v1_0_project/axis_dyn_readout_v1_v1_0_project.gen/sources_1/ip/dds_compiler_0</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.SELECTEDSIMMODEL"/>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.SHAREDDIR">.</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.SWVERSION">2022.1</spirit:configurableElementValue>
-        <spirit:configurableElementValue spirit:referenceId="RUNTIME_PARAM.SYNTHESISFLOW">GLOBAL</spirit:configurableElementValue>
-      </spirit:configurableElementValues>
-      <spirit:vendorExtensions>
-        <xilinx:componentInstanceExtensions>
-          <xilinx:configElementInfos>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TKEEP" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TREADY" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.HAS_TSTRB" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TDATA_NUM_BYTES" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TDEST_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_DATA.TID_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TKEEP" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TREADY" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.HAS_TSTRB" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TDATA_NUM_BYTES" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TDEST_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.M_AXIS_PHASE.TID_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TKEEP" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TREADY" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.HAS_TSTRB" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TDATA_NUM_BYTES" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TDEST_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TID_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_CONFIG.TUSER_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TKEEP" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TREADY" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.HAS_TSTRB" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TDATA_NUM_BYTES" xilinx:valueSource="auto"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TDEST_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="BUSIFPARAM_VALUE.S_AXIS_PHASE.TID_WIDTH" xilinx:valueSource="constant"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.DATA_Has_TLAST" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.DDS_Clock_Rate" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.DSP48_Use" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Frequency_Resolution" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Has_ACLKEN" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Has_Phase_Out" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Has_TREADY" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Latency" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Latency_Configuration" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.M_DATA_Has_TUSER" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Noise_Shaping" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Optimization_Goal" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Output_Frequency1" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Output_Width" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.PINC1" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Parameter_Entry" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.PartsPresent" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Phase_Increment" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Phase_Width" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Phase_offset" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Resync" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.S_PHASE_Has_TUSER" xilinx:valueSource="user"/>
-            <xilinx:configElementInfo xilinx:referenceId="PARAM_VALUE.Spurious_Free_Dynamic_Range" xilinx:valueSource="user"/>
-          </xilinx:configElementInfos>
-          <xilinx:boundaryDescriptionInfo>
-            <xilinx:boundaryDescription xilinx:boundaryDescriptionJSON="{
-              &quot;schema&quot;: &quot;xilinx.com:schema:json_boundary:1.0&quot;,
-              &quot;boundary&quot;: {
-                &quot;ports&quot;: {
-                  &quot;aclk&quot;: [ { &quot;direction&quot;: &quot;in&quot;, &quot;driver_value&quot;: &quot;0x0&quot; } ],
-                  &quot;s_axis_phase_tvalid&quot;: [ { &quot;direction&quot;: &quot;in&quot;, &quot;driver_value&quot;: &quot;0x0&quot; } ],
-                  &quot;s_axis_phase_tdata&quot;: [ { &quot;direction&quot;: &quot;in&quot;, &quot;size_left&quot;: &quot;71&quot;, &quot;size_right&quot;: &quot;0&quot;, &quot;driver_value&quot;: &quot;0&quot; } ],
-                  &quot;m_axis_data_tvalid&quot;: [ { &quot;direction&quot;: &quot;out&quot;, &quot;driver_value&quot;: &quot;0x0&quot; } ],
-                  &quot;m_axis_data_tdata&quot;: [ { &quot;direction&quot;: &quot;out&quot;, &quot;size_left&quot;: &quot;31&quot;, &quot;size_right&quot;: &quot;0&quot;, &quot;driver_value&quot;: &quot;0&quot; } ]
-                },
-                &quot;interfaces&quot;: {
-                  &quot;event_pinc_invalid_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_poff_invalid_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_phase_in_invalid_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_s_phase_tlast_missing_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_s_phase_tlast_unexpected_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_s_phase_chanid_incorrect_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_s_config_tlast_missing_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;event_s_config_tlast_unexpected_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:interrupt:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:interrupt_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;SENSITIVITY&quot;: [ { &quot;value&quot;: &quot;EDGE_RISING&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;PortWidth&quot;: [ { &quot;value&quot;: &quot;1&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;S_AXIS_PHASE&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:interface:axis:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:interface:axis_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;slave&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;TDATA_NUM_BYTES&quot;: [ { &quot;value&quot;: &quot;9&quot;, &quot;value_src&quot;: &quot;auto&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TDEST_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TID_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TUSER_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TREADY&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;auto&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TSTRB&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TKEEP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TLAST&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;FREQ_HZ&quot;: [ { &quot;value&quot;: &quot;100000000&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;PHASE&quot;: [ { &quot;value&quot;: &quot;0.0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;float&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;CLK_DOMAIN&quot;: [ { &quot;value&quot;: &quot;&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;LAYERED_METADATA&quot;: [ { &quot;value&quot;: &quot;undef&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;INSERT_VIP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;user&quot;, &quot;format&quot;: &quot;long&quot;, &quot;usage&quot;: &quot;simulation.rtl&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    },
-                    &quot;port_maps&quot;: {
-                      &quot;TDATA&quot;: [ { &quot;physical_name&quot;: &quot;s_axis_phase_tdata&quot; } ],
-                      &quot;TVALID&quot;: [ { &quot;physical_name&quot;: &quot;s_axis_phase_tvalid&quot; } ]
-                    }
-                  },
-                  &quot;aclk_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:clock:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:clock_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;slave&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;ASSOCIATED_BUSIF&quot;: [ { &quot;value&quot;: &quot;M_AXIS_PHASE:S_AXIS_CONFIG:M_AXIS_DATA:S_AXIS_PHASE&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;ASSOCIATED_RESET&quot;: [ { &quot;value&quot;: &quot;aresetn&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;ASSOCIATED_CLKEN&quot;: [ { &quot;value&quot;: &quot;aclken&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;FREQ_HZ&quot;: [ { &quot;value&quot;: &quot;100000000&quot;, &quot;resolve_type&quot;: &quot;user&quot;, &quot;format&quot;: &quot;long&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;FREQ_TOLERANCE_HZ&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;PHASE&quot;: [ { &quot;value&quot;: &quot;0.0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;float&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;CLK_DOMAIN&quot;: [ { &quot;value&quot;: &quot;&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;ASSOCIATED_PORT&quot;: [ { &quot;value&quot;: &quot;&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;INSERT_VIP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;user&quot;, &quot;format&quot;: &quot;long&quot;, &quot;usage&quot;: &quot;simulation.rtl&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    },
-                    &quot;port_maps&quot;: {
-                      &quot;CLK&quot;: [ { &quot;physical_name&quot;: &quot;aclk&quot; } ]
-                    }
-                  },
-                  &quot;aresetn_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:reset:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:reset_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;slave&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;POLARITY&quot;: [ { &quot;value&quot;: &quot;ACTIVE_LOW&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ],
-                      &quot;INSERT_VIP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;user&quot;, &quot;format&quot;: &quot;long&quot;, &quot;usage&quot;: &quot;simulation.rtl&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    }
-                  },
-                  &quot;aclken_intf&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:signal:clockenable:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:signal:clockenable_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;slave&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;POLARITY&quot;: [ { &quot;value&quot;: &quot;ACTIVE_HIGH&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;usage&quot;: &quot;all&quot; } ]
-                    }
-                  },
-                  &quot;M_AXIS_DATA&quot;: {
-                    &quot;vlnv&quot;: &quot;xilinx.com:interface:axis:1.0&quot;,
-                    &quot;abstraction_type&quot;: &quot;xilinx.com:interface:axis_rtl:1.0&quot;,
-                    &quot;mode&quot;: &quot;master&quot;,
-                    &quot;parameters&quot;: {
-                      &quot;TDATA_NUM_BYTES&quot;: [ { &quot;value&quot;: &quot;4&quot;, &quot;value_src&quot;: &quot;auto&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TDEST_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TID_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;TUSER_WIDTH&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TREADY&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;auto&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TSTRB&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TKEEP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;value_src&quot;: &quot;constant&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;HAS_TLAST&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;FREQ_HZ&quot;: [ { &quot;value&quot;: &quot;100000000&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;long&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;PHASE&quot;: [ { &quot;value&quot;: &quot;0.0&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;format&quot;: &quot;float&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;CLK_DOMAIN&quot;: [ { &quot;value&quot;: &quot;&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;LAYERED_METADATA&quot;: [ { &quot;value&quot;: &quot;undef&quot;, &quot;resolve_type&quot;: &quot;generated&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ],
-                      &quot;INSERT_VIP&quot;: [ { &quot;value&quot;: &quot;0&quot;, &quot;resolve_type&quot;: &quot;user&quot;, &quot;format&quot;: &quot;long&quot;, &quot;usage&quot;: &quot;simulation.rtl&quot;, &quot;is_ips_inferred&quot;: true, &quot;is_static_object&quot;: false } ]
-                    },
-                    &quot;port_maps&quot;: {
-                      &quot;TDATA&quot;: [ { &quot;physical_name&quot;: &quot;m_axis_data_tdata&quot; } ],
-                      &quot;TVALID&quot;: [ { &quot;physical_name&quot;: &quot;m_axis_data_tvalid&quot; } ]
-                    }
-                  }
-                }
-              }
-            }"/>
-          </xilinx:boundaryDescriptionInfo>
-        </xilinx:componentInstanceExtensions>
-      </spirit:vendorExtensions>
-    </spirit:componentInstance>
-  </spirit:componentInstances>
-</spirit:design>
+{
+  "schema": "xilinx.com:schema:json_instance:1.0",
+  "ip_inst": {
+    "xci_name": "dds_compiler_0",
+    "cell_name": "readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i",
+    "component_reference": "xilinx.com:ip:dds_compiler:6.0",
+    "ip_revision": "22",
+    "gen_directory": "../../../../projects/qick_tprocv2_216_demo/top/top.tmp/axis_dyn_readout_v1_v1_0_project/axis_dyn_readout_v1_v1_0_project.gen/sources_1/ip/dds_compiler_0",
+    "parameters": {
+      "component_parameters": {
+        "Component_Name": [ { "value": "dds_compiler_0", "resolve_type": "user", "usage": "all" } ],
+        "PartsPresent": [ { "value": "Phase_Generator_and_SIN_COS_LUT", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "DDS_Clock_Rate": [ { "value": "256", "value_src": "user", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "Channels": [ { "value": "1", "resolve_type": "user", "usage": "all" } ],
+        "Mode_of_Operation": [ { "value": "Standard", "resolve_type": "user", "usage": "all" } ],
+        "Modulus": [ { "value": "9", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "Parameter_Entry": [ { "value": "System_Parameters", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Spurious_Free_Dynamic_Range": [ { "value": "96", "value_src": "user", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "Frequency_Resolution": [ { "value": "0.06", "value_src": "user", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "Noise_Shaping": [ { "value": "Auto", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Width": [ { "value": "32", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "Output_Width": [ { "value": "16", "value_src": "user", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "Phase_Increment": [ { "value": "Streaming", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Resync": [ { "value": "true", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "Phase_offset": [ { "value": "Streaming", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Output_Selection": [ { "value": "Sine_and_Cosine", "resolve_type": "user", "usage": "all" } ],
+        "Negative_Sine": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "Negative_Cosine": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "Amplitude_Mode": [ { "value": "Full_Range", "resolve_type": "user", "usage": "all" } ],
+        "Memory_Type": [ { "value": "Auto", "resolve_type": "user", "usage": "all" } ],
+        "Optimization_Goal": [ { "value": "Speed", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "DSP48_Use": [ { "value": "Maximal", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Has_Phase_Out": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "DATA_Has_TLAST": [ { "value": "Not_Required", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Has_TREADY": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "S_PHASE_Has_TUSER": [ { "value": "Not_Required", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "S_PHASE_TUSER_Width": [ { "value": "1", "resolve_type": "user", "format": "long", "usage": "all" } ],
+        "M_DATA_Has_TUSER": [ { "value": "Not_Required", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "M_PHASE_Has_TUSER": [ { "value": "Not_Required", "resolve_type": "user", "usage": "all" } ],
+        "S_CONFIG_Sync_Mode": [ { "value": "On_Vector", "resolve_type": "user", "usage": "all" } ],
+        "OUTPUT_FORM": [ { "value": "Twos_Complement", "resolve_type": "user", "usage": "all" } ],
+        "Latency_Configuration": [ { "value": "Configurable", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Latency": [ { "value": "8", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Has_ARESETn": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "Has_ACLKEN": [ { "value": "false", "value_src": "user", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "Output_Frequency1": [ { "value": "0", "value_src": "user", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC1": [ { "value": "0", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles1": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF1": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency2": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC2": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles2": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF2": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency3": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC3": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles3": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF3": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency4": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC4": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles4": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF4": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency5": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC5": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles5": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF5": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency6": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC6": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles6": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF6": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency7": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC7": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles7": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF7": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency8": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC8": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles8": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF8": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency9": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC9": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles9": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF9": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency10": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC10": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles10": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF10": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency11": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC11": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles11": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF11": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency12": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC12": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles12": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF12": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency13": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC13": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles13": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF13": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency14": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC14": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles14": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF14": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency15": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC15": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles15": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF15": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Output_Frequency16": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "PINC16": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "Phase_Offset_Angles16": [ { "value": "0", "resolve_type": "user", "format": "float", "usage": "all" } ],
+        "POFF16": [ { "value": "0", "resolve_type": "user", "usage": "all" } ],
+        "POR_mode": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "GUI_Behaviour": [ { "value": "Coregen", "resolve_type": "user", "usage": "all" } ],
+        "explicit_period": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
+        "period": [ { "value": "1", "resolve_type": "user", "format": "float", "usage": "all" } ]
+      },
+      "model_parameters": {
+        "C_XDEVICEFAMILY": [ { "value": "zynquplus", "resolve_type": "generated", "usage": "all" } ],
+        "C_MODE_OF_OPERATION": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_MODULUS": [ { "value": "9", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_ACCUMULATOR_WIDTH": [ { "value": "32", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_CHANNELS": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_PHASE_OUT": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_PHASEGEN": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_SINCOS": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_LATENCY": [ { "value": "8", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_MEM_TYPE": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_NEGATIVE_COSINE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_NEGATIVE_SINE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_NOISE_SHAPING": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_OUTPUTS_REQUIRED": [ { "value": "2", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_OUTPUT_FORM": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_OUTPUT_WIDTH": [ { "value": "16", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PHASE_ANGLE_WIDTH": [ { "value": "14", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PHASE_INCREMENT": [ { "value": "3", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PHASE_INCREMENT_VALUE": [ { "value": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0", "resolve_type": "generated", "usage": "all" } ],
+        "C_RESYNC": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PHASE_OFFSET": [ { "value": "3", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_PHASE_OFFSET_VALUE": [ { "value": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0", "resolve_type": "generated", "usage": "all" } ],
+        "C_OPTIMISE_GOAL": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_USE_DSP48": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_POR_MODE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_AMPLITUDE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_ACLKEN": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_ARESETN": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_TLAST": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_TREADY": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_S_PHASE": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_S_PHASE_TDATA_WIDTH": [ { "value": "72", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_S_PHASE_HAS_TUSER": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_S_PHASE_TUSER_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_S_CONFIG": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_S_CONFIG_SYNC_MODE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_S_CONFIG_TDATA_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_M_DATA": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_DATA_TDATA_WIDTH": [ { "value": "32", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_DATA_HAS_TUSER": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_DATA_TUSER_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_HAS_M_PHASE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_PHASE_TDATA_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_PHASE_HAS_TUSER": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_M_PHASE_TUSER_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_DEBUG_INTERFACE": [ { "value": "0", "resolve_type": "generated", "format": "long", "usage": "all" } ],
+        "C_CHAN_WIDTH": [ { "value": "1", "resolve_type": "generated", "format": "long", "usage": "all" } ]
+      },
+      "project_parameters": {
+        "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
+        "BASE_BOARD_PART": [ { "value": "" } ],
+        "BOARD_CONNECTIONS": [ { "value": "" } ],
+        "DEVICE": [ { "value": "xczu49dr" } ],
+        "PACKAGE": [ { "value": "ffvf1760" } ],
+        "PREFHDL": [ { "value": "VERILOG" } ],
+        "SILICON_REVISION": [ { "value": "" } ],
+        "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
+        "SPEEDGRADE": [ { "value": "-2" } ],
+        "STATIC_POWER": [ { "value": "" } ],
+        "TEMPERATURE_GRADE": [ { "value": "E" } ],
+        "USE_RDI_CUSTOMIZATION": [ { "value": "TRUE" } ],
+        "USE_RDI_GENERATION": [ { "value": "TRUE" } ]
+      },
+      "runtime_parameters": {
+        "IPCONTEXT": [ { "value": "IP_Flow" } ],
+        "IPREVISION": [ { "value": "22" } ],
+        "MANAGED": [ { "value": "TRUE" } ],
+        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_216_demo/top/top.tmp/axis_dyn_readout_v1_v1_0_project/axis_dyn_readout_v1_v1_0_project.gen/sources_1/ip/dds_compiler_0" } ],
+        "SELECTEDSIMMODEL": [ { "value": "" } ],
+        "SHAREDDIR": [ { "value": "." } ],
+        "SWVERSION": [ { "value": "2022.1" } ],
+        "SYNTHESISFLOW": [ { "value": "GLOBAL" } ]
+      }
+    },
+    "boundary": {
+      "ports": {
+        "aclk": [ { "direction": "in", "driver_value": "0x0" } ],
+        "s_axis_phase_tvalid": [ { "direction": "in", "driver_value": "0x0" } ],
+        "s_axis_phase_tdata": [ { "direction": "in", "size_left": "71", "size_right": "0", "driver_value": "0" } ],
+        "m_axis_data_tvalid": [ { "direction": "out", "driver_value": "0x0" } ],
+        "m_axis_data_tdata": [ { "direction": "out", "size_left": "31", "size_right": "0", "driver_value": "0" } ]
+      },
+      "interfaces": {
+        "event_pinc_invalid_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_poff_invalid_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_phase_in_invalid_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_s_phase_tlast_missing_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_s_phase_tlast_unexpected_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_s_phase_chanid_incorrect_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_s_config_tlast_missing_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "event_s_config_tlast_unexpected_intf": {
+          "vlnv": "xilinx.com:signal:interrupt:1.0",
+          "abstraction_type": "xilinx.com:signal:interrupt_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "SENSITIVITY": [ { "value": "EDGE_RISING", "value_src": "constant", "usage": "all" } ],
+            "PortWidth": [ { "value": "1", "resolve_type": "generated", "format": "long", "is_static_object": false } ]
+          }
+        },
+        "S_AXIS_PHASE": {
+          "vlnv": "xilinx.com:interface:axis:1.0",
+          "abstraction_type": "xilinx.com:interface:axis_rtl:1.0",
+          "mode": "slave",
+          "parameters": {
+            "TDATA_NUM_BYTES": [ { "value": "9", "value_src": "auto", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TDEST_WIDTH": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TID_WIDTH": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TUSER_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TREADY": [ { "value": "0", "value_src": "auto", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TSTRB": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TKEEP": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TLAST": [ { "value": "0", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "FREQ_HZ": [ { "value": "100000000", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "PHASE": [ { "value": "0.0", "resolve_type": "generated", "format": "float", "is_static_object": false } ],
+            "CLK_DOMAIN": [ { "value": "", "resolve_type": "generated", "is_static_object": false } ],
+            "LAYERED_METADATA": [ { "value": "undef", "resolve_type": "generated", "is_static_object": false } ],
+            "INSERT_VIP": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "simulation.rtl", "is_static_object": false } ]
+          },
+          "port_maps": {
+            "TDATA": [ { "physical_name": "s_axis_phase_tdata" } ],
+            "TVALID": [ { "physical_name": "s_axis_phase_tvalid" } ]
+          }
+        },
+        "aclk_intf": {
+          "vlnv": "xilinx.com:signal:clock:1.0",
+          "abstraction_type": "xilinx.com:signal:clock_rtl:1.0",
+          "mode": "slave",
+          "parameters": {
+            "ASSOCIATED_BUSIF": [ { "value": "M_AXIS_PHASE:S_AXIS_CONFIG:M_AXIS_DATA:S_AXIS_PHASE", "value_src": "constant", "usage": "all" } ],
+            "ASSOCIATED_RESET": [ { "value": "aresetn", "value_src": "constant", "usage": "all" } ],
+            "ASSOCIATED_CLKEN": [ { "value": "aclken", "value_src": "constant", "usage": "all" } ],
+            "FREQ_HZ": [ { "value": "100000000", "resolve_type": "user", "format": "long", "usage": "all" } ],
+            "FREQ_TOLERANCE_HZ": [ { "value": "0", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "PHASE": [ { "value": "0.0", "resolve_type": "generated", "format": "float", "is_static_object": false } ],
+            "CLK_DOMAIN": [ { "value": "", "resolve_type": "generated", "is_static_object": false } ],
+            "ASSOCIATED_PORT": [ { "value": "", "resolve_type": "generated", "is_static_object": false } ],
+            "INSERT_VIP": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "simulation.rtl", "is_static_object": false } ]
+          },
+          "port_maps": {
+            "CLK": [ { "physical_name": "aclk" } ]
+          }
+        },
+        "aresetn_intf": {
+          "vlnv": "xilinx.com:signal:reset:1.0",
+          "abstraction_type": "xilinx.com:signal:reset_rtl:1.0",
+          "mode": "slave",
+          "parameters": {
+            "POLARITY": [ { "value": "ACTIVE_LOW", "value_src": "constant", "usage": "all" } ],
+            "INSERT_VIP": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "simulation.rtl", "is_static_object": false } ]
+          }
+        },
+        "aclken_intf": {
+          "vlnv": "xilinx.com:signal:clockenable:1.0",
+          "abstraction_type": "xilinx.com:signal:clockenable_rtl:1.0",
+          "mode": "slave",
+          "parameters": {
+            "POLARITY": [ { "value": "ACTIVE_HIGH", "value_src": "constant", "usage": "all" } ]
+          }
+        },
+        "M_AXIS_DATA": {
+          "vlnv": "xilinx.com:interface:axis:1.0",
+          "abstraction_type": "xilinx.com:interface:axis_rtl:1.0",
+          "mode": "master",
+          "parameters": {
+            "TDATA_NUM_BYTES": [ { "value": "4", "value_src": "auto", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TDEST_WIDTH": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TID_WIDTH": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "TUSER_WIDTH": [ { "value": "0", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TREADY": [ { "value": "0", "value_src": "auto", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TSTRB": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TKEEP": [ { "value": "0", "value_src": "constant", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "HAS_TLAST": [ { "value": "0", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "FREQ_HZ": [ { "value": "100000000", "resolve_type": "generated", "format": "long", "is_static_object": false } ],
+            "PHASE": [ { "value": "0.0", "resolve_type": "generated", "format": "float", "is_static_object": false } ],
+            "CLK_DOMAIN": [ { "value": "", "resolve_type": "generated", "is_static_object": false } ],
+            "LAYERED_METADATA": [ { "value": "undef", "resolve_type": "generated", "is_static_object": false } ],
+            "INSERT_VIP": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "simulation.rtl", "is_static_object": false } ]
+          },
+          "port_maps": {
+            "TDATA": [ { "physical_name": "m_axis_data_tdata" } ],
+            "TVALID": [ { "physical_name": "m_axis_data_tvalid" } ]
+          }
+        }
+      }
+    }
+  }
+}
