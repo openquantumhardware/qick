@@ -4,7 +4,7 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/Projects/qick/firmware/testbench/qick_testbench/qick_testbench.xpr">
+<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/Projects/qick_internal_b_46_fix_warnings/firmware/testbench/qick_testbench/qick_testbench.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="ee4101ae9cb9409f8084103e6f2383a5"/>
@@ -61,20 +61,20 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="558"/>
+    <Option Name="WTXSimLaunchSim" Val="560"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="19"/>
-    <Option Name="WTModelSimExportSim" Val="19"/>
-    <Option Name="WTQuestaExportSim" Val="19"/>
+    <Option Name="WTXSimExportSim" Val="21"/>
+    <Option Name="WTModelSimExportSim" Val="21"/>
+    <Option Name="WTQuestaExportSim" Val="21"/>
     <Option Name="WTIesExportSim" Val="0"/>
-    <Option Name="WTVcsExportSim" Val="19"/>
-    <Option Name="WTRivieraExportSim" Val="19"/>
-    <Option Name="WTActivehdlExportSim" Val="19"/>
+    <Option Name="WTVcsExportSim" Val="21"/>
+    <Option Name="WTRivieraExportSim" Val="21"/>
+    <Option Name="WTActivehdlExportSim" Val="21"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -455,73 +455,89 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/fifo.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/rd2axi.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/rd2axi.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_dc.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/fifo_dc.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_axi.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/fifo_axi.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_simple_dp.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/bram_simple_dp.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/gray2bin.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/gray2bin.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bin2gray.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/bin2gray.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo_dc_axi.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/fifo_dc_axi.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_dp.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/bram_dp.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/synchronizer_vect.vhd">
+      <File Path="$PPRDIR/../../../../qick/firmware/ip/axis_signal_gen_v6/src/fifo/synchronizer_vect.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../hdl/bram_dp_xpm.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../hdl/fifo_xpm.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
