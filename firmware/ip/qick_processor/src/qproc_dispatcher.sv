@@ -272,9 +272,9 @@ generate
       always_comb begin : WAVE_DISPATCHER
          wave_pop[ind_wfifo]   = 0;
          wave_pop_prev[ind_wfifo] = |({wave_pop_r[ind_wfifo], wave_pop_r2[ind_wfifo]});
-         if (time_en & ~t_fifo_wave_empty_r[ind_wfifo] & m_axis_tready[ind_wfifo]) 
+         if (time_en & ~t_fifo_wave_empty_r[ind_wfifo]) 
             if ( wave_t_gr_r[ind_wfifo] & ~wave_pop_prev[ind_wfifo] ) 
-               wave_pop      [ind_wfifo] = 1'b1 ;
+               wave_pop      [ind_wfifo] = m_axis_tready[ind_wfifo] ;
       end //ALWAYS
    end // FOR
 endgenerate
@@ -376,7 +376,12 @@ always_ff @ (posedge t_clk_i, negedge t_rst_ni) begin
          m_axis_tvalid_r[ind_wport]  <= 1'b0 ;
          m_axis_tdata_r [ind_wport]  <= '{default:'0} ;
       end else begin  
-         m_axis_tvalid_r[ind_wport] <= wave_pop       [ind_wport] ;
+         if (wave_pop[ind_wport]) begin
+            m_axis_tvalid_r[ind_wport] <= 1'b1;
+         end
+         else if (m_axis_tready[ind_wport]) begin
+            m_axis_tvalid_r[ind_wport] <= 1'b0;
+         end
          m_axis_tdata_r[ind_wport]  <= t_fifo_wave_dt [ind_wport] ;
       end
    end
