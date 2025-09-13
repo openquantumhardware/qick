@@ -1258,8 +1258,8 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/fifo/fifo_dc_axi.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:name>../../hdl/fifo_dc_axi_xpm.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/fifo/gray2bin.vhd</spirit:name>
@@ -1281,6 +1281,7 @@
         <spirit:name>src/axis_avg_buffer.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_83e615b1</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -1288,22 +1289,27 @@
       <spirit:file>
         <spirit:name>src/avg_buffer.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/avg_top.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/buffer_top.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/avg.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/buffer.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/fifo/bin2gray.vhd</spirit:name>
@@ -1334,8 +1340,8 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/fifo/fifo_dc_axi.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:name>../../hdl/fifo_dc_axi_xpm.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/fifo/gray2bin.vhd</spirit:name>
@@ -1370,6 +1376,7 @@
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:userFileType>USED_IN_simulation</spirit:userFileType>
         <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/tb/tb_waves.wcfg</spirit:name>
@@ -1424,7 +1431,7 @@
         <xilinx:canUpgradeFrom>QICK:QICK:axis_avg_buffer:1.0</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_avg_buffer:1.1</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-08-23T03:57:34Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-09-02T22:17:40Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>

@@ -170,7 +170,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>6ef85b24</spirit:value>
+            <spirit:value>81f6c76e</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -192,7 +192,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>6ef85b24</spirit:value>
+            <spirit:value>81f6c76e</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -544,6 +544,7 @@
       <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../../common_ip_files/ip_logos/logoQICK_128x128.png</spirit:name>
+        <spirit:userFileType>image</spirit:userFileType>
         <spirit:userFileType>LOGO</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -567,8 +568,8 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>4</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2022-09-30T20:19:36Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>5</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-09-11T22:22:07Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@439ec811_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_readout_v3</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@3707177d_ARCHIVE_LOCATION">/home/lstefana/v20.2/ip/axis_readout_v3</xilinx:tag>
@@ -604,9 +605,9 @@
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2020.2</xilinx:xilinxVersion>
+      <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="24797529"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="53f1e09d"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="6f6b3e4c"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="6d0cb84f"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="23687a06"/>
     </xilinx:packagingInfo>

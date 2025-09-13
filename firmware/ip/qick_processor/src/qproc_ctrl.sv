@@ -32,12 +32,13 @@ module qproc_ctrl # (
    input  wire  [31:0] int_time_dt     , //core_usr_operation
 // AXI  Control  
    input wire [15:0]   PS_TPROC_CTRL,
-   input wire [10:9]   PS_TPROC_CFG,
+   input wire [11:9]   PS_TPROC_CFG,
    // input wire [15:0]   xreg_TPROC_CTRL ,
    // input wire [15:0]   xreg_TPROC_CFG  ,
    input wire [31:0]   xreg_TPROC_W_DT ,
 // QPROC_STATE  
    input wire          all_fifo_full_i ,
+   input wire          some_fifo_full_i ,
 // CORE ST
    output reg         core_rst_o        ,
    output reg         core_en_o         ,
@@ -56,30 +57,32 @@ module qproc_ctrl # (
 
 //-------------------------------------------------------
 // Code moved from qproc_axi_reg due to issue #33
+(* ASYNC_REG = "TRUE" *) logic [15:0]   tproc_ctrl_cdc, tproc_ctrl_sync;
+logic [15:0]   tproc_ctrl_2r;
 logic [15:0]   xreg_TPROC_CTRL;
-logic [10:9]   xreg_TPROC_CFG, TPROC_CFG;
 
-logic [15:0]   tproc_ctrl_rcd, tproc_ctrl_r, tproc_ctrl_2r;
-logic [10:9]   tproc_cfg_rcd;
+(* ASYNC_REG = "TRUE" *) logic [11:9]   tproc_cfg_cdc, tproc_cfg_sync;
+logic [11:9]   xreg_TPROC_CFG;
 
 // From PS_CLK to C_CLK
-always_ff @(posedge c_clk_i) 
+always_ff @(posedge c_clk_i) begin
    if (!c_rst_ni) begin
-      tproc_ctrl_rcd  <= 0 ;
-      tproc_ctrl_r    <= 0 ;
+      tproc_ctrl_cdc  <= 0 ;
+      tproc_ctrl_sync <= 0 ;
       tproc_ctrl_2r   <= 0 ;
-      tproc_cfg_rcd   <= 0 ;
+      tproc_cfg_cdc   <= 0 ;
    end else begin 
-      tproc_ctrl_rcd  <= PS_TPROC_CTRL ;
-      tproc_ctrl_r    <= tproc_ctrl_rcd ;
-      tproc_ctrl_2r   <= tproc_ctrl_r ;
-      tproc_cfg_rcd   <= PS_TPROC_CFG ;
-      TPROC_CFG       <= tproc_cfg_rcd ;
+      tproc_ctrl_cdc  <= PS_TPROC_CTRL ;
+      tproc_ctrl_sync <= tproc_ctrl_cdc ;
+      tproc_ctrl_2r   <= tproc_ctrl_sync ;
+      tproc_cfg_cdc   <= PS_TPROC_CFG ;
+      tproc_cfg_sync  <= tproc_cfg_cdc ;
    end
+end
 
 // The C_TPROC_CTRL is only ONE clock.
-assign xreg_TPROC_CTRL  = tproc_ctrl_r & ~tproc_ctrl_2r ;
-assign xreg_TPROC_CFG   = TPROC_CFG;
+assign xreg_TPROC_CTRL  = tproc_ctrl_sync & ~tproc_ctrl_2r ;
+assign xreg_TPROC_CFG   = tproc_cfg_sync;
 //-------------------------------------------------------
 
 
@@ -90,6 +93,10 @@ reg  [31:0]    time_updt_dt            ; // New incremental time value
 ///////////////////////////////////////////////////////////////////////////////
 // CONTROL Signals
 ///////////////////////////////////////////////////////////////////////////////
+// wire fifo_ok;
+// assign fifo_ok    = ~(some_fifo_full_i)  | xreg_TPROC_CFG[11] ;  // With 1 in TPROC_CFG[11] Continue
+// assign core_en    = core_en_s  & fifo_ok;
+
 
 /// IO CTRL 
 assign proc_start_io  = proc_start_i & xreg_TPROC_CFG[10] ;
@@ -194,7 +201,12 @@ always_comb begin
       C_END_STEP: begin
          if  (!ctrl_c_step)  core_st_nxt = C_STOP;
       end
+      default:;
    endcase
+   // Pause Core on Dispatcher FIFO full; with 1 in TPROC_CFG[11] continue
+   if (some_fifo_full_i & ~(xreg_TPROC_CFG[11])) begin
+      core_en_o = 0;
+   end
 end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -207,7 +219,7 @@ sync_reg # (.DW ( 7 ) ) sync_ctrl_ps_t (
    .dt_i      ( {core_rst_o, time_rst_stop_p, c_time_rst_run, c_time_updt, time_stop_p, time_run_p, time_step_p} ) ,
    .clk_i     ( t_clk_i   ) ,
    .rst_ni    ( t_rst_ni  ) ,
-   .dt_o      ( {core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step }  ) );
+   .dt_o      ( {core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step} ) );
 
 
 always_ff @(posedge t_clk_i)
@@ -274,6 +286,7 @@ always_comb begin
          time_en_o = 1;
          time_st_nxt = T_STOP ;
       end
+      default:;
    endcase
 end
 
@@ -304,7 +317,8 @@ assign t_debug_do   = { ctrl_t_updt, 1'b0, ctrl_t_step, ctrl_t_stop, ctrl_t_run,
 
 ///////////////////////////////////////////////////////////////////////////////
 // TIME READ
-reg  [47:0]    t_time_abs_cdc, c_time_abs_r ; // Absolute Time Counter Value "Registered"
+(* ASYNC_REG = "TRUE" *) reg  [47:0]    c_time_abs_r ; // Absolute Time Counter Value "Registered"
+reg  [47:0]    t_time_abs_r;
 
 generate
    if ( TIME_READ == 1) begin : QPER_TIME_READ
@@ -319,13 +333,13 @@ generate
       // Register TIME_ABS
       ///////////////////////////////////////////////////////////////////////////////
       always_ff @(posedge t_clk_i) begin
-         if      ( !t_rst_ni )   t_time_abs_cdc  <= 0;
-         else if ( t_time_en )   t_time_abs_cdc  <= time_abs_o;
+         if      ( !t_rst_ni )   t_time_abs_r  <= 0;
+         else if ( t_time_en )   t_time_abs_r  <= time_abs_o;
       end
 
       always_ff @(posedge c_clk_i) begin
          if      ( !c_rst_ni  )   c_time_abs_r  <= 0;
-         else if ( c_time_en  )   c_time_abs_r  <= t_time_abs_cdc;
+         else if ( c_time_en  )   c_time_abs_r  <= t_time_abs_r;
       end
 
       assign c_time_usr_o = (c_time_abs_r - c_time_ref_o);

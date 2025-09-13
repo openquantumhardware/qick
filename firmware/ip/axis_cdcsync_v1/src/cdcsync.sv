@@ -189,68 +189,85 @@ assign din_data_v	[13] = s13_axis_tdata		;
 assign din_data_v	[14] = s14_axis_tdata		;
 assign din_data_v	[15] = s15_axis_tdata		;
 
-assign din_valid_v	[0]  = s0_axis_tvalid	;
-assign din_valid_v	[1]  = s1_axis_tvalid	;
-assign din_valid_v	[2]  = s2_axis_tvalid	;
-assign din_valid_v	[3]  = s3_axis_tvalid	;
-assign din_valid_v	[4]  = s4_axis_tvalid	;
-assign din_valid_v	[5]  = s5_axis_tvalid	;
-assign din_valid_v	[6]  = s6_axis_tvalid	;
-assign din_valid_v	[7]  = s7_axis_tvalid	;
-assign din_valid_v	[8]  = s8_axis_tvalid	;
-assign din_valid_v	[9]  = s9_axis_tvalid	;
-assign din_valid_v	[10] = s10_axis_tvalid	;
-assign din_valid_v	[11] = s11_axis_tvalid	;
-assign din_valid_v	[12] = s12_axis_tvalid	;
-assign din_valid_v	[13] = s13_axis_tvalid	;
-assign din_valid_v	[14] = s14_axis_tvalid	;
-assign din_valid_v	[15] = s15_axis_tvalid	;
+assign din_valid_v	[0]  = s0_axis_tvalid	&& N >= 1;
+assign din_valid_v	[1]  = s1_axis_tvalid	&& N >= 2;
+assign din_valid_v	[2]  = s2_axis_tvalid	&& N >= 3;
+assign din_valid_v	[3]  = s3_axis_tvalid	&& N >= 4;
+assign din_valid_v	[4]  = s4_axis_tvalid	&& N >= 5;
+assign din_valid_v	[5]  = s5_axis_tvalid	&& N >= 6;
+assign din_valid_v	[6]  = s6_axis_tvalid	&& N >= 7;
+assign din_valid_v	[7]  = s7_axis_tvalid	&& N >= 8;
+assign din_valid_v	[8]  = s8_axis_tvalid	&& N >= 9;
+assign din_valid_v	[9]  = s9_axis_tvalid	&& N >= 10;
+assign din_valid_v	[10] = s10_axis_tvalid	&& N >= 11;
+assign din_valid_v	[11] = s11_axis_tvalid	&& N >= 12;
+assign din_valid_v	[12] = s12_axis_tvalid	&& N >= 13;
+assign din_valid_v	[13] = s13_axis_tvalid	&& N >= 14;
+assign din_valid_v	[14] = s14_axis_tvalid	&& N >= 15;
+assign din_valid_v	[15] = s15_axis_tvalid	&& N >= 16;
 
-assign din_ready_v	[0]  = m0_axis_tready	;
-assign din_ready_v	[1]  = m1_axis_tready	;
-assign din_ready_v	[2]  = m2_axis_tready	;
-assign din_ready_v	[3]  = m3_axis_tready	;
-assign din_ready_v	[4]  = m4_axis_tready	;
-assign din_ready_v	[5]  = m5_axis_tready	;
-assign din_ready_v	[6]  = m6_axis_tready	;
-assign din_ready_v	[7]  = m7_axis_tready	;
-assign din_ready_v	[8]  = m8_axis_tready	;
-assign din_ready_v	[9]  = m9_axis_tready	;
-assign din_ready_v	[10] = m10_axis_tready	;
-assign din_ready_v	[11] = m11_axis_tready	;
-assign din_ready_v	[12] = m12_axis_tready	;
-assign din_ready_v	[13] = m13_axis_tready	;
-assign din_ready_v	[14] = m14_axis_tready	;
-assign din_ready_v	[15] = m15_axis_tready	;
+assign s0_axis_tready	= din_ready_v	[0] ;
+assign s1_axis_tready	= din_ready_v	[1] ;
+assign s2_axis_tready	= din_ready_v	[2] ;
+assign s3_axis_tready	= din_ready_v	[3] ;
+assign s4_axis_tready	= din_ready_v	[4] ;
+assign s5_axis_tready	= din_ready_v	[5] ;
+assign s6_axis_tready	= din_ready_v	[6] ;
+assign s7_axis_tready	= din_ready_v	[7] ;
+assign s8_axis_tready	= din_ready_v	[8] ;
+assign s9_axis_tready	= din_ready_v	[9] ;
+assign s10_axis_tready	= din_ready_v	[10];
+assign s11_axis_tready	= din_ready_v	[11];
+assign s12_axis_tready	= din_ready_v	[12];
+assign s13_axis_tready	= din_ready_v	[13];
+assign s14_axis_tready	= din_ready_v	[14];
+assign s15_axis_tready	= din_ready_v	[15];
+
+assign din_ready_v	[0]  = ~fifo_full	|| N < 1;
+assign din_ready_v	[1]  = ~fifo_full	|| N < 2;
+assign din_ready_v	[2]  = ~fifo_full	|| N < 3;
+assign din_ready_v	[3]  = ~fifo_full	|| N < 4;
+assign din_ready_v	[4]  = ~fifo_full	|| N < 5;
+assign din_ready_v	[5]  = ~fifo_full	|| N < 6;
+assign din_ready_v	[6]  = ~fifo_full	|| N < 7;
+assign din_ready_v	[7]  = ~fifo_full	|| N < 8;
+assign din_ready_v	[8]  = ~fifo_full	|| N < 9;
+assign din_ready_v	[9]  = ~fifo_full	|| N < 10;
+assign din_ready_v	[10] = ~fifo_full	|| N < 11;
+assign din_ready_v	[11] = ~fifo_full	|| N < 12;
+assign din_ready_v	[12] = ~fifo_full	|| N < 13;
+assign din_ready_v	[13] = ~fifo_full	|| N < 14;
+assign din_ready_v	[14] = ~fifo_full	|| N < 15;
+assign din_ready_v	[15] = ~fifo_full	|| N < 16;
 
 // Output vector to data.
-assign m0_axis_tdata	= dout_data_v	[0] ;
-assign m1_axis_tdata	= dout_data_v	[1] ;
-assign m2_axis_tdata	= dout_data_v	[2] ;
-assign m3_axis_tdata	= dout_data_v	[3] ;
-assign m4_axis_tdata	= dout_data_v	[4] ;
-assign m5_axis_tdata	= dout_data_v	[5] ;
-assign m6_axis_tdata	= dout_data_v	[6] ;
-assign m7_axis_tdata	= dout_data_v	[7] ;
-assign m8_axis_tdata	= dout_data_v	[8] ;
-assign m9_axis_tdata	= dout_data_v	[9] ;
-assign m10_axis_tdata	= dout_data_v	[10] ;
-assign m11_axis_tdata	= dout_data_v	[11] ;
-assign m12_axis_tdata	= dout_data_v	[12] ;
-assign m13_axis_tdata	= dout_data_v	[13] ;
-assign m14_axis_tdata	= dout_data_v	[14] ;
-assign m15_axis_tdata	= dout_data_v	[15] ;
+assign m0_axis_tdata    = dout_data_v	[0] ;
+assign m1_axis_tdata    = dout_data_v	[1] ;
+assign m2_axis_tdata    = dout_data_v	[2] ;
+assign m3_axis_tdata    = dout_data_v	[3] ;
+assign m4_axis_tdata    = dout_data_v	[4] ;
+assign m5_axis_tdata    = dout_data_v	[5] ;
+assign m6_axis_tdata    = dout_data_v	[6] ;
+assign m7_axis_tdata    = dout_data_v	[7] ;
+assign m8_axis_tdata    = dout_data_v	[8] ;
+assign m9_axis_tdata    = dout_data_v	[9] ;
+assign m10_axis_tdata   = dout_data_v	[10] ;
+assign m11_axis_tdata   = dout_data_v	[11] ;
+assign m12_axis_tdata   = dout_data_v	[12] ;
+assign m13_axis_tdata   = dout_data_v	[13] ;
+assign m14_axis_tdata   = dout_data_v	[14] ;
+assign m15_axis_tdata   = dout_data_v	[15] ;
 
-assign m0_axis_tvalid	= dout_valid_v	[0] & ~fifo_empty;
-assign m1_axis_tvalid	= dout_valid_v	[1] & ~fifo_empty;
-assign m2_axis_tvalid	= dout_valid_v	[2] & ~fifo_empty;
-assign m3_axis_tvalid	= dout_valid_v	[3] & ~fifo_empty;
-assign m4_axis_tvalid	= dout_valid_v	[4] & ~fifo_empty;
-assign m5_axis_tvalid	= dout_valid_v	[5] & ~fifo_empty;
-assign m6_axis_tvalid	= dout_valid_v	[6] & ~fifo_empty;
-assign m7_axis_tvalid	= dout_valid_v	[7] & ~fifo_empty;
-assign m8_axis_tvalid	= dout_valid_v	[8] & ~fifo_empty;
-assign m9_axis_tvalid	= dout_valid_v	[9] & ~fifo_empty;
+assign m0_axis_tvalid	= dout_valid_v	[0]  & ~fifo_empty;
+assign m1_axis_tvalid	= dout_valid_v	[1]  & ~fifo_empty;
+assign m2_axis_tvalid	= dout_valid_v	[2]  & ~fifo_empty;
+assign m3_axis_tvalid	= dout_valid_v	[3]  & ~fifo_empty;
+assign m4_axis_tvalid	= dout_valid_v	[4]  & ~fifo_empty;
+assign m5_axis_tvalid	= dout_valid_v	[5]  & ~fifo_empty;
+assign m6_axis_tvalid	= dout_valid_v	[6]  & ~fifo_empty;
+assign m7_axis_tvalid	= dout_valid_v	[7]  & ~fifo_empty;
+assign m8_axis_tvalid	= dout_valid_v	[8]  & ~fifo_empty;
+assign m9_axis_tvalid	= dout_valid_v	[9]  & ~fifo_empty;
 assign m10_axis_tvalid	= dout_valid_v	[10] & ~fifo_empty;
 assign m11_axis_tvalid	= dout_valid_v	[11] & ~fifo_empty;
 assign m12_axis_tvalid	= dout_valid_v	[12] & ~fifo_empty;
@@ -258,22 +275,23 @@ assign m13_axis_tvalid	= dout_valid_v	[13] & ~fifo_empty;
 assign m14_axis_tvalid	= dout_valid_v	[14] & ~fifo_empty;
 assign m15_axis_tvalid	= dout_valid_v	[15] & ~fifo_empty;
 
-assign s0_axis_tready	= dout_ready_v	[0];
-assign s1_axis_tready	= dout_ready_v	[1];
-assign s2_axis_tready	= dout_ready_v	[2];
-assign s3_axis_tready	= dout_ready_v	[3];
-assign s4_axis_tready	= dout_ready_v	[4];
-assign s5_axis_tready	= dout_ready_v	[5];
-assign s6_axis_tready	= dout_ready_v	[6];
-assign s7_axis_tready	= dout_ready_v	[7];
-assign s8_axis_tready	= dout_ready_v	[8];
-assign s9_axis_tready	= dout_ready_v	[9];
-assign s10_axis_tready	= dout_ready_v	[10];
-assign s11_axis_tready	= dout_ready_v	[11];
-assign s12_axis_tready	= dout_ready_v	[12];
-assign s13_axis_tready	= dout_ready_v	[13];
-assign s14_axis_tready	= dout_ready_v	[14];
-assign s15_axis_tready	= dout_ready_v	[15];
+assign dout_ready_v	[0]	= m0_axis_tready	|| N < 1;
+assign dout_ready_v	[1]	= m1_axis_tready	|| N < 2;
+assign dout_ready_v	[2]	= m2_axis_tready	|| N < 3;
+assign dout_ready_v	[3]	= m3_axis_tready	|| N < 4;
+assign dout_ready_v	[4]	= m4_axis_tready	|| N < 5;
+assign dout_ready_v	[5]	= m5_axis_tready	|| N < 6;
+assign dout_ready_v	[6]	= m6_axis_tready	|| N < 7;
+assign dout_ready_v	[7]	= m7_axis_tready	|| N < 8;
+assign dout_ready_v	[8]	= m8_axis_tready	|| N < 9;
+assign dout_ready_v	[9]	= m9_axis_tready	|| N < 10;
+assign dout_ready_v	[10]	= m10_axis_tready	|| N < 11;
+assign dout_ready_v	[11]	= m11_axis_tready	|| N < 12;
+assign dout_ready_v	[12]	= m12_axis_tready	|| N < 13;
+assign dout_ready_v	[13]	= m13_axis_tready	|| N < 14;
+assign dout_ready_v	[14]	= m14_axis_tready	|| N < 15;
+assign dout_ready_v	[15]	= m15_axis_tready	|| N < 16;
+
 
 genvar i;
 generate
@@ -288,7 +306,7 @@ generate
 endgenerate
 
 // Fifo.
-fifo_dc_axi
+fifo_dc_axi_xpm
     #(
         // Data width.
         .B(BT),
@@ -309,7 +327,7 @@ fifo_dc_axi
         .din     	(fifo_din		),
         
         // Read I/F.
-        .rd_en  	(1'b1			),
+        .rd_en  	(fifo_rd_en		),
         .dout   	(fifo_dout		),
         
         // Flags.
@@ -317,33 +335,11 @@ fifo_dc_axi
         .empty   	(fifo_empty		)
     );
 
-// Or together all valid inputs.
+// Or together all slave valid inputs.
 assign fifo_wr_en	= |din_valid_v	;
 
-
-// xpm_cdc_array_single: Single-bit Array Synchronizer
-// Xilinx Parameterized Macro, version 2022.1
-
-xpm_cdc_array_single
-    #(
-      .DEST_SYNC_FF(4),   // DECIMAL; range: 2-10
-      .INIT_SYNC_FF(0),   // DECIMAL; 0=disable simulation init values, 1=enable simulation init values
-      .SIM_ASSERT_CHK(0), // DECIMAL; 0=disable simulation messages, 1=enable simulation messages
-      .SRC_INPUT_REG(1),  // DECIMAL; 0=do not register input, 1=register input
-      .WIDTH(16)           // DECIMAL; range: 1-1024
-   )
-   xpm_cdc_array_single_i (
-      .dest_out(dout_ready_v), // WIDTH-bit output: src_in synchronized to the destination clock domain. This
-                           // output is registered.
-
-      .dest_clk(s_axis_aclk), // 1-bit input: Clock signal for the destination clock domain.
-      .src_clk(m_axis_aclk),   // 1-bit input: optional; required when SRC_INPUT_REG = 1
-      .src_in(din_ready_v)      // WIDTH-bit input: Input single-bit array to be synchronized to destination clock
-                           // domain. It is assumed that each bit of the array is unrelated to the others. This
-                           // is reflected in the constraints applied to this macro. To transfer a binary value
-                           // losslessly across the two clock domains, use the XPM_CDC_GRAY macro instead.
-   );
-   // End of xpm_cdc_array_single_inst instantiation
+// AND together all the master ready inputs
+assign fifo_rd_en	= &dout_ready_v;
 
 endmodule
 

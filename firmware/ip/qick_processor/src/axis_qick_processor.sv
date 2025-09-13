@@ -364,11 +364,12 @@ always_comb begin
 end
 
 
-reg  proc_start_cdc, proc_start_r, proc_start_r2;
-reg  proc_stop_cdc , proc_stop_r , proc_stop_r2;
+(* ASYNC_REG = "TRUE" *) reg  proc_start_cdc, proc_start_r;
+reg proc_start_r2;
+(* ASYNC_REG = "TRUE" *) reg  proc_stop_cdc , proc_stop_r;
+reg proc_stop_r2;
 
-
-// Syncronice to C_CLK
+// Synchronize to C_CLK
 always_ff @(posedge c_clk_i) 
    if (!c_resetn) begin
       proc_start_cdc  <= 0 ;
@@ -648,8 +649,8 @@ assign m15_axis_tvalid    = m_axis_tvalid_s[15] ;
 
 
 generate
-   reg net_sync;
    if (GEN_SYNC == 1) begin : SYNC_OUT
+      reg net_sync;
       always_ff @ (posedge t_clk_i, negedge t_resetn) begin
          if (!t_resetn)   net_sync     <= 1'b0;
          else             net_sync     <= t_time_abs_o[29];

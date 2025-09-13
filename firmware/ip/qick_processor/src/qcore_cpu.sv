@@ -126,7 +126,11 @@ always_ff @ (posedge clk_i) begin
       r_if_op_data   <= 0;
    end else begin 
       r_mem_rst      <= 0;
-      if (pmem_en_o) begin
+      if (r_mem_rst) begin
+         r_if_op_code <= 0;
+         r_if_op_data <= 0;
+      end 
+      else if (pmem_en_o) begin
          if (flush) begin
             r_if_op_code <= 0;
             r_if_op_data <= 0;
@@ -325,13 +329,16 @@ assign id_jmp_reg_used = (cfg_pc_nxt  == 2'b10) ;
 
 assign id_pc_change = |cfg_pc_nxt;
 
-always_comb
+always_comb begin
+   PC_nxt = PC_curr + 1   ;
    unique case (cfg_pc_nxt )
       2'b00: PC_nxt   = PC_curr + 1   ;
       2'b01: PC_nxt   = id_imm_addr   ;
       2'b10: PC_nxt   = reg_addr      ;
       2'b11: PC_nxt   = pc_stack      ;
+      default:;
    endcase
+end
 
 always @(posedge clk_i) begin
    if (!rst_ni) begin
@@ -515,7 +522,7 @@ qcore_reg_bank # (
 // ALU - 2 Inputs 
 /////////////////////////////////////////////////
 AB_alu alu (
-   .clk_i        ( clk_i            ) ,
+   // .clk_i        ( clk_i            ) ,
    .A_i          ( x1_alu_in_A      ) ,
    .B_i          ( x1_alu_in_B      ) ,
    .alu_op_i     ( x1_ctrl.cfg_alu_op   ) ,
@@ -527,7 +534,6 @@ AB_alu alu (
 
 wire pc_stack_full;
 // PC STACK 
-/////////////////////////////////////////////////
 /////////////////////////////////////////////////
 LIFO  # (
    .WIDTH  ( PMEM_AW   )  , 
@@ -542,11 +548,6 @@ LIFO  # (
    .full_o  ( pc_stack_full ) );
 
 
-
-assign halt    = ~en_i ;
-assign flush   = id_pc_change | r_id_pc_change ;
-assign stall   = bubble_id | bubble_rd;
-assign fetch_en = ~stall & ~halt;
 
 ///////////////////////////////////////////////////////////////////////////////
 // PIPELINE  
