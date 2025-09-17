@@ -20,13 +20,13 @@ class AbsPfbAnalysis(SocIp):
 
     def configure(self, fs):
         # Channel centers.
-        fc = fs/self.dict['N']
+        self.fc = fs/self.dict['N']
 
         # Channel bandwidth.
-        fb = fs/(self.dict['N']/2)
+        self.fb = fs/(self.dict['N']/2)
 
         # Add data into dictionary.
-        self.dict['freq'] = {'fs' : fs, 'fc' : fc, 'fb' : fb}
+        self.dict['freq'] = {'fs' : fs, 'fc' : self.fc, 'fb' : self.fb}
     
     def configure_connections(self, soc):
         block2     = None
@@ -206,6 +206,16 @@ class AbsPfbAnalysis(SocIp):
 
                         # Type for filtering DMA.
                         btype = "xfft"
+
+                        # Trace port.
+                        ((block_tmp, port_tmp),) = soc.metadata.trace_bus(block_tmp, 'm_axis')
+                    elif blocktype == "axis_ddscic_v3":
+                        self.HAS_DDSCIC = True
+                        # Temp ddscic_v3.
+                        ddscic_v3_ = block_tmp
+
+                        # Add block into dictionary.
+                        self.dict['ddscic'] = block_tmp
 
                         # Trace port.
                         ((block_tmp, port_tmp),) = soc.metadata.trace_bus(block_tmp, 'm_axis')
@@ -394,6 +404,15 @@ class AbsPfbAnalysis(SocIp):
             
     def qout(self, qout):
         self.qout_reg = qout
+
+    def get_fs(self):
+        return self.fs
+
+    def get_fc(self):
+        return self.fc
+
+    def get_fb(self):
+        return self.fb
 
 class AxisPfbAnalysis(AbsPfbAnalysis):
     """
