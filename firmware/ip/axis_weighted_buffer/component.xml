@@ -529,7 +529,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>313e7770</spirit:value>
+            <spirit:value>b446663c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -548,7 +548,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>313e7770</spirit:value>
+            <spirit:value>b446663c</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1334,8 +1334,8 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/fifo/fifo_dc_axi.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:name>../../hdl/fifo_dc_axi_xpm.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/fifo/gray2bin.vhd</spirit:name>
@@ -1439,8 +1439,8 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/fifo/fifo_dc_axi.vhd</spirit:name>
-        <spirit:fileType>vhdlSource</spirit:fileType>
+        <spirit:name>../../hdl/fifo_dc_axi_xpm.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/fifo/gray2bin.vhd</spirit:name>
@@ -1543,13 +1543,13 @@
         <xilinx:canUpgradeFrom>QICK:QICK:axis_matchfilt_buffer:1.2</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>QICK:QICK:axis_weighted_buffer:1.2</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2025-08-23T03:54:43Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2025-09-11T22:26:52Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="22f6451b"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="769c350d"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7466d52e"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="af735290"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="af5b0189"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="e04a2560"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="1703ee19"/>

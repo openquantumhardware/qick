@@ -209,7 +209,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>098bbdad</spirit:value>
+            <spirit:value>b20c0562</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -231,7 +231,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>098bbdad</spirit:value>
+            <spirit:value>b20c0562</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -623,6 +623,7 @@
       <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../../common_ip_files/ip_logos/logoQICK_128x128.png</spirit:name>
+        <spirit:userFileType>image</spirit:userFileType>
         <spirit:userFileType>LOGO</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -651,18 +652,18 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>3</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2024-07-08T21:40:58Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>4</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2025-09-11T21:42:36Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@55d0feb7_ARCHIVE_LOCATION">/home/meeg/Soft/qick/firmware/ip/axis_dyn_readout_v1</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2022.1</xilinx:xilinxVersion>
+      <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="f01b8e84"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="f40f4091"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="b3bb3f37"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="a7b90578"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="66bc7859"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="e8967fb0"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>

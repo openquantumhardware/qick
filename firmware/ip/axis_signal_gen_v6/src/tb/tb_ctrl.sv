@@ -49,7 +49,7 @@ end
 endgenerate
 
 // Fifo.
-fifo
+fifo_xpm
     #(
         // Data width.
         .B  (160),

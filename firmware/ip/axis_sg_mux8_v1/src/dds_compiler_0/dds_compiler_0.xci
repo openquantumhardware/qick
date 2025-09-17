@@ -2,9 +2,10 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dds_compiler_0",
+    "cell_name": "sg_mux8_i/GEN_out[0].dds_top_i/GEN_dds[0].dds_i/dds_compiler_0",
     "component_reference": "xilinx.com:ip:dds_compiler:6.0",
     "ip_revision": "22",
-    "gen_directory": "../../../project_1/project_1.gen/sources_1/ip/dds_compiler_0",
+    "gen_directory": "../../../../projects/qick_tprocv2_216_demo/top/top.tmp/axis_sg_mux8_v1_v1_0_project/axis_sg_mux8_v1_v1_0_project.gen/sources_1/ip/dds_compiler_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "dds_compiler_0", "resolve_type": "user", "usage": "all" } ],
@@ -162,7 +163,7 @@
       },
       "project_parameters": {
         "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
-        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu216:part0:2.0" } ],
+        "BASE_BOARD_PART": [ { "value": "" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
         "DEVICE": [ { "value": "xczu49dr" } ],
         "PACKAGE": [ { "value": "ffvf1760" } ],
@@ -179,7 +180,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "22" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../project_1/project_1.gen/sources_1/ip/dds_compiler_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_216_demo/top/top.tmp/axis_sg_mux8_v1_v1_0_project/axis_sg_mux8_v1_v1_0_project.gen/sources_1/ip/dds_compiler_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],

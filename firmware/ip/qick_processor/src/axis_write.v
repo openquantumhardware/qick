@@ -134,6 +134,7 @@ always @(state) begin
 			ack_int		= 1;
 
 		//END_ST:
+		default:;
 	endcase
 end
 

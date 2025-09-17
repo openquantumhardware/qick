@@ -154,18 +154,20 @@ generate
          d_stall_D_rd[ind_D] = 1'b0;
          fwd_D_X1[ind_D] = ( (rs_D_addr_i[ind_D] ==  x1_reg_i.addr ) & x1_reg_i.we ); //Data is in X1 STage
          fwd_D_X2[ind_D] = ( (rs_D_addr_i[ind_D] ==  x2_reg_i.addr ) & x2_reg_i.we ); //Data is in X2 STage
-            if ( fwd_D_X1[ind_D] )     //Data is in X1 STage
-               unique case (x1_reg_i.src)
-                  2'b00 : reg_D_nxt[ind_D]    = x1_alu_dt_i  ; // Data Comes from ALU 
-                  2'b01 : d_stall_D_rd[ind_D] = 1'b1       ; // Data Comes from DATA MEMORY
-                  2'b11 : reg_D_nxt[ind_D]    = x1_imm_dt_i  ; // Data Comes from Imm 
-               endcase
-            else if ( fwd_D_X2[ind_D] )     //Data is in X2 STage
-               unique case (x2_reg_i.src)
-                  2'b00 : reg_D_nxt[ind_D] = x2_alu_dt_i  ; // Data Comes from ALU 
-                  2'b01 : reg_D_nxt[ind_D] = x2_dmem_dt_i ; // Data Comes from DATA MEMORY
-                  2'b11 : reg_D_nxt[ind_D] = x2_imm_dt_i  ; // Data Comes from Imm 
-               endcase
+         if ( fwd_D_X1[ind_D] )     //Data is in X1 STage
+            unique case (x1_reg_i.src)
+               2'b00 : reg_D_nxt[ind_D]    = x1_alu_dt_i  ; // Data Comes from ALU 
+               2'b01 : d_stall_D_rd[ind_D] = 1'b1       ; // Data Comes from DATA MEMORY
+               2'b11 : reg_D_nxt[ind_D]    = x1_imm_dt_i  ; // Data Comes from Imm
+               default:; 
+            endcase
+         else if ( fwd_D_X2[ind_D] )     //Data is in X2 STage
+            unique case (x2_reg_i.src)
+               2'b00 : reg_D_nxt[ind_D] = x2_alu_dt_i  ; // Data Comes from ALU 
+               2'b01 : reg_D_nxt[ind_D] = x2_dmem_dt_i ; // Data Comes from DATA MEMORY
+               2'b11 : reg_D_nxt[ind_D] = x2_imm_dt_i  ; // Data Comes from Imm
+               default:; 
+            endcase
       end // always_comb
       // 2) Use  WREG  after   REG_WR r_wave  
       always_comb begin
@@ -188,12 +190,14 @@ generate
                2'b00 : reg_A_nxt[ind_A]  = x1_alu_dt_i   ; // Address Comes from ALU 
                2'b01 : stall_A_rd[ind_A] = 1'b1          ; // Address Comes from DATA MEMORY
                2'b11 : reg_A_nxt[ind_A]  = x1_imm_dt_i   ; // Address Comes from Imm 
+               default:;
             endcase
          else if ( fwd_A_X2[ind_A] )     //Address is in X2 STage
             unique case (x2_reg_i.src)
                2'b00 : reg_A_nxt[ind_A] = x2_alu_dt_i  ; // Address Comes from ALU 
                2'b01 : reg_A_nxt[ind_A] = x2_dmem_dt_i ; // Address Comes from DATA MEMORY
-               2'b11 : reg_A_nxt[ind_A] = x2_imm_dt_i  ; // Address Comes from Imm 
+               2'b11 : reg_A_nxt[ind_A] = x2_imm_dt_i  ; // Address Comes from Imm
+               default:; 
             endcase
       end // always_comb
    end //for

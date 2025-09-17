@@ -258,22 +258,22 @@ assign m13_axis_tdata   = dout_data_v	[13] ;
 assign m14_axis_tdata   = dout_data_v	[14] ;
 assign m15_axis_tdata   = dout_data_v	[15] ;
 
-assign m0_axis_tvalid	= dout_valid_v	[0]  & ~fifo_empty & dout_ready_v[0] ;
-assign m1_axis_tvalid	= dout_valid_v	[1]  & ~fifo_empty & dout_ready_v[1] ;
-assign m2_axis_tvalid	= dout_valid_v	[2]  & ~fifo_empty & dout_ready_v[2] ;
-assign m3_axis_tvalid	= dout_valid_v	[3]  & ~fifo_empty & dout_ready_v[3] ;
-assign m4_axis_tvalid	= dout_valid_v	[4]  & ~fifo_empty & dout_ready_v[4] ;
-assign m5_axis_tvalid	= dout_valid_v	[5]  & ~fifo_empty & dout_ready_v[5] ;
-assign m6_axis_tvalid	= dout_valid_v	[6]  & ~fifo_empty & dout_ready_v[6] ;
-assign m7_axis_tvalid	= dout_valid_v	[7]  & ~fifo_empty & dout_ready_v[7] ;
-assign m8_axis_tvalid	= dout_valid_v	[8]  & ~fifo_empty & dout_ready_v[8] ;
-assign m9_axis_tvalid	= dout_valid_v	[9]  & ~fifo_empty & dout_ready_v[9] ;
-assign m10_axis_tvalid	= dout_valid_v	[10] & ~fifo_empty & dout_ready_v[10] ;
-assign m11_axis_tvalid	= dout_valid_v	[11] & ~fifo_empty & dout_ready_v[11] ;
-assign m12_axis_tvalid	= dout_valid_v	[12] & ~fifo_empty & dout_ready_v[12] ;
-assign m13_axis_tvalid	= dout_valid_v	[13] & ~fifo_empty & dout_ready_v[13] ;
-assign m14_axis_tvalid	= dout_valid_v	[14] & ~fifo_empty & dout_ready_v[14] ;
-assign m15_axis_tvalid	= dout_valid_v	[15] & ~fifo_empty & dout_ready_v[15] ;
+assign m0_axis_tvalid	= dout_valid_v	[0]  & ~fifo_empty;
+assign m1_axis_tvalid	= dout_valid_v	[1]  & ~fifo_empty;
+assign m2_axis_tvalid	= dout_valid_v	[2]  & ~fifo_empty;
+assign m3_axis_tvalid	= dout_valid_v	[3]  & ~fifo_empty;
+assign m4_axis_tvalid	= dout_valid_v	[4]  & ~fifo_empty;
+assign m5_axis_tvalid	= dout_valid_v	[5]  & ~fifo_empty;
+assign m6_axis_tvalid	= dout_valid_v	[6]  & ~fifo_empty;
+assign m7_axis_tvalid	= dout_valid_v	[7]  & ~fifo_empty;
+assign m8_axis_tvalid	= dout_valid_v	[8]  & ~fifo_empty;
+assign m9_axis_tvalid	= dout_valid_v	[9]  & ~fifo_empty;
+assign m10_axis_tvalid	= dout_valid_v	[10] & ~fifo_empty;
+assign m11_axis_tvalid	= dout_valid_v	[11] & ~fifo_empty;
+assign m12_axis_tvalid	= dout_valid_v	[12] & ~fifo_empty;
+assign m13_axis_tvalid	= dout_valid_v	[13] & ~fifo_empty;
+assign m14_axis_tvalid	= dout_valid_v	[14] & ~fifo_empty;
+assign m15_axis_tvalid	= dout_valid_v	[15] & ~fifo_empty;
 
 assign dout_ready_v	[0]	= m0_axis_tready	|| N < 1;
 assign dout_ready_v	[1]	= m1_axis_tready	|| N < 2;
@@ -306,7 +306,7 @@ generate
 endgenerate
 
 // Fifo.
-fifo_dc_axi
+fifo_dc_axi_xpm
     #(
         // Data width.
         .B(BT),

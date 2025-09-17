@@ -39,7 +39,7 @@ module sync_reg # (
    output wire [DW-1:0] dt_o     );
    
 // FAST REGISTER GRAY TRANSFORM OF INPUT
-(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_cdc, data_r ;
+(* ASYNC_REG = "TRUE" *) reg [DW-1:0] data_cdc, data_r;
 always_ff @(posedge clk_i)
    if(!rst_ni) begin
       data_cdc  <= 0;
@@ -540,24 +540,16 @@ module BRAM_FIFO_DC_2 # (
    // +---------------------------------------------------------------------------------------------------------------------+
 
    logic rd_rst_busy, wr_rst_busy;
-   logic wr_full, rd_empty, rd_empty_d1, rd_empty_d2;
+   logic wr_full, rd_empty;
    logic [FIFO_DW - 1:0] dout;
 
    // Hold full high during Flush or Reset
    assign async_full_o = wr_full | flush_i | wr_rst_busy;
 
-   // Delay empty 2 clocks
-   always_ff @(posedge rd_clk_i) begin
-      rd_empty_d1 <= rd_empty;
-      rd_empty_d2 <= rd_empty_d1;
-   end
-   assign async_empty_o = rd_empty_d2;
+   assign async_empty_o = rd_empty;
 
    // Clear data output when empty
-   always_ff @(posedge rd_clk_i) begin
-      data_o      <= rd_empty ? 'd0 : dout;
-   end
-   // assign data_o = rd_empty ? 'd0 : dout;
+   assign data_o = rd_empty ? 'd0 : dout;
 
 
    // xpm_fifo_async: Asynchronous FIFO
@@ -658,7 +650,7 @@ module BRAM_FIFO_DC_2 # (
       .rd_clk                    (rd_clk_i),                                     // 1-bit input: Read clock: Used for read operation. rd_clk must be a free
                                                                                  // running clock.
 
-      .rd_en                     (~rd_rst_busy & rd_en_i & (pop_i | flush_i)),   // 1-bit input: Read Enable: If the FIFO is not empty, asserting this
+      .rd_en                     (~rd_rst_busy & rd_en_i & pop_i),               // 1-bit input: Read Enable: If the FIFO is not empty, asserting this
                                                                                  // signal causes data (on dout) to be read from the FIFO. Must be held
                                                                                  // active-low when rd_rst_busy is active high.
 
@@ -820,7 +812,7 @@ endmodule
 // TWO inputs ALU
 //////////////////////////////////////////////////////////////////////////////
 module AB_alu (
-   input  wire                clk_i    ,
+//   input  wire                clk_i    ,
    input  wire signed [31:0]  A_i      ,
    input  wire signed [31:0]  B_i      ,
    input  wire [3:0]          alu_op_i ,
@@ -1020,6 +1012,7 @@ always_comb begin
          working = 1'b1;
          if ( div_end ) div_st_nxt = IDLE;
       end
+      default:;
    endcase
 end
 
@@ -1126,9 +1119,17 @@ module sync_ab_en (
    output wire    a_en_o     ,
    output wire    b_en_o     
 );
+
+reg a_pulse_req;
+(* ASYNC_REG = "TRUE" *) reg a_pulse_req_cdc;
+(* ASYNC_REG = "TRUE" *) reg a_pulse_ack ;
+(* ASYNC_REG = "TRUE" *) reg b_pulse_ack_cdc;
+(* ASYNC_REG = "TRUE" *) reg b_pulse_req ;
+reg pulse_b_req_r;
+reg b_pulse_ack;
+
 /// REQ Time from C to T
 ///////////////////////////////////////////////////////////////////////////////
-reg a_pulse_req;
 always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
    if ( !rst_a_ni  ) begin
       a_pulse_req   <= 1'b0;
@@ -1139,39 +1140,36 @@ end
 
 /// Generate B PULSE
 ///////////////////////////////////////////////////////////////////////////////
-(* ASYNC_REG = "TRUE" *) reg pulse_req_cdc, b_pulse_req ;
-reg pulse_b_req_r;
 always_ff @(posedge clk_b_i)
    if(!rst_b_ni) begin
-      pulse_req_cdc  <= 0;
-      b_pulse_req    <= 0;
+      a_pulse_req_cdc   <= 0;
+      b_pulse_req       <= 0;
+      pulse_b_req_r     <= 0;
    end else begin 
-      pulse_req_cdc  <= a_pulse_req;
-      b_pulse_req    <= pulse_req_cdc;
-      pulse_b_req_r  <= b_pulse_req;
+      a_pulse_req_cdc   <= a_pulse_req;
+      b_pulse_req       <= a_pulse_req_cdc;
+      pulse_b_req_r     <= b_pulse_req;
    end
 
 assign pulse_b = b_pulse_req ^ pulse_b_req_r;
 
 /// ACK
 ///////////////////////////////////////////////////////////////////////////////
-reg b_pulse_ack;
-always_ff @ (posedge clk_a_i, negedge rst_a_ni) begin
-   if ( !rst_a_ni  ) begin
+always_ff @ (posedge clk_b_i, negedge rst_b_ni) begin
+   if ( !rst_b_ni  ) begin
       b_pulse_ack   <= 1'b0;
    end else
       if      (  b_pulse_req ) b_pulse_ack <= 1'b1; 
       else if ( !b_pulse_req ) b_pulse_ack <= 1'b0; 
 end
 
-(* ASYNC_REG = "TRUE" *) reg pulse_ack_cdc, a_pulse_ack ;
 always_ff @(posedge clk_a_i)
    if(!rst_a_ni) begin
-      pulse_ack_cdc  <= 0;
-      a_pulse_ack    <= 0;
+      b_pulse_ack_cdc   <= 0;
+      a_pulse_ack       <= 0;
    end else begin 
-      pulse_ack_cdc  <= b_pulse_ack;
-      a_pulse_ack    <= pulse_ack_cdc;
+      b_pulse_ack_cdc   <= b_pulse_ack;
+      a_pulse_ack       <= b_pulse_ack_cdc;
    end
 
 assign pulse_a = a_pulse_req ~^ a_pulse_ack ;
