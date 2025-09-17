@@ -219,6 +219,12 @@ class AnalysisChain():
         x = np.roll(x, -int(self.soc.FFT_N/4))
         return x
 
+    def get_data_acc_zoom(self, N=1, verbose=False):
+        # Get blocks.
+        acc_b = getattr(self.soc, self.dict['chain']['acc_zoom'])
+        x = acc_b.single_shot(N=N)
+        return x
+
     def freq2ch(self, f):
         # Get blocks.
         pfb_b = getattr(self.soc, self.dict['chain']['pfb'])
@@ -396,6 +402,9 @@ class DualChain():
     def get_data_acc(self, N=1, verbose=False):
         return self.analysis.get_data_acc(N=N, verbose=verbose)
 
+    def get_data_acc_zoom(self, N=1, verbose=False):
+        return self.analysis.get_data_acc_zoom(N=N, verbose=verbose)
+
     @property
     def fs(self):
         return self.analysis.fs
@@ -456,6 +465,7 @@ class SpectrumSoc(QickSoc):
             if val['driver'] in pfbs_in_drivers:
                 self.pfbs_in.append(getattr(self, key))
 
+        self.pfb    = self.axis_pfb_8x16_v1_0
 
         # Configure the drivers.
         for pfb in self.pfbs_in:
@@ -474,6 +484,10 @@ class SpectrumSoc(QickSoc):
                 dma = getattr(self, pfb.dict['buff_wxfft_dma'])
                 block.configure(dma)
                 block.window(wtype="hanning")
+                self.fft = self.axis_wxfft_65536_0
+                self.chsel  = self.axis_chsel_pfb_x1_0
+                self.ddscic = self.axis_ddscic_v3_0
+                self.ddscic.configure(pfb.dict['freq']['fb'])
 
             # ACC_ZOOM: axis_accumulator_v1.
             if pfb.HAS_ACC_ZOOM:
@@ -481,6 +495,7 @@ class SpectrumSoc(QickSoc):
                 dma = getattr(self, pfb.dict['buff_wxfft_dma'])
                 block.configure(dma)
                 self.WFFT_N = int(block.FFT_N)
+                self.acc_zoom = self.axis_accumulator_1
 
             # BUFF_XFFT: axis_buffer_uram.
             if pfb.HAS_BUFF_XFFT:
@@ -494,6 +509,7 @@ class SpectrumSoc(QickSoc):
                 dma = getattr(self, pfb.dict['dma'])
                 block.configure(dma)
                 self.FFT_N = int(block.FFT_N)
+                self.acc_full = self.axis_accumulator_0
 
 
         self['analysis'] = []
