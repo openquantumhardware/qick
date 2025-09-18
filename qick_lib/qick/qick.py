@@ -779,6 +779,15 @@ class QickSoc(Overlay, QickConfig):
     def __init__(self, bitfile=None, download=True, no_tproc=False, no_rf=False, force_init_clks=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
         self.external_clk = external_clk
         self.clk_output = clk_output
+
+        # PYNQ 3.0 has a bug in how it caches the .hwh metadata (https://github.com/Xilinx/PYNQ/issues/1409).
+        # We work around this by always clearing the metadata cache.
+        try:
+            from pynq.pl_server import global_state
+            global_state.clear_global_state()
+        except:
+            pass
+
         # Read the bitstream configuration from the HWH file.
         # If download=True, we also program the FPGA.
         if bitfile is None:
