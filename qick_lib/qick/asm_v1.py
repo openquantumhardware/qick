@@ -901,9 +901,9 @@ class QickProgram(AbsQickProgram):
                 ts = self.get_timestamp(gen_ch=ch)
                 if t == 'auto':
                     t_ch = int(ts)
-                elif t < ts:
-                    logger.warning("pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
                 else:
+                    if t < ts:
+                        logger.warning("pulse time %d appears to conflict with previous pulse ending at %f?"%(t, ts))
                     t_ch = int(t)
                 # convert from generator clock to tProc clock
                 pulse_length = next_pulse['length']
