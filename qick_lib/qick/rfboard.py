@@ -7,6 +7,7 @@ import xrfclk
 import xrfdc
 import numpy as np
 import time
+from numbers import Number, Integral
 from contextlib import contextmanager, suppress
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -870,116 +871,110 @@ class FilterADMV8818:
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
         return int(res[2])
 
-    def _freq2band(self, f=0, section="LPF"):
-        ret = None
+    def freq2step(self, f, section, n=10):
+        n = 10
+        f = 6.0
 
-        if section == "LPF":
-            for b in self.BANDS[section].keys():
-                if b != 'bypass':
-                    fmin = self.BANDS[section][b]['min'] 
-                    fmax = self.BANDS[section][b]['max'] 
-                    if ((f > fmin) and (f < fmax)):
-                        ret = b
-                        break
-        elif section == "HPF":
-            for b in self.BANDS[section].keys():
-                if b != 'bypass':
-                    fmin = self.BANDS[section][b]['min'] 
-                    fmax = self.BANDS[section][b]['max'] 
-                    if ((f > fmin) and (f < fmax)):
-                        ret = b
-                        break
+        freqs = np.concatenate([np.linspace(f0, f15, 16) for f0, f15 in BANDS['LPF']])
 
-        if ret is not None:
-            logger.debug("{}: frequency {:.2f} GHz for section {} found in band {}".format(self.__class__.__name__, f, section, b))
+
+        sortlist = list(enumerate(freqs))
+        sortlist.sort(key=lambda x: np.abs(x[1]-f))
+        best_steps, best_freqs = list(zip(*sorted(sortlist[:n], key=itemgetter(1))))
+        print(best_steps, best_freqs)
+
+    def _freq2step(self, f=0, section="LPF"):
+        band = None
+        if f<0:
+            return -1
         else:
-            logger.debug("{}: frequency {:.2f} GHz for section {} not found.".format(self.__class__.__name__, f, section))
+            for b in self.BANDS[section].keys():
+                fmin = self.BANDS[section][b]['min']
+                fmax = self.BANDS[section][b]['max']
+                if ((f > fmin) and (f < fmax)):
+                    band = b
+                    break
+            if band is None:
+                raise RuntimeError("frequency {:.2f} GHz for section {} not found.".format(f, section))
+            logger.debug("frequency {:.2f} GHz for section {} found in band {}".format(f, section, band))
 
-        return ret
-
-    def _freq2bits(self, f=0, section="LPF", band="LPF1"):
-        ret = None
-
-        if section == "LPF":
             if band in self.BANDS[section].keys():
                 fmin = self.BANDS[section][band]['min'] 
                 fmax = self.BANDS[section][band]['max'] 
                 span = self.BANDS[section][band]['span'] 
                 df   = self.BANDS[section][band]['df'] 
                 if ((f > fmin) and (f < fmax)):
-                    ret = int((f - fmin)/df)
-        elif section == "HPF":
-            if band in self.BANDS[section].keys():
-                fmin = self.BANDS[section][band]['min'] 
-                fmax = self.BANDS[section][band]['max'] 
-                span = self.BANDS[section][band]['span'] 
-                df   = self.BANDS[section][band]['df'] 
-                if ((f > fmin) and (f < fmax)):
-                    ret = int((f - fmin)/df)
-        
-        if ret is None:
-            raise RuntimeError("{}: frequency {:.2f} GHz not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
-        logger.debug("{}: fmin = {:.2f} GHz, fmax = {:.2f} GHz, span = {:.2f} GHz, df = {:.3f} GHz, f = {:.2f} GHz, bits = {}".format(self.__class__.__name__, fmin, fmax, span, df, f, ret))
+                    state = int((f - fmin)/df)
+            if state is None:
+                raise RuntimeError("{}: frequency {:.2f} GHz not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
+            logger.debug("fmin = {:.2f} GHz, fmax = {:.2f} GHz, span = {:.2f} GHz, df = {:.3f} GHz, f = {:.2f} GHz, bits = {}".format(fmin, fmax, span, df, f, state))
 
-        return ret
+            switch = self.BANDS[section][band]['switch']
+            return 16*(switch-1) + state
 
-    def _band2switch(self, section="LPF", band="LPF1"):
-        if section in self.BANDS.keys():
-            if band in self.BANDS[section].keys():
-                return self.BANDS[section][band]['switch'] 
-            else: 
-                logger.warning("{}: band {} not found in section {}. Using bypass by default.".format(self.__class__.__name__, band, section))
-                return 0
-        else: 
-            logger.warning("{}: section {} not found. Using bypass by default.".format(self.__class__.__name__, section))
-            return 0
+    def set_filter_raw(self, hpf, lpf):
+        """
+        lpf, hpf: -1 for bypass, 0 through 63 to enable filter
+        """
+        if not isinstance(hpf, Integral):
+            raise RuntimeError("hpf must be an integer, not %s" % (hpf))
+        if not isinstance(lpf, Integral):
+            raise RuntimeError("lpf must be an integer, not %s" % (hpf))
+
+        if hpf < 0:
+            hpf_band, hpf_state = 0, 0
+        elif hpf > 63:
+            raise RuntimeError("hpf must be negative (bypass) or 0-63, not %s" % (hpf))
+        else:
+            hpf_band = 1 + hpf//16
+            hpf_state = hpf % 16
+
+        if lpf < 0:
+            lpf_band, lpf_state = 0, 0
+        elif lpf > 63:
+            raise RuntimeError("lpf must be negative (bypass) or 0-63, not %s" % (lpf))
+        else:
+            lpf_band = 1 + lpf//16
+            lpf_state = lpf % 16
+
+        sw = 0xC0 + (hpf_band<<3) + lpf_band
+        filt_state = (hpf_state<<4) + lpf_state
+
+        self.write_reg(reg="WR0_SW", value=sw)
+        self.write_reg(reg="WR0_FILTER", value=filt_state)
 
     def set_filter(self, fc=0, bw=2.0, ftype="lowpass"):
         # Low-pass.
         if ftype == 'lowpass':
             logger.debug("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
 
-            band_lpf = self._freq2band(f=fc, section="LPF")
-            bits_lpf = self._freq2bits(f=fc, section="LPF", band=band_lpf)
-            band_hpf = 'bypass'
-            bits_hpf = 0
+            step_lpf = self._freq2step(f=fc, section="LPF")
+            step_hpf = self._freq2step(f=-1, section="HPF")
 
         elif ftype == 'highpass':
             logger.debug("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
 
-            band_lpf = 'bypass'
-            bits_lpf = 0
-            band_hpf = self._freq2band(f=fc, section="HPF")
-            bits_hpf = self._freq2bits(f=fc, section="HPF", band=band_hpf)
+            step_lpf = self._freq2step(f=-1, section="LPF")
+            step_hpf = self._freq2step(f=fc, section="HPF")
 
         elif ftype == 'bandpass':
             f1 = fc-bw/2
             f2 = fc+bw/2
             logger.debug("{}: setting {} filter type, fc = {:.2f} GHz, bw = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc, bw))
 
-            band_lpf = self._freq2band(f=f2, section="LPF")
-            bits_lpf = self._freq2bits(f=f2, section="LPF", band=band_lpf)
-            band_hpf = self._freq2band(f=f1, section="HPF")
-            bits_hpf = self._freq2bits(f=f1, section="HPF", band=band_hpf)
+            step_lpf = self._freq2step(f=f2, section="LPF")
+            step_hpf = self._freq2step(f=f1, section="HPF")
 
         elif ftype == 'bypass':
             logger.debug("{}: setting filter to bypass mode.".format(self.__class__.__name__))
 
-            band_lpf = 'bypass'
-            bits_lpf = 0
-            band_hpf = 'bypass'
-            bits_hpf = 0
+            step_lpf = self._freq2step(f=-1, section="LPF")
+            step_hpf = self._freq2step(f=-1, section="HPF")
     
         else:
             raise RuntimeError("%s: filter type %s not supported." % (self.__class__.__name__, ftype))
 
-        # WR0_SW register.
-        value = 0xc0 + (self._band2switch(section="HPF", band=band_hpf) << 3) + self._band2switch(section="LPF", band=band_lpf)
-        self.write_reg(reg="WR0_SW", value=value)
-
-        # WR0_FILTER register.
-        value = (bits_hpf << 4) + bits_lpf
-        self.write_reg(reg="WR0_FILTER", value=value)
+        self.set_filter_raw(step_hpf, step_lpf)
 
 # Power, Switch and Fan.
 class SwitchControl:
@@ -1688,6 +1683,12 @@ class FilterChain(Chain216):
             # Set filter.
             self.filter.set_filter(fc=fc, bw=bw, ftype=ftype)
 
+    def set_filter_raw(self, hpf=-1, lpf=-1):
+        # Enable this daughter card.
+        with self.soc.board_sel.enable_context(self.card_num):
+            # Set filter.
+            self.filter.set_filter_raw(hpf=hpf, lpf=lpf)
+
     def read_filter(self, reg=""):
         logger.debug("{}: reading register {}".format(self.__class__.__name__, reg))
 
@@ -2385,7 +2386,7 @@ class RFQickSoc216V1(RFQickSoc):
         Parameters
         ----------
         gen_ch : int
-            DAC channel (index in 'gens' list)
+            generator channel (index in 'gens' list)
         fc : float
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
@@ -2404,7 +2405,7 @@ class RFQickSoc216V1(RFQickSoc):
         Parameters
         ----------
         ro_ch : int
-            ADC channel (index in 'avg_bufs' list)
+            readout channel (index in 'avg_bufs' list)
         fc : float
             Center frequency for bandpass, cut-off frequency of lowpass and highpass.
         bw : float
@@ -2418,7 +2419,7 @@ class RFQickSoc216V1(RFQickSoc):
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
     def rfb_set_dac_filter(self, dac_port, fc, bw=1, ftype='bandpass'):
-        """Set the programmable analog filter of the specified QICK box ADC port.
+        """Set the programmable analog filter of the specified QICK box DAC port.
 
         Parameters
         ----------
@@ -2437,7 +2438,7 @@ class RFQickSoc216V1(RFQickSoc):
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
     def rfb_set_adc_filter(self, adc_port, fc, bw=1, ftype='bandpass'):
-        """Set the programmable analog filter of the specified QICK box DAC port.
+        """Set the programmable analog filter of the specified QICK box ADC port.
 
         Parameters
         ----------
@@ -2454,6 +2455,42 @@ class RFQickSoc216V1(RFQickSoc):
         if not isinstance(rfb_ch, FilterChain):
             raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+
+    def rfb_set_dac_filter_raw(self, dac_port, hpf=-1, lpf=-1):
+        """Set the programmable analog filter of the specified QICK box DAC port.
+        Filter cutoffs are specified in terms of filter steps.
+
+        Parameters
+        ----------
+        dac_port : int
+            QICK box DAC port number (0-15)
+        hpf : int
+            High-pass filter setting. -1 to bypass, 0 through 63 to enable, with 3 dB cutoff from 1.75 to 19.90 GHz.
+        lpf : int
+            Low-pass filter setting. -1 to bypass, 0 through 63 to enable, with 3 dB cutoff from 2.05 to 18.85 GHz.
+        """
+        rfb_ch = self.dac_chains[dac_port]
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("DAC port %d does not have a RF signal chain" % (dac_port))
+        rfb_ch.set_filter_raw(hpf, lpf)
+
+    def rfb_set_adc_filter_raw(self, adc_port, hpf=-1, lpf=-1):
+        """Set the programmable analog filter of the specified QICK box ADC port.
+        Filter cutoffs are specified in terms of filter steps.
+
+        Parameters
+        ----------
+        adc_port : int
+            QICK box ADC port number (0-7)
+        hpf : int
+            High-pass filter setting. -1 to bypass, 0 through 63 to enable, with 3 dB cutoff from 1.75 to 19.90 GHz.
+        lpf : int
+            Low-pass filter setting. -1 to bypass, 0 through 63 to enable, with 3 dB cutoff from 2.05 to 18.85 GHz.
+        """
+        rfb_ch = self.adc_chains[adc_port]
+        if not isinstance(rfb_ch, FilterChain):
+            raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
+        rfb_ch.set_filter_raw(hpf, lpf)
 
     def rfb_set_rfadc_attenuator(self, adc_port, att):
         """Set the programmable attenuator of the RFSoC RF-ADC connected to the specified QICK box ADC port.
