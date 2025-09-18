@@ -27,16 +27,17 @@ Timing
     In other words, you should have a wait at the end of a loop (or the tproc will tell the software to read data from the buffer too soon), or before a ``read`` command (e.g. for feedback).
     `This is the only reason to use wait commands.`
 
-  * ``waiti(t)`` is the generic form of wait, which pauses the tproc until the master clock time equals ``t_off + t``. Note ``waiti`` has a channel argument, but the channel argument does nothing!
+  * ``waiti(0, t)`` is the generic form of wait, which pauses the tproc until the master clock time equals ``t_off + t``. Note ``waiti`` has a channel argument, but the channel argument does nothing!
 
   * :meth:`.QickProgram.wait_all()` calculates the end of all readout pulses and waits until that time + ``t``.
 
 * sync commands increment the master time offset (used by all gen channels).
   The effect is to push back the play time of subsequent commands by that increment.
 
-  * ``synci(t)`` is the generic form of sync.
+  * ``synci(t)`` is the generic form of sync. ``sync(page, reg)`` reads a register, allowing for sweeps.
 
-  * The safer version :meth:`.QickProgram.sync_all()` calculates the end of the last pulse played + ``t``, and sets the master time offset to that value.
+  * The smarter version :meth:`.QickProgram.sync_all()` compiles to a ``synci`` that pushes back the reference time to the end of the last pulse played + ``t``.
+    The compiler doesn't recognize the effects of previous ``synci`` or ``sync`` commands when it does this calculation, so ``sync_all()`` should not be mixed with the simpler commands.
 
 How to avoid timing problems
 ----------------------------
