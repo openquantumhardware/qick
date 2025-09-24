@@ -839,27 +839,10 @@ class QickSoc(Overlay, QickConfig):
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
-        if no_tproc:
-            self.TPROC_VERSION = 0
-        else:
-            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-            if 'axis_tproc64x32_x8_0' in self.ip_dict:
-                self.TPROC_VERSION = 1
-                self._tproc = self.axis_tproc64x32_x8_0
-                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-            elif 'qick_processor_0' in self.ip_dict:
-                self.TPROC_VERSION = 2
-                self._tproc = self.qick_processor_0
-                self._tproc.configure(self.axi_dma_tproc)
-            else:
-                raise RuntimeError('No tProcessor found')
-
+        self.map_signal_paths(no_tproc)
+        if not no_tproc:
             #self.tnet = self.qick_net_0
-
-            self.map_signal_paths()
-
             self._streamer = DataStreamer(self)
-
             self.autoproxy.extend([self.streamer, self.tproc])
 
     @property
@@ -886,7 +869,7 @@ class QickSoc(Overlay, QickConfig):
             block = getattr(block, x)
         return block
 
-    def map_signal_paths(self):
+    def map_signal_paths(self, no_tproc):
         """
         Make lists of signal generator, readout, and buffer blocks in the firmware.
         Also map the switches connecting the generators and buffers to DMA.
@@ -899,6 +882,23 @@ class QickSoc(Overlay, QickConfig):
         for key, val in self.ip_dict.items():
             if hasattr(val['driver'], 'configure_connections'):
                 self._get_block(val['fullpath']).configure_connections(self)
+
+        if not no_tproc:
+            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+            if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self.TPROC_VERSION = 1
+                self._tproc = self.axis_tproc64x32_x8_0
+                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+            elif 'qick_processor_0' in self.ip_dict:
+                self.TPROC_VERSION = 2
+                self._tproc = self.qick_processor_0
+                self._tproc.configure(self.axi_dma_tproc)
+            else:
+                raise RuntimeError('No tProcessor found')
+
+            self['tprocs'] = [self.tproc.cfg]
+        else:
+            self.TPROC_VERSION = 0
 
         # temporary lists for blocks that we only expect to see once
         ddr4_buf = []
@@ -946,12 +946,14 @@ class QickSoc(Overlay, QickConfig):
         for readout in self.readouts:
             readout.configure(self.rf)
 
-        # Find the MR buffer, if present.
+        # Filter the list of MR buffers to select the ones wired to readout blocks (discarding those wired directly to ADCs or other blocks).
+        # There should only be one.
+        mr_buf = [x for x in mr_buf if x['readouts']]
         if len(mr_buf) == 1:
             self.mr_buf = mr_buf[0]
             self['mr_buf'] = self.mr_buf.cfg
         elif len(mr_buf) > 1:
-            raise RuntimeError("found multiple MR buffers, which is not currently supported by the software")
+            raise RuntimeError("found multiple MR buffers wired to readouts, which is not currently supported by the software")
 
         # Find the DDR4 controller and buffer, if present.
         if len(ddr4_buf) == 1:
@@ -974,8 +976,6 @@ class QickSoc(Overlay, QickConfig):
                 merged["ro_"+k] = rocfg[k]
             return merged
         self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
-
-        self['tprocs'] = [self.tproc.cfg]
 
     def config_clocks(self, force_init_clks):
         """
