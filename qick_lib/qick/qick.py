@@ -118,7 +118,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         # Nyquist zone for each channel
         self.nqz_dict = {'dac': {}, 'adc': {}}
         # Rounded NCO frequency for each channel
-        self.mixer_dict = {}
+        self.mixer_dict = {'dac': {}, 'adc': {}}
 
         ip_params = description['parameters']
 
@@ -488,31 +488,35 @@ class RFDC(SocIP, xrfdc.RFdc):
         # we changed the clocks, so refresh that info
         self._read_freqs()
 
-    def set_mixer_freq(self, dacname, f, phase_reset=True, force=False):
+    def set_mixer_freq(self, blockname, f, blocktype='dac', phase_reset=True, force=False):
         """
-        Set the NCO frequency that will be mixed with the generator output.
+        Set the NCO frequency that will be mixed with the generator output (for DAC) or raw ADC data (for ADC).
 
         Note that the RFdc driver does its own math to round the frequency to the NCO's frequency step.
         If you want predictable behavior, the frequency you use here should already be rounded.
         Rounding is normally done for you as part of AbsQickProgram.declare_gen().
 
-        :param dacname: DAC channel (2-digit string)
-        :type dacname: int
-        :param f: NCO frequency
-        :type f: float
-        :param force: force update, even if the setting is the same
-        :type force: bool
-        :param phase_reset: if we change the frequency, also reset the NCO's phase accumulator
-        :type phase_reset: bool
+        blockname : int
+            channel ID (2-digit string)
+        f : float
+            NCO frequency (MHz)
+        blocktype : str
+            'dac' or 'adc'
+        force: bool
+            force update, even if the setting is the same
+        phase_reset : bool
+            if we change the frequency, also reset the NCO's phase accumulator
         """
-        if not force and f == self.get_mixer_freq(dacname):
+        if not force and f == self.get_mixer_freq(blockname, blocktype):
             return
 
-        dac = self._get_block('dac', dacname)
-        tile, channel = self['dacs'][dacname]['index']
+        blk = self._get_block(blocktype, blockname)
+        tile, channel = self[blocktype+'s'][blockname]['index']
         # Make a copy of mixer settings.
-        dac_mixer = dac.MixerSettings
-        new_mixcfg = dac_mixer.copy()
+        blk_mixer = blk.MixerSettings
+        if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
+            raise RuntimeError("tried to set mixer freq for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
+        new_mixcfg = blk_mixer.copy()
 
         # Update the copy
         new_mixcfg.update({
@@ -522,20 +526,22 @@ class RFDC(SocIP, xrfdc.RFdc):
             'PhaseOffset': 0})
 
         # Update settings.
-        dac.MixerSettings = new_mixcfg
-        dac.UpdateEvent(xrfdc.EVENT_MIXER)
+        blk.MixerSettings = new_mixcfg
+        blk.UpdateEvent(xrfdc.EVENT_MIXER)
         # The phase reset is mostly important when setting the frequency to 0: you want the NCO to end up at 1 instead of a complex value.
         # So we apply the reset after setting the new frequency (otherwise you accumulate some rotation before stopping the NCO).
-        if phase_reset: dac.ResetNCOPhase()
-        self.mixer_dict[dacname] = f
+        if phase_reset: blk.ResetNCOPhase()
+        self.mixer_dict[blocktype][blockname] = f
 
-    def get_mixer_freq(self, dacname):
+    def get_mixer_freq(self, blockname, blocktype='dac'):
         try:
-            return self.mixer_dict[dacname]
+            return self.mixer_dict[blocktype+'s'][blockname]
         except KeyError:
-            dac = self._get_block('dac', dacname)
-            self.mixer_dict[dacname] = dac.MixerSettings['Freq']
-            return self.mixer_dict[dacname]
+            blk_mixer = self._get_block(blocktype, blockname).MixerSettings
+            if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
+                raise RuntimeError("tried to get mixer freq for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
+            self.mixer_dict[blocktype][blockname] = blk_mixer['Freq']
+            return self.mixer_dict[blocktype][blockname]
 
     def set_nyquist(self, blockname, nqz, blocktype='dac', force=False):
         """
@@ -839,27 +845,10 @@ class QickSoc(Overlay, QickConfig):
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
-        if no_tproc:
-            self.TPROC_VERSION = 0
-        else:
-            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
-            if 'axis_tproc64x32_x8_0' in self.ip_dict:
-                self.TPROC_VERSION = 1
-                self._tproc = self.axis_tproc64x32_x8_0
-                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
-            elif 'qick_processor_0' in self.ip_dict:
-                self.TPROC_VERSION = 2
-                self._tproc = self.qick_processor_0
-                self._tproc.configure(self.axi_dma_tproc)
-            else:
-                raise RuntimeError('No tProcessor found')
-
+        self.map_signal_paths(no_tproc)
+        if not no_tproc:
             #self.tnet = self.qick_net_0
-
-            self.map_signal_paths()
-
             self._streamer = DataStreamer(self)
-
             self.autoproxy.extend([self.streamer, self.tproc])
 
     @property
@@ -886,7 +875,7 @@ class QickSoc(Overlay, QickConfig):
             block = getattr(block, x)
         return block
 
-    def map_signal_paths(self):
+    def map_signal_paths(self, no_tproc):
         """
         Make lists of signal generator, readout, and buffer blocks in the firmware.
         Also map the switches connecting the generators and buffers to DMA.
@@ -899,6 +888,23 @@ class QickSoc(Overlay, QickConfig):
         for key, val in self.ip_dict.items():
             if hasattr(val['driver'], 'configure_connections'):
                 self._get_block(val['fullpath']).configure_connections(self)
+
+        if not no_tproc:
+            # tProcessor, 64-bit instruction, 32-bit registers, x8 channels.
+            if 'axis_tproc64x32_x8_0' in self.ip_dict:
+                self.TPROC_VERSION = 1
+                self._tproc = self.axis_tproc64x32_x8_0
+                self._tproc.configure(self.axi_bram_ctrl_0, self.axi_dma_tproc)
+            elif 'qick_processor_0' in self.ip_dict:
+                self.TPROC_VERSION = 2
+                self._tproc = self.qick_processor_0
+                self._tproc.configure(self.axi_dma_tproc)
+            else:
+                raise RuntimeError('No tProcessor found')
+
+            self['tprocs'] = [self.tproc.cfg]
+        else:
+            self.TPROC_VERSION = 0
 
         # temporary lists for blocks that we only expect to see once
         ddr4_buf = []
@@ -946,12 +952,14 @@ class QickSoc(Overlay, QickConfig):
         for readout in self.readouts:
             readout.configure(self.rf)
 
-        # Find the MR buffer, if present.
+        # Filter the list of MR buffers to select the ones wired to readout blocks (discarding those wired directly to ADCs or other blocks).
+        # There should only be one.
+        mr_buf = [x for x in mr_buf if x['readouts']]
         if len(mr_buf) == 1:
             self.mr_buf = mr_buf[0]
             self['mr_buf'] = self.mr_buf.cfg
         elif len(mr_buf) > 1:
-            raise RuntimeError("found multiple MR buffers, which is not currently supported by the software")
+            raise RuntimeError("found multiple MR buffers wired to readouts, which is not currently supported by the software")
 
         # Find the DDR4 controller and buffer, if present.
         if len(ddr4_buf) == 1:
@@ -974,8 +982,6 @@ class QickSoc(Overlay, QickConfig):
                 merged["ro_"+k] = rocfg[k]
             return merged
         self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
-
-        self['tprocs'] = [self.tproc.cfg]
 
     def config_clocks(self, force_init_clks):
         """
