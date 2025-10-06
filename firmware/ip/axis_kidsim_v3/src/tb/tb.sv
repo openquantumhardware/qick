@@ -395,6 +395,7 @@ initial begin
 
 	trigger <= 0;
 	
+	$finish();
 end
 
 always begin
