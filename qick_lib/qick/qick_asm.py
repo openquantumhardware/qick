@@ -1433,8 +1433,7 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
-
-        # scale to get number of gen samples
+        # convert to number of samples
         lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=cosine(length=lenreg, maxv=maxv))
@@ -1467,9 +1466,6 @@ class AbsQickProgram(ABC):
         if self.GAUSS_BUG:
             sigma /= np.sqrt(2.0)
 
-        # scale to get number of gen samples
-        sigma  *= samps_per_clk
-
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1481,8 +1477,9 @@ class AbsQickProgram(ABC):
             lenreg = np.round(length)
             sigreg = sigma
 
-        # scale to get number of gen samples
+        # convert to number of samples
         lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=gauss(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv))
 
@@ -1525,9 +1522,6 @@ class AbsQickProgram(ABC):
         delta /= samps_per_clk*f_fabric
         det /= samps_per_clk*f_fabric
 
-        # scale to get number of gen samples
-        sigma  *= samps_per_clk
-
         # convert to integer number of fabric clocks
         if self.USER_DURATIONS:
             if even_length:
@@ -1539,8 +1533,9 @@ class AbsQickProgram(ABC):
             lenreg = np.round(length)
             sigreg = sigma
 
-        # scale to get number of gen samples
+        # convert to number of samples
         lenreg *= samps_per_clk
+        sigreg *= samps_per_clk
 
         idata, qdata = DRAG(mu=lenreg/2-0.5, si=sigreg, length=lenreg, maxv=maxv, delta=delta, alpha=alpha, det=det)
 
@@ -1577,8 +1572,7 @@ class AbsQickProgram(ABC):
                 lenreg = self.us2cycles(gen_ch=ch, us=length)
         else:
             lenreg = np.round(length)
-
-        # scale to get number of gen samples
+        # convert to number of samples
         lenreg *= samps_per_clk
 
         self.add_envelope(ch, name, idata=triang(length=lenreg, maxv=maxv))
