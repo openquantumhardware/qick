@@ -4,14 +4,12 @@
 // and an optional random value provided via paramters from the simulator script
 
 
-module tb_fifo_behav # (
-    parameter int randB = 0,
-    parameter int randN = 0
-);
+module tb_fifo_behav;
 
-    const int numIter = (randB != 0 && randN != 0) ? 2 : 1;
-    const int B [numIter] = '{160, randB};
-    const int N [numIter] = '{16,  randN};
+    // add arbitary number of parameter configurations
+    localparam int numIter = 1;
+    localparam int B [numIter] = '{160};
+    localparam int N [numIter] = '{16};
 
     logic rstn;
     logic clk;
@@ -23,7 +21,7 @@ module tb_fifo_behav # (
 
     // reset generation
     initial begin
-        rstn = 0; #33; rstn = 1;
+        rstn = 0; #45; rstn = 1;
     end
 
     // End simuation after 10000 clk cycles
@@ -41,13 +39,13 @@ generate for (genvar i = 0; i < numIter; i++) begin : genBlk
     logic full2, empty2;
     logic full3, empty3;
 
-    logic [B[i]-1 : 0] din;
+    logic [B[i]-1 : 0] din = 0;
     logic [B[i]-1 : 0] dout1;
     logic [B[i]-1 : 0] dout2;
     logic [B[i]-1 : 0] dout3;
 
     // random input stream generation
-    always @(negedge clk) begin
+    always @(negedge clk) begin // TODO: weird reset behavior...
         std::randomize(wr_en);
         std::randomize(rd_en);
         std::randomize(din);
@@ -56,35 +54,23 @@ generate for (genvar i = 0; i < numIter; i++) begin : genBlk
     // Check output consistency
     always @(negedge clk) begin
         assert((dout1 == dout2) && (dout1 == dout3)) else begin
-            $display(
-                "ERROR: Data out mismatch! -- B=%d, N=%d\n"
-                "    SV:     %h\n"
-                "    VHDL:   %h\n"
-                "    XILINX: %h\n",
-                B[i], N[i],
-                dout1, dout2, dout3
+            $error(
+                "ERROR: Data out mismatch! -- B=%d, N=%d\n    SV:     %h\n    VHDL:   %h\n    XILINX: %h\n",
+                B[i], N[i], dout1, dout2, dout3
                 );
         end
 
         assert((empty1 == empty2) && (empty1 == empty3)) else begin
-            $display(
-                "ERROR: Empty signal mismatch! -- B=%d, N=%d\n\n"
-                "    SV:     %b\n"
-                "    VHDL:   %b\n"
-                "    XILINX: %b\n",
-                B[i], N[i],
-                empty1, empty2, empty3
+            $error(
+                "ERROR: Empty signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
+                B[i], N[i], empty1, empty2, empty3
                 );
         end
 
         assert((full1 == full2) && (full1 == full3)) else begin
-            $display(
-                "ERROR: full signal mismatch! -- B=%d, N=%d\n\n"
-                "    SV:     %b\n"
-                "    VHDL:   %b\n"
-                "    XILINX: %b\n",
-                B[i], N[i],
-                full1, full2, full3
+            $error(
+                "ERROR: full signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
+                B[i], N[i], full1, full2, full3
                 );
         end
     end

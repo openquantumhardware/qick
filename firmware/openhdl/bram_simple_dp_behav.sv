@@ -21,13 +21,12 @@ module bram_simple_dp_behav
 
 
     // Ram type.
-    typedef logic [B-1 : 0] ram_type [(2**N)-1 : 0];
-    ram_type RAM;
+    logic [B-1 : 0] RAM [(2**N)-1 : 0];
 
     always_ff @(posedge clk) begin
         if (ena == 1'b1) begin
             if (wea == 1'b1) begin
-                RAM[addra] <= dia;
+                RAM[addra] = dia;
             end
         end
     end

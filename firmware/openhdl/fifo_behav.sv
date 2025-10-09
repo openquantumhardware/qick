@@ -27,12 +27,9 @@ module fifo_behav
         output logic empty
     );
 
-    // Number of bits of depth.
-    const int N_LOG2 = $clog2(N);
-
     // Pointers.
-    logic [N_LOG2-1 : 0] wptr;
-    logic [N_LOG2-1 : 0] rptr;
+    logic [$clog2(N)-1 : 0] wptr;
+    logic [$clog2(N)-1 : 0] rptr;
 
     // Memory signals.
     logic                mem_wea;
@@ -43,25 +40,25 @@ module fifo_behav
     logic                empty_i;
 
     bram_simple_dp_behav #(
-        .N     ( N_LOG2  ),
-        .B     ( B       )
-    ) (
-        .clk   ( clk     ),
-        .ena   ( 1'b1    ),
-        .enb   ( rd_en   ),
-        .wea   ( mem_wea ),
-        .addra ( wptr    ),
-        .addrb ( rptr    ),
-        .dia   ( din     ),
-        .dob   ( mem_dob )
+        .N     ( $clog2(N) ),
+        .B     ( B         )
+    ) bram (
+        .clk   ( clk       ),
+        .ena   ( 1'b1      ),
+        .enb   ( rd_en     ),
+        .wea   ( mem_wea   ),
+        .addra ( wptr      ),
+        .addrb ( rptr      ),
+        .dia   ( din       ),
+        .dob   ( mem_dob   )
     );
 
     // Memory connections.
-    assign mem_wea = (full_i == 1'b1) ? wr_en : 1'b0;
+    assign mem_wea = (full_i == 1'b0) ? wr_en : 1'b0;
 
     // Full/empty signals.
-    assign full_i  == (wptr == rptr-1) ? 1'b1 : 1'b0;
-    assign empty_i == (wptr == rptr  ) ? 1'b1 : 1'b0;
+    assign full_i  = (wptr == rptr-1) ? 1'b1 : 1'b0;
+    assign empty_i = (wptr == rptr  ) ? 1'b1 : 1'b0;
 
     always_ff @(posedge clk) begin
         if ( rstn == 1'b0 ) begin
@@ -69,7 +66,7 @@ module fifo_behav
             rptr <= 0;
         end else begin
             // Write.
-            if ( wr_en == 1'b1 and full_i == 1'b0 ) begin
+            if ( wr_en == 1'b1 && full_i == 1'b0 ) begin
                 // write data.
 
                 // write pointer.
@@ -77,7 +74,7 @@ module fifo_behav
             end
 
             // Read.
-            if ( rd_en == 1'b1 and empty_i == 1'b0 ) begin
+            if ( rd_en == 1'b1 && empty_i == 1'b0 ) begin
                 // Read data.
                 
                 // Increment pointer.
