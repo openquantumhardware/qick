@@ -1,6 +1,6 @@
 /* verilator lint_off MULTIDRIVEN */
 
-module dp_bmem_behav #(
+module bram_dp_behav #(
     parameter int DATA_WIDTH = 32,
     parameter int ITEMS = 1024,
     parameter WRITE_MODE_A = "WRITE_FIRST",
