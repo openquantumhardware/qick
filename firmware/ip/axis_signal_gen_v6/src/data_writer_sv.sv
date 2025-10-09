@@ -1,7 +1,7 @@
 // data_writer.sv
 // SystemVerilog translation of data_writer.vhd
 
-module data_writer #(
+module data_writer_sv #(
     parameter int NT = 16, 
     parameter int N = 16, 
     parameter int B = 16) (
@@ -12,7 +12,7 @@ module data_writer #(
     // AXI Stream I/F
     output logic            s_axis_tready,
     input logic [B-1:0]     s_axis_tdata,
-    input logic             s_axis_tvalid
+    input logic             s_axis_tvalid,
 
     // Memory I/F
     output logic [NT-1:0]   mem_en,
@@ -25,17 +25,17 @@ module data_writer #(
     input logic             WE_REG 
 );
 
-    localparam int NT_LOG2 = int($clog2(NT));
-
-    // sychronizer
-    synchronizer_n #(.N(2)) sync0(.clk(clk), .rstn(rstn), .data_in(WE_REG), .data_out(WE_REG_resync));
+    localparam int NT_LOG2 = $clog2(NT);
 
     // State machine
-    typedef logic enum [1:0] {INIT_ST, READ_START_ADDR_ST, WAIT_TVALID_ST, RW_TDATA_ST} statetype;
+    typedef enum logic [1:0] {INIT_ST, READ_START_ADDR_ST, WAIT_TVALID_ST, RW_TDATA_ST} statetype;
     statetype state;
 
     // WE_REG_resync
     logic WE_REG_resync;
+
+    // sychronizer
+    synchronizer_n #(.N(2)) sync0(.clk(clk), .rstn(rstn), .data_in(WE_REG), .data_out(WE_REG_resync));
 
     // Axis registers
     logic tready_i;
@@ -82,7 +82,7 @@ module data_writer #(
             mem_en_r <= 0;
         end else begin 
             // Axis registers
-            tready_r <= tread_i;
+            tready_r <= tready_i;
             tdata_r <= s_axis_tdata;
             tvalid_r <= s_axis_tvalid;
 
@@ -94,7 +94,7 @@ module data_writer #(
 
             // Memory address
             if (READ_START_ADDR_ST == 1) begin 
-                mem_addr_full <= $unsigned(int(START_ADDR_REG));
+                mem_addr_full <= $unsigned(int'(START_ADDR_REG));
             end else if (RW_TDATA_ST == 1) begin 
                 mem_addr_full <= mem_addr_full + 1;
             end
@@ -105,8 +105,8 @@ module data_writer #(
     end
 
     // Address computation
-    mem_addr_low <= mem_addr_full[NT_LOG2-1:0];
-    mem_addr_high <= mem_addr_full[NT_LOG2+N-1:NT_LOG2];
+    assign mem_addr_low = mem_addr_full[NT_LOG2-1:0];
+    assign mem_addr_high = mem_addr_full[NT_LOG2+N-1:NT_LOG2];
 
     // Finite State Machine
     always_ff@(posedge clk) begin 
@@ -134,7 +134,7 @@ module data_writer #(
 
     logic read_start_addr_state;
     logic rw_tdata_state;
-    logic tready_i;
+    //logic tready_i;
 
     // Output logic
     always_comb begin 
@@ -143,14 +143,14 @@ module data_writer #(
         tready_i = 0;
 
         case (state)
-            INIT_ST: 
+            //INIT_ST: 
             READ_START_ADDR_ST: 
                 read_start_addr_state = 1;
             WAIT_TVALID_ST: 
                 tready_i = 1;
             RW_TDATA_ST: begin 
                 rw_tdata_state = 1;
-                tread_i = 1;
+                tready_i = 1;
             end
         endcase
     end

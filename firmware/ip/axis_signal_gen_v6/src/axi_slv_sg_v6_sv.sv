@@ -1,15 +1,7 @@
 // axi_slv_sg_v6.sv
+// 
 
-/*
-    Quick Note: 
-
-    There could be an issue with the decoding_regs_aclk block's case statement.
-    The compiler was having issues with dynamically changing bit widths, so I had to 
-    use a -= convention to get the tool to stop complaining. However, I fear this would
-    lead to abnormal behavior
-*/
-
-module axi_slv_sg_v6 #(parameter DATA_WIDTH = 32, parameter ADDR_WIDTH = 6)(
+module axi_slv_sg_v6_sv #(parameter DATA_WIDTH = 32, parameter ADDR_WIDTH = 6)(
     input logic aclk,
     input logic aresetn,
 

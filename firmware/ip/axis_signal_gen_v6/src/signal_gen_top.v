@@ -89,7 +89,7 @@ wire  [N_DDS*16-1:0] mem_dob_imag;
 /**********************/
 
 // Fifo.
-fifo_xpm
+fifo_behav
    #(
       // Data width.
       .B  (160),
@@ -119,7 +119,7 @@ assign fifo_wr_en = s1_axis_tvalid_i;
 assign fifo_din      = s1_axis_tdata_i;
 
 // Data writer.
-data_writer
+data_writer_sv
    #(
       // Number of tables.
       .NT (N_DDS   ),
@@ -156,7 +156,7 @@ generate
       /* Block instantiation */
       /***********************/
       // Memory for Real Part.
-      bram_dp_xpm
+      dp_bmem_behav
       #(
          .OUT_REG_ENA   (1),
          // Memory address size.
@@ -182,7 +182,7 @@ generate
 
         if (ENVELOPE_TYPE == "COMPLEX") begin
             // Memory for Imaginary Part.
-            bram_dp_xpm
+            dp_bmem_behav
             #(
                .OUT_REG_ENA   (1),
                // Memory address size.

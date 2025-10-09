@@ -1,7 +1,7 @@
 // synchronizer_n.sv
 // SystemVerilog translation of synchronizer_n.vhd
 
-module synchronizer_n #(parameter N = 2)(
+module synchronizer_n_sv #(parameter N = 2)(
     input logic clk,
     input logic rstn,
     input logic data_in,
