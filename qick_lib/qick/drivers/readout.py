@@ -1099,39 +1099,40 @@ class MrBufferEt(SocIP):
 
         # backtrace until we get to a switch or fullspeed-capable readout
         ro_types = ["axis_readout_v2", "axis_dyn_readout_v1"]
-        block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's00_axis', ro_types+["axis_switch"])
+        try:
+            block, port, blocktype = soc.metadata.trace_back(self['fullpath'], 's00_axis', ro_types+["axis_switch"])
 
-        # get the MR switch
-        if blocktype == "axis_switch":
-            sw_block = block
-            self.switch = soc._get_block(sw_block)
+            # get the MR switch
+            if blocktype == "axis_switch":
+                sw_block = block
+                self.switch = soc._get_block(sw_block)
 
-            # Number of slave interfaces.
-            NUM_SI_param = int(soc.metadata.get_param(sw_block, 'NUM_SI'))
+                # Number of slave interfaces.
+                NUM_SI_param = int(soc.metadata.get_param(sw_block, 'NUM_SI'))
 
-            # Back trace all slaves.
-            for iIn in range(NUM_SI_param):
-                inname = "S%02d_AXIS" % (iIn)
-                trace_result = soc.metadata.trace_back(sw_block, inname, ro_types)
-                # skip switch inputs that aren't connected to anything
-                if trace_result is None: continue
-                ro_block, port, blocktype = trace_result
+                # Back trace all slaves.
+                for iIn in range(NUM_SI_param):
+                    inname = "S%02d_AXIS" % (iIn)
+                    trace_result = soc.metadata.trace_back(sw_block, inname, ro_types)
+                    # skip switch inputs that aren't connected to anything
+                    if trace_result is None: continue
+                    ro_block, port, blocktype = trace_result
 
-                # trace the decimated output forward to find the avg_buf driven by this readout
-                block, port, blocktype = soc.metadata.trace_forward(ro_block, 'm1_axis', BUF_TYPES)
+                    # trace the decimated output forward to find the avg_buf driven by this readout
+                    block, port, blocktype = soc.metadata.trace_forward(ro_block, 'm1_axis', BUF_TYPES)
 
-                self.buf2switch[block] = iIn
+                    self.buf2switch[block] = iIn
+                    self.cfg['readouts'].append(block)
+            else:
+                # no switch, just wired to a single readout
+                # trace forward to find the avg_buf driven by this readout
+                block, port, blocktype = soc.metadata.trace_forward(block, 'm1_axis', BUF_TYPES)
+
+                self.buf2switch[block] = 0
                 self.cfg['readouts'].append(block)
-        else:
-            # no switch, just wired to a single readout
-            # trace forward to find the avg_buf driven by this readout
-            block, port, blocktype = soc.metadata.trace_forward(block, 'm1_axis', BUF_TYPES)
-
-            self.buf2switch[block] = 0
-            self.cfg['readouts'].append(block)
-
-
-        self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = soc.metadata.trace_trigger(self['fullpath'], 'trigger')
+            self.cfg['trigger_type'], self.cfg['trigger_port'], self.cfg['trigger_bit'] = soc.metadata.trace_trigger(self['fullpath'], 'trigger')
+        except:
+            pass
 
     def route(self, ch):
         # Route switch to channel.

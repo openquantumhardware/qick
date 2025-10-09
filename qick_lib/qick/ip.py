@@ -271,6 +271,8 @@ class QickMetadata:
                 next_port = 's_tproc_axis'
             elif next_type == "axis_resampler_2x1_v1":
                 next_port = 's_axis'
+            elif next_type == "axis_reorder_iq_v1":
+                next_port = 's_axis'
             else:
                 raise RuntimeError("failed to trace back from %s - unrecognized IP block %s" % (start_block, next_block))
 
@@ -336,6 +338,16 @@ class QickMetadata:
         if len(found) != 1:
             raise RuntimeError("traced forward from %s for one block of type %s, but found %s (and dead ends %s)" % (start_block, goal_types, found, dead_ends))
         return found[0]
+
+    def list_outputs(self, block, port, goal_types):
+        """Given a port that might go directly to one block or be broadcast to multiple blocks, return a list of (block, port, blocktype) for the destination blocks.
+        """
+        outputs = [self.trace_forward(block, port, goal_types+["axis_broadcaster"])]
+        if outputs[0][2] == "axis_broadcaster":
+            block = outputs[0][0]
+            nouts = int(self.get_param(block, 'C_NUM_MI_SLOTS'))
+            outputs = [self.trace_forward(block, 'M%02d_AXIS' % (i), goal_types) for i in range(nouts)]
+        return outputs
 
     def _analyze_clkwiz(self, blockname):
         """Compute the range of valid input frequencies to a clocking wizard, based on the VCO range.
