@@ -46,10 +46,18 @@ module bmem_testbench #(parameter int ADDR_WIDTH = $clog2(1024),
     
     // Generate Clock
     always begin
-        CLKA = 1; CLKB = 1;
+        CLKA = 1;
         #5;
-        CLKA = 0; CLKB = 0;
+        CLKA = 0;
         #5;
+    end
+
+    always begin
+        #9;
+        CLKB = 1;
+        #9;
+        CLKB = 0;
+        #9;
     end
     
     // Pulse Reset and set some logic
