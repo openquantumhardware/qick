@@ -19,8 +19,14 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
+// use with bram_dp_behav (OSS)
+// found in firmware > openhdl
 
-module bmem_testbench #(parameter int ADDR_WIDTH = $clog2(1024),
+// use with bram_dp_xpm (IP)
+// found in firmware > hdl
+
+
+module bram_dp_testbench #(parameter int ADDR_WIDTH = $clog2(1024),
                         parameter int DATA_WIDTH = 32)();
     
     // common inputs
@@ -36,7 +42,7 @@ module bmem_testbench #(parameter int ADDR_WIDTH = $clog2(1024),
     logic [DATA_WIDTH-1:0] DOA_IP, DOB_IP;
     
     // open source module
-    dp_bmem_behav #(.OUTPUT_REG(1), .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH))
+    bram_dp_behav #(.OUTPUT_REG(1), .ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(DATA_WIDTH))
                     oss_dut(    RSTA, CLKA, PIPE_ENA, REA, WEA, ADDRA, DIA, DOA_DV, DOA_OSS,
                                 RSTB, CLKB, PIPE_ENB, REB, WEB, ADDRB, DIB, DOB_DV, DOB_OSS);
                                 
