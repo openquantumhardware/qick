@@ -20,19 +20,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="60.105500 us"></ZoomEndTime>
+      <ZoomEndTime time="60.105501 us"></ZoomEndTime>
       <Cursor1Time time="60.105500 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="150"></ValueColumnWidth>
+      <ValueColumnWidth column_width="146"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="9" />
-   <wave_markers>
-      <marker label="" time="23760744" />
-      <marker label="" time="23771072" />
-      <marker label="" time="24643060" />
-   </wave_markers>
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>

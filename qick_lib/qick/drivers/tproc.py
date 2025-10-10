@@ -569,6 +569,15 @@ class Axis_QICK_Proc(SocIP):
         else:
             return 'internal'
 
+    def set_lfsr_cfg(self, mode, core=0):
+        """
+        Configures the mode of the LFSR
+        0: disabled, 1: free running, 2: step on s1 read, 3: step on s0 write
+        """
+        CORE_CFG_LFSR_MASK = 0x3
+        self.core_cfg &= (~CORE_CFG_LFSR_MASK) << (core*2)
+        self.core_cfg |= (mode & CORE_CFG_LFSR_MASK) << (core*2)
+
     def __str__(self):
         lines = []
         lines.append('---------------------------------------------')

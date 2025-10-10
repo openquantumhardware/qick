@@ -114,7 +114,7 @@ reg [31:0]  reg_A_nxt [2] ;
 reg [1:0] rfrom_rand_r, rfrom_core_r, rfrom_port_r, rfrom_status_r, rfrom_stime_r;  
 
 
-assign rfrom_rand       = |rfrom_rand_r    ; // READ FROM CORE_R_DT(s6, s7)
+assign rfrom_rand       = |rfrom_rand_r    ; // READ FROM S_RAND (s1)
 assign rfrom_core_rdt   = |rfrom_core_r    ; // READ FROM CORE_R_DT(s6, s7)
 assign rfrom_port       = |rfrom_port_r    ; // READ FROM IN_PORT  (s8, s9))
 assign rfrom_status     = |rfrom_status_r  ; // READ FROM STATUS   (s10)
