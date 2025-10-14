@@ -11,6 +11,12 @@ real T_SCLK     = 5.0;    // Half Clock Period for PS & AXI (100MHz)
 
 module tb();
 
+//------------------------------------------------------------------------
+// Define Test to run
+//------------------------------------------------------------------------
+string TEST_NAME = "test_basic_pulses";
+
+
 // -----------------------------------------------------------------------
 // DUT generics
 // -----------------------------------------------------------------------
@@ -48,26 +54,27 @@ xil_axi_ulong   SG_ADDR_WE         = 32'h40000004; // 1
 // Clock Generation
 // -----------------------------------------------------------------------
 logic           s_ps_dma_aclk, s_ps_dma_aresetn;
-logic           sg_clk, rst_ni;
+logic           sg_clk;
+logic [4:0]     dac_fs_gen;
+logic           dac_fs;
 
 initial begin
-    s_ps_dma_aclk = 1'b0;
-    forever #(T_SCLK*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
+  s_ps_dma_aclk = 1'b0;
+  #0.5ns
+  forever # (T_SCLK*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
 end
 
 initial begin
-    sg_clk = 1'b0;
-    forever #(T_SG_CLK*1.0ns) sg_clk = ~sg_clk;
+   dac_fs_gen = 'd0;
+   forever # (T_SG_CLK*1.0ns/N_DDS) dac_fs_gen = dac_fs_gen + 'd1;
 end
+assign dac_fs  = dac_fs_gen[0];
+assign sg_clk  = dac_fs_gen[4];
 
-initial begin
-    s_ps_dma_aresetn = 1'b0;
-    rst_ni           = 1'b0;
-    repeat (16) @(posedge s_ps_dma_aclk);
-    s_ps_dma_aresetn = 1'b1;
-    repeat (16) @(posedge sg_clk);
-    rst_ni           = 1'b1;
-end
+//  RST Generation
+logic rst_ni;
+assign s_ps_dma_aresetn  = rst_ni;
+
 
 // -----------------------------------------------------------------------
 // Signal Generator
@@ -123,11 +130,12 @@ wire            s_axi_sg_wready;    // Write Data Ready
 wire [3:0]      s_axi_sg_wstrb;     // Write Strobe
 wire            s_axi_sg_wvalid;    // Write Valid
 
+
 axi_mst_0 u_axi_mst_sg_0 (
     .aclk           (s_ps_dma_aclk    ),
     .aresetn        (s_ps_dma_aresetn ),
-    .m_axi_araddr   (s_axi_araddr     ),
-    .m_axi_arprot   (s_axi_arprot     ),
+    .m_axi_araddr   (s_axi_sg_araddr  ),
+    .m_axi_arprot   (s_axi_sg_arprot  ),
     .m_axi_awprot   (s_axi_sg_awprot  ),
     .m_axi_awready  (s_axi_sg_awready ),
     .m_axi_awvalid  (s_axi_sg_awvalid ),
@@ -172,13 +180,13 @@ u_axis_signal_gen_v6_0 (
 
     .s_axi_araddr   (s_axi_sg_araddr    ),
     .s_axi_arprot   (s_axi_sg_arprot    ),
-    .s_axi_arvalid  (s_axi_arvalid      ),
-    .s_axi_arready  (s_axi_arready      ),
+    .s_axi_arvalid  (s_axi_sg_arvalid   ),
+    .s_axi_arready  (s_axi_sg_arready   ),
 
     .s_axi_rdata    (s_axi_sg_rdata     ),
     .s_axi_rresp    (s_axi_sg_rresp     ),
     .s_axi_rvalid   (s_axi_sg_rvalid    ),
-    .s_axi_rready   (s_axi_rready       ),
+    .s_axi_rready   (s_axi_sg_rready    ),
 
     // AXIS Slave to load memory samples.
     .s0_axis_aclk       (s_ps_dma_aclk      ),
@@ -217,10 +225,41 @@ dac_top #(
     .dac_out        (dac_out)
 );
 
+// DAC interfaces
+localparam  int DAC_BITS   = 16;
+
+real        vref           = 1.0;      // reference voltage
+real        expected_out [N_DAC];      // per lane expected output
+integer     f_csv;
+
+assign m_axis_sg_tready = 1'b1;       // always ready/consume
+
+// Write one line per lane for each valid vector from signal-gen
+always @(posedge sg_clk) begin
+  if (rst_ni && m_axis_sg_tvalid) begin
+    for (int k = 0; k < N_DAC; k++) begin
+      automatic int signed code = $signed(m_axis_sg_tdata[k*DAC_BITS +: DAC_BITS]);
+      expected_out[k] = (vref * code) / (2.0 ** (DAC_BITS-1));
+
+      // time_ns,channel,code,aout,expected
+      $fwrite(f_csv, "%0t,%0d,%0d,%f,%f\n",
+              $realtime, k, code, dac_out[k], expected_out[k]);
+    end
+  end
+end
+
 
 //--------------------------------------
 // TEST STIMULI
 //--------------------------------------
+logic tb_load_mem, tb_load_mem_done;
+logic tb_test_run_start, tb_test_run_done;
+logic tb_test_read_start, tb_test_read_done;
+
+wire s0_axis_sg_aclk = s_ps_dma_aclk;
+
+
+
 
 initial begin
     // create agent
@@ -232,10 +271,98 @@ initial begin
 
     $display("*** Start Test ***");
 
+    // initial values
+    rst_ni              = 1'b0;
+    tb_load_mem         = 1'b0;
+    tb_load_mem_done    = 1'b0;
+
+    tb_test_run_start   = 1'b1;
+    tb_test_run_done    = 1'b0;
+    tb_test_read_start  = 1'b1;
+    tb_test_read_start  = 1'b0;
+
+    s0_axis_sg_tvalid   = 0;
+    s0_axis_sg_tdata    = 0;
+
+    #10ns;
+
+      // Open CSV
+    f_csv = $fopen("dout.csv", "w");
+    if (f_csv == 0) $fatal("Failed to open big_dac_capture.csv");
+    $fwrite(f_csv, "time_ns,channel,code,aout,expected\n");
+
+    // Hold Reset
+    repeat(16) @(posedge s_ps_dma_aclk);
+    #0.1ns;
+    // Release Reset
+    rst_ni = 1'b1;
+
+    #1us;
+
+    // Load Signal Generator Envelope Table Memory.
+    sg_load_mem(TEST_NAME);
+
+    #200us;
+
+    $fclose(f_csv);
+    $display("Captured DAC data to dout.csv");
+    $display("*** End Test ***");
+    $finish();
+
+
 end
 
+// Load pulse data into memory
+task sg_load_mem(string test_name);
+    string sg_file;
+    int fd, vali, valq;
+    bit signed [15:0] ii, qq;
 
+    $display("### %t - Task sg_load_mem() start ###", $realtime());
 
+    s0_axis_sg_tdata    = 0;
+    s0_axis_sg_tvalid   = 0;
 
+    $display("################################");
+    $display("### Load envelope into Table ###");
+    $display("################################");
+    $display("t = %0t", $time);
+
+    // start_addr
+    data_wr = 0;
+    axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
+    #100ns;
+
+    // we
+    data_wr = 1;
+    axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
+    #100ns;
+
+    // Load Envelope Table Memory
+    tb_load_mem = 1;
+
+    // File must be relative to where the simulation is run
+    sg_file = {"sg_mem_test/test_basic_pulses", test_name, "/sg_0.mem"};
+    fd = $fopen(sg_file, "r");
+
+    wait (s0_axis_sg_tready);
+
+    while($fscanf(fd, "%d, %d", vali, valq) == 2) begin
+        $display("I, Q: %d, %d", vali, valq);
+        ii = vali;
+        qq = valq;
+        @(posedge s0_axis_sg_aclk);
+        s0_axis_sg_tvalid   = 1;
+        s0_axis_sg_tdata    = {qq, ii};
+    end
+    $fclose(fd);
+
+    @(posedge s0_axis_sg_aclk);
+    s0_axis_sg_tvalid   = 0;
+
+    tb_load_mem_done    = 1;
+
+    $display("### %t - Task sg_load_mem() end ###", $realtime());
+endtask
 
 endmodule
