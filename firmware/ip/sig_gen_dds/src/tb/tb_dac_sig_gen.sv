@@ -1,7 +1,7 @@
 // testbench for big dac + xilinx dds + axis_sig_gen_v6
 
 `timescale 1ns/1ps
-`include "_qproc_defines.svh"
+// `include "_qproc_defines.svh"
 
 import axi_vip_pkg::*;
 import axi_mst_0_pkg::*;
@@ -17,16 +17,16 @@ module tb();
 parameter N                 = 10; // Envelope Table Memory Size (in 2**N words)
 parameter N_DDS             = 16; // Number of parallel DDS blocks.
 
-// True: Generate DDS for Envelope Upconversion. 
+// True: Generate DDS for Envelope Upconversion.
 // False: Remove DDS for Baseband Envelope only
-parameter GEN_DDS           = "TRUE"; 
+parameter GEN_DDS           = "TRUE";
 
-// COMPLEX: Allow Complex Envelope generation. 
+// COMPLEX: Allow Complex Envelope generation.
 // REAL: Allow only Real envelope generation
 parameter ENVELOPE_TYPE     = "COMPLEX";
 
 // for BIG DAC
-parameter BITS              = DDS*16 - 1; // each baby dac is 16 bits
+parameter BITS              = N_DDS*16 - 1; // each baby dac is 16 bits
 parameter N_DAC             = N_DDS;      // same as number of DDS in parallel
 
 
@@ -42,7 +42,7 @@ xil_axi_resp_t  resp;
 
 // AXI VIP master address
 xil_axi_ulong   SG_ADDR_START_ADDR = 32'h40000000; // 0 define base addr
-xil_axi_ulong   SG_ADDR_WE         = 32'h40000004; // 1 
+xil_axi_ulong   SG_ADDR_WE         = 32'h40000004; // 1
 
 // -----------------------------------------------------------------------
 // Clock Generation
@@ -67,7 +67,7 @@ initial begin
     s_ps_dma_aresetn = 1'b1;
     repeat (16) @(posedge sg_clk);
     rst_ni           = 1'b1;
-  end
+end
 
 // -----------------------------------------------------------------------
 // Signal Generator
@@ -79,8 +79,8 @@ wire            s0_axis_sg_tvalid;
 logic           s0_axis_sg_tready;
 
 // signal generator s1_axis interface
-logic           rst_nt;
-logic           sg_clk;
+// logic           rst_nt;
+// logic           sg_clk;
 
 wire [159:0]    s1_axis_sg_tdata;
 wire            s1_axis_sg_tvalid;
@@ -148,7 +148,7 @@ axis_signal_gen_v6 #(
     .N              (N              ),
     .N_DDS          (N_DDS          ),
     .GEN_DDS        (GEN_DDS        ),
-    .ENVELOPE_TYPE  (ENVELOPE_TYPE  ),
+    .ENVELOPE_TYPE  (ENVELOPE_TYPE  )
 )
 
 u_axis_signal_gen_v6_0 (
@@ -209,13 +209,13 @@ real    dac_out[N_DAC];
 
 dac_top #(
     .bits       (BITS   ),
-    .N_DAC      (N_DAC  ),
+    .N_DAC      (N_DAC  )
 ) u_dac_top (
     .clk            (sg_clk),
     .s_axis_tdata   (m_axis_sg_tdata),
     .s_axis_tvalid  (m_axis_sg_tvalid),
-    .dac_out        (dac_out),
-)
+    .dac_out        (dac_out)
+);
 
 
 //--------------------------------------
@@ -224,11 +224,11 @@ dac_top #(
 
 initial begin
     // create agent
-    axi_mst_sg_agent = new("axi_mst_sg_0 VIP Agent", tb.u_axi_mst_sg_0.inst.IF)
+    axi_mst_sg_agent = new("axi_mst_sg_0 VIP Agent", tb.u_axi_mst_sg_0.inst.IF);
     // set tag for agent
     axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
     // start agent
-    axi_mst_sg_agent.start_master()
+    axi_mst_sg_agent.start_master();
 
     $display("*** Start Test ***");
 
