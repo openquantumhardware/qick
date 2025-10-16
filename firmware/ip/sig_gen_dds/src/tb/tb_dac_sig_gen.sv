@@ -81,17 +81,28 @@ assign s_ps_dma_aresetn  = rst_ni;
 // -----------------------------------------------------------------------
 
 // signal generator s0_axis interface
-wire [31:0]     s0_axis_sg_tdata;
-wire            s0_axis_sg_tvalid;
-logic           s0_axis_sg_tready;
+logic [31:0]     s0_axis_sg_tdata;
+logic            s0_axis_sg_tvalid;
+logic            s0_axis_sg_tready;
 
 // signal generator s1_axis interface
 // logic           rst_nt;
 // logic           sg_clk;
 
-wire [159:0]    s1_axis_sg_tdata;
-wire            s1_axis_sg_tvalid;
-wire            s1_axis_sg_tready;
+logic [159:0]    s1_axis_sg_tdata;
+logic            s1_axis_sg_tvalid;
+logic            s1_axis_sg_tready;
+
+// Waveform Fields.
+reg      [31:0]         freq_r;
+reg      [31:0]         phase_r;
+reg      [15:0]         addr_r;
+reg      [15:0]         gain_r;
+reg      [15:0]         nsamp_r;
+reg      [1:0]          outsel_r;
+reg                     mode_r;
+reg                     stdysel_r;
+reg                     phrst_r;
 
 // DAC data in
 logic [N_DDS*16-1:0]    m_axis_sg_tdata;
@@ -134,8 +145,13 @@ wire            s_axi_sg_wvalid;    // Write Valid
 axi_mst_0 u_axi_mst_sg_0 (
     .aclk           (s_ps_dma_aclk    ),
     .aresetn        (s_ps_dma_aresetn ),
+   
     .m_axi_araddr   (s_axi_sg_araddr  ),
     .m_axi_arprot   (s_axi_sg_arprot  ),
+    .m_axi_arvalid  (s_axi_sg_arvalid ),
+    .m_axi_arready  (s_axi_sg_arready ),
+ 
+    .m_axi_awaddr   (s_axi_sg_awaddr  ),
     .m_axi_awprot   (s_axi_sg_awprot  ),
     .m_axi_awready  (s_axi_sg_awready ),
     .m_axi_awvalid  (s_axi_sg_awvalid ),
@@ -213,6 +229,7 @@ u_axis_signal_gen_v6_0 (
 // -----------------------------------------------------------------------
 // DAC
 // -----------------------------------------------------------------------
+assign s1_axis_sg_tdata = {{10{1'b0}},phrst_r,stdysel_r,mode_r,outsel_r,nsamp_r,{16{1'b0}},gain_r,{16{1'b0}},addr_r,phase_r,freq_r};
 real    dac_out[N_DAC];
 
 dac_top #(
@@ -227,7 +244,6 @@ dac_top #(
 
 // DAC interfaces
 localparam  int DAC_BITS   = 16;
-
 real        vref           = 1.0;      // reference voltage
 real        expected_out [N_DAC];      // per lane expected output
 integer     f_csv;
@@ -256,6 +272,8 @@ logic tb_load_mem, tb_load_mem_done;
 logic tb_test_run_start, tb_test_run_done;
 logic tb_test_read_start, tb_test_read_done;
 
+logic tb_load_wave, tb_load_wave_done;
+
 wire s0_axis_sg_aclk = s_ps_dma_aclk;
 
 
@@ -271,98 +289,77 @@ initial begin
 
     $display("*** Start Test ***");
 
-    // initial values
-    rst_ni              = 1'b0;
-    tb_load_mem         = 1'b0;
-    tb_load_mem_done    = 1'b0;
+    // Reset Sequence
+    s_axi_aresetn       <= 0;
+    s_ps_dma_aresetn    <= 0;
+    rst_ni              <= 0;
 
-    tb_test_run_start   = 1'b1;
-    tb_test_run_done    = 1'b0;
-    tb_test_read_start  = 1'b1;
-    tb_test_read_start  = 1'b0;
+    #500;
+    s_axi_aresetn       <= 1;
+    s_ps_dma_aresetn    <= 1;
+    rst_ni              <= 1;
+    #1000
 
-    s0_axis_sg_tvalid   = 0;
-    s0_axis_sg_tdata    = 0;
-
-    #10ns;
-
-      // Open CSV
-    f_csv = $fopen("dout.csv", "w");
-    if (f_csv == 0) $fatal("Failed to open big_dac_capture.csv");
-    $fwrite(f_csv, "time_ns,channel,code,aout,expected\n");
-
-    // Hold Reset
-    repeat(16) @(posedge s_ps_dma_aclk);
-    #0.1ns;
-    // Release Reset
-    rst_ni = 1'b1;
-
-    #1us;
-
-    // Load Signal Generator Envelope Table Memory.
-    sg_load_mem(TEST_NAME);
-
-    #200us;
-
-    $fclose(f_csv);
-    $display("Captured DAC data to dout.csv");
-    $display("*** End Test ***");
-    $finish();
-
-
-end
-
-// Load pulse data into memory
-task sg_load_mem(string test_name);
-    string sg_file;
-    int fd, vali, valq;
-    bit signed [15:0] ii, qq;
-
-    $display("### %t - Task sg_load_mem() start ###", $realtime());
-
-    s0_axis_sg_tdata    = 0;
-    s0_axis_sg_tvalid   = 0;
-
-    $display("################################");
-    $display("### Load envelope into Table ###");
-    $display("################################");
+    $display("############################");
+    $display("### Load data into Table ###");
+    $display("############################");
     $display("t = %0t", $time);
 
-    // start_addr
-    data_wr = 0;
+    data_wr     = 0;
     axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
     #100ns;
 
-    // we
-    data_wr = 1;
+    data_wr     = 1;
     axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
     #100ns;
 
-    // Load Envelope Table Memory
-    tb_load_mem = 1;
+    //Load Envelope table Memory
+    tb_load_mem <= 1;
+    wait(tb_load_mem_done);
+    #100ns;
 
-    // File must be relative to where the simulation is run
-    sg_file = {"sg_mem_test/test_basic_pulses", test_name, "/sg_0.mem"};
-    fd = $fopen(sg_file, "r");
+    data_wr = 0;
+    axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
+    #100ns;
 
-    wait (s0_axis_sg_tready);
+    $display("#######################");
+    $display("### Queue Waveforms ###");
+    $display("#######################");
+    $display("t = %0t", $time);
 
-    while($fscanf(fd, "%d, %d", vali, valq) == 2) begin
-        $display("I, Q: %d, %d", vali, valq);
-        ii = vali;
-        qq = valq;
-        @(posedge s0_axis_sg_aclk);
-        s0_axis_sg_tvalid   = 1;
-        s0_axis_sg_tdata    = {qq, ii};
+    tb_load_wave    <= 1;
+    tb_load_out     <= 1;
+    wait(tb_load_wave_done);
+
+    #10us;
+
+    tb_write_out <= 0;
+
+    #5us;
+
+    $finish();
+end
+
+// Load pulse data into memory
+initial begin
+    int fd, vali, valq;
+    bit signed [15:0]   ii, qq;
+
+    s0_axis_sg_tvalid   <= 0;
+    s0_axis_sg_tdata    <= 0;
+
+    wait(tb_load_mem);
+
+    fd = $fopen("./sg_mem", "r");
+
+    wait(s0_axis_sg_tready);
+
+    while($fscanf(fd, "%d", "%d", vali, valq) == 2) begin 
+        $display
     end
-    $fclose(fd);
+end
 
-    @(posedge s0_axis_sg_aclk);
-    s0_axis_sg_tvalid   = 0;
 
-    tb_load_mem_done    = 1;
 
-    $display("### %t - Task sg_load_mem() end ###", $realtime());
-endtask
 
 endmodule
