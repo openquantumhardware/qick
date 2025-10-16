@@ -23,7 +23,7 @@ write_bd_tcl -force -include_layout bd.tcl
 Block RAM (1080 tiles total) is always the limiting resource. It is only used for our own IPs as listed below, with the exception of DMA cores which use 1-8 tiles each and the DDR4 interface which uses ~25.5 tiles.
 High BRAM utilization will often make it harder for a design to meet timing.
 
-### standard readout (`axis_readout_v2`):
+### standard readout (`axis_readout_v2`), regular dynamic readout (`axis_dyn_readout_v1`):
 
 RFDC ADC settings:
 * Digital Output Data: Real
@@ -36,7 +36,7 @@ connect: RFDC -> axis register slice (optional, defaults) -> readout
 
 BRAM: 16 tiles
 
-### tProc-configured readout (`axis_readout_v3`):
+### fast dynamic readout (`axis_readout_v3`):
 
 RFDC ADC settings: same as standard
 
@@ -72,10 +72,10 @@ RFDC ADC settings:
 
 connect: RFDC -> axis register slice (optional, defaults) -> PFB readout ("interleaved input" checked)
 
-### mux readout (`axis_pfb_readout_v3`) on 216:
+### mux readout (`axis_pfb_readout_v3`, `axis_pfb_readout_v4`):
 Same RFDC settings and connectivity as v2; this readout always expects interleaved input, and for dual-ADC systems (ZCU111, RFSoC4x2) you need to use an axis combiner and `axis_reorder_iq_v1`
 
-BRAM: 8 tiles
+BRAM: 8 tiles for v3, 16 tiles for v4
 
 ### full-speed gen (`axis_signal_gen_v6`):
 
@@ -90,7 +90,7 @@ RFDC DAC settings:
 
 BRAM: 32 tiles for the DDSes, 64 tiles for our typical buffer size of N=12
 
-### mux4 gen (`axis_sg_mux4`) v1 or v2:
+### mux4 gen (`axis_sg_mux4`) v1 or v2, mixmux8 (`axis_sg_mixmux8_v1`):
 
 gen settings: N_DDS=4
 
@@ -101,23 +101,15 @@ RFDC DAC settings:
 * Mixer Type: Fine
 * Mixer Mode: I/Q->Real
 
-BRAM: 32 tiles
+BRAM: 32 tiles for mux4, 64 tiles for mixmux8
 
-### mux4 gen v3 (`axis_sg_mux4_v3`):
-
-gen settings: N Dds=16
-
-RFDC DAC settings: same as full-speed
-
-BRAM: 128 tiles
-
-### mux8 gen v1 (`axis_sg_mux8_v1`):
+### mux4 gen v3 (`axis_sg_mux4_v3`), mux8 gen v1 (`axis_sg_mux8_v1`):
 
 gen settings: N Dds=16
 
 RFDC DAC settings: same as full-speed
 
-BRAM: 256 tiles
+BRAM: 128 tiles for mux4, 256 tiles for mux8
 
 ### I/Q gen (`axis_constant_iq`):
 
@@ -130,7 +122,7 @@ RFDC DAC settings:
 * Mixer Type: Fine
 * Mixer Mode: I/Q->Real
 
-### int4 gen (`axis_sg_int4_v1`):
+### int4 gen (`axis_sg_int4_v1`, `axis_sg_int4_v2`):
 
 gen settings: N is up to you (buffer size will be `2^N`)
 
@@ -203,6 +195,8 @@ If IO ARM control is enabled, arm_i input can be connected to a tProc trigger bi
 DMA should have:
 * buffer length width 18, address width 32
 * write enabled, 1 channel, width 32 (auto), burst 16
+
+BRAM: 4.5 base for single input (2 SMP_MEM, 1.5 ARM_MEM, 1 TAG_MEM), plus 232 for TAG_FIFO_AW=18, 240 for SMP_FIFO_AW=19
 
 ### tProc v1 (`axis_tproc64x32_x8`):
 
