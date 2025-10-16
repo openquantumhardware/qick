@@ -418,6 +418,7 @@ class LFSR:
         self.val_bin = self.val_bin[1:]+new_value
         self.val_int = int(self.val_bin, 2)
         return self.val_int
+
     def print (self, debug=False):
         if not debug:
             print (self.val_bin, self.val_int)
