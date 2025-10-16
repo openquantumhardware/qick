@@ -418,8 +418,11 @@ class LFSR:
         self.val_bin = self.val_bin[1:]+new_value
         self.val_int = int(self.val_bin, 2)
         return self.val_int
-    def print (self):
-        print (self.val_bin, self.val_int)
+    def print (self, debug=False):
+        if not debug:
+            print (self.val_bin, self.val_int)
+        else:
+            print ('Bin: %32s / Hex: %8x / Dec: %0d' %(self.val_bin, self.val_int, self.val_int))
 
 
 class Assembler():
