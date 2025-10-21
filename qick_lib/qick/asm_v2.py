@@ -559,7 +559,7 @@ class Label(Macro):
 
 class End(Macro):
     def expand(self, prog):
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             insts = []
             insts.append(WriteReg(dst="s15", src=prog.p_addr+1))
             insts.append(AsmInst(inst={'CMD':'JUMP', 'ADDR':'s15'}, addr_inc=1))
@@ -659,7 +659,7 @@ class Jump(Macro):
     # label
     def expand(self, prog):
         insts = []
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
             insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
             insts.append(AsmInst(inst={'CMD':'JUMP', 'ADDR':'s15'}, addr_inc=1))
@@ -671,7 +671,7 @@ class Call(Macro):
     # label
     def expand(self, prog):
         insts = []
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
             insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
             insts.append(AsmInst(inst={'CMD':'CALL', 'ADDR':'s15'}, addr_inc=1))
@@ -683,7 +683,7 @@ class CondJump(Macro):
     # arg1, arg2, op, test, label
     def expand(self, prog):
         insts = []
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
             insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
         arg1 = prog._get_reg(self.arg1)
@@ -705,7 +705,7 @@ class CondJump(Macro):
             if self.op is not None:
                 raise RuntimeError("an operation was supplied, but no second operand")
             insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': arg1, 'UF': '1'}, addr_inc=1))
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'ADDR':'s15'}, addr_inc=1))
         else:
             insts.append(AsmInst(inst={'CMD': 'JUMP', 'IF': self.test, 'LABEL': self.label}, addr_inc=1))
@@ -767,13 +767,13 @@ class CloseLoop(Macro):
         reg = prog.reg_dict[lname].full_addr()
         # test i-n
 
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
             insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':label}, addr_inc=1))
 
         insts.append(AsmInst(inst={'CMD':'TEST', 'OP':'%s - #%d'%(reg, lcount-1)}, addr_inc=1))
         # if i!=n, jump to the start and increment i
-        if prog.p_addr >= 2**11:
+        if prog.tproccfg['pmem_size'] > 2**11:
             insts.append(AsmInst(inst={'CMD':'JUMP', 'ADDR':'s15', 'IF':'NZ', 'WR':'%s op'%(reg), 'OP':'%s + #1'%(reg)}, addr_inc=1))
         else:
             insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':label, 'IF':'NZ', 'WR':'%s op'%(reg), 'OP':'%s + #1'%(reg)}, addr_inc=1))
@@ -909,12 +909,12 @@ class Wait(TimedMacro):
             return []
         elif isinstance(t_reg, int):
             insts = []
-            if prog.p_addr >= 2**11:
+            if prog.tproccfg['pmem_size'] > 2**11:
                 # NOTE: to allow jump to address > 11bits user s_addr/s15 reg
                 insts.append(WriteReg(dst="s15", src=prog.p_addr+1))
             if check_bytes(t_reg, 3):
                 src = '@%d'%(t_reg)
-                if prog.p_addr >= 2**11:
+                if prog.tproccfg['pmem_size'] > 2**11:
                     insts.append(AsmInst(inst={'CMD':'WAIT', 'ADDR':'s15', 'C_OP':'time', 'TIME': src}, addr_inc=2))
                 else:
                     return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
@@ -930,7 +930,7 @@ class Wait(TimedMacro):
                 insts.append(WriteReg(dst="scratch", src=trunc-Assembler.WAIT_TIME_OFFSET))
                 insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': 's11 - %s'%(src)}, addr_inc=1))
                 # note that because this translates to three instructions, ADDR needs to be incremented by 2 (as opposed to 1 in the literal-time case)
-                if prog.p_addr >= 2**11:
+                if prog.tproccfg['pmem_size'] > 2**11:
                     insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':'s15'}, addr_inc=1))
                 else:
                     insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':f'&{prog.p_addr + 2}'}, addr_inc=1))
