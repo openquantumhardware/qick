@@ -440,7 +440,7 @@ class Assembler():
         
         def process_command(command : dict, p_addr : int) -> str:
             """
-                processes one command from program list and adds adds it to the assembler string as an instruction.
+                processes one command from program list and adds it to the assembler string as an instruction.
                 
                 :command (dict): current instruction from program_list to add in assembler
                 :p_addr (int): program address of the command in memory. // p_addr stands for program address.
@@ -512,6 +512,8 @@ class Assembler():
             # CHECK FOR LABEL SOURCE
             if ('SRC' in command):
                 if (command['SRC'] =='label'):
+                    if not 'ADDR' in command:
+                        command['ADDR'] = label_dict[command['LABEL']]
                     ADDR = command['ADDR']
                     if (ADDR in val_list):
                         label = key_list[val_list.index(ADDR)]
@@ -933,7 +935,7 @@ class Assembler():
                         elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
                             if CMD_DEST_SOURCE[1]  in label_dict:
                                 if (CMD_DEST_SOURCE[1]  == 's15'):
-                                    logger.info("COMMAND_RECOGNITION: BRANCH to r_addr  > line " + str(line_number))
+                                    logger.info("COMMAND_RECOGNITION: BRANCH to s_addr  > line " + str(line_number))
                                 else:
                                     logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
                                 command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
@@ -1045,7 +1047,7 @@ class Assembler():
                 command['UF'] = '1'
                 CODE = Instruction.CFG(command)
         ###############################################################################
-            elif (command['CMD'] == 'REG_WR'):
+            elif command['CMD'] == 'REG_WR':
                 CODE = Instruction.REG_WR(command)
         ###############################################################################
             elif command['CMD'] == 'DMEM_WR':
@@ -1054,7 +1056,7 @@ class Assembler():
             elif command['CMD'] == 'WMEM_WR':
                 CODE = Instruction.WMEM_WR(command)
         ###############################################################################
-            elif command['CMD']=='TRIG':
+            elif command['CMD'] =='TRIG':
                 CODE = Instruction.PORT_WR(command)
         ###############################################################################
             elif command['CMD'] in ['DPORT_WR', 'DPORT_RD', 'WPORT_WR']:
@@ -1093,6 +1095,7 @@ class Assembler():
             if (length != 72):
                 if (command['CMD'] == 'WAIT'):
                     logger.debug('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
+                    CODE[-1] = CODE[-1] + ' //' + command['CMD']
                 else:
                     raise RuntimeError(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
             if (command['CMD'] == 'WAIT'):
@@ -1882,7 +1885,8 @@ class Instruction():
     @staticmethod
     def WAIT (current : dict) -> str:
         binary_multi_list = []
-        current['ADDR'] = '&'+str(current['P_ADDR'])
+        if current['ADDR'] != 's15':
+            current['ADDR'] = '&'+str(current['P_ADDR'])
         test_op   = ''
         jump_cond = ''
         if   (current['C_OP'] == 'time') : 
