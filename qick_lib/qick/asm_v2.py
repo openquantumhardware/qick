@@ -910,6 +910,8 @@ class Wait(TimedMacro):
         elif isinstance(t_reg, int):
             insts = []
             if check_bytes(t_reg, 3):
+                # we can use the assembler's built-in WAIT
+                # note that because this translates to three instructions, ADDR needs to be incremented by 2 (as opposed to 1 in the literal-time case)
                 src = '@%d'%(t_reg)
                 if prog.tproccfg['pmem_size'] > 2**11:
                     # NOTE: to allow jump to address > 11bits user s_addr/s15 reg
@@ -918,7 +920,6 @@ class Wait(TimedMacro):
                     insts.append(AsmInst(inst={'CMD':'WAIT', 'ADDR':'s15', 'C_OP':'time', 'TIME': src}, addr_inc=2))
                 else:
                     return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
-                return insts
             elif check_bytes(t_reg, 4):
                 # we need to write to a scratch register
                 # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
@@ -927,7 +928,6 @@ class Wait(TimedMacro):
                 prog.add_reg("scratch", allow_reuse=True)
                 src = prog._get_reg("scratch")
                 insts.append(WriteReg(dst="scratch", src=trunc-Assembler.WAIT_TIME_OFFSET))
-                # note that because this translates to three instructions, ADDR needs to be incremented by 2 (as opposed to 1 in the literal-time case)
                 if prog.tproccfg['pmem_size'] > 2**11:
                     # NOTE: to allow jump to address > 11bits user s_addr/s15 reg
                     # the wait expands to four instructions (write time, write s15, test, jump) and we need to jump to the last of them, so we jump to p_addr+3
@@ -938,9 +938,9 @@ class Wait(TimedMacro):
                     # the wait expands to three instructions (write time, test, jump) and we need to jump to the last of them, so we jump to p_addr+2
                     insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': 's11 - %s'%(src)}, addr_inc=1))
                     insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':f'&{prog.p_addr + 2}'}, addr_inc=1))
-                return insts
             else:
                 raise RuntimeError("WAIT argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
+            return insts
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
 
