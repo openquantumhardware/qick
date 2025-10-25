@@ -922,7 +922,6 @@ class Wait(TimedMacro):
             elif check_bytes(t_reg, 4):
                 # we need to write to a scratch register
                 # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
-                insts = []
                 # constrain the value to signed 32-bit
                 trunc = np.int64(t_reg).astype(np.int32)
                 prog.add_reg("scratch", allow_reuse=True)
