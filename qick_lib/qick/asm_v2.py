@@ -2109,7 +2109,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # low-level ASM management
 
         # the initial values here are copied from command_recognition() and label_recognition() in tprocv2_assembler.py
-        self.prog_list = [{'P_ADDR':1, 'LINE':2, 'CMD':'NOP'}]
+        self.prog_list = [{'CMD':'NOP', 'P_ADDR':0, 'LINE':1}]
         self.labels = {'s15': 's15'} # register 15 predefinition
         # address in program memory
         self.p_addr = 1

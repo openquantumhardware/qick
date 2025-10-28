@@ -694,7 +694,7 @@ class Assembler():
                 :program_list (list): program instructions as a list of dictionaries.
                 
             """
-            program_list = [{'P_ADDR': 1, 'LINE': 2, 'CMD': 'NOP'}]
+            program_list = [{'P_ADDR': 0, 'LINE': 1, 'CMD': 'NOP'}]
             #program_list = []
             mem_addr = 0
             for line_number, command in enumerate(file_lines, start=1):
