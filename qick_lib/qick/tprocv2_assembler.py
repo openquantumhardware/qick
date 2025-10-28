@@ -227,6 +227,7 @@ regex = {
     'CDS'       : r'\s*([\w&\+\']+)'}
 
 import re
+import copy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -248,6 +249,15 @@ def check_name(name_str : str) -> bool:
     if ( check_reg(name_str) ):
         raise RuntimeError('CHECK_NAME, Name can not be a Register name: ' + name_str)
     return True
+
+def parse_lines_and_labels(program_list : list, label_dict : dict) -> None:
+    """add addresses for labels in command arguments; add line numbers if missing
+    """
+    for line_number, command in enumerate(program_list, start=1):
+        if (('LABEL' in command) and (command['LABEL'] in label_dict) and 'ADDR' not in command):
+            command['ADDR'] = label_dict[ command['LABEL'] ]
+        if not 'LINE' in command:
+            command['LINE'] = line_number
 
 def integer2bin(strin : str, bits : int = 8, uint : int = 0) -> str:
     """
@@ -493,6 +503,11 @@ class Assembler():
             assembler += '\n'
             return assembler
     
+        # make a copy of the program list before parse_lines_and_labels modifies it
+        program_list = copy.deepcopy(program_list)
+        # add label addresses and line numbers, if missing
+        parse_lines_and_labels(program_list, label_dict)
+
         assembler_code = ''
         key_list = list(label_dict.keys())
         val_list = list(label_dict.values())
@@ -512,8 +527,6 @@ class Assembler():
             # CHECK FOR LABEL SOURCE
             if ('SRC' in command):
                 if (command['SRC'] =='label'):
-                    if not 'ADDR' in command:
-                        command['ADDR'] = label_dict[command['LABEL']]
                     ADDR = command['ADDR']
                     if (ADDR in val_list):
                         label = key_list[val_list.index(ADDR)]
@@ -874,10 +887,7 @@ class Assembler():
                         elif (CMD_DEST_SOURCE[0] == 'REG_WR') and (CMD_DEST_SOURCE[2] == 'label' ) :
                             command_info['DST'] = CMD_DEST_SOURCE[1]
                             command_info['SRC'] = CMD_DEST_SOURCE[2]
-                            if CMD_DEST_SOURCE[3] not in label_dict:
-                                raise RuntimeError('COMMAND_RECOGNITION: Label: '+CMD_DEST_SOURCE[3]+' Not defined in line ' + str(line_number))
-                            command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[3]]
-                            logger.info('COMMAND_RECOGNITION: REG_WR command source label: '+CMD_DEST_SOURCE[3] +' replaced by value ' + command_info['ADDR'] + '  in line ' + str(line_number))
+                            command_info['LABEL'] = CMD_DEST_SOURCE[3]
                         else:
                             raise RuntimeError("COMMAND_RECOGNITION: [>3] Parameter Error in line " + str(line_number) )
 
@@ -1018,15 +1028,11 @@ class Assembler():
             :binary_program_list (list): each element is a string with 0s and 1s representing the binary program
             :binary_program_array (list): each element is a list of 32-bit ints representing the binary program
         """
-        def parse_lines_and_labels(program_list : list, label_dict : dict) -> None:
-            for line_number, command in enumerate(program_list, start=1):
-                if (('LABEL' in command) and (command['LABEL'] in label_dict) and 'ADDR' not in command):
-                    command['ADDR'] = label_dict[ command['LABEL'] ]
-                if not 'LINE' in command:
-                    command['LINE'] = line_number
-
         logger.debug("LIST2BIN: ##### LIST 2 BIN")
 
+        # make a copy of the program list before parse_lines_and_labels modifies it
+        program_list = copy.deepcopy(program_list)
+        # add label addresses and line numbers, if missing
         parse_lines_and_labels(program_list, label_dict)
         
         # first line is NOP
@@ -1132,7 +1138,7 @@ class Assembler():
         program_list, label_dict = Assembler.file_asm2list(filename)
         if not program_list:
             raise RuntimeError("ASM2BIN: Program list with errors.")
-        binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
+        binary_program_list = Assembler.list2bin(program_list, label_dict, save_unparsed_filename)
         if binary_program_list == []:
             binary_program_list = [[],[]]
         return binary_program_list
@@ -1147,7 +1153,7 @@ class Assembler():
         program_list, label_dict = Assembler.str_asm2list(str_asm)
         if not program_list:
             raise RuntimeError("ASM2BIN: Program list with errors.")
-        binary_program_list = Assembler.list2bin(program_list, save_unparsed_filename)
+        binary_program_list = Assembler.list2bin(program_list, label_dict, save_unparsed_filename)
         return binary_program_list
 
 ###############################################################################
