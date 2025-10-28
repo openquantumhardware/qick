@@ -1891,7 +1891,7 @@ class Instruction():
     @staticmethod
     def WAIT (current : dict) -> str:
         binary_multi_list = []
-        if current['ADDR'] != 's15':
+        if 'ADDR' not in current:
             current['ADDR'] = '&'+str(current['P_ADDR'])
         test_op   = ''
         jump_cond = ''

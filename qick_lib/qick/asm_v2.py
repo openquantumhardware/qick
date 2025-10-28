@@ -919,7 +919,8 @@ class Wait(TimedMacro):
                     insts.append(WriteReg(dst="s15", src=prog.p_addr+2))
                     insts.append(AsmInst(inst={'CMD':'WAIT', 'ADDR':'s15', 'C_OP':'time', 'TIME': src}, addr_inc=2))
                 else:
-                    return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
+                    #return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
+                    return [AsmInst(inst={'CMD':'WAIT', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
             elif check_bytes(t_reg, 4):
                 # we need to write to a scratch register
                 # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
