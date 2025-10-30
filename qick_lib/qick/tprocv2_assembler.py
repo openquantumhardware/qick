@@ -254,8 +254,21 @@ def parse_lines_and_labels(program_list : list, label_dict : dict) -> None:
     """add addresses for labels in command arguments; add line numbers if missing
     """
     for line_number, command in enumerate(program_list, start=1):
-        if (('LABEL' in command) and (command['LABEL'] in label_dict) and 'ADDR' not in command):
-            command['ADDR'] = label_dict[ command['LABEL'] ]
+        #if (('LABEL' in command) and (command['LABEL'] in label_dict) and 'ADDR' not in command):
+        #    command['ADDR'] = label_dict[ command['LABEL'] ]
+        if (('LABEL' in command) and 'ADDR' not in command):
+            if command['LABEL'] in label_dict:
+                command['ADDR'] = label_dict[ command['LABEL'] ]
+            elif command['LABEL'] == 'PREV':
+                command['ADDR'] = "&%d" % (command['P_ADDR'] - 1)
+            elif command['LABEL'] == 'HERE':
+                command['ADDR'] = "&%d" % (command['P_ADDR'])
+            elif command['LABEL'] == 'NEXT':
+                command['ADDR'] = "&%d" % (command['P_ADDR'] + 1)
+            elif command['LABEL'] == 'SKIP':
+                command['ADDR'] = "&%d" % (command['P_ADDR'] + 2)
+            else:
+                raise RuntimeError("boom")
         if not 'LINE' in command:
             command['LINE'] = line_number
 
@@ -533,15 +546,6 @@ class Assembler():
                         #command.pop['ADDR']
                         command['LABEL'] = label
             assembler_code += process_command(command, address)
-
-        # ADD Address to commands with LABEL
-        for line_number, command in enumerate(program_list):
-            if ('LABEL' in command):
-                if ( command['LABEL'] in label_dict ) :
-                    command['ADDR'] = label_dict[ command['LABEL'] ]
-                else:
-                    raise RuntimeError('LABEL: Label ' + command['LABEL'] + ' not recognized')
-            command['LINE'] = line_number
         return assembler_code
     
     @staticmethod
@@ -597,8 +601,7 @@ class Assembler():
                 :returns: label_dictionary
                 :label_dictionary (dict): dictionary with all labels found plus their memory address in program memory. ({'LABEL': '&0'})
             """
-            # register 15 predefinition.
-            label_dict = { 's15': 's15' }
+            label_dict = {}
             mem_addr = 1 # address 0 goes NOP
             # Check if LABEL, DIRETIVE OR INSTRUCTION
             for line_number, command in enumerate(file_lines, start=1):
@@ -689,8 +692,7 @@ class Assembler():
             show_info += '\n' + ('###############################')
             show_info += '\n' + ('LABEL NAME       > PMEM ADDRESS\n-----------------|-------------  ')
             for key in label_dict:
-                if key != 's15':
-                    show_info += '\n' + str( (f"{key:<15}" + ' > ' + label_dict[key]) )
+                show_info += '\n' + str( (f"{key:<15}" + ' > ' + label_dict[key]) )
             show_info += '\n' + ('###############################')
             logger.debug("LABEL_RECOGNITION: "+show_info)
                 
@@ -943,22 +945,17 @@ class Assembler():
                             command_info['NUM'] = CMD_DEST_SOURCE[1]
                             command_info['DEN'] = command_info['LIT']
                         elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
-                            if CMD_DEST_SOURCE[1]  in label_dict:
-                                if (CMD_DEST_SOURCE[1]  == 's15'):
-                                    logger.info("COMMAND_RECOGNITION: BRANCH to s_addr  > line " + str(line_number))
-                                else:
-                                    logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
-                                command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
+                            if CMD_DEST_SOURCE[1] == 's15':
+                                logger.info("COMMAND_RECOGNITION: BRANCH to s_addr  > line " + str(line_number))
+                                command_info['ADDR'] = 's15'
+                            elif CMD_DEST_SOURCE[1]  in label_dict:
+                                logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
+                                #command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
+                                print(command_info)
                                 command_info['LABEL'] = CMD_DEST_SOURCE[1]
                             else:
-                                if (CMD_DEST_SOURCE[1] == 'PREV'):
-                                    command_info['ADDR'] = '&'+str(mem_addr-1)
-                                elif  (CMD_DEST_SOURCE[1] == 'HERE'):
-                                    command_info['ADDR'] = '&'+str(mem_addr)
-                                elif (CMD_DEST_SOURCE[1] == 'NEXT'):
-                                    command_info['ADDR'] = '&'+str(mem_addr+1)
-                                elif (CMD_DEST_SOURCE[1] == 'SKIP'):
-                                    command_info['ADDR'] = '&'+str(mem_addr+2)
+                                if CMD_DEST_SOURCE[1] in ['PREV', 'HERE', 'NEXT', 'SKIP']:
+                                    command_info['LABEL'] = CMD_DEST_SOURCE[1]
                                 else:
                                     raise RuntimeError("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
                         elif (CMD_DEST_SOURCE[0]=='WAIT'):
