@@ -842,6 +842,11 @@ class QickSoc(Overlay, QickConfig):
             self.config_clocks(force_init_clks)
 
             # Update the ADC sample rate if specified
+            sample_rates = self.get_sample_rates()
+            if dac_sample_rates is None:
+                dac_sample_rates = sample_rates['dac']
+            if adc_sample_rates is None:
+                adc_sample_rates = sample_rates['adc']
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
