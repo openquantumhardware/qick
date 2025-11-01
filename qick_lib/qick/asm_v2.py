@@ -909,12 +909,12 @@ class Wait(TimedMacro):
         wait_rounded = self.convert_time(prog, wait, "t")
         # TODO: we could do something with this value
     def expand(self, prog):
+        insts = []
         t_reg = self.t_regs["t"]
         if t_reg is None:
             # if this was a wait_auto and we have no relevant channels, it should compile to nothing
-            return []
+            pass
         elif isinstance(t_reg, int):
-            insts = []
             if check_bytes(t_reg, 3):
                 # we can use the assembler's built-in WAIT (note that WAIT is a directive, and takes up two instructions)
                 src = '@%d'%(t_reg)
@@ -924,7 +924,7 @@ class Wait(TimedMacro):
                     insts.append(WriteLabel(label='SKIP'))
                     insts.append(AsmInst(inst={'CMD':'WAIT', 'ADDR':'s15', 'C_OP':'time', 'TIME': src}, addr_inc=2))
                 else:
-                    return [AsmInst(inst={'CMD':'WAIT', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
+                    insts.append(AsmInst(inst={'CMD':'WAIT', 'C_OP':'time', 'TIME': src}, addr_inc=2))
             elif check_bytes(t_reg, 4):
                 # we need to write to a scratch register
                 # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
@@ -945,9 +945,9 @@ class Wait(TimedMacro):
                     insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'LABEL':'HERE'}, addr_inc=1))
             else:
                 raise RuntimeError("WAIT argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
-            return insts
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
+        return insts
 
 class Resync(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
@@ -2114,12 +2114,12 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # low-level ASM management
 
         # the initial values here are copied from command_recognition() and label_recognition() in tprocv2_assembler.py
-        self.prog_list = [{'CMD':'NOP', 'P_ADDR':0, 'LINE':1}]
+        self.prog_list = [{'CMD':'NOP', 'P_ADDR':0}]
         self.labels = {}
         # address in program memory
         self.p_addr = 1
         # line number
-        self.line = 2
+        self.line = 1
 
     def load_prog(self, progdict):
         # note that we only dump+load the raw waveforms and ASM (the low-level stuff that gets converted to binary)
