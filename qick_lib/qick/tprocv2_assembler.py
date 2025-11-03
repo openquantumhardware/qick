@@ -250,11 +250,11 @@ def check_name(name_str : str) -> bool:
         raise RuntimeError('CHECK_NAME, Name can not be a Register name: ' + name_str)
     return True
 
-def parse_lines_and_labels(program_list : list, label_dict : dict) -> None:
-    """add addresses for labels in command arguments; add line numbers if missing
+def parse_labels(program_list : list, label_dict : dict) -> None:
+    """add addresses for labels in command arguments
     """
     for command in program_list:
-        if (('LABEL' in command) and 'ADDR' not in command):
+        if 'LABEL' in command and 'ADDR' not in command:
             if command['LABEL'] in label_dict:
                 command['ADDR'] = label_dict[ command['LABEL'] ]
             elif command['LABEL'] == 'PREV':
@@ -512,10 +512,10 @@ class Assembler():
             assembler += '\n'
             return assembler
     
-        # make a copy of the program list before parse_lines_and_labels modifies it
+        # make a copy of the program list before parse_labels modifies it
         program_list = copy.deepcopy(program_list)
-        # add label addresses and line numbers, if missing
-        parse_lines_and_labels(program_list, label_dict)
+        # add label addresses
+        parse_labels(program_list, label_dict)
 
         assembler_code = ''
         key_list = list(label_dict.keys())
@@ -1016,10 +1016,10 @@ class Assembler():
         """
         logger.debug("LIST2BIN: ##### LIST 2 BIN")
 
-        # make a copy of the program list before parse_lines_and_labels modifies it
+        # make a copy of the program list before parse_labels modifies it
         program_list = copy.deepcopy(program_list)
-        # add label addresses and line numbers, if missing
-        parse_lines_and_labels(program_list, label_dict)
+        # add label addresses
+        parse_labels(program_list, label_dict)
         
         # first line is NOP
         #binary_program_list = ['000_000__000__0_0_0_00_00___00000___000000__000000____0_0000000__0_0000000__0000000000000000__0000000']
@@ -1876,6 +1876,8 @@ class Instruction():
         binary_multi_list = []
         if 'ADDR' not in current:
             current['ADDR'] = '&'+str(current['P_ADDR'])
+        elif current['ADDR'] != 's15':
+            raise RuntimeError('Instruction.WAIT: unrecognized ADDR %s in line %d' % (current['ADDR'], current['LINE']))
         test_op   = ''
         jump_cond = ''
         if   (current['C_OP'] == 'time') : 
