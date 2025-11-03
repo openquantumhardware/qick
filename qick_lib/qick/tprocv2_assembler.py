@@ -1080,22 +1080,25 @@ class Assembler():
         ###############################################################################
             elif command['CMD'] == 'WAIT':
                 CODE = Instruction.WAIT(command)
+                logger.debug('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
             else:
                 raise RuntimeError("COMMAND_TRANSLATION: Command Listed but not programmed > " + command['CMD'])
         ###################################################################################
-            length = CODE.count('0') + CODE.count('1')
-            if (length != 72):
-                if (command['CMD'] == 'WAIT'):
-                    logger.debug('COMMAND_TRANSLATION: Command Wait add one more instruction ' + str(command['LINE']) )
-                    CODE[-1] = CODE[-1] + ' //' + command['CMD']
-                else:
+            # most commands translate to a binary machine-code string, WAIT translates to a list of str
+
+            # if we have a binary string, put it in a list
+            if isinstance(CODE, str):
+                CODE = [CODE]
+            # check that each line has the correct length
+            for inst in CODE:
+                length = inst.count('0') + inst.count('1')
+                if (length != 72):
                     raise RuntimeError(f"COMMAND_TRANSLATION: {CODE}\nINSTRUCTION LENGTH > {length} at line {command['LINE']}")
-            if (command['CMD'] == 'WAIT'):
-                binary_program_list.extend(CODE)
-            else:
-                CODE = CODE + ' //' + command['CMD']
-                binary_program_list.append(CODE)
-                
+            # label with the command type
+            CODE[-1] += ' //' + command['CMD']
+            # append the new lines
+            binary_program_list.extend(CODE)
+
         if (save_unparsed_filename):
             with open(save_unparsed_filename, "w+") as f:
                 for line in binary_program_list:
