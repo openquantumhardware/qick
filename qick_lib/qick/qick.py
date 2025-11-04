@@ -305,6 +305,17 @@ class RFDC(SocIP, xrfdc.RFdc):
                       .PLLLockStatus == 2 for iTile in self['tiles']['adc']]
         return dac_locked, adc_locked
 
+    def restart_all_tiles(self):
+        """
+        Restart all DAC and ADC tiles using XRFdc_StartUp.
+
+        This will re-lock tile PLLs, reset DDS phases to random values, and reset all logic driven by RF clocks.
+        It won't reset RFDC registers (e.g. if you set custom sampling rates, those will stay in place).
+        """
+        for tiletype in ['dac', 'adc']:
+            for i in self['tiles'][tiletype]:
+                self._get_tile(tiletype, i).StartUp()
+
     def valid_sample_rates(self, tiletype, tile):
         """
         Return an array of valid sample rates.
@@ -842,11 +853,6 @@ class QickSoc(Overlay, QickConfig):
             self.config_clocks(force_init_clks)
 
             # Update the ADC sample rate if specified
-            sample_rates = self.get_sample_rates()
-            if dac_sample_rates is None:
-                dac_sample_rates = sample_rates['dac']
-            if adc_sample_rates is None:
-                adc_sample_rates = sample_rates['adc']
             if dac_sample_rates or adc_sample_rates:
                 self.rf.configure_sample_rates(dac_sample_rates, adc_sample_rates)
 
@@ -1089,6 +1095,8 @@ class QickSoc(Overlay, QickConfig):
 
         # wait for the clock chips to lock
         time.sleep(1.0)
+        # force the tile PLLs to relock
+        self.rf.restart_all_tiles()
 
     def get_sample_rates(self):
         """
