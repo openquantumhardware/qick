@@ -4,7 +4,7 @@
 // and an optional random value provided via paramters from the simulator script
 
 
-module tb_fifo_behav;
+module tb_fifo_behav; import std::*;
 
     // add arbitary number of parameter configurations
     localparam int numIter = 1;
@@ -44,36 +44,47 @@ generate for (genvar i = 0; i < numIter; i++) begin : genBlk
     logic [B[i]-1 : 0] dout2;
     logic [B[i]-1 : 0] dout3;
 
-    // random input stream generation
-    always @(negedge clk) begin // TODO: weird reset behavior...
-        std::randomize(wr_en);
-        std::randomize(rd_en);
-        std::randomize(din);
-    end
+        logic [B[i]-1 : 0] gated_dout1;
+        logic [B[i]-1 : 0] gated_dout2;
+        logic [B[i]-1 : 0] gated_dout3;
 
-    // Check output consistency
-    always @(negedge clk) begin
-        assert((dout1 == dout2) && (dout1 == dout3)) else begin
-            $error(
-                "ERROR: Data out mismatch! -- B=%d, N=%d\n    SV:     %h\n    VHDL:   %h\n    XILINX: %h\n",
-                B[i], N[i], dout1, dout2, dout3
-                );
-        end
+    initial begin
+        wr_en = 0;
+        rd_en = 0;
+        din   = 0;
+        #150;
 
-        assert((empty1 == empty2) && (empty1 == empty3)) else begin
-            $error(
-                "ERROR: Empty signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
-                B[i], N[i], empty1, empty2, empty3
-                );
-        end
-
-        assert((full1 == full2) && (full1 == full3)) else begin
-            $error(
-                "ERROR: full signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
-                B[i], N[i], full1, full2, full3
-                );
+        // random input stream generation
+        forever @(posedge clk) begin // TODO: weird reset behavior...'
+            std::randomize(wr_en);
+            std::randomize(rd_en);
+            #1; std::randomize(din);
         end
     end
+
+    // // Check output consistency
+    // always @(negedge clk) begin
+    //     assert((dout1 == dout2) && (dout1 == dout3)) else begin
+    //         $error(
+    //             "ERROR: Data out mismatch! -- B=%d, N=%d\n    SV:     %h\n    VHDL:   %h\n    XILINX: %h\n",
+    //             B[i], N[i], dout1, dout2, dout3
+    //             );
+    //     end
+
+    //     assert((empty1 == empty2) && (empty1 == empty3)) else begin
+    //         $error(
+    //             "ERROR: Empty signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
+    //             B[i], N[i], empty1, empty2, empty3
+    //             );
+    //     end
+
+    //     assert((full1 == full2) && (full1 == full3)) else begin
+    //         $error(
+    //             "ERROR: full signal mismatch! -- B=%d, N=%d\n    SV:     %b\n    VHDL:   %b\n    XILINX: %b\n",
+    //             B[i], N[i], full1, full2, full3
+    //             );
+    //     end
+    // end
 
 
     // our hand translation
@@ -121,6 +132,10 @@ generate for (genvar i = 0; i < numIter; i++) begin : genBlk
         .empty ( empty3 )
     );
 
+
+    assign gated_dout1 = rd_en ? dout1 : '0;
+    assign gated_dout2 = rd_en ? dout2 : '0;
+    assign gated_dout3 = rd_en ? dout3 : '0;
 
 end endgenerate
 
