@@ -23,9 +23,10 @@ module dds_behavioral_model # (
 );
 
 logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
-logic [PHASE_WIDTH-1:0] phase_acc;     // phase accumulator result
+logic [PHASE_WIDTH-1:0] phase_acc = 0;     // phase accumulator result
 logic [PHASE_WIDTH-1:0] phase_seed;    // initial phase
 logic        sync;          // strobe bit
+logic [31:0] m_axis_data_tdata_temp = '0;
 
 
 // --------- UNPACK s_axis_phase_tdata --------------------------
@@ -42,6 +43,8 @@ logic        sync;          // strobe bit
 assign phase_inc    = s_axis_phase_tdata[31:0];
 assign phase_seed   = s_axis_phase_tdata[63:32];
 assign sync         = s_axis_phase_tdata[64];
+
+assign m_axis_data_tvalid = 1;
 
 // --------- PHASE ACCUMULATOR -------------------
 always_ff @(posedge aclk) begin
@@ -77,10 +80,11 @@ always_ff @(posedge aclk) begin
     lut_dout_q <= rom[lut_addr];
 end
 
-always_ff @(posedge aclk) begin
-    m_axis_data_tvalid <= s_axis_phase_tvalid;
+always_ff @(posedge aclk) begin;
     m_axis_data_tdata  <= lut_dout_q;
 end
+
+assign m_axis_data_tdata = m_axis_data_tdata_temp;
 
 
 endmodule
