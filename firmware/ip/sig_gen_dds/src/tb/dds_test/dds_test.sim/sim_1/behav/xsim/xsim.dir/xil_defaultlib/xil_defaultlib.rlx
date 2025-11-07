@@ -1,0 +1,8 @@
+0.7
+2020.2
+May  7 2023
+15:24:31
+C:/Users/jesli/Documents/clinic/dds_test/dds_test.sim/sim_1/behav/xsim/glbl.v,1683266558,verilog,,,,glbl,,uvm,,,,,,
+C:/Users/jesli/Documents/clinic/qick/firmware/ip/sig_gen_dds/src/dds_behavioral_model.sv,1762443658,systemVerilog,,C:/Users/jesli/Documents/clinic/qick/firmware/ip/sig_gen_dds/src/tb/dds_behavioral_model_tb.sv,,dds_behavioral_model,,uvm,,,,,,
+C:/Users/jesli/Documents/clinic/qick/firmware/ip/sig_gen_dds/src/tb/dds_behavioral_model_tb.sv,1762480658,systemVerilog,,,,dds_behavioral_model_tb,,uvm,,,,,,
+C:/Users/jesli/Documents/clinic/qick/firmware/projects/qick_tprocv2_4x2_standard/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0/sim/dds_compiler_0.vhd,1761185270,vhdl,,,,dds_compiler_0,,,,,,,,
