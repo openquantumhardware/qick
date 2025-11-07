@@ -355,11 +355,125 @@ initial begin
     wait(s0_axis_sg_tready);
 
     while($fscanf(fd, "%d", "%d", vali, valq) == 2) begin 
-        $display
+        $display("I,Q: %d, %d", vali,valq);
+        ii = vali;
+        qq = valq;
+        @(posedge s0_axis_sg_aclk);
+        s0_axis_sg_tvalid   <= 1;
+        s0_axis_sg_tdata    <= {qq, ii};
     end
+
+    @(posedge s0_axis_sg_aclk);
+    s0_axis_tvalid  <= 0;
+
+    $fclose(fd);
+    tb_load_mem_done    <= 1;
+end
+
+initial begin
+    s1_axis_sg_tvalid   <= 0;
+    freq_r              <= 0;
+    phase_r             <= 0;
+    addr_r              <= 0;
+    gain_r              <= 0;
+    nsamp_r             <= 0;
+    outsel_r            <= 0;
+    mode_r              <= 0;
+    stdysel_r           <= 0;
+    phrst_r             <= 0;
+
+    wait (tb_load_wave);
+    wait (s1_axis_sg_tready);
+
+    @(posedge sg_clk);
+    $display("t = %0t", $time);
+    s1_axis_tvalid <= 1;
+    freq_r         <= freq_calc(0, N_DDS, 4);  // 120 MHz.
+    phase_r        <= 0;
+    addr_r         <= 22;
+    gain_r         <= 12000;
+    nsamp_r        <= 80;
+    outsel_r       <= 0; // 0: prod, 1: dds, 2: mem
+    mode_r         <= 0; // 0: nsamp, 1: periodic
+    stdysel_r      <= 0; // 0: last, 1: zero.
+    phrst_r        <= 0;
+
+    #5us;
+
+    @(posedge sg_clk);
+    $display("t = %0t", $time);
+    s1_axis_tvalid <= 1;
+    freq_r         <= freq_calc(0, N_DDS, 4);  // 120 MHz.
+    phase_r        <= 0;
+    addr_r         <= 22;
+    gain_r         <= 12000;
+    nsamp_r        <= 80;
+    outsel_r       <= 1; // 0: prod, 1: dds, 2: mem
+    mode_r         <= 0; // 0: nsamp, 1: periodic
+    stdysel_r      <= 0; // 0: last, 1: zero.
+    phrst_r        <= 0;
+
+    #5us;
+
+    @(posedge sg_clk);
+    $display("t = %0t", $time);
+    s1_axis_tvalid <= 1;
+    freq_r         <= freq_calc(0, N_DDS, 4);  // 120 MHz.
+    phase_r        <= 0;
+    addr_r         <= 22;
+    gain_r         <= 12000;
+    nsamp_r        <= 80;
+    outsel_r       <= 2; // 0: prod, 1: dds, 2: mem
+    mode_r         <= 0; // 0: nsamp, 1: periodic
+    stdysel_r      <= 0; // 0: last, 1: zero.
+    phrst_r        <= 0;
+
+    #5us;
+
+    @(posedge sg_clk);
+    s1_axis_tvalid <= 0;
+    tb_load_wave_done <= 1;
+
+end
+
+initial begin
+    int fd;
+    int i;
+    shortint real_d;
+
+    // Output file.
+    fd = $fopen("./sg_out.csv","w");
+
+    // Data format.
+    $fdisplay(fd, "valid, idx, real");
+
+    wait (tb_write_out);
+
+    while (tb_write_out) begin
+        @(posedge sg_clk);
+        for (i=0; i<N_DDS; i = i+1) begin
+            real_d = dout_ii[i][15:0];
+            $fdisplay(fd, "%d, %d, %d", m_axis_sg_tdata, i, real_d);
+        end
+    end
+
+    $display("Closing file, t = %0t", $time);
+    $fclose(fd);
 end
 
 
+// Function to compute frequency register.
+function [31:0] freq_calc;
+    input int fclk;
+    input int ndds;
+    input int f;
+    
+   // All input frequencies are in MHz.
+   real fs,temp;
+   fs = fclk*ndds;
+   temp = f/fs*2**30;
+   freq_calc = {int'(temp),2'b00};
+endfunction
 
 
 endmodule
