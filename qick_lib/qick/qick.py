@@ -2,6 +2,7 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
+import mmap
 from pynq.overlay import Overlay
 import xrfclk
 import xrfdc
@@ -1126,8 +1127,11 @@ class QickSoc(Overlay, QickConfig):
         time.sleep(1.0)
         # initialize the FPGA
         self.download()
-        # force the tile PLLs to relock
-        # self.rf.restart_all_tiles()
+        # or: force the tile PLLs to relock
+        #self.rf.restart_all_tiles()
+        # or: reset PL, wait for reset
+        #self.pl_reset(reinit=False)
+        #time.sleep(1.0)
 
     def get_sample_rates(self):
         """
@@ -1942,7 +1946,7 @@ class QickSoc(Overlay, QickConfig):
         self.time_taggers[blk].set_dead_time(deadtime)
         self.time_taggers[blk].set_threshold(threshold)
 
-    def pl_reset(self, debug=False):
+    def pl_reset(self, reinit=True):
         """Reset all firmware IP blocks.
         This pulses the pl_resetn0 line from the PS (also known as the "fabric reset" or the "PS-PL reset").
         Every firmware block's reset logic is triggered by this pulse.
@@ -1963,16 +1967,13 @@ class QickSoc(Overlay, QickConfig):
 
         Parameters
         ----------
-        debug : bool
-            Print some information about the values being read and written for the PL reset sequence.
+        reinit : bool
+            Reinitialize firmware blocks. False is OK if you haven't run map_signal_paths() yet (which triggers block initialization).
         """
         base_addr = 0xFF0A0000
-        if debug: print("base addr:", hex(base_addr))
+        logger.debug("base addr: %#010x" % (base_addr))
 
         length = 0x400 # bytes
-
-        import os
-        import mmap
 
         # Align the base address with the pages
         virt_base = base_addr & ~(mmap.PAGESIZE - 1)
@@ -1990,16 +1991,16 @@ class QickSoc(Overlay, QickConfig):
         )
         os.close(mmap_file)
         array = np.frombuffer(mem, np.uint32, length >> 2, virt_offset)
-        if debug: print(array)
+        logger.debug(array)
 
         def mask_write(offset, mask, val):
             index = (offset - base_addr) >> 2
             regval = array[index]
-            if debug: print("initial\t", hex(regval))
+            logger.debug("initial\t%#010x" % (regval))
             regval &= ~(mask)
-            if debug: print("masked\t", hex(regval))
+            logger.debug("masked\t%#010x" % (regval))
             regval |= (val & mask)
-            if debug: print("final\t", hex(regval))
+            logger.debug("final\t%#010x" % (regval))
             array[index] = regval
 
         GPIO_MASK_DATA_5_MSW_OFFSET = 0XFF0A002C
@@ -2014,16 +2015,17 @@ class QickSoc(Overlay, QickConfig):
         mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x00000000)
         mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x80000000)
 
-        for k,v in self.ip_dict.items():
-            if v['type'].startswith("xilinx.com:ip:axi_dma"):
-                dma = getattr(self,k)
-                dma.set_up_tx_channel()
-                dma.set_up_rx_channel()
+        if reinit:
+            for k,v in self.ip_dict.items():
+                if v['type'].startswith("xilinx.com:ip:axi_dma"):
+                    dma = getattr(self,k)
+                    dma.set_up_tx_channel()
+                    dma.set_up_rx_channel()
 
-        for x in self.readouts:
-            x.freq_reg = 0
-            x.phase_reg = 0
-            x.nsamp_reg = 10
-            x.outsel_reg = 0
-            x.mode_reg = 1
-            x.update()
+            for x in self.readouts:
+                x.freq_reg = 0
+                x.phase_reg = 0
+                x.nsamp_reg = 10
+                x.outsel_reg = 0
+                x.mode_reg = 1
+                x.update()
