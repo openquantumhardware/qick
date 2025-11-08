@@ -815,14 +815,17 @@ class QickSoc(Overlay, QickConfig):
 
     # Constructor.
     def __init__(self, bitfile=None, download=True, no_tproc=False, no_rf=False, force_init_clks=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
+        if bitfile is None:
+            bitfile = bitfile_path()
+
+        # 1. read the config from the HWH file and (optionally) download the bitstream into the FPGA with Overlay.__init__()
+        # 2. check and (if necessary) configure the reference clocks with QickSoc.config_clocks() - there must be a loaded bitstream at this point, to check the clocks
+        # 2a. if we configure the clocks, we re-download the bitstream
+        # 3. initialize IP blocks and map connections with QickSoc.map_signal_paths() - this must be done after download, otherwise the IPs will get reset by download
+
         # Read the bitstream configuration from the HWH file.
         # If download=True, we also program the FPGA.
-        if bitfile is None:
-            Overlay.__init__(self, bitfile_path(
-            ), ignore_version=True, download=download, **kwargs)
-        else:
-            Overlay.__init__(
-                self, bitfile, ignore_version=True, download=download, **kwargs)
+        Overlay.__init__(self, bitfile, ignore_version=True, download=download, **kwargs)
 
         # Initialize the configuration
         self._cfg = {}
@@ -869,7 +872,7 @@ class QickSoc(Overlay, QickConfig):
             self['refclk_freq'] = refclks[0]
 
             # Configure xrfclk reference clocks
-            self.config_clocks(force_init_clks)
+            self.config_clocks(force_init_clks, clk_output, external_clk)
 
             # Update the ADC sample rate if specified
             if dac_sample_rates or adc_sample_rates:
@@ -1118,8 +1121,10 @@ class QickSoc(Overlay, QickConfig):
 
         # wait for the clock chips to lock
         time.sleep(1.0)
+        # initialize the FPGA
+        self.download()
         # force the tile PLLs to relock
-        self.rf.restart_all_tiles()
+        # self.rf.restart_all_tiles()
 
     def get_sample_rates(self):
         """
