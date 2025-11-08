@@ -1941,3 +1941,89 @@ class QickSoc(Overlay, QickConfig):
                 )
         self.time_taggers[blk].set_dead_time(deadtime)
         self.time_taggers[blk].set_threshold(threshold)
+
+    def pl_reset(self, debug=False):
+        """Reset all firmware IP blocks.
+        This pulses the pl_resetn0 line from the PS (also known as the "fabric reset" or the "PS-PL reset").
+        Every firmware block's reset logic is triggered by this pulse.
+        The main visible effect of this reset is to reset the start times of all the phase-coherent DDS oscillators.
+
+        Some firmware blocks have startup code in their __initialize__() to configure the block after the firmware is loaded.
+        That configuration gets wiped out by a PL reset, so this method also re-configures those blocks.
+
+        More info on the PL reset:
+        The reset sequence is defined in psu_ps_pl_reset_config_data() in psu_init.c.
+        You can find this in the BSP or the firmware project files.
+        The reset sequence and the memory addresses invovled appear to be the same for all RFSoCs.
+
+        https://support.xilinx.com/s/article/68962
+        https://support.xilinx.com/s/question/0D52E00006lLhBnSAK/zynq-ultrascale-howto-reset-the-pl
+        https://docs.amd.com/r/en-US/ug1137-zynq-ultrascale-mpsoc-swdev/GPIO-Reset-to-PL
+        https://docs.amd.com/r/en-US/pg201-zynq-ultrascale-plus-processing-system/Fabric-Reset-Enable
+
+        Parameters
+        ----------
+        debug : bool
+            Print some information about the values being read and written for the PL reset sequence.
+        """
+        base_addr = 0xFF0A0000
+        if debug: print("base addr:", hex(base_addr))
+
+        length = 0x400 # bytes
+
+        import os
+        import mmap
+
+        # Align the base address with the pages
+        virt_base = base_addr & ~(mmap.PAGESIZE - 1)
+
+        # Calculate base address offset w.r.t the base address
+        virt_offset = base_addr - virt_base
+        mmap_file = os.open("/dev/mem", os.O_RDWR | os.O_SYNC)
+
+        mem = mmap.mmap(
+            mmap_file,
+            length + virt_offset,
+            mmap.MAP_SHARED,
+            mmap.PROT_READ | mmap.PROT_WRITE,
+            offset=virt_base,
+        )
+        os.close(mmap_file)
+        array = np.frombuffer(mem, np.uint32, length >> 2, virt_offset)
+        if debug: print(array)
+
+        def mask_write(offset, mask, val):
+            index = (offset - base_addr) >> 2
+            regval = array[index]
+            if debug: print("initial\t", hex(regval))
+            regval &= ~(mask)
+            if debug: print("masked\t", hex(regval))
+            regval |= (val & mask)
+            if debug: print("final\t", hex(regval))
+            array[index] = regval
+
+        GPIO_MASK_DATA_5_MSW_OFFSET = 0XFF0A002C
+        GPIO_DIRM_5_OFFSET          = 0XFF0A0344
+        GPIO_OEN_5_OFFSET           = 0XFF0A0348
+        GPIO_DATA_5_OFFSET          = 0XFF0A0054
+
+        mask_write(GPIO_MASK_DATA_5_MSW_OFFSET, 0xFFFF0000, 0x80000000)
+        mask_write(GPIO_DIRM_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_OEN_5_OFFSET,           0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x00000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+
+        for k,v in self.ip_dict.items():
+            if v['type'].startswith("xilinx.com:ip:axi_dma"):
+                dma = getattr(self,k)
+                dma.set_up_tx_channel()
+                dma.set_up_rx_channel()
+
+        for x in self.readouts:
+            x.freq_reg = 0
+            x.phase_reg = 0
+            x.nsamp_reg = 10
+            x.outsel_reg = 0
+            x.mode_reg = 1
+            x.update()
