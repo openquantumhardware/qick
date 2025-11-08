@@ -822,6 +822,7 @@ class QickSoc(Overlay, QickConfig):
         # 2. check and (if necessary) configure the reference clocks with QickSoc.config_clocks() - there must be a loaded bitstream at this point, to check the clocks
         # 2a. if we configure the clocks, we re-download the bitstream
         # 3. initialize IP blocks and map connections with QickSoc.map_signal_paths() - this must be done after download, otherwise the IPs will get reset by download
+        # NOTE: the exception to this is the RFDC - we initialize that IP in step 2, because we need to check for PLL lock, but it doesn't seem to do anything stateful in its init
 
         # Read the bitstream configuration from the HWH file.
         # If download=True, we also program the FPGA.
