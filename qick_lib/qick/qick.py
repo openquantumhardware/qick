@@ -1024,10 +1024,12 @@ class QickSoc(Overlay, QickConfig):
         """
         # if we're changing the clock config, we must set the clocks to apply the config
         if force_init_clks or (external_clk is not None) or (clk_output is not None):
+            print("configuring reference clock chips, as requested")
             self.set_all_clks(clk_output, external_clk)
         else:
             # only set clocks if the RFDC isn't locked
             if not self.clocks_locked():
+                print("RFSoC PLLs are not locked, configuring reference clock chips (this is normal after power cycle)")
                 self.set_all_clks(clk_output, external_clk)
         # Check if all DAC and ADC PLLs are locked.
         if not self.clocks_locked():
@@ -1059,7 +1061,7 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 737.0
             lmk_freq = 122.88
             lmx_freq = self['refclk_freq']
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04208 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
             if hasattr(xrfclk, "xrfclk"): # pynq 2.7
                 # load the default clock chip configurations from file, so we can then modify them
@@ -1091,7 +1093,7 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 491.52, 737.0
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04828 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
             assert hasattr(xrfclk, "xrfclk") # ZCU216 only has a pynq 2.7 image
             xrfclk.xrfclk._find_devices()
@@ -1109,7 +1111,7 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 491.52, 737.0
             lmk_freq = 245.76
             lmx_freq = self['refclk_freq']
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04828 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
             assert hasattr(xrfclk, "xrfclk") # RFSoC4x2 only has a pynq 3.0 image
             xrfclk.xrfclk._find_devices()
