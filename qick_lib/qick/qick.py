@@ -2,6 +2,7 @@
 The lower-level driver for the QICK library. Contains classes for interfacing with the SoC.
 """
 import os
+import mmap
 from pynq.overlay import Overlay
 import xrfclk
 import xrfdc
@@ -299,11 +300,43 @@ class RFDC(SocIP, xrfdc.RFdc):
                     tilecfg['outclk_limits'] = [max([x[0] for x in src_ranges]), min([x[1] for x in src_ranges])]
 
     def clocks_locked(self):
-        dac_locked = [self.dac_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self['tiles']['dac']]
-        adc_locked = [self.adc_tiles[iTile]
-                      .PLLLockStatus == 2 for iTile in self['tiles']['adc']]
-        return dac_locked, adc_locked
+        lockdict = {}
+        for tiletype in ['dac', 'adc']:
+            lockdict[tiletype] = {}
+            for i in self['tiles'][tiletype]:
+                lockdict[tiletype][i] = (self._get_tile(tiletype, i).PLLLockStatus == 2)
+        return lockdict
+
+    def tile_states(self):
+        status = self.IPStatus
+        statedict = {}
+        for tiletype in ['dac', 'adc']:
+            statedict[tiletype] = {}
+            for i in self['tiles'][tiletype]:
+                statedict[tiletype][i] = status[tiletype.upper()+"TileStatus"][i]['TileState']
+        return statedict
+
+    def restart_all_tiles(self):
+        """
+        Restart all DAC and ADC tiles using XRFdc_StartUp.
+
+        This will re-lock tile PLLs, reset DDS phases to random values, and reset all logic driven by RF clocks.
+        It won't reset RFDC registers (e.g. if you set custom sampling rates, those will stay in place).
+        """
+        fails = []
+        for tiletype in ['dac', 'adc']:
+            for i in self['tiles'][tiletype]:
+                try:
+                    self._get_tile(tiletype, i).StartUp()
+                except Exception as e:
+                    logger.error("failed to restart %s tile %d" % (tiletype.upper(), i))
+                    fails.append(e.args)
+        if fails:
+            err = ("Some DAC or ADC tiles failed to start up, with the following error messages " +
+                    "(see https://docs.amd.com/r/en-US/pg269-rf-data-converter/Power-on-Sequence-Steps for state numbers):\n" +
+                    "\n".join(["\n".join(fail) for fail in fails])
+                    )
+            raise RuntimeError(err)
 
     def valid_sample_rates(self, tiletype, tile):
         """
@@ -783,16 +816,18 @@ class QickSoc(Overlay, QickConfig):
 
     # Constructor.
     def __init__(self, bitfile=None, download=True, no_tproc=False, no_rf=False, force_init_clks=False, clk_output=None, external_clk=None, dac_sample_rates=None, adc_sample_rates=None, **kwargs):
-        self.external_clk = external_clk
-        self.clk_output = clk_output
+        if bitfile is None:
+            bitfile = bitfile_path()
+
+        # 1. read the config from the HWH file and (optionally) download the bitstream into the FPGA with Overlay.__init__()
+        # 2. check and (if necessary) configure the reference clocks with QickSoc.config_clocks() - there must be a loaded bitstream at this point, to check the clocks
+        # 2a. if we configure the clocks, we re-download the bitstream
+        # 3. initialize IP blocks and map connections with QickSoc.map_signal_paths() - this must be done after download, otherwise the IPs will get reset by download
+        # NOTE: the exception to this is the RFDC - we initialize that IP in step 2, because we need to check for PLL lock, but it doesn't seem to do anything stateful in its init
+
         # Read the bitstream configuration from the HWH file.
         # If download=True, we also program the FPGA.
-        if bitfile is None:
-            Overlay.__init__(self, bitfile_path(
-            ), ignore_version=True, download=download, **kwargs)
-        else:
-            Overlay.__init__(
-                self, bitfile, ignore_version=True, download=download, **kwargs)
+        Overlay.__init__(self, bitfile, ignore_version=True, download=download, **kwargs)
 
         # Initialize the configuration
         self._cfg = {}
@@ -839,7 +874,7 @@ class QickSoc(Overlay, QickConfig):
             self['refclk_freq'] = refclks[0]
 
             # Configure xrfclk reference clocks
-            self.config_clocks(force_init_clks)
+            self.config_clocks(force_init_clks, clk_output, external_clk)
 
             # Update the ADC sample rate if specified
             if dac_sample_rates or adc_sample_rates:
@@ -983,19 +1018,21 @@ class QickSoc(Overlay, QickConfig):
             return merged
         self['readouts'] = [merge_cfgs(buf.cfg, buf.readout.cfg) for buf in self.avg_bufs]
 
-    def config_clocks(self, force_init_clks):
+    def config_clocks(self, force_init_clks, clk_output, external_clk):
         """
         Configure PLLs if requested, or if any ADC/DAC is not locked.
         The ADC/DAC PLL lock status is read through the RFDC IP, so this assumes that the bitstream has already been downloaded.
         The reference clock frequency must already have been read from the firmware config.
         """
         # if we're changing the clock config, we must set the clocks to apply the config
-        if force_init_clks or (self.external_clk is not None) or (self.clk_output is not None):
-            self.set_all_clks()
+        if force_init_clks or (external_clk is not None) or (clk_output is not None):
+            print("configuring reference clock chips, as requested")
+            self.set_all_clks(clk_output, external_clk)
         else:
             # only set clocks if the RFDC isn't locked
             if not self.clocks_locked():
-                self.set_all_clks()
+                print("RFSoC PLLs are not locked, configuring reference clock chips (this is normal after power cycle)")
+                self.set_all_clks(clk_output, external_clk)
         # Check if all DAC and ADC PLLs are locked.
         if not self.clocks_locked():
             print(
@@ -1010,10 +1047,13 @@ class QickSoc(Overlay, QickConfig):
         :return: clock status
         :rtype: bool
         """
-        dac_locked, adc_locked = self.rf.clocks_locked()
-        return all(dac_locked) and all(adc_locked)
+        lockdict = self.rf.clocks_locked()
+        for tiletype in ['dac', 'adc']:
+            if not all(list(lockdict[tiletype].values())):
+                return False
+        return True
 
-    def set_all_clks(self):
+    def set_all_clks(self, clk_output, external_clk):
         """
         Resets all the board clocks
         """
@@ -1023,27 +1063,27 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 737.0
             lmk_freq = 122.88
             lmx_freq = self['refclk_freq']
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04208 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
             if hasattr(xrfclk, "xrfclk"): # pynq 2.7
                 # load the default clock chip configurations from file, so we can then modify them
                 xrfclk.xrfclk._find_devices()
                 xrfclk.xrfclk._read_tics_output()
-                if self.clk_output:
+                if clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk.xrfclk._Config['lmk04208'][lmk_freq][6] = 0x00140325
-                if self.external_clk:
+                if external_clk:
                     # default value is 0x2302886D
                     xrfclk.xrfclk._Config['lmk04208'][lmk_freq][14] = 0x2302826D
             else: # pynq 2.6
-                if self.clk_output:
+                if clk_output:
                     # change the register for the LMK04208 chip's 5th output, which goes to J108
                     # we need this for driving the RF board
                     xrfclk._lmk04208Config[lmk_freq][6] = 0x00140325
                 else: # restore the default
                     xrfclk._lmk04208Config[lmk_freq][6] = 0x80141E05
-                if self.external_clk:
+                if external_clk:
                     xrfclk._lmk04208Config[lmk_freq][14] = 0x2302826D
                 else: # restore the default
                     xrfclk._lmk04208Config[lmk_freq][14] = 0x2302886D
@@ -1055,15 +1095,15 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 491.52, 737.0
             lmk_freq = self['refclk_freq']
             lmx_freq = self['refclk_freq']*2
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04828 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
             assert hasattr(xrfclk, "xrfclk") # ZCU216 only has a pynq 2.7 image
             xrfclk.xrfclk._find_devices()
             xrfclk.xrfclk._read_tics_output()
-            if self.external_clk:
+            if external_clk:
                 # default value is 0x01471A
                 xrfclk.xrfclk._Config['lmk04828'][lmk_freq][80] = 0x01470A
-            if self.clk_output:
+            if clk_output:
                 # default value is 0x012C22
                 xrfclk.xrfclk._Config['lmk04828'][lmk_freq][55] = 0x012C02
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
@@ -1073,17 +1113,109 @@ class QickSoc(Overlay, QickConfig):
             # available: 102.4, 204.8, 409.6, 491.52, 737.0
             lmk_freq = 245.76
             lmx_freq = self['refclk_freq']
-            print("resetting clocks:", lmk_freq, lmx_freq)
+            print("LMK04828 clock reference = %.3f MHz, LMX2594 clock synth = %.3f MHz" % (lmk_freq, lmx_freq))
 
+            assert hasattr(xrfclk, "xrfclk") # RFSoC4x2 only has a pynq 3.0 image
             xrfclk.xrfclk._find_devices()
             xrfclk.xrfclk._read_tics_output()
-            if self.external_clk:
+            if external_clk:
                 # default value is 0x01471A
                 xrfclk.xrfclk._Config['lmk04828'][lmk_freq][80] = 0x01470A
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
 
         # wait for the clock chips to lock
         time.sleep(1.0)
+        # initialize the FPGA
+        self.download()
+        # or: force the tile PLLs to relock
+        #self.rf.restart_all_tiles()
+        # or: reset PL, wait for reset
+        #self.pl_reset(reinit=False)
+        #time.sleep(1.0)
+
+    def pl_reset(self, reinit=True):
+        """Reset all firmware IP blocks.
+        This pulses the pl_resetn0 line from the PS (also known as the "fabric reset" or the "PS-PL reset").
+        Every firmware block's reset logic is triggered by this pulse.
+        The main visible effect of this reset is to reset the start times of all the phase-coherent DDS oscillators.
+
+        Some firmware blocks have startup code in their __initialize__() to configure the block after the firmware is loaded.
+        That configuration gets wiped out by a PL reset, so this method also re-configures those blocks.
+
+        More info on the PL reset:
+        The reset sequence is defined in psu_ps_pl_reset_config_data() in psu_init.c.
+        You can find this in the BSP or the firmware project files.
+        The reset sequence and the memory addresses invovled appear to be the same for all RFSoCs.
+
+        https://support.xilinx.com/s/article/68962
+        https://support.xilinx.com/s/question/0D52E00006lLhBnSAK/zynq-ultrascale-howto-reset-the-pl
+        https://docs.amd.com/r/en-US/ug1137-zynq-ultrascale-mpsoc-swdev/GPIO-Reset-to-PL
+        https://docs.amd.com/r/en-US/pg201-zynq-ultrascale-plus-processing-system/Fabric-Reset-Enable
+
+        Parameters
+        ----------
+        reinit : bool
+            Reinitialize firmware blocks. False is OK if you haven't run map_signal_paths() yet (which triggers block initialization).
+        """
+        base_addr = 0xFF0A0000
+        logger.debug("base addr: %#010x" % (base_addr))
+
+        length = 0x400 # bytes
+
+        # Align the base address with the pages
+        virt_base = base_addr & ~(mmap.PAGESIZE - 1)
+
+        # Calculate base address offset w.r.t the base address
+        virt_offset = base_addr - virt_base
+        mmap_file = os.open("/dev/mem", os.O_RDWR | os.O_SYNC)
+
+        mem = mmap.mmap(
+            mmap_file,
+            length + virt_offset,
+            mmap.MAP_SHARED,
+            mmap.PROT_READ | mmap.PROT_WRITE,
+            offset=virt_base,
+        )
+        os.close(mmap_file)
+        array = np.frombuffer(mem, np.uint32, length >> 2, virt_offset)
+        logger.debug(array)
+
+        def mask_write(offset, mask, val):
+            index = (offset - base_addr) >> 2
+            regval = array[index]
+            logger.debug("initial\t%#010x" % (regval))
+            regval &= ~(mask)
+            logger.debug("masked\t%#010x" % (regval))
+            regval |= (val & mask)
+            logger.debug("final\t%#010x" % (regval))
+            array[index] = regval
+
+        GPIO_MASK_DATA_5_MSW_OFFSET = 0XFF0A002C
+        GPIO_DIRM_5_OFFSET          = 0XFF0A0344
+        GPIO_OEN_5_OFFSET           = 0XFF0A0348
+        GPIO_DATA_5_OFFSET          = 0XFF0A0054
+
+        mask_write(GPIO_MASK_DATA_5_MSW_OFFSET, 0xFFFF0000, 0x80000000)
+        mask_write(GPIO_DIRM_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_OEN_5_OFFSET,           0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x00000000)
+        mask_write(GPIO_DATA_5_OFFSET,          0xFFFFFFFF, 0x80000000)
+
+        if reinit:
+            for k,v in self.ip_dict.items():
+                if v['type'].startswith("xilinx.com:ip:axi_dma"):
+                    dma = getattr(self,k)
+                    dma.set_up_tx_channel()
+                    dma.set_up_rx_channel()
+
+            for x in self.readouts:
+                x.freq_reg = 0
+                x.phase_reg = 0
+                x.nsamp_reg = 10
+                x.outsel_reg = 0
+                x.mode_reg = 1
+                x.update()
 
     def get_sample_rates(self):
         """
