@@ -419,7 +419,8 @@ class AbsDynReadout(AbsReadout, DummyIP):
             # which tmux port drives this generator?
             # port names are of the form 'm2_axis'
             self.cfg['tmux_ch'] = int(port.split('_')[0][1:])
-            ((block, port),) = soc.metadata.trace_bus(block, "s_axis")
+            #((block, port),) = soc.metadata.trace_bus(block, "s_axis")
+            block, port, _ = soc.metadata.trace_back(block, "s_axis", ["axis_tproc64x32_x8", "qick_processor"])
 
         # ask the tproc to translate this port name to a channel number
         self.cfg['tproc_ctrl'],_ = soc._get_block(block).port2ch(port)
