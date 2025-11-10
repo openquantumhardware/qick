@@ -2577,8 +2577,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # print(prog.binprog['pmem'])
         print("// PMEM content")
         for ls in self.binprog['pmem']:
-            # Convert to uint for %x to work correctly
-            l = np.uint32(ls)
+            # Convert to np.array and uint for %x to work correctly
+            l = np.uint32(np.array(ls))
             # Take only 72 bits (18 nibbles)
             s = "%02x%08x%08x" % (l[2], l[1], l[0])
             print(s)
@@ -2594,7 +2594,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         print("// %4s_%8s_%8s_%6s_%8s_%8s" % ('CONF','LEN','GAIN','ENV','PHASE','FREQ'))
         for ls in self.binprog['wmem']:
             # print(ls)
-            l = np.uint32(ls)
+            # Convert to np.array and uint for %x to work correctly
+            l = np.uint32(np.array(ls))
             # Take only 168 bits (42 nibbles)
             s = "___%04x_%08x_%08x_%06x_%08x_%08x" % (l[5], l[4], l[3], l[2], l[1], l[0])
             print(s)
