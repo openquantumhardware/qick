@@ -1,1 +1,4 @@
 top*/
+**/axi_mst_0/*
+!**/axi_mst_0/*.xci
+
