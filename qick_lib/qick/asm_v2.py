@@ -557,15 +557,21 @@ class Label(Macro):
         logger.debug("adding label %s" % (self.label))
         prog._add_label(self.label)
 
+class WriteLabel(Macro):
+    # write a program memory address to the special s_addr register
+    # label
+    def expand(self, prog):
+        return [AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1)]
+
 class End(Macro):
     def expand(self, prog):
         if prog.tproccfg['pmem_size'] > 2**11:
             insts = []
-            insts.append(WriteReg(dst="s15", src=prog.p_addr+1))
+            insts.append(WriteLabel(label='NEXT'))
             insts.append(AsmInst(inst={'CMD':'JUMP', 'ADDR':'s15'}, addr_inc=1))
             return insts
         else:
-            return [AsmInst(inst={'CMD':'JUMP', 'ADDR':f'&{prog.p_addr}'}, addr_inc=1)]
+            return [AsmInst(inst={'CMD':'JUMP', 'LABEL':'HERE'}, addr_inc=1)]
 
 # register operations
 
@@ -661,7 +667,7 @@ class Jump(Macro):
         insts = []
         if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
+            insts.append(WriteLabel(label=self.label))
             insts.append(AsmInst(inst={'CMD':'JUMP', 'ADDR':'s15'}, addr_inc=1))
         else:
             insts.append(AsmInst(inst={'CMD':'JUMP', 'LABEL':self.label}, addr_inc=1))
@@ -673,7 +679,7 @@ class Call(Macro):
         insts = []
         if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
+            insts.append(WriteLabel(label=self.label))
             insts.append(AsmInst(inst={'CMD':'CALL', 'ADDR':'s15'}, addr_inc=1))
         else:
             insts.append(AsmInst(inst={'CMD':'CALL', 'LABEL':self.label}, addr_inc=1))
@@ -685,7 +691,7 @@ class CondJump(Macro):
         insts = []
         if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':self.label}, addr_inc=1))
+            insts.append(WriteLabel(label=self.label))
         arg1 = prog._get_reg(self.arg1)
         if self.arg2 is not None:
             if self.op is None:
@@ -769,7 +775,7 @@ class CloseLoop(Macro):
 
         if prog.tproccfg['pmem_size'] > 2**11:
             # NOTE: to jump to address > 11bits, use s_addr/s15 reg
-            insts.append(AsmInst(inst={'CMD':'REG_WR', 'DST':'s15', 'SRC':'label', 'LABEL':label}, addr_inc=1))
+            insts.append(WriteLabel(label=label))
 
         insts.append(AsmInst(inst={'CMD':'TEST', 'OP':'%s - #%d'%(reg, lcount-1)}, addr_inc=1))
         # if i!=n, jump to the start and increment i
@@ -903,24 +909,22 @@ class Wait(TimedMacro):
         wait_rounded = self.convert_time(prog, wait, "t")
         # TODO: we could do something with this value
     def expand(self, prog):
+        insts = []
         t_reg = self.t_regs["t"]
         if t_reg is None:
             # if this was a wait_auto and we have no relevant channels, it should compile to nothing
-            return []
+            pass
         elif isinstance(t_reg, int):
-            insts = []
             if check_bytes(t_reg, 3):
-                # we can use the assembler's built-in WAIT
-                # note that because this translates to three instructions, ADDR needs to be incremented by 2 (as opposed to 1 in the literal-time case)
+                # we can use the assembler's built-in WAIT (note that WAIT is a directive, and takes up two instructions)
                 src = '@%d'%(t_reg)
                 if prog.tproccfg['pmem_size'] > 2**11:
                     # NOTE: to allow jump to address > 11bits user s_addr/s15 reg
-                    # the wait expands to three instructions (write s15, test, jump) and we need to jump to the last of them, so we jump to p_addr+2
-                    insts.append(WriteReg(dst="s15", src=prog.p_addr+2))
+                    # the wait expands to three instructions (write s15, test, jump) and we need to jump to the last of them, so we write HERE+2 to s15
+                    insts.append(WriteLabel(label='SKIP'))
                     insts.append(AsmInst(inst={'CMD':'WAIT', 'ADDR':'s15', 'C_OP':'time', 'TIME': src}, addr_inc=2))
                 else:
-                    #return [AsmInst(inst={'CMD':'WAIT', 'ADDR':f'&{prog.p_addr + 1}', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
-                    return [AsmInst(inst={'CMD':'WAIT', 'C_OP':'time', 'TIME': src}, addr_inc=2)]
+                    insts.append(AsmInst(inst={'CMD':'WAIT', 'C_OP':'time', 'TIME': src}, addr_inc=2))
             elif check_bytes(t_reg, 4):
                 # we need to write to a scratch register
                 # WAIT with a register argument is not supported by the assembler, but we can translate to basic instructions ourselves
@@ -931,19 +935,19 @@ class Wait(TimedMacro):
                 insts.append(WriteReg(dst="scratch", src=trunc-Assembler.WAIT_TIME_OFFSET))
                 if prog.tproccfg['pmem_size'] > 2**11:
                     # NOTE: to allow jump to address > 11bits user s_addr/s15 reg
-                    # the wait expands to four instructions (write time, write s15, test, jump) and we need to jump to the last of them, so we jump to p_addr+3
-                    insts.append(WriteReg(dst="s15", src=prog.p_addr+3))
+                    # the wait expands to four instructions (write time, write s15, test, jump) and we need to jump to the last of them, so we write HERE+2 to s15
+                    insts.append(WriteLabel(label='SKIP'))
                     insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': 's11 - %s'%(src)}, addr_inc=1))
                     insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':'s15'}, addr_inc=1))
                 else:
-                    # the wait expands to three instructions (write time, test, jump) and we need to jump to the last of them, so we jump to p_addr+2
+                    # the wait expands to three instructions (write time, test, jump)
                     insts.append(AsmInst(inst={'CMD': 'TEST', 'OP': 's11 - %s'%(src)}, addr_inc=1))
-                    insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'ADDR':f'&{prog.p_addr + 2}'}, addr_inc=1))
+                    insts.append(AsmInst(inst={'CMD': 'JUMP', 'OP': 's11 - %s'%(src), 'IF': 'S', 'UF': '1', 'LABEL':'HERE'}, addr_inc=1))
             else:
                 raise RuntimeError("WAIT argument (%d ticks) is too big to fit in a 32-bit signed int"%(t_reg))
-            return insts
         else:
             raise RuntimeError("WAIT can only take a scalar argument, not a sweep")
+        return insts
 
 class Resync(TimedMacro):
     # t, auto, gens, ros (last two only defined if auto=True)
@@ -2110,12 +2114,12 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         # low-level ASM management
 
         # the initial values here are copied from command_recognition() and label_recognition() in tprocv2_assembler.py
-        self.prog_list = [{'CMD':'NOP', 'P_ADDR':0, 'LINE':1}]
-        self.labels = {'s15': 's15'} # register 15 predefinition
+        self.prog_list = [{'CMD':'NOP', 'P_ADDR':0}]
+        self.labels = {}
         # address in program memory
         self.p_addr = 1
         # line number
-        self.line = 2
+        self.line = 1
 
     def load_prog(self, progdict):
         # note that we only dump+load the raw waveforms and ASM (the low-level stuff that gets converted to binary)
@@ -2215,6 +2219,8 @@ class QickProgramV2(AsmV2, AbsQickProgram):
     def _add_label(self, label):
         if label in self.labels:
             raise RuntimeError("label %s is already defined"%(label))
+        if label in ['PREV', 'HERE', 'NEXT', 'SKIP']:
+            raise RuntimeError("label %s is a reserved word"%(label))
         self.line += 1
         self.labels[label] = '&%d' % (self.p_addr)
 
