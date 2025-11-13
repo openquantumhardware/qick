@@ -1274,7 +1274,7 @@ class AbsQickProgram(ABC):
                 soc.config_buf(ch, length=cfg['length'])
             soc.enable_buf(ch, enable_avg=enable_avg, enable_buf=enable_buf)
 
-    def declare_gen(self, ch, nqz=1, mixer_freq=None, mux_freqs=None, mux_gains=None, mux_phases=None, ro_ch=None):
+    def declare_gen(self, ch, nqz=1, mixer_freq=None, mixer_fullscale=False, mux_freqs=None, mux_gains=None, mux_phases=None, ro_ch=None):
         """Add a channel to the program's list of signal generators.
 
         If this is a generator with a mixer (interpolated or muxed generator), you may define a mixer frequency.
@@ -1293,6 +1293,8 @@ class AbsQickProgram(ABC):
             Setting the NQZ to 2 increases output power in the 2nd/3rd Nyquist zones.
         mixer_freq : float, optional
             Mixer frequency (in MHz)
+        mixer_fullscale : bool
+            DACs with mixers have a built-in scale factor of 0.7 to prevent overflow (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer). If this is set to True, the scale factor will be bypassed and you will get the full DAC range.
         mux_freqs : list of float, optional
             Tone frequencies for the muxed generator (in MHz).
             For tProc v1 programs these should be given as offsets relative to the digital mixer frequency.
@@ -1314,6 +1316,7 @@ class AbsQickProgram(ABC):
             if mixer_freq is None:
                 raise RuntimeError("generator %d has a digital mixer, but no mixer_freq was defined" % (ch))
             cfg['mixer_freq'] = self.soccfg.calc_mixer_freq(ch, mixer_freq, nqz, ro_ch)
+            cfg['mixer_fullscale'] = mixer_fullscale
         else:
             if mixer_freq is not None:
                 logger.warning("generator %d doesn't have a digital mixer, but mixer_freq was defined" % (ch))
@@ -1350,7 +1353,7 @@ class AbsQickProgram(ABC):
         for ch, cfg in self.gen_chs.items():
             soc.set_nyquist(ch, cfg['nqz'])
             if 'mixer_freq' in cfg:
-                soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'])
+                soc.set_mixer_freq(ch, cfg['mixer_freq']['setval'], fullscale=cfg['mixer_fullscale'])
             if 'mux_tones' in cfg:
                 soc.config_mux_gen(ch, cfg['mux_tones'])
 

@@ -521,7 +521,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         # we changed the clocks, so refresh that info
         self._read_freqs()
 
-    def set_mixer_freq(self, blockname, f, blocktype='dac', phase_reset=True, force=False):
+    def set_mixer_freq(self, blockname, f, blocktype='dac', phase_reset=True, force=False, fullscale=False):
         """
         Set the NCO frequency that will be mixed with the generator output (for DAC) or raw ADC data (for ADC).
 
@@ -539,6 +539,8 @@ class RFDC(SocIP, xrfdc.RFdc):
             force update, even if the setting is the same
         phase_reset : bool
             if we change the frequency, also reset the NCO's phase accumulator
+        fullscale : bool
+            use the full DAC output range, disabling the mixer's default 0.7 scale factor (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer)
         """
         if not force and f == self.get_mixer_freq(blockname, blocktype):
             return
@@ -556,7 +558,10 @@ class RFDC(SocIP, xrfdc.RFdc):
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
             'Freq': f,
             'MixerType': xrfdc.MIXER_TYPE_FINE,
-            'PhaseOffset': 0})
+            'PhaseOffset': 0,
+            })
+        if fullscale: new_mixcfg['FineMixerScale'] = xrfdc.MIXER_SCALE_1P0
+        else: new_mixcfg['FineMixerScale'] = xrfdc.MIXER_SCALE_AUTO
 
         # Update settings.
         blk.MixerSettings = new_mixcfg
@@ -1432,7 +1437,7 @@ class QickSoc(Overlay, QickConfig):
 
         self.gens[ch].set_nyquist(nqz)
 
-    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True):
+    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True, fullscale=False):
         """
         Set mixer frequency for a signal generator.
         If the generator does not have a mixer, you will get an error.
@@ -1448,9 +1453,11 @@ class QickSoc(Overlay, QickConfig):
             use None if you don't want mixer freq to be rounded to a valid readout frequency
         phase_reset : bool
             if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
+        fullscale : bool
+            use the full DAC output range, disabling the mixer's default 0.7 scale factor (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer)
         """
         if self.gens[ch].HAS_MIXER:
-            self.gens[ch].set_mixer_freq(f, ro_ch, phase_reset=phase_reset)
+            self.gens[ch].set_mixer_freq(f, ro_ch=ro_ch, phase_reset=phase_reset, fullscale=fullscale)
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
