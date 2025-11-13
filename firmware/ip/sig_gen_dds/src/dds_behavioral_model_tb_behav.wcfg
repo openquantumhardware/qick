@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="dds_behavioral_model_tb_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="dds_behavioral_model_tb" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="49.300001 us"></ZoomEndTime>
+      <Cursor1Time time="89.212414 us"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="467"></NameColumnWidth>
+      <ValueColumnWidth column_width="284"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="14" />
+   <wvobject fp_name="/dds_behavioral_model_tb/aclk" type="logic">
+      <obj_property name="ElementShortName">aclk</obj_property>
+      <obj_property name="ObjectShortName">aclk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/s_axis_phase_tvalid" type="logic">
+      <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/s_axis_phase_tdata" type="array">
+      <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/m_axis_data_tvalid_os" type="logic">
+      <obj_property name="ElementShortName">m_axis_data_tvalid_os</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tvalid_os</obj_property>
+      <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/m_axis_data_tvalid_ip" type="logic">
+      <obj_property name="ElementShortName">m_axis_data_tvalid_ip</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tvalid_ip</obj_property>
+      <obj_property name="CustomSignalColor">#FFFF00</obj_property>
+      <obj_property name="UseCustomSignalColor">true</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/m_axis_data_tdata_os" type="array">
+      <obj_property name="ElementShortName">m_axis_data_tdata_os[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tdata_os[31:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/m_axis_data_tdata_ip" type="array">
+      <obj_property name="ElementShortName">m_axis_data_tdata_ip[31:0]</obj_property>
+      <obj_property name="ObjectShortName">m_axis_data_tdata_ip[31:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/sync" type="logic">
+      <obj_property name="ElementShortName">sync</obj_property>
+      <obj_property name="ObjectShortName">sync</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/phase_seed" type="array">
+      <obj_property name="ElementShortName">phase_seed[31:0]</obj_property>
+      <obj_property name="ObjectShortName">phase_seed[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/phase_inc" type="array">
+      <obj_property name="ElementShortName">phase_inc[31:0]</obj_property>
+      <obj_property name="ObjectShortName">phase_inc[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/resync_r" type="logic">
+      <obj_property name="ElementShortName">resync_r</obj_property>
+      <obj_property name="ObjectShortName">resync_r</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/poff_r" type="array">
+      <obj_property name="ElementShortName">poff_r[31:0]</obj_property>
+      <obj_property name="ObjectShortName">poff_r[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/pinc_r" type="array">
+      <obj_property name="ElementShortName">pinc_r[31:0]</obj_property>
+      <obj_property name="ObjectShortName">pinc_r[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/dds_behavioral_model_tb/i" type="array">
+      <obj_property name="ElementShortName">i[31:0]</obj_property>
+      <obj_property name="ObjectShortName">i[31:0]</obj_property>
+   </wvobject>
+</wave_config>
