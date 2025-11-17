@@ -9,6 +9,9 @@ parameter TARGET_SLAVE_BASE_ADDR 	= 32'h40000000;
 parameter ID_WIDTH 					= 1;
 parameter DATA_WIDTH 				= 256;
 
+integer wnburst_n = 0;
+integer rlength_n = 0;
+
 // Trigger.
 reg					trigger			;
 
@@ -117,17 +120,26 @@ reg		[DATA_WIDTH/8-1:0]	s_axis_tstrb	;
 reg							s_axis_tlast	;
 reg							s_axis_tvalid	;
 
-xil_axi_prot_t  prot        = 0;
-reg[31:0]       data;
+xil_axi_prot_t  			prot        = 0;
+reg[31:0]       			data;
 reg	[DATA_WIDTH-1:0]        data_mem;
-xil_axi_resp_t  resp;
+xil_axi_resp_t  			resp;
+
+// AXI VIP master address.
+xil_axi_ulong   RSTART_REG_ADDR     = 0 * 4;
+xil_axi_ulong   RADDR_REG_ADDR      = 1 * 4;
+xil_axi_ulong   RLENGTH_REG_ADDR    = 2 * 4;
+xil_axi_ulong   WSTART_REG_ADDR     = 3 * 4;
+xil_axi_ulong   WADDR_REG_ADDR      = 4 * 4;
+xil_axi_ulong   WNBURST_REG_ADDR    = 5 * 4;
+
 
 // TB control.
 reg							tb_din_start = 0;
 reg							tb_dout_start = 0;
 
-// AXI Slave.
-axi_slv_0 axi_slv_0_i
+// AXI Slave ("DDR" model)
+axi_slv_0 axi_ddr_model
 	(
 		.aclk			(aclk			),
 		.aresetn		(aresetn		),
@@ -329,7 +341,7 @@ axi_mst_0_mst_t 	axi_mst_0_agent;
 // Main TB.
 initial begin
 	// Create agents.
-	axi_slv_0_agent = new("axi_slv_0 VIP Agent",tb.axi_slv_0_i.inst.IF);
+	axi_slv_0_agent = new("axi_slv_0 VIP Agent",tb.axi_ddr_model.inst.IF);
 	axi_mst_0_agent	= new("axi_mst_0 VIP Agent",tb.axi_mst_0_i.inst.IF);
 
 	// AXI Slave (memory model) beat gap.
@@ -352,75 +364,117 @@ initial begin
 	s_axi_aresetn 	<= 1;
 	aresetn 	    <= 1;
 
-	#1000;
+	#2us;
 
 	/**************************/
 	/* Write data into memory */
 	/**************************/
 	// WNBURST_REG.
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4*5, prot, 10, resp);
+    wnburst_n = 3;
+	axi_mst_0_agent.AXI4LITE_WRITE_BURST(WNBURST_REG_ADDR, prot, wnburst_n, resp);
 
-	// WSTART_REG.
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4*3, prot, 1, resp);
+    // WADDR_REG_ADDR
+	axi_mst_0_agent.AXI4LITE_WRITE_BURST(WADDR_REG_ADDR, prot, 1 * (DATA_WIDTH/8), resp);
 
-	tb_din_start <= 1;
+    repeat (2) begin
+        // WSTART_REG.
+        axi_mst_0_agent.AXI4LITE_WRITE_BURST(WSTART_REG_ADDR, prot, 1, resp);
 
-	#1000;
+        tb_din_start <= 1;
 
-	trigger <= 1;
+        #2us;
 
-	#10000;
-	
-	// Backdoor memory read.
-	for (int addr = TARGET_SLAVE_BASE_ADDR+0; addr < TARGET_SLAVE_BASE_ADDR+0+160; addr = addr + DATA_WIDTH) begin
-	   data_mem = axi_slv_0_agent.mem_model.backdoor_memory_read(addr);
-	   $display("Addr: 0x%04X, Data: 0x%04X", addr, data_mem);
-	end 
+        trigger <= 1;
 
-	#1000;
+        #2us;
+        
+        // Backdoor memory read.
+        rlength_n = 3 * 16;
+        for (int addr = TARGET_SLAVE_BASE_ADDR+0; addr < TARGET_SLAVE_BASE_ADDR+DATA_WIDTH; addr = addr + DATA_WIDTH) begin
+            data_mem = axi_slv_0_agent.mem_model.backdoor_memory_read(addr);
+        end 
 
-	trigger <= 0;
+        #2us;
 
-	#1000;
+        trigger <= 0;
 
-	// WSTART_REG.
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4*3, prot, 0, resp);
-	
-	#1000;
+        #2us;
 
-	/********************/
-	/* Read from memory */
-	/********************/
-	// RLENGTH_REG.
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4*2, prot, 10, resp);
+        // WSTART_REG.
+        axi_mst_0_agent.AXI4LITE_WRITE_BURST(WSTART_REG_ADDR, prot, 0, resp);
+        
+        #2us;
 
-	// RSTART_REG.
-	axi_mst_0_agent.AXI4LITE_WRITE_BURST(4*0, prot, 1, resp);
+        tb_din_start <= 0;
 
-	tb_dout_start <= 1;
+        /********************/
+        /* Read from memory */
+        /********************/
+        // RLENGTH_REG.
+        axi_mst_0_agent.AXI4LITE_WRITE_BURST(RLENGTH_REG_ADDR, prot, rlength_n, resp);
+
+        // RADDR_REG_ADDR.
+	    axi_mst_0_agent.AXI4LITE_WRITE_BURST(RADDR_REG_ADDR, prot, 1 * (DATA_WIDTH/8), resp);
+
+        // RSTART_REG.
+        axi_mst_0_agent.AXI4LITE_WRITE_BURST(RSTART_REG_ADDR, prot, 1, resp);
+
+        tb_dout_start <= 1;
+
+        #10us;
+
+        axi_mst_0_agent.AXI4LITE_WRITE_BURST(RSTART_REG_ADDR, prot, 0, resp);
+    end
+
+    $finish();
 
 end
 
 // Data input process.
 initial begin
+    int i=0;
+
 	s_axis_tdata 	<= 0;
 	s_axis_tstrb 	<= '1;
 	s_axis_tlast 	<= 0;
 	s_axis_tvalid 	<= 0;
 
-	wait (tb_din_start);
+    forever begin
+        int i = 0;
+        wait (tb_din_start);
+        wait (s_axis_tready);
 
-	for (int i=0; i<100; i=i+1) begin
-		wait (s_axis_tready);
 
-		@(posedge aclk);
-		@(posedge aclk);
-		s_axis_tdata 	<= i;
-		s_axis_tvalid	<= 1;	
-		@(posedge aclk);
-		//s_axis_tvalid	<= 0;	
-		@(posedge aclk);
-	end
+        fork
+            begin
+                wait (tb_din_start);
+                wait (~tb_din_start);
+            end
+            begin
+                while (tb_din_start) begin
+                // for (int i=0; i<100; i=i+1) begin
+                    i = i + 1;
+                    @(negedge aclk);
+                    s_axis_tdata 	<= i;
+                    s_axis_tvalid	<= 1;
+                    // @(posedge aclk);
+                    //s_axis_tvalid	<= 0;
+                    // @(posedge aclk);
+                    wait (s_axis_tready);
+                    @(posedge aclk);
+                end
+            end
+        join_any
+
+
+        @(posedge aclk);
+        s_axis_tvalid	<= 0;
+
+
+        wait (~tb_din_start);
+
+
+    end
 end
 
 // Data output process.
@@ -431,6 +485,8 @@ initial begin
 
 	@(posedge aclk);
 	m_axis_tready	<= 1;
+
+    wait (~tb_dout_start);
 end
 
 always begin

@@ -40,7 +40,11 @@ module axi_mst_read
 		// Registers.
 		input	wire						START_REG		,
 		input	wire	[31:0]				ADDR_REG		,
-		input	wire	[31:0]				LENGTH_REG
+		input	wire	[31:0]				LENGTH_REG		,
+
+		// Debug
+		output  wire	[31:0]				mst_read_probe_dbg1
+
     );
 
 /*************/
@@ -71,7 +75,7 @@ wire				start_reg_resync	;
 
 // Registers.
 reg		[31:0]		addr_reg_r			;
-reg		[31:0]		len_reg_r	        ;
+reg		[31:0]		len_reg_m1_r		;
 
 // Fifo.
 wire				fifo_full			;
@@ -131,10 +135,12 @@ assign m_axis_tvalid	= ~fifo_empty;
 
 // Burst lenth.
 //assign burst_length    	= MAX_BURST_SIZE-1;
-assign burst_length		= len_reg_r - 1;
+// assign burst_length		= len_reg_r - 1;
+assign burst_length		= len_reg_m1_r;
 
 // Base address.
-assign addr_base		= TARGET_SLAVE_BASE_ADDR + addr_reg_r;
+// assign addr_base		= TARGET_SLAVE_BASE_ADDR + addr_reg_r;
+assign addr_base		= addr_reg_r;
 
 // Registers.
 always @(posedge clk) begin
@@ -143,8 +149,8 @@ always @(posedge clk) begin
 		state		<= INIT_ST;
 		
 		// Registers.
-		addr_reg_r	<= 0;
-		len_reg_r	<= 0;
+		addr_reg_r		<= 0;
+		len_reg_m1_r	<= 0;
 	end
 	else begin
 		// State register.
@@ -162,6 +168,7 @@ always @(posedge clk) begin
 			ADDR_ST:
 				if (m_axi_arready == 1'b1)
 					state <= DATA_ST;
+
 			DATA_ST:
 				if (m_axi_rvalid == 1'b1 && m_axi_rlast == 1'b1 && fifo_full == 1'b0)
 					state <= END_ST;
@@ -173,8 +180,8 @@ always @(posedge clk) begin
 	
 		// Registers.
 		if (read_regs_state == 1'b1) begin
-			addr_reg_r	<= ADDR_REG;
-			len_reg_r	<= LENGTH_REG;
+			addr_reg_r		<= ADDR_REG + TARGET_SLAVE_BASE_ADDR;
+			len_reg_m1_r	<= LENGTH_REG - 1;
 		end
 
 	end	
@@ -246,6 +253,15 @@ assign m_axi_arvalid = axi_arvalid_i;
 
 assign m_axis_tstrb	 = '1;
 assign m_axis_tlast	 = 1'b0;
+
+
+// DEBUG
+
+assign mst_read_probe_dbg1[31:24] = {burst_length[7:0]};
+assign mst_read_probe_dbg1[23:16] = {3'b000, m_axi_rlast, m_axi_rvalid, m_axis_tready, fifo_full, fifo_empty};
+assign mst_read_probe_dbg1[15:8] = {7'b0000_000, start_reg_resync};
+assign mst_read_probe_dbg1[7:0]  = {state};
+
 
 endmodule
 

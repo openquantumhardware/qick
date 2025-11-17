@@ -47,7 +47,10 @@ module axi_mst_write
 		// Registers.
 		input	wire						START_REG		,
 		input	wire	[31:0]				ADDR_REG		,
-		input	wire	[31:0]				NBURST_REG
+		input	wire	[31:0]				NBURST_REG		,
+
+		// Debug
+		output  wire	[31:0]				mst_write_probe_dbg1
     );
 
 // Maximum burst size (4kB boundary).
@@ -70,7 +73,6 @@ typedef enum 	{	INIT_ST			,
                 	DATA_ST			,
                 	RESP_ST			,
 					NBURST_ST		,
-					TRIGGER_END_ST	,
 					END_ST
 				} state_t;
 
@@ -96,6 +98,7 @@ reg		[31:0]				addr_reg_r			;
 reg		[31:0]				nburst_reg_r		;
 
 // Fifo signals.
+wire 						fifo_wr_en			;
 wire					    fifo_rd_en			;
 wire	[DATA_WIDTH-1:0]	fifo_dout			;
 reg		[DATA_WIDTH-1:0]	fifo_dout_r			;
@@ -138,10 +141,10 @@ synchronizer_n start_reg_resync_i
 fifo_axi
     #(
 		// Data width.
-		.B(DATA_WIDTH	),
+		.B			(DATA_WIDTH	),
 		
 		// Fifo depth.
-		.N(16			)
+		.N			(64			)
     )
 	fifo_in_i
     ( 
@@ -149,7 +152,7 @@ fifo_axi
 		.clk 	(clk			),
 		
 		// Write I/F.
-		.wr_en	(s_axis_tvalid	),
+		.wr_en	(fifo_wr_en		),
 		.din	(s_axis_tdata	),
 		
 		// Read I/F.
@@ -162,7 +165,8 @@ fifo_axi
     );
 
 // Fifo connections.
-assign fifo_rd_en		= m_axi_wready & data_state;
+assign fifo_wr_en		= s_axis_tvalid & (incr_addr_state | addr_state | data_state | resp_state);
+assign fifo_rd_en		= m_axi_wready & data_state || (state == END_ST);
 assign s_axis_tready 	= ~fifo_full;
 
 // Write Address Channel.
@@ -262,17 +266,14 @@ always @(posedge clk) begin
 
 			NBURST_ST:
 				if (cnt_nburst == nburst_reg_r)
-					state <= TRIGGER_END_ST;
+					state <= END_ST;
 				else
 					state <= INCR_ADDR_ST;
 
-			TRIGGER_END_ST:
-				if (trigger_resync == 1'b0)
-					state <= END_ST;
-
 			END_ST:
-				if (start_reg_resync == 1'b0)
+				if (start_reg_resync == 1'b0 && trigger_resync == 1'b0 && fifo_empty)
 					state <= INIT_ST;
+
 		endcase
 		
 		// Registers.
@@ -340,7 +341,7 @@ always_comb begin
 
 		//NBURST_ST:
 
-		//TRIGGER_END_ST:
+		// TRIGGER_END_ST:
 		
 		//END_ST:
 
@@ -357,6 +358,13 @@ assign m_axi_wvalid		= ~fifo_empty_r & data_state;
 
 assign m_axi_bready		= resp_state;
 
+
+// DEBUG
+
+assign mst_write_probe_dbg1[31:24] = {cnt_burst[7:0]};
+assign mst_write_probe_dbg1[23:16] = {cnt_nburst[3:0], fifo_rd_en, fifo_full, s_axis_tvalid, fifo_empty};
+assign mst_write_probe_dbg1[15:11] = {3'b000, trigger_resync, start_reg_resync};
+assign mst_write_probe_dbg1[10:0]  = {state};
 
 endmodule
 

@@ -3,7 +3,7 @@ module axis_buffer_ddr_v1
 		// Parameters of AXI Master I/F.
 		parameter TARGET_SLAVE_BASE_ADDR	= 32'h40000000	,
 		parameter ID_WIDTH					= 1				,
-		parameter DATA_WIDTH				= 512			,
+		parameter DATA_WIDTH				= 256			,
 		parameter BURST_SIZE				= 15
 	)
 	( 	
@@ -113,7 +113,11 @@ module axis_buffer_ddr_v1
 		input	wire	[DATA_WIDTH-1:0]	s_axis_tdata	,
 		input	wire	[DATA_WIDTH/8-1:0]	s_axis_tstrb	,
 		input	wire						s_axis_tlast	,
-		input	wire						s_axis_tvalid
+		input	wire						s_axis_tvalid	,
+
+		// Debug
+		output  wire	[31:0]				mst_write_probe_dbg,
+		output  wire	[31:0]				mst_read_probe_dbg
 	);
 	
 /********************/
@@ -271,5 +275,10 @@ axi_mst
 		.WADDR_REG		(WADDR_REG		),
 		.WNBURST_REG	(WNBURST_REG	)
 	);
+
+	// DEBUG
+	assign mst_write_probe_dbg	= axi_mst_i.axi_mst_write_i.mst_write_probe_dbg1;
+	assign mst_read_probe_dbg	= axi_mst_i.axi_mst_read_i.mst_read_probe_dbg1;
+
 endmodule
 
