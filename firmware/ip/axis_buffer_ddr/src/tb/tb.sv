@@ -216,7 +216,7 @@ axi_mst_0 axi_mst_0_i
 	);
 
 // DUT.
-axis_buffer_ddr_v1
+axis_buffer_ddr
 	#(
 		// Parameters of AXI Master I/F.
 		.TARGET_SLAVE_BASE_ADDR	(TARGET_SLAVE_BASE_ADDR	),

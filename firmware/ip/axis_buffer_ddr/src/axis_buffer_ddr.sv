@@ -1,4 +1,4 @@
-module axis_buffer_ddr_v1
+module axis_buffer_ddr
 	#(
 		// Parameters of AXI Master I/F.
 		parameter TARGET_SLAVE_BASE_ADDR	= 32'h40000000	,

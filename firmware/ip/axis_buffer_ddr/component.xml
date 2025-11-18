@@ -2,8 +2,8 @@
 <spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>QICK</spirit:vendor>
   <spirit:library>QICK</spirit:library>
-  <spirit:name>axis_buffer_ddr_v1</spirit:name>
-  <spirit:version>1.0</spirit:version>
+  <spirit:name>axis_buffer_ddr</spirit:name>
+  <spirit:version>1.1</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>m_axis</spirit:name>
@@ -711,14 +711,14 @@
         <spirit:displayName>Synthesis</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>
         <spirit:language>SystemVerilog</spirit:language>
-        <spirit:modelName>axis_buffer_ddr_v1</spirit:modelName>
+        <spirit:modelName>axis_buffer_ddr</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_anylanguagesynthesis_view_fileset</spirit:localName>
         </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>aebf82db</spirit:value>
+            <spirit:value>e9fb7643</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -727,14 +727,14 @@
         <spirit:displayName>Simulation</spirit:displayName>
         <spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>
         <spirit:language>SystemVerilog</spirit:language>
-        <spirit:modelName>axis_buffer_ddr_v1</spirit:modelName>
+        <spirit:modelName>axis_buffer_ddr</spirit:modelName>
         <spirit:fileSetRef>
           <spirit:localName>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:localName>
         </spirit:fileSetRef>
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>aebf82db</spirit:value>
+            <spirit:value>e9fb7643</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -777,7 +777,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>282945ed</spirit:value>
+            <spirit:value>ff1df9a3</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2036,17 +2036,17 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst.sv</spirit:name>
+        <spirit:name>src/axi_mst.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst_read.sv</spirit:name>
+        <spirit:name>src/axi_mst_read.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst_write.sv</spirit:name>
+        <spirit:name>src/axi_mst_write.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
@@ -2071,9 +2071,9 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axis_buffer_ddr_v1.sv</spirit:name>
+        <spirit:name>src/axis_buffer_ddr.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_f0a94ddf</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_9fecc090</spirit:userFileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
@@ -2085,17 +2085,17 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst.sv</spirit:name>
+        <spirit:name>src/axi_mst.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst_read.sv</spirit:name>
+        <spirit:name>src/axi_mst_read.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst/axi_mst_write.sv</spirit:name>
+        <spirit:name>src/axi_mst_write.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
@@ -2120,7 +2120,7 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axis_buffer_ddr_v1.sv</spirit:name>
+        <spirit:name>src/axis_buffer_ddr.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
@@ -2128,7 +2128,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/axis_buffer_ddr_v1_v1_0.tcl</spirit:name>
+        <spirit:name>xgui/axis_buffer_ddr_v1_1.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_886bc707</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
@@ -2152,18 +2152,22 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_slv_0/axi_slv_0.xcix</spirit:name>
-        <spirit:fileType>unknown</spirit:fileType>
+        <spirit:name>src/tb/axi_slv_0/axi_slv_0.xci</spirit:name>
+        <spirit:userFileType>xci</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>src/tb/axi_mst_0/axi_mst_0.xci</spirit:name>
+        <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>USED_IN_simulation</spirit:userFileType>
         <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_mst_0/axi_mst_0.xci</spirit:name>
-        <spirit:userFileType>xci</spirit:userFileType>
+        <spirit:name>src/tb/tb_axis_buffer_ddr_behav.wcfg</spirit:name>
+        <spirit:fileType>unknown</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>AXIS Buffer for DDR4, V1.</spirit:description>
+  <spirit:description>AXIS Buffer for DDR4</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>TARGET_SLAVE_BASE_ADDR</spirit:name>
@@ -2222,20 +2226,23 @@
       <xilinx:taxonomies>
         <xilinx:taxonomy>/QICK/Miscellaneous</xilinx:taxonomy>
       </xilinx:taxonomies>
-      <xilinx:displayName>AXIS Buffer DDR V1</xilinx:displayName>
+      <xilinx:displayName>AXIS Buffer DDR</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>5</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2025-11-14T01:23:14Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>1</xilinx:coreRevision>
+      <xilinx:upgrades>
+        <xilinx:canUpgradeFrom>QICK:QICK:axis_buffer_ddr_v1:1.0</xilinx:canUpgradeFrom>
+      </xilinx:upgrades>
+      <xilinx:coreCreationDateTime>2025-11-18T17:56:49Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="636eb457"/>
       <xilinx:checksum xilinx:scope="addressSpaces" xilinx:value="01b89833"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c930e363"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="5a7880a0"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="a4e7e8f1"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="8634d844"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="38e97d2b"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="2669672b"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="a96188c6"/>
     </xilinx:packagingInfo>
