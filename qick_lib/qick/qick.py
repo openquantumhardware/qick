@@ -918,7 +918,7 @@ class QickSoc(Overlay, QickConfig):
         """
         # Use the HWH parser to trace connectivity and deduce the channel numbering.
         # Some blocks (e.g. DDR4) are inside hierarchies.
-        # We access these through the hierarchy (e.g. self.ddr4.axis_buffer_ddr_v1_0)
+        # We access these through the hierarchy (e.g. self.ddr4.axis_buffer_ddr)
         # but list them using ip_dict, which has all blocks, even those inside hierarchies
         for key, val in self.ip_dict.items():
             if hasattr(val['driver'], 'configure_connections'):

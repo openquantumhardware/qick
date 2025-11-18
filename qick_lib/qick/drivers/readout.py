@@ -1181,6 +1181,8 @@ class AxisBufferDdrV1(SocIP):
     # Stream Input Port.
     STREAM_IN_PORT  = "s_axis"
 
+    JUNK_SAMPLES_BUG_FIX = False   # Bug is present in IP version <= 1.0
+
     def __init__(self, description):
         # Initialize ip
         super().__init__(description)
@@ -1212,8 +1214,9 @@ class AxisBufferDdrV1(SocIP):
                          }
 
         self.cfg['burst_len'] = self.DATA_WIDTH*self.BURST_SIZE//32
-        self.cfg['junk_len'] = 50*self.DATA_WIDTH//32 + 1 # not clear where this 50 comes from, presumably some FIFO somewhere
-        self.cfg['junk_nt'] = int(np.ceil(self['junk_len']/self.cfg['burst_len']))
+        if not self.JUNK_SAMPLES_BUG_FIX:
+            self.cfg['junk_len'] = 50*self.DATA_WIDTH//32 + 1 # not clear where this 50 comes from, presumably some FIFO somewhere
+            self.cfg['junk_nt'] = int(np.ceil(self['junk_len']/self.cfg['burst_len']))
 
     def _init_firmware(self):
         # Default registers.
@@ -1307,7 +1310,7 @@ class AxisBufferDdrV1(SocIP):
             np.copyto(self.ddr4_array[:length], 0)
 
     def get_mem(self, nt, start=None):
-        if start is None:
+        if not self.JUNK_SAMPLES_BUG_FIX and start is None:
             start = self['junk_len']
             end = nt*self['burst_len']
         else:
@@ -1329,3 +1332,15 @@ class AxisBufferDdrV1(SocIP):
         self.wlen(nt)
         self.wstop()
         self.wstart()
+
+
+class AxisBufferDdrV1pt1(AxisBufferDdrV1):
+    """
+    Same as AxisBufferDdrV1 but firmware has the junk samples bug fixed.
+    """
+
+    # AXIS Buffer DDR V1 Registers.
+    bindto = ['QICK:QICK:axis_buffer_ddr:1.1']
+
+    JUNK_SAMPLES_BUG_FIX = True   # Bug is fixed in IP version >= 1.1
+    
