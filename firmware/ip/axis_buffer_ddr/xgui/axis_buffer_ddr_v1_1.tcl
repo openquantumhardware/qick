@@ -28,6 +28,15 @@ proc validate_PARAM_VALUE.DATA_WIDTH { PARAM_VALUE.DATA_WIDTH } {
 	return true
 }
 
+proc update_PARAM_VALUE.DEBUG { PARAM_VALUE.DEBUG } {
+	# Procedure called to update DEBUG when any of the dependent parameters in the arguments change
+}
+
+proc validate_PARAM_VALUE.DEBUG { PARAM_VALUE.DEBUG } {
+	# Procedure called to validate DEBUG
+	return true
+}
+
 proc update_PARAM_VALUE.ID_WIDTH { PARAM_VALUE.ID_WIDTH } {
 	# Procedure called to update ID_WIDTH when any of the dependent parameters in the arguments change
 }
@@ -65,5 +74,10 @@ proc update_MODELPARAM_VALUE.DATA_WIDTH { MODELPARAM_VALUE.DATA_WIDTH PARAM_VALU
 proc update_MODELPARAM_VALUE.BURST_SIZE { MODELPARAM_VALUE.BURST_SIZE PARAM_VALUE.BURST_SIZE } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.BURST_SIZE}] ${MODELPARAM_VALUE.BURST_SIZE}
+}
+
+proc update_MODELPARAM_VALUE.DEBUG { MODELPARAM_VALUE.DEBUG PARAM_VALUE.DEBUG } {
+	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
+	set_property value [get_property value ${PARAM_VALUE.DEBUG}] ${MODELPARAM_VALUE.DEBUG}
 }
 
