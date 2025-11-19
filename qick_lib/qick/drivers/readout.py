@@ -1315,7 +1315,7 @@ class AxisBufferDdrV1(SocIP):
                 start = self['junk_len']
             else:
                 start = 0
-                end = nt*self['burst_len']
+            end = nt*self['burst_len']
         else:
             end = start + nt*self['burst_len']
         length = end-start
