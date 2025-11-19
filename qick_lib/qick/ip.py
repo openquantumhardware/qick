@@ -144,8 +144,6 @@ class QickMetadata:
         # info for IP blocks - this is largely the same information available in ip_dict at driver initialization, but includes IPs without AXI interfaces.
         self.modinfo = {}
         for module in self.xml.findall('./MODULES/MODULE'):
-            if module.get('BDTYPE') == 'BLOCK_CONTAINER':
-                continue
             fullpath = module.get('FULLNAME').lstrip('/')
             info = {'params':{}}
             info['type'] = module.get('MODTYPE')
