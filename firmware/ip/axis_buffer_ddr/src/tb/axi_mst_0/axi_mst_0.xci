@@ -4,7 +4,7 @@
     "xci_name": "axi_mst_0",
     "component_reference": "xilinx.com:ip:axi_vip:1.1",
     "ip_revision": "14",
-    "gen_directory": ".",
+    "gen_directory": "../project_1/project_1.gen/sources_1/ip/axi_mst_0",
     "parameters": {
       "component_parameters": {
         "Component_Name": [ { "value": "axi_mst_0", "resolve_type": "user", "usage": "all" } ],
@@ -81,7 +81,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "14" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "." } ],
+        "OUTPUTDIR": [ { "value": "../project_1/project_1.gen/sources_1/ip/axi_mst_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],

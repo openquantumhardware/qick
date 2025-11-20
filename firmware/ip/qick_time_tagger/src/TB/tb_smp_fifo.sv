@@ -11,7 +11,7 @@
 `define WR_CLK         3   // Half Clock Period for Simulation
 `define RD_CLK         11   // Half Clock Period for Simulation
 
-module tb_smp_mem();
+module tb_smp_fifo();
 
 parameter DW        = 16 ;
 parameter AW        = 8  ;
