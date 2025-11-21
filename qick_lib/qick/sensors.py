@@ -198,6 +198,10 @@ class Sensors():
         self.sensors_snprintf_chip_name.restype = c_int
         self.sensors_snprintf_chip_name.argtypes = (c_char_p, c_size_t, POINTER(sensors_chip_name))
 
+        # char *sensors_get_label(const sensors_chip_name *name, const sensors_feature *feature);
+        self.sensors_get_label.restype = c_char_p
+        self.sensors_get_label.argtypes = (POINTER(sensors_chip_name), POINTER(sensors_feature))
+
         # int sensors_get_value(const sensors_chip_name *name, int subfeat_nr, double *value);
         self.sensors_get_value.restype = c_int
         self.sensors_get_value.argtypes = (POINTER(sensors_chip_name), c_int, POINTER(c_double))
@@ -283,6 +287,13 @@ class SensorsChip():
     def addr(self):
         return self.chip.contents.addr
 
+    @property
+    def name(self):
+        n = 100
+        name = c_char_p(bytes(n))
+        self._lib.sensors_snprintf_chip_name(name, n, self.chip)
+        return name.value.decode()
+
     def get_features(self):
         """Return an iterable list of this chip's features.
         """
@@ -321,6 +332,10 @@ class SensorsFeature():
     @property
     def type(self):
         return SensorsFeatureType(self.feature.contents.type)
+
+    @property
+    def label(self):
+        return self._lib.sensors_get_label(self.chip, self.feature).decode()
 
     def get_subfeature(self, subfeaturetype=None):
         """Return the subfeature of the given type (if no type is given, return the input subfeature).
@@ -416,12 +431,12 @@ def print_sensors(chipname=None):
     }
     with Sensors() as s:
         for chip in s.get_chips(chipname):
-            print(chip.prefix, chip.path)
+            print(chip.name, chip.prefix, chip.path)
             for feature in chip.get_features():
                 value = feature.get_value()
                 unit = units[feature.type]
                 if value < 1.0:
                     value *= 1000
                     unit = 'm'+unit
-                print("%s:\t% 8.3f %s"% (feature.name, value, unit))
+                print("%s (%s):\t% 8.3f %s"% (feature.label, feature.name, value, unit))
 
