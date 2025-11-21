@@ -116,10 +116,9 @@ class RFDC(SocIP, xrfdc.RFdc):
                       }
 
     def _init_config(self, description):
-        # Nyquist zone for each channel
-        self.nqz_dict = {'dac': {}, 'adc': {}}
-        # Rounded NCO frequency for each channel
-        self.mixer_dict = {'dac': {}, 'adc': {}}
+        # cached settings for each channel, to minimize unnecessary calls to the xrfdc library
+        # NQZ, rounded NCO frequency, DAC scale
+        self.settings_cache = {'dac': {}, 'adc': {}}
 
         ip_params = description['parameters']
 
@@ -163,6 +162,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                     if ip_params['C_%s_Slice%s_Enable' % (tiletype.upper(), chname)] != 'true': continue
                     tilecfg['blocks'].append(chname)
                     self[tiletype+'s'][chname] = {'index': [iTile, iBlock]}
+                    self.settings_cache[tiletype][chname] = {}
         # read the clock settings and block configs
         self._read_freqs()
 
@@ -521,7 +521,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         # we changed the clocks, so refresh that info
         self._read_freqs()
 
-    def set_mixer_freq(self, blockname, f, blocktype='dac', phase_reset=True, force=False, fullscale=False):
+    def set_mixer_freq(self, blockname, f, blocktype='dac', phase_reset=True, force=False, scale='auto'):
         """
         Set the NCO frequency that will be mixed with the generator output (for DAC) or raw ADC data (for ADC).
 
@@ -539,47 +539,74 @@ class RFDC(SocIP, xrfdc.RFdc):
             force update, even if the setting is the same
         phase_reset : bool
             if we change the frequency, also reset the NCO's phase accumulator
-        fullscale : bool
-            use the full DAC output range, disabling the mixer's default 0.7 scale factor (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer)
+        scale : str
+            'auto', 'full', or 'reduced'
+            this controls the DAC output range - 'full' is the full DAC range, 'reduced' applies a 0.7 scale factor, 'auto' is the default behavior of reduced scale for fine mixer (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer, https://docs.amd.com/r/en-US/pg269-rf-data-converter/struct-XRFdc_Mixer_Settings)
         """
-        if not force and f == self.get_mixer_freq(blockname, blocktype):
-            return
+        if blocktype not in ['dac','adc']:
+            raise RuntimeError("Block type must be adc or dac")
+        blkcache = self.settings_cache[blocktype][blockname]
 
         blk = self._get_block(blocktype, blockname)
-        tile, channel = self[blocktype+'s'][blockname]['index']
         # Make a copy of mixer settings.
-        blk_mixer = blk.MixerSettings
+        blk_mixer = blk.MixerSettings.copy()
         if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
             raise RuntimeError("tried to set mixer freq for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
-        new_mixcfg = blk_mixer.copy()
+
+        scalecode = {
+                'auto': xrfdc.MIXER_SCALE_AUTO,
+                'full': xrfdc.MIXER_SCALE_1P0,
+                'reduced': xrfdc.MIXER_SCALE_0P7
+                }[scale]
+        # if we wouldn't be changing any settings, return immediately
+        if all([not force, self.get_mixer_freq(blockname, blocktype) == f, self.get_mixer_scale(blockname, blocktype) == scalecode]):
+            return
+
+        self.logger.info('%s block %s: setting mixer_freq %f, mixer_scale %s'%(blocktype.upper(), blockname, f, scale))
 
         # Update the copy
-        new_mixcfg.update({
+        blk_mixer.update({
             'EventSource': xrfdc.EVNT_SRC_IMMEDIATE,
             'Freq': f,
-            'MixerType': xrfdc.MIXER_TYPE_FINE,
             'PhaseOffset': 0,
+            'FineMixerScale': scalecode,
             })
-        if fullscale: new_mixcfg['FineMixerScale'] = xrfdc.MIXER_SCALE_1P0
-        else: new_mixcfg['FineMixerScale'] = xrfdc.MIXER_SCALE_AUTO
 
         # Update settings.
-        blk.MixerSettings = new_mixcfg
+        blk.MixerSettings = blk_mixer
         blk.UpdateEvent(xrfdc.EVENT_MIXER)
         # The phase reset is mostly important when setting the frequency to 0: you want the NCO to end up at 1 instead of a complex value.
         # So we apply the reset after setting the new frequency (otherwise you accumulate some rotation before stopping the NCO).
         if phase_reset: blk.ResetNCOPhase()
-        self.mixer_dict[blocktype][blockname] = f
+
+        blkcache['mixer_freq'] = f
+        blkcache['mixer_scale'] = scalecode
 
     def get_mixer_freq(self, blockname, blocktype='dac'):
-        try:
-            return self.mixer_dict[blocktype+'s'][blockname]
-        except KeyError:
+        if blocktype not in ['dac','adc']:
+            raise RuntimeError("Block type must be adc or dac")
+        blkcache = self.settings_cache[blocktype][blockname]
+        if 'mixer_freq' not in blkcache:
             blk_mixer = self._get_block(blocktype, blockname).MixerSettings
             if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
                 raise RuntimeError("tried to get mixer freq for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
-            self.mixer_dict[blocktype][blockname] = blk_mixer['Freq']
-            return self.mixer_dict[blocktype][blockname]
+            f = blk_mixer['Freq']
+            self.logger.info('%s block %s: read mixer freq=%f'%(blocktype.upper(), blockname, f))
+            blkcache['mixer_freq'] = f
+        return blkcache['mixer_freq']
+
+    def get_mixer_scale(self, blockname, blocktype='dac'):
+        if blocktype not in ['dac','adc']:
+            raise RuntimeError("Block type must be adc or dac")
+        blkcache = self.settings_cache[blocktype][blockname]
+        if 'mixer_scale' not in blkcache:
+            blk_mixer = self._get_block(blocktype, blockname).MixerSettings
+            if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
+                raise RuntimeError("tried to get mixer scale for %s %s, but mixer is not enabled" % (blocktype.upper(), blockname))
+            scalecode = blk_mixer['FineMixerScale']
+            self.logger.info('%s block %s: read mixer scale=%d'%(blocktype.upper(), blockname, scalecode))
+            blkcache['mixer_scale'] = scalecode
+        return blkcache['mixer_scale']
 
     def set_nyquist(self, blockname, nqz, blocktype='dac', force=False):
         """
@@ -604,9 +631,10 @@ class RFDC(SocIP, xrfdc.RFdc):
             raise RuntimeError("Block type must be adc or dac")
         if not force and self.get_nyquist(blockname, blocktype) == nqz:
             return
+        self.logger.info('%s block %s: setting nqz=%d'%(blocktype.upper(), blockname, nqz))
         blk = self._get_block(blocktype, blockname)
         blk.NyquistZone = nqz
-        self.nqz_dict[blocktype][blockname] = nqz
+        self.settings_cache[blocktype][blockname]['nqz'] = nqz
 
     def get_nyquist(self, blockname, blocktype='dac'):
         """
@@ -626,12 +654,13 @@ class RFDC(SocIP, xrfdc.RFdc):
         """
         if blocktype not in ['dac','adc']:
             raise RuntimeError("Block type must be adc or dac")
-        try:
-            return self.nqz_dict[blocktype][blockname]
-        except KeyError:
+        blkcache = self.settings_cache[blocktype][blockname]
+        if 'nqz' not in blkcache:
             blk = self._get_block(blocktype, blockname)
-            self.nqz_dict[blocktype][blockname] = blk.NyquistZone
-            return self.nqz_dict[blocktype][blockname]
+            nqz = blk.NyquistZone
+            self.logger.info('%s block %s: read nqz=%d'%(blocktype.upper(), blockname, nqz))
+            blkcache['nqz'] = nqz
+        return blkcache['nqz']
 
     def get_adc_attenuator(self, blockname):
         """Read the ADC's built-in step attenuator.
@@ -1454,10 +1483,14 @@ class QickSoc(Overlay, QickConfig):
         phase_reset : bool
             if this changes the frequency, also reset the phase (so if we go to freq=0, we end up on the real axis)
         fullscale : bool
-            use the full DAC output range, disabling the mixer's default 0.7 scale factor (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer)
+            use the full DAC output range, disabling the mixer's default 0.7 scale factor (see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Numerical-Controlled-Oscillator-and-Mixer, https://docs.amd.com/r/en-US/pg269-rf-data-converter/struct-XRFdc_Mixer_Settings)
         """
+        if fullscale:
+            scale = 'full'
+        else:
+            scale = 'auto'
         if self.gens[ch].HAS_MIXER:
-            self.gens[ch].set_mixer_freq(f, ro_ch=ro_ch, phase_reset=phase_reset, fullscale=fullscale)
+            self.gens[ch].set_mixer_freq(f, ro_ch=ro_ch, phase_reset=phase_reset, scale=scale)
         elif f != 0:
             raise RuntimeError("tried to set a mixer frequency, but this channel doesn't have a mixer")
 
