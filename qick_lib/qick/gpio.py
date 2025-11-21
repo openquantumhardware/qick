@@ -111,7 +111,7 @@ class Handle():
         logger.info("closing fd %d" % (self._fd))
         os.close(self._fd)
 
-class Chip(Handle):
+class GpioChip(Handle):
     """Encapsulates access to a GPIO chip.
     """
     CONSUMER = "QICK gpiod" # while we have an open request on a line, this string will show up in the line info
@@ -235,7 +235,7 @@ def read_gpio(path, lines):
     list of int
         state (0 or 1) of each line
     """
-    with Chip(path) as chip:
+    with GpioChip(path) as chip:
         return chip.read_lines(lines)
 
 def write_gpio(path, lines, values):
@@ -253,6 +253,6 @@ def write_gpio(path, lines, values):
     values : list of int
         value (0 or 1) to set on each line
     """
-    with Chip(path) as chip:
+    with GpioChip(path) as chip:
         chip.write_lines(lines, values)
 

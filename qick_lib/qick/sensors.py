@@ -264,9 +264,9 @@ class ChipIterator():
                 self._lib.sensors_free_chip_name(self.chip_temp)
             raise StopIteration
         logger.info("chip_nr %d" % (self.chip_nr.value))
-        return Chip(self._lib, chip)
+        return SensorsChip(self._lib, chip)
 
-class Chip():
+class SensorsChip():
     def __init__(self, lib, chip):
         self._lib = lib
         self.chip = chip
@@ -302,9 +302,9 @@ class FeatureIterator():
         if not feature:
             raise StopIteration
         logger.info("feature_nr %d" % (self.feature_nr.value))
-        return Feature(self._lib, self.chip, feature)
+        return SensorsFeature(self._lib, self.chip, feature)
 
-class Feature():
+class SensorsFeature():
     def __init__(self, lib, chip, feature):
         self._lib = lib
         self.chip = chip
