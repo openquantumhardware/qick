@@ -1,5 +1,6 @@
 import enum
 from ctypes import cdll, Structure, POINTER, byref, c_short, c_int, c_uint, c_char, c_double, c_size_t, c_char_p
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -7,7 +8,7 @@ logger = logging.getLogger(__name__)
 """A pure-Python interface to libsensors v5.
 Most but not all of the API is supported.
 
-This is meant to be used to read the INA226 power monitor chips used on the RFSoC boards.
+This is meant to be used to read the power monitor chips used on the RFSoC boards.
 
 Initializing libsensors with sensors_init() takes a significant amount of time (~10 ms).
 If you want to do repeated measurements you should therefore write your own code that reuses the Sensors object.
@@ -15,10 +16,25 @@ If you want to do repeated measurements you should therefore write your own code
 Useful references:
     * https://github.com/lm-sensors/lm-sensors/blob/master/lib/sensors.h
     * https://linux.die.net/man/3/libsensors
+    * https://docs.kernel.org/hwmon/sysfs-interface.html
+    * https://docs.kernel.org/i2c/i2c-sysfs.html
     * https://github.com/torvalds/linux/blob/master/drivers/hwmon/ina2xx.c
+    * https://github.com/torvalds/linux/blob/master/drivers/hwmon/pmbus/irps5401.c
     * https://github.com/Xilinx/device-tree-xlnx/blob/master/device_tree/data/kernel_dtsi/2023.1/BOARD/zcu216-reva.dtsi
     * https://github.com/Xilinx/PYNQ/blob/master/pynq/pmbus.py
+    * https://docs.amd.com/r/en-US/ug1271-zcu111-eval-bd/I2C0-MIO-14-15-I2C1-MIO-16-17
+    * https://docs.amd.com/r/en-US/ug1390-zcu216-eval-bd/I2C0-MIO-14-15-I2C1-MIO-16-17
 """
+
+# feature names are always generic (in1, power1, etc.), they come from the hwmon sysfs
+# RFSoC4x2: all chips are INA220, chip label ina220-i2c-0-47, chip prefix ina220, feature label is the rail name (VDAC_AVTT for all features)
+# ZCU216: all chips are INA226, chip label ina226_dac_avtt-isa-0000, chip prefix ina226_dac_avtt, feature label is the feature name (e.g. in1)
+# ZCU111 IRPS5401: chip label ina226_u79-isa-0000, chip prefix ina226_u79, feature label is the feature name (e.g. in1)
+# ZCU111 INA226: chip label irps5401-i2c-4-45, chip prefix and irps5401, feature label is the function (e.g. vin, vout1)
+
+# some chips get mapped to the ISA bus, some stay on I2C
+# the ZCU111 IRPS5401s are on an I2C mux and we need to find the number of the muxed bus, which is not fixed (it is 5 on PYNQ 2.7 and 4 on PYNQ 3.0)
+# this is how to do it: ls -l /sys/bus/i2c/devices/i2c-0/0-0075/channel-2
 
 
 class SensorsSubfeatureFlags(enum.Flag):
@@ -335,6 +351,7 @@ class SensorsFeature():
 
     @property
     def label(self):
+        # libsensors says you need to free this string, but it seems that ctypes will do this for us
         return self._lib.sensors_get_label(self.chip, self.feature).decode()
 
     def get_subfeature(self, subfeaturetype=None):
@@ -383,30 +400,28 @@ class Subfeature():
         assert self._lib.sensors_get_value(self.chip, self.number, byref(value)) == 0
         return value.value
 
-def read_sensor(chipname, variable):
+def read_sensor(chipname, featurename):
     """Read the current value of a single sensor input.
-    The chip is assumed to be the INA226 power monitor chip.
 
     Parameters
     ----------
     chipname : str
         chip name as printed by the `sensors` command, e.g. "ina226_dac_avtt-isa-0000"
-    variable : str
-        "shunt_voltage", "bus_voltage", "power", "current"
-        These map to the "in1", "in2", "power1", "curr1" features of the INA226 chip.
+    featurename : str
+        "in2", "curr1", etc.
 
     Returns
     -------
     float
         value in units of V, W, or A
     """
-    variables = {
-        'shunt_voltage': 'in1',
-        'bus_voltage': 'in2',
-        'power': 'power1',
-        'current': 'curr1',
-    }
-    featurename = variables[variable]
+    #variables = {
+    #    'shunt_voltage': 'in1',
+    #    'bus_voltage': 'in2',
+    #    'power': 'power1',
+    #    'current': 'curr1',
+    #}
+    #featurename = variables[variable]
 
     with Sensors() as s:
         for chip in s.get_chips(chipname):
@@ -428,6 +443,7 @@ def print_sensors(chipname=None):
         SensorsFeatureType.IN: 'V',
         SensorsFeatureType.POWER: 'W',
         SensorsFeatureType.CURR: 'A',
+        SensorsFeatureType.TEMP: 'C',
     }
     with Sensors() as s:
         for chip in s.get_chips(chipname):
@@ -440,3 +456,22 @@ def print_sensors(chipname=None):
                     unit = 'm'+unit
                 print("%s (%s):\t% 8.3f %s"% (feature.label, feature.name, value, unit))
 
+def read_dac_avtt():
+    """Read the DAC_AVTT voltage.
+
+    Returns
+    -------
+    float
+        value in units of V, W, or A
+    """
+    board = os.environ['BOARD']
+    if board=='ZCU111':
+        # find the logical bus number: https://docs.kernel.org/i2c/i2c-sysfs.html
+        buspath = os.readlink('/sys/bus/i2c/devices/i2c-0/0-0075/channel-2')
+        # buspath is of the form '../i2c-4'
+        busnum = int(buspath.split('-')[-1])
+        return read_sensor('irps5401-i2c-%d-45'%(busnum), 'in3')
+    elif board in ['ZCU208', 'ZCU216']:
+        return read_sensor('ina226_dac_avtt-isa-0000', 'in2')
+    elif board == 'RFSoC4x2':
+        return read_sensor('ina220-i2c-0-47', 'in1')
