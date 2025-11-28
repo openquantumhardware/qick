@@ -1,7 +1,7 @@
 QICK papers
 ===========
 
-This list of academic papers that used the QICK was last updated July 15, 2025.
+This list of academic papers that used the QICK was last updated November 27, 2025.
 
 QICK system
 -----------
@@ -36,12 +36,14 @@ Superconducting circuits – readout
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/pdf/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/pdf/2503.10750>`_.
 * `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
+* `Johnson, H. et al. Demonstrating the Potential of Adaptive LMS Filtering on FPGA-Based Qubit Control Platforms for Improved Qubit Readout in 2D and 3D Quantum Processing Units. (2024) <https://arxiv.org/abs/2408.00904>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
 * `Yen, A. et al. Directional emission of a readout resonator for qubit measurement. (2024) <https://arxiv.org/abs/2403.01375>`_.
 * `Bryon, J. et al. Experimental verification of the treatment of time-dependent flux in circuit quantization. (2022) <https://arxiv.org/abs/2208.03738>`_.
 
 Superconducting circuits - parametric amplifiers
 ------------------------------------------------
+* `Hao, Z. et al. Wireless Josephson parametric amplifier above 20 GHz. (2025) <https://arxiv.org/abs/2508.11137>`_.
 * `Wang, J. et al. High-Efficiency, Low-Loss Floquet-Mode Traveling-Wave Parametric Amplifier. (2025) <https://arxiv.org/abs/2503.11812>`_.
 * `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
 
@@ -54,6 +56,7 @@ Superconducting circuits – gates/couplers
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
+* `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
 
 Superconducting circuits – quantum simulation
 ---------------------------------------------
@@ -80,6 +83,7 @@ Spin defects
 
 Quantum dots
 ------------
+* `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
 MKIDs
@@ -94,6 +98,8 @@ Dark matter detection
 
 Single-photon detection
 -----------------------
+* `Linne, K. et al. PhotonIDs: ML-Powered Photon Identification System for Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.26315>`_.
+* `Linne, K. et al. SQuaD: Smart Quantum Detection for Photon Recognition and Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.24383>`_.
 * `Xie, S. et al. Entangled Photon Pair Source Demonstrator using the Quantum Instrumentation Control Kit System. (2023) <https://arxiv.org/abs/2304.01190>`_.
 
 Open source control with the Qibo/QICK stack (Qibolab/Qibosoq)
