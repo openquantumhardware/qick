@@ -116,6 +116,10 @@ class RFDC(SocIP, xrfdc.RFdc):
                       }
 
     def _init_config(self, description):
+        # the RFDC class is initialized after the HWH is read but before the bitstream is loaded to the FPGA
+        # we therefore cannot access the xrfdc driver here (if we do, we may get stale information from the previously loaded bitstream)
+        # so, just use the HWH information to get the information we need first (lists of enabled blocks, reference clocks)
+
         # cached settings for each channel, to minimize unnecessary calls to the xrfdc library
         # NQZ, rounded NCO frequency, DAC scale
         self.settings_cache = {'dac': {}, 'adc': {}}
@@ -126,6 +130,13 @@ class RFDC(SocIP, xrfdc.RFdc):
         self.cfg['ip_type'] = int(ip_params['C_IP_Type'])
         # quad or dual RF-ADC
         self.cfg['hs_adc'] = (ip_params['C_High_Speed_ADC'] == '1')
+
+        # DAC output current mode
+        if self['ip_type'] == self.XRFDC_GEN3 and ip_params['C_DAC_VOP_Mode'] == '1':
+            self.cfg['dac_power'] = 'VOP'
+        else:
+            self.cfg['dac_power'] = {'0': '20mA', '1': '32mA'}[ip_params['C_DAC_Output_Current']]
+
         # dicts of RFDC tiles and channels
         self.cfg['tiles'] = {'dac':{}, 'adc':{}}
         self.cfg['dacs'] = OrderedDict()
@@ -142,6 +153,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                 # some firmwares (older versions of Vivado?) do not have link coupling params for the DAC
                 if ('C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)) in ip_params:
                     tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
+                tilecfg['f_ref'] = float(ip_params['C_DAC%d_Refclk_Freq' % (iTile)])
                 f_fabric = float(ip_params['C_%s%d_Fabric_Freq' % (tiletype.upper(), iTile)])
                 f_out = float(ip_params['C_%s%d_Outclk_Freq' % (tiletype.upper(), iTile)])
                 fs = float(ip_params['C_%s%d_Sampling_Rate' % (tiletype.upper(), iTile)])*1000
@@ -163,8 +175,6 @@ class RFDC(SocIP, xrfdc.RFdc):
                     tilecfg['blocks'].append(chname)
                     self[tiletype+'s'][chname] = {'index': [iTile, iBlock]}
                     self.settings_cache[tiletype][chname] = {}
-        # read the clock settings and block configs
-        self._read_freqs()
 
     def _get_tile(self, tiletype, iTile):
         tiles = {'dac':self.dac_tiles, 'adc':self.adc_tiles}[tiletype]
@@ -181,7 +191,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                 #tilecfg.clear()
                 tile = self._get_tile(tiletype, iTile)
                 pllcfg = tile.PLLConfig
-                tilecfg['f_ref'] = pllcfg['RefClkFreq']
+                #tilecfg['f_ref'] = pllcfg['RefClkFreq']
                 tilecfg['ref_div'] = pllcfg['RefClkDivider']
                 tilecfg['fs_mult'] = pllcfg['FeedbackDivider']
                 tilecfg['fs_div'] = pllcfg['RefClkDivider']*pllcfg['OutputDivider']
@@ -259,6 +269,10 @@ class RFDC(SocIP, xrfdc.RFdc):
         It does not assume that configure_connections() has been run on all drivers.
         """
         # first, gather information
+
+        # read the clock settings and block configs
+        self._read_freqs()
+
         # search for IP blocks with trace_clocks() methods - typically this is just the tProc
         # we run trace_clocks() here
         # it will also run as part of QickSoc init (via configure_connections()), but that's after sampling rate modification
@@ -853,6 +867,16 @@ class QickSoc(Overlay, QickConfig):
         if bitfile is None:
             bitfile = bitfile_path()
 
+        # Initialize the configuration
+        self._cfg = {}
+        QickConfig.__init__(self)
+
+        self['board'] = os.environ["BOARD"]
+        self['sw_version'] = get_version()
+
+        # a space to dump any additional lines of config text which you want to print in the QickConfig
+        self['extra_description'] = []
+
         # 1. read the config from the HWH file and (optionally) download the bitstream into the FPGA with Overlay.__init__()
         # 2. check and (if necessary) configure the reference clocks with QickSoc.config_clocks() - there must be a loaded bitstream at this point, to check the clocks
         # 2a. if we configure the clocks, we re-download the bitstream
@@ -868,18 +892,25 @@ class QickSoc(Overlay, QickConfig):
             pass
 
         # Read the bitstream configuration from the HWH file.
-        # If download=True, we also program the FPGA.
-        Overlay.__init__(self, bitfile, ignore_version=True, download=download, **kwargs)
+        # We don't program the FPGA yet.
+        Overlay.__init__(self, bitfile, ignore_version=True, download=False, **kwargs)
 
-        # Initialize the configuration
-        self._cfg = {}
-        QickConfig.__init__(self)
+        if not no_rf:
+            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
+            self.rf = self.usp_rf_data_converter_0
+            self['rf'] = self.rf.cfg
 
-        self['board'] = os.environ["BOARD"]
-        self['sw_version'] = get_version()
+            # Examine the RFDC config to find the reference clock frequency.
+            refclks = []
+            for tiletype in ['dac', 'adc']:
+                refclks.extend([v['f_ref'] for k,v in self.rf['tiles'][tiletype].items()])
+            if len(set(refclks)) != 1:
+                raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
+            self['refclk_freq'] = refclks[0]
 
-        # a space to dump any additional lines of config text which you want to print in the QickConfig
-        self['extra_description'] = []
+        # If download=True, we program the FPGA.
+        if download:
+            self.download()
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
@@ -901,19 +932,8 @@ class QickSoc(Overlay, QickConfig):
         self.time_taggers = []
 
         if not no_rf:
-            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
-            self.rf = self.usp_rf_data_converter_0
-            self['rf'] = self.rf.cfg
             # map the clock networks, so we can validate the requested sampling rates
             self.rf.map_clocks(self)
-
-            # Examine the RFDC config to find the reference clock frequency.
-            refclks = []
-            for tiletype in ['dac', 'adc']:
-                refclks.extend([v['f_ref'] for k,v in self.rf['tiles'][tiletype].items()])
-            if len(set(refclks)) != 1:
-                raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
-            self['refclk_freq'] = refclks[0]
 
             # Configure xrfclk reference clocks
             self.config_clocks(force_init_clks, clk_output, external_clk)
