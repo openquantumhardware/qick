@@ -12,6 +12,7 @@ on:
       - 'qick_demos/**'
       - 'qick_lib/**'
       - '**.py'
+      - '!qick_lib/qick/VERSION'
   
 permissions:
   contents: write
