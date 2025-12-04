@@ -5,7 +5,7 @@ QICK papers
 This list of academic papers that used the QICK was last updated November 27, 2025.
 
 QICK in the news
------------
+----------------
 * `Fermilab articles <https://news.fnal.gov/tag/qick/>`_
 
 QICK system
