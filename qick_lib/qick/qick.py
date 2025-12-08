@@ -114,6 +114,8 @@ class RFDC(SocIP, xrfdc.RFdc):
                       'GCB' : (XRFDC_CAL_BLOCK_GCB,  4),
                       'TSCB': (XRFDC_CAL_BLOCK_TSCB, 8),
                       }
+    XRFDC_STEP_I_UA = 43.75 # step size for variable output current (VOP), in uA
+    XRFDC_MIN_I_UA_INT = 1400 # offset for VOP, in uA
 
     def _init_config(self, description):
         # the RFDC class is initialized after the HWH is read but before the bitstream is loaded to the FPGA
@@ -715,6 +717,67 @@ class RFDC(SocIP, xrfdc.RFdc):
         attenuation = np.round(attenuation)
         adc.DSA['Attenuation'] = attenuation
         return attenuation
+
+    def _round_dac_curr(self, curr):
+        """Given an output current value in uA for a Gen3 RFSoC, round it to an even multiple of the step size (43.75 uA).
+        """
+        curr_code = round((curr - self.XRFDC_MIN_I_UA_INT) / self.XRFDC_STEP_I_UA)
+        return (curr_code * self.XRFDC_STEP_I_UA + self.XRFDC_MIN_I_UA_INT)
+
+    def get_dac_curr(self, blockname):
+        """Get the output current for an RF-DAC.
+        The output amplitude scales with the current.
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+
+        Returns
+        -------
+        float
+            Output current (mA)
+        """
+        blkcache = self.settings_cache['dac'][blockname]
+        if 'output_curr' not in blkcache:
+            iTile, iBlock = self['dacs'][blockname]['index']
+            i = xrfdc._ffi.new('unsigned int [1]')
+            xrfdc._lib.XRFdc_GetOutputCurr(self._instance, iTile, iBlock, i)
+            if self['ip_type'] == self.XRFDC_GEN3:
+                blkcache['output_curr'] = self._round_dac_curr(i[0]) / 1000.0
+            else:
+                blkcache['output_curr'] = float(i[0])
+        return blkcache['output_curr']
+
+    def set_dac_curr(self, blockname, output_curr, force=False):
+        """Set the output current for an RF-DAC in variable output power (VOP) mode.
+        The output amplitude scales with the current.
+
+        VOP mode is only available for Gen 3 RFSoCs (ZCU216), and must be enabled in the firmware at compile time.
+
+        Parameters
+        ----------
+        blockname : str
+            Channel ID (2-digit string)
+        float
+            Requested output current (mA)
+
+        Returns
+        -------
+        float
+            Rounded value of output current (mA)
+        """
+        if self['dac_power'] != 'VOP':
+            raise RuntimeError('You can only change the DAC output current if your firmware was compiled with the DACs set to variable output power (VOP) mode.')
+        if not force and self.get_dac_curr(blockname) == output_curr:
+            return
+        rounded = self._round_dac_curr(output_curr*1000) # convert to uA and round
+        self.logger.info('DAC %s: setting output_curr=%.3f mA (rounded to %.2f uA)'%(blockname, output_curr, rounded))
+        iTile, iBlock = self['dacs'][blockname]['index']
+        xrfdc._lib.XRFdc_SetDACVOP(self._instance, iTile, iBlock, int(rounded))
+        rounded /= 1000.0 # convert to mA
+        self.settings_cache['dac'][blockname]['output_curr'] = rounded
+        return rounded
 
     def get_adc_cal(self, blockname):
         """Get the current calibration coefficients for an ADC.
