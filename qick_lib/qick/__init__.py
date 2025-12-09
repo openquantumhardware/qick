@@ -39,21 +39,24 @@ def bitfile_path():
 
 
 # Check for supported PYNQ versions that are compatible with QICK library
+# only do the check if running on a Zynq
+if platform.machine() in ['aarch64', 'armv7l']:
+    import pkg_resources
 
-import pkg_resources
+    try:
+        pynq_version = pkg_resources.get_distribution("pynq").version
+    except pkg_resources.DistributionNotFound:
+        raise RuntimeError("PYNQ is not installed.")
 
-try:
-    pynq_version = pkg_resources.get_distribution("pynq").version
-except pkg_resources.DistributionNotFound:
-    raise RuntimeError("PYNQ is not installed.")
+    print(f"Detected PYNQ version: {pynq_version}")
 
-print(f"Detected PYNQ version: {pynq_version}")
-
-if pkg_resources.parse_version(pynq_version) > pkg_resources.parse_version("3.0.1"):
-    raise RuntimeError(
-        f"Unsupported PYNQ version {pynq_version}. "
-        "This code requires PYNQ 3.0.1 or lower."
-    )
+    if pkg_resources.parse_version(pynq_version) > pkg_resources.parse_version("3.0.1"):
+        raise RuntimeError(
+            f"Unsupported PYNQ version {pynq_version}. "
+            "QICK library requires PYNQ 3.0.1 or lower."
+        )
+else:
+    print(f"PYNQ version check skipped")
 
 
 # tie in to rpyc, if using
