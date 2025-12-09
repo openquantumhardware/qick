@@ -27,6 +27,9 @@ See our [Read the Docs site](https://qick-docs.readthedocs.io/) for:
 The QICK firmware and software is still very much a work in progress.
 We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
+> [!NOTE]
+> The current version of QICK only supports the PYNQ v3.0.1 images from https://github.com/Xilinx/PYNQ/releases. v3.1.x was recently released which is not yet comptible. Please do not (yet) update your SD image for a better experience.
+
 Frequent updates to the QICK firmware and software are made as pull requests.
 Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
 We hope that this will help you decide whether or not to update your local code to the latest version.
