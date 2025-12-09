@@ -238,7 +238,10 @@ proc create_hier_cell_ddr4 { parentCell nameHier } {
 
   # Create instance: axis_buffer_ddr_0, and set properties
   set axis_buffer_ddr_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_buffer_ddr:1.1 axis_buffer_ddr_0 ]
-  set_property CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} $axis_buffer_ddr_0
+  set_property -dict [list \
+    CONFIG.DATA_WIDTH {512} \
+    CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} \
+  ] $axis_buffer_ddr_0
 
 
   # Create instance: axis_clock_converter_0, and set properties
@@ -649,6 +652,7 @@ proc create_root_design { parentCell } {
     CONFIG.DAC_Mode20 {3} \
     CONFIG.DAC_Slice00_Enable {true} \
     CONFIG.DAC_Slice20_Enable {true} \
+    CONFIG.DAC_VOP_Mode {0} \
   ] $usp_rf_data_converter_0
 
 
