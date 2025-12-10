@@ -28,7 +28,7 @@ The QICK firmware and software is still very much a work in progress.
 We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
 > [!NOTE]
-> The current version of QICK only supports the PYNQ v3.0.1 images from https://github.com/Xilinx/PYNQ/releases. v3.1.x was recently released which is not yet comptible. Please do not (yet) update your SD image for a better experience.
+> QICK does not yet support PYNQ v3.1. The [QICK quick-start guide](https://docs.qick.dev/latest/quick_start.html) lists the currently recommended PYNQ OS images for your SD card.
 
 Frequent updates to the QICK firmware and software are made as pull requests.
 Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
