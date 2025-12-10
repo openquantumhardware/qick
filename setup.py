@@ -157,7 +157,7 @@ setup(
     # We may therefore lose compatibility with the QICK library on a PC running NumPy 2.0.
     install_requires=[
         "numpy",
-        "pynq>=2.6;platform_machine=='aarch64' or platform_machine=='armv7l'",
+        "pynq>=2.6,<3.1; platform_machine=='aarch64' or platform_machine=='armv7l'",
         "tqdm", # Optional
     ],
 
