@@ -16,10 +16,10 @@ It consists of:
 * The `qick` Python package, which includes the interface to the firmware and an API for writing QICK programs
 * [Jupyter notebooks](qick_demos) demonstrating usage
 
-See our [Read the Docs site](https://qick-docs.readthedocs.io/) for:
+See our [Read the Docs site](https://docs.qick.dev/) for:
 * Documentation of the firmware and software
-* A quick-start guide for setting up your board and running the example Jupyter notebooks
-* Ways to communicate with QICK developers and the community
+* A [quick-start guide](https://docs.qick.dev/latest/quick_start.html) for setting up your board and running the example Jupyter notebooks
+* [Ways to communicate](https://docs.qick.dev/latest/contact.html) with QICK developers and the community
 * Extensions to QICK for added functionailty
 
 ## Updates
@@ -28,7 +28,7 @@ The QICK firmware and software is still very much a work in progress.
 We strive to be consistent with the APIs but cannot guarantee backwards compatibility.
 
 > [!NOTE]
-> QICK does not yet support PYNQ v3.1. The [QICK quick-start guide](https://docs.qick.dev/latest/quick_start.html) lists the currently recommended PYNQ OS images for your SD card.
+> QICK does not yet support PYNQ v3.1. The QICK quick-start guide (linked above) lists the currently recommended PYNQ OS images for your SD card.
 
 Frequent updates to the QICK firmware and software are made as pull requests.
 Each pull request will be documented with a description of the notable changes, including any changes that will require you to change your code.
