@@ -2085,7 +2085,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to arm (index in `time_taggers' list).
+            The time tagger block to arm (index in `time_taggers` list).
         """
         self.time_taggers[blk].disarm()
         self.time_taggers[blk].arm()
@@ -2096,7 +2096,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to arm (index in `time_taggers' list).
+            The time tagger block to arm (index in `time_taggers` list).
         """
         self.time_taggers[blk].disarm()
 
@@ -2107,7 +2107,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to read (index in `time_taggers' list).
+            The time tagger block to read (index in `time_taggers` list).
         mem : str
             "ARM", "SMP", "TAG0"/"TAG1"/"TAG2"/"TAG3"
         """
@@ -2119,7 +2119,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to reset (index in `time_taggers' list).
+            The time tagger block to reset (index in `time_taggers` list).
         """
         #self.time_taggers[blk].reset()
         self.time_taggers[blk].flush_mems()
@@ -2130,7 +2130,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to flush (index in `time_taggers' list).
+            The time tagger block to flush (index in `time_taggers` list).
         threshold : int
             Tag threshold (-2^15 through 2^15-1).
         wr_smp : int

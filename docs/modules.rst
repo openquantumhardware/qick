@@ -18,5 +18,4 @@ Software API
    qick.parser
    qick.averager_program
    qick.asm_v2
-   qick.tprocv2_assembler
    qick.rfboard
