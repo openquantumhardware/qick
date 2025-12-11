@@ -37,11 +37,11 @@ class IRPS5401():
         self._devname = '%d-%04x'%(busnum, devnum)
         dev = pathlib.Path('/sys/bus/i2c/devices/%s'%(self._devname))
         if (dev / 'driver').exists():
-            logger.info("unbinding driver from I2C device %s" % (self._devname))
+            logger.debug("unbinding driver from I2C device %s" % (self._devname))
             (dev / 'driver' / 'unbind').write_text(self._devname)
 
         self._fd = os.open('/dev/i2c-%d'%(busnum), os.O_RDWR)
-        logger.info("opened fd %d" % (self._fd))
+        logger.debug("opened fd %d" % (self._fd))
         assert fcntl.ioctl(self._fd, I2C_SLAVE, devnum) >= 0
 
     def __enter__(self):
@@ -51,9 +51,9 @@ class IRPS5401():
         self.close()
 
     def close(self):
-        logger.info("closing fd %d" % (self._fd))
+        logger.debug("closing fd %d" % (self._fd))
         os.close(self._fd)
-        logger.info("binding pmbus driver to I2C device %s" % (self._devname))
+        logger.debug("binding pmbus driver to I2C device %s" % (self._devname))
         pathlib.Path('/sys/bus/i2c/drivers/pmbus/bind').write_text(self._devname)
 
     def _set_page(self, pagenum):
@@ -83,12 +83,12 @@ class IRPS5401():
         """Set the voltage setpoint for the specified page.
         """
         self._set_page(pagenum)
-        logger.info("setting page %d vout to %f V" % (pagenum, val))
+        logger.debug("setting page %d vout to %f V" % (pagenum, val))
         e = self._get_scale()
         x = round(val / 2**e)
         assert _libi2c.i2c_smbus_write_word_data(self._fd, PMBUS_VOUT_COMMAND, x) == 0
 
 def pmbus_set_vout(busnum, devnum, pagenum, val):
     with IRPS5401(busnum, devnum) as d:
-        logger.info("current value of page %d vout = %f V" % (pagenum, d.get_vout(pagenum=pagenum)))
+        logger.debug("current value of page %d vout = %f V" % (pagenum, d.get_vout(pagenum=pagenum)))
         return d.set_vout(pagenum=pagenum, val=val)

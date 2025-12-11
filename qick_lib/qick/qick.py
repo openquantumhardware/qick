@@ -24,6 +24,7 @@ from .drivers.readout import *
 from .drivers.tproc import *
 from .drivers.peripherals import *
 from .drivers.xcom import *
+from .board_utils import read_dac_avtt, set_dac_avtt
 
 logger = logging.getLogger(__name__)
 
@@ -963,6 +964,30 @@ class QickSoc(Overlay, QickConfig):
             self.rf = self.usp_rf_data_converter_0
             self['rf'] = self.rf.cfg
 
+            # set the board's DAC_AVTT voltage to the value appropriate for this firmware's RF-DAC output power setting (20 mA, 32 mA, or variable output power - see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Analog-Outputs).
+            # Rules for DAC output power and DAC_AVTT:
+            # * "A 3.0V DAC_AVTT should not be used in the 20 mA mode. This risks exceeding the maximum ratings of the device and also risks affecting device reliability."
+            # https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Output-Current-Mode-Gen-1/Gen-2
+            # * "To use the VOP feature, the DAC_AVTT must be 3.0V."
+            # https://docs.amd.com/r/en-US/pg269-rf-data-converter/VOP-Details-Gen-3/DFE
+            #
+            # 1. figure out what DAC_AVTT value the new bitstream wants, and read the current value of DAC_AVTT
+            # 2. if we need 2.5 V, apply that now; if we need 3.0 V, apply that after bitstream download
+
+            avtt_needed = {
+                    '20mA': 2.5,
+                    '32mA': 3.0,
+                    'VOP': 3.0,
+                    }[self['rf']['dac_power']]
+            avtt_now = read_dac_avtt()
+            logger.info("DAC_AVTT=%.3f V, the bitfile we're about to load needs %.3f V" % (avtt_now, avtt_needed))
+            if min(abs(avtt_now - 2.5), abs(avtt_now - 3.0)) > 0.1:
+                raise RuntimeError('DAC_AVTT should be 2.5 or 3.0 V, but it is %f' % (avtt_now))
+            if avtt_needed < avtt_now - 0.1:
+                logger.info('lowering DAC_AVTT before loading bitfile')
+                print('setting DAC_AVTT to %.1f V' % (avtt_needed))
+                set_dac_avtt(avtt_needed)
+
             # Examine the RFDC config to find the reference clock frequency.
             refclks = []
             for tiletype in ['dac', 'adc']:
@@ -974,6 +999,15 @@ class QickSoc(Overlay, QickConfig):
         # If download=True, we program the FPGA.
         if download:
             self.download()
+
+        if not no_rf:
+            if avtt_needed > avtt_now + 0.1:
+                logger.info('raising DAC_AVTT after loading bitfile')
+                if self['board'] == 'RFSoC4x2':
+                    print('This bitfile puts the RF-DACs in %s mode which requires DAC_AVTT=%.1f V, but DAC_AVTT on the RFSoC4x2 is hard-wired at 2.5 V. The DACs will probably work anyway, but performance is not guaranteed.' % (self['rf']['dac_power'], avtt_needed))
+                else:
+                    print('setting DAC_AVTT to %.1f V' % (avtt_needed))
+                    set_dac_avtt(avtt_needed)
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)

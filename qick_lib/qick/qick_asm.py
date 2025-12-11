@@ -124,6 +124,8 @@ class QickConfig():
             groupdescs.append('[' + ', '.join(groupnames) + ']')
         lines.append('\tGroups of related clocks: ' + ', '.join(groupdescs))
 
+        lines.append("\n\tDAC output power mode: %s" % (self['rf']['dac_power']))
+
         if 'gens' in self._cfg: # self['gens'] may not exist for a non-tproc firmware
             lines.append("\n\t%d signal generator channels:" % (len(self['gens'])))
             for iGen, gen in enumerate(self['gens']):

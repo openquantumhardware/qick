@@ -283,7 +283,7 @@ class ChipIterator():
             if self.chip_temp is not None:
                 self._lib.sensors_free_chip_name(self.chip_temp)
             raise StopIteration
-        logger.info("chip_nr %d" % (self.chip_nr.value))
+        logger.debug("chip_nr %d" % (self.chip_nr.value))
         return SensorsChip(self._lib, chip)
 
 class SensorsChip():
@@ -328,7 +328,7 @@ class FeatureIterator():
         feature = self._lib.sensors_get_features(self.chip, byref(self.feature_nr))
         if not feature:
             raise StopIteration
-        logger.info("feature_nr %d" % (self.feature_nr.value))
+        logger.debug("feature_nr %d" % (self.feature_nr.value))
         return SensorsFeature(self._lib, self.chip, feature)
 
 class SensorsFeature():

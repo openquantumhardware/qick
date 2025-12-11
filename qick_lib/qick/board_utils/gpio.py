@@ -99,7 +99,7 @@ class Handle():
     """
     def __init__(self, fd):
         self._fd = fd
-        logger.info("opened fd %d" % (self._fd))
+        logger.debug("opened fd %d" % (self._fd))
 
     def __enter__(self):
         return self
@@ -108,7 +108,7 @@ class Handle():
         self.close()
 
     def close(self):
-        logger.info("closing fd %d" % (self._fd))
+        logger.debug("closing fd %d" % (self._fd))
         os.close(self._fd)
 
 class GpioChip(Handle):
