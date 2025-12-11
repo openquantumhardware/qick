@@ -1,10 +1,7 @@
 import os
-import logging
 from .pmbus import pmbus_set_vout
 from .sensors import read_dac_avtt, print_sensors, read_sensor
 from .gpio import read_gpio, write_gpio
-
-logger = logging.getLogger(__name__)
 
 def irps_busnum():
     """The physical I2C bus connectivity to the IRPS5401 chips is the same for the ZCU111 and ZCU216:
