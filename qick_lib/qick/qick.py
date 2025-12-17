@@ -118,32 +118,30 @@ class RFDC(SocIP, xrfdc.RFdc):
     XRFDC_STEP_I_UA = 43.75 # step size for variable output current (VOP), in uA
     XRFDC_MIN_I_UA_INT = 1400 # offset for VOP, in uA
 
-    def _init_config(self, description):
-        # the RFDC class is initialized after the HWH is read but before the bitstream is loaded to the FPGA
-        # we therefore cannot access the xrfdc driver here (if we do, we may get stale information from the previously loaded bitstream)
-        # so, just use the HWH information to get the information we need first (lists of enabled blocks, reference clocks)
-
-        # cached settings for each channel, to minimize unnecessary calls to the xrfdc library
-        # NQZ, rounded NCO frequency, DAC scale
-        self.settings_cache = {'dac': {}, 'adc': {}}
-
-        ip_params = description['parameters']
+    @classmethod
+    def _parse_hwh(cls, ip_params):
+        """Static method to parse the HWH parameters before the firmware is loaded.
+        The RFDC class is initialized after the HWH is read but before the bitstream is loaded to the FPGA;
+        we therefore cannot access the xrfdc driver here (if we do, we may get stale information from the previously loaded bitstream).
+        So, just use the HWH information to get the information we need first (lists of enabled blocks, reference clocks).
+        """
+        cfg = {}
 
         # which generation RFSoC we are using
-        self.cfg['ip_type'] = int(ip_params['C_IP_Type'])
+        cfg['ip_type'] = int(ip_params['C_IP_Type'])
         # quad or dual RF-ADC
-        self.cfg['hs_adc'] = (ip_params['C_High_Speed_ADC'] == '1')
+        cfg['hs_adc'] = (ip_params['C_High_Speed_ADC'] == '1')
 
         # DAC output current mode
-        if self['ip_type'] == self.XRFDC_GEN3 and ip_params['C_DAC_VOP_Mode'] == '1':
-            self.cfg['dac_power'] = 'VOP'
+        if cfg['ip_type'] == cls.XRFDC_GEN3 and ip_params['C_DAC_VOP_Mode'] == '1':
+            cfg['dac_power'] = 'VOP'
         else:
-            self.cfg['dac_power'] = {'0': '20mA', '1': '32mA'}[ip_params['C_DAC_Output_Current']]
+            cfg['dac_power'] = {'0': '20mA', '1': '32mA'}[ip_params['C_DAC_Output_Current']]
 
         # dicts of RFDC tiles and channels
-        self.cfg['tiles'] = {'dac':{}, 'adc':{}}
-        self.cfg['dacs'] = OrderedDict()
-        self.cfg['adcs'] = OrderedDict()
+        cfg['tiles'] = {'dac':{}, 'adc':{}}
+        cfg['dacs'] = OrderedDict()
+        cfg['adcs'] = OrderedDict()
 
         # list the enabled DAC+ADC tiles and blocks, and enumerate the "channel name" and tile/block indices for each block
         # the channel name is a 2-digit string that gets used in RFDC port and parameter names
@@ -152,7 +150,7 @@ class RFDC(SocIP, xrfdc.RFdc):
             for iTile in range(4):
                 if ip_params['C_%s%d_Enable' % (tiletype.upper(), iTile)] != '1': continue
                 tilecfg = {}
-                self['tiles'][tiletype][iTile] = tilecfg
+                cfg['tiles'][tiletype][iTile] = tilecfg
                 # some firmwares (older versions of Vivado?) do not have link coupling params for the DAC
                 if ('C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)) in ip_params:
                     tilecfg['coupling'] = ['AC', 'DC'][int(ip_params['C_%s%d_Link_Coupling' % (tiletype.upper(), iTile)])]
@@ -167,7 +165,7 @@ class RFDC(SocIP, xrfdc.RFdc):
                 for block in range(4):
                     # pack the indices for the tile/block structure "channel name"
                     chname = "%d%d" % (iTile, block)
-                    if tiletype == 'adc' and self['hs_adc']:
+                    if tiletype == 'adc' and cfg['hs_adc']:
                         if block%2 != 0: continue
                         iBlock = block//2
                     else:
@@ -176,8 +174,20 @@ class RFDC(SocIP, xrfdc.RFdc):
                     # check whether this block is enabled
                     if ip_params['C_%s_Slice%s_Enable' % (tiletype.upper(), chname)] != 'true': continue
                     tilecfg['blocks'].append(chname)
-                    self[tiletype+'s'][chname] = {'index': [iTile, iBlock]}
-                    self.settings_cache[tiletype][chname] = {}
+                    cfg[tiletype+'s'][chname] = {'index': [iTile, iBlock]}
+
+        return cfg
+
+    def _init_config(self, description):
+        self._cfg.update(self._parse_hwh(description['parameters']))
+
+        # cached settings for each channel, to minimize unnecessary calls to the xrfdc library
+        # NQZ, rounded NCO frequency, DAC scale
+        self.settings_cache = {}
+        for tiletype in ['dac', 'adc']:
+            self.settings_cache[tiletype] = {}
+            for chname in self[tiletype+'s']:
+                self.settings_cache[tiletype][chname] = {}
 
     def _get_tile(self, tiletype, iTile):
         tiles = {'dac':self.dac_tiles, 'adc':self.adc_tiles}[tiletype]
@@ -956,13 +966,20 @@ class QickSoc(Overlay, QickConfig):
             pass
 
         # Read the bitstream configuration from the HWH file.
-        # We don't program the FPGA yet.
+        # We don't program the FPGA yet - we therefore cannot access any of the IP blocks, at this point we can only look at the HWH metadata.
         Overlay.__init__(self, bitfile, ignore_version=True, download=False, **kwargs)
 
         if not no_rf:
-            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
-            self.rf = self.usp_rf_data_converter_0
-            self['rf'] = self.rf.cfg
+            # get a sneak peek at the DAC power settings and reference clocks
+            rf_cfg = RFDC._parse_hwh(self.ip_dict['usp_rf_data_converter_0']['parameters'])
+
+            # Examine the RFDC config to find the reference clock frequency.
+            refclks = []
+            for tiletype in ['dac', 'adc']:
+                refclks.extend([v['f_ref'] for k,v in rf_cfg['tiles'][tiletype].items()])
+            if len(set(refclks)) != 1:
+                raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
+            self['refclk_freq'] = refclks[0]
 
             # set the board's DAC_AVTT voltage to the value appropriate for this firmware's RF-DAC output power setting (20 mA, 32 mA, or variable output power - see https://docs.amd.com/r/en-US/pg269-rf-data-converter/RF-DAC-Analog-Outputs).
             # Rules for DAC output power and DAC_AVTT:
@@ -978,7 +995,7 @@ class QickSoc(Overlay, QickConfig):
                     '20mA': 2.5,
                     '32mA': 3.0,
                     'VOP': 3.0,
-                    }[self['rf']['dac_power']]
+                    }[rf_cfg['dac_power']]
             avtt_now = read_dac_avtt()
             logger.info("DAC_AVTT=%.3f V, the bitfile we're about to load needs %.3f V" % (avtt_now, avtt_needed))
             if min(abs(avtt_now - 2.5), abs(avtt_now - 3.0)) > 0.1:
@@ -987,14 +1004,6 @@ class QickSoc(Overlay, QickConfig):
                 logger.info('lowering DAC_AVTT before loading bitfile')
                 print('setting DAC_AVTT to %.1f V' % (avtt_needed))
                 set_dac_avtt(avtt_needed)
-
-            # Examine the RFDC config to find the reference clock frequency.
-            refclks = []
-            for tiletype in ['dac', 'adc']:
-                refclks.extend([v['f_ref'] for k,v in self.rf['tiles'][tiletype].items()])
-            if len(set(refclks)) != 1:
-                raise RuntimeError("This firmware wants RF reference clocks %s, but they must all be equal"%(refclks))
-            self['refclk_freq'] = refclks[0]
 
         # If download=True, we program the FPGA.
         if download:
@@ -1008,6 +1017,10 @@ class QickSoc(Overlay, QickConfig):
                 else:
                     print('setting DAC_AVTT to %.1f V' % (avtt_needed))
                     set_dac_avtt(avtt_needed)
+
+            # RF data converter (for configuring ADCs and DACs, and setting NCOs)
+            self.rf = self.usp_rf_data_converter_0
+            self['rf'] = self.rf.cfg
 
         # Extract the IP connectivity information from the HWH parser and metadata.
         self.metadata = QickMetadata(self)
