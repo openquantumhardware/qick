@@ -282,31 +282,6 @@ reg qcom_rdy_i, qp2_rdy_i;
    logic [8*16-1:0]        axis_adc_ro_tdata;
 
 
-   //--------------------------------------
-   // QICK PROCESSOR
-   //--------------------------------------
-
-   //AXI-LITE TPROC
-   wire [7:0]             s_axi_tproc_awaddr     ;
-   wire [2:0]             s_axi_tproc_awprot     ;
-   wire                   s_axi_tproc_awvalid    ;
-   wire                   s_axi_tproc_awready    ;
-   wire [31:0]            s_axi_tproc_wdata      ;
-   wire [3:0]             s_axi_tproc_wstrb      ;
-   wire                   s_axi_tproc_wvalid     ;
-   wire                   s_axi_tproc_wready     ;
-   wire  [1:0]            s_axi_tproc_bresp      ;
-   wire                   s_axi_tproc_bvalid     ;
-   wire                   s_axi_tproc_bready     ;
-   wire [7:0]             s_axi_tproc_araddr     ;
-   wire [2:0]             s_axi_tproc_arprot     ;
-   wire                   s_axi_tproc_arvalid    ;
-   wire                   s_axi_tproc_arready    ;
-   wire  [31:0]           s_axi_tproc_rdata      ;
-   wire  [1:0]            s_axi_tproc_rresp      ;
-   wire                   s_axi_tproc_rvalid     ;
-   wire                   s_axi_tproc_rready     ;
-
    // Register ADDRESS
    parameter REG_TPROC_CTRL      = 0  * 4 ;
    parameter REG_TPROC_CFG       = 1  * 4 ;
@@ -324,53 +299,13 @@ reg qcom_rdy_i, qp2_rdy_i;
    parameter REG_TPROC_STATUS    = 14  * 4 ;
    parameter REG_TPROC_DEBUG     = 15  * 4 ;
 
-   axi_mst_0 u_axi_mst_tproc_0 (
-      .aclk          (s_ps_dma_aclk       ),
-      .aresetn       (s_ps_dma_aresetn    ),
-      .m_axi_araddr  (s_axi_tproc_araddr  ),
-      .m_axi_arprot  (s_axi_tproc_arprot  ),
-      .m_axi_arready (s_axi_tproc_arready ),
-      .m_axi_arvalid (s_axi_tproc_arvalid ),
-      .m_axi_awaddr  (s_axi_tproc_awaddr  ),
-      .m_axi_awprot  (s_axi_tproc_awprot  ),
-      .m_axi_awready (s_axi_tproc_awready ),
-      .m_axi_awvalid (s_axi_tproc_awvalid ),
-      .m_axi_bready  (s_axi_tproc_bready  ),
-      .m_axi_bresp   (s_axi_tproc_bresp   ),
-      .m_axi_bvalid  (s_axi_tproc_bvalid  ),
-      .m_axi_rdata   (s_axi_tproc_rdata   ),
-      .m_axi_rready  (s_axi_tproc_rready  ),
-      .m_axi_rresp   (s_axi_tproc_rresp   ),
-      .m_axi_rvalid  (s_axi_tproc_rvalid  ),
-      .m_axi_wdata   (s_axi_tproc_wdata   ),
-      .m_axi_wready  (s_axi_tproc_wready  ),
-      .m_axi_wstrb   (s_axi_tproc_wstrb   ),
-      .m_axi_wvalid  (s_axi_tproc_wvalid  )
-   );
 
-   axis_qick_processor # (
-      .DUAL_CORE           (  `DUAL_CORE        ) ,
-      .GEN_SYNC            (  `GEN_SYNC         ) ,
-      .IO_CTRL             (  `IO_CTRL          ) ,
-      .DEBUG               (  `DEBUG            ) ,
-      .TNET                (  `TNET             ) ,
-      .QCOM                (  `QCOM             ) ,
-      .CUSTOM_PERIPH       (  `CUSTOM_PERIPH    ) ,
-      .LFSR                (  `LFSR             ) ,
-      .DIVIDER             (  `DIVIDER          ) ,
-      .ARITH               (  `ARITH            ) ,
-      .TIME_READ           (  `TIME_READ        ) ,
-      .FIFO_DEPTH          (  `FIFO_DEPTH       ) ,
-      .PMEM_AW             (  `PMEM_AW          ) ,
-      .DMEM_AW             (  `DMEM_AW          ) ,
-      .WMEM_AW             (  `WMEM_AW          ) ,
-      .REG_AW              (  `REG_AW           ) ,
-      .IN_PORT_QTY         (  `IN_PORT_QTY      ) ,
-      .OUT_TRIG_QTY        (  `OUT_TRIG_QTY     ) ,
-      .OUT_DPORT_QTY       (  `OUT_DPORT_QTY    ) ,
-      .OUT_DPORT_DW        (  `OUT_DPORT_DW     ) , 
-      .OUT_WPORT_QTY       (  `OUT_WPORT_QTY    ) 
-   ) AXIS_QPROC (
+
+   //--------------------------------------
+   // QICK DUT
+   //--------------------------------------
+
+   qick_dut qick_dut (
       // Core, Time and AXI CLK & RST.
       .t_clk_i             ( t_clk              ) ,
       .t_resetn            ( rst_ni             ) ,
@@ -441,26 +376,26 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_dma_axis_tlast_o   ( m_dma_axis_tlast_o  ) ,
       .m_dma_axis_tvalid_o  ( m_dma_axis_tvalid_o ) ,
       .m_dma_axis_tready_i  ( m_dma_axis_tready_i ) ,
-      // AXI-Lite DATA Slave I/F.
-      .s_axi_awaddr         ( s_axi_tproc_awaddr[7:0]   ) ,
-      .s_axi_awprot         ( s_axi_tproc_awprot        ) ,
-      .s_axi_awvalid        ( s_axi_tproc_awvalid       ) ,
-      .s_axi_awready        ( s_axi_tproc_awready       ) ,
-      .s_axi_wdata          ( s_axi_tproc_wdata         ) ,
-      .s_axi_wstrb          ( s_axi_tproc_wstrb         ) ,
-      .s_axi_wvalid         ( s_axi_tproc_wvalid        ) ,
-      .s_axi_wready         ( s_axi_tproc_wready        ) ,
-      .s_axi_bresp          ( s_axi_tproc_bresp         ) ,
-      .s_axi_bvalid         ( s_axi_tproc_bvalid        ) ,
-      .s_axi_bready         ( s_axi_tproc_bready        ) ,
-      .s_axi_araddr         ( s_axi_tproc_araddr[7:0]   ) ,
-      .s_axi_arprot         ( s_axi_tproc_arprot        ) ,
-      .s_axi_arvalid        ( s_axi_tproc_arvalid       ) ,
-      .s_axi_arready        ( s_axi_tproc_arready       ) ,
-      .s_axi_rdata          ( s_axi_tproc_rdata         ) ,
-      .s_axi_rresp          ( s_axi_tproc_rresp         ) ,
-      .s_axi_rvalid         ( s_axi_tproc_rvalid        ) ,
-      .s_axi_rready         ( s_axi_tproc_rready        ) ,
+      // // AXI-Lite DATA Slave I/F.
+      // .s_axi_awaddr         ( s_axi_tproc_awaddr[7:0]   ) ,
+      // .s_axi_awprot         ( s_axi_tproc_awprot        ) ,
+      // .s_axi_awvalid        ( s_axi_tproc_awvalid       ) ,
+      // .s_axi_awready        ( s_axi_tproc_awready       ) ,
+      // .s_axi_wdata          ( s_axi_tproc_wdata         ) ,
+      // .s_axi_wstrb          ( s_axi_tproc_wstrb         ) ,
+      // .s_axi_wvalid         ( s_axi_tproc_wvalid        ) ,
+      // .s_axi_wready         ( s_axi_tproc_wready        ) ,
+      // .s_axi_bresp          ( s_axi_tproc_bresp         ) ,
+      // .s_axi_bvalid         ( s_axi_tproc_bvalid        ) ,
+      // .s_axi_bready         ( s_axi_tproc_bready        ) ,
+      // .s_axi_araddr         ( s_axi_tproc_araddr[7:0]   ) ,
+      // .s_axi_arprot         ( s_axi_tproc_arprot        ) ,
+      // .s_axi_arvalid        ( s_axi_tproc_arvalid       ) ,
+      // .s_axi_arready        ( s_axi_tproc_arready       ) ,
+      // .s_axi_rdata          ( s_axi_tproc_rdata         ) ,
+      // .s_axi_rresp          ( s_axi_tproc_rresp         ) ,
+      // .s_axi_rvalid         ( s_axi_tproc_rvalid        ) ,
+      // .s_axi_rready         ( s_axi_tproc_rready        ) ,
       /// DATA PORT INPUT  
       .s0_axis_tdata        ( port_0_dt_i    ) ,
       .s0_axis_tvalid       ( port_0_vld     ) ,

@@ -14,7 +14,7 @@ integer ro_average_length;
 initial begin
 
    // Create agents.
-   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.u_axi_mst_tproc_0.inst.IF);
+   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.u_axi_mst_tproc_0.inst.IF);
    // Set tag for agents.
    axi_mst_tproc_agent.set_agent_tag("axi_mst_tproc VIP");
    // Start agents.
@@ -175,7 +175,7 @@ initial begin
    integer N;
 
    $display("*** %t - Waiting for general reset to deassert ***", $realtime());
-   wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+   wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
 
    tb_test_run_start    = 1'b1;
    tb_test_read_start   = 1'b1;
@@ -194,7 +194,7 @@ initial begin
 
       TEST_READ_TIME       = 10us;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
 
       $display("*** %t - End of test_basic_pulses Test ***", $realtime());
@@ -209,7 +209,7 @@ initial begin
 
       TEST_READ_TIME       = 10us;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
 
       $display("*** %t - End of test_many_envelopes Test ***", $realtime());
@@ -220,9 +220,9 @@ initial begin
       TEST_RUN_TIME = 50us;
       forever begin
          $display("*** %t - Start test_tproc_basic Test ***", $realtime());
-         wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b1);
+         wait (tb_qick.qick_dut.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b1);
          N = 11;
-         wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+         wait (tb_qick.qick_dut.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
          fork
             begin
                while (N < 48) begin
@@ -230,15 +230,15 @@ initial begin
                   
                   // Force time_abs
                   $display("*** %t - Changing time_abs to get to %0u ***", $realtime(), (2**N)-100);
-                  force tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT = (2**N)-100;
+                  force tb_qick.qick_dut.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT = (2**N)-100;
                   #100ns;
-                  release tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT;
+                  release tb_qick.qick_dut.AXIS_QPROC.QPROC.QPROC_CTRL.QTIME_CTRL.TIME_ADDER.RESULT;
          
                   $display("*** Waiting for trigger ***");
-                  wait (tb_qick.AXIS_QPROC.trig_0_o);
+                  wait (tb_qick.qick_dut.AXIS_QPROC.trig_0_o);
 
                   $display("*** %t - Waiting for time_abs to get to %0u ***", $realtime(), 2**N+100);
-                  wait (tb_qick.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
+                  wait (tb_qick.qick_dut.AXIS_QPROC.QPROC.time_abs_o > 2**N+100);
                end
             end
             begin
@@ -246,20 +246,20 @@ initial begin
                logic [47:0] new_ref_time;
                while (M < 48) begin
                   $display("*** %t - Waiting for r15 == %0d ***", $realtime(), M);
-                  wait (tb_qick.AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[15] == M);
+                  wait (tb_qick.qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[15] == M);
                   new_ref_time = 2**M;
 
                   $display("*** %t - Changing c_time_ref_dt to get to %0u ***", $realtime(), new_ref_time);
-                  force tb_qick.AXIS_QPROC.QPROC.c_time_ref_dt = new_ref_time;
+                  force tb_qick.qick_dut.AXIS_QPROC.QPROC.c_time_ref_dt = new_ref_time;
                   #100ns;
-                  release tb_qick.AXIS_QPROC.QPROC.c_time_ref_dt;
+                  release tb_qick.qick_dut.AXIS_QPROC.QPROC.c_time_ref_dt;
 
                   M = M + 1;
                end
             end
          join
          $display("*** %t - End of test_tproc_basic Test ***", $realtime());
-         wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b0);
+         wait (tb_qick.qick_dut.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b0);
       end
    end
 
@@ -275,7 +275,7 @@ initial begin
       ro_decimated_length  = 500;
       ro_average_length    = 21;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
       qubit_emulator_config();
       #100ns;
@@ -295,7 +295,7 @@ initial begin
       // ro_average_length    = 9 + (9 % 2);
       ro_average_length    = 9;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
       $display("*** %t - End of test_randomized_benchmarking Test ***", $realtime());
    end
@@ -310,7 +310,7 @@ initial begin
       ro_decimated_length  = 30;
       ro_average_length    = 5;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
 
       wait(tb_test_run_done);
@@ -333,7 +333,7 @@ initial begin
       ro_decimated_length  = 50;
       ro_average_length    = 10;
 
-      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
 
       wait(tb_test_run_done);
