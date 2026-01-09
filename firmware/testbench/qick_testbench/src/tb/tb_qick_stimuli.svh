@@ -2,6 +2,11 @@
 // TEST STIMULI
 //--------------------------------------
 
+logic tb_load_mem;
+logic tb_load_mem_done;
+
+logic m1_axis_buf_dec_tready;
+
 logic tb_test_run_start;
 logic tb_test_run_done;
 logic tb_test_read_start;
@@ -21,14 +26,14 @@ initial begin
    axi_mst_tproc_agent.start_master();
 
    // Create agents.
-   axi_mst_sg_agent   = new("axi_mst_sg_0 VIP Agent",tb_qick.u_axi_mst_sg_0.inst.IF);
+   axi_mst_sg_agent   = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_sg_0.inst.IF);
    // Set tag for agents.
    axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
    // Start agents.
    axi_mst_sg_agent.start_master();
 
    // Create agents.
-   axi_mst_avg_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.u_axi_mst_avg_0.inst.IF);
+   axi_mst_avg_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
    // Set tag for agents.
    axi_mst_avg_agent.set_agent_tag("axi_mst_avg_0 VIP");
    // Start agents.
