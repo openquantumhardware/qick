@@ -2,7 +2,7 @@ QICK papers
 ===========
 
 
-This list of academic papers that used the QICK was last updated November 27, 2025.
+This list of academic papers that used the QICK was last updated January 26, 2026.
 
 QICK in the news
 ----------------
@@ -13,8 +13,32 @@ QICK system
 * `Ding, C. et al. Experimental advances with the QICK (Quantum Instrumentation Control Kit) for superconducting quantum hardware. (2023) <https://arxiv.org/abs/2311.17171>`_.
 * `Stefanazzi, L. et al. The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors. (2021) <https://arxiv.org/abs/2110.00557>`_.
 
+Superconducting circuits - scaling
+------------------------------------
+* `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/pdf/2507.10676>`_.
+
+Superconducting circuits - quantum error correction hardware
+-----------------------------------------
+* `Cochran, J. et al. Experimental signatures of a sigma-z sigma-x beam-splitter interaction between a Kerr-cat and transmon qubit. (2025) <https://arxiv.org/abs/2511.21972>`_.
+* `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
+
+Superconducting circuits – gates/couplers
+-----------------------------------------
+* `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
+* `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
+* `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
+* `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
+* `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
+* `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
+* `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
+
+Superconducting circuits – quantum simulation
+---------------------------------------------
+* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
+
 Superconducting circuits - coherence
 ------------------------------------
+* `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
 * `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/pdf/2506.18232>`_.
 * `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
 * `Bland, M. et al. 2D transmons with lifetimes and coherence times exceeding 1 millisecond. (2025) <https://arxiv.org/abs/2503.14798>`_.
@@ -25,10 +49,6 @@ Superconducting circuits - coherence
 * `Oriani, A.E. et al. Niobium coaxial cavities with internal quality factors exceeding 1.5 billion for circuit quantum electrodynamics. (2024) <https://arxiv.org/abs/2403.00286>`_.
 * `Anferov, A. et al. Superconducting Qubits Above 20 GHz Operating over 200 mK. (2024) <https://arxiv.org/abs/2402.03031>`_.
 * `Anferov, A. et al. Improved Coherence in Optically-Defined Niobium Trilayer Junction Qubits. (2023) <https://arxiv.org/abs/2306.05883>`_.
-
-Superconducting circuits - scaling
-------------------------------------
-* `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/pdf/2507.10676>`_.
 
 Superconducting circuits - radiative loss
 -----------------------------------------
@@ -52,21 +72,6 @@ Superconducting circuits - parametric amplifiers
 * `Wang, J. et al. High-Efficiency, Low-Loss Floquet-Mode Traveling-Wave Parametric Amplifier. (2025) <https://arxiv.org/abs/2503.11812>`_.
 * `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
 
-Superconducting circuits – gates/couplers
------------------------------------------
-* `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
-* `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
-* `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
-* `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
-* `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
-* `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
-* `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
-* `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
-
-Superconducting circuits – quantum simulation
----------------------------------------------
-* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
-
 Superconducting circuits - transduction
 ---------------------------------------
 * `Warner, H.K. et al. Coherent control of a superconducting qubit using light. (2023) <https://arxiv.org/abs/2310.16155>`_.
@@ -81,6 +86,7 @@ Neutral atoms
 
 Spin defects
 ------------
+* `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
 * `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/pdf/2411.16835>`_.
@@ -88,6 +94,7 @@ Spin defects
 
 Quantum dots
 ------------
+* `Shinozaki, M. et al. Perfect impedance matching unlocks sensitive radio-frequency reflectometry in 2D material quantum dots. (2025) <https://arxiv.org/abs/2512.02225>`_.
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
