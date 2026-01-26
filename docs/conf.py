@@ -82,7 +82,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'qick'
-copyright = '2021, openquantumhardware'
+copyright = 'openquantumhardware'
 author = 'openquantumhardware'
 
 # The version info for the project you're documenting, acts as replacement for
