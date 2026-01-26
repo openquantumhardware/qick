@@ -14,11 +14,11 @@ QICK system
 * `Stefanazzi, L. et al. The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors. (2021) <https://arxiv.org/abs/2110.00557>`_.
 
 Superconducting circuits - scaling
-------------------------------------
+----------------------------------
 * `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/pdf/2507.10676>`_.
 
 Superconducting circuits - quantum error correction hardware
------------------------------------------
+------------------------------------------------------------
 * `Cochran, J. et al. Experimental signatures of a sigma-z sigma-x beam-splitter interaction between a Kerr-cat and transmon qubit. (2025) <https://arxiv.org/abs/2511.21972>`_.
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
 
