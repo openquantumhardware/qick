@@ -21,11 +21,11 @@ Superconducting circuits - quantum error correction hardware
 ------------------------------------------------------------
 * `Cochran, J. et al. Experimental signatures of a sigma-z sigma-x beam-splitter interaction between a Kerr-cat and transmon qubit. (2025) <https://arxiv.org/abs/2511.21972>`_.
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
+* `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 
 Superconducting circuits – gates/couplers
 -----------------------------------------
 * `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
-* `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 * `Miao, C. et al. Implementation of a quantum addressable router using superconducting qubits. (2025) <https://arxiv.org/abs/2503.04295>`_.
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
