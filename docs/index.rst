@@ -92,4 +92,3 @@ QICK papers
    :maxdepth: 2
 
    papers
-   papers_stats
