@@ -32,12 +32,12 @@ Superconducting circuits
 
 Scaling
 """""""
-* `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/pdf/2507.10676>`_.
+* `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/abs/2507.10676>`_.
 
 Quantum error correction hardware
 """""""""""""""""""""""""""""""""
 * `Cochran, J. et al. Experimental signatures of a sigma-z sigma-x beam-splitter interaction between a Kerr-cat and transmon qubit. (2025) <https://arxiv.org/abs/2511.21972>`_.
-* `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953v1>`_.
+* `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 
 Gates/couplers
@@ -56,7 +56,7 @@ Quantum simulation
 Coherence
 """""""""
 * `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
-* `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/pdf/2506.18232>`_.
+* `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/abs/2506.18232>`_.
 * `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
 * `Bland, M. et al. 2D transmons with lifetimes and coherence times exceeding 1 millisecond. (2025) <https://arxiv.org/abs/2503.14798>`_.
 * `Kumar, S. et al. Protomon: A Multimode Qubit in the Fluxonium Molecule. (2024) <https://arxiv.org/abs/2411.16648>`_.
@@ -75,8 +75,8 @@ Radiative loss
 
 Readout
 """""""
-* `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/pdf/2506.22620>`_.
-* `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/pdf/2503.10750>`_.
+* `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
+* `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/abs/2503.10750>`_.
 * `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 * `Johnson, H. et al. Demonstrating the Potential of Adaptive LMS Filtering on FPGA-Based Qubit Control Platforms for Improved Qubit Readout in 2D and 3D Quantum Processing Units. (2024) <https://arxiv.org/abs/2408.00904>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
@@ -87,7 +87,7 @@ Parametric amplifiers
 """""""""""""""""""""
 * `Hao, Z. et al. Wireless Josephson parametric amplifier above 20 GHz. (2025) <https://arxiv.org/abs/2508.11137>`_.
 * `Wang, J. et al. High-Efficiency, Low-Loss Floquet-Mode Traveling-Wave Parametric Amplifier. (2025) <https://arxiv.org/abs/2503.11812>`_.
-* `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://search.arxiv.org/paper.jsp?r=2503.00190>`_.
+* `Bosellli, M. et al. Observation and mitigation of microwave echoes from dielectric defects in Josephson traveling wave amplifiers. (2025) <https://arxiv.org/abs/2503.00190>`_.
 
 Transduction
 """"""""""""
@@ -116,7 +116,7 @@ Spin defects
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
 * `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
-* `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/pdf/2411.16835>`_.
+* `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
 
 Quantum dots
@@ -132,7 +132,7 @@ MKIDs
 Dark matter detection
 ^^^^^^^^^^^^^^^^^^^^^
 * `Hoshino, G. et al. First Axion-Like Particle Results from a Broadband Search for Wave-Like Dark Matter in the 44 to 52 ueV Range with a Coaxial Dish Antenna. (2025) <https://arxiv.org/abs/2501.17119>`_.
-* `Zhao, F. et al. A Flux-Tunable cavity for Dark matter detection. (2025) <https://arxiv.org/pdf/2501.06882>`_.
+* `Zhao, F. et al. A Flux-Tunable cavity for Dark matter detection. (2025) <https://arxiv.org/abs/2501.06882>`_.
 * `Knirck, S. et al. First Results from a Broadband Search for Dark Photon Dark Matter in the 44 to 52 ueV range with a coaxial dish antenna. (2023) <https://arxiv.org/abs/2310.13891>`_.
 
 Single-photon detection
