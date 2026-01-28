@@ -4,11 +4,11 @@ QICK paper stats 
 These stats were last updated January 26, 2026.
 
 
-.. image:: images/QICKpapers_Jan26_final.JPEG
+.. image:: images/papers/QICKpapers_count_Jan26.png
    :alt: QICK papers
 
-.. image:: images/QICKpapers_qubitTypes_Jan26.JPEG
+.. image:: images/papers/QICKpapers_qubit_types_Jan26.png
    :alt: QICK papers qubit types
 
-.. image:: images/QICKpapers_scaling_Jan26_final.png
+.. image:: images/papers/QICKpapers_scaling_Jan26_final.png
    :alt: QICK papers sc qubit types
