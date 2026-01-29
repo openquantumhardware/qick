@@ -278,3 +278,6 @@ def nyquist_image(f, fs, nqz):
     """
     f_folded = folded_freq(f, fs)
     return -f_folded*((-1)**nqz) + fs*(nqz//2)
+
+class ADCInterruptError(Exception):
+    pass

@@ -2,6 +2,7 @@ import os
 from .qick import QickSoc
 from .ip import SocIP
 from .qick_asm import QickConfig
+from .helpers import ADCInterruptError
 from pynq.buffer import allocate
 import xrfclk
 import xrfdc
@@ -11,13 +12,11 @@ from numbers import Number, Integral
 from contextlib import contextmanager, suppress
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from operator import itemgetter
 import logging
 from qick.ipq_pynq_utils.ipq_pynq_utils import clock_models
 
 logger = logging.getLogger(__name__)
-
-class ADCInterruptError(Exception):
-    pass
 
 class AxisSignalGenV3(SocIP):
     # AXIS Table Registers.
