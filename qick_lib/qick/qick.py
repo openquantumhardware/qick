@@ -1019,7 +1019,7 @@ class QickSoc(Overlay, QickConfig):
             if avtt_needed > avtt_now + 0.1:
                 logger.info('raising DAC_AVTT after loading bitfile')
                 if self['board'] == 'RFSoC4x2':
-                    print('This bitfile puts the RF-DACs in %s mode which requires DAC_AVTT=%.1f V, but DAC_AVTT on the RFSoC4x2 is hard-wired at 2.5 V. The DACs will probably work anyway, but performance is not guaranteed.' % (self['rf']['dac_power'], avtt_needed))
+                    print('This bitfile puts the RF-DACs in %s mode which requires DAC_AVTT=%.1f V, but DAC_AVTT on the RFSoC4x2 is hard-wired at 2.5 V. The DACs will probably work anyway, but performance is not guaranteed.' % (rf_cfg['dac_power'], avtt_needed))
                 else:
                     print('setting DAC_AVTT to %.1f V' % (avtt_needed))
                     set_dac_avtt(avtt_needed)
