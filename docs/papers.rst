@@ -20,7 +20,7 @@ These stats were computed from the next section's list of QICK papers as of Janu
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated January 26, 2026.
+This list of academic papers that used the QICK was last updated January 28, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -32,6 +32,7 @@ Superconducting circuits
 
 Scaling
 """""""
+* `Li, A. et al. NWQWorkflow: The Northwest Quantum Workflow (2026) <https://arxiv.org/abs/2601.15521>`_.
 * `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/abs/2507.10676>`_.
 
 Quantum error correction hardware
