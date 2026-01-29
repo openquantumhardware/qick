@@ -851,7 +851,13 @@ class RFDC(SocIP, xrfdc.RFdc):
         tile : int
             ADC tile number (0-3)
         """
-        self.adc_tiles[tile].Reset()
+        try:
+            # unlike Reset(), StartUp() doesn't reset RFDC registers (e.g. the sample rate)
+            self.adc_tiles[tile].StartUp()
+        except Exception as e:
+            # some configurations will cause RFDC errors (e.g. a DC-coupled DC-in card with an ADC in AC-coupled mode will lead to the ADC common-mode voltage going out of range)
+            # we want to print the error but not error out
+            logger.warning(e)
 
     def freeze_adc_cal(self, blockname):
         """Freeze an ADC's calibration (stop the background calibration).
