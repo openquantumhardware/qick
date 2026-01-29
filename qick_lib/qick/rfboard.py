@@ -797,21 +797,6 @@ class FilterADMV8818:
             'WR0_SW'            : 0x020,
             'WR0_FILTER'        : 0x021}
 
-    # Filter Bands.
-    BANDS = {}
-    BANDS['LPF'] = {}
-    BANDS['LPF']['bypass']  = {'min': 2.00 , 'max': 18.00, 'switch': 0}
-    BANDS['LPF']['LPF1']    = {'min': 2.05 , 'max': 3.85 , 'switch': 1}
-    BANDS['LPF']['LPF2']    = {'min': 3.35 , 'max': 7.25 , 'switch': 2}
-    BANDS['LPF']['LPF3']    = {'min': 7.00 , 'max': 13.00, 'switch': 3}
-    BANDS['LPF']['LPF4']    = {'min': 12.55, 'max': 18.85, 'switch': 4}
-    BANDS['HPF'] = {}
-    BANDS['HPF']['bypass']  = {'min': 2.00 , 'max': 18.00, 'switch': 0}
-    BANDS['HPF']['HPF1']    = {'min': 1.75 , 'max': 3.55 , 'switch': 1}
-    BANDS['HPF']['HPF2']    = {'min': 3.40 , 'max': 7.25 , 'switch': 2}
-    BANDS['HPF']['HPF3']    = {'min': 6.60 , 'max': 12.60, 'switch': 3} # Actual max is 12.00. Modified to overlap bands.
-    BANDS['HPF']['HPF4']    = {'min': 12.50, 'max': 19.90, 'switch': 4}
-
     # Number of bits for band setting.
     B = 4
 
@@ -826,18 +811,6 @@ class FilterADMV8818:
 
         # All CS to high value.
         self.spi.SPI_SSR = 0xff
-
-        # Initialize df for each band.
-        for b in self.BANDS['LPF'].keys():
-            span = self.BANDS['LPF'][b]['max'] - self.BANDS['LPF'][b]['min']  
-            df   = span/2**self.B
-            self.BANDS['LPF'][b]['span'] = span
-            self.BANDS['LPF'][b]['df']   = df
-        for b in self.BANDS['HPF'].keys():
-            span = self.BANDS['HPF'][b]['max'] - self.BANDS['HPF'][b]['min']  
-            df   = span/2**self.B
-            self.BANDS['HPF'][b]['span'] = span
-            self.BANDS['HPF'][b]['df']   = df
 
     def write_reg(self, reg, value):
         logger.debug("{}: writing register {}".format(self.__class__.__name__, reg))
@@ -870,46 +843,41 @@ class FilterADMV8818:
         res = self.spi.send_receive_m(msg, self.ch_en, self.cs_t)
         return int(res[2])
 
-    def freq2step(self, f, section, n=10):
-        n = 10
-        f = 6.0
+    @staticmethod
+    def freq2steps(section, f, n=11, get_freqs=False):
+        # state=0 and state=15 frequencies for each filter band, from data sheet
+        BANDS = {'LPF':
+                [
+                    [ 2050,  3850],
+                    [ 3350,  7250],
+                    [ 7000, 13000],
+                    [12550, 18850]
+                    ],
+                'HPF':
+                [
+                    [ 1750,  3550],
+                    [ 3400,  7250],
+                    [ 6600, 12600],
+                    [12500, 19900]
+                    ]
+                }
 
-        freqs = np.concatenate([np.linspace(f0, f15, 16) for f0, f15 in BANDS['LPF']])
-
-
+        if f < 1000:
+            raise ValueError("unexpectedly small filter frequency %f MHz: either you should be using bypass mode, or you are using units of GHz instead of MHz" % (f))
+        freqs = np.concatenate([np.linspace(f0, f15, 16) for f0, f15 in BANDS[section]])
         sortlist = list(enumerate(freqs))
         sortlist.sort(key=lambda x: np.abs(x[1]-f))
-        best_steps, best_freqs = list(zip(*sorted(sortlist[:n], key=itemgetter(1))))
-        print(best_steps, best_freqs)
+        sortlist = sorted(sortlist[:n], key=itemgetter(1))
+        logger.debug("%s, find %d steps and freqs closest to %f: %s" % (section, n, f, sortlist))
 
-    def _freq2step(self, f=0, section="LPF"):
-        band = None
-        if f<0:
-            return -1
-        else:
-            for b in self.BANDS[section].keys():
-                fmin = self.BANDS[section][b]['min']
-                fmax = self.BANDS[section][b]['max']
-                if ((f > fmin) and (f < fmax)):
-                    band = b
-                    break
-            if band is None:
-                raise RuntimeError("frequency {:.2f} GHz for section {} not found.".format(f, section))
-            logger.debug("frequency {:.2f} GHz for section {} found in band {}".format(f, section, band))
+        if get_freqs:
+            return sortlist
+        best_steps, best_freqs = list(zip(*sortlist))
+        return best_steps
 
-            if band in self.BANDS[section].keys():
-                fmin = self.BANDS[section][band]['min'] 
-                fmax = self.BANDS[section][band]['max'] 
-                span = self.BANDS[section][band]['span'] 
-                df   = self.BANDS[section][band]['df'] 
-                if ((f > fmin) and (f < fmax)):
-                    state = int((f - fmin)/df)
-            if state is None:
-                raise RuntimeError("{}: frequency {:.2f} GHz not found in section {} band {}.".format(self.__class__.__name__, f, section, band))
-            logger.debug("fmin = {:.2f} GHz, fmax = {:.2f} GHz, span = {:.2f} GHz, df = {:.3f} GHz, f = {:.2f} GHz, bits = {}".format(fmin, fmax, span, df, f, state))
-
-            switch = self.BANDS[section][band]['switch']
-            return 16*(switch-1) + state
+    def _freq2step(self, f, section):
+        if f<0: return -1
+        return self.freq2steps(section, f, 1)[0]
 
     def set_filter_raw(self, hpf, lpf):
         """
@@ -942,7 +910,7 @@ class FilterADMV8818:
         self.write_reg(reg="WR0_SW", value=sw)
         self.write_reg(reg="WR0_FILTER", value=filt_state)
 
-    def set_filter(self, fc=0, bw=2.0, ftype="lowpass"):
+    def set_filter(self, fc, bw, ftype):
         # Low-pass.
         if ftype == 'lowpass':
             logger.debug("{}: setting {} filter type, fc = {:.2f} GHz.".format(self.__class__.__name__, ftype, fc))
@@ -2363,7 +2331,7 @@ class RFQickSoc216V1(RFQickSoc):
         for tile in self['rf']['tiles']['adc']:
             self.rf.restart_adc_tile(tile)
         # now, clear any ADC interrupts
-        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False)
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
 
     def rfb_enable_bias(self):
         """Enable all eight main-board bias outputs (by turning on DAC_BIAS_SWEN).
@@ -2379,7 +2347,7 @@ class RFQickSoc216V1(RFQickSoc):
 
         self.bias_gpio.channel1.write(0, 0x1)
 
-    def rfb_set_gen_filter(self, gen_ch, fc, bw=1, ftype='bandpass'):
+    def rfb_set_gen_filter(self, gen_ch, fc, bw=1000, ftype='bandpass'):
         """Set the programmable analog filter of the QICK box DAC port connected to a specified generator.
 
         Parameters
@@ -2398,7 +2366,7 @@ class RFQickSoc216V1(RFQickSoc):
             raise RuntimeError("generator %d is not connected to an RF signal chain" % (gen_ch))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
-    def rfb_set_ro_filter(self, ro_ch, fc, bw=1, ftype='bandpass'):
+    def rfb_set_ro_filter(self, ro_ch, fc, bw=1000, ftype='bandpass'):
         """Set the programmable analog filter of the QICK box ADC port connected to a specified readout channel.
 
         Parameters
@@ -2416,8 +2384,9 @@ class RFQickSoc216V1(RFQickSoc):
         if not isinstance(rfb_ch, FilterChain):
             raise RuntimeError("readout %d is not connected to an RF signal chain" % (ro_ch))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
 
-    def rfb_set_dac_filter(self, dac_port, fc, bw=1, ftype='bandpass'):
+    def rfb_set_dac_filter(self, dac_port, fc, bw=1000, ftype='bandpass'):
         """Set the programmable analog filter of the specified QICK box DAC port.
 
         Parameters
@@ -2436,7 +2405,7 @@ class RFQickSoc216V1(RFQickSoc):
             raise RuntimeError("DAC port %d does not have a RF signal chain" % (dac_port))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
 
-    def rfb_set_adc_filter(self, adc_port, fc, bw=1, ftype='bandpass'):
+    def rfb_set_adc_filter(self, adc_port, fc, bw=1000, ftype='bandpass'):
         """Set the programmable analog filter of the specified QICK box ADC port.
 
         Parameters
@@ -2454,6 +2423,30 @@ class RFQickSoc216V1(RFQickSoc):
         if not isinstance(rfb_ch, FilterChain):
             raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
         rfb_ch.set_filter(fc = fc, bw = bw, ftype = ftype)
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
+
+    def rfb_get_filter_steps(self, section, f, n=11):
+        """Get the N filter steps with cutoffs closest to the requested frequency.
+        This is based on the information in the ADMV8818 datasheet.
+        The "bypass" setting (step=-1) is not checked; if you want a low-pass >18850 MHz or a high-pass <1750 MHz, you may want to use bypass mode instead.
+
+        The intended use of this method is to get a list of candidate steps that you can test, and use the best one.
+
+        Parameters
+        ----------
+        section : str
+            "HPF" or "LPF"
+        f : float
+            Desired cutoff frequency [MHz]
+        n : int
+            Number of filter steps to find
+
+        Returns
+        -------
+        list of int
+            Filter steps, in increasing order of frequency
+        """
+        return FilterADMV8818.freq2steps(section, f, n)
 
     def rfb_set_dac_filter_raw(self, dac_port, hpf=-1, lpf=-1):
         """Set the programmable analog filter of the specified QICK box DAC port.
@@ -2490,6 +2483,7 @@ class RFQickSoc216V1(RFQickSoc):
         if not isinstance(rfb_ch, FilterChain):
             raise RuntimeError("ADC port %d does not have a RF signal chain" % (adc_port))
         rfb_ch.set_filter_raw(hpf, lpf)
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
 
     def rfb_set_rfadc_attenuator(self, adc_port, att):
         """Set the programmable attenuator of the RFSoC RF-ADC connected to the specified QICK box ADC port.
@@ -2502,9 +2496,11 @@ class RFQickSoc216V1(RFQickSoc):
             Attenuation value (0 through 27 dB in 1-dB increments)
         """
         adcname = "%d%d"%(adc_port//4 + 1, adc_port%4)
-        return self.set_adc_attenuator(adcname, att)
+        val = self.set_adc_attenuator(adcname, att)
+        self.clear_interrupts(error_on_interrupt=False, error_on_persist=False, warn=False)
+        return val
 
-    def clear_interrupts(self, max_attempts=5, error_on_interrupt=False, error_on_persist=True):
+    def clear_interrupts(self, max_attempts=5, error_on_interrupt=False, error_on_persist=True, warn=True):
         """
         Check all ADCs for interrupts, and attempt to clear them.
 
@@ -2520,6 +2516,8 @@ class RFQickSoc216V1(RFQickSoc):
             if True, raise an error if any ADC has an interrupt raised
         error_on_persist : bool
             if True, raise an error if any ADC has an interrupt that persists after `max_attempts` clears
+        warn : bool
+            if True, interrupts that don't result in an error are logged as warnings
 
         Returns
         -------
@@ -2540,9 +2538,12 @@ class RFQickSoc216V1(RFQickSoc):
             (0x80000000, "XRFDC_ADC_FIFO_OVR_MASK"),
         ]
         arr = xrfdc._ffi.new("unsigned int [1]")
-        allnames = defaultdict(set)
+
+        # all interrupts that were raised before or during clear_interrupts()
+        ints_ever = defaultdict(set)
+
         for attempts in range(max_attempts):
-            names = defaultdict(set)
+            ints_now = defaultdict(set)
             for adcname, cfg in self['rf']['adcs'].items():
                 tile, block = cfg['index']
 
@@ -2554,21 +2555,21 @@ class RFQickSoc216V1(RFQickSoc):
                 for mask, name in interrupt_masks:
                     if (mask & interrupts) != 0:
                         interrupts &= 0xFFFFFFFF - mask
-                        names[adcname].add(name)
+                        ints_now[adcname].add(name)
                 if interrupts != 0: logger.warning("unrecognized interrupts on tile %s block %s: %s" %(*adcname, interrupts))
-                allnames[adcname].update(names[adcname])
-                logger.info("attempt %d, interrupts on tile %s block %s: %s %s"%(attempts, *adcname, hex(arr[0]), names[adcname]))
+                ints_ever[adcname].update(ints_now[adcname])
+                logger.info("attempt %d, interrupts on tile %s block %s: %s %s"%(attempts, *adcname, hex(arr[0]), ints_now[adcname]))
 
                 status = xrfdc._lib.XRFdc_IntrClr(self.rf._instance, xrfdc._lib.XRFDC_ADC_TILE, tile, block, 0xFFFFFFFF)
                 if status != 0: raise RuntimeError("error in clearing interrupts: %d" % (status))
-            if not names: break
-        if allnames:
+            if not ints_now: break
+        if ints_ever:
             msg = "The following ADC interrupts were raised:"
-            for adcname, ints in allnames.items():
+            for adcname, ints in ints_ever.items():
                 msg += "\nADC tile %s block %s: %s" %(*adcname, ints)
-            if names:
+            if ints_now:
                 msg += "\nThe following ADC interrupts persisted after %d clears:" % (max_attempts)
-                for adcname, ints in names.items():
+                for adcname, ints in ints_now.items():
                     msg += "\nADC tile %s block %s: %s" %(*adcname, ints)
             else:
                 msg += "\nThe ADC interrupts were cleared after %d attempts." % (attempts)
@@ -2576,13 +2577,14 @@ class RFQickSoc216V1(RFQickSoc):
             msg += "\nYou should reduce the amplification going into the ADC; filtering may also help."
             msg += "\nSee https://docs.amd.com/r/en-US/pg269-rf-data-converter/Interrupt-Handling"
 
-            if error_on_persist and names:
+            if error_on_persist and ints_now:
                 raise ADCInterruptError(msg)
-            elif error_on_interrupt and allnames:
+            elif error_on_interrupt and ints_ever:
                 raise ADCInterruptError(msg)
             else:
-                logger.warning(msg)
-        return not names
+                level = logging.WARNING if warn else logging.INFO
+                logger.log(level, msg)
+        return not ints_now
 
     def prepare_round(self):
         # if an ADC is already in interrupt state, don't run the program
