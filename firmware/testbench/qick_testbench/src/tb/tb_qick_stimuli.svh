@@ -1,3 +1,26 @@
+//----------------------------------------------------
+// Define Test to run
+//----------------------------------------------------
+// string TEST_NAME = "test_basic_pulses";
+string TEST_NAME = "test_basic_pulses_dac2";
+// string TEST_NAME = "test_fast_short_pulses";
+// string TEST_NAME = "test_many_envelopes";
+// string TEST_NAME = "test_tproc_basic";
+// string TEST_NAME = "test_issue359";
+// string TEST_NAME = "test_issue361";
+// string TEST_NAME = "test_issue53";
+// string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_qubit_emulator";
+//----------------------------------------------------
+
+// Default Simulation Settings
+time TEST_RUN_TIME         = 6us;   // Time to run tProc execution
+time TEST_READ_TIME        = 1us;   // Time to read data from buffers
+time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
+string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
+// string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
+//----------------------------------------------------
+
 //--------------------------------------
 // TEST STIMULI
 //--------------------------------------
@@ -102,8 +125,10 @@ initial begin
    ro_decimated_length     = 0;
    ro_average_length       = 0;
 
-   sg_s0_axis_tvalid       = 0;
-   sg_s0_axis_tdata        = 0;
+   sg0_s0_axis_tvalid       = 0;
+   sg0_s0_axis_tdata        = 0;
+   sg1_s0_axis_tvalid       = 0;
+   sg1_s0_axis_tdata        = 0;
 
    m1_axis_buf_dec_tready      = 1'b1;
 
@@ -119,17 +144,17 @@ initial begin
    #1us;
 
    // Load Signal Generator Envelope Table Memory.
-   sg_load_mem(TEST_NAME);
+   sg_load_mem(TEST_NAME, 1);
 
    #1us;
 
    // Configure TPROC
    // LFSR Enable (1: Free Running, 2: Step on s1 Read, 3: Step on s0 Write)
-   WRITE_AXI( REG_CORE_CFG , 1);
+   tproc_write_axi( REG_CORE_CFG , 1);
    #100ns;
-   WRITE_AXI( REG_CORE_CFG , 0);
+   tproc_write_axi( REG_CORE_CFG , 0);
    #100ns;
-   WRITE_AXI( REG_CORE_CFG , 2);
+   tproc_write_axi( REG_CORE_CFG , 2);
    #100ns;
 
 
@@ -142,12 +167,12 @@ initial begin
 
       wait(tb_test_run_start);
 
-      WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
+      tproc_write_axi( REG_TPROC_CTRL , 4); //PROC_START
 
       #(TEST_RUN_TIME);
 
       
-      WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+      tproc_write_axi( REG_TPROC_CTRL , 8); //PROC_STOP
       
       tb_test_run_done = 1'b1;
 
@@ -165,9 +190,9 @@ initial begin
 
    end
     
-//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START 
+//   tproc_write_axi( REG_TPROC_CTRL , 16); //CORE_START 
 //   #1000;
-//   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
+//   tproc_write_axi( REG_TPROC_CTRL , 128); //PROC_RUN
 //   #900;
    
    #1us;
@@ -191,7 +216,7 @@ initial begin
    ro_average_length    = 1;
 
 
-   if (TEST_NAME == "test_basic_pulses") begin
+   if (TEST_NAME == "test_basic_pulses" || TEST_NAME == "test_basic_pulses_dac2") begin
       $display("*** %t - Start test_basic_pulses Test ***", $realtime());
       ro_length            = 2000.0 / (2.0*T_RO_CLK);
       ro_decimated_length  = 2000.0 / (2.0*T_RO_CLK);

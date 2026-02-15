@@ -125,17 +125,29 @@ module qick_dut #(
    output logic       [31:0]   c_port_do,
    output logic       [31:0]   c_core_do,
 
-   input logic                   sg_s0_axis_aclk,
-   input logic                   sg_s0_axis_aresetn,
-   input logic        [31:0]     sg_s0_axis_tdata,
-   input logic                   sg_s0_axis_tvalid,
-   output logic                  sg_s0_axis_tready,
+   // AXIS Signal Generator 0 Interface
+   input logic                   sg0_s0_axis_aclk,
+   input logic                   sg0_s0_axis_aresetn,
+   input logic        [31:0]     sg0_s0_axis_tdata,
+   input logic                   sg0_s0_axis_tvalid,
+   output logic                  sg0_s0_axis_tready,
+
+   // AXIS Signal Generator 1 Interface
+   input logic                   sg1_s0_axis_aclk,
+   input logic                   sg1_s0_axis_aresetn,
+   input logic        [31:0]     sg1_s0_axis_tdata,
+   input logic                   sg1_s0_axis_tvalid,
+   output logic                  sg1_s0_axis_tready,
 
    // AXIS DAC Signal Generator
-   input logic                      axis_sg_dac_tready,
-   output logic                     axis_sg_dac_tvalid,
-   output logic [N_DDS_SG*16-1:0]   axis_sg_dac_tdata,
+   input logic                      axis_sg0_dac_tready,
+   output logic                     axis_sg0_dac_tvalid,
+   output logic [N_DDS_SG*16-1:0]   axis_sg0_dac_tdata,
 
+   input logic                      axis_sg1_dac_tready,
+   output logic                     axis_sg1_dac_tvalid,
+   output logic [N_DDS_SG*16-1:0]   axis_sg1_dac_tdata,
+   
    // AXIS ADC Readout
    output logic                     axis_adc_ro_tready,
    input logic                      axis_adc_ro_tvalid,
@@ -174,32 +186,45 @@ module qick_dut #(
    wire              s_axi_sg_wvalid;
 
 
-   // Signal Generator Path signals
-   wire [167:0]       tproc_sgcdc_0_axis_tdata ;
-   wire               tproc_sgcdc_0_axis_tvalid;
-   logic              tproc_sgcdc_0_axis_tready;
+   // Signal Generator 0 Path signals
+   wire [167:0]       tproc_sg0cdc_axis_tdata ;
+   wire               tproc_sg0cdc_axis_tvalid;
+   logic              tproc_sg0cdc_axis_tready;
 
-   wire [167:0]       sgcdc_sgt_0_axis_tdata ;
-   wire               sgcdc_sgt_0_axis_tvalid;
-   logic              sgcdc_sgt_0_axis_tready;
+   wire [167:0]       sg0cdc_sgt0_axis_tdata ;
+   wire               sg0cdc_sgt0_axis_tvalid;
+   logic              sg0cdc_sgt0_axis_tready;
 
-   wire [159:0]       sgt_sg_0_axis_tdata ;
-   wire               sgt_sg_0_axis_tvalid;
-   logic              sgt_sg_0_axis_tready;
+   wire [159:0]       sgt0_sg0_axis_tdata ;
+   wire               sgt0_sg0_axis_tvalid;
+   logic              sgt0_sg0_axis_tready;
+
+   // Signal Generator 1 Path signals
+   wire [167:0]       tproc_sg1cdc_axis_tdata ;
+   wire               tproc_sg1cdc_axis_tvalid;
+   logic              tproc_sg1cdc_axis_tready;
+
+   wire [167:0]       sg1cdc_sgt1_axis_tdata ;
+   wire               sg1cdc_sgt1_axis_tvalid;
+   logic              sg1cdc_sgt1_axis_tready;
+
+   wire [159:0]       sgt1_sg1_axis_tdata ;
+   wire               sgt1_sg1_axis_tvalid;
+   logic              sgt1_sg1_axis_tready;
 
 
    // Readout Path signals
-   wire [167:0]       tproc_rocdc_0_axis_tdata ;
-   wire               tproc_rocdc_0_axis_tvalid;
-   logic              tproc_rocdc_0_axis_tready;
+   wire [167:0]       tproc_rocdc0_axis_tdata ;
+   wire               tproc_rocdc0_axis_tvalid;
+   logic              tproc_rocdc0_axis_tready;
 
-   wire [167:0]       rocdc_rot_0_axis_tdata ;
-   wire               rocdc_rot_0_axis_tvalid;
-   logic              rocdc_rot_0_axis_tready;
+   wire [167:0]       rocdc_rot0_axis_tdata ;
+   wire               rocdc_rot0_axis_tvalid;
+   logic              rocdc_rot0_axis_tready;
 
-   wire [87:0]        rot_ro_0_axis_tdata ;
-   wire               rot_ro_0_axis_tvalid;
-   logic              rot_ro_0_axis_tready;
+   wire [87:0]        rot_ro0_axis_tdata ;
+   wire               rot_ro0_axis_tvalid;
+   logic              rot_ro0_axis_tready;
 
 
    // Internal AXI-Lite wires (kept inside qick_dut)
@@ -412,21 +437,21 @@ module qick_dut #(
       .s15_axis_tvalid      ( 1'b0/*s15_axis_tvalid*/      ),
       .s15_axis_tready      ( s15_axis_tready      ),
       // OUT WAVE PORTS
-      .m0_axis_tdata        ( tproc_sgcdc_0_axis_tdata        ),
-      .m0_axis_tvalid       ( tproc_sgcdc_0_axis_tvalid       ),
-      .m0_axis_tready       ( tproc_sgcdc_0_axis_tready       ),
-      .m1_axis_tdata        ( /*m1_axis_tdata*/        ),
-      .m1_axis_tvalid       ( /*m1_axis_tvalid*/       ),
-      .m1_axis_tready       ( 1'b0 /*m1_axis_tready*/       ),
+      .m0_axis_tdata        ( tproc_sg0cdc_axis_tdata        ),
+      .m0_axis_tvalid       ( tproc_sg0cdc_axis_tvalid       ),
+      .m0_axis_tready       ( tproc_sg0cdc_axis_tready       ),
+      .m1_axis_tdata        ( tproc_sg1cdc_axis_tdata        ),
+      .m1_axis_tvalid       ( tproc_sg1cdc_axis_tvalid       ),
+      .m1_axis_tready       ( tproc_sg1cdc_axis_tready       ),
       .m2_axis_tdata        ( /*m2_axis_tdata*/        ),
       .m2_axis_tvalid       ( /*m2_axis_tvalid*/       ),
       .m2_axis_tready       ( 1'b0 /*m2_axis_tready*/       ),
       .m3_axis_tdata        ( /*m3_axis_tdata*/        ),
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/       ),
       .m3_axis_tready       ( 1'b0 /*m3_axis_tready*/       ),
-      .m4_axis_tdata        ( tproc_rocdc_0_axis_tdata        ),
-      .m4_axis_tvalid       ( tproc_rocdc_0_axis_tvalid       ),
-      .m4_axis_tready       ( tproc_rocdc_0_axis_tready       ),
+      .m4_axis_tdata        ( tproc_rocdc0_axis_tdata        ),
+      .m4_axis_tvalid       ( tproc_rocdc0_axis_tvalid       ),
+      .m4_axis_tready       ( tproc_rocdc0_axis_tready       ),
       .m5_axis_tdata        ( /*m5_axis_tdata*/        ),
       .m5_axis_tvalid       ( /*m5_axis_tvalid*/       ),
       .m5_axis_tready       ( 1'b0 /*m5_axis_tready*/       ),
@@ -538,19 +563,19 @@ module qick_dut #(
 
    // CDC for signal generator
    axis_cdcsync_v1 #(
-      .N                         (1),     // Number of inputs/outputs.
+      .N                         (2),     // Number of inputs/outputs.
       .B                         (168)    // Number of data bits.
    )
    u_axis_sgcdcsync_v1 (
       // S_AXIS for input data.
       .s_axis_aresetn            (t_resetn),
       .s_axis_aclk               (t_clk),
-      .s0_axis_tready            (tproc_sgcdc_0_axis_tready),
-      .s0_axis_tvalid            (tproc_sgcdc_0_axis_tvalid),
-      .s0_axis_tdata             (tproc_sgcdc_0_axis_tdata),
-      .s1_axis_tready            (/*s1_axis_tready*/),
-      .s1_axis_tvalid            (/*s1_axis_tvalid*/),
-      .s1_axis_tdata             (/*s1_axis_tdata*/),
+      .s0_axis_tready            (tproc_sg0cdc_axis_tready),
+      .s0_axis_tvalid            (tproc_sg0cdc_axis_tvalid),
+      .s0_axis_tdata             (tproc_sg0cdc_axis_tdata),
+      .s1_axis_tready            (tproc_sg1cdc_axis_tready),
+      .s1_axis_tvalid            (tproc_sg1cdc_axis_tvalid),
+      .s1_axis_tdata             (tproc_sg1cdc_axis_tdata),
       .s2_axis_tready            (/*s2_axis_tready*/),
       .s2_axis_tvalid            (/*s2_axis_tvalid*/),
       .s2_axis_tdata             (/*s2_axis_tdata*/),
@@ -596,12 +621,12 @@ module qick_dut #(
       // M_AXIS for output data.
       .m_axis_aresetn            (sg_resetn),
       .m_axis_aclk               (sg_clk),
-      .m0_axis_tready            (sgcdc_sgt_0_axis_tready),
-      .m0_axis_tvalid            (sgcdc_sgt_0_axis_tvalid),
-      .m0_axis_tdata             (sgcdc_sgt_0_axis_tdata),
-      .m1_axis_tready            (/*m1_axis_tready*/),
-      .m1_axis_tvalid            (/*m1_axis_tvalid*/),
-      .m1_axis_tdata             (/*m1_axis_tdata*/),
+      .m0_axis_tready            (sg0cdc_sgt0_axis_tready),
+      .m0_axis_tvalid            (sg0cdc_sgt0_axis_tvalid),
+      .m0_axis_tdata             (sg0cdc_sgt0_axis_tdata),
+      .m1_axis_tready            (sg1cdc_sgt1_axis_tready),
+      .m1_axis_tvalid            (sg1cdc_sgt1_axis_tvalid),
+      .m1_axis_tdata             (sg1cdc_sgt1_axis_tdata),
       .m2_axis_tready            (/*m2_axis_tready*/),
       .m2_axis_tvalid            (/*m2_axis_tvalid*/),
       .m2_axis_tdata             (/*m2_axis_tdata*/),
@@ -654,13 +679,42 @@ module qick_dut #(
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (sgcdc_sgt_0_axis_tdata),
-      .s_axis_tvalid          (sgcdc_sgt_0_axis_tvalid),
-      .s_axis_tready          (sgcdc_sgt_0_axis_tready),
+      .s_axis_tdata           (sg0cdc_sgt0_axis_tdata),
+      .s_axis_tvalid          (sg0cdc_sgt0_axis_tvalid),
+      .s_axis_tready          (sg0cdc_sgt0_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
-      .m_gen_v6_axis_tdata    (sgt_sg_0_axis_tdata),
-      .m_gen_v6_axis_tvalid   (sgt_sg_0_axis_tvalid),
-      .m_gen_v6_axis_tready   (sgt_sg_0_axis_tready),
+      .m_gen_v6_axis_tdata    (sgt0_sg0_axis_tdata),
+      .m_gen_v6_axis_tvalid   (sgt0_sg0_axis_tvalid),
+      .m_gen_v6_axis_tready   (sgt0_sg0_axis_tready),
+      // OUT DATA int4_v1 (SEL:1)
+      .m_int4_axis_tdata      (),
+      .m_int4_axis_tvalid     (),
+      .m_int4_axis_tready     (),
+      // OUT DATA mux4_v1 (SEL:2)
+      .m_mux4_axis_tdata      (),
+      .m_mux4_axis_tvalid     (),
+      .m_mux4_axis_tready     (),
+      // OUT DATA readout_v3 (SEL:3)
+      .m_readout_axis_tdata   (),
+      .m_readout_axis_tvalid  (),
+      .m_readout_axis_tready  ()
+   );
+
+   sg_translator # (
+      .OUT_TYPE               (0) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
+   ) 
+   u_sg_translator_1 (
+      // Reset and clock.
+      .aresetn                (1'bx),  // not used
+      .aclk                   (1'bx),  // not used
+      // IN WAVE PORT
+      .s_axis_tdata           (sg1cdc_sgt1_axis_tdata),
+      .s_axis_tvalid          (sg1cdc_sgt1_axis_tvalid),
+      .s_axis_tready          (sg1cdc_sgt1_axis_tready),
+      // OUT DATA gen_v6 (SEL:0)
+      .m_gen_v6_axis_tdata    (sgt1_sg1_axis_tdata),
+      .m_gen_v6_axis_tvalid   (sgt1_sg1_axis_tvalid),
+      .m_gen_v6_axis_tready   (sgt1_sg1_axis_tready),
       // OUT DATA int4_v1 (SEL:1)
       .m_int4_axis_tdata      (),
       .m_int4_axis_tvalid     (),
@@ -710,36 +764,95 @@ module qick_dut #(
       .s_axi_wvalid        (s_axi_sg_wvalid  ),
 
       // AXIS Slave to load data into memory.
-      .s0_axis_aclk        (sg_s0_axis_aclk        ),
-      .s0_axis_aresetn     (sg_s0_axis_aresetn     ),
-      .s0_axis_tdata       (sg_s0_axis_tdata       ),
-      .s0_axis_tvalid      (sg_s0_axis_tvalid      ),
-      .s0_axis_tready      (sg_s0_axis_tready      ),
+      .s0_axis_aclk        (sg0_s0_axis_aclk        ),
+      .s0_axis_aresetn     (sg0_s0_axis_aresetn     ),
+      .s0_axis_tdata       (sg0_s0_axis_tdata       ),
+      .s0_axis_tvalid      (sg0_s0_axis_tvalid      ),
+      .s0_axis_tready      (sg0_s0_axis_tready      ),
 
       // s1_* and m_* reset/clock.
       .aresetn             (sg_resetn              ),
       .aclk                (sg_clk                 ),
 
       // AXIS Slave to queue waveforms - From TPROC
-      .s1_axis_tdata       (sgt_sg_0_axis_tdata    ),
-      .s1_axis_tvalid      (sgt_sg_0_axis_tvalid   ),
-      .s1_axis_tready      (sgt_sg_0_axis_tready   ),
+      .s1_axis_tdata       (sgt0_sg0_axis_tdata    ),
+      .s1_axis_tvalid      (sgt0_sg0_axis_tvalid   ),
+      .s1_axis_tready      (sgt0_sg0_axis_tready   ),
 
       // AXIS Master for output data.
-      .m_axis_tready       (axis_sg_dac_tready     ),
-      .m_axis_tvalid       (axis_sg_dac_tvalid     ),
-      .m_axis_tdata        (axis_sg_dac_tdata      )
+      .m_axis_tready       (axis_sg0_dac_tready     ),
+      .m_axis_tvalid       (axis_sg0_dac_tvalid     ),
+      .m_axis_tdata        (axis_sg0_dac_tdata      )
    );
 
 
    // For Waveform Debug
-   logic signed [15:0] axis_sg_dac_tdata_dbg [0:N_DDS_SG-1];
+   logic signed [15:0] axis_sg0_dac_tdata_dbg [0:N_DDS_SG-1];
    always @* begin
       for (int i=0; i<N_DDS_SG; i=i+1) begin
-         axis_sg_dac_tdata_dbg[i] = axis_sg_dac_tdata[16*i +: 16];
+         axis_sg0_dac_tdata_dbg[i] = axis_sg0_dac_tdata[16*i +: 16];
       end
    end
 
+   // axis_signal_gen_v6_1 parameters
+   // localparam N       = 10;
+
+   axis_signal_gen_v6 #(
+      .N                   (N                ),
+      .N_DDS               (N_DDS_SG         ),
+      .GEN_DDS             ("TRUE"           ),
+      // .GEN_DDS             ("FALSE"           ),
+      .ENVELOPE_TYPE       ("COMPLEX"        )
+   )
+   u_axis_signal_gen_v6_1 ( 
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk          (ps_clk    ),
+      .s_axi_aresetn       (ps_resetn   ),
+      .s_axi_araddr        (s_axi_sg_araddr  ),
+      .s_axi_arprot        (s_axi_sg_arprot  ),
+      .s_axi_arready       (s_axi_sg_arready ),
+      .s_axi_arvalid       (s_axi_sg_arvalid ),
+      .s_axi_awaddr        (s_axi_sg_awaddr  ),
+      .s_axi_awprot        (s_axi_sg_awprot  ),
+      .s_axi_awready       (s_axi_sg_awready ),
+      .s_axi_awvalid       (s_axi_sg_awvalid ),
+      .s_axi_bready        (s_axi_sg_bready  ),
+      .s_axi_bresp         (s_axi_sg_bresp   ),
+      .s_axi_bvalid        (s_axi_sg_bvalid  ),
+      .s_axi_rdata         (s_axi_sg_rdata   ),
+      .s_axi_rready        (s_axi_sg_rready  ),
+      .s_axi_rresp         (s_axi_sg_rresp   ),
+      .s_axi_rvalid        (s_axi_sg_rvalid  ),
+      .s_axi_wdata         (s_axi_sg_wdata   ),
+      .s_axi_wready        (s_axi_sg_wready  ),
+      .s_axi_wstrb         (s_axi_sg_wstrb   ),
+      .s_axi_wvalid        (s_axi_sg_wvalid  ),
+
+      // AXIS Slave to load data into memory.
+      .s0_axis_aclk        (sg1_s0_axis_aclk        ),
+      .s0_axis_aresetn     (sg1_s0_axis_aresetn     ),
+      .s0_axis_tdata       (sg1_s0_axis_tdata       ),
+      .s0_axis_tvalid      (sg1_s0_axis_tvalid      ),
+      .s0_axis_tready      (sg1_s0_axis_tready      ),
+
+      // s1_* and m_* reset/clock.
+      .aresetn             (sg_resetn              ),
+      .aclk                (sg_clk                 ),
+
+      // AXIS Slave to queue waveforms - From TPROC
+      .s1_axis_tdata       (sgt1_sg1_axis_tdata    ),
+      .s1_axis_tvalid      (sgt1_sg1_axis_tvalid   ),
+      .s1_axis_tready      (sgt1_sg1_axis_tready   ),
+
+      // AXIS Master for output data.
+      .m_axis_tready       (axis_sg1_dac_tready     ),
+      .m_axis_tvalid       (axis_sg1_dac_tvalid     ),
+      .m_axis_tdata        (axis_sg1_dac_tdata      )
+   );
+
+   //-----------------------------------------
+   // READOUT
+   //-----------------------------------------
 
    // For Waveform Debug
    logic signed [15:0] axis_adc_ro_tdata_dbg [0:N_DDS_RO-1];
@@ -760,9 +873,9 @@ module qick_dut #(
       // S_AXIS for input data.
       .s_axis_aresetn            (t_resetn),
       .s_axis_aclk               (t_clk),
-      .s0_axis_tready            (tproc_rocdc_0_axis_tready),
-      .s0_axis_tvalid            (tproc_rocdc_0_axis_tvalid),
-      .s0_axis_tdata             (tproc_rocdc_0_axis_tdata),
+      .s0_axis_tready            (tproc_rocdc0_axis_tready),
+      .s0_axis_tvalid            (tproc_rocdc0_axis_tvalid),
+      .s0_axis_tdata             (tproc_rocdc0_axis_tdata),
       .s1_axis_tready            (/*s1_axis_tready*/),
       .s1_axis_tvalid            (/*s1_axis_tvalid*/),
       .s1_axis_tdata             (/*s1_axis_tdata*/),
@@ -811,9 +924,9 @@ module qick_dut #(
       // M_AXIS for output data.
       .m_axis_aresetn            (ro_resetn),
       .m_axis_aclk               (ro_clk),
-      .m0_axis_tready            (rocdc_rot_0_axis_tready),
-      .m0_axis_tvalid            (rocdc_rot_0_axis_tvalid),
-      .m0_axis_tdata             (rocdc_rot_0_axis_tdata),
+      .m0_axis_tready            (rocdc_rot0_axis_tready),
+      .m0_axis_tvalid            (rocdc_rot0_axis_tvalid),
+      .m0_axis_tdata             (rocdc_rot0_axis_tdata),
       .m1_axis_tready            (/*m1_axis_tready*/),
       .m1_axis_tvalid            (/*m1_axis_tvalid*/),
       .m1_axis_tdata             (/*m1_axis_tdata*/),
@@ -869,9 +982,9 @@ module qick_dut #(
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (rocdc_rot_0_axis_tdata),
-      .s_axis_tvalid          (rocdc_rot_0_axis_tvalid),
-      .s_axis_tready          (rocdc_rot_0_axis_tready),
+      .s_axis_tdata           (rocdc_rot0_axis_tdata),
+      .s_axis_tvalid          (rocdc_rot0_axis_tvalid),
+      .s_axis_tready          (rocdc_rot0_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tready   (),
       .m_gen_v6_axis_tvalid   (),
@@ -885,9 +998,9 @@ module qick_dut #(
       .m_mux4_axis_tvalid     (),
       .m_mux4_axis_tready     (),
       // OUT DATA readout_v3 (SEL:3)
-      .m_readout_axis_tready  (rot_ro_0_axis_tready),
-      .m_readout_axis_tvalid  (rot_ro_0_axis_tvalid),
-      .m_readout_axis_tdata   (rot_ro_0_axis_tdata)
+      .m_readout_axis_tready  (rot_ro0_axis_tready),
+      .m_readout_axis_tvalid  (rot_ro0_axis_tvalid),
+      .m_readout_axis_tdata   (rot_ro0_axis_tdata)
    );
 
    wire              axis_ro_avg_tready;
@@ -906,9 +1019,9 @@ module qick_dut #(
       .aclk             (ro_clk),
 
       // s0_axis for pushing waveforms.
-      .s0_axis_tready   (rot_ro_0_axis_tready),
-      .s0_axis_tvalid   (rot_ro_0_axis_tvalid),
-      .s0_axis_tdata    (rot_ro_0_axis_tdata),
+      .s0_axis_tready   (rot_ro0_axis_tready),
+      .s0_axis_tvalid   (rot_ro0_axis_tvalid),
+      .s0_axis_tdata    (rot_ro0_axis_tdata),
 
       // s1_axis for input data
       .s1_axis_tready   (axis_adc_ro_tready),

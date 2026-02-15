@@ -1,14 +1,19 @@
-task WRITE_AXI(integer PORT_AXI, DATA_AXI);
-   $display("Running WRITE_AXI() Task");
+//--------------------------------------
+// TEST TASKS
+//--------------------------------------
+
+task tproc_write_axi(integer PORT_AXI, DATA_AXI);
+   $display("Running tproc_write_axi() Task");
    //$display("PORT %d",  PORT_AXI);
    //$display("DATA %d",  DATA_AXI);
    @(posedge s_ps_dma_aclk); #0.1;
    axi_mst_tproc_agent.AXI4LITE_WRITE_BURST(PORT_AXI, prot, DATA_AXI, resp);
 endtask
 
-task READ_AXI(integer ADDR_AXI);
+
+task tproc_read_axi(integer ADDR_AXI);
    integer DATA_RD;
-   $display("Running READ_AXI() Task");
+   $display("Running tproc_read_axi() Task");
    @(posedge s_ps_dma_aclk); #0.1;
    axi_mst_tproc_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
    $display("READ AXI_DATA %d",  DATA_RD);
@@ -29,23 +34,32 @@ task tproc_load_mem(string test_name);
    $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
-   $display("### Task sg_load_mem() end ###");
+   $display("### Task tproc_load_mem() end ###");
 
 endtask
 
 
 // Load pulse data into memory.
-task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_load_mem_done)*/;
-   string sg_file;
+task sg_load_mem(string test_name, int channel) /*, input logic tb_load_mem, output logic tb_load_mem_done)*/;
+   string sg_file, channel_str;
    int fd,vali,valq;
    bit signed [15:0] ii,qq;
    
-   $display("### %t - Task sg_load_mem() start ###", $realtime());
+   $display("### %t - Task sg_load_mem() channel %0d start ###", $realtime(), channel);
 
-   sg_s0_axis_tvalid = 0;
-   sg_s0_axis_tdata  = 0;
+   if (channel >= 2) begin
+      $display("ERROR: Invalid channel number %0d for sg_load_mem() task", channel);
+      $finish;
+   end
 
-   
+   if (channel == 0) begin
+      sg0_s0_axis_tvalid = 0;
+      sg0_s0_axis_tdata  = 0;
+   end else if (channel == 1) begin
+      sg1_s0_axis_tvalid = 0;
+      sg1_s0_axis_tdata  = 0;
+   end
+
    $display("################################");
    $display("### Load envelope into Table ###");
    $display("################################");
@@ -65,23 +79,39 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
    tb_load_mem    = 1;
 
    // File must be relative to where the simulation is run from (i.e.: xxx.sim/sim_x/behav/xsim)
-   sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
+   channel_str = $sformatf("%0d", channel);
+   sg_file = {"../../../../src/tb/",test_name,"/sg_",channel_str,".mem"};
    fd = $fopen(sg_file,"r");
 
-   wait (sg_s0_axis_tready);
+   if (channel == 0) begin
+      wait (sg0_s0_axis_tready);
+   end else if (channel == 1) begin
+      wait (sg1_s0_axis_tready);
+   end
 
    while($fscanf(fd,"%d,%d", vali,valq) == 2) begin
       // $display("I,Q: %d, %d", vali,valq);
       ii = vali;
       qq = valq;
-      @(posedge sg_s0_axis_aclk);
-      sg_s0_axis_tvalid    = 1;
-      sg_s0_axis_tdata     = {qq,ii};
+      if (channel == 0) begin
+         @(posedge sg0_s0_axis_aclk);
+         sg0_s0_axis_tvalid    = 1;
+         sg0_s0_axis_tdata     = {qq,ii};
+      end else if (channel == 1) begin
+         @(posedge sg1_s0_axis_aclk);
+         sg1_s0_axis_tvalid    = 1;
+         sg1_s0_axis_tdata     = {qq,ii};
+      end
    end
    $fclose(fd);
 
-   @(posedge sg_s0_axis_aclk);
-   sg_s0_axis_tvalid    = 0;
+   if (channel == 0) begin
+      @(posedge sg0_s0_axis_aclk);
+      sg0_s0_axis_tvalid    = 0;
+   end else if (channel == 1) begin
+      @(posedge sg1_s0_axis_aclk);
+      sg1_s0_axis_tvalid    = 0;
+   end
 
    tb_load_mem_done = 1;
 

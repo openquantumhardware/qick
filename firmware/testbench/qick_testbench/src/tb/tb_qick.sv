@@ -70,27 +70,8 @@ real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
 
 module tb_qick ();
 
-//----------------------------------------------------
-// Define Test to run
-//----------------------------------------------------
-string TEST_NAME = "test_basic_pulses";
-// string TEST_NAME = "test_fast_short_pulses";
-// string TEST_NAME = "test_many_envelopes";
-// string TEST_NAME = "test_tproc_basic";
-// string TEST_NAME = "test_issue359";
-// string TEST_NAME = "test_issue361";
-// string TEST_NAME = "test_issue53";
-// string TEST_NAME = "test_randomized_benchmarking";
-// string TEST_NAME = "test_qubit_emulator";
-//----------------------------------------------------
-
-// Default Simulation Settings
-time TEST_RUN_TIME         = 6us;   // Time to run tProc execution
-time TEST_READ_TIME        = 1us;   // Time to read data from buffers
-time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
-string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
-// string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
-//----------------------------------------------------
+// Include Stimuli 
+`include "tb_qick_stimuli.svh"
 
 // VIP Agents
 axi_mst_0_mst_t     axi_mst_tproc_agent;
@@ -268,9 +249,12 @@ reg qcom_rdy_i, qp2_rdy_i;
 
 
    // DAC-ADC connections
-   logic                      axis_sg_dac_tready;
-   logic                      axis_sg_dac_tvalid;
-   logic [N_DDS_SG*16-1:0]    axis_sg_dac_tdata;
+   logic                      axis_sg0_dac_tready;
+   logic                      axis_sg0_dac_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg0_dac_tdata;
+   logic                      axis_sg1_dac_tready;
+   logic                      axis_sg1_dac_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg1_dac_tdata;
 
    logic                      rf_signal_valid;
    logic [N_DDS_RO*16-1:0]    rf_signal_data;
@@ -298,10 +282,15 @@ reg qcom_rdy_i, qp2_rdy_i;
    parameter REG_TPROC_DEBUG     = 15  * 4 ;
 
 
-wire sg_s0_axis_aclk = s_ps_dma_aclk;
-logic   [31:0]       sg_s0_axis_tdata;
-logic                sg_s0_axis_tready;
-logic                sg_s0_axis_tvalid;
+wire sg0_s0_axis_aclk = s_ps_dma_aclk;
+logic   [31:0]          sg0_s0_axis_tdata;
+logic                   sg0_s0_axis_tready;
+logic                   sg0_s0_axis_tvalid;
+
+wire sg1_s0_axis_aclk = s_ps_dma_aclk;
+logic   [31:0]          sg1_s0_axis_tdata;
+logic                   sg1_s0_axis_tready;
+logic                   sg1_s0_axis_tvalid;
 
    //--------------------------------------
    // QICK DUT
@@ -404,17 +393,27 @@ logic                sg_s0_axis_tvalid;
       .c_port_do            ( ),
       .c_core_do            ( ),
 
-      // Signal Generator from tProc interface
-      .sg_s0_axis_aclk           (sg_s0_axis_aclk        ),
-      .sg_s0_axis_aresetn        (s_ps_dma_aresetn       ),
-      .sg_s0_axis_tdata          (sg_s0_axis_tdata       ),
-      .sg_s0_axis_tvalid         (sg_s0_axis_tvalid      ),
-      .sg_s0_axis_tready         (sg_s0_axis_tready      ),
+      // Signal Generator 0 from tProc interface
+      .sg0_s0_axis_aclk           (sg0_s0_axis_aclk        ),
+      .sg0_s0_axis_aresetn        (s_ps_dma_aresetn       ),
+      .sg0_s0_axis_tdata          (sg0_s0_axis_tdata       ),
+      .sg0_s0_axis_tvalid         (sg0_s0_axis_tvalid      ),
+      .sg0_s0_axis_tready         (sg0_s0_axis_tready      ),
+      // Signal Generator 1 from tProc interface (not used in this testbench)
+      .sg1_s0_axis_aclk           (sg1_s0_axis_aclk        ),
+      .sg1_s0_axis_aresetn        (s_ps_dma_aresetn       ),
+      .sg1_s0_axis_tdata          (sg1_s0_axis_tdata       ),
+      .sg1_s0_axis_tvalid         (sg1_s0_axis_tvalid      ),
+      .sg1_s0_axis_tready         (sg1_s0_axis_tready      ),
 
-      // Signal Generator to DAC interface
-      .axis_sg_dac_tready        (axis_sg_dac_tready     ),
-      .axis_sg_dac_tvalid        (axis_sg_dac_tvalid     ),
-      .axis_sg_dac_tdata         (axis_sg_dac_tdata      ),
+      // Signal Generator 0 to DAC 0 interface
+      .axis_sg0_dac_tready        (axis_sg0_dac_tready     ),
+      .axis_sg0_dac_tvalid        (axis_sg0_dac_tvalid     ),
+      .axis_sg0_dac_tdata         (axis_sg0_dac_tdata      ),
+      // Signal Generator 1 to DAC 1 interface
+      .axis_sg1_dac_tready        (axis_sg1_dac_tready     ),
+      .axis_sg1_dac_tvalid        (axis_sg1_dac_tvalid     ),
+      .axis_sg1_dac_tdata         (axis_sg1_dac_tdata      ),
 
       // ADC to Readout interface
       .axis_adc_ro_tready        (axis_adc_ro_tready     ),
@@ -439,19 +438,19 @@ logic                sg_s0_axis_tvalid;
 
    // DAC-ADC RF frontend model
 
-   localparam DAC_W = 16;
-   logic signed [DAC_W-1:0] dac_data;
+   localparam DAC0_W = 16;
+   logic signed [DAC0_W-1:0] dac0_data;
    localparam ADC_W = 14;
    logic signed [ADC_W-1:0] adc_sample;
    logic signed [15:0] adc_data;
 
    model_DAC_ADC #(
-      .DAC_W               (DAC_W),
+      .DAC_W               (DAC0_W),
       .ADC_W               (ADC_W),
       .BUFFER_SIZE         (16)
    ) u_model_DAC_ADC (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac_data),
+      .dac_sample          (dac0_data),
 
       .clk_ADC             (adc_fs),
       .adc_sample          (adc_sample),
@@ -459,19 +458,37 @@ logic                sg_s0_axis_tvalid;
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
-   // SG to DAC RF processes 16 samples per clock
+   // SG0 to DAC0 RF processes 16 samples per clock
 
-   assign axis_sg_dac_tready        = 1'b1;  // DAC always ready to receive samples
+   assign axis_sg0_dac_tready        = 1'b1;  // DAC always ready to receive samples
 
-   logic [$clog2(N_DDS_SG)-1:0] dac_samp_cnt;
+   logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
    always @(posedge dac_fs) begin
-      if (axis_sg_dac_tvalid) begin
-         dac_data       <= axis_sg_dac_tdata[16*dac_samp_cnt +: 16];
-         dac_samp_cnt   <= dac_samp_cnt + 'd1;
+      if (axis_sg0_dac_tvalid) begin
+         dac0_data       <= axis_sg0_dac_tdata[16*dac0_samp_cnt +: 16];
+         dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
       end
       else begin
-         dac_data       <= 'd0;
-         dac_samp_cnt   <= 'd0;
+         dac0_data       <= 'd0;
+         dac0_samp_cnt   <= 'd0;
+      end
+   end
+
+   // SG1 to DAC1 RF processes 16 samples per clock
+   localparam DAC1_W = 16;
+   logic signed [DAC1_W-1:0] dac1_data;
+
+   assign axis_sg1_dac_tready        = 1'b1;  // DAC always ready to receive samples
+
+   logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
+   always @(posedge dac_fs) begin
+      if (axis_sg1_dac_tvalid) begin
+         dac1_data       <= axis_sg1_dac_tdata[16*dac1_samp_cnt +: 16];
+         dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
+      end
+      else begin
+         dac1_data       <= 'd0;
+         dac1_samp_cnt   <= 'd0;
       end
    end
 
@@ -647,10 +664,6 @@ logic                sg_s0_axis_tvalid;
          end
       end
    end
-
-
-
-`include "tb_qick_stimuli.svh"
 
 
 `include "tb_qick_tasks.svh"
