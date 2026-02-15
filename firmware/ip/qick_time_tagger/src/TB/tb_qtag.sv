@@ -27,7 +27,7 @@ import axi_mst_0_pkg::*;
 `define SMP_CK        8 
 `define DEBUG         1  
 
-module tb_qick_time_tagger();
+module tb_qtag();
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -146,8 +146,8 @@ axi_mst_0 axi_mst_0_i (
 
 axi_qick_time_tagger # (
    .ADC_QTY      ( `ADC_QTY     ) ,
-   .DMA_RD       ( `DMA_RD      ) ,
-   .PROC_RD      ( `PROC_RD     ) ,
+//   .DMA_RD       ( `DMA_RD      ) ,
+//   .PROC_RD      ( `PROC_RD     ) ,
    .CMP_SLOPE    ( `CMP_SLOPE   ) ,
    .CMP_INTER    ( `CMP_INTER   ) ,
    .ARM_STORE    ( `ARM_STORE   ) ,
@@ -303,7 +303,7 @@ reg dma_m_axis_tready_i;
 task START_SIMULATION (); begin
     $display("START SIMULATION");
     // Create agents.
-    axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_qick_time_tagger.axi_mst_0_i.inst.IF);
+    axi_mst_0_agent 	= new("axi_mst_0 VIP Agent",tb_qtag.axi_mst_0_i.inst.IF);
     // Set tag for agents.
     axi_mst_0_agent.set_agent_tag	("axi_mst_0 VIP");
     // Start agents.
