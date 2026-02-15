@@ -1,0 +1,160 @@
+macros:
+	WriteReg(dst='s_core_w1', src=0)
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 1, 'LIT': '#32766', 'CMD': 'REG_WR', 'DST': 'w3', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 2, 'LIT': '#0', 'CMD': 'REG_WR', 'DST': 'w1', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 3, 'LIT': '#0', 'CMD': 'REG_WR', 'DST': 'w2', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 4, 'LINE': 4, 'LIT': '#430', 'CMD': 'REG_WR', 'DST': 'w4', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 5, 'LINE': 5, 'LIT': '#9', 'CMD': 'REG_WR', 'DST': 'w5', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 6, 'LINE': 6, 'LIT': '#44810940', 'CMD': 'REG_WR', 'DST': 'w0', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 7, 'LINE': 7, 'CMD': 'WMEM_WR', 'DST': '[&0]'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 1, 'CMD': 'JUMP', 'LABEL': 'NOP'}, addr_inc=1)
+	Label(label='playPULSE1')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'ADDR': '&0', 'CMD': 'WPORT_WR', 'SRC': 'wmem', 'DST': '0'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='playPULSE2')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'ADDR': '&1', 'CMD': 'WPORT_WR', 'SRC': 'wmem', 'DST': '1'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='LFSR')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'OP': 's1', 'CMD': 'REG_WR', 'DST': 'r26', 'SRC': 'op'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'OP': 'MSH r26', 'CMD': 'REG_WR', 'DST': 'r28', 'SRC': 'op'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='WPON')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'LIT': '#32766', 'CMD': 'REG_WR', 'DST': 'w3', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'CMD': 'WMEM_WR', 'DST': '[&0]'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='WPOFF')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'LIT': '#0', 'CMD': 'REG_WR', 'DST': 'w3', 'SRC': 'imm'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'CMD': 'WMEM_WR', 'DST': '[&0]'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='CONDOUT')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'CMD': 'CALL', 'LABEL': 'LFSR'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'OP': 'r28 SR #5', 'CMD': 'REG_WR', 'DST': 'r28', 'SRC': 'op'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'UF': '1', 'OP': 'r28 AND #8', 'CMD': 'TEST'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 4, 'LINE': 5, 'IF': 'NZ', 'CMD': 'CALL', 'LABEL': 'WPON'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 5, 'LINE': 6, 'IF': 'Z', 'CMD': 'CALL', 'LABEL': 'WPOFF'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 6, 'LINE': 7, 'UF': '1', 'OP': 'r28', 'CMD': 'TEST'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 7, 'LINE': 8, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='THRES')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'OP': 'r1', 'CMD': 'REG_WR', 'DST': 'r31', 'SRC': 'op'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'UF': '1', 'OP': 'r31 - #500', 'CMD': 'TEST'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'IF': 'Z', 'CMD': 'CALL', 'LABEL': 'playPULSE2'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 4, 'LINE': 5, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='RANDAMP')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 2, 'CMD': 'CALL', 'LABEL': 'LFSR'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 2, 'LINE': 3, 'OP': 'ABS r28', 'CMD': 'REG_WR', 'DST': 'w3', 'SRC': 'op'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 3, 'LINE': 4, 'CMD': 'WMEM_WR', 'DST': '[&0]'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 4, 'LINE': 5, 'CMD': 'RET'}, addr_inc=1)
+	Label(label='NOP')
+	Delay(t=1.0, auto=True, gens=True, ros=True, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81590847c0>}, t_regs={'t': 430})
+	OpenLoop(n=1, name='reps')
+	OpenLoop(n=10000, name='ShotLoop')
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 1, 'CMD': 'CALL', 'LABEL': 'RANDAMP'}, addr_inc=1)
+	AsmInst(inst={'P_ADDR': 1, 'LINE': 1, 'CMD': 'CALL', 'LABEL': 'playPULSE1'}, addr_inc=1)
+	Trigger(ros=[1], tts=[], pins=[], t=0.01, width=0.023251488095238096, ddr4=True, mr=False, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81590844f0>, 'width': <qick.asm_v2.QickParam object at 0x7f8159084580>}, t_regs={'t': 4, 'width': 10}, outdict=defaultdict(<class 'int'>, {}), trigset={9, 11})
+	Wait(t=0.2, auto=True, gens=False, ros=True, tag=None, no_warn=False, t_params={'t': <qick.asm_v2.QickParam object at 0x7f8159084b50>}, t_regs={'t': 520})
+	Delay(t=0.2, auto=True, gens=True, ros=True, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f8159084730>}, t_regs={'t': 520})
+	Trigger(ros=[1], tts=[], pins=[], t=0.01, width=0.023251488095238096, ddr4=True, mr=False, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f8159084520>, 'width': <qick.asm_v2.QickParam object at 0x7f8159084af0>}, t_regs={'t': 4, 'width': 10}, outdict=defaultdict(<class 'int'>, {}), trigset={9, 11})
+	ReadInput(ro_ch=1)
+	CondJump(label='NOPULSE', arg1='s_port_h', test='S', op='-', arg2=500)
+	Pulse(ch=1, name='feedpulse', t=0, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81a1242730>}, t_regs={'t': 0})
+	Label(label='NOPULSE')
+	Delay(t=11, auto=True, gens=True, ros=True, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81a12425b0>}, t_regs={'t': 5165})
+	Wait(t=0, auto=True, gens=False, ros=True, tag=None, no_warn=True, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81a1242ac0>}, t_regs={'t': 0})
+	Delay(t=0.5, auto=True, gens=True, ros=True, tag=None, t_params={'t': <qick.asm_v2.QickParam object at 0x7f81a1242ee0>}, t_regs={'t': 215})
+	IncReg(dst='s_core_w1', src=1)
+	CloseLoop()
+	CloseLoop()
+	End()
+registers:
+	reps: QickRegisterV2(addr=0, init=None)
+	ShotLoop: QickRegisterV2(addr=1, init=None)
+pulses:
+	mypulse: QickPulse(waveforms=[Waveform(name='mypulse_w0', freq=QickRawParam(par='freq', start=44810940, spans={}, quantize=1, steps={}), phase=QickRawParam(par='phase', start=0, spans={}, quantize=1, steps={}), env=0, gain=QickRawParam(par='gain', start=32766, spans={}, quantize=1, steps={}), length=QickRawParam(par='length', start=599, spans={}, quantize=1, steps={}), conf=9)])
+	feedpulse: QickPulse(waveforms=[Waveform(name='feedpulse_w0', freq=QickRawParam(par='freq', start=448109402, spans={}, quantize=1, steps={}), phase=QickRawParam(par='phase', start=0, spans={}, quantize=1, steps={}), env=0, gain=QickRawParam(par='gain', start=32766, spans={}, quantize=1, steps={}), length=QickRawParam(par='length', start=300, spans={}, quantize=1, steps={}), conf=9)])
+expanded ASM:
+	     NOP 
+	     REG_WR s12 imm #0 
+	     REG_WR w3 imm #32766 
+	     REG_WR w1 imm #0 
+	     REG_WR w2 imm #0 
+	     REG_WR w4 imm #430 
+	     REG_WR w5 imm #9 
+	     REG_WR w0 imm #44810940 
+	     WMEM_WR [&0] 
+	     JUMP NOP 
+	playPULSE1:
+	     WPORT_WR p0 wmem [&0] 
+	RET
+
+	playPULSE2:
+	     WPORT_WR p1 wmem [&1] 
+	RET
+
+	LFSR:
+	     REG_WR r26 op -op(s1) 
+	     REG_WR r28 op -op(MSH r26) 
+	RET
+
+	WPON:
+	     REG_WR w3 imm #32766 
+	     WMEM_WR [&0] 
+	RET
+
+	WPOFF:
+	     REG_WR w3 imm #0 
+	     WMEM_WR [&0] 
+	RET
+
+	CONDOUT:
+	     CALL LFSR 
+	     REG_WR r28 op -op(r28 SR #5) 
+	     TEST -op(r28 AND #8) -uf 
+	     CALL WPON -if(NZ) 
+	     CALL WPOFF -if(Z) 
+	     TEST -op(r28) -uf 
+	RET
+
+	THRES:
+	     REG_WR r31 op -op(r1) 
+	     TEST -op(r31 - #500) -uf 
+	     CALL playPULSE2 -if(Z) 
+	RET
+
+	RANDAMP:
+	     CALL LFSR 
+	     REG_WR w3 op -op(ABS r28) 
+	     WMEM_WR [&0] 
+	RET
+
+	NOP:
+	     TIME #430 inc_ref 
+	     REG_WR r0 imm #0 
+	reps:
+	     REG_WR r1 imm #0 
+	ShotLoop:
+	     CALL RANDAMP 
+	     CALL playPULSE1 
+	     TRIG p9 set @4 
+	     TRIG p11 set @4 
+	     TRIG p9 clr @14 
+	     TRIG p11 clr @14 
+	     WAIT [&48] @520 time 
+	     TIME #520 inc_ref 
+	     TRIG p9 set @4 
+	     TRIG p11 set @4 
+	     TRIG p9 clr @14 
+	     TRIG p11 clr @14 
+	     DPORT_RD p1 
+	     TEST -op(s9 - #500) -uf 
+	     JUMP NOPULSE -if(S) 
+	     WPORT_WR p1 wmem [&1] @0 
+	NOPULSE:
+	     TIME #5165 inc_ref 
+	     WAIT [&60] @0 time 
+	     TIME #215 inc_ref 
+	     REG_WR s12 op -op(s12 + #1) 
+	     TEST -op(r1 - #9999) 
+	     JUMP ShotLoop -if(NZ) -wr(r1 op) -op(r1 + #1) 
+	     TEST -op(r0 - #0) 
+	     JUMP reps -if(NZ) -wr(r0 op) -op(r0 + #1) 
+	     JUMP HERE 
