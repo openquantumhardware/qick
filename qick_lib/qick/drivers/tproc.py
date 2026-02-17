@@ -577,7 +577,7 @@ class Axis_QICK_Proc(SocIP):
         CORE_CFG_LFSR_MASK = 0x3
         self.core_cfg &= (~CORE_CFG_LFSR_MASK) << (core*2)
         self.core_cfg |= (mode & CORE_CFG_LFSR_MASK) << (core*2)
-        
+
     def __str__(self):
         lines = []
         lines.append('---------------------------------------------')

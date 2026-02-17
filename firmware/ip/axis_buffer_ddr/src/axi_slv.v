@@ -1,62 +1,62 @@
 module axi_slv
-	(
-		input  	wire  				s_axi_aclk		,
-		input  	wire  				s_axi_aresetn	,
+   (
+      input    wire              s_axi_aclk     ,
+      input    wire              s_axi_aresetn  ,
 
-		// Write Address Channel.
-		input  	wire	[7:0]		s_axi_awaddr	,
-		input  	wire 	[2:0]		s_axi_awprot	,
-		input  	wire  				s_axi_awvalid	,
-		output	wire  				s_axi_awready	,
+      // Write Address Channel.
+      input    wire  [7:0]    s_axi_awaddr   ,
+      input    wire  [2:0]    s_axi_awprot   ,
+      input    wire              s_axi_awvalid  ,
+      output   wire              s_axi_awready  ,
 
-		// Write Data Channel.
-		input 	wire 	[31:0] 		s_axi_wdata		,
-		input 	wire 	[3:0]		s_axi_wstrb		,
-		input 	wire  				s_axi_wvalid	,
-		output 	wire  				s_axi_wready	,
+      // Write Data Channel.
+      input    wire  [31:0]      s_axi_wdata    ,
+      input    wire  [3:0]    s_axi_wstrb    ,
+      input    wire              s_axi_wvalid   ,
+      output   wire              s_axi_wready   ,
 
-		// Write Response Channel.
-		output 	wire 	[1:0]		s_axi_bresp		,
-		output 	wire  				s_axi_bvalid	,
-		input 	wire  				s_axi_bready	,
+      // Write Response Channel.
+      output   wire  [1:0]    s_axi_bresp    ,
+      output   wire              s_axi_bvalid   ,
+      input    wire              s_axi_bready   ,
 
-		// Read Address Channel.
-		input 	wire 	[7:0] 		s_axi_araddr	,
-		input 	wire 	[2:0] 		s_axi_arprot	,
-		input 	wire  				s_axi_arvalid	,
-		output 	wire  				s_axi_arready	,
+      // Read Address Channel.
+      input    wire  [7:0]       s_axi_araddr   ,
+      input    wire  [2:0]       s_axi_arprot   ,
+      input    wire              s_axi_arvalid  ,
+      output   wire              s_axi_arready  ,
 
-		// Read Data Channel.
-		output 	wire 	[31:0]		s_axi_rdata		,
-		output 	wire 	[1:0]		s_axi_rresp		,
-		output 	wire  				s_axi_rvalid	,
-		input 	wire  				s_axi_rready	,
+      // Read Data Channel.
+      output   wire  [31:0]      s_axi_rdata    ,
+      output   wire  [1:0]    s_axi_rresp    ,
+      output   wire              s_axi_rvalid   ,
+      input    wire              s_axi_rready   ,
 
-		// Registers.
-		output	wire				RSTART_REG		,
-		output	wire	[31:0]		RADDR_REG		,
-		output	wire	[31:0]		RLENGTH_REG		,
-		output	wire				WSTART_REG		,
-		output	wire	[31:0]		WADDR_REG		,
-		output	wire	[31:0]		WNBURST_REG
+      // Registers.
+      output   wire           RSTART_REG     ,
+      output   wire  [31:0]      RADDR_REG      ,
+      output   wire  [31:0]      RLENGTH_REG    ,
+      output   wire           WSTART_REG     ,
+      output   wire  [31:0]      WADDR_REG      ,
+      output   wire  [31:0]      WNBURST_REG
 );
 
 // Width of S_AXI data bus
-localparam integer C_S_AXI_DATA_WIDTH	= 32;
+localparam integer C_S_AXI_DATA_WIDTH  = 32;
 // Width of S_AXI address bus
-localparam integer C_S_AXI_ADDR_WIDTH	= 8;
+localparam integer C_S_AXI_ADDR_WIDTH  = 8;
 
 // AXI4LITE signals
-reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_awaddr;
-reg  	axi_awready;
-reg  	axi_wready;
-reg [1 : 0] 	axi_bresp;
-reg  	axi_bvalid;
-reg [C_S_AXI_ADDR_WIDTH-1 : 0] 	axi_araddr;
-reg  	axi_arready;
-reg [C_S_AXI_DATA_WIDTH-1 : 0] 	axi_rdata;
-reg [1 : 0] 	axi_rresp;
-reg  	axi_rvalid;
+reg [C_S_AXI_ADDR_WIDTH-1 : 0]   axi_awaddr;
+reg   axi_awready;
+reg   axi_wready;
+reg [1 : 0]    axi_bresp;
+reg   axi_bvalid;
+reg [C_S_AXI_ADDR_WIDTH-1 : 0]   axi_araddr;
+reg   axi_arready;
+reg [C_S_AXI_DATA_WIDTH-1 : 0]   axi_rdata;
+reg [1 : 0]    axi_rresp;
+reg   axi_rvalid;
 
 // Example-specific design signals
 // local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
@@ -69,86 +69,86 @@ localparam integer OPT_MEM_ADDR_BITS = 5;
 //-- Signals for user logic register space example
 //------------------------------------------------
 //-- Number of Slave Registers 64
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg0;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg1;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg2;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg3;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg4;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg5;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg6;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg7;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg8;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg9;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg10;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg11;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg12;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg13;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg14;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg15;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg16;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg17;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg18;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg19;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg20;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg21;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg22;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg23;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg24;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg25;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg26;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg27;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg28;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg29;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg30;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg31;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg32;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg33;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg34;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg35;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg36;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg37;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg38;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg39;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg40;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg41;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg42;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg43;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg44;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg45;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg46;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg47;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg48;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg49;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg50;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg51;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg52;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg53;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg54;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg55;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg56;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg57;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg58;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg59;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg60;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg61;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg62;
-reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg63;
-wire	 slv_reg_rden;
-wire	 slv_reg_wren;
-reg [C_S_AXI_DATA_WIDTH-1:0]	 reg_data_out;
-integer	 byte_index;
-reg	 aw_en;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg0;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg1;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg2;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg3;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg4;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg5;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg6;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg7;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg8;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg9;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg10;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg11;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg12;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg13;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg14;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg15;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg16;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg17;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg18;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg19;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg20;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg21;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg22;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg23;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg24;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg25;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg26;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg27;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg28;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg29;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg30;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg31;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg32;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg33;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg34;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg35;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg36;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg37;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg38;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg39;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg40;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg41;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg42;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg43;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg44;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg45;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg46;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg47;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg48;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg49;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg50;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg51;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg52;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg53;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg54;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg55;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg56;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg57;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg58;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg59;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg60;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg61;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg62;
+reg [C_S_AXI_DATA_WIDTH-1:0]  slv_reg63;
+wire   slv_reg_rden;
+wire   slv_reg_wren;
+reg [C_S_AXI_DATA_WIDTH-1:0]   reg_data_out;
+integer   byte_index;
+reg    aw_en;
 
 // I/O Connections assignments
 
-assign s_axi_awready	= axi_awready;
-assign s_axi_wready	= axi_wready;
-assign s_axi_bresp	= axi_bresp;
-assign s_axi_bvalid	= axi_bvalid;
-assign s_axi_arready	= axi_arready;
-assign s_axi_rdata	= axi_rdata;
-assign s_axi_rresp	= axi_rresp;
-assign s_axi_rvalid	= axi_rvalid;
+assign s_axi_awready = axi_awready;
+assign s_axi_wready  = axi_wready;
+assign s_axi_bresp   = axi_bresp;
+assign s_axi_bvalid  = axi_bvalid;
+assign s_axi_arready = axi_arready;
+assign s_axi_rdata   = axi_rdata;
+assign s_axi_rresp   = axi_rresp;
+assign s_axi_rvalid  = axi_rvalid;
 // Implement axi_awready generation
 // axi_awready is asserted for one s_axi_aclk clock cycle when both
 // s_axi_awvalid and s_axi_wvalid are asserted. axi_awready is
@@ -1022,11 +1022,11 @@ begin
     end
 end    
 
-assign RSTART_REG	= slv_reg0 [0];
-assign RADDR_REG	= slv_reg1 [31:0];
-assign RLENGTH_REG	= slv_reg2 [31:0];
-assign WSTART_REG	= slv_reg3 [0];
-assign WADDR_REG	= slv_reg4 [31:0];
-assign WNBURST_REG	= slv_reg5 [31:0];
+assign RSTART_REG = slv_reg0 [0];
+assign RADDR_REG  = slv_reg1 [31:0];
+assign RLENGTH_REG   = slv_reg2 [31:0];
+assign WSTART_REG = slv_reg3 [0];
+assign WADDR_REG  = slv_reg4 [31:0];
+assign WNBURST_REG   = slv_reg5 [31:0];
 
 endmodule

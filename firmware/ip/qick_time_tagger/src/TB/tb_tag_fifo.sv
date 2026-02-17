@@ -12,7 +12,7 @@
 `define RD_CLK         11   // Half Clock Period for Simulation
 `define CORE_CLK       5   // Half Clock Period for Simulation
 
-module tb_tag_mem();
+module tb_tag_fifo();
 
 
 parameter MEM_QTY = 4 ;

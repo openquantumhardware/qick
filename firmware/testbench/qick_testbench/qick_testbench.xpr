@@ -61,20 +61,20 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="835"/>
+    <Option Name="WTXSimLaunchSim" Val="836"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="18"/>
-    <Option Name="WTModelSimExportSim" Val="18"/>
-    <Option Name="WTQuestaExportSim" Val="18"/>
+    <Option Name="WTXSimExportSim" Val="20"/>
+    <Option Name="WTModelSimExportSim" Val="20"/>
+    <Option Name="WTQuestaExportSim" Val="20"/>
     <Option Name="WTIesExportSim" Val="0"/>
-    <Option Name="WTVcsExportSim" Val="18"/>
-    <Option Name="WTRivieraExportSim" Val="18"/>
-    <Option Name="WTActivehdlExportSim" Val="18"/>
+    <Option Name="WTVcsExportSim" Val="20"/>
+    <Option Name="WTRivieraExportSim" Val="20"/>
+    <Option Name="WTActivehdlExportSim" Val="20"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -129,42 +129,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/gray2bin.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo_dc.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bin2gray.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_simple_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/synchronizer_vect.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo_dc_axi.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_avg_buffer"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -174,27 +139,6 @@
       <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/bram_simple_dp.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/fifo/fifo.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>

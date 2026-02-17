@@ -2325,9 +2325,10 @@ class AcquireMixin:
             pass
         else: # accumulated
             return self._summarize_accumulated(self.rounds_buf)
-        
+
     def print_sg_mem(self, sg_idx=0, gen_file=False):
         """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
+
         Parameters
         ----------
         sg_idx : int
@@ -2350,3 +2351,4 @@ class AcquireMixin:
             print("Dumped SG envelope table memory to file sg_%0d.mem"%(sg_idx))
         else:
             print(s)
+

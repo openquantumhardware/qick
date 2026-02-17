@@ -37,6 +37,18 @@ def bitfile_path():
     src = os.path.join(os.path.dirname(qick.__file__), filename)
     return src
 
+# Check for supported PYNQ versions that are compatible with QICK library
+# only do the check if running on a Zynq
+if platform.machine() in ['aarch64', 'armv7l']:
+    import pkg_resources
+
+    pynq_version = pkg_resources.get_distribution("pynq").version
+    if pkg_resources.parse_version(pynq_version) >= pkg_resources.parse_version("3.1"):
+        raise RuntimeError(
+            f"Unsupported PYNQ version {pynq_version}. "
+            "QICK library requires PYNQ < 3.1."
+        )
+
 # tie in to rpyc, if using
 try:
     from rpyc.utils.classic import obtain
