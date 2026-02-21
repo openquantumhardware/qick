@@ -20,7 +20,7 @@ These stats were computed from the next section's list of QICK papers as of Janu
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated January 28, 2026.
+This list of academic papers that used the QICK was last updated February 21, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -32,6 +32,7 @@ Superconducting circuits
 
 Scaling
 """""""
+* `Hoyt, A. et al. QASMTrans: An End-to-End QASM Compilation Framework with Pulse Generation for Near-Term Quantum Devices (2026) <https://arxiv.org/abs/2602.05154>`_.
 * `Li, A. et al. NWQWorkflow: The Northwest Quantum Workflow (2026) <https://arxiv.org/abs/2601.15521>`_.
 * `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/abs/2507.10676>`_.
 
@@ -56,6 +57,7 @@ Quantum simulation
 
 Coherence
 """""""""
+* `Olszewski, M. et al. Krypton-sputtered tantalum films for scalable high-performance quantum devices. (2026) <https://arxiv.org/abs/2601.20091>`_.
 * `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
 * `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/abs/2506.18232>`_.
 * `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
@@ -114,6 +116,7 @@ Neutral atoms
 
 Spin defects
 ^^^^^^^^^^^^
+* `Elmslie, T. et al. Homogeneous Microwave Delivery for Quantum Sensing with Nitrogen-Vacancy Centers at High Pressures. (2026) <https://arxiv.org/abs/2601.11725>`_.
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
 * `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
@@ -126,8 +129,9 @@ Quantum dots
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
-MKIDs
+Quantum sensors and MKIDs
 ^^^^^
+* `Magoon, H. et al. A First Demonstration of the SQUAT Detector Architecture: Direct Measurement of Resonator-Free Charge-Sensitive Transmons. (2026) <https://arxiv.org/abs/2601.16261>`_.
 * `Stifter, K. et al. Cryogenic optical beam steering for superconducting device calibration. (2024) <https://arxiv.org/abs/2405.02258>`_.
 
 Dark matter detection
