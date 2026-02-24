@@ -2,7 +2,6 @@
 // Define Test to run
 //----------------------------------------------------
 // string TEST_NAME = "test_basic_pulses";
-string TEST_NAME = "test_basic_pulses_dac2";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
@@ -10,6 +9,7 @@ string TEST_NAME = "test_basic_pulses_dac2";
 // string TEST_NAME = "test_issue361";
 // string TEST_NAME = "test_issue53";
 // string TEST_NAME = "test_randomized_benchmarking";
+string TEST_NAME = "test_hmc_qickemu";
 // string TEST_NAME = "test_qubit_emulator";
 //----------------------------------------------------
 
@@ -20,6 +20,14 @@ time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program E
 string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
 // string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
 //----------------------------------------------------
+
+// VIP Agents
+axi_mst_0_mst_t     axi_mst_tproc_agent;
+axi_mst_0_mst_t     axi_mst_sg_agent;
+axi_mst_0_mst_t     axi_mst_avg0_agent;
+axi_mst_0_mst_t     axi_mst_avg1_agent;
+axi_mst_0_mst_t     axi_mst_rov2_agent;
+axi_mst_0_mst_t     axi_mst_qemu_agent;
 
 //--------------------------------------
 // TEST STIMULI
@@ -34,10 +42,18 @@ logic tb_test_run_start;
 logic tb_test_run_done;
 logic tb_test_read_start;
 logic tb_test_read_done;
+logic tb_test_end;
 
 integer ro_length;
 integer ro_decimated_length;
 integer ro_average_length;
+
+initial begin
+   forever begin
+      #10us;
+      $display("*** Time Elapsed: %0t ***", $realtime);
+   end
+end
 
 initial begin
 
@@ -56,11 +72,25 @@ initial begin
    axi_mst_sg_agent.start_master();
 
    // Create agents.
-   axi_mst_avg_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
+   axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
    // Set tag for agents.
-   axi_mst_avg_agent.set_agent_tag("axi_mst_avg_0 VIP");
+   axi_mst_avg0_agent.set_agent_tag("axi_mst_avg_0 VIP");
    // Start agents.
-   axi_mst_avg_agent.start_master();
+   axi_mst_avg0_agent.start_master();
+
+   // Create agents.
+   axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_1.inst.IF);
+   // Set tag for agents.
+   axi_mst_avg1_agent.set_agent_tag("axi_mst_avg_1 VIP");
+   // Start agents.
+   axi_mst_avg1_agent.start_master();
+
+   // Create agents.
+   axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_rov2_0.inst.IF);
+   // Set tag for agents.
+   axi_mst_rov2_agent.set_agent_tag("axi_mst_rov2_0 VIP");
+   // Start agents.
+   axi_mst_rov2_agent.start_master();
 
    // Create agents.
    axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
@@ -96,8 +126,6 @@ initial begin
    rst_ni                  = 1'b0;
    axi_dt                  = 0 ;
    // axis_dma_start          = 1'b0;
-   s1_axis_tvalid          = 1'b0 ;
-   port_1_dt_i             = 0;
    qcom_rdy_i              = 0 ;
    qp2_rdy_i               = 0 ;
    periph_dt_i             = {0,0} ;
@@ -120,6 +148,7 @@ initial begin
    tb_test_run_done        = 1'b0;
    tb_test_read_start      = 1'b1;
    tb_test_read_done       = 1'b0;
+   tb_test_end             = 1'b0;
 
    ro_length               = 0;
    ro_decimated_length     = 0;
@@ -162,8 +191,8 @@ initial begin
 
    repeat (REPEAT_EXEC) begin
 
-      config_decimated_readout(0, ro_length);
-      config_average_readout(0, ro_length);
+      readout_buffer_config_decimated(0, ro_length);
+      readout_buffer_config_average(0, ro_length);
 
       wait(tb_test_run_start);
 
@@ -179,10 +208,10 @@ initial begin
       wait(tb_test_read_start);
 
       // Read Decimated Buffer
-      read_decimated_readout(0, ro_decimated_length);
+      readout_buffer_read_decimated(0, ro_decimated_length);
 
       // Read Averaged Buffer (number of triggers in experiment)
-      read_average_readout(0, ro_average_length);
+      readout_buffer_read_average(0, ro_average_length);
 
       #(TEST_READ_TIME);
 
@@ -197,6 +226,7 @@ initial begin
    
    #1us;
 
+   tb_test_end = 1'b1;
    $display("*** End Test ***");
    $finish();
 end
@@ -216,7 +246,7 @@ initial begin
    ro_average_length    = 1;
 
 
-   if (TEST_NAME == "test_basic_pulses" || TEST_NAME == "test_basic_pulses_dac2") begin
+   if (TEST_NAME == "test_basic_pulses") begin
       $display("*** %t - Start test_basic_pulses Test ***", $realtime());
       ro_length            = 2000.0 / (2.0*T_RO_CLK);
       ro_decimated_length  = 2000.0 / (2.0*T_RO_CLK);
@@ -369,6 +399,38 @@ initial begin
       wait(tb_test_run_done);
 
       $display("*** %t - End of test_issue53 Test ***", $realtime());
+   end
+
+
+   if (TEST_NAME == "test_hmc_qickemu") begin
+      $display("*** %t - Start test_hmc_qickemu Test ***", $realtime());
+      
+      rf_delay = 50ns;
+
+      ro_length            = 1000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
+      ro_average_length    = 1;
+
+      REPEAT_EXEC          = 1;
+      TEST_RUN_TIME        = 25us;
+      TEST_READ_TIME       = 10us;
+
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
+
+      #1us;
+
+      // Configure READOUT_V2
+      config_readout_v2(100e6, 0, ro_length, 0, 0, 1);
+      #100ns;
+      // Configure Readout1 Buffers
+      readout_buffer_config_decimated(1, ro_length);
+      #100ns;
+      readout_buffer_config_average(1, ro_length);
+      #100ns;
+
+      wait(tb_test_end);
+      $display("*** %t - End of test_hmc_qickemu Test ***", $realtime());
    end
 
 end

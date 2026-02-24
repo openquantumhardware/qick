@@ -118,7 +118,17 @@ task sg_load_mem(string test_name, int channel) /*, input logic tb_load_mem, out
    $display("### %t - Task sg_load_mem() end ###", $realtime());
 endtask
 
-task config_decimated_readout(integer channel, integer length);
+task readout_buffer_config_decimated(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_config_decimated() task", channel);
+      $finish;
+   end
 
    // Stop Decimated Buffer Capture
    data_wr = 0;
@@ -142,7 +152,17 @@ task config_decimated_readout(integer channel, integer length);
 
 endtask
 
-task config_average_readout(integer channel, integer length);
+task readout_buffer_config_average(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_config_average() task", channel);
+      $finish;
+   end
 
    // Stop Average Buffer Capture
    data_wr = 0;
@@ -161,7 +181,17 @@ task config_average_readout(integer channel, integer length);
 
 endtask
 
-task read_decimated_readout(integer channel, integer length);
+task readout_buffer_read_decimated(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_read_decimated() task", channel);
+      $finish;
+   end
 
    // Set Decimated Buffer Read Length
    data_wr = length;
@@ -180,7 +210,17 @@ task read_decimated_readout(integer channel, integer length);
 
 endtask
 
-task read_average_readout(integer channel, integer length);
+task readout_buffer_read_average(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_read_average() task", channel);
+      $finish;
+   end
 
    // Set Average Buffer Capture Length
    data_wr = length;
@@ -199,7 +239,56 @@ task read_average_readout(integer channel, integer length);
 
 endtask
 
+task config_readout_v2( input logic [31:0] frequency,
+                        input logic [31:0] phase,
+                        input logic [15:0] nsamp,
+                        input logic [1:0]  outsel,
+                        input logic        mode,
+                        input logic        we);
 
+   // AXI VIP master address.
+   xil_axi_ulong   RO_V2_FREQ_REG      = 4 * 0;
+   xil_axi_ulong   RO_V2_PHASE_REG     = 4 * 1;
+   xil_axi_ulong   RO_V2_NSAMP_REG     = 4 * 2;
+   xil_axi_ulong   RO_V2_OUTSEL_REG    = 4 * 3;
+   xil_axi_ulong   RO_V2_MODE_REG      = 4 * 4;
+   xil_axi_ulong   RO_V2_WE_REG        = 4 * 5;
+
+   $display("### %t - Task config_readout_v2() start ###", $realtime());
+
+   // Set the Readout DDS Frequency
+   data_wr = frequency;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_FREQ_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set the Readout DDS Phase
+   data_wr = phase;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_PHASE_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set the number of samples for Decimated Buffer Capture
+   data_wr = nsamp;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_NSAMP_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Output Select
+   data_wr = outsel;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_OUTSEL_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Mode
+   data_wr = mode;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_MODE_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Write Enable
+   data_wr = we;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_WE_REG, prot, data_wr, resp);
+   #100ns;
+
+   $display("### Task config_readout_v2() end ###");
+
+endtask
 
 task qubit_emulator_config();
 

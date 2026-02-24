@@ -62,9 +62,9 @@ real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
 `define DMEM_AW          14 
 `define WMEM_AW          11
 `define REG_AW           4 
-`define IN_PORT_QTY      1
-`define OUT_TRIG_QTY     1
-`define OUT_DPORT_QTY    1
+`define IN_PORT_QTY      2
+`define OUT_TRIG_QTY     2
+`define OUT_DPORT_QTY    2
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
 
@@ -72,13 +72,6 @@ module tb_qick ();
 
 // Include Stimuli 
 `include "tb_qick_stimuli.svh"
-
-// VIP Agents
-axi_mst_0_mst_t     axi_mst_tproc_agent;
-axi_mst_0_mst_t     axi_mst_sg_agent;
-axi_mst_0_mst_t     axi_mst_avg_agent;
-axi_mst_0_mst_t     axi_mst_qemu_agent;
-
 
 // AXI Master VIP variables
 xil_axi_prot_t  prot        = 0;
@@ -142,9 +135,6 @@ reg [255 :0]       s_dma_axis_tdata_i   ;
 reg                s_dma_axis_tlast_i   ;
 reg                s_dma_axis_tvalid_i  ;
 reg                m_dma_axis_tready_i  ;
-wire [63 :0]       port_0_dt_i          ;
-reg [63 :0]        port_1_dt_i          ;
-
 
 logic              m0_axis_tready;
 reg                m1_axis_tready   =0    ;
@@ -176,6 +166,7 @@ wire [167:0]       m7_axis_tdata        ;
 wire               m7_axis_tvalid       ;
 
 wire               trigger_0;
+wire               trigger_1;
 
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
@@ -204,7 +195,6 @@ reg                periph_rdy_i    ;
 reg  [31 :0]       periph_dt_i [2] ;
 
 
-reg    s0_axis_tvalid ,    s1_axis_tvalid ;
 reg [15:0] waves, wtime;
 reg [31:0] axi_dt;
 
@@ -236,13 +226,11 @@ assign qp1_dt_i[0]   = qp1_a_dt_r;
 assign qp1_dt_i[1]   = qp1_b_dt_r;
 assign qp1_vld_i     = qp1_en_r  ;
 
-wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
-assign port_0_dt_i     = port_1_dt_o;
-assign port_0_vld      = port_0_dt_o[0];
-assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
-assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
-assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
-assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
+wire qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
+assign qnet_vld_i       =  t_time_abs_o[3] &  t_time_abs_o[2] & t_time_abs_o[1] ;
+assign qnet_flag_i      = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
+assign periph_flag_i    = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
+assign ext_flag_i       =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
 
 // reg  periph_vld_i  ;
 reg qcom_rdy_i, qp2_rdy_i;
@@ -259,9 +247,13 @@ reg qcom_rdy_i, qp2_rdy_i;
    logic                      rf_signal_valid;
    logic [N_DDS_RO*16-1:0]    rf_signal_data;
 
-   logic                      axis_adc_ro_tready;
-   logic                      axis_adc_ro_tvalid;
-   logic [N_DDS_RO*16-1:0]    axis_adc_ro_tdata;
+   logic                      axis_adc0_ro0_tready;
+   logic                      axis_adc0_ro0_tvalid;
+   logic [N_DDS_RO*16-1:0]    axis_adc0_ro0_tdata;
+
+   logic                      axis_adc1_ro1_tready;
+   logic                      axis_adc1_ro1_tvalid;
+   logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata;
 
 
    // Register ADDRESS
@@ -296,7 +288,30 @@ logic                   sg1_s0_axis_tvalid;
    // QICK DUT
    //--------------------------------------
 
-   qick_dut qick_dut (
+   qick_dut #(
+      .GEN_SYNC         ( `GEN_SYNC       ),
+      .DUAL_CORE        ( `DUAL_CORE      ),
+      .IO_CTRL          ( `IO_CTRL        ),
+      .DEBUG            ( `DEBUG          ),
+      .TNET             ( `TNET           ),
+      .QCOM             ( `QCOM           ),
+      .CUSTOM_PERIPH    ( `CUSTOM_PERIPH  ),
+      .LFSR             ( `LFSR           ),
+      .DIVIDER          ( `DIVIDER        ),
+      .ARITH            ( `ARITH          ),
+      .TIME_READ        ( `TIME_READ      ),
+      .FIFO_DEPTH       ( `FIFO_DEPTH     ),
+      .PMEM_AW          ( `PMEM_AW        ),
+      .DMEM_AW          ( `DMEM_AW        ),
+      .WMEM_AW          ( `WMEM_AW        ),
+      .REG_AW           ( `REG_AW         ),
+      .IN_PORT_QTY      ( `IN_PORT_QTY    ),
+      .OUT_TRIG_QTY     ( `OUT_TRIG_QTY   ),
+      .OUT_DPORT_QTY    ( `OUT_DPORT_QTY  ),
+      .OUT_DPORT_DW     ( `OUT_DPORT_DW   ),
+      .OUT_WPORT_QTY    ( `OUT_WPORT_QTY  )
+   )
+   qick_dut (
       // Core, Time and AXI CLK & RST.
       .t_clk               ( t_clk              ) ,
       .t_resetn            ( rst_ni             ) ,
@@ -371,13 +386,9 @@ logic                   sg1_s0_axis_tvalid;
       .m_dma_axis_tlast_o   ( m_dma_axis_tlast_o  ) ,
       .m_dma_axis_tvalid_o  ( m_dma_axis_tvalid_o ) ,
       .m_dma_axis_tready_i  ( m_dma_axis_tready_i ) ,
-      /// DATA PORT INPUT  
-      .s0_axis_tdata        ( port_0_dt_i    ) ,
-      .s0_axis_tvalid       ( port_0_vld     ) ,
-      .s1_axis_tdata        ( port_1_dt_i    ) ,
-      .s1_axis_tvalid       ( s1_axis_tvalid ) ,
       ///// TRIGGERS
       .trig_0_o             ( trigger_0               ),
+      .trig_1_o             ( trigger_1               ),
       // OUT DATA PORTS
       .port_0_dt_o          ( port_0_dt_o             ) ,
       .port_1_dt_o          ( port_1_dt_o             ) ,
@@ -399,7 +410,7 @@ logic                   sg1_s0_axis_tvalid;
       .sg0_s0_axis_tdata          (sg0_s0_axis_tdata       ),
       .sg0_s0_axis_tvalid         (sg0_s0_axis_tvalid      ),
       .sg0_s0_axis_tready         (sg0_s0_axis_tready      ),
-      // Signal Generator 1 from tProc interface (not used in this testbench)
+      // Signal Generator 1 from tProc interface
       .sg1_s0_axis_aclk           (sg1_s0_axis_aclk        ),
       .sg1_s0_axis_aresetn        (s_ps_dma_aresetn       ),
       .sg1_s0_axis_tdata          (sg1_s0_axis_tdata       ),
@@ -410,27 +421,25 @@ logic                   sg1_s0_axis_tvalid;
       .axis_sg0_dac_tready        (axis_sg0_dac_tready     ),
       .axis_sg0_dac_tvalid        (axis_sg0_dac_tvalid     ),
       .axis_sg0_dac_tdata         (axis_sg0_dac_tdata      ),
+
       // Signal Generator 1 to DAC 1 interface
       .axis_sg1_dac_tready        (axis_sg1_dac_tready     ),
       .axis_sg1_dac_tvalid        (axis_sg1_dac_tvalid     ),
       .axis_sg1_dac_tdata         (axis_sg1_dac_tdata      ),
 
-      // ADC to Readout interface
-      .axis_adc_ro_tready        (axis_adc_ro_tready     ),
-      .axis_adc_ro_tvalid        (axis_adc_ro_tvalid     ),
-      .axis_adc_ro_tdata         (axis_adc_ro_tdata      ),
+      // ADC0 to Readout interface
+      .axis_adc0_ro0_tready       (axis_adc0_ro0_tready     ),
+      .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
+      .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
 
-      // Readout Averaged Buffer AXIS
-      .m0_axis_buf_avg_tready    (1'b1                   ),
-      .m0_axis_buf_avg_tvalid    (                       ),
-      .m0_axis_buf_avg_tdata     (                       ),
-
-      // Readout Decimated Buffer AXIS
-      .m1_axis_buf_dec_tready    (m1_axis_buf_dec_tready ),
-      .m1_axis_buf_dec_tvalid    (                       ),
-      .m1_axis_buf_dec_tdata     (                       )
+      // ADC1 to Readout interface
+      .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
+      .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
+      .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      )
    );
 
+   assign axis_adc1_ro1_tvalid = axis_adc0_ro0_tvalid;
+   assign axis_adc1_ro1_tdata  = axis_adc0_ro0_tdata;
 
    //--------------------------------------
    // TODO: RF DATA CONVERTER IP
@@ -440,20 +449,28 @@ logic                   sg1_s0_axis_tvalid;
 
    localparam DAC0_W = 16;
    logic signed [DAC0_W-1:0] dac0_data;
-   localparam ADC_W = 14;
-   logic signed [ADC_W-1:0] adc_sample;
-   logic signed [15:0] adc_data;
+   localparam ADC0_W = 16;
+   logic signed [ADC0_W-1:0] adc0_sample;
+   logic signed [15:0] adc0_data;
+   real dac0_signal_rf;
 
-   model_DAC_ADC #(
-      .DAC_W               (DAC0_W),
-      .ADC_W               (ADC_W),
-      .BUFFER_SIZE         (16)
-   ) u_model_DAC_ADC (
+   model_DAC #(
+      .DAC_W               (DAC0_W)
+   ) u_model_DAC0 (
       .clk_DAC             (dac_fs),
       .dac_sample          (dac0_data),
+      .dac_signal_rf       (dac0_signal_rf)
+   );
+
+   model_ADC #(
+      .ADC_W               (ADC0_W),
+      .BUFFER_SIZE         (16)
+   ) u_model_ADC0 (
+      .clk_DAC             (dac_fs),
+      .dac_signal_rf       (dac0_signal_rf),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc_sample),
+      .adc_sample          (adc0_sample),
 
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
@@ -465,7 +482,7 @@ logic                   sg1_s0_axis_tvalid;
    logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
    always @(posedge dac_fs) begin
       if (axis_sg0_dac_tvalid) begin
-         dac0_data       <= axis_sg0_dac_tdata[16*dac0_samp_cnt +: 16];
+         dac0_data       <= axis_sg0_dac_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
          dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
       end
       else begin
@@ -474,16 +491,43 @@ logic                   sg1_s0_axis_tvalid;
       end
    end
 
-   // SG1 to DAC1 RF processes 16 samples per clock
+
    localparam DAC1_W = 16;
    logic signed [DAC1_W-1:0] dac1_data;
+   localparam ADC1_W = 16;
+   logic signed [ADC1_W-1:0] adc1_sample;
+   logic signed [15:0] adc1_data;
+   real dac1_signal_rf;
+
+   model_DAC #(
+      .DAC_W               (DAC1_W)
+   ) u_model_DAC1 (
+      .clk_DAC             (dac_fs),
+      .dac_sample          (dac1_data),
+      .dac_signal_rf       (dac1_signal_rf)
+   );
+
+   model_ADC #(
+      .ADC_W               (ADC1_W),
+      .BUFFER_SIZE         (16)
+   ) u_model_ADC1 (
+      .clk_DAC             (dac_fs),
+      .dac_signal_rf       (dac1_signal_rf),
+
+      .clk_ADC             (adc_fs),
+      .adc_sample          (adc1_sample),
+
+      .mode                (1)   // 0 = ZOH, 1 = linear
+   );
+
+   // SG1 to DAC1 RF processes 16 samples per clock
 
    assign axis_sg1_dac_tready        = 1'b1;  // DAC always ready to receive samples
 
    logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
    always @(posedge dac_fs) begin
       if (axis_sg1_dac_tvalid) begin
-         dac1_data       <= axis_sg1_dac_tdata[16*dac1_samp_cnt +: 16];
+         dac1_data       <= axis_sg1_dac_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
          dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
       end
       else begin
@@ -495,7 +539,7 @@ logic                   sg1_s0_axis_tvalid;
 
    // ADC RF to RO processes 8 samples per clock
 
-   assign adc_data = $signed(adc_sample);
+   assign adc0_data = $signed(adc0_sample);
 
    logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
    always @(posedge adc_fs) begin
@@ -507,16 +551,17 @@ logic                   sg1_s0_axis_tvalid;
          adc_samp_cnt      <= 0;
          rf_signal_valid   <= 1;
       end
-      rf_signal_data[16*adc_samp_cnt +: 16] <= adc_data;
+      rf_signal_data[16*adc_samp_cnt +: 16] <= adc0_data;
    end
 
    // Model Transport delay
    // NOTE: THESE MUST BE REG TO WORK!!!
    reg                    rf_signal_valid_dly;
    reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
+   time                   rf_delay = 250ns; 
    always @(*) begin
-      rf_signal_valid_dly <= #(250ns) rf_signal_valid;
-      rf_signal_data_dly  <= #(250ns) rf_signal_data;
+      rf_signal_valid_dly <= #(rf_delay) rf_signal_valid;
+      rf_signal_data_dly  <= #(rf_delay) rf_signal_data;
    end
 
 
@@ -623,7 +668,7 @@ logic                   sg1_s0_axis_tvalid;
       // s_axis_* for input.
       .s_axis_tvalid          (1'b1),
       // .s_axis_tdata           ({adc_data_imag,adc_data_real}),   // width: 32*L, should be I/Q from input ADC
-      .s_axis_tdata           ({16'd0,adc_data}),   // width: 32*L, should be I/Q from input ADC
+      .s_axis_tdata           ({16'd0,adc0_data}),   // width: 32*L, should be I/Q from input ADC
       .s_axis_tlast           (1'b1),
 
       // m_axis_* for output.
@@ -636,13 +681,13 @@ logic                   sg1_s0_axis_tvalid;
    // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
    // always_ff @(posedge ro_clk) begin
    //    if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-   //       axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-   //       axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+   //       axis_adc0_ro0_tvalid                  <= rf_signal_valid_dly;
+   //       axis_adc0_ro0_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
    //    end
    //    else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
-   //       axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
+   //       axis_adc0_ro0_tvalid                  <= axis_qemu_ro_tvalid;
    //       for (int i=0; i<N_DDS_RO; i=i+1) begin
-   //          axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
+   //          axis_adc0_ro0_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
    //       end
    //    end
    // end
@@ -651,12 +696,12 @@ logic                   sg1_s0_axis_tvalid;
    always_ff @(posedge adc_fs) begin
       if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
          if (rf_signal_cnt == 0) begin
-            axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-            axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+            axis_adc0_ro0_tvalid                  <= rf_signal_valid_dly;
+            axis_adc0_ro0_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
          end
          else begin
          end
-         if (rf_signal_valid_dly || axis_adc_ro_tvalid) begin
+         if (rf_signal_valid_dly || axis_adc0_ro0_tvalid) begin
             rf_signal_cnt  <= rf_signal_cnt + 1;
          end
          else begin

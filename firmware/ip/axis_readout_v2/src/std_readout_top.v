@@ -1,4 +1,4 @@
-module readout_top 
+module std_readout_top 
 	(
 		// Reset and clock.
     	aresetn			,
