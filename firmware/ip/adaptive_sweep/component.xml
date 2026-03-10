@@ -410,15 +410,9 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>../../../../adaptive_sweep/adaptive_sweep.srcs/sources_1/new/adaptive_sweep.v</spirit:name>
-        <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_a7a6f8c0</spirit:userFileType>
-      </spirit:file>
-      <spirit:file>
         <spirit:name>src/adaptive_sweep.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_59ac7c94</spirit:userFileType>
-        <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
