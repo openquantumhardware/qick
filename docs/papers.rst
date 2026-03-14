@@ -20,7 +20,7 @@ These stats were computed from the next section's list of QICK papers as of Janu
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated February 21, 2026.
+This list of academic papers that used the QICK was last updated March 14, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -29,6 +29,10 @@ QICK system
 
 Superconducting circuits
 ^^^^^^^^^^^^^^^^^^^^^^^^
+
+Autonomous control with QICK
+"""""""""""""""""""""""""""""
+* `Li, S. et al. Large Language Model-Assisted Superconducting Qubit Experiments (2026) <https://arxiv.org/abs/2603.08801>`_.
 
 Scaling
 """""""
@@ -116,6 +120,7 @@ Neutral atoms
 
 Spin defects
 ^^^^^^^^^^^^
+* `Katsumi, R. et al. Chiral microwave metasurface for controlling spins in diamond. (2026) <https://www.researchsquare.com/article/rs-9035542/v1>`_.
 * `Elmslie, T. et al. Homogeneous Microwave Delivery for Quantum Sensing with Nitrogen-Vacancy Centers at High Pressures. (2026) <https://arxiv.org/abs/2601.11725>`_.
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
