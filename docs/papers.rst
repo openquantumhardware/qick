@@ -34,6 +34,10 @@ Autonomous control with QICK
 """""""""""""""""""""""""""""
 * `Li, S. et al. Large Language Model-Assisted Superconducting Qubit Experiments (2026) <https://arxiv.org/abs/2603.08801>`_.
 
+Neural network + QICK
+"""""""""""""""""""""""""""""
+* `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
+
 Scaling
 """""""
 * `Hoyt, A. et al. QASMTrans: An End-to-End QASM Compilation Framework with Pulse Generation for Near-Term Quantum Devices (2026) <https://arxiv.org/abs/2602.05154>`_.
@@ -84,7 +88,6 @@ Readout
 """""""
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/abs/2503.10750>`_.
-* `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 * `Johnson, H. et al. Demonstrating the Potential of Adaptive LMS Filtering on FPGA-Based Qubit Control Platforms for Improved Qubit Readout in 2D and 3D Quantum Processing Units. (2024) <https://arxiv.org/abs/2408.00904>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
 * `Yen, A. et al. Directional emission of a readout resonator for qubit measurement. (2024) <https://arxiv.org/abs/2403.01375>`_.
