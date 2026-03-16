@@ -5,6 +5,11 @@ In the news
 -----------
 * `Fermilab articles <https://news.fnal.gov/tag/qick/>`_
 
+Products based on QICK
+----------------------
+* `Mimothor <https://viqthor.com/wp-content/uploads/Datasheets/Mimothor_202509.pdf>`_
+* `iWave RFSoC SoM <https://iwave-global.com/articles/real-time-quantum-control-using-qick-on-iwave-zynq-ultrascale-rfsoc-system-on-module/>`_
+
 Paper counts
 ------------
 These stats were computed from the next section's list of QICK papers as of January 26, 2026.
