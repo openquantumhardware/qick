@@ -9,6 +9,8 @@ Commercial products based on QICK
 ---------------------------------
 * `Mimothor <https://viqthor.com/wp-content/uploads/Datasheets/Mimothor_202509.pdf>`_
 * `iWave RFSoC SoM <https://iwave-global.com/articles/real-time-quantum-control-using-qick-on-iwave-zynq-ultrascale-rfsoc-system-on-module/>`_
+* `Safran QICK box <https://safran-navigation-timing.com/product/quantum-instrumentation-control-kit/>`_
+* `RealDigital QICK box <https://www.realdigital.org/hardware/qick>`_
 
 Paper counts
 ------------
