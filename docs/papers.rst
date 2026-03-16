@@ -2,7 +2,7 @@ QICK papers
 ===========
 
 In the news
-----------------
+-----------
 * `Fermilab articles <https://news.fnal.gov/tag/qick/>`_
 
 Paper counts
@@ -35,7 +35,7 @@ Autonomous control with QICK
 * `Li, S. et al. Large Language Model-Assisted Superconducting Qubit Experiments (2026) <https://arxiv.org/abs/2603.08801>`_.
 
 Neural network + QICK
-"""""""""""""""""""""""""""""
+"""""""""""""""""""""
 * `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 
 Scaling
@@ -138,7 +138,7 @@ Quantum dots
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
 Quantum sensors and MKIDs
-^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^
 * `Magoon, H. et al. A First Demonstration of the SQUAT Detector Architecture: Direct Measurement of Resonator-Free Charge-Sensitive Transmons. (2026) <https://arxiv.org/abs/2601.16261>`_.
 * `Stifter, K. et al. Cryogenic optical beam steering for superconducting device calibration. (2024) <https://arxiv.org/abs/2405.02258>`_.
 
