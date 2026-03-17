@@ -69,6 +69,8 @@ class QickConfig():
             label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
+        elif self['board']=='RFSoC2x4':
+            label = {'00': 'DAC_D', '02': 'DAC_C', '20': 'DAC_B', '22': 'DAC_A'}[dacname]
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
@@ -87,6 +89,8 @@ class QickConfig():
                 label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
+        elif self['board']=='RFSoC2x4':
+            label = {'00': 'ADC_B', '20': 'ADC_A'}[adcname]
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
 
     def description(self):

@@ -23,7 +23,7 @@ def read_dac_avtt():
         return read_sensor("irps5401-i2c-%d-%x"%(busnum, devnum), "in3")
     elif board in ['ZCU208', 'ZCU216']:
         return read_sensor("ina226_dac_avtt-isa-0000", "in2")
-    elif board == 'RFSoC4x2':
+    elif board in ['RFSoC4x2', 'RFSoC2x4']:
         devnum = 0x47
         busnum = 0
         return read_sensor("ina220-i2c-%d-%x"%(busnum, devnum), "in1")
@@ -45,8 +45,8 @@ def control_fan(mode):
         ch = 1 # the open-drain FANFAIL output and the FULLSPD input are both wired to this pin, driving it high
     elif board in ['ZCU208', 'ZCU216']:
         ch = 7
-    elif board == 'RFSoC4x2':
-        raise RuntimeError("RFSoC4x2 does not support fan control (it's always on auto)")
+    elif board in ['RFSoC4x2', 'RFSoC2x4']:
+        raise RuntimeError("RFSoC4x2/2x4 does not support fan control (it's always on auto)")
     else:
         raise RuntimeError("board %s is not recognized" % (board))
     write_gpio('/dev/gpiochip2', [ch], [gpio_vals[mode]])
@@ -64,7 +64,7 @@ def set_dac_avtt(val):
             3.0: 1,
         }
         write_gpio('/dev/gpiochip2', [3], [gpio_vals[val]])
-    elif board == 'RFSoC4x2':
-        raise RuntimeError("RFSoC4x2 does not support DAC_AVTT control (it's always on 2.5 V)")
+    elif board in ['RFSoC4x2', 'RFSoC2x4']:
+        raise RuntimeError("RFSoC4x2/2x4 does not support DAC_AVTT control (it's always on 2.5 V)")
     else:
         raise RuntimeError("board %s is not recognized" % (board))
