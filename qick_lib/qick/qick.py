@@ -692,7 +692,7 @@ class RFDC(SocIP, xrfdc.RFdc):
     def get_adc_attenuator(self, blockname):
         """Read the ADC's built-in step attenuator.
 
-        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2, RFSoC2x4).
 
         Parameters
         ----------
@@ -705,7 +705,7 @@ class RFDC(SocIP, xrfdc.RFdc):
             Attenuation value (dB)
         """
         if self['ip_type'] < self.XRFDC_GEN3:
-            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2).")
+            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2, RFSoC2x4).")
         adc = self._get_block('adc', blockname)
         return adc.DSA['Attenuation']
 
@@ -713,7 +713,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         """Set the ADC's built-in step attenuator.
         The requested value will be rounded to the nearest valid value (0-27 dB inclusive, 1 dB steps).
 
-        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2, RFSoC2x4).
 
         Parameters
         ----------
@@ -723,7 +723,7 @@ class RFDC(SocIP, xrfdc.RFdc):
             Attenuation value (dB)
         """
         if self['ip_type'] < self.XRFDC_GEN3:
-            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2).")
+            raise RuntimeError("you tried to access the RF-ADC attenuator, but this only exists on Gen 3 RFSoC (ZCU216, RFSoC4x2, RFSoC2x4).")
         adc = self._get_block('adc', blockname)
         attenuation = np.round(attenuation)
         adc.DSA['Attenuation'] = attenuation
@@ -764,7 +764,7 @@ class RFDC(SocIP, xrfdc.RFdc):
         """Set the output current for an RF-DAC in variable output power (VOP) mode.
         The output amplitude scales with the current.
 
-        VOP mode is only available for Gen 3 RFSoCs (ZCU216), and must be enabled in the firmware at compile time.
+        VOP mode is only available for Gen 3 RFSoCs (ZCU216, ZCU208), and must be enabled in the firmware at compile time.
 
         Parameters
         ----------
@@ -913,9 +913,9 @@ class QickSoc(Overlay, QickConfig):
     force_init_clks : bool
         Re-initialize the board clocks regardless of whether they appear to be locked. Specifying (as True or False) the clk_output or external_clk options will also force clock initialization.
     clk_output: bool or None
-        If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216 (get 245.76 MHz from OUTPUT_REF J10).
+        If true, output a copy of the RF reference. This option is supported for the ZCU111 (get 122.88 MHz from J108) and ZCU216/ZCU208 (get 245.76 MHz from OUTPUT_REF J10).
     external_clk: bool or None
-        If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
+        If true, lock the board clocks to an external reference. This option is supported for the ZCU111 (put 12.8 MHz on External_REF_CLK J109), ZCU216/ZCU208 (put 10 MHz on INPUT_REF_CLK J11), and RFSoC 4x2 (put 10 MHz on CLK_IN).
     dac_sample_rates : dict[int, float] or None
         Sample rates to override the values compiled into the firmware.
         This should be a dictionary mapping DAC tiles to sample rates (in megasamples per second).
@@ -1018,8 +1018,8 @@ class QickSoc(Overlay, QickConfig):
         if not no_rf:
             if avtt_needed > avtt_now + 0.1:
                 logger.info('raising DAC_AVTT after loading bitfile')
-                if self['board'] == 'RFSoC4x2':
-                    print('This bitfile puts the RF-DACs in %s mode which requires DAC_AVTT=%.1f V, but DAC_AVTT on the RFSoC4x2 is hard-wired at 2.5 V. The DACs will probably work anyway, but performance is not guaranteed.' % (rf_cfg['dac_power'], avtt_needed))
+                if self['board'] in ['RFSoC4x2', 'RFSoC2x4']:
+                    print('This bitfile puts the RF-DACs in %s mode which requires DAC_AVTT=%.1f V, but DAC_AVTT on the RFSoC4x2/2x4 is hard-wired at 2.5 V. The DACs will probably work anyway, but performance is not guaranteed.' % (rf_cfg['dac_power'], avtt_needed))
                 else:
                     print('setting DAC_AVTT to %.1f V' % (avtt_needed))
                     set_dac_avtt(avtt_needed)
@@ -1266,7 +1266,7 @@ class QickSoc(Overlay, QickConfig):
                 else: # restore the default
                     xrfclk._lmk04208Config[lmk_freq][14] = 0x2302886D
             xrfclk.set_all_ref_clks(lmx_freq)
-        elif self['board'] == 'ZCU216':
+        elif self['board'] in ['ZCU208', 'ZCU216']:
             # master clock generator is LMK04828, which is used for DAC/ADC clocks
             # only 245.76 available by default
             # LMX2594 is not used
@@ -1285,7 +1285,7 @@ class QickSoc(Overlay, QickConfig):
                 # default value is 0x012C22
                 xrfclk.xrfclk._Config['lmk04828'][lmk_freq][55] = 0x012C02
             xrfclk.set_ref_clks(lmk_freq=lmk_freq, lmx_freq=lmx_freq)
-        elif self['board'] == 'RFSoC4x2':
+        elif self['board'] in ['RFSoC4x2', 'RFSoC2x4']:
             # master clock generator is LMK04828, always outputs 245.76
             # DAC/ADC are clocked by LMX2594
             # available: 102.4, 204.8, 409.6, 491.52, 737.0
@@ -1634,7 +1634,7 @@ class QickSoc(Overlay, QickConfig):
         """Set the RFSoC ADC's built-in step attenuator.
         The requested value will be rounded to the nearest valid value (0-27 dB inclusive, 1 dB steps).
 
-        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2, RFSoC2x4).
         See https://docs.amd.com/r/en-US/pg269-rf-data-converter/Digital-Step-Attenuator-Gen-3/DFE.
 
         Parameters
@@ -1656,7 +1656,7 @@ class QickSoc(Overlay, QickConfig):
     def get_adc_attenuator(self, blockname):
         """Read the RFSoC ADC's built-in step attenuator.
 
-        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2).
+        Only available for RFSoC Gen 3 (ZCU216, RFSoC4x2, RFSoC2x4).
         See https://docs.amd.com/r/en-US/pg269-rf-data-converter/Digital-Step-Attenuator-Gen-3/DFE.
 
         Parameters
