@@ -99,6 +99,7 @@ Radiative loss
 
 Readout
 """""""
+* `Dixit, A. et al. Millimeter Wave Readout of a Superconducting Qubit. (2026) <https://arxiv.org/html/2603.13837v1>`_.
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/abs/2503.10750>`_.
 * `Johnson, H. et al. Demonstrating the Potential of Adaptive LMS Filtering on FPGA-Based Qubit Control Platforms for Improved Qubit Readout in 2D and 3D Quantum Processing Units. (2024) <https://arxiv.org/abs/2408.00904>`_.
