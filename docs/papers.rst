@@ -3,7 +3,7 @@ QICK papers
 
 In the news
 -----------
-* `Fermilab articles <https://news.fnal.gov/tag/qick/>`_
+* `QICK news articles <https://news.fnal.gov/tag/qick/>`_
 
 Commercial products based on QICK
 ---------------------------------
@@ -11,6 +11,11 @@ Commercial products based on QICK
 * `Safran QICK box <https://safran-navigation-timing.com/product/quantum-instrumentation-control-kit/>`_
 * `iWave RFSoC SoM <https://iwave-global.com/articles/real-time-quantum-control-using-qick-on-iwave-zynq-ultrascale-rfsoc-system-on-module/>`_
 * `Mimothor <https://viqthor.com/wp-content/uploads/Datasheets/Mimothor_202509.pdf>`_
+
+QICK and AMD
+------------
+* `AMD quantum computing partnership with QICK <https://www.amd.com/en/solutions/quantum-computing.html#partners>`_
+* `AMD blog post about hybrid quantum-supercomputing <https://www.amd.com/en/blogs/2025/amd-accelerates-hybrid-quantum-supercomputing-innovation.html>`_
 
 Paper counts
 ------------
@@ -27,7 +32,7 @@ These stats were computed from the next section's list of QICK papers as of Janu
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated March 14, 2026.
+This list of academic papers that used the QICK was last updated March 20, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -57,6 +62,11 @@ Quantum error correction hardware
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 
+Quantum simulation
+""""""""""""""""""
+* `Molinelli, M. et al. Chiral and bond-ordered phases in a triangular-ladder superconducting-qubit quantum simulator. (2026) <https://arxiv.org/abs/2603.16993>`_.
+* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
+
 Gates/couplers
 """"""""""""""
 * `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
@@ -65,10 +75,6 @@ Gates/couplers
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
 * `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
-
-Quantum simulation
-""""""""""""""""""
-* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
 
 Coherence
 """""""""
