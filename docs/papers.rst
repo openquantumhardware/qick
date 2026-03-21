@@ -32,10 +32,11 @@ These stats were computed from the next section's list of QICK papers as of Janu
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated March 20, 2026.
+This list of academic papers that used the QICK was last updated March 21, 2026.
 
 QICK system
 ^^^^^^^^^^^
+* `Martin, D. et al. XCOM: Full Mesh Network Synchronization and Low-Latency Communication for QICK (Quantum Instrumentation Control Kit). (2026) <https://arxiv.org/abs/2603.18977>`_.
 * `Ding, C. et al. Experimental advances with the QICK (Quantum Instrumentation Control Kit) for superconducting quantum hardware. (2023) <https://arxiv.org/abs/2311.17171>`_.
 * `Stefanazzi, L. et al. The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors. (2021) <https://arxiv.org/abs/2110.00557>`_.
 
