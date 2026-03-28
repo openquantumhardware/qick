@@ -25,7 +25,7 @@ See our [Read the Docs site](https://docs.qick.dev/) for:
 ## Open-Source Commitment
 
 QICK is and will remain a fully open-source project under the [MIT license](LICENSE).
-Commercial partnerships or integration agreements with third-party companies (e.g. Qblox) do not change the licensing, governance, or availability of this project.
+Commercial partnerships or integration agreements with third-party companies do not change the licensing, governance, or availability of this project.
 All QICK source code, including firmware, software, and documentation, will continue to be freely available in this repository for anyone to use, modify, and distribute under the same terms.
 If you have questions or concerns, please don't hesitate to [reach out](https://docs.qick.dev/latest/contact.html).
 
