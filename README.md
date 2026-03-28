@@ -22,6 +22,13 @@ See our [Read the Docs site](https://docs.qick.dev/) for:
 * [Ways to communicate](https://docs.qick.dev/latest/contact.html) with QICK developers and the community
 * Extensions to QICK for added functionailty
 
+## Open-Source Commitment
+
+QICK is and will remain a fully open-source project under the [MIT license](LICENSE).
+Commercial partnerships or integration agreements with third-party companies (e.g. Qblox) do not change the licensing, governance, or availability of this project.
+All QICK source code, including firmware, software, and documentation, will continue to be freely available in this repository for anyone to use, modify, and distribute under the same terms.
+If you have questions or concerns, please don't hesitate to [reach out](https://docs.qick.dev/latest/contact.html).
+
 ## Updates
 
 The QICK firmware and software is still very much a work in progress.
