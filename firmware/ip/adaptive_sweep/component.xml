@@ -75,14 +75,6 @@
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>flag</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>qtag_flag_o</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>d_dt</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -164,7 +156,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>c4e03577</spirit:value>
+            <spirit:value>20b4fe97</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -180,7 +172,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>c4e03577</spirit:value>
+            <spirit:value>20b4fe97</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -194,7 +186,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>f64a5dae</spirit:value>
+            <spirit:value>981a4a89</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -384,20 +376,29 @@
           </spirit:wireTypeDefs>
         </spirit:wire>
       </spirit:port>
-      <spirit:port>
-        <spirit:name>qtag_flag_o</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>reg</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
     </spirit:ports>
+    <spirit:modelParameters>
+      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
+        <spirit:name>FREQ_0</spirit:name>
+        <spirit:displayName>Freq 0</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FREQ_0" spirit:bitStringLength="32">0x03415555</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>FREQ_1</spirit:name>
+        <spirit:displayName>Freq 1</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FREQ_1" spirit:bitStringLength="32">0x01A0AAAB</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>FREQ_2</spirit:name>
+        <spirit:displayName>Freq 2</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FREQ_2" spirit:bitStringLength="32">0x0682AAAB</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>FREQ_3</spirit:name>
+        <spirit:displayName>Freq 3</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.FREQ_3" spirit:bitStringLength="32">0x04E20000</spirit:value>
+      </spirit:modelParameter>
+    </spirit:modelParameters>
   </spirit:model>
   <spirit:choices>
     <spirit:choice>
@@ -412,7 +413,7 @@
       <spirit:file>
         <spirit:name>src/adaptive_sweep.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_59ac7c94</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_20b4fe97</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -427,7 +428,7 @@
       <spirit:file>
         <spirit:name>xgui/adaptive_sweep_v1_0.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_f64a5dae</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_981a4a89</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -437,6 +438,26 @@
     <spirit:parameter>
       <spirit:name>Component_Name</spirit:name>
       <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">adaptive_sweep_v1_0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>FREQ_0</spirit:name>
+      <spirit:displayName>Freq 0</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.FREQ_0" spirit:bitStringLength="32">0x03415555</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>FREQ_1</spirit:name>
+      <spirit:displayName>Freq 1</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.FREQ_1" spirit:bitStringLength="32">0x01A0AAAB</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>FREQ_2</spirit:name>
+      <spirit:displayName>Freq 2</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.FREQ_2" spirit:bitStringLength="32">0x0682AAAB</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>FREQ_3</spirit:name>
+      <spirit:displayName>Freq 3</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.FREQ_3" spirit:bitStringLength="32">0x04E20000</spirit:value>
     </spirit:parameter>
   </spirit:parameters>
   <spirit:vendorExtensions>
@@ -456,18 +477,19 @@
       </xilinx:taxonomies>
       <xilinx:displayName>adaptive_sweep_v1_0</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>6</xilinx:coreRevision>
+      <xilinx:coreRevision>8</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>xilinx.com:user:adaptive_sweep:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2026-03-10T12:15:58Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2026-04-02T16:14:42Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
-      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="99dfa525"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="4520b8b5"/>
-      <xilinx:checksum xilinx:scope="ports" xilinx:value="ca0cfe4b"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="cb881b10"/>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="a7dfcf4a"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7ef38eeb"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="afc8a6f7"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="a66d3b82"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="1bff4941"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>
