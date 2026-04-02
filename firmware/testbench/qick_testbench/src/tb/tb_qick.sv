@@ -50,7 +50,8 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-string TEST_NAME = "test_basic_pulses";
+string TEST_NAME = "test_adaptive_sweep";
+// string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
@@ -347,7 +348,34 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_axi_wstrb   (s_axi_tproc_wstrb   ),
       .m_axi_wvalid  (s_axi_tproc_wvalid  )
    );
-
+    
+   // --- ADAPTIVE_SWEEP: QP2 wires ---
+   wire        qp2_en_o;
+   wire [4:0]  qp2_op_o;
+   wire [31:0] qp2_a_dt_o, qp2_b_dt_o, qp2_c_dt_o, qp2_d_dt_o;
+   wire        qp2_vld_i;
+    
+   // --- ADAPTIVE_SWEEP: Instance on QP2 (Peripheral B) ---
+   adaptive_sweep #(
+      .INIT_START  (32'd100),
+      .INIT_END    (32'd200),
+      .INIT_STEP   (32'd1),
+      .SHRINK      (32'd10)
+   ) u_adaptive_sweep (
+      .clk         (c_clk),
+      .rst_n       (rst_ni),
+      .qtag_en_i   (qp2_en_o),
+      .qtag_op_i   (qp2_op_o),
+      .qtag_dt1_i  (qp2_a_dt_o),
+      .qtag_dt2_i  (qp2_b_dt_o),
+      .qtag_dt3_i  (qp2_c_dt_o),
+      .qtag_dt4_i  (qp2_d_dt_o),
+      .qtag_rdy_o  (qp2_rdy_i),
+      .qtag_dt1_o  (qp2_dt_i[0]),
+      .qtag_dt2_o  (qp2_dt_i[1]),
+      .qtag_vld_o  (qp2_vld_i)
+   );
+   
    axis_qick_processor # (
       .DUAL_CORE           (  `DUAL_CORE        ) ,
       .GEN_SYNC            (  `GEN_SYNC         ) ,
@@ -422,16 +450,16 @@ reg qcom_rdy_i, qp2_rdy_i;
       .qp1_vld_i          ( qp1_vld_i         ) ,
       .qp1_flag_i         ( qp1_flag_i        ) ,
       // QP2
-      .qp2_en_o           ( /*qp2_en_o   */   ) ,
-      .qp2_op_o           ( /*qp2_op_o   */   ) ,
-      .qp2_a_dt_o         ( /*qp2_a_dt_o */   ) ,
-      .qp2_b_dt_o         ( /*qp2_b_dt_o */   ) ,
-      .qp2_c_dt_o         ( /*qp2_c_dt_o */   ) ,
-      .qp2_d_dt_o         ( /*qp2_d_dt_o */   ) ,
-      .qp2_rdy_i          ( /*qp2_rdy_i  */   ) ,
-      .qp2_dt1_i          ( /*qp2_dt_i[0]*/   ) ,
-      .qp2_dt2_i          ( /*qp2_dt_i[1]*/   ) ,
-      .qp2_vld_i          ( /*qp2_vld_i  */   ) ,
+      .qp2_en_o           ( qp2_en_o      ) ,
+      .qp2_op_o           ( qp2_op_o      ) ,
+      .qp2_a_dt_o         ( qp2_a_dt_o    ) ,
+      .qp2_b_dt_o         ( qp2_b_dt_o    ) ,
+      .qp2_c_dt_o         ( qp2_c_dt_o    ) ,
+      .qp2_d_dt_o         ( qp2_d_dt_o    ) ,
+      .qp2_rdy_i          ( qp2_rdy_i     ) ,
+      .qp2_dt1_i          ( qp2_dt_i[0]   ) ,
+      .qp2_dt2_i          ( qp2_dt_i[1]   ) ,
+      .qp2_vld_i          ( qp2_vld_i     ) ,
       // DMA AXIS FOR READ AND WRITE MEMORY
       .s_dma_axis_tdata_i   ( s_dma_axis_tdata_i  ) ,
       .s_dma_axis_tlast_i   ( s_dma_axis_tlast_i  ) ,

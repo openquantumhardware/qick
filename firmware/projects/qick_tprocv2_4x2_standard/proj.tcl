@@ -82,3 +82,25 @@ set_property strategy "Flow_PerfOptimized_high" [get_runs synth_1]
 #set_property strategy "Performance_Explore" [get_runs impl_1]
 #set_property strategy "Flow_RunPostRoutePhysOpt" [get_runs impl_1]
 set_property strategy "Performance_NetDelay_high" [get_runs impl_1]
+
+
+# ============================================
+# SYNTHESIS - Maximum timing performance
+# ============================================
+#set_property strategy "Flow_PerfOptimized_high" [get_runs synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.RETIMING on [get_runs synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.DIRECTIVE PerformanceOptimized [get_runs synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.KEEP_EQUIVALENT_REGISTERS on [get_runs synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.NO_LC on [get_runs synth_1]
+
+# ============================================
+# IMPLEMENTATION - Maximum timing performance
+# ============================================
+#set_property strategy "Performance_ExplorePostRoutePhysOpt" [get_runs impl_1]
+#set_property STEPS.OPT_DESIGN.ARGS.DIRECTIVE ExploreWithRemap [get_runs impl_1]
+#set_property STEPS.PLACE_DESIGN.ARGS.DIRECTIVE ExtraTimingOpt [get_runs impl_1]
+#set_property STEPS.PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+#set_property STEPS.PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+#set_property STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+#set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+#set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
