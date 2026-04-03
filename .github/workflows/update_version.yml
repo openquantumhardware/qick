@@ -47,7 +47,7 @@ jobs:
       VERSION_PATH: qick_lib/qick/VERSION
       CHECK_TOKEN: ${{ secrets.CHECK_TOKEN }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Checkout pull request
       run: gh pr checkout $PR_NUMBER
     - name: Compare version numbers
