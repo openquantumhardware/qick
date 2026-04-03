@@ -1,6 +1,11 @@
 # Build a wheel and publish to PyPI when a pull request merges.
 # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
 #
+# Based on https://github.com/orgs/community/discussions/26724#discussioncomment-3253102 we trigger this workflow on a push to main branch, and protect the main branch.
+#
+# We previously used the pull_request_target workflow trigger, but it seems that since sometime between January and March 2026 this no longer works with trusted publishing.
+# How that used to work:
+#
 # We need access to the repo secrets, which are only available using the pull_request_target trigger.
 # For security this requires us to use the repo HEAD and not the PR merge commit.
 # But since this action only executes on merge, those are the same thing.
@@ -9,9 +14,7 @@
 name: Build wheel
 
 on:
-  pull_request_target:
-    types:
-      - closed
+  push:
     branches:
       - main
       
@@ -21,7 +24,6 @@ permissions:
 
 jobs:
   build:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
