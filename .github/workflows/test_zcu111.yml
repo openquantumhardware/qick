@@ -42,7 +42,7 @@ jobs:
         sudo -E python -m pytest --nbmake ./qick_demos/07_Sweep_ND_variables.ipynb
         sudo -E python -m pytest --nbmake ./qick_demos/08_Special_buffers.ipynb
     - name: Archive test results
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: demo_notebooks
         path: qick_demos/*.ipynb
