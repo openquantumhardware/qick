@@ -243,7 +243,7 @@ class AxisSignalGenV6Ctrl(SocIP):
             self.phase_reg      = phase
             self.addr_reg       = addr
             self.gain_reg       = int(gain*self.gen.MAXV)
-            self.nsamp_reg      = int(np.round(nsamp/self.gen.NDDS))
+            self.nsamp_reg      = int(np.round(nsamp/self.gen.SAMPS_PER_CLK))
             self.outsel_reg     = {"product": 0, "dds":1, "envelope":2}[outsel]
             self.mode_reg       = {"nsamp": 0, "periodic":1}[mode]
             self.stdysel_reg    = {"last": 0, "zero":1}[stdysel]
