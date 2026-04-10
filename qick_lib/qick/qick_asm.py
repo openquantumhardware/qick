@@ -2369,22 +2369,53 @@ class AcquireMixin:
     ) -> Generator[Dict[str, Any], None, None]:
         """Stream raw accumulated readout data.
 
-        Yields dict events until completion. Final return (StopIteration value)
-        is None; the final aggregated raw round buffers are provided in the
-        last yield with event='complete'.
-        Provides a generator interface for streaming raw readout data.
+        Provides a generator interface for streaming raw accumulated readout data incrementally.
+        Yields dict events describing acquisition progress until completion. The final return 
+        (StopIteration value) is None; the final aggregated raw round buffers are provided in 
+        the last yield with event='complete'.
 
-        Public generator method:
-        stream_acquire(...): yields dictionaries describing acquisition events.
+        Parameters
+        ----------
+        soc : QickSoc
+            Qick object that executes the program
+        rounds : int, optional
+            Number of times to rerun the program, averaging results in software (aka "soft averages"). 
+            Default is 1.
+        load_envelopes : bool, optional
+            If True, load pulse envelopes before executing. Default is True.
+        start_src : str, optional
+            Start source for the tProc. Can be "internal" (tProc starts immediately) or "external" 
+            (each round waits for an external trigger). Default is "internal".
+        progress : bool, optional
+            If True, display progress bars for rounds and shots per round. Default is True.
+        remove_offset : bool, optional
+            If True, subtract the readout's IQ offset from the partial channel data. Default is True.
+        len_normalize : bool, optional
+            If True, normalize partial channel data by dividing by the readout window length. 
+            Default is True.
+        include_full : bool, optional
+            If True, include the current state of full buffers in each 'data' event. Default is False.
+        return_end_of_exp_raw : bool, optional
+            If True, yield a final event with all rounds' raw buffer data. Default is False.
 
-        Yielded event dicts can have the following forms:
-        {'event': 'data', 'round': r, 'rep_slice': (start, stop),
-         'partial': {ch: ndarray(new_points, nreads, 2)},
-         'buffers': {ch: ndarray(*loop_dims, nreads, 2)} (optional)}
-
-        {'event': 'round-complete', 'round': r, 'round_raw': [buffer_per_ch]}
-
-        {'event': 'complete', 'rounds_raw': list_of_round_buffers}
+        Yields
+        ------
+        dict
+            Event dictionaries describing acquisition progress. Possible event forms:
+            
+            - 'data' event: {'event': 'data', 'round': r, 'rep_slice': (start, stop),
+              'partial': {ch: ndarray(new_points, nreads, 2)},
+              'buffers': {ch: ndarray(*loop_dims, nreads, 2)} (optional)}
+            
+            - 'round-complete' event: {'event': 'round-complete', 'round': r, 
+              'round_raw': [buffer_per_ch]}
+            
+            - 'complete' event: {'event': 'complete', 'rounds_raw': list_of_round_buffers}
+        
+        Returns
+        -------
+        None
+            StopIteration value is None when all rounds complete.
         """
         # Validate required acquisition parameters were set via setup_acquire.
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
