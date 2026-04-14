@@ -166,10 +166,12 @@ class AddrMap:
 def default_addrmap_skeleton() -> AddrMap:
     am = AddrMap()
     
+    # FIX 1: Corrected axis_avg_buffer register offsets to match hardware (tb_qick.sv)
     am.reg_defs_by_type["axis_avg_buffer"] = {
-        "BUF_LEN": RegDef(0x10), "BUF_START": RegDef(0x14),
-        "AVG_LEN": RegDef(0x18), "AVG_START": RegDef(0x1C),
-        "MODE": RegDef(0x20),    "THRESH_HI": RegDef(0x24), "THRESH_LO": RegDef(0x28),
+        "AVG_START":    RegDef(0x00),  "AVG_ADDR":    RegDef(0x04),  "AVG_LEN":    RegDef(0x08),
+        "AVG_DR_START": RegDef(0x0C),  "AVG_DR_ADDR": RegDef(0x10),  "AVG_DR_LEN": RegDef(0x14),
+        "BUF_START":    RegDef(0x18),  "BUF_ADDR":    RegDef(0x1C),  "BUF_LEN":    RegDef(0x20),
+        "BUF_DR_START": RegDef(0x24),  "BUF_DR_ADDR": RegDef(0x28),  "BUF_DR_LEN": RegDef(0x2C),
     }
     am.reg_defs_by_type["axis_dyn_readout_v1"] = {
         "RO_LEN": RegDef(0x10), "OUTSEL": RegDef(0x14),
@@ -218,15 +220,13 @@ class MockIpDriver:
         self.ip_type = ip_type
 
 class MockAvgBuffer(MockIpDriver):
+    # FIX 3: Added stop-before-config to match hardware sequence
     def config_avg(self, address=0, length=1, edge_counting=False, high_threshold=1000, low_threshold=0):
+        self.soc.reg_write(self.fullpath, "AVG_START", 0, comment="stop avg")
         self.soc.reg_write(self.fullpath, "AVG_LEN", length, comment="avg buf len")
-        mode = 1 if edge_counting else 0
-        if edge_counting:
-            self.soc.reg_write(self.fullpath, "THRESH_HI", high_threshold)
-            self.soc.reg_write(self.fullpath, "THRESH_LO", low_threshold)
-        self.soc.reg_write(self.fullpath, "MODE", mode)
 
     def config_buf(self, address=0, length=1):
+        self.soc.reg_write(self.fullpath, "BUF_START", 0, comment="stop decim")
         self.soc.reg_write(self.fullpath, "BUF_LEN", length, comment="decim buf len")
 
     def enable(self, avg=True, buf=True):
@@ -392,12 +392,13 @@ class SocEmu:
     def load_bin_program(self, binprog, load_mem=True):
         pass
 
+    # FIX 2: Corrected tproc start sequence — two-step: TIME_RST then PROC_START+CORE_START
     def start_tproc(self):
-        start_mode = 0x2 if self._start_src == "external" else 0x6
-        # Use fullpath if possible, or fallback to standard name
-        # In your config, the tproc is "qick_processor_0" (mapped to axis_tproc_v2 in AddrMap)
         path = self.raw_cfg['tprocs'][0].get('fullpath', "qick_processor_0")
-        self.reg_write(path, "CTRL", start_mode, comment="CMD: START_TPROC")
+        # Step 1: Reset time counter
+        self.reg_write(path, "CTRL", 0x10, comment="TIME_RST (bit 4)")
+        # Step 2: Start processor + core
+        self.reg_write(path, "CTRL", 0x05, comment="PROC_START (bit 0) + CORE_START (bit 2)")
 
     def start_src(self, mode: str):
         self._start_src = mode
@@ -469,6 +470,17 @@ class QickEmu:
             prog.print_wmem2hex(stem=str(memdir / "wmem"))
         except TypeError:
             self._capture_to_file(prog.print_wmem2hex, memdir / "wmem.mem")
+
+        # $readmemh forbids leading underscores (Verilog LRM §17.2.2).
+        # Older qick versions emit "___XXXX_..." — strip any leading underscores
+        # from non-comment lines so Vivado xsim loads the wave memory correctly.
+        wmem_path = memdir / "wmem.mem"
+        if wmem_path.exists():
+            fixed = "\n".join(
+                line.lstrip("_") if not line.startswith("//") else line
+                for line in wmem_path.read_text().splitlines()
+            )
+            wmem_path.write_text(fixed + "\n")
             
         gens = self.raw_cfg.get("gens", [])
         declared_gen_chs = sorted(getattr(prog, 'gen_chs', {}).keys())
@@ -630,3 +642,85 @@ class QickEmu:
         plt.legend()
         if show: plt.show()
         else: plt.close()
+
+    def export_vivado_files(
+        self,
+        memdir: Union[str, pathlib.Path] = "tb_mem",
+        replay_filename: str = "axi_replay.txt",
+    ) -> pathlib.Path:
+        """Convert ``axi_replay.jsonl`` → ``axi_replay.txt`` for use with
+        ``tb_qick_emu.sv``.
+
+        The output file contains one AXI-Lite write transaction per line::
+
+            XXXXXXXX YYYYYYYY   # hex addr, hex data
+
+        Lines beginning with ``#`` are comments.  The file can be read by the
+        ``replay_axi_writes`` task in ``tb_qick_emu.sv``.
+
+        Also prints the address-routing ``localparam`` values that must be set
+        in ``tb_qick_emu.sv`` to match this board's ``AddrMap``.
+
+        Parameters
+        ----------
+        memdir:
+            Directory containing ``axi_replay.jsonl`` (same as passed to
+            ``prepare()``).
+        replay_filename:
+            Output filename (written inside *memdir*).
+
+        Returns
+        -------
+        Path to the generated ``axi_replay.txt`` file.
+        """
+        memdir = pathlib.Path(memdir)
+        jsonl_path = memdir / "axi_replay.jsonl"
+        if not jsonl_path.exists():
+            raise FileNotFoundError(
+                f"axi_replay.jsonl not found: {jsonl_path}\n"
+                "Run QickEmu.prepare() first."
+            )
+
+        out_path = memdir / replay_filename
+        with jsonl_path.open() as fin, out_path.open("w") as fout:
+            fout.write("# AXI-Lite replay for tb_qick_emu.sv\n")
+            fout.write("# Generated by QickEmu.export_vivado_files()\n")
+            fout.write("# Format: hex_addr hex_data  [# comment]\n")
+            fout.write("#\n")
+            for line in fin:
+                line = line.strip()
+                if not line:
+                    continue
+                txn = json.loads(line)
+                addr = int(txn["addr"])
+                data = int(txn["data"])
+                comment = txn.get("comment", "")
+                fout.write(f"{addr:08X} {data:08X}  # {comment}\n")
+
+        print(f"[ok] Wrote {out_path}  ({sum(1 for _ in out_path.open()) - 4} transactions)")
+
+        # Print address-routing parameters for tb_qick_emu.sv
+        print("\n--- tb_qick_emu.sv address routing parameters ---")
+        print("# Paste these localparam values into tb_qick_emu.sv if defaults differ:")
+        ba = self.addrmap.base_addrs
+        tf = self.addrmap.type_by_fullpath
+
+        tproc_bases = [v for k, v in ba.items() if 'tproc' in tf.get(k, '') or 'processor' in tf.get(k, '')]
+        sg_bases    = [v for k, v in ba.items() if 'signal_gen' in tf.get(k, '') or 'sg_int4' in tf.get(k, '') or 'sg_mix' in tf.get(k, '')]
+        avg_bases   = [v for k, v in ba.items() if 'avg_buffer' in tf.get(k, '')]
+
+        if tproc_bases:
+            print(f"localparam integer TPROC_BASE  = 32'h{tproc_bases[0]:08X};")
+        if sg_bases:
+            lo = min(sg_bases)
+            hi = max(sg_bases) + 0x10000
+            print(f"localparam integer SG_BASE_LO  = 32'h{lo:08X};  // {len(sg_bases)} gen IP(s)")
+            print(f"localparam integer SG_BASE_HI  = 32'h{hi:08X};")
+        if avg_bases:
+            lo = min(avg_bases)
+            hi = max(avg_bases) + 0x10000
+            print(f"localparam integer AVG_BASE_LO = 32'h{lo:08X};  // {len(avg_bases)} avgbuf IP(s)")
+            print(f"localparam integer AVG_BASE_HI = 32'h{hi:08X};")
+        print("-------------------------------------------------\n")
+
+        return out_path

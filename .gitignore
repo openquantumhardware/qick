@@ -81,7 +81,7 @@ build_tb/
 build_tb_mem/
 emulator_output/
 emulator/build_tb_mem/
-CLAUDE.md
+
 
 # Verilator outputs
 *.fst
