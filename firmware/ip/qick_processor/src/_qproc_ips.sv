@@ -24,9 +24,13 @@ IPs used in the design of the qick_processor
 
 */
 //////////////////////////////////////////////////////////////////////////////
-
-`ifndef VERILATOR
 `define USE_XPM_MACROS
+
+// FOR TESTING WITH VIVADO, AUTOMATICALLY DEFINED BY VERILATOR 
+`define VERILATOR
+
+`ifdef VERILATOR
+   `undef USE_XPM_MACROS
 `endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -677,9 +681,10 @@ endmodule
 
 `else
 
-///////////////////////////////////////////////////////////////////////////////
+`ifndef VERILATOR
+// /////////////////////////////////////////////////////////////////////////////
 // FIFO DUAL CLOCK
-///////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////
 module BRAM_FIFO_DC_2 # (
    parameter FIFO_DW = 16 , 
    parameter FIFO_AW = 8 
@@ -806,6 +811,143 @@ bram_dual_port_dc  # (
    .dt_b_o     ( mem_dt    ) );
    
 endmodule
+
+`else
+
+// CUSTOM FWFT FIFO DESIGNED TO MATCH XPM BEHAVIOR
+module BRAM_FIFO_DC_2 # (
+   parameter FIFO_DW = 16 , 
+   parameter FIFO_AW = 8 
+) ( 
+   input  wire                   wr_clk_i       ,
+   input  wire                   wr_rst_ni      ,
+   input  wire                   wr_en_i        ,
+   input  wire                   push_i         ,
+   input  wire [FIFO_DW - 1:0]   data_i         ,
+   input  wire                   rd_clk_i       ,
+   input  wire                   rd_rst_ni      ,
+   input  wire                   rd_en_i        ,
+   input  wire                   pop_i          ,
+   output wire  [FIFO_DW - 1:0]  data_o         ,
+   input  wire                   flush_i        ,
+   output wire                   async_empty_o  ,
+   output wire                   async_full_o
+);
+
+// The WRITE_POINTER is on the Last Empty Value
+// The READ_POINTER is on the Last Value
+wire [FIFO_AW-1:0]   rd_gptr_p1;
+wire [FIFO_AW-1:0]   wr_gptr_p1;
+wire [FIFO_AW-1:0]   rd_gptr, wr_gptr;
+wire                 clr_wr, clr_rd;
+reg                  async_empty_r;
+wire                 busy;
+wire [FIFO_DW - 1:0] mem_dt;
+wire                 async_empty, async_full;
+
+// Sample Pointers
+(* ASYNC_REG = "TRUE" *) reg [FIFO_AW-1:0] wr_gptr_cdc, wr_gptr_r; 
+always_ff @(posedge rd_clk_i) begin
+   wr_gptr_cdc   <= wr_gptr;
+   wr_gptr_r     <= wr_gptr_cdc;
+   async_empty_r <= async_empty;
+end
+
+(* ASYNC_REG = "TRUE" *) reg [FIFO_AW-1:0] rd_gptr_cdc, rd_gptr_r; 
+always_ff @(posedge wr_clk_i) begin
+   rd_gptr_cdc <= rd_gptr;
+   rd_gptr_r   <= rd_gptr_cdc;
+end
+
+reg clr_fifo_req, clr_fifo_ack;
+always_ff @(posedge wr_clk_i, negedge wr_rst_ni) begin
+   if (!wr_rst_ni) begin
+      clr_fifo_req <= 1'b0;
+      clr_fifo_ack <= 1'b0;
+   end else begin
+      if (flush_i)
+         clr_fifo_req <= 1'b1;
+      else if (clr_fifo_ack)
+         clr_fifo_req <= 1'b0;
+
+      if (clr_rd & clr_wr)
+         clr_fifo_ack <= 1'b1;
+      else if (clr_fifo_ack & !clr_rd & !clr_wr)
+         clr_fifo_ack <= 1'b0;
+   end
+end
+
+assign busy = clr_fifo_ack | clr_fifo_req;
+
+// Empty/full status based on synchronized pointers
+assign async_empty = (rd_gptr == wr_gptr_r);
+assign async_full  = (rd_gptr_r == wr_gptr_p1);
+
+// In FWFT, pop only advances the pointer.
+// Data should already be sitting at the output when not empty.
+wire do_pop, do_push;
+assign do_pop  = rd_en_i & pop_i  & !async_empty & !busy;
+assign do_push = wr_en_i & push_i & !async_full  & !busy;
+
+// Match your existing visible behavior
+assign async_empty_o = async_empty_r | busy;
+assign async_full_o  = async_full    | busy;
+
+// FWFT-style output: current head word is visible whenever FIFO is not empty
+assign data_o = async_empty_o ? '0 : mem_dt;
+
+gcc #(
+   .DW (FIFO_AW)
+) gcc_wr_ptr (
+   .clk_i           (wr_clk_i),
+   .rst_ni          (wr_rst_ni),
+   .async_clear_i   (clr_fifo_req),
+   .clear_o         (clr_wr),
+   .cnt_en_i        (do_push),
+   .count_bin_o     (),
+   .count_gray_o    (wr_gptr),
+   .count_bin_p1_o  (),
+   .count_gray_p1_o (wr_gptr_p1)
+);
+
+gcc #(
+   .DW (FIFO_AW)
+) gcc_rd_ptr (
+   .clk_i           (rd_clk_i),
+   .rst_ni          (rd_rst_ni),
+   .async_clear_i   (clr_fifo_req),
+   .clear_o         (clr_rd),
+   .cnt_en_i        (do_pop),
+   .count_bin_o     (),
+   .count_gray_o    (rd_gptr),
+   .count_bin_p1_o  (),
+   .count_gray_p1_o (rd_gptr_p1)
+);
+
+// Data memory
+bram_dual_port_dc #(
+   .MEM_AW  (FIFO_AW),
+   .MEM_DW  (FIFO_DW),
+   .RAM_OUT ("NO_REGISTERED")   // critical for FWFT-like behavior
+) fifo_mem (
+   .clk_a_i   (wr_clk_i),
+   .en_a_i    (wr_en_i),
+   .we_a_i    (do_push),
+   .addr_a_i  (wr_gptr),
+   .dt_a_i    (data_i),
+   .dt_a_o    (),
+
+   .clk_b_i   (rd_clk_i),
+   .en_b_i    (1'b1),           // critical: always read current head word
+   .we_b_i    (1'b0),
+   .addr_b_i  (rd_gptr),
+   .dt_b_i    (),
+   .dt_b_o    (mem_dt)
+);
+
+endmodule
+
+`endif 
 
 `endif
 
