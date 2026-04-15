@@ -2123,7 +2123,12 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
    tb_load_mem    = 1;
 
    // File must be relative to where the simulation is run from (i.e.: xxx.sim/sim_x/behav/xsim)
-   sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
+
+   // <<<<<<<<<<<< old file paths
+   // sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
+   // =====c=======
+   sg_file = {"../firmware/testbench/qick_testbench/src/tb/",test_name,"/sg_0.mem"};
+   // >>>>>>>>>>>> new file paths
    fd = $fopen(sg_file,"r");
 
    wait (sg_s0_axis_tready);
