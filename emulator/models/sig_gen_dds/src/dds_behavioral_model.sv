@@ -93,25 +93,12 @@ initial begin : init_rom
 
     assign m_axis_data_tdata = data_pipe[DDS_LATENCY-1];
 
-    // --------- TVALID BEHAVIOR -------------------------------
-    // Requirement (from your sim observations):
-    //   1) On the *very first* s_axis_phase_tvalid=1, there is a DDS_LATENCY-cycle delay
-    //      before m_axis_data_tvalid goes high.
-    //   2) After that first startup, m_axis_data_tvalid follows s_axis_phase_tvalid
-    //      with *no additional latency*.
-    //   3) If s_axis_phase_tvalid is low, m_axis_data_tvalid must be low.
-    //
-    // Implementation:
-    //   - valid_pipe: delay line for s_axis_phase_tvalid (used only during startup).
-    //   - started: once the first delayed-valid goes high, tvalid switches to
-    //     directly follow s_axis_phase_tvalid (no more latency).
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
     logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
         if (!started) begin
-            // During startup: build a delayed version of s_axis_phase_tvalid
             valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], s_axis_phase_tvalid};
 
             // When the delayed valid finally goes high once, we've completed
@@ -121,8 +108,6 @@ initial begin : init_rom
             end
         end
         // else begin
-        //     // After startup, we don't care about the pipeline content anymore.
-        //     // We just leave it alone (or you could set it to all 1's or 0's).
         //     valid_pipe <= valid_pipe;
         // end
     end
