@@ -2555,10 +2555,10 @@ class AcquireMixin:
 
                 self.rounds_pbar.close()
                 self.round_track.update(1)
-            self.round_track.close()
             # Final event summarizing all rounds' raw data
             if return_end_of_exp_raw:
                 yield {
                     'event': 'complete',
                     'rounds_raw': all_rounds_raw,
                 }
+        self.round_track.close()
