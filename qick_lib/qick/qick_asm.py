@@ -2540,25 +2540,25 @@ class AcquireMixin:
                     self.rounds_pbar.update(new_points)
                     yield yield_event
 
-                # Round complete; snapshot raw buffers for this round (copy to freeze state)
-                round_raw = [buf.copy() for buf in self.acc_buf]
-                all_rounds_raw.append(round_raw)
-                yield {
-                    'event': 'round-complete',
-                    'round': round_index,
-                    'round_raw': round_raw,
-                }
-                # Prepare for next round (reset buffers to NaN if more rounds remaining)
-                if round_index < rounds - 1:
-                    for ii, nreads in enumerate(reads_per_shot):
-                        self.acc_buf[ii].fill(np.nan)
+            # Round complete; snapshot raw buffers for this round (copy to freeze state)
+            round_raw = [buf.copy() for buf in self.acc_buf]
+            all_rounds_raw.append(round_raw)
+            yield {
+                'event': 'round-complete',
+                'round': round_index,
+                'round_raw': round_raw,
+            }
+            # Prepare for next round (reset buffers to NaN if more rounds remaining)
+            if round_index < rounds - 1:
+                for ii, nreads in enumerate(reads_per_shot):
+                    self.acc_buf[ii].fill(np.nan)
 
-                self.rounds_pbar.close()
-                self.round_track.update(1)
-            # Final event summarizing all rounds' raw data
-            if return_end_of_exp_raw:
-                yield {
-                    'event': 'complete',
-                    'rounds_raw': all_rounds_raw,
-                }
+            self.rounds_pbar.close()
+            self.round_track.update(1)
         self.round_track.close()
+        # Final event summarizing all rounds' raw data
+        if return_end_of_exp_raw:
+            yield {
+                'event': 'complete',
+                'rounds_raw': all_rounds_raw,
+            }
