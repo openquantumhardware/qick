@@ -77,9 +77,8 @@ initial begin
    port_1_dt_i             = 0;
    qcom_rdy_i              = 0 ;
    qp2_rdy_i               = 0 ;
-   periph_dt_i             = {0,0} ;
+   periph_dt_i             = '{default:'0} ;
    qnet_rdy_i              = 0 ;
-   qnet_dt_i [2]           = {0,0} ;
    proc_start_i            = 1'b0;
    proc_stop_i             = 1'b0;
    core_start_i            = 1'b0;
