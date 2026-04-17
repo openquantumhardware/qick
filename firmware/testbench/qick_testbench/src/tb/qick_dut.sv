@@ -1,30 +1,29 @@
-// TPROC PARAMETERS
-`define GEN_SYNC         1
-`define DUAL_CORE        0
-`define IO_CTRL          1
-`define DEBUG            3
-`define TNET             0
-`define QCOM             0
-`define CUSTOM_PERIPH    2
-`define LFSR             1
-`define DIVIDER          1
-`define ARITH            1
-`define TIME_READ        1
-`define FIFO_DEPTH       8
-`define PMEM_AW          12 
-`define DMEM_AW          14 
-`define WMEM_AW          11
-`define REG_AW           4 
-`define IN_PORT_QTY      1
-`define OUT_TRIG_QTY     1
-`define OUT_DPORT_QTY    1
-`define OUT_DPORT_DW     8
-`define OUT_WPORT_QTY    5 
-
 // qick_dut: wrapper module that exposes AXIS_QPROC ports and keeps the AXI link internal
 module qick_dut #(
-   parameter N_DDS_SG = 16,
-   parameter N_DDS_RO = 8
+   parameter N_DDS_SG         = 16,
+   parameter N_DDS_RO         = 8,
+   // PROCESSOR PARAMETERS
+   parameter GEN_SYNC         = 1,
+   parameter DUAL_CORE        = 0,
+   parameter IO_CTRL          = 1,
+   parameter DEBUG            = 3,
+   parameter TNET             = 0,
+   parameter QCOM             = 0,
+   parameter CUSTOM_PERIPH    = 2,
+   parameter LFSR             = 1,
+   parameter DIVIDER          = 1,
+   parameter ARITH            = 1,
+   parameter TIME_READ        = 1,
+   parameter FIFO_DEPTH       = 8,
+   parameter PMEM_AW          = 12,
+   parameter DMEM_AW          = 14,
+   parameter WMEM_AW          = 11,
+   parameter REG_AW           = 4,
+   parameter IN_PORT_QTY      = 1,
+   parameter OUT_TRIG_QTY     = 1,
+   parameter OUT_DPORT_QTY    = 1,
+   parameter OUT_DPORT_DW     = 8,
+   parameter OUT_WPORT_QTY    = 5
 )(
    // Core, Time and AXI CLK & RST. (match AXIS_QPROC port names)
    input  logic                t_clk,
@@ -104,32 +103,33 @@ module qick_dut #(
    // AXIS DATA in
    input  logic       [63:0]   s0_axis_tdata,
    input  logic                s0_axis_tvalid,
-   output logic               s0_axis_tready,
+   output logic                s0_axis_tready,
    input  logic       [63:0]   s1_axis_tdata,
    input  logic                s1_axis_tvalid,
+   output logic                s1_axis_tready,
    ///// TRIGGERS
-   output logic               trig_0_o,
+   output logic                trig_0_o,
    // OUT DATA PORTS
-   output logic       [3:0]    port_0_dt_o,
-   output logic       [3:0]    port_1_dt_o,
-   output logic       [3:0]    port_2_dt_o,
-   output logic       [3:0]    port_3_dt_o,
+   output logic       [OUT_DPORT_DW-1:0]    port_0_dt_o,
+   output logic       [OUT_DPORT_DW-1:0]    port_1_dt_o,
+   output logic       [OUT_DPORT_DW-1:0]    port_2_dt_o,
+   output logic       [OUT_DPORT_DW-1:0]    port_3_dt_o,
    // Debug Signals
-   output logic       [31:0]   ps_debug_do,
-   output logic       [31:0]   t_debug_do,
-   output logic       [31:0]   t_fifo_do,
-   output logic       [31:0]   c_time_usr_do,
-   output logic       [31:0]   c_debug_do,
-   output logic       [31:0]   c_time_ref_do,
-   output logic       [31:0]   c_proc_do,
-   output logic       [31:0]   c_port_do,
-   output logic       [31:0]   c_core_do,
+   output logic       [31:0]        ps_debug_do,
+   output logic       [31:0]        t_debug_do,
+   output logic       [31:0]        t_fifo_do,
+   output logic       [31:0]        c_time_usr_do,
+   output logic       [31:0]        c_debug_do,
+   output logic       [31:0]        c_time_ref_do,
+   output logic       [31:0]        c_proc_do,
+   output logic       [31:0]        c_port_do,
+   output logic       [31:0]        c_core_do,
 
-   input logic                   sg_s0_axis_aclk,
-   input logic                   sg_s0_axis_aresetn,
-   input logic        [31:0]     sg_s0_axis_tdata,
-   input logic                   sg_s0_axis_tvalid,
-   output logic                  sg_s0_axis_tready,
+   input logic                      sg_s0_axis_aclk,
+   input logic                      sg_s0_axis_aresetn,
+   input logic        [31:0]        sg_s0_axis_tdata,
+   input logic                      sg_s0_axis_tvalid,
+   output logic                     sg_s0_axis_tready,
 
    // AXIS DAC Signal Generator
    input logic                      axis_sg_dac_tready,
@@ -250,27 +250,27 @@ module qick_dut #(
 
    // Instantiate Axis Qick Processor and connect AXI ports to internal wires
    axis_qick_processor #(
-      .DUAL_CORE           (  `DUAL_CORE        ) ,
-      .GEN_SYNC            (  `GEN_SYNC         ) ,
-      .IO_CTRL             (  `IO_CTRL          ) ,
-      .DEBUG               (  `DEBUG            ) ,
-      .TNET                (  `TNET             ) ,
-      .QCOM                (  `QCOM             ) ,
-      .CUSTOM_PERIPH       (  `CUSTOM_PERIPH    ) ,
-      .LFSR                (  `LFSR             ) ,
-      .DIVIDER             (  `DIVIDER          ) ,
-      .ARITH               (  `ARITH            ) ,
-      .TIME_READ           (  `TIME_READ        ) ,
-      .FIFO_DEPTH          (  `FIFO_DEPTH       ) ,
-      .PMEM_AW             (  `PMEM_AW          ) ,
-      .DMEM_AW             (  `DMEM_AW          ) ,
-      .WMEM_AW             (  `WMEM_AW          ) ,
-      .REG_AW              (  `REG_AW           ) ,
-      .IN_PORT_QTY         (  `IN_PORT_QTY      ) ,
-      .OUT_TRIG_QTY        (  `OUT_TRIG_QTY     ) ,
-      .OUT_DPORT_QTY       (  `OUT_DPORT_QTY    ) ,
-      .OUT_DPORT_DW        (  `OUT_DPORT_DW     ) , 
-      .OUT_WPORT_QTY       (  `OUT_WPORT_QTY    ) 
+      .DUAL_CORE           ( DUAL_CORE            ) ,
+      .GEN_SYNC            ( GEN_SYNC             ) ,
+      .IO_CTRL             ( IO_CTRL              ) ,
+      .DEBUG               ( DEBUG                ) ,
+      .TNET                ( TNET                 ) ,
+      .QCOM                ( QCOM                 ) ,
+      .CUSTOM_PERIPH       ( CUSTOM_PERIPH        ) ,
+      .LFSR                ( LFSR                 ) ,
+      .DIVIDER             ( DIVIDER              ) ,
+      .ARITH               ( ARITH                ) ,
+      .TIME_READ           ( TIME_READ            ) ,
+      .FIFO_DEPTH          ( FIFO_DEPTH           ) ,
+      .PMEM_AW             ( PMEM_AW              ) ,
+      .DMEM_AW             ( DMEM_AW              ) ,
+      .WMEM_AW             ( WMEM_AW              ) ,
+      .REG_AW              ( REG_AW               ) ,
+      .IN_PORT_QTY         ( IN_PORT_QTY          ) ,
+      .OUT_TRIG_QTY        ( OUT_TRIG_QTY         ) ,
+      .OUT_DPORT_QTY       ( OUT_DPORT_QTY        ) ,
+      .OUT_DPORT_DW        ( OUT_DPORT_DW         ) , 
+      .OUT_WPORT_QTY       ( OUT_WPORT_QTY        ) 
    ) AXIS_QPROC (
       .t_clk_i             ( t_clk                ),
       .t_resetn            ( t_resetn             ),
@@ -369,48 +369,48 @@ module qick_dut #(
       .s1_axis_tdata        ( s1_axis_tdata        ),
       .s1_axis_tvalid       ( s1_axis_tvalid       ),
       .s1_axis_tready       ( s1_axis_tready       ),
-      .s2_axis_tdata        ( s2_axis_tdata        ),
+      .s2_axis_tdata        ( 'd0 /*s2_axis_tdata*/        ),
       .s2_axis_tvalid       ( 1'b0/*s2_axis_tvalid*/       ),
-      .s2_axis_tready       ( s2_axis_tready       ),
-      .s3_axis_tdata        ( s3_axis_tdata        ),
+      .s2_axis_tready       ( /*s2_axis_tready*/       ),
+      .s3_axis_tdata        ( 'd0 /*s3_axis_tdata*/        ),
       .s3_axis_tvalid       ( 1'b0/*s3_axis_tvalid*/       ),
-      .s3_axis_tready       ( s3_axis_tready       ),
-      .s4_axis_tdata        ( s4_axis_tdata        ),
+      .s3_axis_tready       ( /*s3_axis_tready*/       ),
+      .s4_axis_tdata        ( 'd0 /*s4_axis_tdata*/        ),
       .s4_axis_tvalid       ( 1'b0/*s4_axis_tvalid*/       ),
-      .s4_axis_tready       ( s4_axis_tready       ),
-      .s5_axis_tdata        ( s5_axis_tdata        ),
+      .s4_axis_tready       ( /*s4_axis_tready*/       ),
+      .s5_axis_tdata        ( 'd0 /*s5_axis_tdata*/        ),
       .s5_axis_tvalid       ( 1'b0/*s5_axis_tvalid*/       ),
-      .s5_axis_tready       ( s5_axis_tready       ),
-      .s6_axis_tdata        ( s6_axis_tdata        ),
+      .s5_axis_tready       ( /*s5_axis_tready*/       ),
+      .s6_axis_tdata        ( 'd0 /*s6_axis_tdata*/        ),
       .s6_axis_tvalid       ( 1'b0/*s6_axis_tvalid*/       ),
-      .s6_axis_tready       ( s6_axis_tready       ),
-      .s7_axis_tdata        ( s7_axis_tdata        ),
+      .s6_axis_tready       ( /*s6_axis_tready*/       ),
+      .s7_axis_tdata        ( 'd0 /*s7_axis_tdata*/        ),
       .s7_axis_tvalid       ( 1'b0/*s7_axis_tvalid*/       ),
-      .s7_axis_tready       ( s7_axis_tready       ),
-      .s8_axis_tdata        ( s8_axis_tdata        ),
+      .s7_axis_tready       ( /*s7_axis_tready*/       ),
+      .s8_axis_tdata        ( 'd0 /*s8_axis_tdata*/        ),
       .s8_axis_tvalid       ( 1'b0/*s8_axis_tvalid*/       ),
-      .s8_axis_tready       ( s8_axis_tready       ),
-      .s9_axis_tdata        ( s9_axis_tdata        ),
+      .s8_axis_tready       ( /*s8_axis_tready*/       ),
+      .s9_axis_tdata        ( 'd0 /*s9_axis_tdata*/        ),
       .s9_axis_tvalid       ( 1'b0/*s9_axis_tvalid*/       ),
-      .s9_axis_tready       ( s9_axis_tready       ),
-      .s10_axis_tdata       ( s10_axis_tdata       ),
+      .s9_axis_tready       ( /*s9_axis_tready*/       ),
+      .s10_axis_tdata       ( 'd0 /*s10_axis_tdata*/       ),
       .s10_axis_tvalid      ( 1'b0/*s10_axis_tvalid*/      ),
-      .s10_axis_tready      ( s10_axis_tready      ),
-      .s11_axis_tdata       ( s11_axis_tdata       ),
+      .s10_axis_tready      ( /*s10_axis_tready*/      ),
+      .s11_axis_tdata       ( 'd0 /*s11_axis_tdata*/       ),
       .s11_axis_tvalid      ( 1'b0/*s11_axis_tvalid*/      ),
-      .s11_axis_tready      ( s11_axis_tready      ),
-      .s12_axis_tdata       ( s12_axis_tdata       ),
+      .s11_axis_tready      ( /*s11_axis_tready*/      ),
+      .s12_axis_tdata       ( 'd0 /*s12_axis_tdata*/       ),
       .s12_axis_tvalid      ( 1'b0/*s12_axis_tvalid*/      ),
-      .s12_axis_tready      ( s12_axis_tready      ),
-      .s13_axis_tdata       ( s13_axis_tdata       ),
+      .s12_axis_tready      ( /*s12_axis_tready*/      ),
+      .s13_axis_tdata       ( 'd0 /*s13_axis_tdata*/       ),
       .s13_axis_tvalid      ( 1'b0/*s13_axis_tvalid*/      ),
-      .s13_axis_tready      ( s13_axis_tready      ),
-      .s14_axis_tdata       ( s14_axis_tdata       ),
+      .s13_axis_tready      ( /*s13_axis_tready*/      ),
+      .s14_axis_tdata       ( 'd0 /*s14_axis_tdata*/       ),
       .s14_axis_tvalid      ( 1'b0/*s14_axis_tvalid*/      ),
-      .s14_axis_tready      ( s14_axis_tready      ),
-      .s15_axis_tdata       ( s15_axis_tdata       ),
+      .s14_axis_tready      ( /*s14_axis_tready*/      ),
+      .s15_axis_tdata       ( 'd0 /*s15_axis_tdata*/       ),
       .s15_axis_tvalid      ( 1'b0/*s15_axis_tvalid*/      ),
-      .s15_axis_tready      ( s15_axis_tready      ),
+      .s15_axis_tready      ( /*s15_axis_tready*/      ),
       // OUT WAVE PORTS
       .m0_axis_tdata        ( tproc_sgcdc_0_axis_tdata        ),
       .m0_axis_tvalid       ( tproc_sgcdc_0_axis_tvalid       ),
