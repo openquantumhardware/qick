@@ -17,7 +17,8 @@ endtask
 
 task tproc_load_mem(string test_name);
    string pmem_file, wmem_file, dmem_file;
-
+   int fd;
+   
    $display("### Task tproc_load_mem() start ###");
    $display("Loading Test: %s", test_name);
 
@@ -25,6 +26,26 @@ task tproc_load_mem(string test_name);
    wmem_file = {"../../../../src/tb/",test_name,"/wmem.mem"};
    dmem_file = {"../../../../src/tb/",test_name,"/dmem.mem"};
 
+   // Check the files exist before trying to read them.
+   fd = $fopen(pmem_file,"r");
+   if (fd == 0) begin
+      $fatal(1, "tproc_load_mem(): failed to open pmem file '%s' for test '%s'", pmem_file, test_name);
+   end
+   $fclose(fd);
+
+   fd = $fopen(wmem_file,"r");
+   if (fd == 0) begin
+      $fatal(1, "tproc_load_mem(): failed to open wmem file '%s' for test '%s'", wmem_file, test_name);
+   end
+   $fclose(fd);
+
+   fd = $fopen(dmem_file,"r");
+   if (fd == 0) begin
+      $fatal(1, "tproc_load_mem(): failed to open dmem file '%s' for test '%s'", dmem_file, test_name);
+   end
+   $fclose(fd);
+
+   // Load files into memories.
    $readmemh(pmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
    $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
@@ -67,6 +88,9 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
    // File must be relative to where the simulation is run from (i.e.: xxx.sim/sim_x/behav/xsim)
    sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
    fd = $fopen(sg_file,"r");
+   if (fd == 0) begin
+      $fatal(1, "sg_load_mem(): failed to open sg memory file '%s' for test '%s'", sg_file, test_name);
+   end
 
    wait (sg_s0_axis_tready);
 
