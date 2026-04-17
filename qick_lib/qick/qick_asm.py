@@ -259,20 +259,35 @@ class QickConfig():
         """
         return self._cfg
 
-    def dump_cfg(self):
+    def dump_cfg(self, gen_file_path=None):
         """Generate a JSON description of the QICK configuration.
         You can save this string to a file and load it to recreate the QickConfig.
 
         Parameters
         ----------
+        gen_file_path : str or path-like, optional
+            If provided, write the generated JSON configuration to this file path.
 
         Returns
         -------
         str
             configuration in JSON format
 
+        Raises
+        ------
+        OSError
+            If ``gen_file_path`` is provided and the JSON configuration cannot be
+            written to the specified file.
         """
-        return json.dumps(self._cfg, indent=4)
+        cfg_json = json.dumps(self._cfg, indent=4)
+
+        if gen_file_path is not None:
+            with open(gen_file_path, "w") as json_file:
+                json_file.write(cfg_json)
+                logger.info(f"JSON data successfully saved to {gen_file_path}")
+                # print(f"JSON data successfully saved to {gen_file_path}")
+
+        return cfg_json
 
     def calc_fstep_int(self, dict1, other_dicts):
         """Finds the multiplier that needs to be applied to a channel's frequency step size to allow this channel to be frequency-matched with another channel.
