@@ -259,7 +259,7 @@ class QickConfig():
         """
         return self._cfg
 
-    def dump_cfg(self):
+    def dump_cfg(self, gen_file_path=None):
         """Generate a JSON description of the QICK configuration.
         You can save this string to a file and load it to recreate the QickConfig.
 
@@ -272,6 +272,15 @@ class QickConfig():
             configuration in JSON format
 
         """
+        if gen_file_path is not None:
+            try:
+                # Open the file in write mode and save the JSON data
+                with open(gen_file_path, "w") as json_file:
+                    json.dump(self._cfg, json_file, indent=4)
+                    print(f"JSON data successfully saved to {gen_file_path}")
+            except Exception as e:
+                print(f"An error occurred while saving JSON data: {e}")
+
         return json.dumps(self._cfg, indent=4)
 
     def calc_fstep_int(self, dict1, other_dicts):

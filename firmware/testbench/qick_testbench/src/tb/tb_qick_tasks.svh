@@ -29,7 +29,7 @@ task tproc_load_mem(string test_name);
    $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
    $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
-   $display("### Task sg_load_mem() end ###");
+   $display("### Task tproc_load_mem() end ###");
 
 endtask
 

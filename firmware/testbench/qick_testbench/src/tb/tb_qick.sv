@@ -307,7 +307,33 @@ logic                sg_s0_axis_tvalid;
    // QICK DUT
    //--------------------------------------
 
-   qick_dut qick_dut (
+   qick_dut #(
+      .N_DDS_SG         (N_DDS_SG        ),
+      .N_DDS_RO         (N_DDS_RO        ),
+      // tProc Parameters
+      .GEN_SYNC         (`GEN_SYNC        ),
+      .DUAL_CORE        (`DUAL_CORE       ),
+      .IO_CTRL          (`IO_CTRL         ),
+      .DEBUG            (`DEBUG           ),
+      .TNET             (`TNET            ),
+      .QCOM             (`QCOM            ),
+      .CUSTOM_PERIPH    (`CUSTOM_PERIPH   ),
+      .LFSR             (`LFSR            ),
+      .DIVIDER          (`DIVIDER         ),
+      .ARITH            (`ARITH           ),
+      .TIME_READ        (`TIME_READ       ),
+      .FIFO_DEPTH       (`FIFO_DEPTH      ),
+      .PMEM_AW          (`PMEM_AW         ),
+      .DMEM_AW          (`DMEM_AW         ),
+      .WMEM_AW          (`WMEM_AW         ),
+      .REG_AW           (`REG_AW          ),
+      .IN_PORT_QTY      (`IN_PORT_QTY     ),
+      .OUT_TRIG_QTY     (`OUT_TRIG_QTY    ),
+      .OUT_DPORT_QTY    (`OUT_DPORT_QTY   ),
+      .OUT_DPORT_DW     (`OUT_DPORT_DW    ),
+      .OUT_WPORT_QTY    (`OUT_WPORT_QTY   )
+   )
+   qick_dut (
       // Core, Time and AXI CLK & RST.
       .t_clk               ( t_clk              ) ,
       .t_resetn            ( rst_ni             ) ,
@@ -385,8 +411,10 @@ logic                sg_s0_axis_tvalid;
       /// DATA PORT INPUT  
       .s0_axis_tdata        ( port_0_dt_i    ) ,
       .s0_axis_tvalid       ( port_0_vld     ) ,
+      .s0_axis_tready       (                ) ,
       .s1_axis_tdata        ( port_1_dt_i    ) ,
       .s1_axis_tvalid       ( s1_axis_tvalid ) ,
+      .s1_axis_tready       (                ) ,
       ///// TRIGGERS
       .trig_0_o             ( trigger_0               ),
       // OUT DATA PORTS
