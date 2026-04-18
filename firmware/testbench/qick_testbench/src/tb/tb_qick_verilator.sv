@@ -978,57 +978,80 @@ reg qcom_rdy_i, qp2_rdy_i;
    // TODO: RF DATA CONVERTER IP
    //--------------------------------------
 
-   localparam DAC_W = 16;
-   logic signed [DAC_W-1:0] dac_data;
-   localparam ADC_W = 14;
-   logic signed [ADC_W-1:0] adc_sample;
-   logic signed [15:0] adc_data;
+   // <<<<<<<<<<<< OLD DAC AND ADC MODEL
+   // localparam DAC_W = 16;
+   // logic signed [DAC_W-1:0] dac_data;
+   // localparam ADC_W = 14;
+   // logic signed [ADC_W-1:0] adc_sample;
+   // logic signed [15:0] adc_data;
 
-   model_DAC_ADC #(
-      .DAC_W               (DAC_W),
-      .ADC_W               (ADC_W),
-      .BUFFER_SIZE         (16)
-   ) u_model_DAC_ADC (
-      .clk_DAC             (dac_fs),
-      .dac_sample          (dac_data),
+   // model_DAC_ADC #(
+   //    .DAC_W               (DAC_W),
+   //    .ADC_W               (ADC_W),
+   //    .BUFFER_SIZE         (16)
+   // ) u_model_DAC_ADC (
+   //    .clk_DAC             (dac_fs),
+   //    .dac_sample          (dac_data),
 
-      .clk_ADC             (adc_fs),
-      .adc_sample          (adc_sample),
+   //    .clk_ADC             (adc_fs),
+   //    .adc_sample          (adc_sample),
 
-      .mode                (1)   // 0 = ZOH, 1 = linear
-   );
+   //    .mode                (1)   // 0 = ZOH, 1 = linear
+   // );
 
-   assign adc_data = $signed(adc_sample);
+   // assign adc_data = $signed(adc_sample);
 
-   logic [$clog2(N_DDS)-1:0] dac_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg_dac_tvalid) begin
-         dac_data       <= axis_sg_dac_tdata[ 16*dac_samp_cnt +: 16];
-         dac_samp_cnt   <= dac_samp_cnt + 'd1;
-      end
-      else begin
-         dac_data       <= 'd0;
-         dac_samp_cnt   <= 'd0;
-      end
-   end
+   // logic [$clog2(N_DDS)-1:0] dac_samp_cnt;
+   // always @(posedge dac_fs) begin
+   //    if (axis_sg_dac_tvalid) begin
+   //       dac_data       <= axis_sg_dac_tdata[ 16*dac_samp_cnt +: 16];
+   //       dac_samp_cnt   <= dac_samp_cnt + 'd1;
+   //    end
+   //    else begin
+   //       dac_data       <= 'd0;
+   //       dac_samp_cnt   <= 'd0;
+   //    end
+   // end
 
    // SG to DAC RF processes 16 samples per clock
    // ADC RF to RO processes 8 samples per clock
 
    assign axis_sg_dac_tready        = 1'b1;  // DAC always ready to receive samples
 
-   logic [$clog2(N_DDS)-1:0] adc_samp_cnt;
-   always @(posedge adc_fs) begin
-      if (adc_samp_cnt < 7) begin
-         adc_samp_cnt      <= adc_samp_cnt + 1;
-         rf_signal_valid   <= 0;
-      end
-      else begin
-         adc_samp_cnt      <= 0;
-         rf_signal_valid   <= 1;
-      end
-      rf_signal_data[16*adc_samp_cnt +: 16] <= adc_data;
-   end
+   // logic [$clog2(N_DDS)-1:0] adc_samp_cnt;
+   // always @(posedge adc_fs) begin
+   //    if (adc_samp_cnt < 7) begin
+   //       adc_samp_cnt      <= adc_samp_cnt + 1;
+   //       rf_signal_valid   <= 0;
+   //    end
+   //    else begin
+   //       adc_samp_cnt      <= 0;
+   //       rf_signal_valid   <= 1;
+   //    end
+   //    rf_signal_data[16*adc_samp_cnt +: 16] <= adc_data;
+   // end
+
+   // ============
+   dac_adc_loop #(
+      .DAC_BITS            (16),
+      .ADC_BITS            (14),
+      .OUT_BITS            (16),
+      .N_DAC               (N_DDS),
+      .N_ADC               (8),
+      .BUFFER_SIZE         (16),
+      .USE_INTERPOLATION   (0)     // 0 = ZOH, 1 = linear
+   ) u_dac_adc_loop (
+      .dac_clk             (sg_clk),             // Slow DAC clock
+      .adc_clk             (ro_clk),             // Slow ADC clock
+      .dac_fs_clk          (dac_fs),             // Fast sample DAC clock
+      .adc_fs_clk          (adc_fs),             // Fast sample ADC clock
+
+      .s_axis_tdata        (axis_sg_dac_tdata),  // data from SG
+      .s_axis_tvalid       (axis_sg_dac_tvalid), 
+      .m_axis_tdata        (rf_signal_data),     // data to RO
+      .m_axis_tvalid       (rf_signal_valid)
+   // );
+   // >>>>>>>>>>>> NEW DAC AND ADC LOOPBACK
 
    // Model Transport delay
    // NOTE: THESE MUST BE REG TO WORK!!!
