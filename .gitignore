@@ -68,6 +68,9 @@ Temporary Items
 
 # Verilator work directories
 **/obj_dir/
+**/expected_out/
+**/artifacts/
+!/CLAUDE.md
 
 ### Linux template
 *~

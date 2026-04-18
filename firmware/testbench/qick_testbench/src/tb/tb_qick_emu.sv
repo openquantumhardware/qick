@@ -360,7 +360,8 @@ axis_qick_processor #(
    .OUT_TRIG_QTY   ( `OUT_TRIG_QTY  ),
    .OUT_DPORT_QTY  ( `OUT_DPORT_QTY ),
    .OUT_DPORT_DW   ( `OUT_DPORT_DW  ),
-   .OUT_WPORT_QTY  ( `OUT_WPORT_QTY )
+   .OUT_WPORT_QTY  ( `OUT_WPORT_QTY ),
+   .EMULATOR       (1'b1.           )
 ) AXIS_QPROC (
    .t_clk_i             ( t_clk              ),
    .t_resetn            ( rst_ni             ),
@@ -535,7 +536,7 @@ axi_mst_0 u_axi_mst_sg_0 (
    .m_axi_wvalid  (s_axi_sg_wvalid  )
 );
 
-axis_cdcsync_v1 #(.N(1), .B(168)) u_axis_sgcdcsync_v1 (
+axis_cdcsync_v1 #(.N(1), .B(168), .EMULATOR(1'b1)) u_axis_sgcdcsync_v1 (
    .s_axis_aresetn  (rst_ni),
    .s_axis_aclk     (t_clk),
    .s0_axis_tready  (tproc_sgcdc_0_axis_tready),
@@ -600,7 +601,8 @@ axis_signal_gen_v6 #(
    .N            (N),
    .N_DDS        (N_DDS),
    .GEN_DDS      ("TRUE"),
-   .ENVELOPE_TYPE("COMPLEX")
+   .ENVELOPE_TYPE("COMPLEX"),
+   .EMULATOR     (1'b1)
 ) u_axis_signal_gen_v6_0 (
    .s_axi_aclk    (s_ps_dma_aclk    ),
    .s_axi_aresetn (s_ps_dma_aresetn ),
@@ -788,7 +790,7 @@ always_ff @(posedge adc_fs) begin
       rf_signal_cnt <= 0;
 end
 
-axis_cdcsync_v1 #(.N(1), .B(168)) u_axis_cdcsync_v1 (
+axis_cdcsync_v1 #(.N(1), .B(168), .EMULATOR(1'b1)) u_axis_cdcsync_v1 (
    .s_axis_aresetn  (rst_ni),
    .s_axis_aclk     (t_clk),
    .s0_axis_tready  (tproc_rocdc_0_axis_tready),
@@ -849,7 +851,7 @@ wire [31:0] axis_ro_avg_tdata;
 wire        axis_ro_mrbuf_tvalid;
 wire [8*2*16-1:0] axis_ro_mrbuf_tdata;
 
-axis_dyn_readout_v1 u_axis_dyn_readout_v1_0 (
+axis_dyn_readout_v1 #(.EMULATOR(1'b1)) u_axis_dyn_readout_v1_0 (
    .aresetn        (s_ps_dma_aresetn  ),
    .aclk           (ro_clk            ),
    .s0_axis_tready (rot_ro_0_axis_tready),
@@ -920,7 +922,7 @@ wire [63:0] m0_axis_buf_avg_tdata;
 wire        m1_axis_buf_dec_tvalid;
 wire [31:0] m1_axis_buf_dec_tdata;
 
-axis_avg_buffer #(.N_AVG(13), .N_BUF(12), .B(16)) u_axis_avg_buffer_0 (
+axis_avg_buffer #(.N_AVG(13), .N_BUF(12), .B(16), .EMULATOR(1'b1)) u_axis_avg_buffer_0 (
    .s_axi_aclk    (s_ps_dma_aclk    ),
    .s_axi_aresetn (s_ps_dma_aresetn ),
    .s_axi_araddr  (s_axi_avg_araddr ),
