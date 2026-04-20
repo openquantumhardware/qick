@@ -50,8 +50,8 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-string TEST_NAME = "test_adaptive_sweep";
-// string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_adaptive_sweep";
+string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";

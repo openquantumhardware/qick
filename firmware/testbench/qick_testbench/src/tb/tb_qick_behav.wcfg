@@ -19,18 +19,24 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="23,710.974 ns"></ZoomStartTime>
-      <ZoomEndTime time="23,746.403 ns"></ZoomEndTime>
-      <Cursor1Time time="23,732.500 ns"></Cursor1Time>
+      <ZoomStartTime time="23,726.250 ns"></ZoomStartTime>
+      <ZoomEndTime time="23,799.501 ns"></ZoomEndTime>
+      <Cursor1Time time="23,777.500 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="286"></NameColumnWidth>
-      <ValueColumnWidth column_width="118"></ValueColumnWidth>
+      <ValueColumnWidth column_width="111"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="10" />
+   <wave_markers>
+      <marker time="23737500" label="" />
+      <marker time="23787500" label="" />
+      <marker time="23777500" label="" />
+   </wave_markers>
    <wvobject fp_name="group490" type="group">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/tb_qick/AXIS_QPROC/t_clk_i" type="logic">
          <obj_property name="ElementShortName">t_clk_i</obj_property>
          <obj_property name="ObjectShortName">t_clk_i</obj_property>
@@ -111,10 +117,12 @@
          <wvobject fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt" type="array">
             <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
             <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
          </wvobject>
          <wvobject fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt" type="array">
             <obj_property name="ElementShortName">dreg_32_dt[0:15][31:0]</obj_property>
             <obj_property name="ObjectShortName">dreg_32_dt[0:15][31:0]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
          </wvobject>
          <wvobject fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt" type="array">
             <obj_property name="ElementShortName">wreg_32_dt[0:5][31:0]</obj_property>
@@ -149,7 +157,6 @@
             <obj_property name="ElementShortName">[0][31:0]</obj_property>
             <obj_property name="ObjectShortName">[0][31:0]</obj_property>
             <obj_property name="label">r0_reps[31:0]</obj_property>
-            <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
          </wvobject>
          <wvobject fp_name="/tb_qick/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/dreg_32_dt[1]" type="array">
             <obj_property name="DisplayName">label</obj_property>
@@ -1205,6 +1212,7 @@
    <wvobject fp_name="group2522" type="group">
       <obj_property name="label">model_DAC_ADC</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/tb_qick/u_model_DAC_ADC/mode" type="array">
          <obj_property name="ElementShortName">mode[31:0]</obj_property>
          <obj_property name="ObjectShortName">mode[31:0]</obj_property>
@@ -1984,6 +1992,7 @@
    <wvobject fp_name="group1945" type="group">
       <obj_property name="label">QUBIT_EMU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/tb_qick/u_axis_kidsim_v3/aresetn" type="logic">
          <obj_property name="ElementShortName">aresetn</obj_property>
          <obj_property name="ObjectShortName">aresetn</obj_property>
@@ -2449,7 +2458,6 @@
    <wvobject fp_name="group572" type="group">
       <obj_property name="label">ADAPTIVE_SWEEP</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject fp_name="/tb_qick/u_adaptive_sweep/clk" type="logic">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
@@ -2497,10 +2505,6 @@
       <wvobject fp_name="/tb_qick/u_adaptive_sweep/qtag_vld_o" type="logic">
          <obj_property name="ElementShortName">qtag_vld_o</obj_property>
          <obj_property name="ObjectShortName">qtag_vld_o</obj_property>
-      </wvobject>
-      <wvobject fp_name="/tb_qick/u_adaptive_sweep/qtag_flag_o" type="logic">
-         <obj_property name="ElementShortName">qtag_flag_o</obj_property>
-         <obj_property name="ObjectShortName">qtag_flag_o</obj_property>
       </wvobject>
       <wvobject fp_name="/tb_qick/u_adaptive_sweep/en_d" type="logic">
          <obj_property name="ElementShortName">en_d</obj_property>
