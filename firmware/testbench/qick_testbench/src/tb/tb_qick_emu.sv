@@ -82,7 +82,7 @@ time   TEST_RUN_TIME = 100us;
 //   python3 -c "
 //   import json, sys
 //   sys.path.insert(0, 'emulator/software/source')
-//   cfg = json.load(open('emulator/notebooks/qick_config_216.json'))
+//   cfg = json.load(open('emulator/notebooks/qick_emu_config.json'))
 //   addr = 0x40000000
 //   def add(n,t): global addr; print(f'{n:40s} {t:30s} 0x{addr:08X}'); addr+=0x10000
 //   if 'ddr4_buf' in cfg: add(cfg['ddr4_buf']['fullpath'], cfg['ddr4_buf']['type'])
@@ -92,7 +92,7 @@ time   TEST_RUN_TIME = 100us;
 //   [add(t.get('fullpath','qick_processor_0'),t['type']) for t in cfg.get('tprocs',[])]
 //   "
 //
-// Default values below are for ZCU216 HMC demo (qick_config_216.json).
+// Default values below are for ZCU216 HMC demo (qick_emu_config.json).
 // ===========================================================================
 
 // tproc: qick_processor_0
