@@ -70,7 +70,8 @@ Temporary Items
 **/obj_dir/
 **/expected_out/
 **/artifacts/
-!/CLAUDE.md
+/CLAUDE.md
+/handoff.md
 
 ### Linux template
 *~

@@ -2663,7 +2663,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
             # Convert to np.array and uint for %x to work correctly
             l = np.uint32(np.array(ls))
             # Take only 168 bits (42 nibbles)
-            s = "%04x_%08x_%08x_%06x_%08x_%08x" % (l[5], l[4], l[3], l[2], l[1], l[0])
+            s = "___%04x_%08x_%08x_%06x_%08x_%08x" % (l[5], l[4], l[3], l[2], l[1], l[0])
             print(s)
 
 class AcquireProgramV2(AcquireMixin, QickProgramV2):
