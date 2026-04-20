@@ -72,7 +72,7 @@ Temporary Items
 **/artifacts/
 /CLAUDE.md
 /handoff.md
-
+/emulator/models/sig_gen_dds/src/dds_behavioral_model copy.sv
 ### Linux template
 *~
 .*.swp
