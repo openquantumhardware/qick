@@ -16,23 +16,20 @@ module adc_model #(
     int digital_out_reg;
 
     initial begin
-        quantization_step = (2.0 * V_REF) / (1 << BITS);
+      // full range is (-2^(BITS-1) to 2^(BITS-1)-1)
+        quantization_step = V_REF / (1 << (BITS - 1));
     end
 
     // Behavioral model of ADC
     always @(negedge clk) begin
 
-        // Scale input to a value between 0 and (2^BITS - 1)
-        scaled_input = analog_in + V_REF;
+        digital_out_reg = $rtoi(analog_in / quantization_step);
 
-        // Quantize value to the nearest integer
-        digital_out_reg = $rtoi(scaled_input / quantization_step);
-
-        // Clip result to ensure it stays within: 0 to 2^BITS - 1
-        if (digital_out_reg >= (1 << BITS)) begin
-            digital_out_reg = (1 << BITS) - 1;
-        end else if (digital_out_reg < 0) begin
-            digital_out_reg = 0;
+        // Clip result to ensure it stays within signed 2's complement
+        if (digital_out_reg >= (1 << (BITS - 1))) begin
+            digital_out_reg = (1 << (BITS - 1)) - 1;
+        end else if (digital_out_reg < -(1 << (BITS - 1))) begin
+            digital_out_reg = -(1 << (BITS - 1));
         end
 
         // Output signal
