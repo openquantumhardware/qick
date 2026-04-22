@@ -112,6 +112,7 @@ string EMU_DIR       = "src/tb/emulator";
 time   TEST_RUN_TIME = 5000us;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
+int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 = disabled)
 
 //----------------------------------------------------
 // Address Routing (ZCU216 default AddrMap; override via export_vivado_files())
@@ -314,8 +315,36 @@ end
 
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
 reg  [31 :0]       periph_dt_i [2] ;
-assign port_0_dt_i     = port_1_dt_o;
-assign port_0_vld      = port_0_dt_o[0];
+
+// -----------------------------------------------------------------------------
+// Readout → tProc feedback path.
+//
+// The real ZCU216 SoC wires `axis_avg_buffer_0.m2_axis` (one-shot handshake on
+// each completed average) into `qick_processor.s0_axis`, so that `DPORT_RD 0`
+// (emitted by `read_input(ro_ch=0)` / `read_and_jump`) can sample the
+// per-shot I/Q accumulator in a tProc register. The emu TB reproduces that
+// link: m2_axis fires once per shot, we latch {acc_q[31:0], acc_i[31:0]}
+// and hold it until the next shot replaces it. That way the tProc can read
+// the result at any time after the buffer has drained. PORT_L = I, PORT_H = Q.
+// -----------------------------------------------------------------------------
+wire        avg0_m2_tvalid;
+wire [63:0] avg0_m2_tdata;
+reg  [63:0] readout_ch0_dt  = 64'd0;
+reg         readout_ch0_vld = 1'b0;
+
+always_ff @(posedge s_ps_dma_aclk) begin
+   if (!s_ps_dma_aresetn) begin
+      readout_ch0_dt  <= 64'd0;
+      readout_ch0_vld <= 1'b0;
+   end
+   else if (avg0_m2_tvalid) begin
+      readout_ch0_dt  <= avg0_m2_tdata;
+      readout_ch0_vld <= 1'b1;
+   end
+end
+
+assign port_0_dt_i     = readout_ch0_dt;
+assign port_0_vld      = readout_ch0_vld;
 assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -1430,9 +1459,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .m1_axis_tlast          (/*m1_axis_tlast*/     ),
 
       // AXIS Master for register output.
+      //
+      // Wired into the `s0_axis` input of `axis_qick_processor` via the
+      // `readout_ch0_dt`/`readout_ch0_vld` latch near the top of the TB so
+      // that `read_input(ro_ch=0)` / `read_and_jump` can sample per-shot I/Q.
       .m2_axis_tready         (1'b1/*m2_axis_tready*/),
-      .m2_axis_tvalid         (/*m2_axis_tvalid*/    ),
-      .m2_axis_tdata          (/*m2_axis_tdata*/     )
+      .m2_axis_tvalid         (avg0_m2_tvalid        ),
+      .m2_axis_tdata          (avg0_m2_tdata         )
    );
 
    // -----------------------------------------------------------------------------
@@ -1461,6 +1494,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       if ($value$plusargs("RO_DEC_LEN=%d", ro_dec_len))
          $display("### RO_DEC_LEN overridden to %0d via plusarg ###", ro_dec_len);
 
+      if ($value$plusargs("MR_LEN=%d", mr_len))
+         $display("### MR_LEN overridden to %0d via plusarg ###", mr_len);
+
       $fflush();
    end
 
@@ -1470,32 +1506,42 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // dac_out.csv — one row per sg_clk with axis_sg_dac_tvalid, N_DDS lanes.
    // avg_out.csv — one row per averaged I/Q sample from avg_buffer m0.
    // dec_out.csv — one row per decimated I/Q sample from avg_buffer m1.
+   // mr_out.csv  — one row per ro_clk while axis_ro_mrbuf_tvalid, 8 I/Q lanes
+   //               (post-downconversion, pre-FIR). Capped by +MR_LEN plusarg.
    // -----------------------------------------------------------------------------
    integer dac_csv_fd;
    integer avg_csv_fd;
    integer dec_csv_fd;
+   integer mr_csv_fd;
+   int     mr_rows_logged = 0;
 
    initial begin
       string dac_csv_path;
       string avg_csv_path;
       string dec_csv_path;
+      string mr_csv_path;
 
       #0;  // yield so the plusarg initial block runs first
 
       dac_csv_path = {EMU_DIR, "/dac_out.csv"};
       avg_csv_path = {EMU_DIR, "/avg_out.csv"};
       dec_csv_path = {EMU_DIR, "/dec_out.csv"};
+      mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
       $display("### Opening CSV: %s ###", dac_csv_path);
       dac_csv_fd = $fopen(dac_csv_path, "w");
       avg_csv_fd = $fopen(avg_csv_path, "w");
       dec_csv_fd = $fopen(dec_csv_path, "w");
+      mr_csv_fd  = $fopen(mr_csv_path, "w");
 
       $fwrite(dac_csv_fd, "time_ps");
       for (int i = 0; i < N_DDS; i++) $fwrite(dac_csv_fd, ",s%0d", i);
       $fwrite(dac_csv_fd, "\n");
       $fwrite(avg_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec_csv_fd, "time_ps,I,Q\n");
+      $fwrite(mr_csv_fd, "time_ps");
+      for (int i = 0; i < 8; i++) $fwrite(mr_csv_fd, ",I%0d,Q%0d", i, i);
+      $fwrite(mr_csv_fd, "\n");
    end
 
    always @(posedge sg_clk) begin
@@ -1519,6 +1565,39 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          $fwrite(dec_csv_fd, "%0t,%0d,%0d\n", $time,
                  $signed(m1_axis_buf_dec_tdata[15:0]),
                  $signed(m1_axis_buf_dec_tdata[31:16]));
+   end
+
+   // MR capture: arm on first non-zero mrbuf row after the DAC has started
+   // producing valid samples. This skips the ADC → DDC transit-time zeros that
+   // otherwise appear at the head of mr_out.csv and cause the first pulse's
+   // leading edge to look clipped. `axis_sg_dac_tvalid` lives in the sg_clk
+   // domain — 2-FF sync it into ro_clk first. The arming flag is combinational
+   // so the row that causes arming is also logged.
+   logic mr_dac_valid_sync0 = 1'b0;
+   logic mr_dac_valid_sync1 = 1'b0;
+   logic mr_dac_seen        = 1'b0;
+   logic mr_armed           = 1'b0;
+   wire  mr_arm_now = mr_dac_seen && axis_ro_mrbuf_tvalid
+                      && (axis_ro_mrbuf_tdata != '0);
+   wire  mr_log     = (mr_armed || mr_arm_now) && axis_ro_mrbuf_tvalid
+                      && (mr_len > 0) && (mr_rows_logged < mr_len);
+   always_ff @(posedge ro_clk) begin
+      mr_dac_valid_sync0 <= axis_sg_dac_tvalid;
+      mr_dac_valid_sync1 <= mr_dac_valid_sync0;
+      if (!mr_dac_seen && mr_dac_valid_sync1) mr_dac_seen <= 1'b1;
+      if (!mr_armed && mr_arm_now) mr_armed <= 1'b1;
+   end
+
+   always @(posedge ro_clk) begin
+      if (mr_log) begin
+         $fwrite(mr_csv_fd, "%0t", $time);
+         for (int i = 0; i < 8; i++)
+            $fwrite(mr_csv_fd, ",%0d,%0d",
+                    $signed(axis_ro_mrbuf_tdata[16*(2*i)   +: 16]),
+                    $signed(axis_ro_mrbuf_tdata[16*(2*i+1) +: 16]));
+         $fwrite(mr_csv_fd, "\n");
+         mr_rows_logged <= mr_rows_logged + 1;
+      end
    end
 
    // Diagnostic: monitor readout config path.
@@ -1649,6 +1728,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fclose(dac_csv_fd);
       $fclose(avg_csv_fd);
       $fclose(dec_csv_fd);
+      $fclose(mr_csv_fd);
       $finish();
    end
 

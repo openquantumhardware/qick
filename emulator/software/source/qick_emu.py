@@ -1098,6 +1098,7 @@ class QickEmu:
         prog=None,
         ro_dec_len: Optional[int] = None,
         ro_avg_len: Optional[int] = None,
+        mr_len: int = 0,
         *,
         build: bool = True,
         verbose: bool = True,
@@ -1179,7 +1180,11 @@ class QickEmu:
         if verbose:
             print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
             
-        sim_args_str = f"SIM_ARGS=+RO_DEC_LEN={int(ro_dec_len)} +RO_AVG_LEN={int(ro_avg_len)}"
+        sim_args_str = (
+            f"SIM_ARGS=+RO_DEC_LEN={int(ro_dec_len)} "
+            f"+RO_AVG_LEN={int(ro_avg_len)} "
+            f"+MR_LEN={int(mr_len)}"
+        )
         result = subprocess.run(
             ["make", "sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str], timeout=timeout, **run_kw
         )
@@ -1191,7 +1196,12 @@ class QickEmu:
             )
 
         csvs = {}
-        for key, name in [("dac", "dac_out.csv"), ("avg", "avg_out.csv"), ("dec", "dec_out.csv")]:
+        for key, name in [
+            ("dac", "dac_out.csv"),
+            ("avg", "avg_out.csv"),
+            ("dec", "dec_out.csv"),
+            ("mr",  "mr_out.csv"),
+        ]:
             p = emu_dir / name
             if p.exists():
                 csvs[key] = p
@@ -1479,6 +1489,72 @@ class QickEmu:
 
         scale = {"fs": 1.0, "ps": 1e-3, "ns": 1e-6, "us": 1e-9, "ms": 1e-12}[time_unit]
         return t_fs * scale, samples
+
+    def load_mr(
+        self,
+        emu_dir: Union[str, pathlib.Path],
+        *,
+        time_unit: str = "us",
+        absolute_time: bool = False,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Load MR buffer (full-rate, post-downconversion) I/Q samples.
+
+        ``mr_out.csv`` rows hold 8 I/Q pairs per ``ro_clk`` edge. This helper
+        unrolls the 8 lanes into a 1-D sample stream (as the real MR buffer
+        would present them) and returns the matching time axis.
+
+        Parameters
+        ----------
+        emu_dir : str or pathlib.Path
+            Directory containing ``mr_out.csv``.
+        time_unit : {'fs', 'ps', 'ns', 'us', 'ms'}
+            Unit for the returned time axis.
+        absolute_time : bool
+            Keep raw sim-time. Default shifts so the first sample is at t=0.
+
+        Returns
+        -------
+        t : numpy.ndarray
+            Time axis in ``time_unit``.
+        iq : numpy.ndarray
+            Array of shape ``(N, 2)`` with interleaved I / Q samples.
+        """
+        emu_dir = pathlib.Path(emu_dir)
+        csv = emu_dir / "mr_out.csv"
+        if not csv.exists() or csv.stat().st_size == 0:
+            return np.array([]), np.zeros((0, 2), dtype=float)
+
+        data = np.genfromtxt(csv, delimiter=",", names=True, dtype=None)
+        if data.size == 0:
+            return np.array([]), np.zeros((0, 2), dtype=float)
+
+        n_lanes = 8
+        t_rows = np.atleast_1d(data["time_ps"]).astype(float)
+
+        # Estimate ro_clk period from consecutive-row deltas (same trick as
+        # load_dac). Verilator's $time is quantised to 1 ns, so pick the mean
+        # over diffs within 3× the minimum.
+        clk_period_fs = float(1e6 / 0.3072)  # ~3.255 ns (307.2 MHz ro_clk)
+        if t_rows.size > 1:
+            diffs = np.diff(t_rows)
+            positive = diffs[diffs > 0]
+            if positive.size:
+                min_d = float(np.min(positive))
+                close = positive[positive < 3 * min_d]
+                if close.size:
+                    clk_period_fs = float(np.mean(close))
+        sample_period_fs = clk_period_fs / n_lanes
+
+        I = np.column_stack([data[f"I{i}"] for i in range(n_lanes)]).astype(float)
+        Q = np.column_stack([data[f"Q{i}"] for i in range(n_lanes)]).astype(float)
+        iq = np.stack([I.flatten(), Q.flatten()], axis=-1)
+
+        t_fs = (t_rows[:, None] + np.arange(n_lanes)[None, :] * sample_period_fs).flatten()
+        if not absolute_time and t_fs.size:
+            t_fs = t_fs - np.nanmin(t_fs)
+
+        scale = {"fs": 1.0, "ps": 1e-3, "ns": 1e-6, "us": 1e-9, "ms": 1e-12}[time_unit]
+        return t_fs * scale, iq
 
     @staticmethod
     def _read_iq_csv(csv: pathlib.Path) -> np.ndarray:
