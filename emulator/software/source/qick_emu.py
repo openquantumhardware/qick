@@ -752,7 +752,7 @@ class QickEmu:
 
     .. code-block:: python
 
-        emu = QickEmu("qick_config_216.json")
+        emu = QickEmu("qick_emu_config.json")
         soc = emu.make_soc(memdir="tb_mem")
         emu.prepare(prog, soc, memdir="tb_mem")
         csvs = emu.run_verilator_tb("tb_mem", prog=prog)
@@ -761,7 +761,7 @@ class QickEmu:
     Parameters
     ----------
     qick_config_json : str or pathlib.Path
-        Path to the board config JSON (e.g. ``qick_config_216.json``).
+        Path to the board config JSON (e.g. ``qick_emu_config.json``).
     addrmap : AddrMap, str, pathlib.Path, or None
         Pre-built address map, a path to a saved address-map JSON, or
         ``None`` to derive one from the board config with
@@ -1000,7 +1000,8 @@ class QickEmu:
         build_dir.mkdir(parents=True, exist_ok=True)
         
         proj_root = self._find_proj_root()
-        pulp_dir = proj_root / "firmware" / "pulp_platform"
+        # pulp_dir = proj_root / "firmware" / "pulp_platform"
+        pulp_dir = proj_root / "emulator" / "submodules" / "pulp_platform"
         
         pulp_sources = [
             pulp_dir / "common_verification/src/rand_id_queue.sv",

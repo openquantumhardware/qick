@@ -7,7 +7,8 @@ TOP_MODULE = tb_qick_emu_verilator
 # Paths
 PROJ_ROOT     = ../../..
 FIRMWARE_DIR  = $(PROJ_ROOT)/firmware
-PULP_DIR      = $(PROJ_ROOT)/firmware/pulp_platform
+# PULP_DIR      = $(PROJ_ROOT)/firmware/pulp_platform
+PULP_DIR      = $(PROJ_ROOT)/emulator/submodules/pulp_platform
 AXI_DIR       = $(PULP_DIR)/axi
 COM_VERIF_DIR = $(PULP_DIR)/common_verification
 COMMON_CELLS_DIR = $(PULP_DIR)/common_cells
