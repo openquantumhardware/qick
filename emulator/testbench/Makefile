@@ -5,9 +5,8 @@ TOP_MODULE = tb_qick_emu_verilator
 
 
 # Paths
-PROJ_ROOT     = ../../..
+PROJ_ROOT     = ../..
 FIRMWARE_DIR  = $(PROJ_ROOT)/firmware
-# PULP_DIR      = $(PROJ_ROOT)/firmware/pulp_platform
 PULP_DIR      = $(PROJ_ROOT)/emulator/submodules/pulp_platform
 AXI_DIR       = $(PULP_DIR)/axi
 COM_VERIF_DIR = $(PULP_DIR)/common_verification
@@ -71,7 +70,7 @@ VERILOG_SOURCES = \
     $(AXI_DIR)/src/axi_pkg.sv \
     $(AXI_DIR)/src/axi_test.sv \
     \
-    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/tb_qick_emu_verilator.sv
+    $(EMU_DIR)/testbench/tb_qick_emu_verilator.sv
 
 
 # Flags
@@ -121,7 +120,7 @@ clean:
 	rm -f fir_coe.txt
 
 help:
-	@echo "QICK axis_signal_gen_v6 Testbench Simulator"
+	@echo "QICK Emu Testbench Simulator"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo "If no target is specified, this help message is displayed."

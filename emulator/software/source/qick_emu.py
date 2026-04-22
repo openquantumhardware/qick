@@ -884,12 +884,12 @@ class QickEmu:
             self._capture_to_file(prog.print_wmem2hex, memdir / "wmem.mem")
 
         wmem_path = memdir / "wmem.mem"
-        if wmem_path.exists():
-            fixed = "\n".join(
-                line.lstrip("_") if not line.startswith("//") else line
-                for line in wmem_path.read_text().splitlines()
-            )
-            wmem_path.write_text(fixed + "\n")
+        # if wmem_path.exists():
+        #     fixed = "\n".join(
+        #         line.lstrip("_") if not line.startswith("//") else line
+        #         for line in wmem_path.read_text().splitlines()
+        #     )
+        #     wmem_path.write_text(fixed + "\n")
             
         gens = self.raw_cfg.get("gens", [])
         declared_gen_chs = sorted(getattr(prog, 'gen_chs', {}).keys())
@@ -927,10 +927,11 @@ class QickEmu:
         """Find the root of the qick repository to locate the PULP submodules."""
         here = pathlib.Path(__file__).resolve().parent
         for ancestor in [here] + list(here.parents):
-            candidate = ancestor / "firmware" / "testbench" / "qick_testbench" / "Makefile"
+            candidate = ancestor / "emulator"
             if candidate.exists():
-                return ancestor
-        return here.parent.parent  # Fallback
+                return ancestor.parent
+        raise FileNotFoundError("Could not find the qick repository root from %s" % (here))
+        # return here.parent.parent  # Fallback
 
     # =========================================================================
     # VERILATOR RUNNERS
@@ -1068,11 +1069,11 @@ class QickEmu:
         return out_csv
 
     def _find_tb_makefile(self) -> pathlib.Path:
-        """Locate ``firmware/testbench/qick_testbench/Makefile`` used by :meth:`run_verilator_tb`."""
+        """Locate ``emulator/testbench/Makefile`` used by :meth:`run_verilator_tb`."""
         proj_root = self._find_proj_root()
-        candidate = proj_root / "firmware" / "testbench" / "qick_testbench" / "Makefile"
+        candidate = proj_root / "emulator" / "testbench" / "Makefile"
         if not candidate.exists():
-            raise FileNotFoundError("Cannot find firmware/testbench/qick_testbench/Makefile.")
+            raise FileNotFoundError("Cannot find emulator/testbench/Makefile.")
         return candidate
 
     @staticmethod

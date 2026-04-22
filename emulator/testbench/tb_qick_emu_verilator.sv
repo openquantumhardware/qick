@@ -108,7 +108,7 @@ module tb_qick_emu_verilator ();
 //   +RO_AVG_LEN=<int>     — override averaged-readout drain length
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
-string EMU_DIR       = "src/tb/emulator";
+string EMU_DIR       = "emu_data";
 time   TEST_RUN_TIME = 5000us;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
