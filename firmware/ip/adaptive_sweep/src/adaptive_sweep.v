@@ -26,7 +26,7 @@ module adaptive_sweep #(
 
   assign en_rise = qtag_en_i & ~en_d;
 
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n)
       en_d <= 1'b0;
     else
@@ -34,7 +34,7 @@ module adaptive_sweep #(
   end
 
   // Main logic
-  always @(posedge clk or negedge rst_n) begin
+  always @(posedge clk) begin
     if (!rst_n) begin
       qtag_rdy_o  <= 1'b1;
       qtag_vld_o  <= 1'b0;
