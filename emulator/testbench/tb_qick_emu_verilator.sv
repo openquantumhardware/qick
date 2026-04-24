@@ -68,8 +68,12 @@ real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (4
 real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
 real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
 
+// real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
 real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+
+// real T_RO_CLK        =  1.627; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
 real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
+
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -108,8 +112,8 @@ module tb_qick_emu_verilator ();
 //   +RO_AVG_LEN=<int>     — override averaged-readout drain length
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
-string EMU_DIR       = "emu_data";
-time   TEST_RUN_TIME = 5000us;
+string EMU_DIR       = "../artifacts/qick_emu_data";
+time   TEST_RUN_TIME = 1us;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
 int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 = disabled)
@@ -151,8 +155,11 @@ axi_pkg::resp_t resp;
 
 // ++++++++++++ TELL VERILATOR TO LOG SIGNALS IN VCD FILE (opt-in via +TRACE)
 initial begin
+   #1;
    if ($test$plusargs("TRACE")) begin
-      $dumpfile("obj_dir/waveform.vcd");
+      string vcd_file;
+      vcd_file = {EMU_DIR, "/waveform.vcd"};
+      $dumpfile(vcd_file);
       $dumpvars(0, tb_qick_emu_verilator);
    end
 end
@@ -1699,7 +1706,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
 
+      $display("### %0t - Start tProc execution ###", $time);
       #(TEST_RUN_TIME);
+      $display("### %0t - End tProc execution ###", $time);
+
 
       // READ CAPTURED DATA FROM AVG BUFFER.
       $display("### %0t - Reading avg/dec buffers ###", $time);
@@ -1724,11 +1734,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       axi_mst_avg_agent.write(BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
 
       #50us;
-      $display("*** End Test ***");
+
+      $display("### %0t - Closing CSV files ###", $time);
       $fclose(dac_csv_fd);
       $fclose(avg_csv_fd);
       $fclose(dec_csv_fd);
       $fclose(mr_csv_fd);
+
+      $display("*** %0t - End Simulation ***", $time);
       $finish();
    end
 

@@ -927,9 +927,9 @@ class QickEmu:
         """Find the root of the qick repository to locate the PULP submodules."""
         here = pathlib.Path(__file__).resolve().parent
         for ancestor in [here] + list(here.parents):
-            candidate = ancestor / "emulator"
+            candidate = ancestor / "qick_lib"
             if candidate.exists():
-                return ancestor.parent
+                return ancestor
         raise FileNotFoundError("Could not find the qick repository root from %s" % (here))
         # return here.parent.parent  # Fallback
 
@@ -1101,6 +1101,8 @@ class QickEmu:
         ro_dec_len: Optional[int] = None,
         ro_avg_len: Optional[int] = None,
         mr_len: int = 0,
+        test_run_ns: Optional[int] = None,
+        trace: bool = False,
         *,
         build: bool = True,
         verbose: bool = True,
@@ -1126,11 +1128,17 @@ class QickEmu:
             Override for the decimated-buffer read length plusarg.
         ro_avg_len : int, optional
             Override for the accumulated-buffer read length plusarg.
+        mr_len : int
+            Plusarg value passed as ``+MR_LEN``; set to 0 to disable MR logging.
+        test_run_ns : int or None
+            If not None, plusarg value passed as ``+TEST_RUN_NS`` to modify the TB's test run duration.
         build : bool
             Run ``make verilate`` before ``make sim`` (default ``True``).
         verbose : bool
             If ``True``, stream build/sim output to the terminal. If
             ``False``, capture and include it only when the subprocess fails.
+        trace: bool
+            If ``True``, compile the TB with waveform tracing enabled (``+TRACE=1``).
         timeout : int or None
             Per-subprocess timeout in seconds.
 
@@ -1171,7 +1179,7 @@ class QickEmu:
             if verbose:
                 print(f"[verilate] Building tb_qick_emu_verilator ...")
             result = subprocess.run(
-                ["make", "verilate"], timeout=timeout, **run_kw
+                ["make", "verilate"], timeout=30, **run_kw
             )
             if result.returncode != 0:
                 raise RuntimeError(
@@ -1185,8 +1193,13 @@ class QickEmu:
         sim_args_str = (
             f"SIM_ARGS=+RO_DEC_LEN={int(ro_dec_len)} "
             f"+RO_AVG_LEN={int(ro_avg_len)} "
-            f"+MR_LEN={int(mr_len)}"
+            f"+MR_LEN={int(mr_len)} "
         )
+        if trace:
+            sim_args_str += f"+TRACE=1 "
+        if test_run_ns is not None:
+            sim_args_str += f"+TEST_RUN_NS={int(test_run_ns)} "
+
         result = subprocess.run(
             ["make", "sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str], timeout=timeout, **run_kw
         )
