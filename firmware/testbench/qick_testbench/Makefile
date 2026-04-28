@@ -79,9 +79,15 @@ VERILOG_SOURCES = \
 # -y resolves missing modules dynamically
 VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace-vcd --Wno-fatal \
     --timing \
+    -CFLAGS -w \
     -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
     -Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
     -Wno-PINMISSING -Wno-BADVLTPRAGMA -Wno-CONSTRAINTIGN \
+    -Wno-UNUSED -Wno-UNUSEDSIGNAL -Wno-UNUSEDPARAM \
+    -Wno-LATCH -Wno-CASEINCOMPLETE -Wno-IMPLICIT \
+    -Wno-STMTDLY -Wno-INITIALDLY -Wno-SYNCASYNCNET \
+    -Wno-MULTIDRIVEN -Wno-UNOPTFLAT -Wno-BLKANDNBLK \
+    -Wno-ASCRANGE -Wno-LITENDIAN -Wno-CMPCONST \
     -I$(AXI_DIR)/include \
     -I$(COM_VERIF_DIR)/include \
     -I$(COMMON_CELLS_DIR)/include \
