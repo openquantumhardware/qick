@@ -1,0 +1,9 @@
+# Python deps for the QICK emulator notebooks.
+# Installed into .venv at the repo root by ../setup_emulator.sh.
+# qick itself is installed separately via `pip install -e .` from the repo root.
+numpy
+scipy
+matplotlib
+ipykernel
+jupyter
+tqdm
