@@ -26,9 +26,6 @@ IPs used in the design of the qick_processor
 //////////////////////////////////////////////////////////////////////////////
 `define USE_XPM_MACROS
 
-// FOR TESTING WITH VIVADO, AUTOMATICALLY DEFINED BY VERILATOR 
-`define VERILATOR
-
 `ifdef VERILATOR
    `undef USE_XPM_MACROS
 `endif
