@@ -303,19 +303,20 @@ module axi_slv_sg_v6_sv #(parameter DATA_WIDTH = 32, parameter ADDR_WIDTH = 6)(
     end
 
     // Implement write response logic generation
-    always_ff@(posedge aclk) begin 
-        if (~aresetn) begin 
+    always_ff@(posedge aclk) begin
+        if (~aresetn) begin
             axi_bvalid <= 0;
             axi_bresp <= 0;
-        end else begin 
-            if (axi_awready == 1 && awvalid == 1 && axi_wready == 1 && wvalid == 1 && axi_bvalid == 0) begin 
+        end else begin
+            if (axi_awready == 1 && awvalid == 1 && axi_wready == 1 && wvalid == 1 && axi_bvalid == 0) begin
                 axi_bvalid <= 1;
                 axi_bresp <= 0;
-            end else if (bready == 1 && axi_bvalid == 1) begin 
+            end else if (bready == 1 && axi_bvalid == 1) begin
                 axi_bvalid <= 0;
             end
         end
     end
+
 
 
     /* AI CODE UNTESTED 

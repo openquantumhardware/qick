@@ -68,7 +68,11 @@ Temporary Items
 
 # Verilator work directories
 **/obj_dir/
-
+**/expected_out/
+**/artifacts/
+/CLAUDE.md
+/handoff.md
+/emulator/models/sig_gen_dds/src/dds_behavioral_model copy.sv
 ### Linux template
 *~
 .*.swp
@@ -81,7 +85,7 @@ build_tb/
 build_tb_mem/
 emulator_output/
 emulator/build_tb_mem/
-CLAUDE.md
+
 
 # Verilator outputs
 *.fst

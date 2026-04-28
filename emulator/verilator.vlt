@@ -1,0 +1,5 @@
+`verilator_config
+// Suppress UNSUPPORTED for virtual interfaces in PULP AXI test VIP
+// Only the AXI-Lite rand_master class is used; full AXI VIP virtual
+// interfaces are unused but Verilator 5.x errors on them regardless.
+lint_off -rule UNSUPPORTED -file "*/axi_test.sv"
