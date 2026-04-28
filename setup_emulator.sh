@@ -143,18 +143,42 @@ step_gtkwave() {
 
 # ---------- python venv + kernel ----------
 
+venv_is_healthy() {
+    [[ -x "$VENV_DIR/bin/python3" ]] && \
+    [[ -x "$VENV_DIR/bin/pip" || -d "$VENV_DIR/lib" ]] && \
+    "$VENV_DIR/bin/python3" -c 'import ensurepip, pip' 2>/dev/null
+}
+
 step_python() {
     if ! command -v python3 >/dev/null 2>&1; then
         err "python3 not found. Ubuntu: sudo apt install python3 python3-venv python3-pip"
         exit 1
     fi
-    if ! python3 -c 'import venv' 2>/dev/null; then
-        err "python3 'venv' module missing. Ubuntu: sudo apt install python3-venv"
+    # Probe the FULL venv toolchain, not just the venv module.
+    # On Ubuntu, 'import venv' passes even when python3-venv / ensurepip is missing,
+    # which produces a half-broken .venv with no pip and sometimes no python symlink.
+    if ! python3 -c 'import venv, ensurepip' 2>/dev/null; then
+        err "ensurepip is missing — your distro has stripped venv support."
+        err "Ubuntu fix:"
+        err "  sudo apt install -y python3-venv python3-pip"
+        local minor
+        minor=$(python3 -c 'import sys;print(f"python{sys.version_info[0]}.{sys.version_info[1]}-venv")')
+        err "  sudo apt install -y $minor    # version-specific package, often required"
         exit 1
     fi
     if [[ ! -f "$REQ_FILE" ]]; then
         err "expected requirements file at $REQ_FILE"
         exit 1
+    fi
+
+    if [[ -d "$VENV_DIR" ]] && ! venv_is_healthy; then
+        warn "existing venv at $VENV_DIR is incomplete (missing python3 or pip)"
+        if confirm "Delete and recreate it?"; then
+            rm -rf "$VENV_DIR"
+        else
+            err "cannot proceed with a broken venv — re-run after deleting $VENV_DIR"
+            exit 1
+        fi
     fi
 
     if [[ -d "$VENV_DIR" ]]; then
@@ -164,6 +188,11 @@ step_python() {
         python3 -m venv "$VENV_DIR"
     fi
 
+    if ! venv_is_healthy; then
+        err "venv created but is missing pip — install python3-venv / python${minor:-X.Y}-venv and re-run"
+        exit 1
+    fi
+
     local pip="$VENV_DIR/bin/pip"
     log "upgrading pip"
     "$pip" install --upgrade pip --quiet
@@ -171,7 +200,7 @@ step_python() {
     "$pip" install -r "$REQ_FILE" --quiet
     log "installing qick (editable) from $REPO_ROOT"
     "$pip" install -e "$REPO_ROOT" --quiet
-    ok "Python deps installed"
+    ok "Python deps installed (venv: $VENV_DIR)"
 }
 
 step_kernel() {
@@ -201,12 +230,27 @@ main() {
     cat <<EOF
 ${C_OK}Setup complete.${C_RST}
 
-Next steps:
-  1. Activate the venv (so Jupyter is on PATH):
-       source "$VENV_DIR/bin/activate"
-  2. Launch Jupyter:
-       jupyter notebook emulator/notebooks/00_intro_emu_mirrored.ipynb
-  3. In the notebook: Kernel ▸ Change Kernel ▸ "$KERNEL_DISPLAY"
+Venv Python: $VENV_DIR/bin/python
+Kernel:      $KERNEL_NAME  (display: "$KERNEL_DISPLAY")
+
+──────────────────────────────────────────────────────────────────────
+If you use VS Code (most likely):
+  • Reload the window:  Cmd/Ctrl+Shift+P → "Developer: Reload Window"
+  • If "$KERNEL_DISPLAY" still does not appear in the notebook picker,
+    point VS Code at the venv interpreter explicitly:
+        Cmd/Ctrl+Shift+P → "Python: Select Interpreter"
+        → "Enter interpreter path..."
+        → paste:  $VENV_DIR/bin/python
+    Then in the notebook click "Select Kernel" → "Python Environments"
+    and pick the .venv interpreter (the kernel will be created on the fly).
+  • Alternatively: "Select Kernel" → "Select Another Kernel..."
+        → "Jupyter Kernel..." → pick "$KERNEL_DISPLAY".
+
+If you use the classic Jupyter web UI:
+  source "$VENV_DIR/bin/activate"
+  jupyter notebook emulator/notebooks/00_intro_emu_mirrored.ipynb
+  # then Kernel ▸ Change Kernel ▸ "$KERNEL_DISPLAY"
+──────────────────────────────────────────────────────────────────────
 
 You can re-run this script any time; it skips steps that are already done.
 EOF
