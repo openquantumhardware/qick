@@ -68,7 +68,9 @@ def _stream_filtered(cmd, *, cwd, timeout):
     try:
         for line in proc.stdout:
             if not _VERILATOR_NOISE_RE.search(line):
-                print(line, end="")
+                # flush=True so classic Jupyter shows lines as they come in
+                # rather than dumping the whole transcript at the end.
+                print(line, end="", flush=True)
         proc.wait(timeout=timeout)
     except Exception:
         proc.kill()
