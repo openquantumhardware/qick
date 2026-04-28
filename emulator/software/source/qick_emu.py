@@ -33,9 +33,21 @@ _VERILATOR_NOISE_RE = re.compile(
     r"|warning:"                    # gcc/clang warnings (case sensitive on purpose)
     r"|^\s*note:"                   # gcc/clang note lines
     r"|^In file included from"      # gcc include trace
+    r"|^In function "               # gcc context line preceding a warning
     r"|^\s*from "                   # gcc include trace continuation
     r"|^\s*\d+ \| "                 # gcc source-line caret context
+    r"|^\s*\|"                      # gcc empty pipe / caret continuation
     r"|^\s*\^"                      # gcc caret marker
+    r"|^make\[\d+\]: "              # sub-make 'Entering/Leaving directory'
+    r"|^make: Entering "            # top-make
+    r"|^make: Leaving "
+    r"|^cp -f "                     # Makefile recipe echoes for sim:
+    r"|^verilator "                 # verilator command echo from `make verilate`
+    r"|^g\+\+ "                     # gcc/g++ invocation echo
+    r"|^cc -"                       # cc invocation echo
+    r"|^ar "                        # archive step
+    r"|^perl "                      # verilator helper invocations
+    r"|^- V e r i l a t i "         # verilator banner
     r")",
     re.MULTILINE,
 )
@@ -1214,6 +1226,17 @@ class QickEmu:
         except ValueError:
             rel_emu = emu_dir
 
+        # `make -s --no-print-directory` suppresses Make's own command echoing
+        # ('verilator ...', 'g++ ...', 'Entering directory ...') without
+        # touching tool stderr. Combined with the regex filter in
+        # `_stream_filtered`, this leaves only progress prints and real errors.
+        def _make(*targets):
+            cmd = ["make"]
+            if quiet:
+                cmd += ["-s", "--no-print-directory"]
+            cmd += list(targets)
+            return cmd
+
         # When verbose+quiet, stream subprocess output through a line filter that
         # drops verilator/gcc warning chatter while keeping errors and progress.
         # Errors (%Error*, fatal:, ld:) and stderr are always preserved.
@@ -1232,7 +1255,7 @@ class QickEmu:
         if build:
             if verbose:
                 print(f"[verilate] Building tb_qick_emu_verilator ...")
-            result = _run(["make", "verilate"])
+            result = _run(_make("verilate"))
             if result.returncode != 0:
                 raise RuntimeError(
                     f"make verilate failed (rc={result.returncode})"
@@ -1250,9 +1273,7 @@ class QickEmu:
         if test_run_ns is not None:
             plusargs.append(f"+TEST_RUN_NS={int(test_run_ns)}")
         sim_args_str = "SIM_ARGS=" + " ".join(plusargs)
-        result = _run(
-            ["make", "sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str]
-        )
+        result = _run(_make("sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str))
 
         if result.returncode != 0:
             raise RuntimeError(

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # One-shot environment setup for the QICK emulator notebooks.
 #
-# Run this from a normal terminal BEFORE opening Jupyter:
-#     ./setup_emulator.sh
+# This script lives in <repo>/emulator/ and may be run from anywhere:
+#     ./emulator/setup_emulator.sh        # from repo root
+#     cd emulator && ./setup_emulator.sh  # from emulator/
 #
 # It will:
 #   1. (optional, y/N) build & install Verilator 5.038 from source.
@@ -15,9 +16,10 @@
 set -euo pipefail
 
 REQUIRED_VERILATOR_VERSION="5.038"
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # <repo>/emulator
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VENV_DIR="$REPO_ROOT/.venv"
-REQ_FILE="$REPO_ROOT/emulator/requirements.txt"
+REQ_FILE="$SCRIPT_DIR/requirements.txt"
 KERNEL_NAME="qick-venv"
 KERNEL_DISPLAY="Python (qick)"
 VERILATOR_BUILD_DIR="$REPO_ROOT/.build/verilator"
@@ -214,8 +216,9 @@ step_kernel() {
 
 main() {
     detect_os
-    log "OS:        $OS"
-    log "Repo root: $REPO_ROOT"
+    log "OS:         $OS"
+    log "Script dir: $SCRIPT_DIR"
+    log "Repo root:  $REPO_ROOT"
     echo
 
     step_verilator
@@ -248,11 +251,12 @@ If you use VS Code (most likely):
 
 If you use the classic Jupyter web UI:
   source "$VENV_DIR/bin/activate"
-  jupyter notebook emulator/notebooks/00_intro_emu_mirrored.ipynb
+  jupyter notebook "$REPO_ROOT/emulator/notebooks/00_intro_emu_mirrored.ipynb"
   # then Kernel ▸ Change Kernel ▸ "$KERNEL_DISPLAY"
 ──────────────────────────────────────────────────────────────────────
 
 You can re-run this script any time; it skips steps that are already done.
+Script lives at: $SCRIPT_DIR/setup_emulator.sh
 EOF
 }
 
