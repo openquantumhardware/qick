@@ -978,10 +978,14 @@ class QickEmu:
             out_path.write_text(buf.getvalue())
 
     def _find_proj_root(self) -> pathlib.Path:
-        """Find the root of the qick repository to locate the PULP submodules."""
+        """Find the root of the qick repository.
+
+        Anchored on ``emulator/Makefile`` (the project-level TB Makefile,
+        which moved here from ``firmware/testbench/qick_testbench/``).
+        """
         here = pathlib.Path(__file__).resolve().parent
         for ancestor in [here] + list(here.parents):
-            candidate = ancestor / "firmware" / "testbench" / "qick_testbench" / "Makefile"
+            candidate = ancestor / "emulator" / "Makefile"
             if candidate.exists():
                 return ancestor
         return here.parent.parent  # Fallback
@@ -996,8 +1000,8 @@ class QickEmu:
         ro_dec_len: int = 1000,
         ro_avg_len: int = 1,
         verilog_dir=None,
-        top_module="tb_qick_emu_verilator",
-        sources=("tb_qick_emu_verilator.sv",),
+        top_module="QICKEmu_harness",
+        sources=("QICKEmu_harness.sv",),
         build_dir="build_tb_mem",
         log_csv_name="dac_out.csv",
         mem_filename_in_tb="wmem.mem",
@@ -1122,11 +1126,13 @@ class QickEmu:
         return out_csv
 
     def _find_tb_makefile(self) -> pathlib.Path:
-        """Locate ``firmware/testbench/qick_testbench/Makefile`` used by :meth:`run_verilator_tb`."""
+        """Locate ``emulator/Makefile`` used by :meth:`run_verilator_tb`."""
         proj_root = self._find_proj_root()
-        candidate = proj_root / "firmware" / "testbench" / "qick_testbench" / "Makefile"
+        candidate = proj_root / "emulator" / "Makefile"
         if not candidate.exists():
-            raise FileNotFoundError("Cannot find firmware/testbench/qick_testbench/Makefile.")
+            raise FileNotFoundError(
+                f"Cannot find emulator/Makefile under {proj_root}."
+            )
         return candidate
 
     @staticmethod
@@ -1256,7 +1262,7 @@ class QickEmu:
 
         if build:
             if verbose:
-                print(f"[verilate] Building tb_qick_emu_verilator ...")
+                print(f"[verilate] Building QICKEmu_harness ...")
             result = _run(_make("verilate"))
             if result.returncode != 0:
                 raise RuntimeError(

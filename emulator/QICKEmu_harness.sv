@@ -94,7 +94,7 @@ real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz â
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
 
-module tb_qick_emu_verilator ();
+module QICKEmu_harness ();
 
 //----------------------------------------------------
 // QickEmu Configuration
