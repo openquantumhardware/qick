@@ -8,7 +8,7 @@ This system includes the following components:
 * 2 input channels connected to ADCs.
 * 1 instance of tProcessor 64-bit instructions, 32-bit registers.
 
-Sampling frequency of ADC blocks is given by the variable ``soc.fs_adc``. Sampling frequency of DACs is stored in variable ``soc.fs_adc``. Fast-speed buffers were removed to save memory space. Raw data can be captured after x8 down-sampling.
+Sampling frequency of ADC blocks is given by the variable ``soc.fs_adc``. Sampling frequency of DACs is stored in variable ``soc.fs_dac``. Fast-speed buffers were removed to save memory space. Raw data can be captured after x8 down-sampling.
 
 Output channels driving DACs use the updated Signal Generator V4, which has the possibility to upload I/Q envelopes, and uses 32-bit resolution for both frequency and phase. The format of the control word was updated accordingly to accomodate the bits. See example asm files for a detailed description of the fields. The maximum length of the I/Q envelopes is given by the variable ``soc.gens[i].MAX_LENGTH``.
 
@@ -73,3 +73,19 @@ Firmware parameters
 * tProc stack size: 256 samples of 32 bits, 1k Byte total
 * Phase conversion from deg to reg: Phase resolution is 32-bit, that is :math:`\Delta \phi = 2 \pi /2^{32}` or :math:`360/2^{32}`
 * Gain is 16-bit signed [-32768,32767]
+
+Intellectual Property Cores
+---------------------------
+
+The firmware is built around the following IP cores:
+
+* Xilinx RF Data Converter IP, which provides the interface to the ADCs and DACs.
+* Xilinx AXI DMA IP, which provides the interface to the tProcessor for data transfer
+* Custom-designed IPs for the readout block, average and buffer block, and signal generator block, which are described in more detail in the `QICK assembly language documentation`
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Signal Generator v6
+   :hidden:
+
+   signal_generator_v6
