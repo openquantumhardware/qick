@@ -19,20 +19,20 @@ QICK and AMD
 
 Paper counts
 ------------
-These stats were computed from the next section's list of QICK papers as of January 26, 2026.
+These stats were computed from the next section's list of QICK papers as of May 2, 2026.
 
-.. image:: images/papers/QICKpapers_count_Jan26.png
+.. image:: images/papers/QICKpapers_count_May26.png
    :alt: QICK papers, total count
 
-.. image:: images/papers/QICKpapers_qubit_types_Jan26.png
+.. image:: images/papers/QICKpapers_qubit_types_May26.png
    :alt: QICK papers, by qubit type
 
-.. image:: images/papers/QICKpapers_scaling_Jan26_final.png
+.. image:: images/papers/QICKpapers_scaling_May26.png
    :alt: QICK papers, superconducting qubits, by topic
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated March 21, 2026.
+This list of academic papers that used the QICK was last updated May 2, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -65,6 +65,7 @@ Quantum error correction hardware
 
 Quantum simulation
 """"""""""""""""""
+* `Mucci, M. et al. A superconducting quantum circuit single artificial atom maser. (2026) <https://arxiv.org/abs/2604.05105>`_.
 * `Molinelli, M. et al. Chiral and bond-ordered phases in a triangular-ladder superconducting-qubit quantum simulator. (2026) <https://arxiv.org/abs/2603.16993>`_.
 * `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
 
@@ -75,6 +76,7 @@ Gates/couplers
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
+* `Xia, M. et al. Fast superconducting qubit control with subharmonic drives. (2023) <https://arxiv.org/abs/2306.10162>`_.
 * `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
 
 Coherence
@@ -136,8 +138,13 @@ Neutral atoms
 ^^^^^^^^^^^^^
 * `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
 
+Ultracold molecules
+^^^^^^^^^^^^^^^^^^^
+* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
+
 Spin defects
 ^^^^^^^^^^^^
+* `Marcenac, V. et al. Sub-nanosecond control for spin-defect quantum memories with a low-cost, compact FPGA platform. (2026) <https://arxiv.org/abs/2604.11743>`_.
 * `Katsumi, R. et al. Chiral microwave metasurface for controlling spins in diamond. (2026) <https://www.researchsquare.com/article/rs-9035542/v1>`_.
 * `Elmslie, T. et al. Homogeneous Microwave Delivery for Quantum Sensing with Nitrogen-Vacancy Centers at High Pressures. (2026) <https://arxiv.org/abs/2601.11725>`_.
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
@@ -148,6 +155,7 @@ Spin defects
 
 Quantum dots
 ^^^^^^^^^^^^
+* `El Hajj, D. et al. Preliminary Demonstration of Spin Qubit Control Using the Quantum Instrumentation Control Kit (QICK). (2026) <https://link.springer.com/chapter/10.1007/978-3-032-13852-1_2>`_.
 * `Shinozaki, M. et al. Perfect impedance matching unlocks sensitive radio-frequency reflectometry in 2D material quantum dots. (2025) <https://arxiv.org/abs/2512.02225>`_.
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
