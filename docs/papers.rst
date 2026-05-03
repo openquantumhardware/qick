@@ -19,15 +19,15 @@ QICK and AMD
 
 Paper counts
 ------------
-These stats were computed from the next section's list of QICK papers as of January 26, 2026.
+These stats were computed from the next section's list of QICK papers as of May 2, 2026.
 
-.. image:: images/papers/QICKpapers_count_Jan26.png
+.. image:: images/papers/QICKpapers_count_May26.png
    :alt: QICK papers, total count
 
-.. image:: images/papers/QICKpapers_qubit_types_Jan26.png
+.. image:: images/papers/QICKpapers_qubit_types_May26.png
    :alt: QICK papers, by qubit type
 
-.. image:: images/papers/QICKpapers_scaling_Jan26_final.png
+.. image:: images/papers/QICKpapers_scaling_May26.png
    :alt: QICK papers, superconducting qubits, by topic
 
 Papers using QICK
