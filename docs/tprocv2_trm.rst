@@ -79,7 +79,7 @@ The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It
 
 **Most common instructions (keep this nearby):**
 
-.. code-block:: none
+.. code-block:: text
 
    // Register operations
    REG_WR rd imm #value               // rd = value
@@ -118,7 +118,7 @@ The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It
 
 **Condition codes (most useful):**
 
-.. code-block:: none
+.. code-block:: text
 
    -if(Z)    // zero (result == 0)
    -if(NZ)   // non‑zero (result != 0)  ← most common for loops
@@ -383,7 +383,7 @@ or when reading the AXI debug registers.
 
 These are general purpose. No predefined aliases, but you can create your own:
 
-.. code-block:: none
+.. code-block:: text
 
    .ALIAS loop_counter r0
    .ALIAS temp_result  r1
@@ -510,7 +510,7 @@ These six registers are **individually accessible** but also concatenated into `
 
 **Special Composite: r_wave**
 
-.. code-block:: none
+.. code-block:: text
 
    r_wave is not a physical register. It is a 168-bit bus formed by concatenation:
    
@@ -531,7 +531,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Writing to DREG (data registers):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r5 imm #100           // r5 = 100
    REG_WR r5 op -op(r0 + r1)    // r5 = r0 + r1
@@ -539,7 +539,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Reading from DREG (as source):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r6 op -op(r5)         // r6 = r5 (copy)
    DMEM_WR [&20] imm r5         // DMEM[20] = r5
@@ -547,7 +547,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Writing to SREG:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR s_cfg imm src_arith   // configure data source
    REG_WR s_out_time imm #1000  // set output time
@@ -555,7 +555,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Reading from SREG:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 op -op(s_rand)         // r0 = random number
    REG_WR r1 op -op(s_usr_time)     // r1 = current time
@@ -563,7 +563,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Writing to WREG (individual parameter):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR w_freq imm #0x1000000     // set frequency
    REG_WR w_gain imm #32768         // set gain
@@ -571,7 +571,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Writing to r_wave (all parameters at once):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r_wave wmem [&5]          // load from WMEM
    // or
@@ -579,7 +579,7 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 
 **Using wreg as source in ALU operations:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 op -op(w_freq)         // r0 = current frequency
    REG_WR r1 op -op(w_freq + #100)  // r1 = frequency + 100
@@ -640,7 +640,7 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Mistake 1: Using r_wave when you meant a wreg**
 
-.. code-block:: none
+.. code-block:: text
 
    // Wrong: trying to write only frequency
    REG_WR r_wave imm #0x1000000   // This would zero out other parameters!
@@ -650,7 +650,7 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Mistake 2: Reading s_status without masking**
 
-.. code-block:: none
+.. code-block:: text
 
    // Wrong: compares entire status (many bits may be set)
    TEST -op(s_status - #4)        // checks if status == 4
@@ -660,7 +660,7 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Mistake 3: Using s_out_time as read‑only**
 
-.. code-block:: none
+.. code-block:: text
 
    // Wrong: trying to read current time
    REG_WR r0 op -op(s_out_time)   // this reads the OUTPUT time, not current time!
@@ -678,14 +678,14 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Register to register:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r1 op -op(r0)            // r1 = r0
    REG_WR r1 op -op(s_rand)        // r1 = random number
 
 **Immediate to register:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 imm #12345            // r0 = 12345
    REG_WR r0 imm #hDEADBEEF        // r0 = 0xDEADBEEF (hex)
@@ -693,14 +693,14 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Memory to register:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 dmem [&100]           // r0 = DMEM[100]
    REG_WR r_wave wmem [&5]         // r_wave = WMEM[5]
 
 **Register to memory:**
 
-.. code-block:: none
+.. code-block:: text
 
    DMEM_WR [&100] imm #42          // DMEM[100] = 42
    DMEM_WR [r0] op -op(r1)         // DMEM[r0] = r1
@@ -711,14 +711,14 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Addition and subtraction:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r2 op -op(r0 + #100)     // r2 = r0 + 100
    REG_WR r2 op -op(r0 - r1)       // r2 = r0 - r1
 
 **Bitwise operations:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r2 op -op(r0 AND #hFF)   // r2 = r0 & 0xFF (lower byte)
    REG_WR r2 op -op(r0 OR r1)      // r2 = r0 | r1
@@ -727,7 +727,7 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Shifts:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r2 op -op(r0 SL #2)      // r2 = r0 << 2 (logical left)
    REG_WR r2 op -op(r0 SR #1)      // r2 = r0 >> 1 (logical right)
@@ -735,7 +735,7 @@ Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
 **Special operations:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r2 op -op(MSH r0)        // r2 = upper 16 bits of r0
    REG_WR r2 op -op(LSH r0)        // r2 = lower 16 bits of r0
@@ -752,32 +752,43 @@ The ARITH unit uses the FPGA's DSP48 slices. It can compute (D ± A) * B ± C in
 
 .. list-table::
    :header-rows: 1
+   :widths: 20 20 40
 
    * - Mnemonic
      - Formula
      - Example
    * - ``ARITH T A B``
      - A * B
-     - ``ARITH T r1 r2``
-   * - ``ARITH TA A B``
-     - A * B + C (C must be 0 in this syntax? check)
+     - ``ARITH T r1 r2`` = r1 * r2
+   * - ``ARITH TP A B C``
+     - A * B + C
+     - ``ARITH TP r1 w_freq s_rand`` = r1 * w0 + s1
+   * - ``ARITH TM A B C``
+     - A * B - C
+     - ``ARITH TM r1 s2 r3`` = r1 * s2 - r3
    * - ``ARITH PT A B C``
-     - (A + B) * C
-     - ``ARITH PT r1 r2 r3`` = (r1+r2)*r3
+     - (D + A) * B
+     - ``ARITH PT r2 r1 w_gain`` = (r2 + r1) * w3
    * - ``ARITH MT A B C``
-     - (A - B) * C
+     - (D - A) * B
+     - ``ARITH MT r1 r2 r3`` = (r1 - r2) * r3
    * - ``ARITH PTP A B C D``
-     - (A + B) * C + D
+     - (D + A) * B + C
+     - ``ARITH PTP r1 s_rand r3 r4`` = (r1 + s1) * r3 + r4
    * - ``ARITH PTM A B C D``
-     - (A + B) * C - D
+     - (D + A) * B - C
+     - ``ARITH PTM r1 r2 r3 r4`` = (r1 + r2) * r3 - r4
    * - ``ARITH MTP A B C D``
-     - (A - B) * C + D
+     - (D - A) * B + C
+     - ``ARITH MTP r1 s2 w3 r4`` = (r1 - s2) * w3 + r4
    * - ``ARITH MTM A B C D``
-     - (A - B) * C - D
+     - (D - A) * B - C
+     - ``ARITH MTM r1 r2 r3 r4`` = (r1 - r2) * r3 - r4
+  
 
 **Typical use: multiply‑accumulate for digital filtering**
 
-.. code-block:: none
+.. code-block:: text
 
    // Example: y = (r1 * r2) + r3
    REG_WR r1 imm #100
@@ -797,12 +808,113 @@ The ARITH unit uses the FPGA's DSP48 slices. It can compute (D ± A) * B ± C in
 
 The ARITH unit can compute (D ± A) * B ± C. To get A * B + C, set D=0, use addition for the first term, and addition for the last term. You need a register that contains 0 (use s_zero).
 
-.. code-block:: none
+.. code-block:: text
 
    // (0 + r1) * r2 + r3
    ARITH PTP r1 r2 s_zero r3
    WAIT arith_dt
    REG_WR r4 op -op(s_arith_low)
+
+ARITH Command Decoder: Understanding PTP, MTM, T, etc.
+------------------------------------------------------------
+
+The ARITH instruction uses a compact 2-3 letter code that encodes the entire formula.
+
+**Formula Pattern:** (D ± A) * B ± C
+
+Where:
+- **A, B, C, D** are registers (rX, sY, or wZ)
+- **D** is often s_zero (0) if not used
+
+**Decoding the mnemonic:**
+
+The mnemonic consists of up to 3 letters. Read them from LEFT to RIGHT:
+
+.. list-table:: ARITH Mnemonic Decoder
+   :header-rows: 1
+   :widths: 15 25 50
+
+   * - Mnemonic
+     - Number of operands
+     - Formula
+   * - T
+     - 2
+     - A * B
+   * - PT
+     - 3
+     - (A + B) * C
+   * - MT
+     - 3
+     - (A - B) * C
+   * - PTP
+     - 4
+     - (A + B) * C + D
+   * - PTM
+     - 4
+     - (A + B) * C - D
+   * - MTP
+     - 4
+     - (A - B) * C + D
+   * - MTM
+     - 4
+     - (A - B) * C - D
+
+**Memory trick to remember:**
+
+.. code-block:: text
+
+   T  = Times (multiply only)
+   P  = Plus (addition in first part)
+   M  = Minus (subtraction in first part)
+   TP = Times Plus (multiply then add)
+   TM = Times Minus (multiply then subtract)
+
+   Read PT as "Plus then Times" → (A+B)*C
+   Read PTP as "Plus then Times then Plus" → (A+B)*C + D
+
+**Examples decoded:**
+
+.. code-block:: text
+
+   ARITH T r1 r2           → r1 × r2
+   ARITH PT r1 r2 r3       → (r1 + r2) × r3
+   ARITH MT r1 r2 r3       → (r1 - r2) × r3
+   ARITH PTP r1 r2 r3 r4   → (r1 + r2) × r3 + r4
+   ARITH PTM r1 r2 r3 r4   → (r1 + r2) × r3 - r4
+   ARITH MTP r1 r2 r3 r4   → (r1 - r2) × r3 + r4
+   ARITH MTM r1 r2 r3 r4   → (r1 - r2) × r3 - r4
+
+**Quick Reference Card for ARITH:**
+
+.. code-block:: text
+
+   ┌─────────────────────────────────────────────────────────────────┐
+   │  USE THIS CHEAT SHEET FOR ARITH                                 │
+   ├─────────────────────────────────────────────────────────────────┤
+   │                                                                 │
+   │  Need: A * B                 →  ARITH T rA rB                   │
+   │  Need: (A + B) * C           →  ARITH PT rA rB rC               │
+   │  Need: (A - B) * C           →  ARITH MT rA rB rC               │
+   │  Need: (A + B) * C + D       →  ARITH PTP rA rB rC rD           │
+   │  Need: (A + B) * C - D       →  ARITH PTM rA rB rC rD           │
+   │  Need: (A - B) * C + D       →  ARITH MTP rA rB rC rD           │
+   │  Need: (A - B) * C - D       →  ARITH MTM rA rB rC rD           │
+   │                                                                 │
+   └─────────────────────────────────────────────────────────────────┘
+
+**Complete Working Example:**
+
+.. code-block:: text
+
+   // Calculate: (r1 + r2) * r3 + r4
+   REG_WR r1 imm #10
+   REG_WR r2 imm #20
+   REG_WR r3 imm #3
+   REG_WR r4 imm #5
+   
+   ARITH PTP r1 r2 r3 r4
+   WAIT arith_dt
+   REG_WR r5 op -op(s_arith_low)   // r5 = (10+20)*3+5 = 95
 
 5.4. Division (DIV)
 --------------------
@@ -811,7 +923,7 @@ The DIV block performs **unsigned** 32‑bit integer division in 32 cycles.
 
 **Syntax:**
 
-.. code-block:: none
+.. code-block:: text
 
    DIV numerator denominator
 
@@ -820,7 +932,7 @@ The DIV block performs **unsigned** 32‑bit integer division in 32 cycles.
 
 **Example: divide r1 by r2, get quotient and remainder**
 
-.. code-block:: none
+.. code-block:: text
 
    DIV r1 r2                // start division
    WAIT div_dt              // wait 32 cycles (macro)
@@ -834,30 +946,30 @@ The DIV block performs **unsigned** 32‑bit integer division in 32 cycles.
 
 **Unconditional jump:**
 
-.. code-block:: none
+.. code-block:: text
 
    JUMP LABEL               // always jump
 
 **Conditional jump (most common for loops):**
 
-.. code-block:: none
+.. code-block:: text
 
    JUMP LABEL -if(NZ)       // jump if last ALU result was not zero
 
 **Conditional jump with decrement (standard loop pattern):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 imm #10        // r0 = 10 (loop counter)
-LOOP:
-   // ... do something ...
-   JUMP LOOP -wr(r0 op) -op(r0 - #1) -uf   // decrement r0, update flags, jump if not zero
+   LOOP:
+      // ... do something ...
+      JUMP LOOP -wr(r0 op) -op(r0 - #1) -uf   // decrement r0, update flags, jump if not zero
 
 **Avoiding the branch penalty:**
 
 Because branches cause a 2‑cycle pipeline flush, use conditional execution for simple cases:
 
-.. code-block:: none
+.. code-block:: text
 
    // Instead of:
    // JUMP SKIP -if(Z)
@@ -872,14 +984,14 @@ Because branches cause a 2‑cycle pipeline flush, use conditional execution for
 
 The tProc supports nested calls up to 256 levels deep.
 
-.. code-block:: none
+.. code-block:: text
 
    CALL MY_SUBROUTINE
    // ... after subroutine returns, execution continues here
 
-MY_SUBROUTINE:
-   // ... do something ...
-   RET
+   MY_SUBROUTINE:
+      // ... do something ...
+      RET
 
 **Important:** The stack only stores return addresses, not local variables. Use registers or DMEM for local storage.
 
@@ -890,7 +1002,7 @@ The ``WAIT`` macro expands to a small loop. It is convenient but not cycle‑acc
 
 **Expansion of ``WAIT time @N``:**
 
-.. code-block:: none
+.. code-block:: text
 
    // Original: WAIT time @1000
    // Expands to:
@@ -899,7 +1011,7 @@ The ``WAIT`` macro expands to a small loop. It is convenient but not cycle‑acc
 
 **Expansion of ``WAIT div_dt`` (wait for division to complete):**
 
-.. code-block:: none
+.. code-block:: text
 
    // Original: WAIT div_dt
    // Expands to:
@@ -908,7 +1020,7 @@ The ``WAIT`` macro expands to a small loop. It is convenient but not cycle‑acc
 
 **Custom wait for a specific flag:**
 
-.. code-block:: none
+.. code-block:: text
 
    // Wait for ARITH_RDY (bit 0 of s_status)
    WAIT_LOOP:
@@ -920,7 +1032,7 @@ The ``WAIT`` macro expands to a small loop. It is convenient but not cycle‑acc
 
 The ``CLEAR`` macro clears the ``_NEW`` flags in ``s_status``.
 
-.. code-block:: none
+.. code-block:: text
 
    CLEAR arith      // clears bit 1 (ARITH_DT_NEW)
    CLEAR div        // clears bit 3 (DIV_DT_NEW)
@@ -929,7 +1041,7 @@ The ``CLEAR`` macro clears the ``_NEW`` flags in ``s_status``.
 
 **Pattern for reading a peripheral only when new data is ready:**
 
-.. code-block:: none
+.. code-block:: text
 
    WAIT arith_dt
    REG_WR r0 op -op(s_arith_low)   // read result
@@ -950,12 +1062,14 @@ The ``CLEAR`` macro clears the ``_NEW`` flags in ``s_status``.
 - ``t_abs_out = t_ref + t_out_user``: absolute time when output will occur.
 
 **Why signed t_out_user?**  
-You can schedule outputs with a **negative** offset, meaning "output at time X relative to reference, even if reference is in the past". This is useful for synchronizing with other boards or for pre‑calculated sequences where the reference moves.
+You can schedule outputs with a **negative** offset, meaning "output at time X relative 
+to reference, even if reference is in the past". This is useful for synchronizing with 
+other boards or for pre‑calculated sequences where the reference moves.
 
 6.2. TIME Instructions
 ----------------------
 
-.. code-block:: none
+.. code-block:: text
 
    TIME rst           // t_abs = 0, t_ref = 0, core resets
    TIME set_ref rX    // t_ref = rX (t_abs unchanged)
@@ -964,7 +1078,7 @@ You can schedule outputs with a **negative** offset, meaning "output at time X r
 
 **Typical initialization sequence:**
 
-.. code-block:: none
+.. code-block:: text
 
    TIME rst           // start from zero
    // ... wait for external trigger ...
@@ -975,13 +1089,13 @@ You can schedule outputs with a **negative** offset, meaning "output at time X r
 
 **Fixed time (immediate):**
 
-.. code-block:: none
+.. code-block:: text
 
    WPORT_WR p0 r_wave @1000    // output at t_usr = 1000
 
 **Relative to previous output:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR s_out_time imm #1000
    WPORT_WR p0 r_wave @s_out_time
@@ -990,7 +1104,7 @@ You can schedule outputs with a **negative** offset, meaning "output at time X r
 
 **Variable time from register:**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r0 imm #2000
    WPORT_WR p0 r_wave @r0          // @r0 is allowed? Check syntax.
@@ -1000,7 +1114,7 @@ You can schedule outputs with a **negative** offset, meaning "output at time X r
 6.4. Waiting for a Specific Time
 --------------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    WAIT time @5000     // pause execution until t_usr >= 5000
 
@@ -1014,21 +1128,21 @@ You can schedule outputs with a **negative** offset, meaning "output at time X r
 
 **Data ports (DPORT)**: 32‑bit digital outputs
 
-.. code-block:: none
+.. code-block:: text
 
    DPROT_WR p0 imm 0x12345678 @1000
    DPROT_WR p2 reg r5 @2000
 
 **Trigger ports (TRIG)**: 1‑bit outputs (set high or low)
 
-.. code-block:: none
+.. code-block:: text
 
    TRIG p0 set @150    // output 1
    TRIG p0 clr @200    // output 0
 
 **Wave ports (WPORT)**: 168‑bit waveform parameters
 
-.. code-block:: none
+.. code-block:: text
 
    WPORT_WR p1 r_wave @1000        // from r_wave
    WPORT_WR p1 wmem [&5] @2000     // from WMEM address 5
@@ -1040,7 +1154,7 @@ Input ports receive data from ADCs or other sources via AXI‑Stream.
 
 **Reading a single port (64 bits total):**
 
-.. code-block:: none
+.. code-block:: text
 
    WAIT port_dt        // wait until any input port has new data
    DPORT_RD p0         // read port 0 -> s_port_l (lower 32) and s_port_h (upper 32)
@@ -1050,7 +1164,7 @@ Input ports receive data from ADCs or other sources via AXI‑Stream.
 
 The ``s_status`` register has bits 31:16 indicating which port has fresh data. You can test individual bits.
 
-.. code-block:: none
+.. code-block:: text
 
    // Wait specifically for port 2 (bit 18)
    WAIT_PORT2:
@@ -1072,7 +1186,7 @@ Python can set or clear an external flag that the tProc can test with ``-if(F)``
 
 **In assembly:**
 
-.. code-block:: none
+.. code-block:: text
 
    WAIT_FOR_FLAG:
       REG_WR r0 imm #0 -if(NF)     // do nothing if flag not set
@@ -1091,7 +1205,7 @@ The ARITH unit is the most powerful peripheral. It can replace multiple ALU inst
 
 **Configuration before using ARITH:**
 
-.. code-block:: none
+.. code-block:: text
 
    // 1. Set data source for s_core_r1 to ARITH
    REG_WR s_cfg imm src_arith
@@ -1101,19 +1215,19 @@ The ARITH unit is the most powerful peripheral. It can replace multiple ALU inst
 
 **Start an ARITH operation:**
 
-.. code-block:: none
+.. code-block:: text
 
    ARITH T r1 r2        // r1 * r2 (2 cycles)
 
 **Wait for completion:**
 
-.. code-block:: none
+.. code-block:: text
 
    WAIT arith_dt        // macro: poll ARITH_DT_NEW bit
 
 **Read the result (64 bits):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR r_low op -op(s_arith_low)    // lower 32 bits
    // s3 (s_arith_low) holds the result
@@ -1128,7 +1242,7 @@ Division is slow (32 cycles) but non‑blocking: the CPU continues execution whi
 
 **Best practice:** Start a division early, do other work, then check for completion.
 
-.. code-block:: none
+.. code-block:: text
 
    // Start division early
    DIV r1 r2
@@ -1156,7 +1270,7 @@ Configure via ``core_cfg`` AXI register.
 
 **Example: advance‑on‑read mode**
 
-.. code-block:: none
+.. code-block:: text
 
    // Configure from Python
    soc.tproc.write_axi_reg(0x07, 0x02)   // core_cfg = 2 (advance on read)
@@ -1173,7 +1287,7 @@ Configure via ``core_cfg`` AXI register.
 9.1. Generate a Single Pulse
 ----------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    // Configure waveform
@@ -1190,7 +1304,7 @@ Configure via ``core_cfg`` AXI register.
 9.2. Generate a Pulse Train
 ---------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    REG_WR r0 imm #10                 // number of pulses
@@ -1206,7 +1320,7 @@ Configure via ``core_cfg`` AXI register.
 9.3. Conditional Pulse Based on ADC Value
 ------------------------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    // Initialization
@@ -1248,7 +1362,7 @@ Configure via ``core_cfg`` AXI register.
 9.4. Frequency Sweep (Chirp)
 ----------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    REG_WR r0 imm #100               // number of steps
@@ -1267,15 +1381,15 @@ LOOP:
 9.5. Wait for External Trigger (from Python flag)
 --------------------------------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    // Wait for Python to set external flag
-WAIT_TRIG:
-   JUMP WAIT_TRIG -if(NF)           // loop while flag is 0
-   // Flag is set, continue
-   WPORT_WR p1 r_wave @1000
-   .END
+   WAIT_TRIG:
+      JUMP WAIT_TRIG -if(NF)           // loop while flag is 0
+      // Flag is set, continue
+      WPORT_WR p1 r_wave @1000
+      .END
 
 From Python:
 
@@ -1286,7 +1400,7 @@ From Python:
 9.6. Read and Accumulate ADC Data
 ---------------------------------
 
-.. code-block:: none
+.. code-block:: text
 
    .ADDR 0x00
    REG_WR r0 imm #0                  // accumulator
@@ -1700,14 +1814,14 @@ The tProcessor can be configured at synthesis time (in the FPGA bitstream) to ma
 
 **Wrong:**
 
-.. code-block:: none
+.. code-block:: text
 
    ARITH T r1 r2
    REG_WR r3 op -op(s_arith_low)   // reads stale data!
 
 **Correct:**
 
-.. code-block:: none
+.. code-block:: text
 
    ARITH T r1 r2
    WAIT arith_dt
@@ -1729,7 +1843,7 @@ The tProcessor can be configured at synthesis time (in the FPGA bitstream) to ma
 
 **Example of inefficient loop:**
 
-.. code-block:: none
+.. code-block:: text
 
    LOOP:
       // ... code ...
@@ -1742,14 +1856,14 @@ The tProcessor can be configured at synthesis time (in the FPGA bitstream) to ma
 
 **Wrong:**
 
-.. code-block:: none
+.. code-block:: text
 
    WPORT_WR p0 r_wave @1000
    WPORT_WR p0 r_wave @2000   // second write uses immediate 2000
 
 **Correct (using s_out_time for incremental timing):**
 
-.. code-block:: none
+.. code-block:: text
 
    REG_WR s_out_time imm #1000
    WPORT_WR p0 r_wave @s_out_time
