@@ -1,569 +1,1652 @@
-============================================
-QICK tProcessor v2 Detailed Reference Manual
-============================================
+==================================================
+QICK tProcessor v2 - Complete Reference Manual
+==================================================
 
-:Version: 2.0
+:Version: 2.1
+:Last Update: 2026-05-05
 :Compatibility: QICK Firmware (>= v0.0.1)
-:Abstract: This manual explains the architecture, instruction set, and programming model of the tProcessor v2, with emphasis on real‑time control for quantum experiments. It is written for firmware developers and advanced QICK users.
+:Audience: Firmware developers, advanced QICK users, researchers
 
 .. contents:: Table of Contents
-   :depth: 2
+   :depth: 3
 
-1. What is the tProcessor and why does it exist?
-=================================================
+-------------------------------------------------------------------------------
 
-The tProcessor (timing Processor) is a specialized CPU inside the QICK FPGA. Its sole purpose is to **execute a sequence of actions with extremely precise timing** – down to a few nanoseconds. A standard processor (like an ARM CPU) cannot guarantee such timing because it runs an operating system and unpredictable interrupts. The tProcessor is a **hard real‑time co‑processor** dedicated to waveform generation and feedback.
-
-Key design principles:
-
-* **Deterministic execution** – Every instruction takes a known number of clock cycles.
-* **Time‑aware instructions** – You specify *when* an output should change, not just *what* to output.
-* **Dual tasks** – One instruction can do two things (e.g., compute a new value and write a port).
-* **Low latency to outputs** – Approximately 5 clock cycles from instruction to physical pin.
-
-In a typical experiment, the tProcessor:
-
-1. Waits for a trigger or a specific time.
-2. Configures DACs to generate a pulse (frequency, phase, gain).
-3. Reads ADC data (feedback).
-4. Adjusts subsequent pulses based on that data.
-
-2. Architectural Overview (with explanations)
-==============================================
-
-2.1. The three clock domains – why they matter
------------------------------------------------
-
-The tProcessor has **three separate clock domains**. This is unusual and important to understand.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Domain
-     - Signal name
-     - Typical frequency
-     - Purpose
-     - What happens here
-   * - **Time domain**
-     - ``t_clk``
-     - 384 MHz – 6 GHz (DAC rate)
-     - Counting time and updating outputs
-     - Dispatcher FIFOs, comparators, physical ports
-   * - **Core domain**
-     - ``c_clk``
-     - ≤ ``t_clk`` (often 350 MHz)
-     - Executing instructions
-     - CPU pipeline, ALU, registers, memories
-   * - **PS domain**
-     - ``ps_clk``
-     - 100 MHz
-     - Communication with ARM processor
-     - AXI‑Lite and AXI‑Stream interfaces
-
-**Why three clocks?**  
-The DAC runs very fast (GHz). The CPU cannot run that fast (it would consume too much power and fail timing). So we separate:
-- The **CPU** runs at a comfortable speed.
-- The **time counter** runs at the DAC speed.
-- The **dispatcher** compares the two and updates outputs exactly when needed.
-
-**Rule to remember:**  
-``t_clk`` must be **faster than or equal to** ``c_clk``. Never slower.
-
-2.2. The pipeline – how instructions execute
----------------------------------------------
-
-The CPU uses a 5‑stage pipeline. This means up to 5 instructions are in flight at once.
-
-.. code-block::
-
-   Stage 1: FETCH    ──> Read instruction from PMEM
-   Stage 2: DECODE   ──> Interpret opcode, read registers
-   Stage 3: READ     ──> Get data from forwarding or memory
-   Stage 4: EXECUTE  ──> ALU operation, address calculation
-   Stage 5: WRITE    ──> Write result to register or FIFO
-
-**Why does this matter to you?**  
-- **Branch instructions** (JUMP, CALL) cause a 2‑cycle penalty because the pipeline must be flushed.
-- **Dual‑task instructions** (``-wr``, ``-wp``) execute in parallel – no extra cycles.
-- **Data hazards** (using a result immediately after computing it) are handled by forwarding hardware, but you should still be careful with very tight loops.
-
-2.3. The dispatcher – the secret to precise timing
----------------------------------------------------
-
-The dispatcher is a separate hardware block that continuously monitors the current time (``t_abs``) and a set of FIFOs. Each FIFO entry contains:
-
-* A 48‑bit absolute output time (``t_abs_out``)
-* A data value (32‑bit for DPORT, 168‑bit for WPORT, 1‑bit for TRIG)
-
-When the current time reaches or passes the scheduled time, the dispatcher **immediately** updates the output port. The CPU does not need to poll or wait – it just pushes data and moves on.
-
-**Latency breakdown:**
-
-1. CPU writes to FIFO: 1 cycle
-2. Data travels to dispatcher (clock domain crossing): 1 cycle
-3. Dispatcher comparator: 1 cycle
-4. Output register update: 1 cycle
-5. Physical pin propagation: 1 cycle (FPGA specific)
-
-**Total:** about 5 cycles of ``t_clk``.  
-At 384 MHz, 5 cycles ≈ 13 ns. This is your minimum time between a write instruction and the output changing.
-
-3. Memory Hierarchy (explained)
+PREFACE: How to use this manual
 ===============================
 
-The tProcessor has **three separate memories**, each optimized for a different purpose.
+This manual is organized by **task**, not just by instruction. If you know what you want to *do* (e.g., "wait for ADC data", "generate a chirp", "synchronize two boards"), look for the **task‑based section** (Chapter 9). If you need the exact encoding of an instruction, see the **reference section** (Chapter 11).
 
-3.1. PMEM – Program Memory
---------------------------
-
-- **Width:** 64 bits per instruction
-- **Size:** 256 to 65536 instructions (configurable)
-- **Access:** CPU reads only; PS can write via DMA (to load programs)
-
-**Why 64 bits?**  
-One instruction needs to encode:
-- The operation (e.g., ``REG_WR``)
-- Source and destination registers
-- Immediate values (up to 32 bits)
-- Options (conditions, dual tasks)
-- Addressing modes
-
-All this fits in 64 bits. Earlier versions used 72 bits, but we optimized the encoding.
-
-**Practical limit:**  
-At 350 MHz, 65536 instructions execute in about 187 µs (if no branches). For longer sequences, you must loop or use subroutines.
-
-3.2. DMEM – Data Memory
------------------------
-
-- **Width:** 32 bits per word
-- **Size:** 256 to 65536 words
-- **Access:** CPU read/write; PS read/write via DMA
-
-**Use cases:**
-- Storing waveform lookup tables (e.g., envelopes)
-- Accumulating results (e.g., averaging ADC reads)
-- Holding configuration parameters that change rarely
-
-**Addressing modes (important for efficient code):**
+**Conventions used in this manual:**
 
 .. list-table::
    :header-rows: 1
 
-   * - Mode
-     - Syntax
-     - Example
-     - When to use
-   * - Literal
-     - ``[&addr]``
-     - ``DMEM_WR [&10] imm #5``
-     - Fixed addresses (constants)
+   * - Symbol
+     - Meaning
+   * - ``[value]``
+     - Optional parameter
+   * - ``#123``
+     - Immediate (literal) value
+   * - ``&123``
+     - Memory address
+   * - ``@123``
+     - Time value
+   * - ``p0 .. p15``
+     - Port number
+   * - ``// text``
+     - Comment
+   * - ``> text``
+     - Explanation of the preceding line
+
+-------------------------------------------------------------------------------
+
+1. What is the tProcessor? (Executive Summary)
+===============================================
+
+The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It runs a user‑written program that controls waveform generation, data acquisition, and feedback with **nanosecond precision**.
+
+**What it does well:**
+
+* Generate sequences of pulses with precise timing
+* React to ADC data within microseconds
+* Coordinate multiple DAC/ADC channels
+* Run independently of the Linux operating system
+
+**What it does NOT do:**
+
+* Floating‑point math (use fixed‑point or Python pre‑computation)
+* Complex control flow (stay mostly linear with short loops)
+* Interact with files or networks (that is the ARM's job)
+
+**Typical experiment flow:**
+
+::
+
+    +-------------+     +-------------+     +-------------+     +-------------+
+    | Initialize  | --> |  Configure  | --> |  Run tProc  | --> |  Read back  |
+    | board, DACs |     | waveforms   |     |  program    |     |  results    |
+    +-------------+     +-------------+     +-------------+     +-------------+
+          ^                    |                   |                    |
+          |                    v                   v                    v
+      Python (PS)          Python/ARM          tProcessor           Python/ARM
+      (once)               (pre‑compute)       (real‑time)           (post‑process)
+
+-------------------------------------------------------------------------------
+
+2. Quick Reference Card
+=======================
+
+**Most common instructions (keep this nearby):**
+
+.. code-block:: none
+
+   // Register operations
+   REG_WR rd imm #value               // rd = value
+   REG_WR rd op -op(rs + #imm)        // rd = rs + imm
+   REG_WR rd op -op(rs1 + rs2)        // rd = rs1 + rs2
+
+   // Memory operations
+   REG_WR rd dmem [&addr]             // rd = DMEM[addr]
+   DMEM_WR [&addr] imm #value         // DMEM[addr] = value
+
+   // Waveform operations
+   REG_WR r_wave wmem [&addr]         // load waveform from WMEM
+   WPORT_WR pN r_wave @time           // output waveform
+
+   // Port operations
+   DPROT_WR pN imm value @time        // output 32‑bit data
+   DPROT_WR pN reg rX @time           // output from register
+   TRIG pN set @time                  // set trigger high
+   TRIG pN clr @time                  // set trigger low
+   DPORT_RD pN                        // read input port (to s_port_l/h)
+
+   // Flow control
+   JUMP LABEL -if(condition)          // conditional branch
+   CALL SUBROUTINE
+   RET
+
+   // Waiting
+   WAIT time @N                       // wait until current time >= N
+   WAIT div_dt                        // wait for division to complete
+   WAIT arith_dt                      // wait for ARITH to complete
+   WAIT port_dt                       // wait for input port data
+
+   // Peripherals
+   DIV num den                        // start division (32 cycles)
+   ARITH T rA rB                      // rA * rB (2 cycles)
+
+**Condition codes (most useful):**
+
+.. code-block:: none
+
+   -if(Z)    // zero (result == 0)
+   -if(NZ)   // non‑zero (result != 0)  ← most common for loops
+   -if(S)    // negative (result < 0)
+   -if(NS)   // non‑negative (result >= 0)
+   -if(F)    // flag set (internal or external)
+   -if(NF)   // flag clear
+
+-------------------------------------------------------------------------------
+
+3. Architecture Deep Dive
+=========================
+
+3.1. Block Diagram with Data Flow
+---------------------------------
+
+The diagram below shows how data moves through the tProcessor. Follow the arrows to understand pipeline stages.
+
+::
+
+    +=======================================================================+
+    ||                           PS (ARM)                                   ||
+    ||  +-------------------+    +-------------------+                      ||
+    ||  | Python script     |    | DMA controller    |                      ||
+    ||  | (notebook, CLI)   |<-->| (AXI master)      |                      ||
+    ||  +---------+---------+    +---------+---------+                      ||
+    ||            |                        |                                ||
+    +=============|========================|================================+
+                  |                        |
+                  | (AXI‑Lite)             | (AXI‑Stream, DMA)
+                  v                        v
+    +=======================================================================+
+    ||                          tProcessor                                  ||
+    ||                                                                      ||
+    ||  +------------------+     +---------------------------------------+  ||
+    ||  | AXI_REG bank     |     | Dispatcher (t_clk domain)             |  ||
+    ||  | * tproc_ctrl     |     |                                       |  ||
+    ||  | * tproc_cfg      |     |  +--------+    +--------+    +-----+  |  ||
+    ||  | * core_cfg       |     |  | WFIFO  |    | DFIFO  |    | TFIFO| |  ||
+    ||  | * src_dt         |     |  |(168b)  |    | (32b)  |    | (1b) | |  ||
+    ||  +------------------+     |  +---+----+    +---+----+    +--+--+  |  ||
+    ||         |                 |      |             |            |     |  ||
+    ||         v                 |      v             v            v     |  ||
+    ||  +==================+     |  +-------+    +-------+    +-------+  |  ||
+    ||  || CORE (c_clk)   ||     |  | 48‑bit|    | 48‑bit|    | 48‑bit|  |  ||
+    ||  ||                ||     |  |compar |    |compar |    |compar |  |  ||
+    ||  || +-----------+  ||     |  |  &    |    |  &    |    |  &    |  |  ||
+    ||  || | 5‑stage   |  ||     |  +---+---+    +---+---+    +---+---+  |  ||
+    ||  || | pipeline  |  ||     |      |            |            |      |  ||
+    ||  || | * Fetch   |  ||     |      v            v            v      |  ||
+    ||  || | * Decode  |  ||     |  +-------+    +-------+    +-------+  |  ||
+    ||  || | * Read    |  ||     |  | WPORT |    | DPORT |    | TRIG  |  |  ||
+    ||  || | * Execute |  ||     |  | (analog|   | (digital|   | (1‑bit| |  ||
+    ||  || | * Write   |  ||     |  | wave) |    | data) |    | out)  |  |  ||
+    ||  || +-----------+  ||     |  +---+---+    +---+---+    +---+---+  |  ||
+    ||  ||       |        ||     |      |            |            |      |  ||
+    ||  ||       v        ||     +======|============|============|======+  ||
+    ||  || +----+----+    ||            v            v            v         ||
+    ||  || | ALU     |    ||        [DACs]       [PMODs]      [Triggers]    ||
+    ||  || | (DSP)   |    ||                                                ||
+    ||  || +----+----+    ||                                                ||
+    ||  ||      |         ||                                                ||
+    ||  ||      v         ||                                                ||
+    ||  || +----+----+    ||                                                ||
+    ||  || | DIV     |    ||                                                ||
+    ||  || | (32 cyc)|    ||                                                ||
+    ||  || +----+----+    ||                                                ||
+    ||  ||      |         ||                                                ||
+    ||  ||      v         ||                                                ||
+    ||  || +----+----+    ||                                                ||
+    ||  || | LFSR    |    ||                                                ||
+    ||  || |(PRNG)   |    ||                                                ||
+    ||  || +---------+    ||                                                ||
+    ||  ||                ||                                                ||
+    ||  || +-----------+  ||                                                ||
+    ||  || | Memories  |  ||                                                ||
+    ||  || | * PMEM    |  ||                                                ||
+    ||  || | * DMEM    |  ||                                                ||
+    ||  || | * WMEM    |  ||                                                ||
+    ||  || +-----------+  ||                                                ||
+    ||  +==================+                                                ||
+    ||                                                                      ||
+    ||  +------------------+                                                ||
+    ||  | IN_PORT (AXI‑S)  | <─── from ADC or external source               ||
+    ||  | (feedback data)  |                                                ||
+    ||  +------------------+                                                ||
+    +=======================================================================+
+
+3.2. Clock Domain Crossing (CDC) Explained
+-------------------------------------------
+
+Because the core and the dispatcher run on different clocks, any communication between them must cross clock domains. This introduces **latency** and **metastability protection**.
+
+**Critical paths and their latencies:**
+
+.. list-table::
+   :header-rows: 1
+
+   * - Action
+     - From domain
+     - To domain
+     - Latency (cycles of destination clock)
+   * - Write to FIFO (DPORT_WR)
+     - c_clk
+     - t_clk
+     - 2‑3 cycles
+   * - FIFO pop to output pin
+     - t_clk
+     - t_clk (same)
+     - 1 cycle
+   * - Read input port (DPORT_RD)
+     - t_clk (ADC)
+     - c_clk
+     - 2‑3 cycles
+   * - TIME instruction effect
+     - c_clk
+     - t_clk
+     - 3‑5 cycles
+   * - FLAG from Python to core
+     - ps_clk
+     - c_clk
+     - several µs (not for tight timing)
+
+**Practical implication:** Do not back‑to‑back TIME instructions without at least 5 c_clk cycles between them.
+
+3.3. FIFO Depth and Flow Control
+--------------------------------
+
+The dispatcher has three independent FIFOs:
+
+.. list-table::
+   :header-rows: 1
+
+   * - FIFO
+     - Entry width
+     - Default depth
+     - Configurable up to
+     - When is it written?
+   * - Wave FIFO (WFIFO)
+     - 168 bits + 48 bits time
+     - 8
+     - 512
+     - WPORT_WR
+   * - Data FIFO (DFIFO)
+     - 32 bits + 48 bits time
+     - 8
+     - 512
+     - DPORT_WR
+   * - Trigger FIFO (TFIFO)
+     - 1 bit + 48 bits time
+     - 8
+     - 512
+     - TRIG
+
+**Flow control behavior:**
+
+When a FIFO becomes full:
+- If ``tproc_cfg[10]`` (``DISABLE_FIFO_FULL_PAUSE``) = 0 (default): The core **stalls** (pauses) until space is available.
+- If = 1: The core continues, but writes to the full FIFO are **dropped** (data loss).
+
+**Checklist for avoiding FIFO overflow:**
+
+- [ ] Count how many port writes you have in the shortest time window.
+- [ ] Ensure that number ≤ FIFO depth.
+- [ ] If you need more, increase FIFO depth in the hardware configuration (Chapter 10).
+- [ ] Or add ``WAIT fifo_not_full`` (macro) before writes.
+
+-------------------------------------------------------------------------------
+
+4. Register Map with Usage Notes
+================================
+
+4.1. Data Registers (r0‑r31)
+----------------------------
+
+**Allocation guide (per your coding style):**
+
+.. code-block:: none
+
+   .ALIAS r_loopcnt     r0   // loop counters
+   .ALIAS r_temp        r1   // temporary calculation
+   .ALIAS r_ptr_dmem    r2   // pointer into DMEM
+   .ALIAS r_ptr_wmem    r3   // pointer into WMEM
+   .ALIAS r_result      r4   // final result of a computation
+   .ALIAS r_param_A     r5   // persistent parameter A
+   .ALIAS r_param_B     r6   // persistent parameter B
+   // r7‑r31: free for other uses
+
+4.2. Special Function Registers (s0‑s15) - Detailed
+----------------------------------------------------
+
+**s0 = s_zero** (read‑only, always 0)
+
+.. code-block:: none
+
+   // Use cases:
+   REG_WR r1 op -op(r2 + s_zero)   // copy r2 to r1
+   JUMP HERE -if(NZ) -wr(r0 op) -op(r0 - #1) -uf   // decrement and jump if not zero
+
+**s1 = s_rand** (pseudo‑random, LFSR)
+
+.. code-block:: none
+
+   // Generate random number between 0 and 99
+   REG_WR r2 op -op(s_rand)        // r2 = random
+   DIV r2 #100                     // divide by 100
+   WAIT div_dt
+   REG_WR r3 op -op(s_div_r)       // r3 = remainder (0‑99)
+
+**s2 = s_cfg** (configuration) – split into two halves:
+
+- Lower 16 bits (``s_cfg``): data source and flag source selection
+- Upper 16 bits (``s_ctrl``): clear flags (write 1 to clear)
+
+.. code-block:: none
+
+   // Configure data source for s_core_r1 to be ARITH result
+   REG_WR s_cfg imm src_arith
+
+   // Clear ARITH new‑data flag
+   REG_WR s_ctrl imm clr_arith
+
+**s3 = s_arith_low** – lower 32 bits of ARITH result (read‑only)
+
+**s4 = s_div_q, s5 = s_div_r** – quotient and remainder of DIV (read‑only)
+
+**s6 = s_core_r1, s7 = s_core_r2** – data from selected source (configurable via s_cfg)
+
+**s8 = s_port_l, s9 = s_port_h** – input port data (64 bits total)
+
+.. code-block:: none
+
+   // Read 64‑bit value from input port 0
+   DPORT_RD p0
+   // Now s8 has lower 32 bits, s9 has upper 32 bits
+
+**s10 = s_status** (status register) – poll for peripheral readiness
+
+Important bits (others are reserved or internal):
+
+.. list-table::
+   :header-rows: 1
+
+   * - Bit
+     - Name
+     - When set
+   * - 0
+     - ARITH_RDY
+     - ARITH unit has completed an operation
+   * - 1
+     - ARITH_DT_NEW
+     - New ARITH result available (cleared by read or CLEAR)
+   * - 2
+     - DIV_RDY
+     - DIV unit has completed
+   * - 3
+     - DIV_DT_NEW
+     - New division result available
+   * - 15
+     - FIFO_FULL
+     - Any dispatcher FIFO is full
+   * - 31:16
+     - PORT_DT_NEW
+     - Bit N indicates new data on input port N
+
+**s11 = s_usr_time** – current user time (read‑only)
+
+**s12 = s_core_w1, s13 = s_core_w2** – data from PS (ARM) to core
+
+.. code-block:: python
+
+   # From Python, write to these registers
+   soc.tproc.write_axi_reg(0x05, 0x12345678)   # s12
+   soc.tproc.write_axi_reg(0x06, 0x87654321)   # s13
+
+**s14 = s_out_time** – output time register for the next port write
+
+.. code-block:: none
+
+   // Set up a series of times
+   REG_WR s_out_time imm #1000
+   DPROT_WR p0 imm 1 @s_out_time
+   REG_WR s_out_time op -op(s_out_time + #100)
+   DPROT_WR p0 imm 1 @s_out_time
+   REG_WR s_out_time op -op(s_out_time + #100)
+   DPROT_WR p0 imm 1 @s_out_time
+
+**s15 = s_addr** – address register for jumps
+
+.. code-block:: none
+
+   // Jump to address stored in s_addr
+   REG_WR s_addr label SUBROUTINE
+   JUMP s_addr
+
+4.3. Wave Parameter Registers (w0‑w5)
+-------------------------------------
+
+These are the components of the 168‑bit ``r_wave`` bus.
+
+.. list-table::
+   :header-rows: 1
+
    * - Register
-     - ``[rX]``
-     - ``DMEM_WR [r1] op -op(r0)``
-     - Indexed access (loops)
-   * - Indexed literal
-     - ``[rX + &offset]``
-     - ``DMEM_WR [r2+&4] imm #1``
-     - Array access with base pointer
-   * - Indexed register
-     - ``[rX + rY]``
-     - ``DMEM_WR [r3+r4] imm #0``
-     - 2D arrays or dynamic indexing
+     - Bits
+     - Range (typical)
+     - Description
+   * - w_freq
+     - 32
+     - 0 .. 2^32-1
+     - Frequency control word for DDS
+   * - w_phase
+     - 32
+     - 0 .. 2^32-1
+     - Phase offset (2^32 = 360°)
+   * - w_gain
+     - 32
+     - -2^31 .. 2^31-1
+     - Amplitude scaling (signed)
+   * - w_env
+     - 24
+     - 0 .. 2^24-1
+     - Envelope start address in table memory
+   * - w_length
+     - 32
+     - 1 .. 2^32-1
+     - Number of samples in envelope
+   * - w_conf
+     - 16
+     - bitfield
+     - Configuration (mode, source, etc.)
 
-3.3. WMEM – Waveform Parameter Memory
---------------------------------------
-
-- **Width:** 168 bits per entry
-- **Size:** 256 to 2048 entries
-- **Access:** CPU read only (to load into ``r_wave``); PS write only (via DMA to preload waveforms)
-
-Each WMEM entry contains **six parameters** that define a complete waveform:
-
-.. code-block::
-
-   Bits:   [167:136]   [135:104]   [103:72]   [71:48]   [47:16]   [15:0]
-          ──────────────────────────────────────────────────────────────
-            w_freq       w_phase     w_gain     w_env     w_length   w_conf
-            32 bits      32 bits     32 bits    24 bits   32 bits    16 bits
-
-**Why group them together?**  
-Writing a single 168‑bit value to a Wave Port (``WPORT_WR``) updates all six parameters **atomically**. This ensures that the DAC does not see a partial update (e.g., new frequency with old gain), which could cause glitches.
-
-**Typical workflow:**
-
-1. Pre‑compute all waveforms in Python.
-2. Write them to WMEM using ``soc.tproc.load_wave()``.
-3. In the tProc program, quickly switch between waveforms by reading from WMEM into ``r_wave`` and then writing to WPORT.
-
-4. Registers – Detailed Explanation
-===================================
-
-4.1. Data registers (``r0`` – ``r31``)
----------------------------------------
-
-These are your **scratchpad**. Use them for:
-
-- Loop counters
-- Temporary results
-- Pointers (addresses)
-- Data to be written to ports
-
-**Aliasing** (``.ALIAS myvar r5``) is highly recommended. It makes code self‑documenting.
-
-Example:
+**Example: updating only frequency while keeping other parameters**
 
 .. code-block:: none
 
-   .ALIAS pulse_counter r0
-   .ALIAS base_address   r1
-   .ALIAS temp_result    r2
+   REG_WR w_freq op -op(w_freq + #0x100000)   // increment frequency
+   WPORT_WR p0 r_wave @s_out_time             // send all parameters
 
-   REG_WR pulse_counter imm #100   // Clear to understand
+-------------------------------------------------------------------------------
 
-4.2. Special function registers (sreg) – what each one does
-------------------------------------------------------------
-
-**``s_zero`` (always 0)**  
-Useful for clearing registers or as a source for operations: ``REG_WR r1 op -op(r2 + s_zero)``
-
-**``s_rand`` (pseudo‑random)**  
-Generated by a Linear Feedback Shift Register (LFSR). The polynomial is ``x^31 + x^21 + x^1 + x^0`` (maximum length).  
-Configuration modes (via ``core_cfg`` register):
-
-- Mode 0: Stop (keep current value)
-- Mode 1: Free running (changes every clock)
-- Mode 2: Change when read
-- Mode 3: Change when written
-
-**Typical use:** Inject noise or randomize a parameter in a feedback loop.
-
-**``s_cfg`` – Configuration register**  
-Controls two things:
-
-- **Bits 3:0** (``DT_SRC``): Selects what data is read into ``s_core_r1`` and ``s_core_r2``.
-- **Bits 7:4** (``FLAG_SRC``): Selects which flag is used for ``-if(F)`` conditions.
-
-See the table below for possible values.
-
-**``s_status`` – Status register**  
-Each bit indicates a condition. You will poll this frequently.
-
-Important bits:
-
-- Bit 0: ``ARITH_RDY`` – ARITH unit has a valid result.
-- Bit 1: ``ARITH_DT_NEW`` – ARITH produced a new result (cleared by reading or ``CLEAR arith``).
-- Bit 2: ``DIV_RDY`` – Divider finished.
-- Bit 3: ``DIV_DT_NEW`` – New division result available.
-- Bit 4: ``QNET_RDY`` – QNET interface ready.
-- Bit 15: ``FIFO_FULL`` – Any FIFO is full (backpressure).
-- Bits 31:16: ``PORT_DT_NEW`` – New data arrived on input ports.
-
-**Pattern to wait for a peripheral:**
-
-.. code-block:: none
-
-   // Start ARITH operation
-   ARITH T r1 r2
-   // Wait for it to complete
-   WAIT arith_dt
-   // Read result
-   REG_WR r3 op -op(s_arith_low)
-
-**``s_usr_time`` and ``s_out_time``**  
-- ``s_usr_time``: Current time from the user's perspective (``t_abs - t_ref``). Read‑only.
-- ``s_out_time``: User‑programmable time for the *next* output. Write to this, then use ``@s_out_time`` in port instructions.
-
-**Why two time registers?**  
-You can pre‑compute a series of times in advance. For example, to output pulses at 100, 200, 300 ns:
-
-.. code-block:: none
-
-   REG_WR s_out_time imm #100
-   DPROT_WR p0 imm 1 @s_out_time
-   REG_WR s_out_time op -op(s_out_time + #100)
-   DPROT_WR p0 imm 1 @s_out_time
-   REG_WR s_out_time op -op(s_out_time + #100)
-   DPROT_WR p0 imm 1 @s_out_time
-
-This pattern avoids repeating immediate time values.
-
-4.3. Wave parameter registers (``w_freq``, ``w_phase``, etc.)
--------------------------------------------------------------
-
-These six registers are concatenated into a single 168‑bit register called ``r_wave``. When you write to any ``w_*`` register, you are updating part of ``r_wave``. When you write ``r_wave`` to a WPORT or WMEM, the entire set of parameters is sent together.
-
-**Example: dynamically changing frequency while keeping other parameters:**
-
-.. code-block:: none
-
-   REG_WR w_freq op -op(w_freq + #0x10000)  // Increment frequency
-   WPORT_WR p0 r_wave @s_out_time           // Send all parameters
-
-5. Instruction Set – Deeper Explanation
+5. Instruction Set – Task‑Oriented Guide
 ========================================
 
-5.1. Dual‑task instructions (``-wr``, ``-wp``)
-----------------------------------------------
+5.1. Moving Data
+----------------
 
-This is the most powerful feature of the tProcessor. One instruction can do **two things** in parallel.
-
-**Example without dual task:**
+**Register to register:**
 
 .. code-block:: none
 
-   REG_WR r0 op -op(r0 + #1)   // Increment r0
-   DPROT_WR p0 reg r0 @100     // Write r0 to port (uses old value! Bug!)
+   REG_WR r1 op -op(r0)            // r1 = r0
+   REG_WR r1 op -op(s_rand)        // r1 = random number
 
-**With dual task (correct):**
-
-.. code-block:: none
-
-   REG_WR r1 op -op(r0 + #1) -wr(r0 op) -op(r0 + #1)  // Increment r0 and store to r1 in parallel
-
-Or better, using the special syntax:
+**Immediate to register:**
 
 .. code-block:: none
 
-   REG_WR r0 op -op(r0 + #1) -wp(p0) -wr(...)   // Actually -wp is only for wave ports, but you get the idea
+   REG_WR r0 imm #12345            // r0 = 12345
+   REG_WR r0 imm #hDEADBEEF        // r0 = 0xDEADBEEF (hex)
+   REG_WR r0 imm #b10101010        // r0 = 0xAA (binary)
 
-The key is that **both operations see the same original register values**. The writes happen at the end of the cycle.
-
-**Practical use:**  
-Update a loop counter and write data in the same cycle, saving execution time.
-
-5.2. Conditional execution (``-if(condition)``)
-------------------------------------------------
-
-Every data instruction can be conditionally executed. This eliminates many short branches.
-
-**Without conditions (bad):**
+**Memory to register:**
 
 .. code-block:: none
 
-   JUMP SKIP -if(Z)        // Branch penalty
-   REG_WR r0 imm #1
-SKIP:
-   REG_WR r1 imm #2
+   REG_WR r0 dmem [&100]           // r0 = DMEM[100]
+   REG_WR r_wave wmem [&5]         // r_wave = WMEM[5]
 
-**With conditions (good):**
+**Register to memory:**
 
 .. code-block:: none
 
-   REG_WR r0 imm #1 -if(NZ)   // Only executed if Zero flag is NOT set
-   REG_WR r1 imm #2           // Always executed
+   DMEM_WR [&100] imm #42          // DMEM[100] = 42
+   DMEM_WR [r0] op -op(r1)         // DMEM[r0] = r1
+   WMEM_WR [&5]                    // WMEM[5] = r_wave
 
-The condition checks the ALU flags (Z, S), an internal flag, or an external flag (set from Python).
+5.2. Arithmetic and Logic
+-------------------------
 
-**Why external flag?**  
-Python can set a flag (via ``tproc_ctrl``) that the tProc can test. This allows the ARM processor to influence real‑time decisions without stopping the tProc.
-
-5.3. Macros: ``WAIT`` and ``CLEAR``
------------------------------------
-
-These are not real hardware instructions; they are **assembler macros** that expand into short sequences.
-
-``WAIT time @N`` expands to:
+**Addition and subtraction:**
 
 .. code-block:: none
 
-   TEST -op(s_usr_time - #N)   // Compare current time with N
-   JUMP HERE -if(S)            // Loop if current time < N
+   REG_WR r2 op -op(r0 + #100)     // r2 = r0 + 100
+   REG_WR r2 op -op(r0 - r1)       // r2 = r0 - r1
 
-``WAIT div_dt`` expands to:
+**Bitwise operations:**
 
 .. code-block:: none
 
-   TEST -op(s_status AND #8)   // Check bit 3 (DIV_DT_NEW)
-   JUMP HERE -if(Z)            // Loop if not ready
+   REG_WR r2 op -op(r0 AND #hFF)   // r2 = r0 & 0xFF (lower byte)
+   REG_WR r2 op -op(r0 OR r1)      // r2 = r0 | r1
+   REG_WR r2 op -op(r0 XOR r1)     // r2 = r0 ^ r1
+   REG_WR r2 op -op(NOT r0)        // r2 = ~r0
 
-**Why macros?**  
-They save typing and reduce errors. But remember they expand into multiple instructions, so you cannot use them inside a cycle‑accurate tight loop without accounting for the extra cycles.
+**Shifts:**
 
-6. Python Integration – Detailed Examples
+.. code-block:: none
+
+   REG_WR r2 op -op(r0 SL #2)      // r2 = r0 << 2 (logical left)
+   REG_WR r2 op -op(r0 SR #1)      // r2 = r0 >> 1 (logical right)
+   REG_WR r2 op -op(r0 ASR #1)     // r2 = r0 >> 1 (arithmetic, sign preserved)
+
+**Special operations:**
+
+.. code-block:: none
+
+   REG_WR r2 op -op(MSH r0)        // r2 = upper 16 bits of r0
+   REG_WR r2 op -op(LSH r0)        // r2 = lower 16 bits of r0
+   REG_WR r2 op -op(SWP r0)        // r2 = swap upper and lower 16 bits
+   REG_WR r2 op -op(ABS r0)        // r2 = |r0| (absolute value)
+   REG_WR r2 op -op(PAR r0)        // r2 = parity of r0 (0 or 1)
+
+5.3. Multiplication (ARITH)
+---------------------------
+
+The ARITH unit uses the FPGA's DSP48 slices. It can compute (D ± A) * B ± C in 2 cycles.
+
+**Operation codes (second letter indicates pattern):**
+
+.. list-table::
+   :header-rows: 1
+
+   * - Mnemonic
+     - Formula
+     - Example
+   * - ``ARITH T A B``
+     - A * B
+     - ``ARITH T r1 r2``
+   * - ``ARITH TA A B``
+     - A * B + C (C must be 0 in this syntax? check)
+   * - ``ARITH PT A B C``
+     - (A + B) * C
+     - ``ARITH PT r1 r2 r3`` = (r1+r2)*r3
+   * - ``ARITH MT A B C``
+     - (A - B) * C
+   * - ``ARITH PTP A B C D``
+     - (A + B) * C + D
+   * - ``ARITH PTM A B C D``
+     - (A + B) * C - D
+   * - ``ARITH MTP A B C D``
+     - (A - B) * C + D
+   * - ``ARITH MTM A B C D``
+     - (A - B) * C - D
+
+**Typical use: multiply‑accumulate for digital filtering**
+
+.. code-block:: none
+
+   // Example: y = (r1 * r2) + r3
+   REG_WR r1 imm #100
+   REG_WR r2 imm #200
+   REG_WR r3 imm #50
+   ARITH T r1 r2                   // r1 * r2 takes 2 cycles
+   WAIT arith_dt
+   REG_WR r4 op -op(s_arith_low)   // r4 = 20000 (product)
+   REG_WR r4 op -op(r4 + r3)       // r4 = 20000 + 50 = 20050
+
+   // Using combined operation (faster):
+   // ARITH PTP r1 r2 zero r3   // assuming zero is a register that holds 0
+   // WAIT arith_dt
+   // REG_WR r4 op -op(s_arith_low)   // r4 = (r1+r2)*0 + r3 ?? Not correct.
+
+**Better real example: (A * B) + C with ARITH**
+
+The ARITH unit can compute (D ± A) * B ± C. To get A * B + C, set D=0, use addition for the first term, and addition for the last term. You need a register that contains 0 (use s_zero).
+
+.. code-block:: none
+
+   // (0 + r1) * r2 + r3
+   ARITH PTP r1 r2 s_zero r3
+   WAIT arith_dt
+   REG_WR r4 op -op(s_arith_low)
+
+5.4. Division (DIV)
+--------------------
+
+The DIV block performs **unsigned** 32‑bit integer division in 32 cycles.
+
+**Syntax:**
+
+.. code-block:: none
+
+   DIV numerator denominator
+
+- numerator: a register (rX, sY, or wZ)
+- denominator: a register OR a 24‑bit immediate (#value)
+
+**Example: divide r1 by r2, get quotient and remainder**
+
+.. code-block:: none
+
+   DIV r1 r2                // start division
+   WAIT div_dt              // wait 32 cycles (macro)
+   REG_WR r3 op -op(s_div_q)   // r3 = quotient
+   REG_WR r4 op -op(s_div_r)   // r4 = remainder
+
+**Important:** Division is unsigned only. For signed division, convert to positive, divide, then adjust sign.
+
+5.5. Flow Control
+-----------------
+
+**Unconditional jump:**
+
+.. code-block:: none
+
+   JUMP LABEL               // always jump
+
+**Conditional jump (most common for loops):**
+
+.. code-block:: none
+
+   JUMP LABEL -if(NZ)       // jump if last ALU result was not zero
+
+**Conditional jump with decrement (standard loop pattern):**
+
+.. code-block:: none
+
+   REG_WR r0 imm #10        // r0 = 10 (loop counter)
+LOOP:
+   // ... do something ...
+   JUMP LOOP -wr(r0 op) -op(r0 - #1) -uf   // decrement r0, update flags, jump if not zero
+
+**Avoiding the branch penalty:**
+
+Because branches cause a 2‑cycle pipeline flush, use conditional execution for simple cases:
+
+.. code-block:: none
+
+   // Instead of:
+   // JUMP SKIP -if(Z)
+   // REG_WR r1 imm #1
+   // SKIP:
+
+   // Do:
+   REG_WR r1 imm #1 -if(NZ)   // only executed if Z flag is NOT set
+
+5.6. Subroutines (CALL/RET)
+---------------------------
+
+The tProc supports nested calls up to 256 levels deep.
+
+.. code-block:: none
+
+   CALL MY_SUBROUTINE
+   // ... after subroutine returns, execution continues here
+
+MY_SUBROUTINE:
+   // ... do something ...
+   RET
+
+**Important:** The stack only stores return addresses, not local variables. Use registers or DMEM for local storage.
+
+5.7. Waiting (WAIT macro)
+-------------------------
+
+The ``WAIT`` macro expands to a small loop. It is convenient but not cycle‑accurate to single cycles.
+
+**Expansion of ``WAIT time @N``:**
+
+.. code-block:: none
+
+   // Original: WAIT time @1000
+   // Expands to:
+   TEST -op(s_usr_time - #1000)
+   JUMP HERE -if(S)         // loop until s_usr_time >= 1000
+
+**Expansion of ``WAIT div_dt`` (wait for division to complete):**
+
+.. code-block:: none
+
+   // Original: WAIT div_dt
+   // Expands to:
+   TEST -op(s_status AND #8)   // test DIV_DT_NEW bit (bit 3)
+   JUMP HERE -if(Z)            // loop until bit is set
+
+**Custom wait for a specific flag:**
+
+.. code-block:: none
+
+   // Wait for ARITH_RDY (bit 0 of s_status)
+   WAIT_LOOP:
+      TEST -op(s_status AND #1)
+      JUMP WAIT_LOOP -if(Z)
+
+5.8. Clearing Flags (CLEAR)
+---------------------------
+
+The ``CLEAR`` macro clears the ``_NEW`` flags in ``s_status``.
+
+.. code-block:: none
+
+   CLEAR arith      // clears bit 1 (ARITH_DT_NEW)
+   CLEAR div        // clears bit 3 (DIV_DT_NEW)
+   CLEAR port       // clears all PORT_DT_NEW bits (31:16)
+   CLEAR qnet       // clears QNET related bits
+
+**Pattern for reading a peripheral only when new data is ready:**
+
+.. code-block:: none
+
+   WAIT arith_dt
+   REG_WR r0 op -op(s_arith_low)   // read result
+   CLEAR arith                      // acknowledge, clear flag
+
+-------------------------------------------------------------------------------
+
+6. Time Management
+==================
+
+6.1. Time Variables Recap
+-------------------------
+
+- ``t_abs``: 48‑bit counter, runs at DAC frequency (t_clk). Counts absolute time since last reset.
+- ``t_ref``: 48‑bit reference. Defines where user time = 0.
+- ``t_usr = t_abs - t_ref``: user time, available in ``s_usr_time``.
+- ``t_out_user``: 32‑bit signed value you specify in port writes.
+- ``t_abs_out = t_ref + t_out_user``: absolute time when output will occur.
+
+**Why signed t_out_user?**  
+You can schedule outputs with a **negative** offset, meaning "output at time X relative to reference, even if reference is in the past". This is useful for synchronizing with other boards or for pre‑calculated sequences where the reference moves.
+
+6.2. TIME Instructions
+----------------------
+
+.. code-block:: none
+
+   TIME rst           // t_abs = 0, t_ref = 0, core resets
+   TIME set_ref rX    // t_ref = rX (t_abs unchanged)
+   TIME inc_ref #N    // t_ref = t_ref + N
+   TIME updt #N       // t_abs = t_abs + N (rarely used)
+
+**Typical initialization sequence:**
+
+.. code-block:: none
+
+   TIME rst           // start from zero
+   // ... wait for external trigger ...
+   TIME set_ref r0    // once triggered, set t_ref to current t_abs (so t_usr becomes 0)
+
+6.3. Scheduling Outputs
+------------------------
+
+**Fixed time (immediate):**
+
+.. code-block:: none
+
+   WPORT_WR p0 r_wave @1000    // output at t_usr = 1000
+
+**Relative to previous output:**
+
+.. code-block:: none
+
+   REG_WR s_out_time imm #1000
+   WPORT_WR p0 r_wave @s_out_time
+   REG_WR s_out_time op -op(s_out_time + #500)
+   WPORT_WR p0 r_wave @s_out_time   // 500 cycles after first
+
+**Variable time from register:**
+
+.. code-block:: none
+
+   REG_WR r0 imm #2000
+   WPORT_WR p0 r_wave @r0          // @r0 is allowed? Check syntax.
+
+**Note:** The assembler accepts ``@rX`` (time from register) but the manual shows only immediate or s_out_time. Verify.
+
+6.4. Waiting for a Specific Time
+--------------------------------
+
+.. code-block:: none
+
+   WAIT time @5000     // pause execution until t_usr >= 5000
+
+-------------------------------------------------------------------------------
+
+7. Input/Output Programming
+===========================
+
+7.1. Output Ports
+-----------------
+
+**Data ports (DPORT)**: 32‑bit digital outputs
+
+.. code-block:: none
+
+   DPROT_WR p0 imm 0x12345678 @1000
+   DPROT_WR p2 reg r5 @2000
+
+**Trigger ports (TRIG)**: 1‑bit outputs (set high or low)
+
+.. code-block:: none
+
+   TRIG p0 set @150    // output 1
+   TRIG p0 clr @200    // output 0
+
+**Wave ports (WPORT)**: 168‑bit waveform parameters
+
+.. code-block:: none
+
+   WPORT_WR p1 r_wave @1000        // from r_wave
+   WPORT_WR p1 wmem [&5] @2000     // from WMEM address 5
+
+7.2. Input Ports (Feedback)
+---------------------------
+
+Input ports receive data from ADCs or other sources via AXI‑Stream.
+
+**Reading a single port (64 bits total):**
+
+.. code-block:: none
+
+   WAIT port_dt        // wait until any input port has new data
+   DPORT_RD p0         // read port 0 -> s_port_l (lower 32) and s_port_h (upper 32)
+   REG_WR r0 op -op(s_port_l)   // use lower part
+
+**Checking which port received data (advanced):**
+
+The ``s_status`` register has bits 31:16 indicating which port has fresh data. You can test individual bits.
+
+.. code-block:: none
+
+   // Wait specifically for port 2 (bit 18)
+   WAIT_PORT2:
+      TEST -op(s_status AND #(1<<18))
+      JUMP WAIT_PORT2 -if(Z)
+   DPORT_RD p2
+
+7.3. External Flag (Python to tProc)
+------------------------------------
+
+Python can set or clear an external flag that the tProc can test with ``-if(F)`` or ``-if(NF)``.
+
+**From Python:**
+
+.. code-block:: python
+
+   soc.tproc.set_external_flag()   # sets bit 13 of tproc_ctrl
+   soc.tproc.clear_external_flag() # sets bit 14
+
+**In assembly:**
+
+.. code-block:: none
+
+   WAIT_FOR_FLAG:
+      REG_WR r0 imm #0 -if(NF)     // do nothing if flag not set
+      JUMP WAIT_FOR_FLAG -if(NF)   // loop if flag not set
+      // flag is set, proceed
+
+-------------------------------------------------------------------------------
+
+8. Peripherals Deep Dive
+========================
+
+8.1. ARITH (Multiply‑Accumulate)
+--------------------------------
+
+The ARITH unit is the most powerful peripheral. It can replace multiple ALU instructions.
+
+**Configuration before using ARITH:**
+
+.. code-block:: none
+
+   // 1. Set data source for s_core_r1 to ARITH
+   REG_WR s_cfg imm src_arith
+
+   // 2. Clear any old new‑data flag
+   REG_WR s_ctrl imm clr_arith
+
+**Start an ARITH operation:**
+
+.. code-block:: none
+
+   ARITH T r1 r2        // r1 * r2 (2 cycles)
+
+**Wait for completion:**
+
+.. code-block:: none
+
+   WAIT arith_dt        // macro: poll ARITH_DT_NEW bit
+
+**Read the result (64 bits):**
+
+.. code-block:: none
+
+   REG_WR r_low op -op(s_arith_low)    // lower 32 bits
+   // s3 (s_arith_low) holds the result
+   // For upper 32 bits, s4? Actually ARITH result is 64 bits, but only lower 32 bits are exposed in s3.
+
+**Note:** The ARITH unit produces a 64‑bit result. However, the manual shows only ``s_arith_low`` (s3). The upper 32 bits may be available in another register (s_arith_high?) or may be discarded. Check the actual firmware.
+
+8.2. DIV (Integer Division)
+---------------------------
+
+Division is slow (32 cycles) but non‑blocking: the CPU continues execution while DIV works in the background.
+
+**Best practice:** Start a division early, do other work, then check for completion.
+
+.. code-block:: none
+
+   // Start division early
+   DIV r1 r2
+
+   // Do other useful work while division runs
+   REG_WR r3 op -op(r3 + #100)
+   REG_WR r4 op -op(r4 - #50)
+
+   // Wait for division to complete
+   WAIT div_dt
+   REG_WR r5 op -op(s_div_q)   // quotient
+   REG_WR r6 op -op(s_div_r)   // remainder
+
+8.3. LFSR (Random Number Generator)
+------------------------------------
+
+Configure via ``core_cfg`` AXI register.
+
+**Modes:**
+
+- 0: Stop (do not advance)
+- 1: Free running (advance every c_clk cycle)
+- 2: Advance when read
+- 3: Advance when written (write any value to s_rand)
+
+**Example: advance‑on‑read mode**
+
+.. code-block:: none
+
+   // Configure from Python
+   soc.tproc.write_axi_reg(0x07, 0x02)   // core_cfg = 2 (advance on read)
+
+   // In assembly: each read gives a new random number
+   REG_WR r0 op -op(s_rand)   // first random
+   REG_WR r1 op -op(s_rand)   // second random (different)
+
+-------------------------------------------------------------------------------
+
+9. Task‑Based Examples (Copy‑Paste Ready)
 ==========================================
 
-6.1. Loading a program and waveforms
--------------------------------------
+9.1. Generate a Single Pulse
+----------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   // Configure waveform
+   REG_WR w_freq imm #0x1000000      // 1 MHz (example)
+   REG_WR w_phase imm #0
+   REG_WR w_gain imm #32768          // half amplitude
+   REG_WR w_length imm #1000         // 1000 samples
+   REG_WR w_conf imm #0
+
+   // Output at time 1000
+   WPORT_WR p1 r_wave @1000
+   .END
+
+9.2. Generate a Pulse Train
+---------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   REG_WR r0 imm #10                 // number of pulses
+   REG_WR s_out_time imm #1000       // start time
+
+   LOOP:
+      WPORT_WR p1 r_wave @s_out_time
+      REG_WR s_out_time op -op(s_out_time + #500)   // 500 cycle spacing
+      REG_WR r0 op -op(r0 - #1) -uf
+      JUMP LOOP -if(NZ)
+      .END
+
+9.3. Conditional Pulse Based on ADC Value
+------------------------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   // Initialization
+   REG_WR s_out_time imm #1000
+   REG_WR r0 imm #100    
+
+   // Configure waveform A (long pulse)
+   REG_WR w_freq imm #0x1000000
+   REG_WR w_gain imm #32768
+   REG_WR w_length imm #2000
+   REG_WR w_conf imm #0
+   // Save a copy to WMEM
+   WMEM_WR [&0]
+
+   // Configure waveform B (short pulse)
+   REG_WR w_length imm #500
+   WMEM_WR [&1]
+
+   // Main loop
+   REG_WR r0 imm #100               // number of experiments
+
+   EXPERIMENT:
+      WAIT port_dt                      // wait for ADC data
+      DPORT_RD p0                       // read port 0
+      REG_WR r1 op -op(s_port_l)        // r1 = ADC value
+      REG_WR r1 op -op(r1 - #32768) -uf // compare with threshold
+
+      // Select waveform based on comparison
+      REG_WR r_wave wmem [&0] -if(NS)   // long pulse if ADC >= 32768
+      REG_WR r_wave wmem [&1] -if(S)    // short pulse if ADC < 32768
+
+      WPORT_WR p1 r_wave @s_out_time
+      REG_WR s_out_time op -op(s_out_time + #2000)   // wait for next experiment
+
+      REG_WR r0 op -op(r0 - #1) -uf
+      JUMP EXPERIMENT -if(NZ)
+      .END
+
+9.4. Frequency Sweep (Chirp)
+----------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   REG_WR r0 imm #100               // number of steps
+   REG_WR r1 imm #0x1000000         // start frequency
+   REG_WR s_out_time imm #1000
+
+LOOP:
+   REG_WR w_freq op -op(r1)
+   WPORT_WR p1 r_wave @s_out_time
+   REG_WR r1 op -op(r1 + #0x10000)  // increment frequency
+   REG_WR s_out_time op -op(s_out_time + #500)
+   REG_WR r0 op -op(r0 - #1) -uf
+   JUMP LOOP -if(NZ)
+   .END
+
+9.5. Wait for External Trigger (from Python flag)
+--------------------------------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   // Wait for Python to set external flag
+WAIT_TRIG:
+   JUMP WAIT_TRIG -if(NF)           // loop while flag is 0
+   // Flag is set, continue
+   WPORT_WR p1 r_wave @1000
+   .END
+
+From Python:
+
+.. code-block:: python
+
+   soc.tproc.set_external_flag()    # triggers the tProc
+
+9.6. Read and Accumulate ADC Data
+---------------------------------
+
+.. code-block:: none
+
+   .ADDR 0x00
+   REG_WR r0 imm #0                  // accumulator
+   REG_WR r1 imm #100                // number of samples
+
+LOOP:
+   WAIT port_dt
+   DPORT_RD p0
+   REG_WR r0 op -op(r0 + s_port_l)   // accumulate
+   REG_WR r1 op -op(r1 - #1) -uf
+   JUMP LOOP -if(NZ)
+
+   // Store result to DMEM
+   DMEM_WR [&0] imm r0               // result at DMEM address 0
+   .END
+
+-------------------------------------------------------------------------------
+
+10. System Configuration (Hardware Parameters)
+==============================================
+
+The tProcessor can be configured at synthesis time (in the FPGA bitstream) to match your needs. The following parameters trade off resource usage against capabilities.
+
+10.1. Memory Sizes
+------------------
+
+.. list-table::
+   :header-rows: 1
+
+   * - Parameter
+     - Width (bits)
+     - Minimum
+     - Maximum
+     - Default (QICK)
+     - When to increase
+   * - PMEM_AW (Program Memory address bits)
+     - 2^AW words
+     - 8 (256 words)
+     - 16 (65536)
+     - 10 (1024 words)
+     - Complex programs with many instructions
+   * - DMEM_AW (Data Memory address bits)
+     - 2^AW words
+     - 8 (256)
+     - 16 (65536)
+     - 10 (1024)
+     - Large lookup tables or data buffers
+   * - WMEM_AW (Wave Memory address bits)
+     - 2^AW words
+     - 8 (256)
+     - 11 (2048)
+     - 10 (1024)
+     - Many pre‑computed waveforms
+   * - REG_AW (Number of data registers)
+     - 2^AW registers
+     - 4 (16 registers)
+     - 5 (32 registers)
+     - 5 (32 registers)
+     - Usually fine at 32
+
+10.2. FIFO Depths
+-----------------
+
+.. list-table::
+   :header-rows: 1
+
+   * - Parameter
+     - Default
+     - Maximum
+     - Resource cost
+   * - FIFO_DEPTH (all three FIFOs)
+     - 8
+     - 512
+     - Increases BRAM usage
+
+**Choosing FIFO depth:** Set to the maximum number of pending port writes you may have. If your program writes 20 ports between waiting periods, set depth ≥ 20.
+
+10.3. Port Counts
+-----------------
+
+.. list-table::
+   :header-rows: 1
+
+   * - Parameter
+     - Default (QICK)
+     - Maximum
+   * - IN_PORT_QTY (input ports)
+     - 4
+     - 16
+   * - OUT_TRIG_QTY (trigger ports)
+     - 4
+     - 8
+   * - OUT_DPORT_QTY (data ports)
+     - 1
+     - 4
+   * - OUT_DPORT_DW (data port width, bits)
+     - 4
+     - 32
+   * - OUT_WPORT_QTY (wave ports)
+     - 1
+     - 16
+
+**Note:** Increasing port counts increases FPGA resource usage and may reduce maximum clock frequency.
+
+-------------------------------------------------------------------------------
+
+11. Complete Instruction Reference (Alphabetical)
+==================================================
+
+11.1. ARITH
+-----------
+
+**Purpose:** Start a multiply‑accumulate operation on the DSP.
+
+**Syntax:** ``ARITH op A B [C D]``
+
+**Operation codes:**
+
+- ``T``: A * B
+- ``PT``: (A + B) * C
+- ``MT``: (A - B) * C
+- ``PTP``: (A + B) * C + D
+- ``PTM``: (A + B) * C - D
+- ``MTP``: (A - B) * C + D
+- ``MTM``: (A - B) * C - D
+
+**Latency:** 2 cycles
+
+**Flags affected:** None (but sets ARITH_DT_NEW in s_status)
+
+**Example:** ``ARITH T r1 r2``
+
+11.2. CALL
+----------
+
+**Purpose:** Call a subroutine (save PC to stack).
+
+**Syntax:** ``CALL address``
+
+**Address can be:** label, immediate (&addr), or s_addr.
+
+**Latency:** 2 cycles (branch penalty)
+
+**Max nesting:** 256
+
+**Example:** ``CALL MY_SUB``
+
+11.3. CLEAR (macro)
+-------------------
+
+**Purpose:** Clear ``_NEW`` flag in s_status.
+
+**Syntax:** ``CLEAR option``
+
+**Options:** ``arith``, ``div``, ``port``, ``qnet``
+
+**Expands to:** ``REG_WR s_ctrl imm value``
+
+**Example:** ``CLEAR arith``
+
+11.4. DIV
+---------
+
+**Purpose:** Start unsigned 32‑bit integer division.
+
+**Syntax:** ``DIV numerator denominator``
+
+- numerator: register
+- denominator: register or 24‑bit immediate
+
+**Latency:** 32 cycles (non‑blocking)
+
+**Results:** s_div_q (quotient), s_div_r (remainder)
+
+**Example:** ``DIV r1 r2``
+
+11.5. DMEM_WR
+-------------
+
+**Purpose:** Write to Data Memory.
+
+**Syntax:** ``DMEM_WR [address] source``
+
+**Address modes:**
+- ``[&imm]`` – literal
+- ``[rX]`` – register
+- ``[rX + &imm]`` – indexed literal
+- ``[rX + rY]`` – indexed register
+
+**Source:** ``imm #value`` or ``op -op(...)``
+
+**Example:** ``DMEM_WR [&10] imm #42``
+
+11.6. DPORT_RD
+--------------
+
+**Purpose:** Read input port.
+
+**Syntax:** ``DPORT_RD port``
+
+**Result:** s_port_l (lower 32 bits), s_port_h (upper 32 bits)
+
+**Sets:** PORT_DT_NEW flag for that port (cleared by read or CLEAR port)
+
+**Example:** ``DPORT_RD p0``
+
+11.7. DPORT_WR
+--------------
+
+**Purpose:** Write 32‑bit data to output port.
+
+**Syntax:** ``DPORT_WR port source [time]``
+
+**Source:** ``imm #value`` or ``reg rX``
+
+**Time:** ``@imm`` or ``@s_out_time`` (default = s_out_time)
+
+**Example:** ``DPORT_WR p0 imm 1 @1000``
+
+11.8. FLAG
+----------
+
+**Purpose:** Modify internal flag.
+
+**Syntax:** ``FLAG operation``
+
+**Operations:** ``set``, ``clr``, ``inv``
+
+**Example:** ``FLAG set``
+
+11.9. JUMP
+----------
+
+**Purpose:** Conditional or unconditional branch.
+
+**Syntax:** ``JUMP address -if(condition)``
+
+**Address:** label, ``HERE``, ``PREV``, ``NEXT``, ``SKIP``, immediate, or s_addr
+
+**Latency:** 2 cycles if taken
+
+**Example:** ``JUMP LOOP -if(NZ)``
+
+11.10. NOP
+----------
+
+**Purpose:** No operation.
+
+**Syntax:** ``NOP``
+
+**Latency:** 1 cycle
+
+11.11. REG_WR
+-------------
+
+**Purpose:** Write to register (r, s, or w).
+
+**Syntax:** ``REG_WR destination source``
+
+**Source:** ``imm #value``, ``op -op(...)``, ``dmem [addr]``, ``wmem [addr]``, ``label address``
+
+**Example:** ``REG_WR r0 imm #100``
+
+11.12. RET
+----------
+
+**Purpose:** Return from subroutine.
+
+**Syntax:** ``RET``
+
+**Latency:** 2 cycles
+
+11.13. TEST
+-----------
+
+**Purpose:** Perform ALU operation and update flags without writing a register.
+
+**Syntax:** ``TEST -op(operation) -uf``
+
+**Example:** ``TEST -op(r0 - #1) -uf``
+
+11.14. TIME
+-----------
+
+**Purpose:** Control time counters.
+
+**Syntax:** ``TIME operation [value]``
+
+**Operations:** ``rst``, ``set_ref``, ``inc_ref``, ``updt``
+
+**Example:** ``TIME rst``
+
+11.15. TRIG
+-----------
+
+**Purpose:** Set or clear trigger output.
+
+**Syntax:** ``TRIG port operation [time]``
+
+**Operation:** ``set`` or ``clr``
+
+**Time:** ``@imm`` or ``@s_out_time``
+
+**Example:** ``TRIG p0 set @150``
+
+11.16. WAIT (macro)
+-------------------
+
+**Purpose:** Wait for condition.
+
+**Syntax:** ``WAIT condition``
+
+**Conditions:** ``time @N``, ``div_rdy``, ``div_dt``, ``arith_rdy``, ``arith_dt``, ``port_dt``
+
+**Example:** ``WAIT time @1000``
+
+11.17. WMEM_WR
+--------------
+
+**Purpose:** Write r_wave to Wave Parameter Memory.
+
+**Syntax:** ``WMEM_WR [address]``
+
+**Address:** ``[&imm]`` or ``[rX]``
+
+**Example:** ``WMEM_WR [&5]``
+
+11.18. WPORT_WR
+---------------
+
+**Purpose:** Write waveform to wave port.
+
+**Syntax:** ``WPORT_WR port source [time]``
+
+**Source:** ``r_wave`` or ``wmem [addr]``
+
+**Example:** ``WPORT_WR p1 r_wave @1000``
+
+-------------------------------------------------------------------------------
+
+12. Python API Reference
+========================
+
+12.1. Initialization
+--------------------
 
 .. code-block:: python
 
    from qick import *
-   from qick.py_asm import Assembler
+   soc = QickSoc(address="192.168.1.10")   # or omit for default
+   # tProc is available as soc.tproc
 
-   soc = QickSoc()
+12.2. Memory Operations
+-----------------------
 
-   # Define waveforms in Python
-   waveforms = [
-       {"freq": 200_000_000, "phase": 0, "gain": 32768, "length": 1000},
-       {"freq": 210_000_000, "phase": 0, "gain": 16384, "length": 1000},
-       {"freq": 190_000_000, "phase": 180, "gain": 32768, "length": 1000},
-   ]
+.. code-block:: python
 
-   # Load into WMEM at addresses 0,1,2
-   for i, w in enumerate(waveforms):
-       soc.tproc.load_wave(i, w)
+   # Load program to PMEM (from binary)
+   soc.tproc.load_mem(prog_mem=bin_data)
 
-   # Assembly program that cycles through waveforms
-   asm = """
-       .ADDR 0x00
-       REG_WR r0 imm #0       // index
-       REG_WR r1 imm #3       // count
+   # Write to DMEM (single word)
+   soc.tproc.write_dmem(addr, data)
+
+   # Read from DMEM (block)
+   data = soc.tproc.read_dmem(addr, length)
+
+   # Write waveform to WMEM
+   soc.tproc.load_wave(addr, {"freq": 1000, "phase": 0, "gain": 32768, "length": 1024, "conf": 0})
+
+12.3. Control Commands
+----------------------
+
+.. code-block:: python
+
+   soc.tproc.start()           # start core and time
+   soc.tproc.stop()            # stop core and time
+   soc.tproc.time_rst()        # reset time and core
+   soc.tproc.core_start()      # reset and start only core
+   soc.tproc.core_stop()       # stop only core
+   soc.tproc.set_external_flag()
+   soc.tproc.clear_external_flag()
+
+12.4. Status Reading
+--------------------
+
+.. code-block:: python
+
+   status = soc.tproc.read_status()   # returns dict with bits
+   print(status['ARITH_RDY'])
+   print(status['DIV_RDY'])
+   print(status['FIFO_FULL'])
+
+   usr_time = soc.tproc.time_usr      # read s_usr_time
+   rand = soc.tproc.rand              # read s_rand
+
+12.5. Direct AXI Register Access
+--------------------------------
+
+.. code-block:: python
+
+   soc.tproc.write_axi_reg(addr, value)
+   value = soc.tproc.read_axi_reg(addr)
+
+-------------------------------------------------------------------------------
+
+13. Common Pitfalls and Debugging
+==================================
+
+13.1. Pitfall: Forgetting to Wait for Peripherals
+-------------------------------------------------
+
+**Wrong:**
+
+.. code-block:: none
+
+   ARITH T r1 r2
+   REG_WR r3 op -op(s_arith_low)   // reads stale data!
+
+**Correct:**
+
+.. code-block:: none
+
+   ARITH T r1 r2
+   WAIT arith_dt
+   REG_WR r3 op -op(s_arith_low)
+
+13.2. Pitfall: FIFO Overflow
+----------------------------
+
+**Symptom:** Program stalls unexpectedly.
+
+**Check:** ``s_status[15]`` (FIFO_FULL)
+
+**Fix:** Increase FIFO depth in hardware, or add delays between port writes.
+
+13.3. Pitfall: Branch Penalty in Tight Loops
+--------------------------------------------
+
+**Symptom:** Loop takes longer than expected.
+
+**Example of inefficient loop:**
+
+.. code-block:: none
+
    LOOP:
-       REG_WR r_wave wmem [r0]   // load waveform from WMEM
-       WPORT_WR p1 r_wave @s_out_time
-       REG_WR s_out_time op -op(s_out_time + #2000)
-       REG_WR r0 op -op(r0 + #1)
-       REG_WR r1 op -op(r1 - #1) -uf
-       JUMP LOOP -if(NZ)
-       .END
-   """
+      // ... code ...
+      JUMP LOOP -if(NZ)    // 2 cycle penalty each iteration
 
-   p_bin = Assembler.str_asm2bin(asm)
-   soc.tproc.load_mem(prog_mem=p_bin)
-   soc.tproc.start()
+**Better: use conditional execution or unroll.**
 
-6.2. Reading feedback from ADC
-------------------------------
+13.4. Pitfall: Using s_out_time Incorrectly
+--------------------------------------------
 
-The ADC sends data to the tProc via an input port (AXI‑Stream). The tProc reads it with ``DPORT_RD``.
+**Wrong:**
 
-**Example: conditional pulse based on ADC value**
+.. code-block:: none
 
-.. code-block:: python
+   WPORT_WR p0 r_wave @1000
+   WPORT_WR p0 r_wave @2000   // second write uses immediate 2000
 
-   asm_feedback = """
-       .ADDR 0x00
-       CLEAR port
-   WAIT_TRIG:
-       WAIT port_dt
-       DPORT_RD p0
-       REG_WR r0 op -op(s_port_l)   // r0 = ADC value
-       // If ADC > threshold, send a long pulse; else short pulse
-       REG_WR r0 op -op(r0 - #1000) -uf
-       REG_WR r1 imm #5000 -if(NS)   // long pulse time (if ADC <= 1000)
-       REG_WR r1 imm #1000 -if(S)    // short pulse time (if ADC > 1000)
-       REG_WR s_out_time op -op(s_out_time + #100)
-       WPORT_WR p0 r_wave @s_out_time   // send waveform with adjusted time
-       REG_WR s_out_time op -op(s_out_time)  // add delay to avoid overlap
-       JUMP WAIT_TRIG
-       .END
-   """
+**Correct (using s_out_time for incremental timing):**
 
-7. Common Pitfalls and How to Avoid Them
-=========================================
+.. code-block:: none
 
-7.1. Forgetting that time is signed
-------------------------------------
+   REG_WR s_out_time imm #1000
+   WPORT_WR p0 r_wave @s_out_time
+   REG_WR s_out_time op -op(s_out_time + #1000)
+   WPORT_WR p0 r_wave @s_out_time
 
-``s_out_time`` and ``@time`` in port instructions are **signed 32‑bit integers**. This allows you to schedule outputs *before* the current time (e.g., if you are behind schedule). But it also means that if you accidentally write a negative time, the dispatcher will output immediately.
+13.5. Debugging Technique: Single Step
+---------------------------------------
 
-**Solution:** Always use positive times unless you explicitly need negative offsets.
-
-7.2. Overflowing the FIFOs
---------------------------
-
-The dispatcher FIFOs have limited depth (configurable, default 8‑9 entries). If you write more than that without waiting for them to drain, the FIFO will assert ``FIFO_FULL`` and the tProc will stall (if ``DISABLE_FIFO_FULL_PAUSE`` is 0).
-
-**Solution:** Monitor ``s_status[15]`` (``FIFO_FULL``) or use the ``WAIT fifo_not_full`` macro (if defined). Design your program to not burst more writes than FIFO depth.
-
-7.3. Mixing up ``s_usr_time`` and ``s_out_time``
-------------------------------------------------
-
-- ``s_usr_time`` is read‑only and reflects the current time.
-- ``s_out_time`` is read/write and sets the time for the *next* output.
-
-**Common mistake:** Using ``@s_usr_time`` in a write instruction. This would schedule the output at the current time (immediately), not at a future time.
-
-7.4. Pipeline hazards on branches
----------------------------------
-
-After a conditional JUMP or CALL, the next two instructions are fetched but then discarded. This creates a 2‑cycle penalty.
-
-**Solution:** Place independent instructions (e.g., NOPs or operations that do not affect the branch condition) after the branch, but in practice the assembler does not reorder for you. Keep branches infrequent in tight loops.
-
-8. Performance Tuning Guidelines
-================================
-
-- **Group writes to the same port** to maximize FIFO utilization.
-- **Use dual tasks** (``-wr``) to update counters and write data in one cycle.
-- **Prefer conditional execution** over short branches.
-- **Pre‑load waveforms into WMEM** rather than recomputing them.
-- **Use immediate values when possible** (they avoid register reads).
-- **Align loops to 8‑byte boundaries** for best fetch performance (use ``.ADDR``).
-
-9. Debugging Techniques
-=======================
-
-9.1. Reading the debug register
--------------------------------
-
-The AXI register at address 0x0F (``debug``) contains many internal state signals. In Python:
+From Python:
 
 .. code-block:: python
 
-   debug_bits = soc.tproc.read_axi_reg(0x0F)
-   print(f"PC stall: {(debug_bits >> 4) & 1}")
+   soc.tproc.core_step()   # execute one instruction, then stop
 
-Refer to the debug bit map in the full register specification.
+You can single‑step through your program to see where it gets stuck.
 
-9.2. Single‑stepping the core
------------------------------
-
-Set ``tproc_ctrl[10] = 1`` (``CORE_STEP``). The core will execute one instruction and stop.
-
-In Python:
+13.6. Debugging Technique: Read Debug Register
+----------------------------------------------
 
 .. code-block:: python
 
-   soc.tproc.core_step()   # if method exists
-   # or directly:
-   soc.tproc.write_axi_reg(0x00, 1 << 10)
+   dbg = soc.tproc.read_axi_reg(0x0F)
+   # Bit 4: core_stall (1 = core is stalled due to FIFO full)
+   # Bit 5: time_en (0 = time stopped)
+   # Bits 9:8: core state (0=stop, 1=run, 2=reset, 3=stall)
 
-9.3. Using the status register
-------------------------------
+-------------------------------------------------------------------------------
 
-Poll ``s_status`` in your program or from Python to see if peripherals are ready or FIFOs are full.
+14. FAQ (Frequently Asked Questions)
+====================================
 
-10. Reference: Complete Condition Code Table
-=============================================
+**Q1: Can I use floating‑point numbers?**  
+A: No. The tProc only supports integer arithmetic. Pre‑compute floats in Python and convert to fixed‑point (e.g., scale by 2^16).
+
+**Q2: What is the maximum program size?**  
+A: Up to 65536 instructions (64 bits each) if configured with PMEM_AW=16. Default is 1024 instructions.
+
+**Q3: How accurate is the timing?**  
+A: The dispatcher compares times every t_clk cycle. Jitter is ±1 t_clk cycle (~2.6 ns at 384 MHz). The 5‑cycle write‑to‑output latency is deterministic.
+
+**Q4: Can I interrupt the tProc?**  
+A: Not in the current version. The tProc runs to completion or until stopped by Python.
+
+**Q5: How do I synchronize two tProcessors on different boards?**  
+A: Use the SYNC signal (abs_time bit 29) or external triggers. Distribute a common reference clock.
+
+**Q6: What happens when time overflows (48 bits)?**  
+A: Time rolls over to 0. For long experiments, reset time periodically or use relative timing.
+
+**Q7: Can I use a register as a time value in @?**  
+A: The assembler supports ``@rX`` but this manual recommends using s_out_time for clarity.
+
+**Q8: Why does my program get stuck on WAIT div_dt?**  
+A: You may have forgotten to start a division (DIV) before waiting. Or the division completed long ago and you need to clear the flag.
+
+**Q9: How do I generate a sine wave?**  
+A: The signal generator (separate block) generates sine/cosine from DDS. The tProc only sends frequency/phase/gain parameters.
+
+**Q10: Can I read the same input port multiple times?**  
+A: Yes. Each read clears the PORT_DT_NEW flag for that port. New data will set it again.
+
+-------------------------------------------------------------------------------
+
+15. Glossary
+============
 
 .. list-table::
    :header-rows: 1
 
-   * - Code
-     - Meaning
-     - Flags tested
-     - Typical use
-   * - ``ALWAYS`` (or omitted)
-     - Always execute
-     - none
-     - Default
-   * - ``Z``
-     - Zero
-     - Z=1
-     - After subtraction or AND
-   * - ``NZ``
-     - Non‑zero
-     - Z=0
-     - Loop until counter reaches 0
-   * - ``S``
-     - Negative (Sign)
-     - S=1
-     - Check if result < 0
-   * - ``NS``
-     - Non‑negative
-     - S=0
-     - Check if result >= 0
-   * - ``F``
-     - Flag (internal or external)
-     - flag=1
-     - Wait for Python or peripheral signal
-   * - ``NF``
-     - Not Flag
-     - flag=0
-     - Wait for flag to clear
+   * - Term
+     - Definition
+   * - ALU
+     - Arithmetic Logic Unit. Performs integer operations.
+   * - AXI‑Lite
+     - Simple AXI protocol for register access.
+   * - AXI‑Stream
+     - Streaming AXI protocol for high‑bandwidth data.
+   * - CDC
+     - Clock Domain Crossing. Transferring data between different clock domains.
+   * - DDS
+     - Direct Digital Synthesizer. Generates sine/cosine waves.
+   * - Dispatcher
+     - Hardware block that compares time and updates outputs.
+   * - DMA
+     - Direct Memory Access. Transfers data without CPU involvement.
+   * - DMEM
+     - Data Memory. 32‑bit wide, for user data.
+   * - DSP48
+     - FPGA DSP slice. Used for multiplication.
+   * - FIFO
+     - First‑In First‑Out queue. Holds scheduled outputs.
+   * - LFSR
+     - Linear Feedback Shift Register. Generates pseudo‑random numbers.
+   * - Pipeline
+     - Series of stages in the CPU. Allows overlapping instruction execution.
+   * - PMEM
+     - Program Memory. 64‑bit wide, stores instructions.
+   * - PRNG
+     - Pseudo‑Random Number Generator. See LFSR.
+   * - PS
+     - Processing System (ARM processor in the FPGA).
+   * - tProc
+     - timing Processor. Subject of this manual.
+   * - WMEM
+     - Wave Memory. 168‑bit wide, stores waveform parameters.
 
----
+-------------------------------------------------------------------------------
 
 *End of Document*
