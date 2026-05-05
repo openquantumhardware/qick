@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 //  Fermilab National Accelerator Laboratory
 ///////////////////////////////////////////////////////////////////////////////
-// Description:
+// Description: 
 //   QickEmu-driven testbench for QICK project — Verilator compatible.
 //   Replaces Xilinx VIPs with PULP Platform AXI VIPs.
 //   Dynamically replays AXI transactions and loads memories from QickEmu.
@@ -63,17 +63,15 @@ typedef axi_test::axi_lite_rand_master #(
 
 // +++++++++++++
 
+localparam real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
+localparam real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
+localparam real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
 
-real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
-real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
-real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
+real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+// localparam real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
 
-// real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
-real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
-
-// real T_RO_CLK        =  1.627; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
-real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
-
+// localparam real T_RO_CLK     =   1.66;      // Half Clock Period for Readout (300MHz)
+localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -100,6 +98,16 @@ real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz �
 
 module tb_qick_emu_verilator ();
 
+// Emulator flag to conditionally instantiate 
+// behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 for synthesis (default), non-zero for emulation.
+parameter EMULATOR = 0;
+
+string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
+
+localparam N_DDS_SG = 16;
+localparam N_DDS_RO = 8;
+
 //----------------------------------------------------
 // QickEmu Configuration
 //----------------------------------------------------
@@ -117,6 +125,7 @@ time   TEST_RUN_TIME = 1us;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
 int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 = disabled)
+
 
 //----------------------------------------------------
 // Address Routing (ZCU216 default AddrMap; override via export_vivado_files())
@@ -193,14 +202,14 @@ end
 
 initial begin
    dac_fs_gen = 'd0;
-   forever # (T_SG_CLK*1.0ns/N_DDS) dac_fs_gen = dac_fs_gen + 'd1;
+   forever # (T_SG_CLK*1.0ns/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
 end
 assign dac_fs  = dac_fs_gen[0];
 assign sg_clk  = dac_fs_gen[4];
 
 initial begin
    adc_fs_gen = 'd0;
-   forever # (T_RO_CLK*1.0ns/8.0) adc_fs_gen = adc_fs_gen + 'd1;
+   forever # (T_RO_CLK*1.0ns/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
 end
 assign adc_fs  = adc_fs_gen[0];
 assign ro_clk  = adc_fs_gen[3];
@@ -238,35 +247,25 @@ wire [255 :0]      m_dma_axis_tdata_o   ;
 wire               m_dma_axis_tlast_o   ;
 wire               m_dma_axis_tvalid_o  ;
 
+// tProc Interface
+wire [167:0]       m1_axis_tdata        ;
+wire               m1_axis_tvalid       ;
+wire [167:0]       m2_axis_tdata        ;
+wire               m2_axis_tvalid       ;
+wire [167:0]       m3_axis_tdata        ;
+wire               m3_axis_tvalid       ;
+
+wire [167:0]       m5_axis_tdata        ;
+wire               m5_axis_tvalid       ;
+wire [167:0]       m6_axis_tdata        ;
+wire               m6_axis_tvalid       ;
+wire [167:0]       m7_axis_tdata        ;
+wire               m7_axis_tvalid       ;
+
 wire               trigger_0;
 
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
-// Signal Generator Path signals
-wire [167:0]       tproc_sgcdc_0_axis_tdata ;
-wire               tproc_sgcdc_0_axis_tvalid;
-logic              tproc_sgcdc_0_axis_tready;
-
-wire [167:0]       sgcdc_sgt_0_axis_tdata ;
-wire               sgcdc_sgt_0_axis_tvalid;
-logic              sgcdc_sgt_0_axis_tready;
-
-wire [159:0]       sgt_sg_0_axis_tdata ;
-wire               sgt_sg_0_axis_tvalid;
-logic              sgt_sg_0_axis_tready;
-
-// Readout Path signals
-wire [167:0]       tproc_rocdc_0_axis_tdata ;
-wire               tproc_rocdc_0_axis_tvalid;
-logic              tproc_rocdc_0_axis_tready;
-
-wire [167:0]       rocdc_rot_0_axis_tdata ;
-wire               rocdc_rot_0_axis_tvalid;
-logic              rocdc_rot_0_axis_tready;
-
-wire [87:0]        rot_ro_0_axis_tdata ;
-wire               rot_ro_0_axis_tvalid;
-logic              rot_ro_0_axis_tready;
 
 // QNET Peripheral
 wire                qnet_en_o   ;
@@ -287,41 +286,55 @@ reg  [31 :0]        qcom_dt_i [2]   ;
 reg                 qcom_vld_i      ;
 reg                 qcom_flag_i     ;
 
-reg    s0_axis_tvalid ,    s1_axis_tvalid ;
+reg  [31 :0]        qp1_dt_i [2]   ;
+reg  [31 :0]        qp2_dt_i [2]   ;
+
+wire                periph_en_o   ;
+wire  [4 :0]        periph_op_o   ;
+wire  [31:0]        periph_a_dt_o ;
+wire  [31:0]        periph_b_dt_o ;
+wire  [31:0]        periph_c_dt_o ;
+wire  [31:0]        periph_d_dt_o ;
+
+reg                periph_rdy_i    ;
+reg  [31 :0]       periph_dt_i [2] ;
+
+
+// reg    s0_axis_tvalid;
+reg s1_axis_tvalid ;
+
+// reg [15:0] waves, wtime;
+// reg [31:0] axi_dt;
 
 
 reg proc_start_i, proc_stop_i ;
 reg core_start_i, core_stop_i ;
-reg time_rst_i, time_init_i, time_updt_i;
+reg time_rst_i, time_init_i;
 
 reg  [47:0] offset_dt_i ;
 wire [47:0] t_time_abs_o ;
+reg time_updt_i;
 
+wire [31:0] ps_debug_do;
 
 // Q Peripheral A loopback
 wire qp1_en_o;
-wire [4 :0]  qp1_op_o;
 reg qp1_en_r;
 reg [31:0] qp1_a_dt_r, qp1_b_dt_r;
 wire [31:0] qp1_a_dt_o, qp1_b_dt_o, qp1_c_dt_o, qp1_d_dt_o;
-logic       qp1_rdy_i;
-logic       qp1_vld_i;
-logic [31:0] qp1_dt_i [2];
-always_ff @ (posedge c_clk) begin
+always_ff @ (posedge c_clk) begin 
    qp1_en_r     <= qp1_en_o;
    qp1_a_dt_r   <= qp1_a_dt_o;
    qp1_b_dt_r   <= qp1_b_dt_o;
 end
-
-always_comb begin
-   qp1_rdy_i    = ~qp1_en_r;
-   qp1_dt_i[0]  = qp1_a_dt_r;
-   qp1_dt_i[1]  = qp1_b_dt_r;
-   qp1_vld_i    = qp1_en_r;
-end
+  
+assign qp1_rdy_i     = ~qp1_en_r;
+assign qp1_dt_i[0]   = qp1_a_dt_r;
+assign qp1_dt_i[1]   = qp1_b_dt_r;
+assign qp1_vld_i     = qp1_en_r;
 
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
-reg  [31 :0]       periph_dt_i [2] ;
+
 
 // -----------------------------------------------------------------------------
 // Readout → tProc feedback path.
@@ -336,8 +349,8 @@ reg  [31 :0]       periph_dt_i [2] ;
 // -----------------------------------------------------------------------------
 wire        avg0_m2_tvalid;
 wire [63:0] avg0_m2_tdata;
-reg  [63:0] readout_ch0_dt  = 64'd0;
-reg         readout_ch0_vld = 1'b0;
+reg  [63:0] readout_ch0_dt;
+reg         readout_ch0_vld;
 
 always_ff @(posedge s_ps_dma_aclk) begin
    if (!s_ps_dma_aresetn) begin
@@ -352,6 +365,7 @@ end
 
 assign port_0_dt_i     = readout_ch0_dt;
 assign port_0_vld      = readout_ch0_vld;
+
 assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -359,149 +373,94 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
 
    // DAC-ADC connections
-   logic                   axis_sg_dac_tready;
-   logic                   axis_sg_dac_tvalid;
-   logic [N_DDS*16-1:0]    axis_sg_dac_tdata;
+   logic                      axis_sg_dac_tready;
+   logic                      axis_sg_dac_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg_dac_tdata;
 
-   logic                   rf_signal_valid;
-   logic [8*16-1:0]        rf_signal_data;
+   logic                      rf_signal_valid;
+   logic [N_DDS_RO*16-1:0]    rf_signal_data;
 
-   logic                   axis_adc_ro_tready;
-   logic                   axis_adc_ro_tvalid;
-   logic [8*16-1:0]        axis_adc_ro_tdata;
+   logic                      axis_adc_ro_tready;
+   logic                      axis_adc_ro_tvalid;
+   logic [N_DDS_RO*16-1:0]    axis_adc_ro_tdata;
 
-   // Memory-load stream for axis_signal_gen_v6.s0_axis (envelope upload).
-   wire          sg_s0_axis_aclk = s_ps_dma_aclk;
-   logic [31:0]  sg_s0_axis_tdata;
-   logic         sg_s0_axis_tready;
-   logic         sg_s0_axis_tvalid;
 
-   logic         tb_load_mem, tb_load_mem_done;
+   // // Register ADDRESS
+   // parameter REG_TPROC_CTRL      = 0  * 4 ;
+   // parameter REG_TPROC_CFG       = 1  * 4 ;
+   // parameter REG_MEM_ADDR        = 2  * 4 ;
+   // parameter REG_MEM_LEN         = 3  * 4 ;
+   // parameter REG_MEM_DT_I        = 4  * 4 ;
+   // parameter REG_AXI_W_DT1       = 5  * 4 ;
+   // parameter REG_AXI_W_DT2       = 6  * 4 ;
+   // parameter REG_CORE_CFG        = 7  * 4 ;
+   // parameter REG_AXI_DT_SRC      = 8  * 4 ;
+   // parameter REG_MEM_DT_O        = 10  * 4 ;
+   // parameter REG_AXI_R_DT1       = 11  * 4 ;
+   // parameter REG_AXI_R_DT2       = 12  * 4 ;
+   // parameter REG_TIME_USR        = 13  * 4 ;
+   // parameter REG_TPROC_STATUS    = 14  * 4 ;
+   // parameter REG_TPROC_DEBUG     = 15  * 4 ;
+
+
+wire sg_s0_axis_aclk = s_ps_dma_aclk;
+logic   [31:0]       sg_s0_axis_tdata;
+logic                sg_s0_axis_tready;
+logic                sg_s0_axis_tvalid;
+
+logic    [63:0]    m0_axis_buf_avg_tdata;
+logic              m0_axis_buf_avg_tvalid;
+logic              m0_axis_buf_avg_tready;
+
+logic    [31:0]    m1_axis_buf_dec_tdata;
+logic              m1_axis_buf_dec_tvalid;
+logic              m1_axis_buf_dec_tready;
 
    //--------------------------------------
-   // QICK PROCESSOR
+   // QICK DUT
    //--------------------------------------
 
-   //AXI-LITE TPROC
-   wire [7:0]             s_axi_tproc_awaddr     ;
-   wire [2:0]             s_axi_tproc_awprot     ;
-   wire                   s_axi_tproc_awvalid    ;
-   wire                   s_axi_tproc_awready    ;
-   wire [31:0]            s_axi_tproc_wdata      ;
-   wire [3:0]             s_axi_tproc_wstrb      ;
-   wire                   s_axi_tproc_wvalid     ;
-   wire                   s_axi_tproc_wready     ;
-   wire  [1:0]            s_axi_tproc_bresp      ;
-   wire                   s_axi_tproc_bvalid     ;
-   wire                   s_axi_tproc_bready     ;
-   wire [7:0]             s_axi_tproc_araddr     ;
-   wire [2:0]             s_axi_tproc_arprot     ;
-   wire                   s_axi_tproc_arvalid    ;
-   wire                   s_axi_tproc_arready    ;
-   wire  [31:0]           s_axi_tproc_rdata      ;
-   wire  [1:0]            s_axi_tproc_rresp      ;
-   wire                   s_axi_tproc_rvalid     ;
-   wire                   s_axi_tproc_rready     ;
-
-// <<<<<<<<<<<< XILINX AXI VIP
-
-   // axi_mst_0 u_axi_mst_tproc_0 (
-   //    .aclk          (s_ps_dma_aclk       ),
-   //    .aresetn       (s_ps_dma_aresetn    ),
-   //    .m_axi_araddr  (s_axi_tproc_araddr  ),
-   //    .m_axi_arprot  (s_axi_tproc_arprot  ),
-   //    .m_axi_arready (s_axi_tproc_arready ),
-   //    .m_axi_arvalid (s_axi_tproc_arvalid ),
-   //    .m_axi_awaddr  (s_axi_tproc_awaddr  ),
-   //    .m_axi_awprot  (s_axi_tproc_awprot  ),
-   //    .m_axi_awready (s_axi_tproc_awready ),
-   //    .m_axi_awvalid (s_axi_tproc_awvalid ),
-   //    .m_axi_bready  (s_axi_tproc_bready  ),
-   //    .m_axi_bresp   (s_axi_tproc_bresp   ),
-   //    .m_axi_bvalid  (s_axi_tproc_bvalid  ),
-   //    .m_axi_rdata   (s_axi_tproc_rdata   ),
-   //    .m_axi_rready  (s_axi_tproc_rready  ),
-   //    .m_axi_rresp   (s_axi_tproc_rresp   ),
-   //    .m_axi_rvalid  (s_axi_tproc_rvalid  ),
-   //    .m_axi_wdata   (s_axi_tproc_wdata   ),
-   //    .m_axi_wready  (s_axi_tproc_wready  ),
-   //    .m_axi_wstrb   (s_axi_tproc_wstrb   ),
-   //    .m_axi_wvalid  (s_axi_tproc_wvalid  )
-   // );
-
-// ============
-
-   AXI_LITE #(
-   .AXI_ADDR_WIDTH ( 8      ),
-   .AXI_DATA_WIDTH ( 32     )
-   ) axi_mst_tproc_IF ();
-   AXI_LITE_DV #(
-      .AXI_ADDR_WIDTH ( 8       ),
-      .AXI_DATA_WIDTH ( 32      )
-   ) axi_mst_tproc_dv_IF (s_ps_dma_aclk);
-   `AXI_LITE_ASSIGN(axi_mst_tproc_IF, axi_mst_tproc_dv_IF)
-
-   assign s_axi_tproc_araddr        = axi_mst_tproc_IF.ar_addr  ; /* TPROC  input */
-   assign s_axi_tproc_arprot        = axi_mst_tproc_IF.ar_prot  ; /* TPROC  input */
-   assign s_axi_tproc_arvalid       = axi_mst_tproc_IF.ar_valid ; /* TPROC  input */
-   assign axi_mst_tproc_IF.ar_ready = s_axi_tproc_arready       ; /* TPROC output */
-
-   assign s_axi_tproc_awaddr        = axi_mst_tproc_IF.aw_addr  ; /* TPROC  input */
-   assign s_axi_tproc_awprot        = axi_mst_tproc_IF.aw_prot  ; /* TPROC  input */
-   assign s_axi_tproc_awvalid       = axi_mst_tproc_IF.aw_valid ; /* TPROC  input */
-   assign axi_mst_tproc_IF.aw_ready = s_axi_tproc_awready       ; /* TPROC output */
-
-   assign axi_mst_tproc_IF.b_resp   = s_axi_tproc_bresp         ; /* TPROC output */
-   assign axi_mst_tproc_IF.b_valid  = s_axi_tproc_bvalid        ; /* TPROC output */
-   assign s_axi_tproc_bready        = axi_mst_tproc_IF.b_ready  ; /* TPROC  input */
-
-   assign axi_mst_tproc_IF.r_resp   = s_axi_tproc_rresp         ; /* TPROC output */
-   assign axi_mst_tproc_IF.r_valid  = s_axi_tproc_rvalid        ; /* TPROC output */
-   assign axi_mst_tproc_IF.r_data   = s_axi_tproc_rdata         ; /* TPROC output */
-   assign s_axi_tproc_rready        = axi_mst_tproc_IF.r_ready  ; /* TPROC  input */
-
-   assign s_axi_tproc_wdata         = axi_mst_tproc_IF.w_data   ; /* TPROC  input */
-   assign s_axi_tproc_wstrb         = axi_mst_tproc_IF.w_strb   ; /* TPROC  input */
-   assign s_axi_tproc_wvalid        = axi_mst_tproc_IF.w_valid  ; /* TPROC  input */
-   assign axi_mst_tproc_IF.w_ready  = s_axi_tproc_wready        ; /* TPROC output */
-
-// >>>>>>>>>>>> PULP PLATFORM AXI VIP
-
-
-   axis_qick_processor # (
-      .DUAL_CORE           (  `DUAL_CORE        ) ,
-      .GEN_SYNC            (  `GEN_SYNC         ) ,
-      .IO_CTRL             (  `IO_CTRL          ) ,
-      .DEBUG               (  `DEBUG            ) ,
-      .QNET                (  `TNET             ) ,
-      .QCOM                (  `QCOM             ) ,
-      .CUSTOM_PERIPH       (  `CUSTOM_PERIPH    ) ,
-      .LFSR                (  `LFSR             ) ,
-      .DIVIDER             (  `DIVIDER          ) ,
-      .ARITH               (  `ARITH            ) ,
-      .TIME_READ           (  `TIME_READ        ) ,
-      .FIFO_DEPTH          (  `FIFO_DEPTH       ) ,
-      .PMEM_AW             (  `PMEM_AW          ) ,
-      .DMEM_AW             (  `DMEM_AW          ) ,
-      .WMEM_AW             (  `WMEM_AW          ) ,
-      .REG_AW              (  `REG_AW           ) ,
-      .IN_PORT_QTY         (  `IN_PORT_QTY      ) ,
-      .OUT_TRIG_QTY        (  `OUT_TRIG_QTY     ) ,
-      .OUT_DPORT_QTY       (  `OUT_DPORT_QTY    ) ,
-      .OUT_DPORT_DW        (  `OUT_DPORT_DW     ) ,
-      .OUT_WPORT_QTY       (  `OUT_WPORT_QTY    ) ,
-// +++++++++++++ ADD EMULATOR PARAM
-      .EMULATOR            (  1'b1              )
-// +++++++++++++
-
-   ) AXIS_QPROC (
+   qick_dut #(
+// ++++++++++++ ADD EMULATOR PARAMETER
+      .EMULATOR         (1'b1),
+// ++++++++++++      
+      .N_DDS_SG         (N_DDS_SG        ),
+      .N_DDS_RO         (N_DDS_RO        ),
+      // tProc Parameters
+      .GEN_SYNC         (`GEN_SYNC        ),
+      .DUAL_CORE        (`DUAL_CORE       ),
+      .IO_CTRL          (`IO_CTRL         ),
+      .DEBUG            (`DEBUG           ),
+      .TNET             (`TNET            ),
+      .QCOM             (`QCOM            ),
+      .CUSTOM_PERIPH    (`CUSTOM_PERIPH   ),
+      .LFSR             (`LFSR            ),
+      .DIVIDER          (`DIVIDER         ),
+      .ARITH            (`ARITH           ),
+      .TIME_READ        (`TIME_READ       ),
+      .FIFO_DEPTH       (`FIFO_DEPTH      ),
+      .PMEM_AW          (`PMEM_AW         ),
+      .DMEM_AW          (`DMEM_AW         ),
+      .WMEM_AW          (`WMEM_AW         ),
+      .REG_AW           (`REG_AW          ),
+      .IN_PORT_QTY      (`IN_PORT_QTY     ),
+      .OUT_TRIG_QTY     (`OUT_TRIG_QTY    ),
+      .OUT_DPORT_QTY    (`OUT_DPORT_QTY   ),
+      .OUT_DPORT_DW     (`OUT_DPORT_DW    ),
+      .OUT_WPORT_QTY    (`OUT_WPORT_QTY   )
+   )
+   qick_dut (
       // Core, Time and AXI CLK & RST.
-      .t_clk_i             ( t_clk              ) ,
+      .t_clk               ( t_clk              ) ,
       .t_resetn            ( rst_ni             ) ,
-      .c_clk_i             ( c_clk              ) ,
+      .c_clk               ( c_clk              ) ,
       .c_resetn            ( rst_ni             ) ,
-      .ps_clk_i            ( s_ps_dma_aclk      ) ,
+      .ps_clk              ( s_ps_dma_aclk      ) ,
       .ps_resetn           ( s_ps_dma_aresetn   ) ,
+      .sg_clk              ( sg_clk             ) ,
+      .sg_resetn           ( rst_ni             ) ,
+      .ro_clk              ( ro_clk             ) ,
+      .ro_resetn           ( rst_ni             ) ,
       // External Control
       .ext_flag_i          ( ext_flag_i         ) ,
       .proc_start_i        ( proc_start_i       ) ,
@@ -565,68 +524,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .m_dma_axis_tlast_o   ( m_dma_axis_tlast_o  ) ,
       .m_dma_axis_tvalid_o  ( m_dma_axis_tvalid_o ) ,
       .m_dma_axis_tready_i  ( m_dma_axis_tready_i ) ,
-      // AXI-Lite DATA Slave I/F.
-      .s_axi_awaddr         ( s_axi_tproc_awaddr[7:0]   ) ,
-      .s_axi_awprot         ( s_axi_tproc_awprot        ) ,
-      .s_axi_awvalid        ( s_axi_tproc_awvalid       ) ,
-      .s_axi_awready        ( s_axi_tproc_awready       ) ,
-      .s_axi_wdata          ( s_axi_tproc_wdata         ) ,
-      .s_axi_wstrb          ( s_axi_tproc_wstrb         ) ,
-      .s_axi_wvalid         ( s_axi_tproc_wvalid        ) ,
-      .s_axi_wready         ( s_axi_tproc_wready        ) ,
-      .s_axi_bresp          ( s_axi_tproc_bresp         ) ,
-      .s_axi_bvalid         ( s_axi_tproc_bvalid        ) ,
-      .s_axi_bready         ( s_axi_tproc_bready        ) ,
-      .s_axi_araddr         ( s_axi_tproc_araddr[7:0]   ) ,
-      .s_axi_arprot         ( s_axi_tproc_arprot        ) ,
-      .s_axi_arvalid        ( s_axi_tproc_arvalid       ) ,
-      .s_axi_arready        ( s_axi_tproc_arready       ) ,
-      .s_axi_rdata          ( s_axi_tproc_rdata         ) ,
-      .s_axi_rresp          ( s_axi_tproc_rresp         ) ,
-      .s_axi_rvalid         ( s_axi_tproc_rvalid        ) ,
-      .s_axi_rready         ( s_axi_tproc_rready        ) ,
-      /// DATA PORT INPUT
+      /// DATA PORT INPUT  
       .s0_axis_tdata        ( port_0_dt_i    ) ,
       .s0_axis_tvalid       ( port_0_vld     ) ,
+      .s0_axis_tready       (                ) ,
       .s1_axis_tdata        ( port_1_dt_i    ) ,
       .s1_axis_tvalid       ( s1_axis_tvalid ) ,
-      .s2_axis_tdata        ( 64'd2          ) ,
-      .s2_axis_tvalid       ( 1'b0           ) ,
-      .s3_axis_tdata        ( 64'd3          ) ,
-      .s3_axis_tvalid       ( 1'b0           ) ,
-      .s4_axis_tdata        ( 64'd4          ) ,
-      .s4_axis_tvalid       ( 1'b0           ) ,
-      .s5_axis_tdata        ( 64'd5          ) ,
-      .s5_axis_tvalid       ( 1'b0           ) ,
-      .s6_axis_tdata        ( 64'd6          ) ,
-      .s6_axis_tvalid       ( 1'b0           ) ,
-      .s7_axis_tdata        ( 64'd7          ) ,
-      .s7_axis_tvalid       ( 1'b0           ) ,
-      // OUT WAVE PORTS
-      .m0_axis_tdata        ( tproc_sgcdc_0_axis_tdata  ) ,
-      .m0_axis_tvalid       ( tproc_sgcdc_0_axis_tvalid ) ,
-      .m0_axis_tready       ( tproc_sgcdc_0_axis_tready ) ,
-      .m1_axis_tdata        ( /*m1_axis_tdata*/       ) ,
-      .m1_axis_tvalid       ( /*m1_axis_tvalid*/      ) ,
-      .m1_axis_tready       ( m1_axis_tready          ) ,
-      .m2_axis_tdata        ( /*m2_axis_tdata*/       ) ,
-      .m2_axis_tvalid       ( /*m2_axis_tvalid*/      ) ,
-      .m2_axis_tready       ( m2_axis_tready          ) ,
-      .m3_axis_tdata        ( /*m3_axis_tdata*/       ) ,
-      .m3_axis_tvalid       ( /*m3_axis_tvalid*/      ) ,
-      .m3_axis_tready       ( m3_axis_tready          ) ,
-      .m4_axis_tdata        ( tproc_rocdc_0_axis_tdata  ) ,
-      .m4_axis_tvalid       ( tproc_rocdc_0_axis_tvalid ) ,
-      .m4_axis_tready       ( tproc_rocdc_0_axis_tready ) ,
-      .m5_axis_tdata        ( /*m5_axis_tdata*/       ) ,
-      .m5_axis_tvalid       ( /*m5_axis_tvalid*/      ) ,
-      .m5_axis_tready       ( m5_axis_tready          ) ,
-      .m6_axis_tdata        ( /*m6_axis_tdata*/       ) ,
-      .m6_axis_tvalid       ( /*m6_axis_tvalid*/      ) ,
-      .m6_axis_tready       ( m6_axis_tready          ) ,
-      .m7_axis_tdata        ( /*m7_axis_tdata*/       ) ,
-      .m7_axis_tvalid       ( /*m7_axis_tvalid*/      ) ,
-      .m7_axis_tready       ( m7_axis_tready          ) ,
+      .s1_axis_tready       (                ) ,
       ///// TRIGGERS
       .trig_0_o             ( trigger_0               ),
       // OUT DATA PORTS
@@ -642,323 +546,56 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .c_debug_do           ( ),
       .c_time_ref_do        ( ),
       .c_port_do            ( ),
-      .c_core_do            ( )
-   );
+      .c_core_do            ( ),
 
-   //--------------------------------------
-   // SIGNAL GENERATOR
-   //--------------------------------------
+      // Signal Generator from tProc interface
+      .sg_s0_axis_aclk           (sg_s0_axis_aclk        ),
+      .sg_s0_axis_aresetn        (s_ps_dma_aresetn       ),
+      .sg_s0_axis_tdata          (sg_s0_axis_tdata       ),
+      .sg_s0_axis_tvalid         (sg_s0_axis_tvalid      ),
+      .sg_s0_axis_tready         (sg_s0_axis_tready      ),
 
-   wire  [5:0]       s_axi_sg_araddr;
-   wire  [2:0]       s_axi_sg_arprot;
-   wire              s_axi_sg_arready;
-   wire              s_axi_sg_arvalid;
-   wire  [5:0]       s_axi_sg_awaddr;
-   wire  [2:0]       s_axi_sg_awprot;
-   wire              s_axi_sg_awready;
-   wire              s_axi_sg_awvalid;
-   wire              s_axi_sg_bready;
-   wire  [1:0]       s_axi_sg_bresp;
-   wire              s_axi_sg_bvalid;
-   wire  [31:0]      s_axi_sg_rdata;
-   wire              s_axi_sg_rready;
-   wire  [1:0]       s_axi_sg_rresp;
-   wire              s_axi_sg_rvalid;
-   wire  [31:0]      s_axi_sg_wdata;
-   wire              s_axi_sg_wready;
-   wire  [3:0]       s_axi_sg_wstrb;
-   wire              s_axi_sg_wvalid;
+      // Signal Generator to DAC interface
+      .axis_sg_dac_tready        (axis_sg_dac_tready     ),
+      .axis_sg_dac_tvalid        (axis_sg_dac_tvalid     ),
+      .axis_sg_dac_tdata         (axis_sg_dac_tdata      ),
 
-   // AXI VIP master address.
+      // ADC to Readout interface
+      .axis_adc_ro_tready        (axis_adc_ro_tready     ),
+      .axis_adc_ro_tvalid        (axis_adc_ro_tvalid     ),
+      .axis_adc_ro_tdata         (axis_adc_ro_tdata      ),
 
+      .axis_ro_mrbuf_tvalid         (axis_ro_mrbuf_tvalid ),
+      .axis_ro_mrbuf_tdata          (axis_ro_mrbuf_tdata  ),
 
-// <<<<<<<<<<<< XILINX AXI VIP
-   // xil_axi_ulong     SG_ADDR_START_ADDR   = 32'h40000000; // 0
-   // xil_axi_ulong     SG_ADDR_WE           = 32'h40000004; // 1
-// ============
-   logic [5:0] SG_ADDR_START_ADDR = 6'h00;
-   logic [5:0] SG_ADDR_WE         = 6'h04;
-// >>>>>>>>>>>> PULP PLATFORM AXI VIP
+      // AXIS Master for averaged output.
+      .m0_axis_buf_avg_tready         (1'b1/*m0_axis_tready*/),
+      .m0_axis_buf_avg_tvalid         (m0_axis_buf_avg_tvalid),
+      .m0_axis_buf_avg_tdata          (m0_axis_buf_avg_tdata ),
+      .m0_axis_buf_avg_tlast          (/*m0_axis_tlast*/     ),
 
+      // AXIS Master for decimated output.
+      .m1_axis_buf_dec_tready         (m1_axis_buf_dec_tready),
+      .m1_axis_buf_dec_tvalid         (m1_axis_buf_dec_tvalid),
+      .m1_axis_buf_dec_tdata          (m1_axis_buf_dec_tdata ),
+      .m1_axis_buf_dec_tlast          (/*m1_axis_tlast*/     ),
 
-// <<<<<<<<<<<< XILINX AXI VIP
-   // axi_mst_0 u_axi_mst_sg_0 (
-   //    .aclk          (s_ps_dma_aclk    ),
-   //    .aresetn       (s_ps_dma_aresetn ),
-   //    .m_axi_araddr  (s_axi_sg_araddr  ),
-   //    .m_axi_arprot  (s_axi_sg_arprot  ),
-   //    .m_axi_arready (s_axi_sg_arready ),
-   //    .m_axi_arvalid (s_axi_sg_arvalid ),
-   //    .m_axi_awaddr  (s_axi_sg_awaddr  ),
-   //    .m_axi_awprot  (s_axi_sg_awprot  ),
-   //    .m_axi_awready (s_axi_sg_awready ),
-   //    .m_axi_awvalid (s_axi_sg_awvalid ),
-   //    .m_axi_bready  (s_axi_sg_bready  ),
-   //    .m_axi_bresp   (s_axi_sg_bresp   ),
-   //    .m_axi_bvalid  (s_axi_sg_bvalid  ),
-   //    .m_axi_rdata   (s_axi_sg_rdata   ),
-   //    .m_axi_rready  (s_axi_sg_rready  ),
-   //    .m_axi_rresp   (s_axi_sg_rresp   ),
-   //    .m_axi_rvalid  (s_axi_sg_rvalid  ),
-   //    .m_axi_wdata   (s_axi_sg_wdata   ),
-   //    .m_axi_wready  (s_axi_sg_wready  ),
-   //    .m_axi_wstrb   (s_axi_sg_wstrb   ),
-   //    .m_axi_wvalid  (s_axi_sg_wvalid  )
-   // );
-
-// ============
-
-   AXI_LITE #(
-   .AXI_ADDR_WIDTH ( 6      ),
-   .AXI_DATA_WIDTH ( 32     )
-   ) axi_mst_sg_IF ();
-   AXI_LITE_DV #(
-      .AXI_ADDR_WIDTH ( 6       ),
-      .AXI_DATA_WIDTH ( 32      )
-   ) axi_mst_sg_dv_IF (s_ps_dma_aclk);
-   `AXI_LITE_ASSIGN(axi_mst_sg_IF, axi_mst_sg_dv_IF)
-
-   assign s_axi_sg_araddr        = axi_mst_sg_IF.ar_addr  ; /* SG  input */
-   assign s_axi_sg_arprot        = axi_mst_sg_IF.ar_prot  ; /* SG  input */
-   assign s_axi_sg_arvalid       = axi_mst_sg_IF.ar_valid ; /* SG  input */
-   assign axi_mst_sg_IF.ar_ready = s_axi_sg_arready       ; /* SG output */
-
-   assign s_axi_sg_awaddr        = axi_mst_sg_IF.aw_addr  ; /* SG  input */
-   assign s_axi_sg_awprot        = axi_mst_sg_IF.aw_prot  ; /* SG  input */
-   assign s_axi_sg_awvalid       = axi_mst_sg_IF.aw_valid ; /* SG  input */
-   assign axi_mst_sg_IF.aw_ready = s_axi_sg_awready       ; /* SG output */
-
-   assign axi_mst_sg_IF.b_resp   = s_axi_sg_bresp         ; /* SG output */
-   assign axi_mst_sg_IF.b_valid  = s_axi_sg_bvalid        ; /* SG output */
-   assign s_axi_sg_bready        = axi_mst_sg_IF.b_ready  ; /* SG  input */
-
-   assign axi_mst_sg_IF.r_resp   = s_axi_sg_rresp         ; /* SG output */
-   assign axi_mst_sg_IF.r_valid  = s_axi_sg_rvalid        ; /* SG output */
-   assign axi_mst_sg_IF.r_data   = s_axi_sg_rdata         ; /* SG output */
-   assign s_axi_sg_rready        = axi_mst_sg_IF.r_ready  ; /* SG  input */
-
-   assign s_axi_sg_wdata         = axi_mst_sg_IF.w_data   ; /* SG  input */
-   assign s_axi_sg_wstrb         = axi_mst_sg_IF.w_strb   ; /* SG  input */
-   assign s_axi_sg_wvalid        = axi_mst_sg_IF.w_valid  ; /* SG  input */
-   assign axi_mst_sg_IF.w_ready  = s_axi_sg_wready        ; /* SG output */
-
-// >>>>>>>>>>>> PULP PLATFORM AXI VIP
-
-
-   axis_cdcsync_v1 #(
-      .N                         (1),     // Number of inputs/outputs.
-      .B                         (168),   // Number of data bits.
-// ++++++++++++ ADD EMULATOR PARAMETER
-      .EMULATOR                  (1'b1)
-// ++++++++++++
-   )
-   u_axis_sgcdcsync_v1 (
-      // S_AXIS for input data.
-      .s_axis_aresetn            (rst_ni),
-      .s_axis_aclk               (t_clk),
-      .s0_axis_tready            (tproc_sgcdc_0_axis_tready),
-      .s0_axis_tvalid            (tproc_sgcdc_0_axis_tvalid),
-      .s0_axis_tdata             (tproc_sgcdc_0_axis_tdata),
-      .s1_axis_tready            (/*s1_axis_tready*/),
-      .s1_axis_tvalid            (1'b0),
-      .s1_axis_tdata             (168'd0),
-      .s2_axis_tready            (/*s2_axis_tready*/),
-      .s2_axis_tvalid            (1'b0),
-      .s2_axis_tdata             (168'd0),
-      .s3_axis_tready            (/*s3_axis_tready*/),
-      .s3_axis_tvalid            (1'b0),
-      .s3_axis_tdata             (168'd0),
-      .s4_axis_tready            (/*s4_axis_tready*/),
-      .s4_axis_tvalid            (1'b0),
-      .s4_axis_tdata             (168'd0),
-      .s5_axis_tready            (/*s5_axis_tready*/),
-      .s5_axis_tvalid            (1'b0),
-      .s5_axis_tdata             (168'd0),
-      .s6_axis_tready            (/*s6_axis_tready*/),
-      .s6_axis_tvalid            (1'b0),
-      .s6_axis_tdata             (168'd0),
-      .s7_axis_tready            (/*s7_axis_tready*/),
-      .s7_axis_tvalid            (1'b0),
-      .s7_axis_tdata             (168'd0),
-      .s8_axis_tready            (/*s8_axis_tready*/),
-      .s8_axis_tvalid            (1'b0),
-      .s8_axis_tdata             (168'd0),
-      .s9_axis_tready            (/*s9_axis_tready*/),
-      .s9_axis_tvalid            (1'b0),
-      .s9_axis_tdata             (168'd0),
-      .s10_axis_tready           (/*s10_axis_tready*/),
-      .s10_axis_tvalid           (1'b0),
-      .s10_axis_tdata            (168'd0),
-      .s11_axis_tready           (/*s11_axis_tready*/),
-      .s11_axis_tvalid           (1'b0),
-      .s11_axis_tdata            (168'd0),
-      .s12_axis_tready           (/*s12_axis_tready*/),
-      .s12_axis_tvalid           (1'b0),
-      .s12_axis_tdata            (168'd0),
-      .s13_axis_tready           (/*s13_axis_tready*/),
-      .s13_axis_tvalid           (1'b0),
-      .s13_axis_tdata            (168'd0),
-      .s14_axis_tready           (/*s14_axis_tready*/),
-      .s14_axis_tvalid           (1'b0),
-      .s14_axis_tdata            (168'd0),
-      .s15_axis_tready           (/*s15_axis_tready*/),
-      .s15_axis_tvalid           (1'b0),
-      .s15_axis_tdata            (168'd0),
-      // M_AXIS for output data.
-      .m_axis_aresetn            (rst_ni),
-      .m_axis_aclk               (sg_clk),
-      .m0_axis_tready            (sgcdc_sgt_0_axis_tready),
-      .m0_axis_tvalid            (sgcdc_sgt_0_axis_tvalid),
-      .m0_axis_tdata             (sgcdc_sgt_0_axis_tdata),
-      .m1_axis_tready            (1'b1),
-      .m1_axis_tvalid            (/*m1_axis_tvalid*/),
-      .m1_axis_tdata             (/*m1_axis_tdata*/),
-      .m2_axis_tready            (1'b1),
-      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
-      .m2_axis_tdata             (/*m2_axis_tdata*/),
-      .m3_axis_tready            (1'b1),
-      .m3_axis_tvalid            (/*m3_axis_tvalid*/),
-      .m3_axis_tdata             (/*m3_axis_tdata*/),
-      .m4_axis_tready            (1'b1),
-      .m4_axis_tvalid            (/*m4_axis_tvalid*/),
-      .m4_axis_tdata             (/*m4_axis_tdata*/),
-      .m5_axis_tready            (1'b1),
-      .m5_axis_tvalid            (/*m5_axis_tvalid*/),
-      .m5_axis_tdata             (/*m5_axis_tdata*/),
-      .m6_axis_tready            (1'b1),
-      .m6_axis_tvalid            (/*m6_axis_tvalid*/),
-      .m6_axis_tdata             (/*m6_axis_tdata*/),
-      .m7_axis_tready            (1'b1),
-      .m7_axis_tvalid            (/*m7_axis_tvalid*/),
-      .m7_axis_tdata             (/*m7_axis_tdata*/),
-      .m8_axis_tready            (1'b1),
-      .m8_axis_tvalid            (/*m8_axis_tvalid*/),
-      .m8_axis_tdata             (/*m8_axis_tdata*/),
-      .m9_axis_tready            (1'b1),
-      .m9_axis_tvalid            (/*m9_axis_tvalid*/),
-      .m9_axis_tdata             (/*m9_axis_tdata*/),
-      .m10_axis_tready           (1'b1),
-      .m10_axis_tvalid           (/*m10_axis_tvalid*/),
-      .m10_axis_tdata            (/*m10_axis_tdata*/),
-      .m11_axis_tready           (1'b1),
-      .m11_axis_tvalid           (/*m11_axis_tvalid*/),
-      .m11_axis_tdata            (/*m11_axis_tdata*/),
-      .m12_axis_tready           (1'b1),
-      .m12_axis_tvalid           (/*m12_axis_tvalid*/),
-      .m12_axis_tdata            (/*m12_axis_tdata*/),
-      .m13_axis_tready           (1'b1),
-      .m13_axis_tvalid           (/*m13_axis_tvalid*/),
-      .m13_axis_tdata            (/*m13_axis_tdata*/),
-      .m14_axis_tready           (1'b1),
-      .m14_axis_tvalid           (/*m14_axis_tvalid*/),
-      .m14_axis_tdata            (/*m14_axis_tdata*/),
-      .m15_axis_tready           (1'b1),
-      .m15_axis_tvalid           (/*m15_axis_tvalid*/),
-      .m15_axis_tdata            (/*m15_axis_tdata*/)
+      // AXIS Master for register output.
+      //
+      // Wired into the `s0_axis` input of `axis_qick_processor` via the
+      // `readout_ch0_dt`/`readout_ch0_vld` latch near the top of the TB so
+      // that `read_input(ro_ch=0)` / `read_and_jump` can sample per-shot I/Q.
+      .m2_axis_buf_reg_tready         (1'b1/*m2_axis_tready*/),
+      .m2_axis_buf_reg_tvalid         (avg0_m2_tvalid        ),
+      .m2_axis_buf_reg_tdata          (avg0_m2_tdata         )
    );
 
 
-   sg_translator # (
-      .OUT_TYPE               (0) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
-   )
-   u_sg_translator_0 (
-      // Reset and clock.
-      .aresetn                (1'bx),  // not used
-      .aclk                   (1'bx),  // not used
-      // IN WAVE PORT
-      .s_axis_tdata           (sgcdc_sgt_0_axis_tdata),
-      .s_axis_tvalid          (sgcdc_sgt_0_axis_tvalid),
-      .s_axis_tready          (sgcdc_sgt_0_axis_tready),
-      // OUT DATA gen_v6 (SEL:0)
-      .m_gen_v6_axis_tdata    (sgt_sg_0_axis_tdata),
-      .m_gen_v6_axis_tvalid   (sgt_sg_0_axis_tvalid),
-      .m_gen_v6_axis_tready   (sgt_sg_0_axis_tready),
-      // OUT DATA int4_v1 (SEL:1)
-      .m_int4_axis_tdata      (),
-      .m_int4_axis_tvalid     (),
-      .m_int4_axis_tready     (),
-      // OUT DATA mux4_v1 (SEL:2)
-      .m_mux4_axis_tdata      (),
-      .m_mux4_axis_tvalid     (),
-      .m_mux4_axis_tready     (),
-      // OUT DATA readout_v3 (SEL:3)
-      .m_readout_axis_tdata   (),
-      .m_readout_axis_tvalid  (),
-      .m_readout_axis_tready  ()
-   );
-
-   // axis_signal_gen_v6_0 parameters
-   localparam N       = 10;
-   localparam N_DDS   = 16;
-
-   axis_signal_gen_v6 #(
-      .N                   (N                ),
-      .N_DDS               (N_DDS            ),
-      .GEN_DDS             ("TRUE"           ),
-      // .GEN_DDS             ("FALSE"           ),
-      .ENVELOPE_TYPE       ("COMPLEX"        ),
-// +++++++++++++ ADD EMULATOR PARAM
-      .EMULATOR            (  1'b1              )
-// +++++++++++++
-   )
-   u_axis_signal_gen_v6_0 (
-      // AXI Slave I/F for configuration.
-      .s_axi_aclk          (s_ps_dma_aclk    ),
-      .s_axi_aresetn       (s_ps_dma_aresetn ),
-      .s_axi_araddr        (s_axi_sg_araddr  ),
-      .s_axi_arprot        (s_axi_sg_arprot  ),
-      .s_axi_arready       (s_axi_sg_arready ),
-      .s_axi_arvalid       (s_axi_sg_arvalid ),
-      .s_axi_awaddr        (s_axi_sg_awaddr  ),
-      .s_axi_awprot        (s_axi_sg_awprot  ),
-      .s_axi_awready       (s_axi_sg_awready ),
-      .s_axi_awvalid       (s_axi_sg_awvalid ),
-      .s_axi_bready        (s_axi_sg_bready  ),
-      .s_axi_bresp         (s_axi_sg_bresp   ),
-      .s_axi_bvalid        (s_axi_sg_bvalid  ),
-      .s_axi_rdata         (s_axi_sg_rdata   ),
-      .s_axi_rready        (s_axi_sg_rready  ),
-      .s_axi_rresp         (s_axi_sg_rresp   ),
-      .s_axi_rvalid        (s_axi_sg_rvalid  ),
-      .s_axi_wdata         (s_axi_sg_wdata   ),
-      .s_axi_wready        (s_axi_sg_wready  ),
-      .s_axi_wstrb         (s_axi_sg_wstrb   ),
-      .s_axi_wvalid        (s_axi_sg_wvalid  ),
-
-      // AXIS Slave to load data into memory.
-      .s0_axis_aclk        (s_ps_dma_aclk      ),
-      .s0_axis_aresetn     (s_ps_dma_aresetn   ),
-      .s0_axis_tdata       (sg_s0_axis_tdata   ),
-      .s0_axis_tvalid      (sg_s0_axis_tvalid  ),
-      .s0_axis_tready      (sg_s0_axis_tready  ),
-
-      // s1_* and m_* reset/clock.
-      .aresetn             (rst_ni           ),
-      .aclk                (sg_clk           ),
-
-      // AXIS Slave to queue waveforms - From TPROC
-      .s1_axis_tdata       (sgt_sg_0_axis_tdata    ),
-      .s1_axis_tvalid      (sgt_sg_0_axis_tvalid   ),
-      .s1_axis_tready      (sgt_sg_0_axis_tready   ),
-
-      // AXIS Master for output data.
-      .m_axis_tready       (axis_sg_dac_tready      ),
-      .m_axis_tvalid       (axis_sg_dac_tvalid      ),
-      .m_axis_tdata        (axis_sg_dac_tdata       )
-   );
-
-
-   // For Waveform Debug
-   logic signed [15:0] axis_sg_dac_tdata_dbg [0:N_DDS-1];
-   always @* begin
-      for (int i=0; i<N_DDS; i=i+1) begin
-         axis_sg_dac_tdata_dbg[i] = axis_sg_dac_tdata[16*i +: 16];
-      end
-   end
-
    //--------------------------------------
-   // RF DATA CONVERTER IP (behavioral model — loopback DAC/ADC)
+   // TODO: RF DATA CONVERTER IP
    //--------------------------------------
+
+   // DAC-ADC RF frontend model
 
    localparam DAC_W = 16;
    logic signed [DAC_W-1:0] dac_data;
@@ -980,12 +617,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
-   assign adc_data = $signed(adc_sample);
+   // SG to DAC RF processes 16 samples per clock
 
-   logic [$clog2(N_DDS)-1:0] dac_samp_cnt;
+   assign axis_sg_dac_tready        = 1'b1;  // DAC always ready to receive samples
+
+   logic [$clog2(N_DDS_SG)-1:0] dac_samp_cnt;
    always @(posedge dac_fs) begin
       if (axis_sg_dac_tvalid) begin
-         dac_data       <= axis_sg_dac_tdata[ 16*dac_samp_cnt +: 16];
+         dac_data       <= axis_sg_dac_tdata[16*dac_samp_cnt +: 16];
          dac_samp_cnt   <= dac_samp_cnt + 'd1;
       end
       else begin
@@ -994,14 +633,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
-   // SG to DAC RF processes 16 samples per clock
+
    // ADC RF to RO processes 8 samples per clock
 
-   assign axis_sg_dac_tready        = 1'b1;  // DAC always ready to receive samples
+   assign adc_data = $signed(adc_sample);
 
-   logic [$clog2(N_DDS)-1:0] adc_samp_cnt;
+   logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
    always @(posedge adc_fs) begin
-      if (adc_samp_cnt < 7) begin
+      if (adc_samp_cnt < N_DDS_RO-1) begin
          adc_samp_cnt      <= adc_samp_cnt + 1;
          rf_signal_valid   <= 0;
       end
@@ -1012,468 +651,181 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       rf_signal_data[16*adc_samp_cnt +: 16] <= adc_data;
    end
 
+
    // Model Transport delay
-// <<<<<<<<<<<< VERILATOR INCOMPATIBLE DELAY
+
+// <<<<<<<<<<<< VERILATOR INCOMPATIBLE DELAY 
+   // NOTE: THESE MUST BE REG TO WORK!!!
+   // reg                    rf_signal_valid_dly;
+   // reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
    // always @(*) begin
-   //    rf_signal_valid_dly <= #10ns rf_signal_valid;
-   //    rf_signal_data_dly  <= #10ns rf_signal_data;
+   //    rf_signal_valid_dly <= #250ns rf_signal_valid;
+   //    rf_signal_data_dly  <= #250ns rf_signal_data;
    // end
 // ============
-   // NOTE: intra-assignment delay stalls Verilator's --timing event queue.
-   // "assign #Xns" is the Verilator-compatible idiom (see commit 81fa2e8).
-   // 10ns delay mirrors the Vivado tb_qick_emu.sv RF cable loopback.
-   wire               rf_signal_valid_dly = rf_signal_valid;
-   wire [8*16-1:0]    rf_signal_data_dly  = rf_signal_data;
+   // assign #250ns rf_signal_valid_dly = rf_signal_valid;
+   // assign #250ns rf_signal_data_dly  = rf_signal_data;
+   localparam RF_DELAY_TIME_NS = 10;
+   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK/N_DDS_RO));
+   logic                    rf_signal_valid_dly;
+   logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
+   logic [N_DDS_RO*16:0] rf_delay_line [0:RF_DELAY_CYCLES-1];
+   always_ff @(posedge adc_fs) begin
+      rf_delay_line[0] <= {rf_signal_valid, rf_signal_data};
+      for (int i=1; i<RF_DELAY_CYCLES; i++) begin
+         rf_delay_line[i] <= rf_delay_line[i-1];
+      end
+      rf_signal_valid_dly <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16];
+      rf_signal_data_dly  <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16-1:0];
+   end
 // >>>>>>>>>>>> VERILATOR COMPATIBLE CONTINUOUS DELAY
 
-   localparam N_DDS_RO = 8;
 
-   // Sample RF signal with ADC/RO clock — 8 real samples per RO clock.
-   // (Only the loopback path is used in the emu TB; Qubit Emulator is omitted.)
+   // //--------------------------------------
+   // // WIP: Qubit Emulator
+   // //--------------------------------------
+
+   // wire  [7:0]       s_axi_qemu_araddr;
+   // wire  [2:0]       s_axi_qemu_arprot;
+   // wire              s_axi_qemu_arready;
+   // wire              s_axi_qemu_arvalid;
+   // wire  [7:0]       s_axi_qemu_awaddr;
+   // wire  [2:0]       s_axi_qemu_awprot;
+   // wire              s_axi_qemu_awready;
+   // wire              s_axi_qemu_awvalid;
+   // wire              s_axi_qemu_bready;
+   // wire  [1:0]       s_axi_qemu_bresp;
+   // wire              s_axi_qemu_bvalid;
+   // wire  [31:0]      s_axi_qemu_rdata;
+   // wire              s_axi_qemu_rready;
+   // wire  [1:0]       s_axi_qemu_rresp;
+   // wire              s_axi_qemu_rvalid;
+   // wire  [31:0]      s_axi_qemu_wdata;
+   // wire              s_axi_qemu_wready;
+   // wire  [3:0]       s_axi_qemu_wstrb;
+   // wire              s_axi_qemu_wvalid;
+   
+   // // AXI VIP master address.
+   // xil_axi_ulong   QEMU_DDS_BVAL_REG     = 4 * 0;
+   // xil_axi_ulong   QEMU_DDS_SLOPE_REG    = 4 * 1;
+   // xil_axi_ulong   QEMU_DDS_STEPS_REG    = 4 * 2;
+   // xil_axi_ulong   QEMU_DDS_WAIT_REG     = 4 * 3;
+   // xil_axi_ulong   QEMU_DDS_FREQ_REG     = 4 * 4;
+   // xil_axi_ulong   QEMU_IIR_C0_REG       = 4 * 5;
+   // xil_axi_ulong   QEMU_IIR_C1_REG       = 4 * 6;
+   // xil_axi_ulong   QEMU_IIR_G_REG        = 4 * 7;
+   // xil_axi_ulong   QEMU_OUTSEL_REG       = 4 * 8;
+   // xil_axi_ulong   QEMU_PUNCT_ID_REG     = 4 * 9;
+   // xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
+   // xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
+
+   // localparam L = 1;
+   // wire              axis_qemu_ro_tvalid;
+   // wire [L*2*16-1:0] axis_qemu_ro_tdata;
+
+   // axi_mst_0 u_axi_mst_qemu_0 (
+   //    .aclk          (s_ps_dma_aclk       ),
+   //    .aresetn       (s_ps_dma_aresetn    ),
+   //    .m_axi_araddr  (s_axi_qemu_araddr    ),
+   //    .m_axi_arprot  (s_axi_qemu_arprot    ),
+   //    .m_axi_arready (s_axi_qemu_arready   ),
+   //    .m_axi_arvalid (s_axi_qemu_arvalid   ),
+   //    .m_axi_awaddr  (s_axi_qemu_awaddr    ),
+   //    .m_axi_awprot  (s_axi_qemu_awprot    ),
+   //    .m_axi_awready (s_axi_qemu_awready   ),
+   //    .m_axi_awvalid (s_axi_qemu_awvalid   ),
+   //    .m_axi_bready  (s_axi_qemu_bready    ),
+   //    .m_axi_bresp   (s_axi_qemu_bresp     ),
+   //    .m_axi_bvalid  (s_axi_qemu_bvalid    ),
+   //    .m_axi_rdata   (s_axi_qemu_rdata     ),
+   //    .m_axi_rready  (s_axi_qemu_rready    ),
+   //    .m_axi_rresp   (s_axi_qemu_rresp     ),
+   //    .m_axi_rvalid  (s_axi_qemu_rvalid    ),
+   //    .m_axi_wdata   (s_axi_qemu_wdata     ),
+   //    .m_axi_wready  (s_axi_qemu_wready    ),
+   //    .m_axi_wstrb   (s_axi_qemu_wstrb     ),
+   //    .m_axi_wvalid  (s_axi_qemu_wvalid    )
+   // );
+
+   // axis_kidsim_v3 #(
+   //    .L                      (L)   // Number of lanes.
+   // )
+   // u_axis_kidsim_v3 (
+   //    // AXI Slave I/F for configuration.
+   //    .s_axi_aclk             (s_ps_dma_aclk       ),
+   //    .s_axi_aresetn          (s_ps_dma_aresetn    ),
+   //    .s_axi_araddr           (s_axi_qemu_araddr   ),
+   //    .s_axi_arprot           (s_axi_qemu_arprot   ),
+   //    .s_axi_arready          (s_axi_qemu_arready  ),
+   //    .s_axi_arvalid          (s_axi_qemu_arvalid  ),
+   //    .s_axi_awaddr           (s_axi_qemu_awaddr   ),
+   //    .s_axi_awprot           (s_axi_qemu_awprot   ),
+   //    .s_axi_awready          (s_axi_qemu_awready  ),
+   //    .s_axi_awvalid          (s_axi_qemu_awvalid  ),
+   //    .s_axi_bready           (s_axi_qemu_bready   ),
+   //    .s_axi_bresp            (s_axi_qemu_bresp    ),
+   //    .s_axi_bvalid           (s_axi_qemu_bvalid   ),
+   //    .s_axi_rdata            (s_axi_qemu_rdata    ),
+   //    .s_axi_rready           (s_axi_qemu_rready   ),
+   //    .s_axi_rresp            (s_axi_qemu_rresp    ),
+   //    .s_axi_rvalid           (s_axi_qemu_rvalid   ),
+   //    .s_axi_wdata            (s_axi_qemu_wdata    ),
+   //    .s_axi_wready           (s_axi_qemu_wready   ),
+   //    .s_axi_wstrb            (s_axi_qemu_wstrb    ),
+   //    .s_axi_wvalid           (s_axi_qemu_wvalid   ),
+
+   //    // Modulation trigger.
+   //    .trigger                (trigger_0           ),
+
+   //    // Reset and clock for axis_*.
+   //    .aresetn                (s_ps_dma_aresetn    ),
+   //    .aclk                   (adc_fs             ),
+
+   //    // s_axis_* for input.
+   //    .s_axis_tvalid          (1'b1),
+   //    // .s_axis_tdata           ({adc_data_imag,adc_data_real}),   // width: 32*L, should be I/Q from input ADC
+   //    .s_axis_tdata           ({16'd0,adc_data}),   // width: 32*L, should be I/Q from input ADC
+   //    .s_axis_tlast           (1'b1),
+
+   //    // m_axis_* for output.
+   //    .m_axis_tvalid          (axis_qemu_ro_tvalid ),
+   //    .m_axis_tdata           (axis_qemu_ro_tdata  ),   // width: 32*L, should be I/Q to output DAC
+   //    .m_axis_tlast           ()
+   // );
+
+
+   // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
+   // always_ff @(posedge ro_clk) begin
+   //    if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
+   //       axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
+   //       axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+   //    end
+   //    else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
+   //       axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
+   //       for (int i=0; i<N_DDS_RO; i=i+1) begin
+   //          axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
+   //       end
+   //    end
+   // end
+
    logic [2:0] rf_signal_cnt;
    always_ff @(posedge adc_fs) begin
-      if (rf_signal_cnt == 0) begin
-         axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-      end
-      else begin
-      end
-      if (rf_signal_valid_dly || axis_adc_ro_tvalid) begin
-         rf_signal_cnt  <= rf_signal_cnt + 1;
-      end
-      else begin
-         rf_signal_cnt  <= 0;
-      end
-   end
-
-   // For Waveform Debug
-   logic signed [15:0] axis_adc_ro_tdata_dbg [0:N_DDS_RO-1];
-   always @* begin
-      for (int i=0; i < N_DDS_RO; i=i+1) begin
-         axis_adc_ro_tdata_dbg[i] = axis_adc_ro_tdata[16*i +: 16];
-      end
-   end
-
-   //--------------------------------------
-   // READOUT
-   //--------------------------------------
-
-   axis_cdcsync_v1 #(
-      .N                         (1),     // Number of inputs/outputs.
-      .B                         (168),   // Number of data bits.
-// ++++++++++++ ADD EMULATOR PARAMETER
-      .EMULATOR                  (1'b1)
-// ++++++++++++
-   )
-   u_axis_rocdcsync_v1 (
-      // S_AXIS for input data.
-      .s_axis_aresetn            (rst_ni),
-      .s_axis_aclk               (t_clk),
-      .s0_axis_tready            (tproc_rocdc_0_axis_tready),
-      .s0_axis_tvalid            (tproc_rocdc_0_axis_tvalid),
-      .s0_axis_tdata             (tproc_rocdc_0_axis_tdata),
-      .s1_axis_tready            (/*s1_axis_tready*/),
-      .s1_axis_tvalid            (1'b0),
-      .s1_axis_tdata             (168'd0),
-      .s2_axis_tready            (/*s2_axis_tready*/),
-      .s2_axis_tvalid            (1'b0),
-      .s2_axis_tdata             (168'd0),
-      .s3_axis_tready            (/*s3_axis_tready*/),
-      .s3_axis_tvalid            (1'b0),
-      .s3_axis_tdata             (168'd0),
-      .s4_axis_tready            (/*s4_axis_tready*/),
-      .s4_axis_tvalid            (1'b0),
-      .s4_axis_tdata             (168'd0),
-      .s5_axis_tready            (/*s5_axis_tready*/),
-      .s5_axis_tvalid            (1'b0),
-      .s5_axis_tdata             (168'd0),
-      .s6_axis_tready            (/*s6_axis_tready*/),
-      .s6_axis_tvalid            (1'b0),
-      .s6_axis_tdata             (168'd0),
-      .s7_axis_tready            (/*s7_axis_tready*/),
-      .s7_axis_tvalid            (1'b0),
-      .s7_axis_tdata             (168'd0),
-      .s8_axis_tready            (/*s8_axis_tready*/),
-      .s8_axis_tvalid            (1'b0),
-      .s8_axis_tdata             (168'd0),
-      .s9_axis_tready            (/*s9_axis_tready*/),
-      .s9_axis_tvalid            (1'b0),
-      .s9_axis_tdata             (168'd0),
-      .s10_axis_tready           (/*s10_axis_tready*/),
-      .s10_axis_tvalid           (1'b0),
-      .s10_axis_tdata            (168'd0),
-      .s11_axis_tready           (/*s11_axis_tready*/),
-      .s11_axis_tvalid           (1'b0),
-      .s11_axis_tdata            (168'd0),
-      .s12_axis_tready           (/*s12_axis_tready*/),
-      .s12_axis_tvalid           (1'b0),
-      .s12_axis_tdata            (168'd0),
-      .s13_axis_tready           (/*s13_axis_tready*/),
-      .s13_axis_tvalid           (1'b0),
-      .s13_axis_tdata            (168'd0),
-      .s14_axis_tready           (/*s14_axis_tready*/),
-      .s14_axis_tvalid           (1'b0),
-      .s14_axis_tdata            (168'd0),
-      .s15_axis_tready           (/*s15_axis_tready*/),
-      .s15_axis_tvalid           (1'b0),
-      .s15_axis_tdata            (168'd0),
-      // M_AXIS for output data.
-      .m_axis_aresetn            (rst_ni),
-      .m_axis_aclk               (ro_clk),
-      .m0_axis_tready            (rocdc_rot_0_axis_tready),
-      .m0_axis_tvalid            (rocdc_rot_0_axis_tvalid),
-      .m0_axis_tdata             (rocdc_rot_0_axis_tdata),
-      .m1_axis_tready            (1'b1),
-      .m1_axis_tvalid            (/*m1_axis_tvalid*/),
-      .m1_axis_tdata             (/*m1_axis_tdata*/),
-      .m2_axis_tready            (1'b1),
-      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
-      .m2_axis_tdata             (/*m2_axis_tdata*/),
-      .m3_axis_tready            (1'b1),
-      .m3_axis_tvalid            (/*m3_axis_tvalid*/),
-      .m3_axis_tdata             (/*m3_axis_tdata*/),
-      .m4_axis_tready            (1'b1),
-      .m4_axis_tvalid            (/*m4_axis_tvalid*/),
-      .m4_axis_tdata             (/*m4_axis_tdata*/),
-      .m5_axis_tready            (1'b1),
-      .m5_axis_tvalid            (/*m5_axis_tvalid*/),
-      .m5_axis_tdata             (/*m5_axis_tdata*/),
-      .m6_axis_tready            (1'b1),
-      .m6_axis_tvalid            (/*m6_axis_tvalid*/),
-      .m6_axis_tdata             (/*m6_axis_tdata*/),
-      .m7_axis_tready            (1'b1),
-      .m7_axis_tvalid            (/*m7_axis_tvalid*/),
-      .m7_axis_tdata             (/*m7_axis_tdata*/),
-      .m8_axis_tready            (1'b1),
-      .m8_axis_tvalid            (/*m8_axis_tvalid*/),
-      .m8_axis_tdata             (/*m8_axis_tdata*/),
-      .m9_axis_tready            (1'b1),
-      .m9_axis_tvalid            (/*m9_axis_tvalid*/),
-      .m9_axis_tdata             (/*m9_axis_tdata*/),
-      .m10_axis_tready           (1'b1),
-      .m10_axis_tvalid           (/*m10_axis_tvalid*/),
-      .m10_axis_tdata            (/*m10_axis_tdata*/),
-      .m11_axis_tready           (1'b1),
-      .m11_axis_tvalid           (/*m11_axis_tvalid*/),
-      .m11_axis_tdata            (/*m11_axis_tdata*/),
-      .m12_axis_tready           (1'b1),
-      .m12_axis_tvalid           (/*m12_axis_tvalid*/),
-      .m12_axis_tdata            (/*m12_axis_tdata*/),
-      .m13_axis_tready           (1'b1),
-      .m13_axis_tvalid           (/*m13_axis_tvalid*/),
-      .m13_axis_tdata            (/*m13_axis_tdata*/),
-      .m14_axis_tready           (1'b1),
-      .m14_axis_tvalid           (/*m14_axis_tvalid*/),
-      .m14_axis_tdata            (/*m14_axis_tdata*/),
-      .m15_axis_tready           (1'b1),
-      .m15_axis_tvalid           (/*m15_axis_tvalid*/),
-      .m15_axis_tdata            (/*m15_axis_tdata*/)
-   );
-
-   sg_translator # (
-      .OUT_TYPE               (3) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
-   )
-   u_ro_translator_0 (
-      // Reset and clock.
-      .aresetn                (1'bx),  // not used
-      .aclk                   (1'bx),  // not used
-      // IN WAVE PORT
-      .s_axis_tdata           (rocdc_rot_0_axis_tdata),
-      .s_axis_tvalid          (rocdc_rot_0_axis_tvalid),
-      .s_axis_tready          (rocdc_rot_0_axis_tready),
-      // OUT DATA gen_v6 (SEL:0)
-      .m_gen_v6_axis_tready   (),
-      .m_gen_v6_axis_tvalid   (),
-      .m_gen_v6_axis_tdata    (),
-      // OUT DATA int4_v1 (SEL:1)
-      .m_int4_axis_tdata      (),
-      .m_int4_axis_tvalid     (),
-      .m_int4_axis_tready     (),
-      // OUT DATA mux4_v1 (SEL:2)
-      .m_mux4_axis_tdata      (),
-      .m_mux4_axis_tvalid     (),
-      .m_mux4_axis_tready     (),
-      // OUT DATA readout_v3 (SEL:3)
-      .m_readout_axis_tready  (rot_ro_0_axis_tready),
-      .m_readout_axis_tvalid  (rot_ro_0_axis_tvalid),
-      .m_readout_axis_tdata   (rot_ro_0_axis_tdata)
-   );
-
-
-   wire              axis_ro_avg_tready;
-   wire              axis_ro_avg_tvalid;
-   wire [31:0]       axis_ro_avg_tdata;
-
-   wire              axis_ro_mrbuf_tvalid;
-   wire [8*2*16-1:0] axis_ro_mrbuf_tdata;
-
-   // Raw readout m1 outputs — padded below to compensate for missing pipeline
-   // latency (Xilinx RFDC + DDS_compiler + FIR_compiler) vs. our behavioral chain.
-   wire              axis_ro_avg_raw_tready;
-   wire              axis_ro_avg_raw_tvalid;
-   wire [31:0]       axis_ro_avg_raw_tdata;
-
-   axis_dyn_readout_v1 #(
-      // .N_DDS            (N_DDS),
-// +++++++++++++ ADD EMULATOR PARAM
-      .EMULATOR            (  1'b1              )
-// +++++++++++++
-   )
-   u_axis_dyn_readout_v1_0 (
-      // Reset and clock.
-      .aresetn          (s_ps_dma_aresetn),
-      .aclk             (ro_clk),
-
-      // s0_axis for pushing waveforms.
-      .s0_axis_tready   (rot_ro_0_axis_tready),
-      .s0_axis_tvalid   (rot_ro_0_axis_tvalid),
-      .s0_axis_tdata    (rot_ro_0_axis_tdata),
-
-      // s1_axis for input data
-      .s1_axis_tready   (axis_adc_ro_tready),
-      .s1_axis_tvalid   (axis_adc_ro_tvalid),
-      .s1_axis_tdata    (axis_adc_ro_tdata),
-
-      // m0_axis to MR_Buffer
-      .m0_axis_tready   (1'b1),
-      .m0_axis_tvalid   (axis_ro_mrbuf_tvalid),
-      .m0_axis_tdata    (axis_ro_mrbuf_tdata),
-
-      // m1_axis to avg_buffer (raw, pre-pad)
-      .m1_axis_tready   (axis_ro_avg_raw_tready),
-      .m1_axis_tvalid   (axis_ro_avg_raw_tvalid),
-      .m1_axis_tdata    (axis_ro_avg_raw_tdata)
-   );
-
-   // -----------------------------------------------------------------------------
-   // Pipeline-latency padding for readout m1 path.
-   //
-   // The reference Xilinx implementation (RFDC + DDS_compiler + FIR_compiler) has
-   // ~178 dec-rate samples more latency than our behavioral DAC/ADC + DDS + FIR
-   // chain. Without padding, decimated I/Q samples arrive ~1.78 µs earlier than
-   // the avg_buffer trigger expects, causing the leading edge of the first pulse
-   // to be cut off in the captured dec_out.csv.
-   //
-   // We pad with a ro_clk shift register on the {tvalid, tdata} bus so the
-   // avg_buffer sees samples at the "Xilinx-equivalent" arrival time. tready is
-   // passed through directly (the raw readout output is always-ready in practice).
-   // -----------------------------------------------------------------------------
-   localparam int RO_LATENCY_PAD = 30;
-   logic [32:0]     ro_pad_pipe [RO_LATENCY_PAD];
-   always_ff @(posedge ro_clk) begin
-      if (!s_ps_dma_aresetn) begin
-         for (int i = 0; i < RO_LATENCY_PAD; i++) ro_pad_pipe[i] <= '0;
-      end
-      else begin
-         ro_pad_pipe[0] <= {axis_ro_avg_raw_tvalid, axis_ro_avg_raw_tdata};
-         for (int i = 1; i < RO_LATENCY_PAD; i++)
-            ro_pad_pipe[i] <= ro_pad_pipe[i-1];
-      end
-   end
-   assign axis_ro_avg_tvalid     = ro_pad_pipe[RO_LATENCY_PAD-1][32];
-   assign axis_ro_avg_tdata      = ro_pad_pipe[RO_LATENCY_PAD-1][31:0];
-   assign axis_ro_avg_raw_tready = axis_ro_avg_tready;
-
-   // For Waveform Debug
-   logic signed [15:0] axis_ro_avg_tdata_dbg [0:1];
-   logic signed [15:0] axis_ro_mrbuf_tdata_dbg [0:7][0:1];
-   always @* begin
-      for (int i=0; i<2; i=i+1) begin
-         axis_ro_avg_tdata_dbg[i] = axis_ro_avg_tdata[16*i +: 16];
-      end
-      for (int i=0; i<8; i=i+1) begin
-         for (int j=0; j<2; j=j+1) begin
-            axis_ro_mrbuf_tdata_dbg[i][j] = axis_ro_mrbuf_tdata[16*(2*i+j) +: 16];
+      if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
+         if (rf_signal_cnt == 0) begin
+            axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
+            axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
+         end
+         else begin
+         end
+         if (rf_signal_valid_dly || axis_adc_ro_tvalid) begin
+            rf_signal_cnt  <= rf_signal_cnt + 1;
+         end
+         else begin
+            rf_signal_cnt  <= 0;
          end
       end
    end
 
-   wire  [5:0]       s_axi_avg_araddr;
-   wire  [2:0]       s_axi_avg_arprot;
-   wire              s_axi_avg_arready;
-   wire              s_axi_avg_arvalid;
-   wire  [5:0]       s_axi_avg_awaddr;
-   wire  [2:0]       s_axi_avg_awprot;
-   wire              s_axi_avg_awready;
-   wire              s_axi_avg_awvalid;
-   wire              s_axi_avg_bready;
-   wire  [1:0]       s_axi_avg_bresp;
-   wire              s_axi_avg_bvalid;
-   wire  [31:0]      s_axi_avg_rdata;
-   wire              s_axi_avg_rready;
-   wire  [1:0]       s_axi_avg_rresp;
-   wire              s_axi_avg_rvalid;
-   wire  [31:0]      s_axi_avg_wdata;
-   wire              s_axi_avg_wready;
-   wire  [3:0]       s_axi_avg_wstrb;
-   wire              s_axi_avg_wvalid;
-
-   // AXI VIP master address.
-
-// <<<<<<<<<<<< XILINX AXI VIP
-   // xil_axi_ulong   AVG_START_REG       = 4 * 0;
-   // xil_axi_ulong   AVG_ADDR_REG        = 4 * 1;
-   // xil_axi_ulong   AVG_LEN_REG         = 4 * 2;
-   // xil_axi_ulong   AVG_DR_START_REG    = 4 * 3;
-   // xil_axi_ulong   AVG_DR_ADDR_REG     = 4 * 4;
-   // xil_axi_ulong   AVG_DR_LEN_REG      = 4 * 5;
-   // xil_axi_ulong   BUF_START_REG       = 4 * 6;
-   // xil_axi_ulong   BUF_ADDR_REG        = 4 * 7;
-   // xil_axi_ulong   BUF_LEN_REG         = 4 * 8;
-   // xil_axi_ulong   BUF_DR_START_REG    = 4 * 9;
-   // xil_axi_ulong   BUF_DR_ADDR_REG     = 4 * 10;
-   // xil_axi_ulong   BUF_DR_LEN_REG      = 4 * 11;
-// ============
-   logic [5:0] AVG_START_REG       = 4 * 0;
-   logic [5:0] AVG_ADDR_REG        = 4 * 1;
-   logic [5:0] AVG_LEN_REG         = 4 * 2;
-   logic [5:0] AVG_DR_START_REG    = 4 * 3;
-   logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
-   logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
-   logic [5:0] BUF_START_REG       = 4 * 6;
-   logic [5:0] BUF_ADDR_REG        = 4 * 7;
-   logic [5:0] BUF_LEN_REG         = 4 * 8;
-   logic [5:0] BUF_DR_START_REG    = 4 * 9;
-   logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
-   logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
-// >>>>>>>>>>>> PULP PLATFORM AXI VIP
-
-// <<<<<<<<<<<< XILINX AXI VIP
-   // axi_mst_0 u_axi_mst_avg_0 (
-   //    .aresetn       (s_ps_dma_aresetn    ),
-   //    .aclk          (s_ps_dma_aclk       ),
-   //    .m_axi_araddr  (s_axi_avg_araddr    ),
-   //    .m_axi_arprot  (s_axi_avg_arprot    ),
-   //    .m_axi_arready (s_axi_avg_arready   ),
-   //    .m_axi_arvalid (s_axi_avg_arvalid   ),
-   //    .m_axi_awaddr  (s_axi_avg_awaddr    ),
-   //    .m_axi_awprot  (s_axi_avg_awprot    ),
-   //    .m_axi_awready (s_axi_avg_awready   ),
-   //    .m_axi_awvalid (s_axi_avg_awvalid   ),
-   //    .m_axi_bready  (s_axi_avg_bready    ),
-   //    .m_axi_bresp   (s_axi_avg_bresp     ),
-   //    .m_axi_bvalid  (s_axi_avg_bvalid    ),
-   //    .m_axi_rdata   (s_axi_avg_rdata     ),
-   //    .m_axi_rready  (s_axi_avg_rready    ),
-   //    .m_axi_rresp   (s_axi_avg_rresp     ),
-   //    .m_axi_rvalid  (s_axi_avg_rvalid    ),
-   //    .m_axi_wdata   (s_axi_avg_wdata     ),
-   //    .m_axi_wready  (s_axi_avg_wready    ),
-   //    .m_axi_wstrb   (s_axi_avg_wstrb     ),
-   //    .m_axi_wvalid  (s_axi_avg_wvalid    )
-   // );
-// ============
-
-   AXI_LITE #(
-   .AXI_ADDR_WIDTH ( 6      ),
-   .AXI_DATA_WIDTH ( 32     )
-   ) axi_mst_avg_IF ();
-   AXI_LITE_DV #(
-      .AXI_ADDR_WIDTH ( 6       ),
-      .AXI_DATA_WIDTH ( 32      )
-   ) axi_mst_avg_dv_IF (s_ps_dma_aclk);
-   `AXI_LITE_ASSIGN(axi_mst_avg_IF, axi_mst_avg_dv_IF)
-
-   assign s_axi_avg_araddr        = axi_mst_avg_IF.ar_addr  ; /* AVG  input */
-   assign s_axi_avg_arprot        = axi_mst_avg_IF.ar_prot  ; /* AVG  input */
-   assign s_axi_avg_arvalid       = axi_mst_avg_IF.ar_valid ; /* AVG  input */
-   assign axi_mst_avg_IF.ar_ready = s_axi_avg_arready       ; /* AVG output */
-
-   assign s_axi_avg_awaddr        = axi_mst_avg_IF.aw_addr  ; /* AVG  input */
-   assign s_axi_avg_awprot        = axi_mst_avg_IF.aw_prot  ; /* AVG  input */
-   assign s_axi_avg_awvalid       = axi_mst_avg_IF.aw_valid ; /* AVG  input */
-   assign axi_mst_avg_IF.aw_ready = s_axi_avg_awready       ; /* AVG output */
-
-   assign axi_mst_avg_IF.b_resp   = s_axi_avg_bresp         ; /* AVG output */
-   assign axi_mst_avg_IF.b_valid  = s_axi_avg_bvalid        ; /* AVG output */
-   assign s_axi_avg_bready        = axi_mst_avg_IF.b_ready  ; /* AVG  input */
-
-   assign axi_mst_avg_IF.r_resp   = s_axi_avg_rresp         ; /* AVG output */
-   assign axi_mst_avg_IF.r_valid  = s_axi_avg_rvalid        ; /* AVG output */
-   assign axi_mst_avg_IF.r_data   = s_axi_avg_rdata         ; /* AVG output */
-   assign s_axi_avg_rready        = axi_mst_avg_IF.r_ready  ; /* AVG  input */
-
-   assign s_axi_avg_wdata         = axi_mst_avg_IF.w_data   ; /* AVG  input */
-   assign s_axi_avg_wstrb         = axi_mst_avg_IF.w_strb   ; /* AVG  input */
-   assign s_axi_avg_wvalid        = axi_mst_avg_IF.w_valid  ; /* AVG  input */
-   assign axi_mst_avg_IF.w_ready  = s_axi_avg_wready        ; /* AVG output */
-
-// >>>>>>>>>>>> PULP PLATFORM AXI VIP
-
-   wire        m0_axis_buf_avg_tvalid;
-   wire [63:0] m0_axis_buf_avg_tdata;
-
-   logic       m1_axis_buf_dec_tready;
-   wire        m1_axis_buf_dec_tvalid;
-   wire [31:0] m1_axis_buf_dec_tdata;
-
-   axis_avg_buffer #(
-      .N_AVG                  (13               ),
-      .N_BUF                  (12               ),
-      .B                      (16               ),
-// +++++++++++++ ADD EMULATOR PARAM
-      .EMULATOR            (  1'b1              )
-// +++++++++++++
-   )
-   u_axis_avg_buffer_0 (
-      // AXI Slave I/F for configuration.
-      .s_axi_aclk             (s_ps_dma_aclk       ),
-      .s_axi_aresetn          (s_ps_dma_aresetn    ),
-      .s_axi_araddr           (s_axi_avg_araddr    ),
-      .s_axi_arprot           (s_axi_avg_arprot    ),
-      .s_axi_arready          (s_axi_avg_arready   ),
-      .s_axi_arvalid          (s_axi_avg_arvalid   ),
-      .s_axi_awaddr           (s_axi_avg_awaddr    ),
-      .s_axi_awprot           (s_axi_avg_awprot    ),
-      .s_axi_awready          (s_axi_avg_awready   ),
-      .s_axi_awvalid          (s_axi_avg_awvalid   ),
-      .s_axi_bready           (s_axi_avg_bready    ),
-      .s_axi_bresp            (s_axi_avg_bresp     ),
-      .s_axi_bvalid           (s_axi_avg_bvalid    ),
-      .s_axi_rdata            (s_axi_avg_rdata     ),
-      .s_axi_rready           (s_axi_avg_rready    ),
-      .s_axi_rresp            (s_axi_avg_rresp     ),
-      .s_axi_rvalid           (s_axi_avg_rvalid    ),
-      .s_axi_wdata            (s_axi_avg_wdata     ),
-      .s_axi_wready           (s_axi_avg_wready    ),
-      .s_axi_wstrb            (s_axi_avg_wstrb     ),
-      .s_axi_wvalid           (s_axi_avg_wvalid    ),
-
-      // Trigger input.
-      .trigger                (trigger_0           ),
-
-      // AXIS Slave for input data.
-      .s_axis_aresetn         (s_ps_dma_aresetn      ),
-      .s_axis_aclk            (ro_clk                ),
-      .s_axis_tready          (axis_ro_avg_tready    ),
-      .s_axis_tvalid          (axis_ro_avg_tvalid    ),
-      .s_axis_tdata           (axis_ro_avg_tdata     ),
-
-      // Reset and clock for m0 and m1.
-      .m_axis_aclk            (s_ps_dma_aclk         ),
-      .m_axis_aresetn         (s_ps_dma_aresetn      ),
-
-      // AXIS Master for averaged output.
-      .m0_axis_tready         (1'b1/*m0_axis_tready*/),
-      .m0_axis_tvalid         (m0_axis_buf_avg_tvalid),
-      .m0_axis_tdata          (m0_axis_buf_avg_tdata ),
-      .m0_axis_tlast          (/*m0_axis_tlast*/     ),
-
-      // AXIS Master for decimated output.
-      .m1_axis_tready         (m1_axis_buf_dec_tready),
-      .m1_axis_tvalid         (m1_axis_buf_dec_tvalid),
-      .m1_axis_tdata          (m1_axis_buf_dec_tdata ),
-      .m1_axis_tlast          (/*m1_axis_tlast*/     ),
-
-      // AXIS Master for register output.
-      //
-      // Wired into the `s0_axis` input of `axis_qick_processor` via the
-      // `readout_ch0_dt`/`readout_ch0_vld` latch near the top of the TB so
-      // that `read_input(ro_ch=0)` / `read_and_jump` can sample per-shot I/Q.
-      .m2_axis_tready         (1'b1/*m2_axis_tready*/),
-      .m2_axis_tvalid         (avg0_m2_tvalid        ),
-      .m2_axis_tdata          (avg0_m2_tdata         )
-   );
 
    // -----------------------------------------------------------------------------
    // EMU_DIR plusarg.
@@ -1542,7 +894,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       mr_csv_fd  = $fopen(mr_csv_path, "w");
 
       $fwrite(dac_csv_fd, "time_ps");
-      for (int i = 0; i < N_DDS; i++) $fwrite(dac_csv_fd, ",s%0d", i);
+      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac_csv_fd, ",s%0d", i);
       $fwrite(dac_csv_fd, "\n");
       $fwrite(avg_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec_csv_fd, "time_ps,I,Q\n");
@@ -1554,7 +906,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    always @(posedge sg_clk) begin
       if (axis_sg_dac_tvalid) begin
          $fwrite(dac_csv_fd, "%0t", $time);
-         for (int i = 0; i < N_DDS; i++)
+         for (int i = 0; i < N_DDS_SG; i++)
             $fwrite(dac_csv_fd, ",%0d", $signed(axis_sg_dac_tdata[16*i +: 16]));
          $fwrite(dac_csv_fd, "\n");
       end
@@ -1573,6 +925,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
                  $signed(m1_axis_buf_dec_tdata[15:0]),
                  $signed(m1_axis_buf_dec_tdata[31:16]));
    end
+
+   wire              axis_ro_mrbuf_tvalid;
+   wire [N_DDS_RO*2*16-1:0] axis_ro_mrbuf_tdata;
 
    // MR capture: arm on first non-zero mrbuf row after the DAC has started
    // producing valid samples. This skips the ADC → DDC transit-time zeros that
@@ -1607,19 +962,30 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
-   // Diagnostic: monitor readout config path.
-   always @(posedge t_clk) begin
-      if (tproc_rocdc_0_axis_tvalid && tproc_rocdc_0_axis_tready)
-         $display("### %0t - TPROC m4_axis -> rocdc: tdata=%h ###", $time, tproc_rocdc_0_axis_tdata);
-   end
-   always @(posedge ro_clk) begin
-      if (rot_ro_0_axis_tvalid && rot_ro_0_axis_tready)
-         $display("### %0t - sg_translator -> readout s0_axis: tdata=%h ###", $time, rot_ro_0_axis_tdata);
-   end
 
    //----------------------------------------------------
    // TEST STIMULI — QickEmu replay.
    //----------------------------------------------------
+
+   logic [5:0] AVG_START_REG       = 4 * 0;
+   logic [5:0] AVG_ADDR_REG        = 4 * 1;
+   logic [5:0] AVG_LEN_REG         = 4 * 2;
+   logic [5:0] AVG_DR_START_REG    = 4 * 3;
+   logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
+   logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
+   logic [5:0] BUF_START_REG       = 4 * 6;
+   logic [5:0] BUF_ADDR_REG        = 4 * 7;
+   logic [5:0] BUF_LEN_REG         = 4 * 8;
+   logic [5:0] BUF_DR_START_REG    = 4 * 9;
+   logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
+   logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
+
+   logic [5:0] SG_ADDR_START_ADDR = 6'h00;
+   logic [5:0] SG_ADDR_WE         = 6'h04;
+
+   logic         tb_load_mem, tb_load_mem_done;
+
+
    initial begin
       #0;  // yield so EMU_DIR plusarg is parsed first
 
@@ -1641,9 +1007,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(axi_mst_sg_dv_IF,     "axi_mst_sg VIP Agent"    );
-      axi_mst_avg_agent    = new(axi_mst_avg_dv_IF,    "axi_mst_avg VIP Agent"   );
+      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
+      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_dv_IF,     "axi_mst_sg VIP Agent"    );
+      axi_mst_avg_agent    = new(qick_dut.axi_mst_avg_dv_IF,    "axi_mst_avg VIP Agent"   );
       // initialize agent signals to '0.
       axi_mst_tproc_agent.reset();
       axi_mst_sg_agent.reset();
@@ -1749,6 +1115,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // TASKS
    //----------------------------------------------------
 
+   // task delayed_assign();
+   //    wire temp;
+   //    assign #50 temp = adc_samp_cnt[0];
+   // endtask
+
    // Load tProc program / waveform / data memories from QickEmu output files.
    task tproc_load_mem_emu(string emu_dir);
       string pmem_file;
@@ -1762,11 +1133,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $display("### Loading tproc memories from: %s ###", emu_dir);
       $fflush();
 
-      $readmemh(pmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
-      $readmemh(wmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
-      $readmemh(dmem_file, AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
+      $readmemh(pmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
+      $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
+      $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
-      $display("### VERIFY P_MEM[1] = %h ###", AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
+      $display("### VERIFY P_MEM[1] = %h ###", qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
       $display("### tproc memories loaded ###");
       $fflush();
    endtask
@@ -1869,86 +1240,5 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          $fflush();
       end
    endtask
-
-endmodule
-
-//----------------------------------------------------
-// DAC-ADC RF frontend model (loopback).
-//
-// Behavioral model that wires a DAC sample bus into an ADC sample bus through
-// a circular sample-time buffer, emulating the RF front-end path for
-// Verilator-based simulation (no Xilinx RFDC primitive available).
-//
-// mode == 0: zero-order hold (return most recent sample at ADC clock edge).
-// mode == 1: linear interpolate between the two most recent DAC samples.
-//----------------------------------------------------
-module model_DAC_ADC #(
-   parameter integer DAC_W       = 16,
-   parameter integer ADC_W       = 16,
-   parameter integer BUFFER_SIZE = 16
-)(
-   input  wire              clk_DAC,
-   input  wire [DAC_W-1:0]  dac_sample,
-   input  wire              clk_ADC,
-   output logic [ADC_W-1:0] adc_sample,
-   input  int               mode
-);
-
-   real buffer_samples [BUFFER_SIZE];
-   real buffer_times   [BUFFER_SIZE];
-   int  wr_ptr = 0;
-   real signal_in;
-   real sampled_ADC;
-
-   initial begin
-      for (int i = 0; i < BUFFER_SIZE; i++) begin
-         buffer_samples[i] = 0.0;
-         buffer_times  [i] = 0.0;
-      end
-   end
-
-   // DAC-side: push each new sample into the circular buffer with its timestamp.
-   always @(posedge clk_DAC) begin
-      real t_now;
-      t_now                  = $realtime * 1e-9;
-      signal_in              = $signed(dac_sample) / 2.0**(DAC_W-1);
-      buffer_samples[wr_ptr] = signal_in;
-      buffer_times  [wr_ptr] = t_now;
-      wr_ptr                 = (wr_ptr + 1) % BUFFER_SIZE;
-   end
-
-   // ADC-side: resample the buffer at the ADC clock edge per selected mode.
-   always @(posedge clk_ADC) begin
-      real t_adc;
-      real val;
-      t_adc = $realtime * 1e-9;
-
-      case (mode)
-         0: begin
-            int idx_last;
-            idx_last = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
-            val = buffer_samples[idx_last];
-         end
-         1: begin
-            int  idx_curr;
-            int  idx_prev;
-            real t1, t2;
-            real y1, y2;
-            idx_curr = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
-            idx_prev = (wr_ptr + BUFFER_SIZE - 2) % BUFFER_SIZE;
-            t1 = buffer_times  [idx_prev]; t2 = buffer_times  [idx_curr];
-            y1 = buffer_samples[idx_prev]; y2 = buffer_samples[idx_curr];
-            if (t2 != t1) val = y1 + (t_adc - t1) * (y2 - y1) / (t2 - t1);
-            else          val = y2;
-         end
-         default: val = 0.0;
-      endcase
-
-      if      (val >  1.0) sampled_ADC =  1.0;
-      else if (val < -1.0) sampled_ADC = -1.0;
-      else                 sampled_ADC =  val;
-
-      adc_sample = sampled_ADC * $signed(2**(ADC_W-1)-1);
-   end
 
 endmodule

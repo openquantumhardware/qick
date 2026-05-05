@@ -61,7 +61,7 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="1184"/>
+    <Option Name="WTXSimLaunchSim" Val="924"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -660,8 +660,6 @@
       </File>
       <File Path="$PPRDIR/src/tb/tb_qick.sv">
         <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -767,6 +765,16 @@
       </File>
       <File Path="$PPRDIR/../../../emulator/models/fir/fir_coe.txt"/>
       <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/LUT_generator/sine_cos_full32.hex"/>
+      <File Path="$PPRDIR/src/tb/qick_dut.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/src/tb/model_DAC_ADC.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
         <Option Name="TopModule" Val="tb_qick"/>
@@ -780,8 +788,6 @@
         <Option Name="PamPseudoTop" Val="pseudo_tb"/>
         <Option Name="SrcSet" Val="sources_1"/>
         <Option Name="XSimWcfgFile" Val="$PPRDIR/src/tb/tb_qick_behav.wcfg"/>
-        <Option Name="xsim.simulate.log_all_signals" Val="true"/>
-        <Generic Name="EMULATOR" Val="0"/>
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
