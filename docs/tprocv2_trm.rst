@@ -276,6 +276,7 @@ The dispatcher has three independent FIFOs:
 **Flow control behavior:**
 
 When a FIFO becomes full:
+
 - If ``tproc_cfg[10]`` (``DISABLE_FIFO_FULL_PAUSE``) = 0 (default): The core **stalls** (pauses) until space is available.
 - If = 1: The core continues, but writes to the full FIFO are **dropped** (data loss).
 
@@ -288,175 +289,384 @@ When a FIFO becomes full:
 
 -------------------------------------------------------------------------------
 
-4. Register Map with Usage Notes
-================================
+4. Complete Register Bank Reference
+====================================
 
-4.1. Data Registers (r0‑r31)
-----------------------------
+The tProcessor has three independent register banks. Each bank has a different purpose and access method.
 
-**Allocation guide (per your coding style):**
+4.1. Register Organization Overview
+------------------------------------
 
-.. code-block:: none
+The diagram below shows the physical organization of all registers:
 
-   .ALIAS r_loopcnt     r0   // loop counters
-   .ALIAS r_temp        r1   // temporary calculation
-   .ALIAS r_ptr_dmem    r2   // pointer into DMEM
-   .ALIAS r_ptr_wmem    r3   // pointer into WMEM
-   .ALIAS r_result      r4   // final result of a computation
-   .ALIAS r_param_A     r5   // persistent parameter A
-   .ALIAS r_param_B     r6   // persistent parameter B
-   // r7‑r31: free for other uses
+::
 
-4.2. Special Function Registers (s0‑s15) - Detailed
-----------------------------------------------------
+    ╔══════════════════════════════════════════════════════════════════════════════╗
+    ║                         REGISTER BANKS (total 32+16+6 registers)             ║
+    ╠══════════════════════════════════════════════════════════════════════════════╣
+    ║                                                                              ║
+    ║  ┌─────────────────────────────┐    ┌──────────────────────────────┐         ║
+    ║  │  DREG (Data Registers)      │    │  SREG (Special Function)     │         ║
+    ║  │  ┌─────┬─────────────┐      │    │  ┌─────┬─────────────────┐   │         ║
+    ║  │  │ r0  │ general     │      │    │  │ s0  │ s_zero (always0)│   │         ║
+    ║  │  │ r1  │ purpose     │      │    │  │ s1  │ s_rand (LFSR)   │   │         ║
+    ║  │  │ r2  │ 32-bit      │      │    │  │ s2  │ s_cfg / s_ctrl  │   │         ║
+    ║  │  │ ... │ registers   │      │    │  │ s3  │ s_arith_low     │   │         ║
+    ║  │  │ r31 │             │      │    │  │ s4  │ s_div_q         │   │         ║
+    ║  │  └─────┴─────────────┘      │    │  │ s5  │ s_div_r         │   │         ║
+    ║  │                             │    │  │ s6  │ s_core_r1       │   │         ║
+    ║  │  Access: REG_WR rd ...      │    │  │ s7  │ s_core_r2       │   │         ║
+    ║  │  Example: REG_WR r5 imm #10 │    │  │ s8  │ s_port_l        │   │         ║
+    ║  └─────────────────────────────┘    │  │ s9  │ s_port_h        │   │         ║
+    ║                                     │  │ s10 │ s_status        │   │         ║
+    ║  ┌─────────────────────────────┐    │  │ s11 │ s_usr_time      │   │         ║
+    ║  │  WREG (Wave Param Registers)│    │  │ s12 │ s_core_w1       │   │         ║
+    ║  │  ┌─────────┬──────────────┐ │    │  │ s13 │ s_core_w2       │   │         ║
+    ║  │  │ w0      │ w_freq  (32b)│ │    │  │ s14 │ s_out_time      │   │         ║
+    ║  │  │ w1      │ w_phase (32b)│ │    │  │ s15 │ s_addr          │   │         ║
+    ║  │  │ w2      │ w_gain  (32b)| │    │  └─────┴─────────────────┘   │         ║
+    ║  │  │ w3      │ w_env   (24b)│ │    │                              │         ║
+    ║  │  │ w4      │ w_length(32b)│ │    │  Access: REG_WR sX ...       │         ║
+    ║  │  │ w5      │ w_conf  (16b)│ │    │  Example: REG_WR s10 op -op()│         ║
+    ║  │  └─────────┴──────────────┘ │    └──────────────────────────────┘         ║
+    ║  │                             │                                             ║
+    ║  │  These 6 registers are      │                                             ║
+    ║  │  concatenated to form       │                                             ║
+    ║  │  the 168-bit r_wave bus:    │                                             ║
+    ║  │                             │                                             ║
+    ║  │  r_wave = {w5, w4, w3,      │                                             ║
+    ║  │            w2, w1, w0}      │                                             ║
+    ║  │                             │                                             ║
+    ║  │  Access: REG_WR wX ...      │                                             ║
+    ║  │  Example: REG_WR w_freq imm │                                             ║
+    ║  └─────────────────────────────┘                                             ║
+    ║                                                                              ║
+    ╚══════════════════════════════════════════════════════════════════════════════╝
 
-**s0 = s_zero** (read‑only, always 0)
 
-.. code-block:: none
+4.2. Physical Address Map
+-------------------------
 
-   // Use cases:
-   REG_WR r1 op -op(r2 + s_zero)   // copy r2 to r1
-   JUMP HERE -if(NZ) -wr(r0 op) -op(r0 - #1) -uf   // decrement and jump if not zero
+Each register has a physical address used internally. You don't need this for assembly
+programming (use names like ``r5``, ``s10``, ``w_freq``), but it's useful for debugging
+or when reading the AXI debug registers.
 
-**s1 = s_rand** (pseudo‑random, LFSR)
-
-.. code-block:: none
-
-   // Generate random number between 0 and 99
-   REG_WR r2 op -op(s_rand)        // r2 = random
-   DIV r2 #100                     // divide by 100
-   WAIT div_dt
-   REG_WR r3 op -op(s_div_r)       // r3 = remainder (0‑99)
-
-**s2 = s_cfg** (configuration) – split into two halves:
-
-- Lower 16 bits (``s_cfg``): data source and flag source selection
-- Upper 16 bits (``s_ctrl``): clear flags (write 1 to clear)
-
-.. code-block:: none
-
-   // Configure data source for s_core_r1 to be ARITH result
-   REG_WR s_cfg imm src_arith
-
-   // Clear ARITH new‑data flag
-   REG_WR s_ctrl imm clr_arith
-
-**s3 = s_arith_low** – lower 32 bits of ARITH result (read‑only)
-
-**s4 = s_div_q, s5 = s_div_r** – quotient and remainder of DIV (read‑only)
-
-**s6 = s_core_r1, s7 = s_core_r2** – data from selected source (configurable via s_cfg)
-
-**s8 = s_port_l, s9 = s_port_h** – input port data (64 bits total)
-
-.. code-block:: none
-
-   // Read 64‑bit value from input port 0
-   DPORT_RD p0
-   // Now s8 has lower 32 bits, s9 has upper 32 bits
-
-**s10 = s_status** (status register) – poll for peripheral readiness
-
-Important bits (others are reserved or internal):
-
-.. list-table::
+.. list-table:: Register Physical Addresses
    :header-rows: 1
+   :widths: 15 15 20 50
 
-   * - Bit
-     - Name
-     - When set
-   * - 0
-     - ARITH_RDY
-     - ARITH unit has completed an operation
-   * - 1
-     - ARITH_DT_NEW
-     - New ARITH result available (cleared by read or CLEAR)
-   * - 2
-     - DIV_RDY
-     - DIV unit has completed
-   * - 3
-     - DIV_DT_NEW
-     - New division result available
-   * - 15
-     - FIFO_FULL
-     - Any dispatcher FIFO is full
-   * - 31:16
-     - PORT_DT_NEW
-     - Bit N indicates new data on input port N
-
-**s11 = s_usr_time** – current user time (read‑only)
-
-**s12 = s_core_w1, s13 = s_core_w2** – data from PS (ARM) to core
-
-.. code-block:: python
-
-   # From Python, write to these registers
-   soc.tproc.write_axi_reg(0x05, 0x12345678)   # s12
-   soc.tproc.write_axi_reg(0x06, 0x87654321)   # s13
-
-**s14 = s_out_time** – output time register for the next port write
-
-.. code-block:: none
-
-   // Set up a series of times
-   REG_WR s_out_time imm #1000
-   DPROT_WR p0 imm 1 @s_out_time
-   REG_WR s_out_time op -op(s_out_time + #100)
-   DPROT_WR p0 imm 1 @s_out_time
-   REG_WR s_out_time op -op(s_out_time + #100)
-   DPROT_WR p0 imm 1 @s_out_time
-
-**s15 = s_addr** – address register for jumps
-
-.. code-block:: none
-
-   // Jump to address stored in s_addr
-   REG_WR s_addr label SUBROUTINE
-   JUMP s_addr
-
-4.3. Wave Parameter Registers (w0‑w5)
--------------------------------------
-
-These are the components of the 168‑bit ``r_wave`` bus.
-
-.. list-table::
-   :header-rows: 1
-
-   * - Register
-     - Bits
-     - Range (typical)
-     - Description
-   * - w_freq
+   * - Bank
+     - Address Range
+     - Number
+     - Assembly Names
+   * - DREG
+     - 0x00 - 0x1F
      - 32
-     - 0 .. 2^32-1
-     - Frequency control word for DDS
-   * - w_phase
-     - 32
-     - 0 .. 2^32-1
-     - Phase offset (2^32 = 360°)
-   * - w_gain
-     - 32
-     - -2^31 .. 2^31-1
-     - Amplitude scaling (signed)
-   * - w_env
-     - 24
-     - 0 .. 2^24-1
-     - Envelope start address in table memory
-   * - w_length
-     - 32
-     - 1 .. 2^32-1
-     - Number of samples in envelope
-   * - w_conf
+     - ``r0`` ... ``r31``
+   * - SREG
+     - 0x20 - 0x2F
      - 16
-     - bitfield
-     - Configuration (mode, source, etc.)
+     - ``s0`` ... ``s15`` (plus aliases)
+   * - WREG (wave params)
+     - 0x30 - 0x35
+     - 6
+     - ``w0`` (w_freq), ``w1`` (w_phase), ``w2`` (w_gain), ``w3`` (w_env), ``w4`` (w_length), ``w5`` (w_conf)
+   * - Special (r_wave)
+     - (virtual)
+     - 1
+     - ``r_wave`` (168-bit concatenation of all wregs)
 
-**Example: updating only frequency while keeping other parameters**
+4.3. Complete Register Table with Aliases
+------------------------------------------
+
+**DREG - Data Registers (r0 - r31)**
+
+These are general purpose. No predefined aliases, but you can create your own:
 
 .. code-block:: none
 
-   REG_WR w_freq op -op(w_freq + #0x100000)   // increment frequency
-   WPORT_WR p0 r_wave @s_out_time             // send all parameters
+   .ALIAS loop_counter r0
+   .ALIAS temp_result  r1
+   .ALIAS dmem_ptr     r2
+
+**SREG - Special Function Registers (s0 - s15)**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 25 15 50
+
+   * - Address
+     - Assembly Name
+     - Aliases
+     - Description / Typical Use
+   * - 0x20
+     - ``s0``
+     - ``s_zero``
+     - Always reads as 0. Useful for clearing or as a source.
+   * - 0x21
+     - ``s1``
+     - ``s_rand``
+     - Pseudo-random number from LFSR. Configurable behavior via core_cfg.
+   * - 0x22
+     - ``s2``
+     - ``s_cfg`` (lower 16 bits), ``s_ctrl`` (upper 16 bits)
+     - Configuration: data sources, flag sources. Write to s_ctrl to clear flags.
+   * - 0x23
+     - ``s3``
+     - ``s_arith_low``
+     - Lower 32 bits of ARITH (multiply) result.
+   * - 0x24
+     - ``s4``
+     - ``s_div_q``
+     - Quotient from DIV operation.
+   * - 0x25
+     - ``s5``
+     - ``s_div_r``
+     - Remainder from DIV operation.
+   * - 0x26
+     - ``s6``
+     - ``s_core_r1``
+     - First data word from selected source (see s_cfg DT_SRC).
+   * - 0x27
+     - ``s7``
+     - ``s_core_r2``
+     - Second data word from selected source.
+   * - 0x28
+     - ``s8``
+     - ``s_port_l``
+     - Lower 32 bits of input port read (DPORT_RD).
+   * - 0x29
+     - ``s9``
+     - ``s_port_h``
+     - Upper 32 bits of input port read (DPORT_RD).
+   * - 0x2A
+     - ``s10``
+     - ``s_status``
+     - Status flags: peripherals ready, new data, FIFO state.
+   * - 0x2B
+     - ``s11``
+     - ``s_usr_time``, ``curr_usr_time``
+     - Current user time (read-only). t_abs - t_ref.
+   * - 0x2C
+     - ``s12``
+     - ``s_core_w1``
+     - First data word written from PS (ARM) to core.
+   * - 0x2D
+     - ``s13``
+     - ``s_core_w2``
+     - Second data word written from PS to core.
+   * - 0x2E
+     - ``s14``
+     - ``s_out_time``, ``out_usr_time``
+     - Output time register for port writes (read/write, signed 32-bit).
+   * - 0x2F
+     - ``s15``
+     - ``s_addr``
+     - Address register for JUMP instructions.
+
+**WREG - Wave Parameter Registers (w0 - w5)**
+
+These six registers are **individually accessible** but also concatenated into ``r_wave``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 10 15 15 15 45
+
+   * - Address
+     - Base Name
+     - Alias
+     - Bits
+     - Description
+   * - 0x30
+     - ``w0``
+     - ``w_freq``
+     - 32
+     - Frequency control word for DDS. 0 = DC, 2^31 = Nyquist.
+   * - 0x31
+     - ``w1``
+     - ``w_phase``
+     - 32
+     - Phase offset. 2^32 = 360 degrees.
+   * - 0x32
+     - ``w2``
+     - ``w_gain``
+     - 32
+     - Amplitude scaling. Signed 32-bit integer.
+   * - 0x33
+     - ``w3``
+     - ``w_env``
+     - 24
+     - Starting address in envelope table memory.
+   * - 0x34
+     - ``w4``
+     - ``w_length``
+     - 32
+     - Envelope length in samples.
+   * - 0x35
+     - ``w5``
+     - ``w_conf``
+     - 16
+     - Configuration bits for signal generator.
+
+**Special Composite: r_wave**
+
+.. code-block:: none
+
+   r_wave is not a physical register. It is a 168-bit bus formed by concatenation:
+   
+   r_wave = { w5 (w_conf), w4 (w_length), w3 (w_env), 
+              w2 (w_gain), w1 (w_phase), w0 (w_freq) }
+   
+   Bits: 167:152 = w_conf
+         151:120 = w_length
+         119:96  = w_env
+         95:64   = w_gain
+         63:32   = w_phase
+         31:0    = w_freq
+
+You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six** wave parameters at once.
+
+4.4. Access Examples by Register Type
+--------------------------------------
+
+**Writing to DREG (data registers):**
+
+.. code-block:: none
+
+   REG_WR r5 imm #100           // r5 = 100
+   REG_WR r5 op -op(r0 + r1)    // r5 = r0 + r1
+   REG_WR r5 dmem [&10]         // r5 = DMEM[10]
+
+**Reading from DREG (as source):**
+
+.. code-block:: none
+
+   REG_WR r6 op -op(r5)         // r6 = r5 (copy)
+   DMEM_WR [&20] imm r5         // DMEM[20] = r5
+   DPROT_WR p0 reg r5 @100      // output r5 to port
+
+**Writing to SREG:**
+
+.. code-block:: none
+
+   REG_WR s_cfg imm src_arith   // configure data source
+   REG_WR s_out_time imm #1000  // set output time
+   REG_WR s_addr label LOOP     // store jump address
+
+**Reading from SREG:**
+
+.. code-block:: none
+
+   REG_WR r0 op -op(s_rand)         // r0 = random number
+   REG_WR r1 op -op(s_usr_time)     // r1 = current time
+   REG_WR r2 op -op(s_status)       // r2 = status bits
+
+**Writing to WREG (individual parameter):**
+
+.. code-block:: none
+
+   REG_WR w_freq imm #0x1000000     // set frequency
+   REG_WR w_gain imm #32768         // set gain
+   REG_WR w_length imm #1000        // set length
+
+**Writing to r_wave (all parameters at once):**
+
+.. code-block:: none
+
+   REG_WR r_wave wmem [&5]          // load from WMEM
+   // or
+   REG_WR r_wave imm #0x...         // immediate (not practical, too large)
+
+**Using wreg as source in ALU operations:**
+
+.. code-block:: none
+
+   REG_WR r0 op -op(w_freq)         // r0 = current frequency
+   REG_WR r1 op -op(w_freq + #100)  // r1 = frequency + 100
+
+4.5. Flag Register (not memory-mapped)
+--------------------------------------
+
+The tProcessor has an **internal flag** (IF) and can also use an **external flag** (EF) set from Python.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Flag
+     - Set by
+     - Cleared by
+     - Test with
+   * - Internal Flag (IF)
+     - ``FLAG set``, or automatically by peripherals
+     - ``FLAG clr``
+     - ``-if(F)``, ``-if(NF)``
+   * - External Flag (EF)
+     - Python (tproc_ctrl bit 13)
+     - Python (tproc_ctrl bit 14)
+     - ``-if(F)``, ``-if(NF)`` (if configured)
+
+Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
+
+4.6. Quick Reference: Register Naming in Assembly
+--------------------------------------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 30 50
+
+   * - Register Type
+     - Prefix
+     - Examples
+   * - Data registers
+     - ``r``
+     - ``r0``, ``r1``, ... ``r31``
+   * - Special functions
+     - ``s``
+     - ``s0``, ``s_rand``, ``s_status``, ``s_out_time``
+   * - Wave parameters
+     - ``w``
+     - ``w0``, ``w_freq``, ``w_phase``, ``w_gain``
+   * - Composite wave
+     - ``r_wave``
+     - ``r_wave`` (no number)
+   * - Aliases (user-defined)
+     - any
+     - ``.ALIAS my_var r5`` then use ``my_var``
+
+**Important:** The assembler is case‑sensitive for register names. ``R0`` is NOT the same as ``r0``. Always use lowercase ``r``, ``s``, ``w``.
+
+4.7. Common Mistakes with Registers
+------------------------------------
+
+**Mistake 1: Using r_wave when you meant a wreg**
+
+.. code-block:: none
+
+   // Wrong: trying to write only frequency
+   REG_WR r_wave imm #0x1000000   // This would zero out other parameters!
+
+   // Correct: write to w_freq directly
+   REG_WR w_freq imm #0x1000000
+
+**Mistake 2: Reading s_status without masking**
+
+.. code-block:: none
+
+   // Wrong: compares entire status (many bits may be set)
+   TEST -op(s_status - #4)        // checks if status == 4
+
+   // Correct: mask only the bit you care about
+   TEST -op(s_status AND #4)      // checks only bit 2
+
+**Mistake 3: Using s_out_time as read‑only**
+
+.. code-block:: none
+
+   // Wrong: trying to read current time
+   REG_WR r0 op -op(s_out_time)   // this reads the OUTPUT time, not current time!
+
+   // Correct: use s_usr_time for current time
+   REG_WR r0 op -op(s_usr_time)
 
 -------------------------------------------------------------------------------
 
