@@ -11,6 +11,7 @@
    modules
    topics/index
    firmware
+   tprocv2_trm
 
    contact
 
