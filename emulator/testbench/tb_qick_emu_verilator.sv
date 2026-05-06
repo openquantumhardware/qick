@@ -67,11 +67,11 @@ localparam real T_TCLK          =  1.162;      // Half Clock Period for tProc Di
 localparam real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
 localparam real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
 
-real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
-// localparam real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+// localparam real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+localparam real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
 
-// localparam real T_RO_CLK     =   1.66;      // Half Clock Period for Readout (300MHz)
-localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
+// localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
+localparam real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
