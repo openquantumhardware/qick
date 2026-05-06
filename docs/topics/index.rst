@@ -4,7 +4,6 @@ Specific topics
 .. toctree::
    :maxdepth: 1
 
-   asmv1_cheatsheet
    timing
    freq_matching
    playing_pulses
@@ -12,3 +11,6 @@ Specific topics
    units
    changing_fs
    reference_clock
+   asmv2_cheatsheet
+   ../sg_v6
+   ../readout

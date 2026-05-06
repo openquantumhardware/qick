@@ -3,20 +3,20 @@ Signal Generator v6 (SG-v6) - QICK Firmware
 ========================================================
 
 .. contents::
-   :local:
-   :depth: 2
+  :local:
+  :depth: 2
 
-.. image:: _static/qick_sg_v6.png
-   :alt: QICK Signal Generator v6 block diagram
-   :align: center
-   :width: 700px
+..image:: _static/qick_sg_v6.png
+  :alt: QICK Signal Generator v6 block diagram
+  :align: center
+  :width: 700px
 
 The **Signal Generator v6** (SG-v6) is the newest version of QICK's
 on-chip waveform engine. It supersedes SG-v5 with a richer feature set,
 lower latency, and full compatibility with all QICK-compatible boards
 (ZCU216, ZCU111, etc.). The module lives in the ``qick`` firmware
 repository under ``firmware/ip/axis_signal_gen_v6/`` and is exposed to Python
-through the :class:`qick.drivers.generator` class.
+through the ``qick.drivers.generator`` class.
 
 --------------------------------------------------------------------
 1. General Description
@@ -185,23 +185,23 @@ next block in the datapath.
 ^^^^^^^^^^^^^^^^^^^^^
 
 .. list-table::
-  :header-rows: 1
-  :widths: 30 10 10 50
+   :header-rows: 1
+   :widths: 30 10 10 50
 
-  * - Signal
-    - Direction
-    - Width
-    - Description
-  * - ``START_ADDR_REG``
-    - input
-    - 32
-    - Starting address in BRAM where the ``data_writer`` will begin writing 
-      samples received via S0_AXIS.
-  * - ``WE_REG``
-    - input
-    - 1
-    - BRAM write enable. When asserted, the ``data_writer`` propagates the 
-      write to the selected BRAM.
+   * - Signal
+     - Direction
+     - Width
+     - Description
+   * - ``START_ADDR_REG``
+     - input
+     - 32
+     - Starting address in BRAM where the ``data_writer`` will begin writing 
+       samples received via S0_AXIS.
+   * - ``WE_REG``
+     - input
+     - 1
+     - BRAM write enable. When asserted, the ``data_writer`` propagates the 
+       write to the selected BRAM.
 
 --------------------------------------------------------------------
 4. Internal Architecture
@@ -241,9 +241,9 @@ the ``mem_dob_imag`` signal is forced to zero.
 
 .. note::
 
-  Both BRAMs (real and imaginary) of a channel share the same read address 
-  ``mem_addrb`` and enable pin ``mem_ena[i]``, ensuring coherence between 
-  real and imaginary parts.
+   Both BRAMs (real and imaginary) of a channel share the same read address 
+   ``mem_addrb`` and enable pin ``mem_ena[i]``, ensuring coherence between 
+   real and imaginary parts.
 
 4.4 Signal Generator (``signal_gen``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -259,45 +259,249 @@ blocks are instantiated.
 
 ::
 
-  S0_AXIS ──► data_writer ──► BRAM_real[0..N_DDS-1]  ──┐
-                              BRAM_imag[0..N_DDS-1]  ──┤
-                                                       ▼
-  S1_AXIS ──► fifo_xpm ──────────────────────────► signal_gen ──► M_AXIS
-                                                  (+ DDS if GEN_DDS=TRUE)
+   S0_AXIS ──► data_writer ──► BRAM_real[0..N_DDS-1]  ──┐
+                               BRAM_imag[0..N_DDS-1]  ──┤
+                                                        ▼
+   S1_AXIS ──► fifo_xpm ──────────────────────────► signal_gen ──► M_AXIS
+                                                   (+ DDS if GEN_DDS=TRUE)
 
-  Registers: START_ADDR_REG, WE_REG ──► data_writer
+   Registers: START_ADDR_REG, WE_REG ──► data_writer
 
 --------------------------------------------------------------------
 6. Python Usage (QICK)
 --------------------------------------------------------------------
 
-The module is exposed through the :class:`qick.SignalGenerator` class. Below 
-is a minimal usage example:
+The module is exposed through the ``qick.SignalGenerator`` class,
+available via ``soc.gens[i]`` (where ``i`` is the generator index).
+For channel assignment, see :doc:`/firmware`.
+
+6.1. Basic Configuration and Immediate Playback
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
-  :caption: Basic Example – Generating and playing a tone
+  :caption: Basic SG-v6 setup from Python
 
-  from qick import QickSoc
+  from qick import *
+  import numpy as np
 
-  q = QickSoc()
-  q.initialize()
+  soc = QickSoc()
 
-  sg = q.get_signal_generator(0)
+  # Select a generator (index 0 = tProc channel 1 = DAC 228 CH0)
+  gen = soc.gens[0]
 
-  # Load a Gaussian envelope (real and imaginary parts)
-  sg.load_waveform(envelope_i, envelope_q, start_addr=0)
+  # Configure DDS frequency and gain
+  gen.set_freq(100e6)      # 100 MHz
+  gen.set_gain(0.5)        # 50% amplitude
 
-  # Configure waveform descriptor and queue
-  sg.set_pulse(freq=100e6, phase=0, gain=0.5, length=100)
-  sg.trigger()
+  # Create a Gaussian envelope (I/Q)
+  n_samples = 1024
+  sigma = n_samples / 8
+  envelope_i = 32767 * np.exp(-0.5 * ((np.arange(n_samples) - n_samples/2) / sigma)**2)
+  envelope_q = np.zeros(n_samples)
 
-  q.close()
+  # Upload envelope to SG-v6 internal memory
+  gen.load_waveform(envelope_i.astype(int), envelope_q.astype(int), start_addr=0)
+
+  # Configure and play pulse immediately
+  gen.set_pulse(freq=100e6, phase=0, gain=0.5, length=n_samples)
+  gen.trigger()            # Immediate playback
+
+6.2. Using SG-v6 with tProcessor Sequencing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For precise timing, the tProcessor sends waveform parameters to the SG-v6 via
+``WPORT_WR`` instructions. The SG-v6 has a **FIFO** that queues multiple waveforms.
+
+**Pre-load waveforms to WMEM, then schedule via tProc:**
+
+.. code-block:: python
+  :caption: Sequencing SG-v6 pulses with tProcessor
+
+  from qick import *
+  from qick.tprocv2_assembler import Assembler
+
+  soc = QickSoc()
+  tproc = soc.tproc
+
+  # --- Pre-compute waveform parameters ---
+  freq_reg = soc.config.freq2reg(100e6, gen_ch=0)  # 100 MHz
+  gain_reg = int(0.5 * 32768)                      # 0.5 gain
+
+  # Waveform A: long pulse (2000 samples)
+  tproc.load_wave(0, {
+      'freq': freq_reg,
+      'phase': 0,
+      'gain': gain_reg,
+      'length': 2000,
+      'conf': 0
+  })
+
+  # Waveform B: short pulse (500 samples)
+  tproc.load_wave(1, {
+      'freq': freq_reg,
+      'phase': 0,
+      'gain': gain_reg,
+      'length': 500,
+      'conf': 0
+  })
+
+  # --- tProc program: schedule both waveforms at different times ---
+  asm_seq = \"\"\"
+      .ADDR 0x00
+      REG_WR r_wave wmem [&0]
+      WPORT_WR p1 r_wave @1000      // Long pulse at t=1000
+      REG_WR r_wave wmem [&1]
+      WPORT_WR p1 r_wave @5000      // Short pulse at t=5000
+      .END
+  \"\"\"
+
+  prog_bin = Assembler.str_asm2bin(asm_seq)
+  tproc.load_mem(prog_mem=prog_bin)
+  tproc.time_rst()
+  tproc.start()
+
+6.3. SG-v6 FIFO and Multiple Pulses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The SG-v6 can queue up to **16 waveform descriptors**. Each ``WPORT_WR`` pushes one
+descriptor into the FIFO. The SG-v6 plays them in order, waiting for each pulse to
+finish before starting the next.
+
+.. code-block:: python
+  :caption: Queueing multiple pulses
+
+  # Pre-load 5 different waveforms to WMEM addresses 0..4
+  for i in range(5):
+    tproc.load_wave(i, {
+    'freq': freq_reg + i * 1000,   # slightly different frequencies
+    'phase': 0,
+    'gain': gain_reg,
+    'length': 1000,
+    'conf': 0
+    })
+
+  # Generate assembly to queue all 5
+  asm_lines = [".ADDR 0x00"]
+  base_time = 1000
+  spacing = 500
+
+  for i in range(5):
+    asm_lines.append(f"    REG_WR r_wave wmem [&{i}]")
+    asm_lines.append(f"    WPORT_WR p1 r_wave @{base_time + i*spacing}")
+
+  asm_lines.append(".END")
+  asm_seq = "\n".join(asm_lines)
+
+  prog_bin = Assembler.str_asm2bin(asm_seq)
+  tproc.load_mem(prog_mem=prog_bin)
+  tproc.start()
+
+6.4. Playing a Shaped Pulse with Envelope
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For shaped pulses (Gaussian, DRAG, etc.), the envelope samples must be pre-loaded
+into the SG-v6's internal BRAM using ``gen.load_waveform()``. The ``w_env`` field
+points to the starting address of the envelope in that BRAM.
+
+.. code-block:: python
+  :caption: Shaped pulse with envelope
+
+  from qick import *
+  import numpy as np
+
+  soc = QickSoc()
+  gen = soc.gens[0]
+  tproc = soc.tproc
+
+  # --- Upload Gaussian envelope to SG-v6 memory ---
+  n_samples = 1024
+  sigma = n_samples / 6
+  envelope = 32767 * np.exp(-0.5 * ((np.arange(n_samples) - n_samples/2) / sigma)**2)
+  envelope = envelope.astype(int)
+
+  # SG-v6 expects I/Q, so we provide Q=0 for a real envelope
+  gen.load_waveform(envelope, np.zeros(n_samples), start_addr=0)
+
+  # --- Configure tProc to use this envelope ---
+  # w_env = 0 (start address), w_length = 1024
+  tproc.load_wave(0, {
+      'freq': soc.config.freq2reg(100e6, gen_ch=0),
+      'phase': 0,
+      'gain': 32768,          # full scale (envelope provides shape)
+      'env': 0,               # start address
+      'length': n_samples,
+      'conf': 0
+  })
+
+  # --- tProc program ---
+  asm_prog = \"\"\"
+      .ADDR 0x00
+      REG_WR r_wave wmem [&0]
+      WPORT_WR p1 r_wave @1000
+      .END
+  \"\"\"
+
+  prog_bin = Assembler.str_asm2bin(asm_prog)
+  tproc.load_mem(prog_mem=prog_bin)
+  tproc.start()
+
+6.5. Descriptor Fields Reference
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The 168-bit ``r_wave`` bus (written via ``WPORT_WR``) contains six fields.
+When using the tProcessor, these fields are written individually via ``w_freq``,
+``w_phase``, etc., or as a group via ``r_wave``.
+
+.. list-table:: SG-v6 Descriptor Fields (r_wave composition)
+  :header-rows: 1
+  :widths: 15 20 15 50
+
+  * - Field
+    - Register
+    - Bits
+    - Description
+  * - Frequency
+    - ``w_freq``
+    - 32
+    - DDS frequency control word (0 = DC, 2^31 = Nyquist)
+  * - Phase
+    - ``w_phase``
+    - 32
+    - DDS phase offset (2^32 = 360°)
+  * - Gain
+    - ``w_gain``
+    - 32
+    - Amplitude scaling (signed 32-bit, max 2^31-1)
+  * - Envelope Start
+    - ``w_env``
+    - 24
+    - Start address in envelope memory (for shaped pulses)
+  * - Length
+    - ``w_length``
+    - 32
+    - Number of samples to output (for shaped pulses)
+  * - Configuration
+    - ``w_conf``
+    - 16
+    - Mode, output selection, etc. (see SG-v6 source)
 
 .. note::
 
   The 160-bit descriptor sent via S1_AXIS is generated internally by the 
   QICK Python class. For bit-format details, see the source code for 
   ``qick.SignalGenerator.pack_waveform()``.
+
+6.6. Additional Resources
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more examples (multi-channel playback, real-time frequency hopping,
+envelope chaining, advanced tProc sequencing), refer to:
+
+- **QICK Demo Notebooks**:  
+  `github.com/openquantumhardware/qick/tree/main/qick_demos <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_
+- **tProcessor Documentation**: :doc:`/tprocv2_trm`
+- **Firmware Overview**: :doc:`/firmware`
+- **Community Examples**: Check the `#qick` channel on the Unitary Fund Discord
 
 --------------------------------------------------------------------
 7. Implementation Considerations
@@ -364,4 +568,4 @@ Related Documentation
 
 * :doc:`/tprocv2_trm` - tProcessor v2 for sequencing and triggering
 * :doc:`/firmware` - Firmware overview and channel assignments
-* `Source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`
+* `SG-v6 source code <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

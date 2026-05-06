@@ -1,41 +1,170 @@
-How to play pulses
-==================
+How to play pulses with QICK
+============================
 
-There are three steps to playing a pulse:
+With the tProcessor v2 and Signal Generator v6, playing a pulse involves three steps:
 
-Loading a waveform
-------------------
+.. contents::
+   :local:
+   :depth: 2
+
+Overview
+--------
+
+The pulse playback chain:
+
+1. **Load waveform envelope** (optional) - Upload shaped pulse data to SG-v6 memory
+2. **Configure parameters** - Write frequency, gain, length to registers (via tProc or Python)
+3. **Schedule playback** - Use tProc to send parameters to SG-v6 at precise times
+
+Step 1: Loading a waveform envelope
+------------------------------------
 
 (You skip this step for rectangular "const" pulses, which have no envelope.)
 
-Each signal generator has an internal waveform memory, which stores the I/Q data for the pulse envelope.
-Multiple waveforms can be stored in the same signal generator, and a single waveform can be used for different pulses (e.g. a Gaussian waveform can be used for Gaussian pulses and the ramp-up/ramp-down of flat-top pulses with different flat-top duration, each with its own gain and carrier frequency).
+Each Signal Generator v6 has an internal waveform memory (BRAM) that stores I/Q envelope data.
+Multiple waveforms can be stored in the same generator, and a single waveform can be reused
+for different pulses (e.g., a Gaussian shape used for pulses with different flat-top durations).
 
-:meth:`.AbsQickProgram.add_envelope()` writes an arbitrary waveform to the specified channel's waveform memory.
-:meth:`.AbsQickProgram.add_gauss()`, :meth:`.AbsQickProgram.add_triangle()`, and :meth:`.AbsQickProgram.add_DRAG()` write commonly-used standard pulse waveforms, with duration units of fabric clock cycles. The name is used in the next step.
+**Python methods for loading envelopes:**
 
-Setting registers
------------------
+.. code-block:: python
 
-There are a lot of parameters that need to be specified when playing a pulse - more than can be specified inline in a tProcessor instruction.
-So all the parameters must be written to registers first, and when we fire the pulse we just tell the tProcessor which registers to read.
+   from qick import *
+   import numpy as np
 
-:meth:`.QickProgram.set_pulse_registers()` writes the settings for a pulse to registers.
-All arguments to this method must be integers in the native units of the signal generator.
-This can happen immediately before you fire the pulse, but if a signal generator is only used for one type of pulse you will save time for the tProcessor by setting registers in initialization, before the program loop.
-If you have some parameters that change from pulse to pulse, and some that never change, you can write the fixed parameters in initialization using :meth:`.QickProgram.default_pulse_registers()` and the varying parameters in the body with :meth:`.QickProgram.set_pulse_registers()`.
+   soc = QickSoc()
+   gen = soc.gens[0]  # Generator 0 (tProc channel 1)
 
-If you want to modify pulse parameters on the fly (for example, you might want to sweep the frequency of the qubit drive pulse), you will set the registers in two steps (you can see an example in the demo :repofile:`qick_demos/02_Sweeping_variables.ipynb` ):
+   # Create a Gaussian envelope
+   n_samples = 1024
+   sigma = n_samples / 6
+   envelope_i = 32767 * np.exp(-0.5 * ((np.arange(n_samples) - n_samples/2) / sigma)**2)
+   envelope_q = np.zeros(n_samples)
 
-First, use :meth:`.QickProgram.set_pulse_registers()` to write initial values for all parameters. You could do this in initialization, or right before the following step.
-Second, overwrite the register(s) you want to update.
-You need to get the page and address of the register using :meth:`.QickProgram.ch_page()` and :meth:`.QickProgram.sreg()`.
-Then you can use assembly instructions to change the value of that register.
+   # Upload to generator memory at address 0
+   gen.load_waveform(envelope_i.astype(int), envelope_q.astype(int), start_addr=0)
 
-Firing the pulse
-----------------
+**Available envelope generators:**
 
-:meth:`.QickProgram.pulse()` fires a pulse on the specified channel at the specified time, using whatever values are loaded in the registers.
+- :meth:`.AbsQickProgram.add_gauss()` - Gaussian pulse
+- :meth:`.AbsQickProgram.add_triangle()` - Triangular pulse
+- :meth:`.AbsQickProgram.add_DRAG()` - DRAG pulse for qubit control
+- :meth:`.AbsQickProgram.add_envelope()` - Custom arbitrary waveform
 
-Often you will want to trigger the readout at the same time: :meth:`.QickProgram.measure()` is a wrapper around :meth:`.QickProgram.trigger()` and :meth:`.QickProgram.pulse()`.
-But it's good to remember and understand the building blocks inside this wrapper.
+Step 2: Setting pulse parameters
+--------------------------------
+
+Pulse parameters are written to the tProc's wave parameter registers (`w_freq`, `w_phase`, `w_gain`, `w_env`, `w_length`, `w_conf`).
+
+**Direct tProc assembly approach:**
+
+.. code-block:: text
+
+   ; Write parameters directly
+   REG_WR w_freq imm #0x1000000
+   REG_WR w_phase imm #0
+   REG_WR w_gain imm #32768
+   REG_WR w_env imm #0
+   REG_WR w_length imm #1024
+   REG_WR w_conf imm #0
+
+   ; Send to SG-v6 (tProc channel 1)
+   WPORT_WR p1 r_wave @1000
+
+**From Python (using tProc WMEM for pre-loaded waveforms):**
+
+.. code-block:: python
+
+   from qick import *
+   from qick.tprocv2_assembler import Assembler
+
+   soc = QickSoc()
+   tproc = soc.tproc
+
+   # Pre-configure waveform in WMEM (address 0)
+   tproc.load_wave(0, {
+       'freq': soc.config.freq2reg(100e6, gen_ch=0),
+       'phase': 0,
+       'gain': 32768,
+       'env': 0,           # envelope start address (0 for no envelope)
+       'length': 1024,
+       'conf': 0
+   })
+
+   # Assembly program: load and play
+   asm_code = \"\"\"
+       .ADDR 0x00
+       REG_WR r_wave wmem [&0]
+       WPORT_WR p1 r_wave @1000
+       .END
+   \"\"\"
+
+   prog_bin = Assembler.str_asm2bin(asm_code)
+   tproc.load_mem(prog_mem=prog_bin)
+   tproc.start()
+
+**Dynamic parameter updates (sweeps):**
+
+To sweep a parameter (e.g., frequency) across multiple pulses:
+
+.. code-block:: python
+
+   # Pre-load base waveform to WMEM
+   tproc.load_wave(0, base_params)
+
+   # Create assembly program that updates frequency each loop
+   asm_sweep = \"\"\"
+       .ADDR 0x00
+       REG_WR r0 imm #100        // number of steps
+       REG_WR r1 imm #0x1000000  // start frequency
+       REG_WR s_out_time imm #1000
+   LOOP:
+       REG_WR w_freq op -op(r1)
+       REG_WR r_wave wmem [&0]   // load base params, keep new freq
+       WPORT_WR p1 r_wave @s_out_time
+       REG_WR r1 op -op(r1 + #0x10000)
+       REG_WR s_out_time op -op(s_out_time + #500)
+       REG_WR r0 op -op(r0 - #1) -uf
+       JUMP LOOP -if(NZ)
+       .END
+   \"\"\"
+
+Step 3: Firing the pulse
+-------------------------
+
+:meth:`.QickProgram.pulse()` is designed for the older tProc v1 API. For tProc v2, you directly write assembly or use the low-level tProc methods.
+
+**Direct tProc execution:**
+
+.. code-block:: python
+
+   # Assuming tProc program is already loaded
+   tproc.time_rst()
+   tproc.start()
+
+**Triggering readout simultaneously:**
+
+To trigger readout at the same time as a pulse, use the tProc to send a trigger on channel 0:
+
+.. code-block:: text
+
+   ; Send pulse on channel 1 and trigger on channel 0 at same time
+   WPORT_WR p1 r_wave @1000
+   TRIG p0 set @1000
+
+**Python helper for simple pulses (immediate playback without tProc):**
+
+.. code-block:: python
+
+   # For simple tests, use SG-v6 directly
+   gen = soc.gens[0]
+   gen.set_pulse(freq=100e6, phase=0, gain=0.5, length=1024)
+   gen.trigger()   # Immediate playback
+
+Related Documentation
+---------------------
+
+* :doc:`/tprocv2_trm` - tProcessor v2 instruction set
+* :doc:`/sg_v6` - Signal Generator v6 documentation
+* :doc:`/firmware` - Channel assignments and firmware overview
+* `QICK demo notebooks <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_
