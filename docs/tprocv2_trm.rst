@@ -1,6 +1,24 @@
+.. _tprocv2_trm:
+
 ==================================================
 QICK tProcessor v2 - Complete Reference Manual
 ==================================================
+
+.. meta::
+   :description: Complete reference manual for the QICK tProcessor v2 real-time co-processor
+
+:Version: 2.1
+:Last Update: 2026-05-05
+:Compatibility: QICK Firmware (>= v0.0.1)
+:Audience: Firmware developers, advanced QICK users, researchers
+
+.. note::
+   This is the complete reference manual for the tProcessor v2.
+   For system-level firmware overview (signal generators, readout, channel assignments),
+   see :doc:`/firmware`.
+
+.. contents:: Table of Contents
+   :depth: 3
 
 :Version: 2.1
 :Last Update: 2026-05-05
@@ -73,6 +91,8 @@ The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It
       (once)               (pre‑compute)       (real‑time)           (post‑process)
 
 -------------------------------------------------------------------------------
+
+.. _tproc-quick-ref:
 
 2. Quick Reference Card
 =======================
@@ -288,6 +308,8 @@ When a FIFO becomes full:
 - [ ] Or add ``WAIT fifo_not_full`` (macro) before writes.
 
 -------------------------------------------------------------------------------
+
+.. _tproc-registers:
 
 4. Complete Register Bank Reference
 ====================================
@@ -1195,6 +1217,8 @@ Python can set or clear an external flag that the tProc can test with ``-if(F)``
 
 -------------------------------------------------------------------------------
 
+.. _tproc-peripherals:
+
 8. Peripherals Deep Dive
 ========================
 
@@ -1280,6 +1304,8 @@ Configure via ``core_cfg`` AXI register.
    REG_WR r1 op -op(s_rand)   // second random (different)
 
 -------------------------------------------------------------------------------
+
+.. _tproc-examples:
 
 9. Task‑Based Examples (Copy‑Paste Ready)
 ==========================================
@@ -1805,6 +1831,8 @@ The tProcessor can be configured at synthesis time (in the FPGA bitstream) to ma
    value = soc.tproc.read_axi_reg(addr)
 
 -------------------------------------------------------------------------------
+
+.. _tproc-pitfalls:
 
 13. Common Pitfalls and Debugging
 ==================================

@@ -12,7 +12,6 @@
    topics/index
    firmware
    tprocv2_trm
-
    contact
 
 Welcome to the QICK documentation!
@@ -69,9 +68,18 @@ QICK software
 QICK firmware
 -------------
 
-Source code and instructions for compiling it yourself: `qick/firmware <https://github.com/openquantumhardware/qick/tree/main/firmware>`_
+The QICK firmware includes several key components:
 
-:doc:`/firmware`
+* **tProcessor** - A real-time co-processor for precise waveform sequencing and feedback
+* **Signal Generators (V4)** - DDS-based waveform generators for DAC outputs
+* **Readout System** - ADC data acquisition with DDC, filtering, and averaging
+
+For detailed documentation, see:
+
+* :doc:`/firmware` - System overview and component descriptions
+* :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
+
+Source code and instructions for compiling it yourself: `qick/firmware <https://github.com/openquantumhardware/qick/tree/main/firmware>`_
 
 Extensions beyond the core software and firmware
 ------------------------------------------------

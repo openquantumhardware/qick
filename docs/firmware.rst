@@ -1,18 +1,54 @@
 Firmware
 ========
 
-This system includes the following components:
+This page provides an overview of the QICK firmware components. For detailed documentation of the tProcessor, please refer to :doc:`/tprocv2_trm`.
 
-* 1 output channels connected to PMOD0-3 and triggers for Readout Block.
-* 7 output channels connected to DACs.
-* 2 input channels connected to ADCs.
-* 1 instance of tProcessor 64-bit instructions, 32-bit registers.
+System Overview
+---------------
+
+The QICK firmware includes the following components:
+
+* 1 output channel connected to PMOD0-3 and triggers for Readout Block
+* 7 output channels connected to DACs (via Signal Generator V4)
+* 2 input channels connected to ADCs (via Readout system)
+* 1 instance of tProcessor (64-bit instructions, 32-bit registers)
 
 Sampling frequency of ADC blocks is given by the variable ``soc.fs_adc``. Sampling frequency of DACs is stored in variable ``soc.fs_adc``. Fast-speed buffers were removed to save memory space. Raw data can be captured after x8 down-sampling.
 
-Output channels driving DACs use the updated Signal Generator V4, which has the possibility to upload I/Q envelopes, and uses 32-bit resolution for both frequency and phase. The format of the control word was updated accordingly to accomodate the bits. See example asm files for a detailed description of the fields. The maximum length of the I/Q envelopes is given by the variable ``soc.gens[i].MAX_LENGTH``.
+Signal Generators (V4)
+----------------------
 
-The readout block is actually built around two IPs: readout and average + buffer. Readout block includes a digital down-convertion, FIR filtering and decimation by 8. DDS frequency is configured using a register of the readout block and it is not intended to support real-time frequency hopping as in the Signal Generator side. After frequency shifting, filtering and decimation, the data stream is sent to the Average + Buffer block, which internally can store raw samples or perform the sum of the specified number of samples. The process is started with the external trigger signal, connected to output Channel 0 of tProcessor. The user can opt to route the input, the DDS wave or the frequency shifted signal to the FIR and decimation by 8 stage. This is done using a output selection register of the readout block. Regarding the buffering capabilities, the average section of the block has a buffer of ``soc.avg_bufs[i].AVG_MAX_LENGTH``.
+Output channels driving DACs use the **Signal Generator V4**, which has the following features:
+
+* Supports uploading I/Q envelopes
+* 32-bit resolution for both frequency and phase
+* Configurable DDS with streaming mode (frequency can change sample-to-sample)
+* Maximum envelope length given by ``soc.gens[i].MAX_LENGTH``
+
+For detailed information on the control word format, see the example assembly files in the firmware repository.
+
+.. figure:: ../graphics/qsystem-signalgen.svg
+   :width: 100%
+   :align: center
+
+Readout System
+--------------
+
+The readout block is built around two IPs: **Readout** and **Average + Buffer**:
+
+**Readout Block:**
+* Digital down-conversion (DDC)
+* FIR filtering
+* Decimation by 8
+* DDS frequency configured via register (not intended for real-time frequency hopping)
+
+**Average + Buffer Block:**
+* Can store raw samples
+* Can perform sum of specified number of samples
+* Process started by external trigger (connected to tProcessor Channel 0)
+* Buffer size: ``soc.avg_bufs[i].AVG_MAX_LENGTH``
+
+The user can route the input, the DDS wave, or the frequency-shifted signal to the FIR and decimation stage using an output selection register.
 
 .. figure:: ../graphics/qsystem-readout.svg
    :width: 100%
@@ -21,55 +57,126 @@ The readout block is actually built around two IPs: readout and average + buffer
 The tProcessor
 --------------
 
-You also may want to learn more about how the QICK tProcessor works.
-In this case, you can reference the `QICK assembly language documentation <https://github.com/openquantumhardware/qick/blob/main/firmware/tProcessor_64_and_Signal_Generator_V4.pdf>`_.
-Note that this documentation is not up to date with the current version of the QICK tProcessor.
-It is made available here as a learning tool for those interested in learning the principles of the tProcessor.
-Those who have more specific questions can contact us.
+The tProcessor (timing Processor) is a hard real-time co-processor inside the QICK FPGA. It runs user-written programs that control waveform generation, data acquisition, and feedback with nanosecond precision.
 
-tProcessor channel assignment
+For **complete documentation**, see:
+
+* :doc:`/tprocv2_trm` - Full reference manual (architecture, instruction set, programming examples)
+
+**Quick links to tProcessor topics:**
+
+* :ref:`tproc-quick-ref` - Most common instructions and condition codes
+* :ref:`tproc-registers` - Complete register bank reference
+* :ref:`tproc-examples` - Copy-paste ready code examples
+* :ref:`tproc-peripherals` - ARITH (multiply), DIV, LFSR
+* :ref:`tproc-pitfalls` - Common mistakes and debugging
+
+tProcessor Channel Assignment
 -----------------------------
 
-tProcessor will be used to control the real-time operation of the experiment. Output channels (AXIS MASTER) of the tProcessor are assigned as follows:
+tProcessor output channels (AXIS MASTER) are assigned as follows:
 
-- Channel 0 : connected to PMOD0 0-3, and triggers for readout. Bits 0-3 are connected to PMOD0, bit 14 is connected to the trigger of the average/buffer block coming from the readout of ADC 224 CH0. Bit 15 is connected to the trigger of the average/buffer block coming from the readout of ADC 224 CH1.
-- Channel 1 : connected to Signal Generator V4, which drives DAC 228 CH0.
-- Channel 2 : connected to Signal Generator V4, which drives DAC 228 CH1.
-- Channel 3 : connected to Signal Generator V4, which drives DAC 228 CH2.
-- Channel 4 : connected to Signal Generator V4, which drives DAC 229 CH0.
-- Channel 5 : connected to Signal Generator V4, which drives DAC 229 CH1.
-- Channel 6 : connected to Signal Generator V4, which drives DAC 229 CH2.
-- Channel 7 : connected to Signal Generator V4, which drives DAC 229 CH3.
+- **Channel 0** : PMOD0 (bits 0-3), readout triggers (bit 14 = ADC 224 CH0, bit 15 = ADC 224 CH1)
+- **Channel 1** : Signal Generator V4 → DAC 228 CH0
+- **Channel 2** : Signal Generator V4 → DAC 228 CH1
+- **Channel 3** : Signal Generator V4 → DAC 228 CH2
+- **Channel 4** : Signal Generator V4 → DAC 229 CH0
+- **Channel 5** : Signal Generator V4 → DAC 229 CH1
+- **Channel 6** : Signal Generator V4 → DAC 229 CH2
+- **Channel 7** : Signal Generator V4 → DAC 229 CH3
 
-**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: DAC 229 channels 0 and 1 are high pass filtered by a 1 GHz high pass filter, so ensure that signals coming out of channels 4 and 5 are at least 1 GHz. Also, DAC 229 channels 2 and 3 are low pass filtered by a 1 GHz low pass filter, so ensure that signals coming out of channels 6 and 7 are less than 1 GHz. DAC 228 channels 0, 1 and 2 are not filtered by the XM500 daughter board.
+tProcessor input channels (AXIS SLAVE) for feedback:
 
-The updated version of the tProcessor has 4 input (AXIS SLAVE) channels, which can be used for feedback. These are 64-bit, and the updated ``read`` instruction can specify channel number and upper/lower 32-bits to be read and written into an internal register. See example below on how to use this new capability.
+- **Channel 0** : Readout 0 (ADC 224 CH0)
+- **Channel 1** : Readout 1 (ADC 224 CH1)
 
-* Channel 0 : connected to readout 0, which is driven by ADC 224 CH0
-* Channel 1 : connected to readout 1, which is driven by ADC 224 CH1
+.. note::
+   If using the Xilinx XM500 daughter board (ZCU111), be aware of filters:
+   
+   - DAC 229 CH0/CH1: **High-pass** (1 GHz) → output ≥ 1 GHz
+   - DAC 229 CH2/CH3: **Low-pass** (1 GHz) → output ≤ 1 GHz
+   - ADC 224 CH0/CH1: **Low-pass** (1 GHz) → input ≤ 1 GHz
+   - DAC 228 channels: **No filters**
 
-**Note** that if you are using the Xilinx XM500 daughter board that comes with the ZCU111, be aware of the filters that are put on that XM500 board: ADC 224 channels 0 and 1 are low pass filtered by a 1 GHz low pass filter, so ensure that the signal coming into your XM500 board is less than 1 GHz so that it can be read in properly. 
+Signal Generator Array
+----------------------
 
-Signal Generators are organized on the array ``soc.gens``, which is composed of 7 instances. Array index 0 is connected to tProcessor Channel 1, array index 1 is connected to tProcessor Channel 2, and so on. As way of example, let's assume the user needs to create a pulse on DAC 229 CH1 and DAC 229 CH3. These are connected to Channels 5, and 7 or the tProcessor, respectively. However, let's also assume that a gaussian envelope needs to be uploaded into the corresponding signal generator. ``soc.gens[3]`` drives DAC 229 CH1, and ``soc.gens[6]`` drives DAC 229 CH3.
+Signal Generators are organized in ``soc.gens`` array (7 instances):
 
-Similarly, average and buffer inputs blocks are organized on ``soc.avg_bufs`` array, which has two instances of the Average + Buffer block. The user can access them using index 0 and 1.
+.. list-table::
+   :header-rows: 1
+
+   * - Array Index
+     - tProcessor Channel
+     - DAC Channel
+   * - 0
+     - 1
+     - DAC 228 CH0
+   * - 1
+     - 2
+     - DAC 228 CH1
+   * - 2
+     - 3
+     - DAC 228 CH2
+   * - 3
+     - 4
+     - DAC 229 CH0
+   * - 4
+     - 5
+     - DAC 229 CH1
+   * - 5
+     - 6
+     - DAC 229 CH2
+   * - 6
+     - 7
+     - DAC 229 CH3
+
+**Example:** To output on DAC 229 CH1 (tProc Channel 5), use ``soc.gens[4]``.
+
+Average + Buffer Array
+----------------------
+
+Average and buffer blocks are organized in ``soc.avg_bufs`` array (2 instances):
+
+- Index 0: Readout 0 (ADC 224 CH0)
+- Index 1: Readout 1 (ADC 224 CH1)
 
 Timing
 ------
 
-The clock frequency of the FPGA is 384 MHz. Therefore, each clock cycle has a period of 2.6 ns.
+- **FPGA clock:** 384 MHz → period = 2.6 ns
+- **DAC speed:** 384 × 16 = 6144 MHz → resolution ~163 ps
+- **ADC speed:** 384 × 8 = 3072 MHz, decimated by 8 → resolution ~2.6 ns
+- **Minimum DAC pulse length:** 16 samples (shorter pulses can be zero-padded)
 
-The DAC speed is ``384*16=6144 MHz`` (resolution ``~163 ps``) and the ADC speed is ``384*8 MHz`` but then the signal is decimated by a factor of ``8`` (resolution ``~2.6 ns``). The minimum DAC pulse length is 16 samples but if you want shorter pulses than that you can pad that pulse with zeros.
-
-
-Firmware parameters
+Firmware Parameters
 -------------------
 
-* Pulse memory length: 65536 per channel x2 (I,Q), i.e., 128k total
-* Decimated ADC buffer length: 1024 samples per component (I,Q), 2k total
-* Accumulated ADC buffer length: 16384 samples per component (I,Q), 32 k total
-* tProc program memory length: 8k instructions of 64 bits, 64k Bytes total
-* tProc data memory length: 4096 samples of 32 bits, 16k Bytes total
-* tProc stack size: 256 samples of 32 bits, 1k Byte total
-* Phase conversion from deg to reg: Phase resolution is 32-bit, that is :math:`\Delta \phi = 2 \pi /2^{32}` or :math:`360/2^{32}`
-* Gain is 16-bit signed [-32768,32767]
+.. list-table::
+   :header-rows: 1
+
+   * - Parameter
+     - Value
+   * - Pulse memory length
+     - 65536 per channel ×2 (I/Q) = 128k total
+   * - Decimated ADC buffer
+     - 1024 samples per component (I,Q) = 2k total
+   * - Accumulated ADC buffer
+     - 16384 samples per component (I,Q) = 32k total
+   * - tProc program memory
+     - 8k instructions × 64 bits = 64kB total
+   * - tProc data memory
+     - 4096 samples × 32 bits = 16kB total
+   * - tProc stack size
+     - 256 samples × 32 bits = 1kB total
+   * - Phase conversion
+     - :math:`\Delta \phi = 2\pi/2^{32}` or :math:`360/2^{32}` degrees
+   * - Gain range
+     - 16-bit signed [-32768, 32767]
+
+Related Documentation
+---------------------
+
+* :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
+* `tProcessor assembly examples <https://github.com/openquantumhardware/qick/tree/main/firmware/examples>`_
+* `Signal Generator V4 documentation <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/sig_gen_v4>`_
