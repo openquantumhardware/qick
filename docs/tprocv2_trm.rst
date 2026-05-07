@@ -5,7 +5,7 @@ QICK tProcessor v2 - Complete Reference Manual
 ==================================================
 
 .. meta::
-   :description: Complete reference manual for the QICK tProcessor v2 real-time co-processor
+  :description: Complete reference manual for the QICK tProcessor v2 real-time co-processor
 
 :Version: 2.1
 :Last Update: 2026-05-05
@@ -13,12 +13,12 @@ QICK tProcessor v2 - Complete Reference Manual
 :Audience: Firmware developers, advanced QICK users, researchers
 
 .. note::
-   This is the complete reference manual for the tProcessor v2.
-   For system-level firmware overview (signal generators, readout, channel assignments),
-   see :doc:`/firmware`.
+  This is the complete reference manual for the tProcessor v2.
+  For system-level firmware overview (signal generators, readout, channel assignments),
+  see :doc:`/firmware`.
 
 .. contents:: Table of Contents
-   :depth: 3
+  :depth: 3
 
 :Version: 2.1
 :Last Update: 2026-05-06
@@ -26,7 +26,7 @@ QICK tProcessor v2 - Complete Reference Manual
 :Audience: Firmware developers, advanced QICK users, researchers
 
 .. contents:: Table of Contents
-   :depth: 3
+  :depth: 3
 
 -------------------------------------------------------------------------------
 
@@ -38,24 +38,24 @@ This manual is organized by **task**, not just by instruction. If you know what 
 **Conventions used in this manual:**
 
 .. list-table::
-   :header-rows: 1
+  :header-rows: 1
 
-   * - Symbol
-     - Meaning
-   * - ``[value]``
-     - Optional parameter
-   * - ``#123``
-     - Immediate (literal) value
-   * - ``&123``
-     - Memory address
-   * - ``@123``
-     - Time value
-   * - ``p0 .. p15``
-     - Port number
-   * - ``// text``
-     - Comment
-   * - ``> text``
-     - Explanation of the preceding line
+  * - Symbol
+    - Meaning
+  * - ``[value]``
+    - Optional parameter
+  * - ``#123``
+    - Immediate (literal) value
+  * - ``&123``
+    - Memory address
+  * - ``@123``
+    - Time value
+  * - ``p0 .. p15``
+    - Port number
+  * - ``// text``
+    - Comment
+  * - ``> text``
+    - Explanation of the preceding line
 
 -------------------------------------------------------------------------------
 
@@ -101,40 +101,40 @@ The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It
 
 .. code-block:: text
 
-   // Register operations
-   REG_WR rd imm #value               // rd = value
-   REG_WR rd op -op(rs + #imm)        // rd = rs + imm
-   REG_WR rd op -op(rs1 + rs2)        // rd = rs1 + rs2
+  // Register operations
+  REG_WR rd imm #value               // rd = value
+  REG_WR rd op -op(rs + #imm)        // rd = rs + imm
+  REG_WR rd op -op(rs1 + rs2)        // rd = rs1 + rs2
 
-   // Memory operations
-   REG_WR rd dmem [&addr]             // rd = DMEM[addr]
-   DMEM_WR [&addr] imm #value         // DMEM[addr] = value
+  // Memory operations
+  REG_WR rd dmem [&addr]             // rd = DMEM[addr]
+  DMEM_WR [&addr] imm #value         // DMEM[addr] = value
 
-   // Waveform operations
-   REG_WR r_wave wmem [&addr]         // load waveform from WMEM
-   WPORT_WR pN r_wave @time           // output waveform
+  // Waveform operations
+  REG_WR r_wave wmem [&addr]         // load waveform from WMEM
+  WPORT_WR pN r_wave @time           // output waveform
 
-   // Port operations
-   DPROT_WR pN imm value @time        // output 32‑bit data
-   DPROT_WR pN reg rX @time           // output from register
-   TRIG pN set @time                  // set trigger high
-   TRIG pN clr @time                  // set trigger low
-   DPORT_RD pN                        // read input port (to s_port_l/h)
+  // Port operations
+  DPROT_WR pN imm value @time        // output 32‑bit data
+  DPROT_WR pN reg rX @time           // output from register
+  TRIG pN set @time                  // set trigger high
+  TRIG pN clr @time                  // set trigger low
+  DPORT_RD pN                        // read input port (to s_port_l/h)
 
-   // Flow control
-   JUMP LABEL -if(condition)          // conditional branch
-   CALL SUBROUTINE
-   RET
+  // Flow control
+  JUMP LABEL -if(condition)          // conditional branch
+  CALL SUBROUTINE
+  RET
 
-   // Waiting
-   WAIT time @N                       // wait until current time >= N
-   WAIT div_dt                        // wait for division to complete
-   WAIT arith_dt                      // wait for ARITH to complete
-   WAIT port_dt                       // wait for input port data
+  // Waiting
+  WAIT time @N                       // wait until current time >= N
+  WAIT div_dt                        // wait for division to complete
+  WAIT arith_dt                      // wait for ARITH to complete
+  WAIT port_dt                       // wait for input port data
 
-   // Peripherals
-   DIV num den                        // start division (32 cycles)
-   ARITH T rA rB                      // rA * rB (2 cycles)
+  // Peripherals
+  DIV num den                        // start division (32 cycles)
+  ARITH T rA rB                      // rA * rB (2 cycles)
 
 **Condition codes (most useful):**
 
@@ -311,32 +311,32 @@ Because the core and the dispatcher run on different clocks, any communication b
 **Critical paths and their latencies:**
 
 .. list-table::
-   :header-rows: 1
+  :header-rows: 1
 
-   * - Action
-     - From domain
-     - To domain
-     - Latency (cycles of destination clock)
-   * - Write to FIFO (DPORT_WR)
-     - c_clk
-     - t_clk
-     - 2‑3 cycles
-   * - FIFO pop to output pin
-     - t_clk
-     - t_clk (same)
-     - 1 cycle
-   * - Read input port (DPORT_RD)
-     - t_clk (ADC)
-     - c_clk
-     - 2‑3 cycles
-   * - TIME instruction effect
-     - c_clk
-     - t_clk
-     - 3‑5 cycles
-   * - FLAG from Python to core
-     - ps_clk
-     - c_clk
-     - several µs (not for tight timing)
+  * - Action
+    - From domain
+    - To domain
+    - Latency (cycles of destination clock)
+  * - Write to FIFO (DPORT_WR)
+    - c_clk
+    - t_clk
+    - 2‑3 cycles
+  * - FIFO pop to output pin
+    - t_clk
+    - t_clk (same)
+    - 1 cycle
+  * - Read input port (DPORT_RD)
+    - t_clk (ADC)
+    - c_clk
+    - 2‑3 cycles
+  * - TIME instruction effect
+    - c_clk
+    - t_clk
+    - 3‑5 cycles
+  * - FLAG from Python to core
+    - ps_clk
+    - c_clk
+    - several µs (not for tight timing)
 
 **Practical implication:** Do not back‑to‑back TIME instructions without at least 5 c_clk cycles between them.
 
@@ -346,28 +346,28 @@ Because the core and the dispatcher run on different clocks, any communication b
 The dispatcher has three independent FIFOs:
 
 .. list-table::
-   :header-rows: 1
+  :header-rows: 1
 
-   * - FIFO
-     - Entry width
-     - Default depth
-     - Configurable up to
-     - When is it written?
-   * - Wave FIFO (WFIFO)
-     - 168 bits + 48 bits time
-     - 8
-     - 512
-     - WPORT_WR
-   * - Data FIFO (DFIFO)
-     - 32 bits + 48 bits time
-     - 8
-     - 512
-     - DPORT_WR
-   * - Trigger FIFO (TFIFO)
-     - 1 bit + 48 bits time
-     - 8
-     - 512
-     - TRIG
+  * - FIFO
+    - Entry width
+    - Default depth
+    - Configurable up to
+    - When is it written?
+  * - Wave FIFO (WFIFO)
+    - 168 bits + 48 bits time
+    - 8
+    - 512
+    - WPORT_WR
+  * - Data FIFO (DFIFO)
+    - 32 bits + 48 bits time
+    - 8
+    - 512
+    - DPORT_WR
+  * - Trigger FIFO (TFIFO)
+    - 1 bit + 48 bits time
+    - 8
+    - 512
+    - TRIG
 
 **Flow control behavior:**
 
@@ -498,29 +498,29 @@ programming (use names like ``r5``, ``s10``, ``w_freq``), but it's useful for de
 or when reading the AXI debug registers.
 
 .. list-table:: Register Physical Addresses
-   :header-rows: 1
-   :widths: 15 15 20 50
+  :header-rows: 1
+  :widths: 15 15 20 50
 
-   * - Bank
-     - Address Range
-     - Number
-     - Assembly Names
-   * - DREG
-     - 0x00 - 0x1F
-     - 32
-     - ``r0`` ... ``r31``
-   * - SREG
-     - 0x20 - 0x2F
-     - 16
-     - ``s0`` ... ``s15`` (plus aliases)
-   * - WREG (wave params)
-     - 0x30 - 0x35
-     - 6
-     - ``w0`` (w_freq), ``w1`` (w_phase), ``w2`` (w_gain), ``w3`` (w_env), ``w4`` (w_length), ``w5`` (w_conf)
-   * - Special (r_wave)
-     - (virtual)
-     - 1
-     - ``r_wave`` (168-bit concatenation of all wregs)
+  * - Bank
+    - Address Range
+    - Number
+    - Assembly Names
+  * - DREG
+    - 0x00 - 0x1F
+    - 32
+    - ``r0`` ... ``r31``
+  * - SREG
+    - 0x20 - 0x2F
+    - 16
+    - ``s0`` ... ``s15`` (plus aliases)
+  * - WREG (wave params)
+    - 0x30 - 0x35
+    - 6
+    - ``w0`` (w_freq), ``w1`` (w_phase), ``w2`` (w_gain), ``w3`` (w_env), ``w4`` (w_length), ``w5`` (w_conf)
+  * - Special (r_wave)
+    - (virtual)
+    - 1
+    - ``r_wave`` (168-bit concatenation of all wregs)
 
 4.3. Complete Register Table with Aliases
 ------------------------------------------
@@ -531,144 +531,144 @@ These are general purpose. No predefined aliases, but you can create your own:
 
 .. code-block:: text
 
-   .ALIAS loop_counter r0
-   .ALIAS temp_result  r1
-   .ALIAS dmem_ptr     r2
+  .ALIAS loop_counter r0
+  .ALIAS temp_result  r1
+  .ALIAS dmem_ptr     r2
 
 **SREG - Special Function Registers (s0 - s15)**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 25 15 50
+  :header-rows: 1
+  :widths: 10 25 15 50
 
-   * - Address
-     - Assembly Name
-     - Aliases
-     - Description / Typical Use
-   * - 0x20
-     - ``s0``
-     - ``s_zero``
-     - Always reads as 0. Useful for clearing or as a source.
-   * - 0x21
-     - ``s1``
-     - ``s_rand``
-     - Pseudo-random number from LFSR. Configurable behavior via core_cfg.
-   * - 0x22
-     - ``s2``
-     - ``s_cfg`` (lower 16 bits), ``s_ctrl`` (upper 16 bits)
-     - Configuration: data sources, flag sources. Write to s_ctrl to clear flags.
-   * - 0x23
-     - ``s3``
-     - ``s_arith_low``
-     - Lower 32 bits of ARITH (multiply) result.
-   * - 0x24
-     - ``s4``
-     - ``s_div_q``
-     - Quotient from DIV operation.
-   * - 0x25
-     - ``s5``
-     - ``s_div_r``
-     - Remainder from DIV operation.
-   * - 0x26
-     - ``s6``
-     - ``s_core_r1``
-     - First data word from selected source (see s_cfg DT_SRC).
-   * - 0x27
-     - ``s7``
-     - ``s_core_r2``
-     - Second data word from selected source.
-   * - 0x28
-     - ``s8``
-     - ``s_port_l``
-     - Lower 32 bits of input port read (DPORT_RD).
-   * - 0x29
-     - ``s9``
-     - ``s_port_h``
-     - Upper 32 bits of input port read (DPORT_RD).
-   * - 0x2A
-     - ``s10``
-     - ``s_status``
-     - Status flags: peripherals ready, new data, FIFO state.
-   * - 0x2B
-     - ``s11``
-     - ``s_usr_time``, ``curr_usr_time``
-     - Current user time (read-only). t_abs - t_ref.
-   * - 0x2C
-     - ``s12``
-     - ``s_core_w1``
-     - First data word written from PS (ARM) to core.
-   * - 0x2D
-     - ``s13``
-     - ``s_core_w2``
-     - Second data word written from PS to core.
-   * - 0x2E
-     - ``s14``
-     - ``s_out_time``, ``out_usr_time``
-     - Output time register for port writes (read/write, signed 32-bit).
-   * - 0x2F
-     - ``s15``
-     - ``s_addr``
-     - Address register for JUMP instructions.
+  * - Address
+    - Assembly Name
+    - Aliases
+    - Description / Typical Use
+  * - 0x20
+    - ``s0``
+    - ``s_zero``
+    - Always reads as 0. Useful for clearing or as a source.
+  * - 0x21
+    - ``s1``
+    - ``s_rand``
+    - Pseudo-random number from LFSR. Configurable behavior via core_cfg.
+  * - 0x22
+    - ``s2``
+    - ``s_cfg`` (lower 16 bits), ``s_ctrl`` (upper 16 bits)
+    - Configuration: data sources, flag sources. Write to s_ctrl to clear flags.
+  * - 0x23
+    - ``s3``
+    - ``s_arith_low``
+    - Lower 32 bits of ARITH (multiply) result.
+  * - 0x24
+    - ``s4``
+    - ``s_div_q``
+    - Quotient from DIV operation.
+  * - 0x25
+    - ``s5``
+    - ``s_div_r``
+    - Remainder from DIV operation.
+  * - 0x26
+    - ``s6``
+    - ``s_core_r1``
+    - First data word from selected source (see s_cfg DT_SRC).
+  * - 0x27
+    - ``s7``
+    - ``s_core_r2``
+    - Second data word from selected source.
+  * - 0x28
+    - ``s8``
+    - ``s_port_l``
+    - Lower 32 bits of input port read (DPORT_RD).
+  * - 0x29
+    - ``s9``
+    - ``s_port_h``
+    - Upper 32 bits of input port read (DPORT_RD).
+  * - 0x2A
+    - ``s10``
+    - ``s_status``
+    - Status flags: peripherals ready, new data, FIFO state.
+  * - 0x2B
+    - ``s11``
+    - ``s_usr_time``, ``curr_usr_time``
+    - Current user time (read-only). t_abs - t_ref.
+  * - 0x2C
+    - ``s12``
+    - ``s_core_w1``
+    - First data word written from PS (ARM) to core.
+  * - 0x2D
+    - ``s13``
+    - ``s_core_w2``
+    - Second data word written from PS to core.
+  * - 0x2E
+    - ``s14``
+    - ``s_out_time``, ``out_usr_time``
+    - Output time register for port writes (read/write, signed 32-bit).
+  * - 0x2F
+    - ``s15``
+    - ``s_addr``
+    - Address register for JUMP instructions.
 
 **WREG - Wave Parameter Registers (w0 - w5)**
 
 These six registers are **individually accessible** but also concatenated into ``r_wave``.
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 15 15 15 45
+  :header-rows: 1
+  :widths: 10 15 15 15 45
 
-   * - Address
-     - Base Name
-     - Alias
-     - Bits
-     - Description
-   * - 0x30
-     - ``w0``
-     - ``w_freq``
-     - 32
-     - Frequency control word for DDS. 0 = DC, 2^31 = Nyquist.
-   * - 0x31
-     - ``w1``
-     - ``w_phase``
-     - 32
-     - Phase offset. 2^32 = 360 degrees.
-   * - 0x32
-     - ``w2``
-     - ``w_gain``
-     - 32
-     - Amplitude scaling. Signed 32-bit integer.
-   * - 0x33
-     - ``w3``
-     - ``w_env``
-     - 24
-     - Starting address in envelope table memory.
-   * - 0x34
-     - ``w4``
-     - ``w_length``
-     - 32
-     - Envelope length in samples.
-   * - 0x35
-     - ``w5``
-     - ``w_conf``
-     - 16
-     - Configuration bits for signal generator.
+  * - Address
+    - Base Name
+    - Alias
+    - Bits
+    - Description
+  * - 0x30
+    - ``w0``
+    - ``w_freq``
+    - 32
+    - Frequency control word for DDS. 0 = DC, 2^31 = Nyquist.
+  * - 0x31
+    - ``w1``
+    - ``w_phase``
+    - 32
+    - Phase offset. 2^32 = 360 degrees.
+  * - 0x32
+    - ``w2``
+    - ``w_gain``
+    - 32
+    - Amplitude scaling. Signed 32-bit integer.
+  * - 0x33
+    - ``w3``
+    - ``w_env``
+    - 24
+    - Starting address in envelope table memory.
+  * - 0x34
+    - ``w4``
+    - ``w_length``
+    - 32
+    - Envelope length in samples.
+  * - 0x35
+    - ``w5``
+    - ``w_conf``
+    - 16
+    - Configuration bits for signal generator.
 
 **Special Composite: r_wave**
 
 .. code-block:: text
 
-   r_wave is not a physical register. It is a 168-bit bus formed by concatenation:
+  r_wave is not a physical register. It is a 168-bit bus formed by concatenation:
 
-   r_wave = { w5 (w_conf), w4 (w_length), w3 (w_env),
-              w2 (w_gain), w1 (w_phase), w0 (w_freq) }
+  r_wave = { w5 (w_conf), w4 (w_length), w3 (w_env),
+            w2 (w_gain), w1 (w_phase), w0 (w_freq) }
 
-   Bits: 167:152 = w_conf
-         151:120 = w_length
-         119:96  = w_env
-         95:64   = w_gain
-         63:32   = w_phase
-         31:0    = w_freq
+  Bits: 167:152 = w_conf
+        151:120 = w_length
+        119:96  = w_env
+        95:64   = w_gain
+        63:32   = w_phase
+        31:0    = w_freq
 
 You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six** wave parameters at once.
 
@@ -736,20 +736,20 @@ You can write to ``r_wave`` using ``REG_WR r_wave ...``, which updates **all six
 The tProcessor has an **internal flag** (IF) and can also use an **external flag** (EF) set from Python.
 
 .. list-table::
-   :header-rows: 1
+  :header-rows: 1
 
-   * - Flag
-     - Set by
-     - Cleared by
-     - Test with
-   * - Internal Flag (IF)
-     - ``FLAG set``, or automatically by peripherals
-     - ``FLAG clr``
-     - ``-if(F)``, ``-if(NF)``
-   * - External Flag (EF)
-     - Python (tproc_ctrl bit 13)
-     - Python (tproc_ctrl bit 14)
-     - ``-if(F)``, ``-if(NF)`` (if configured)
+  * - Flag
+    - Set by
+    - Cleared by
+    - Test with
+  * - Internal Flag (IF)
+    - ``FLAG set``, or automatically by peripherals
+    - ``FLAG clr``
+    - ``-if(F)``, ``-if(NF)``
+  * - External Flag (EF)
+    - Python (tproc_ctrl bit 13)
+    - Python (tproc_ctrl bit 14)
+    - ``-if(F)``, ``-if(NF)`` (if configured)
 
 Which flag is used by ``-if(F)`` is determined by ``s_cfg[7:4]`` (FLAG_SRC).
 
@@ -765,33 +765,33 @@ This register controls data routing and flag selection. Write using ``REG_WR s_c
 **Bit Fields:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 15 15 60
+  :header-rows: 1
+  :widths: 10 15 15 60
 
-   * - Bits
-     - Field
-     - Assembler Aliases
-     - Description
-   * - 3:0
-     - ``DT_SRC``
-     - ``src_axi``, ``src_arith``, ``src_qnet``, etc.
-     - Selects source for ``s_core_r1`` (s6) and ``s_core_r2`` (s7).
+  * - Bits
+    - Field
+    - Assembler Aliases
+    - Description
+  * - 3:0
+    - ``DT_SRC``
+    - ``src_axi``, ``src_arith``, ``src_qnet``, etc.
+    - Selects source for ``s_core_r1`` (s6) and ``s_core_r2`` (s7).
 
-         * 0x0 (``src_axi``): Reads Python-written data.
-         * 0x1 (``src_arith``): Reads ARITH result (lower 32 bits).
-         * 0x4 (``src_qnet``): Reads QNET input data.
-   * - 7:4
-     - ``FLAG_SRC``
-     - ``flg_int``, ``flg_axi``, ``flg_ext``, ``flg_div``, etc.
-     - Selects the flag source for conditional execution ``-if(F)``.
+        * 0x0 (``src_axi``): Reads Python-written data.
+        * 0x1 (``src_arith``): Reads ARITH result (lower 32 bits).
+        * 0x4 (``src_qnet``): Reads QNET input data.
+  * - 7:4
+    - ``FLAG_SRC``
+    - ``flg_int``, ``flg_axi``, ``flg_ext``, ``flg_div``, etc.
+    - Selects the flag source for conditional execution ``-if(F)``.
 
-         * 0x0 (``flg_int``): Internal Flag.
-         * 0x1 (``flg_axi``): AXI Flag.
-         * 0x3 (``flg_div``): Division Unit Flag (``DIV_DT_NEW``).
-   * - 15:8
-     - ``RFU``
-     -
-     - Reserved for Future Use.
+        * 0x0 (``flg_int``): Internal Flag.
+        * 0x1 (``flg_axi``): AXI Flag.
+        * 0x3 (``flg_div``): Division Unit Flag (``DIV_DT_NEW``).
+  * - 15:8
+    - ``RFU``
+    -
+    - Reserved for Future Use.
 
 s_ctrl - Clear Flags Register (Upper 16 bits of s2)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -801,29 +801,29 @@ Write **'1'** to clear the corresponding ``_NEW`` flag in ``s_status``. The bit 
 **Bit Fields:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 15 15 60
+  :header-rows: 1
+  :widths: 10 15 15 60
 
-   * - Bits
-     - Field
-     - Assembler Aliases
-     - Description
-   * - 16
-     - ``arith_clr``
-     - ``clr_arith``
-     - Clears ``ARITH_DT_NEW`` (bit 1 of ``s_status``).
-   * - 17
-     - ``div_clr``
-     - ``clr_div``
-     - Clears ``DIV_DT_NEW`` (bit 3 of ``s_status``).
-   * - 18
-     - ``qnet_clr``
-     - ``clr_qnet``
-     - Clears ``QNET_DT_NEW``.
-   * - 22
-     - ``port_clr``
-     - ``clr_port``
-     - Clears all ``PORT_DT_NEW`` bits (bits 31:16 of ``s_status``).
+  * - Bits
+    - Field
+    - Assembler Aliases
+    - Description
+  * - 16
+    - ``arith_clr``
+    - ``clr_arith``
+    - Clears ``ARITH_DT_NEW`` (bit 1 of ``s_status``).
+  * - 17
+    - ``div_clr``
+    - ``clr_div``
+    - Clears ``DIV_DT_NEW`` (bit 3 of ``s_status``).
+  * - 18
+    - ``qnet_clr``
+    - ``clr_qnet``
+    - Clears ``QNET_DT_NEW``.
+  * - 22
+    - ``port_clr``
+    - ``clr_port``
+    - Clears all ``PORT_DT_NEW`` bits (bits 31:16 of ``s_status``).
 
 s_status - Status Register (Read-Only, 0x2A)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -831,41 +831,41 @@ s_status - Status Register (Read-Only, 0x2A)
 **Bit Fields:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 15 15 60
+  :header-rows: 1
+  :widths: 10 15 15 60
 
-   * - Bit
-     - Name
-     - Assembler Mask
-     - Description
-   * - 0
-     - ``ARITH_RDY``
-     - ``#1``
-     - Arithmetic unit is ready/Idle.
-   * - 1
-     - ``ARITH_DT_NEW``
-     - ``#2``
-     - New arithmetic result available. Clear via ``s_ctrl[16]`` or reading.
-   * - 2
-     - ``DIV_RDY``
-     - ``#4``
-     - Divider unit is ready.
-   * - 3
-     - ``DIV_DT_NEW``
-     - ``#8``
-     - New division result available. Clear via ``s_ctrl[17]``.
-   * - 5
-     - ``QNET_DT_NEW``
-     - ``#0x20``
-     - New data from QNET received.
-   * - 15
-     - ``FIFO_FULL``
-     - ``#0x8000``
-     - Any of the dispatcher FIFOs is full. Stalls core if not disabled.
-   * - 31:16
-     - ``PORT_DT_NEW``
-     - ``#0xFFFF0000``
-     - **Bit mask per input port**. Bit 16 corresponds to Port 0. Set when new data arrives via ``DPORT_RD``. Clear via ``s_ctrl[22]``.
+  * - Bit
+    - Name
+    - Assembler Mask
+    - Description
+  * - 0
+    - ``ARITH_RDY``
+    - ``#1``
+    - Arithmetic unit is ready/Idle.
+  * - 1
+    - ``ARITH_DT_NEW``
+    - ``#2``
+    - New arithmetic result available. Clear via ``s_ctrl[16]`` or reading.
+  * - 2
+    - ``DIV_RDY``
+    - ``#4``
+    - Divider unit is ready.
+  * - 3
+    - ``DIV_DT_NEW``
+    - ``#8``
+    - New division result available. Clear via ``s_ctrl[17]``.
+  * - 5
+    - ``QNET_DT_NEW``
+    - ``#0x20``
+    - New data from QNET received.
+  * - 15
+    - ``FIFO_FULL``
+    - ``#0x8000``
+    - Any of the dispatcher FIFOs is full. Stalls core if not disabled.
+  * - 31:16
+    - ``PORT_DT_NEW``
+    - ``#0xFFFF0000``
+    - **Bit mask per input port**. Bit 16 corresponds to Port 0. Set when new data arrives via ``DPORT_RD``. Clear via ``s_ctrl[22]``.
 
 .. _core_cfg_details:
 
@@ -877,24 +877,24 @@ Controls the behavior of the Pseudo-Random Number Generator (LFSR) connected to 
 **Bit Fields:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 10 25 60
+  :header-rows: 1
+  :widths: 10 25 60
 
-   * - Bits
-     - Value (CFG)
-     - Description
-   * - 1:0
-     - ``0`` (STOP)
-     - LFSR stops. The value in ``s_rand`` remains constant.
-   * - 1:0
-     - ``1`` (FREE_RUN)
-     - LFSR advances **every** `c_clk` cycle. Fastest random updates.
-   * - 1:0
-     - ``2`` (READ_STEP)
-     - LFSR advances **only when** the core reads the ``s_rand`` register.
-   * - 1:0
-     - ``3`` (WRITE_STEP)
-     - LFSR advances **only when** the core writes to the ``s_rand`` register (value is discarded).
+  * - Bits
+    - Value (CFG)
+    - Description
+  * - 1:0
+    - ``0`` (STOP)
+    - LFSR stops. The value in ``s_rand`` remains constant.
+  * - 1:0
+    - ``1`` (FREE_RUN)
+    - LFSR advances **every** `c_clk` cycle. Fastest random updates.
+  * - 1:0
+    - ``2`` (READ_STEP)
+    - LFSR advances **only when** the core reads the ``s_rand`` register.
+  * - 1:0
+    - ``3`` (WRITE_STEP)
+    - LFSR advances **only when** the core writes to the ``s_rand`` register (value is discarded).
 
 4.7. Peripherals Control & Status Registers
 --------------------------------------------
@@ -903,33 +903,33 @@ Each peripheral (ARITH, DIV, TIME, FLAG) has a specific control and status inter
 The table below summarizes the registers involved:
 
 .. list-table:: Peripheral Register Map
-   :header-rows: 1
-   :widths: 30 30 30 35
+  :header-rows: 1
+  :widths: 30 30 30 35
 
-   * - Peripheral
-     - Control Register
-     - Status Register
-     - Data Register
-   * - ARITH (Multiply)
-     - Instruction only (no control reg)
-     - ``s_status[0]`` (RDY), ``s_status[1]`` (NEW)
-     - ``s_arith_low`` (s3)
-   * - DIV (Divide)
-     - Instruction only
-     - ``s_status[2]`` (RDY), ``s_status[3]`` (NEW)
-     - ``s_div_q`` (s4), ``s_div_r`` (s5)
-   * - TIME (Time control)
-     - ``TIME`` instruction
-     - (none)
-     - ``s_usr_time`` (s11), ``s_out_time`` (s14)
-   * - FLAG (Internal)
-     - ``FLAG`` instruction
-     - (none)
-     - (none - just the flag bit)
-   * - LFSR (Random)
-     - ``core_cfg`` (AXI)
-     - (none)
-     - ``s_rand`` (s1)
+  * - Peripheral
+    - Control Register
+    - Status Register
+    - Data Register
+  * - ARITH (Multiply)
+    - Instruction only (no control reg)
+    - ``s_status[0]`` (RDY), ``s_status[1]`` (NEW)
+    - ``s_arith_low`` (s3)
+  * - DIV (Divide)
+    - Instruction only
+    - ``s_status[2]`` (RDY), ``s_status[3]`` (NEW)
+    - ``s_div_q`` (s4), ``s_div_r`` (s5)
+  * - TIME (Time control)
+    - ``TIME`` instruction
+    - (none)
+    - ``s_usr_time`` (s11), ``s_out_time`` (s14)
+  * - FLAG (Internal)
+    - ``FLAG`` instruction
+    - (none)
+    - (none - just the flag bit)
+  * - LFSR (Random)
+    - ``core_cfg`` (AXI)
+    - (none)
+    - ``s_rand`` (s1)
 
 4.7.1. ARITH (Multiply-Accumulate)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -940,33 +940,33 @@ The ARITH peripheral is started by an instruction, not by writing a register.
 
 .. code-block:: text
 
-   // 1. Start operation
-   ARITH PTP r1 r2 r3 r4     // (r1+r2)*r3+r4
+  // 1. Start operation
+  ARITH PTP r1 r2 r3 r4     // (r1+r2)*r3+r4
 
-   // 2. Wait for completion (poll s_status)
-   WAIT arith_dt             // macro: loops until bit 1 is set
+  // 2. Wait for completion (poll s_status)
+  WAIT arith_dt             // macro: loops until bit 1 is set
 
-   // 3. Read result
-   REG_WR r5 op -op(s_arith_low)
+  // 3. Read result
+  REG_WR r5 op -op(s_arith_low)
 
-   // 4. Clear new-data flag (optional)
-   CLEAR arith               // macro: writes s_ctrl[16]=1
+  // 4. Clear new-data flag (optional)
+  CLEAR arith               // macro: writes s_ctrl[16]=1
 
 **Status Bits (s_status):**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 20 60
+  :header-rows: 1
+  :widths: 20 20 60
 
-   * - Bit
-     - Name
-     - Description
-   * - 0
-     - ``ARITH_RDY``
-     - Set when ARITH is idle. Cleared when operation starts.
-   * - 1
-     - ``ARITH_DT_NEW``
-     - Set when result is ready. Cleared by reading or ``CLEAR arith``.
+  * - Bit
+    - Name
+    - Description
+  * - 0
+    - ``ARITH_RDY``
+    - Set when ARITH is idle. Cleared when operation starts.
+  * - 1
+    - ``ARITH_DT_NEW``
+    - Set when result is ready. Cleared by reading or ``CLEAR arith``.
 
 **Data Register:**
 
@@ -983,37 +983,37 @@ All configuration is done via the instruction opcode.
 
 .. code-block:: text
 
-   // 1. Start division
-   DIV r1 r2                 // r1 / r2 (unsigned)
+  // 1. Start division
+  DIV r1 r2                 // r1 / r2 (unsigned)
 
-   // 2. Do other work while division runs (32 cycles)
-   REG_WR r3 op -op(r3 + #1)
+  // 2. Do other work while division runs (32 cycles)
+  REG_WR r3 op -op(r3 + #1)
 
-   // 3. Wait for completion
-   WAIT div_dt
+  // 3. Wait for completion
+  WAIT div_dt
 
-   // 4. Read results
-   REG_WR r4 op -op(s_div_q)   // quotient
-   REG_WR r5 op -op(s_div_r)   // remainder
+  // 4. Read results
+  REG_WR r4 op -op(s_div_q)   // quotient
+  REG_WR r5 op -op(s_div_r)   // remainder
 
-   // 5. Clear flag
-   CLEAR div
+  // 5. Clear flag
+  CLEAR div
 
 **Status Bits (s_status):**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 20 60
+  :header-rows: 1
+  :widths: 20 20 60
 
-   * - Bit
-     - Name
-     - Description
-   * - 2
-     - ``DIV_RDY``
-     - Set when DIV is idle. Cleared when division starts.
-   * - 3
-     - ``DIV_DT_NEW``
-     - Set when result is ready. Cleared by reading or ``CLEAR div``.
+  * - Bit
+    - Name
+    - Description
+  * - 2
+    - ``DIV_RDY``
+    - Set when DIV is idle. Cleared when division starts.
+  * - 3
+    - ``DIV_DT_NEW``
+    - Set when result is ready. Cleared by reading or ``CLEAR div``.
 
 **Data Registers:**
 
@@ -1034,62 +1034,62 @@ The TIME peripheral is controlled by dedicated instructions, not by memory-mappe
 **Instructions:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
+  :header-rows: 1
+  :widths: 20 30 50
 
-   * - Instruction
-     - Example
-     - Effect
-   * - ``TIME rst``
-     - ``TIME rst``
-     - ``t_abs = 0``, ``t_ref = 0``, reset core
-   * - ``TIME set_ref rX``
-     - ``TIME set_ref r0``
-     - ``t_ref = rX`` (t_abs unchanged)
-   * - ``TIME inc_ref #N``
-     - ``TIME inc_ref #100``
-     - ``t_ref = t_ref + N``
-   * - ``TIME updt #N``
-     - ``TIME updt #10``
-     - ``t_abs = t_abs + N`` (rarely used)
+  * - Instruction
+    - Example
+    - Effect
+  * - ``TIME rst``
+    - ``TIME rst``
+    - ``t_abs = 0``, ``t_ref = 0``, reset core
+  * - ``TIME set_ref rX``
+    - ``TIME set_ref r0``
+    - ``t_ref = rX`` (t_abs unchanged)
+  * - ``TIME inc_ref #N``
+    - ``TIME inc_ref #100``
+    - ``t_ref = t_ref + N``
+  * - ``TIME updt #N``
+    - ``TIME updt #10``
+    - ``t_abs = t_abs + N`` (rarely used)
 
 **Internal Time Registers (not directly accessible):**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 20 60
+  :header-rows: 1
+  :widths: 20 20 60
 
-   * - Register
-     - Width
-     - Description
-   * - ``t_abs``
-     - 48 bits
-     - Absolute time counter. Runs at DAC clock (`t_clk`).
-   * - ``t_ref``
-     - 48 bits
-     - Reference time offset. Defines where user time = 0.
-   * - ``t_usr``
-     - 32 bits (read via s11)
-     - User time = `t_abs - t_ref` (truncated to 32 bits).
+  * - Register
+    - Width
+    - Description
+  * - ``t_abs``
+    - 48 bits
+    - Absolute time counter. Runs at DAC clock (`t_clk`).
+  * - ``t_ref``
+    - 48 bits
+    - Reference time offset. Defines where user time = 0.
+  * - ``t_usr``
+    - 32 bits (read via s11)
+    - User time = `t_abs - t_ref` (truncated to 32 bits).
 
 **Time-Related SREG Registers:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 15 20 20 45
+  :header-rows: 1
+  :widths: 15 20 20 45
 
-   * - Register
-     - Alias
-     - Access
-     - Description
-   * - s11
-     - ``s_usr_time``
-     - Read-only
-     - Current user time (32 bits of `t_abs - t_ref`)
-   * - s14
-     - ``s_out_time``
-     - Read/Write
-     - Output time for next port write (signed 32-bit)
+  * - Register
+    - Alias
+    - Access
+    - Description
+  * - s11
+    - ``s_usr_time``
+    - Read-only
+    - Current user time (32 bits of `t_abs - t_ref`)
+  * - s14
+    - ``s_out_time``
+    - Read/Write
+    - Output time for next port write (signed 32-bit)
 
 **Clock Domain Crossing Warning:**
 
@@ -1104,30 +1104,30 @@ The internal flag is a single bit that can be used for conditional execution.
 **Instructions:**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
+  :header-rows: 1
+  :widths: 20 30 50
 
-   * - Instruction
-     - Example
-     - Effect
-   * - ``FLAG set``
-     - ``FLAG set``
-     - Sets internal flag to 1.
-   * - ``FLAG clr``
-     - ``FLAG clr``
-     - Clears internal flag to 0.
-   * - ``FLAG inv``
-     - ``FLAG inv``
-     - Toggles internal flag (0→1, 1→0).
+  * - Instruction
+    - Example
+    - Effect
+  * - ``FLAG set``
+    - ``FLAG set``
+    - Sets internal flag to 1.
+  * - ``FLAG clr``
+    - ``FLAG clr``
+    - Clears internal flag to 0.
+  * - ``FLAG inv``
+    - ``FLAG inv``
+    - Toggles internal flag (0→1, 1→0).
 
 **Usage with Conditional Execution:**
 
 .. code-block:: text
 
-   FLAG set                     // set flag
-   REG_WR r0 imm #100 -if(F)    // executed (flag=1)
-   FLAG clr
-   REG_WR r1 imm #200 -if(F)    // NOT executed (flag=0=NF)
+  FLAG set                     // set flag
+  REG_WR r0 imm #100 -if(F)    // executed (flag=1)
+  FLAG clr
+  REG_WR r1 imm #200 -if(F)    // NOT executed (flag=0=NF)
 
 **Note:** The flag used by `-if(F)` can be configured via `s_cfg[7:4]` (FLAG_SRC) to be:
 - Internal flag (``flg_int``)
@@ -1143,31 +1143,31 @@ The LFSR generates pseudo-random numbers accessible via `s_rand` (s1).
 **Configuration Register (AXI core_cfg, address 0x07):**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 20 60
+  :header-rows: 1
+  :widths: 20 20 60
 
-   * - Bits
-     - Value
-     - Mode
-   * - 1:0
-     - 0 (``STOP``)
-     - LFSR stops. `s_rand` constant.
-   * - 1:0
-     - 1 (``FREE_RUN``)
-     - LFSR advances every `c_clk` cycle.
-   * - 1:0
-     - 2 (``READ_STEP``)
-     - LFSR advances when `s_rand` is read.
-   * - 1:0
-     - 3 (``WRITE_STEP``)
-     - LFSR advances when `s_rand` is written.
+  * - Bits
+    - Value
+    - Mode
+  * - 1:0
+    - 0 (``STOP``)
+    - LFSR stops. `s_rand` constant.
+  * - 1:0
+    - 1 (``FREE_RUN``)
+    - LFSR advances every `c_clk` cycle.
+  * - 1:0
+    - 2 (``READ_STEP``)
+    - LFSR advances when `s_rand` is read.
+  * - 1:0
+    - 3 (``WRITE_STEP``)
+    - LFSR advances when `s_rand` is written.
 
 **Example Configuration (from Python):**
 
 .. code-block:: python
 
-   # Configure LFSR to advance on each read
-   soc.tproc.write_axi_reg(0x07, 0x02)   # core_cfg = 2
+  # Configure LFSR to advance on each read
+  soc.tproc.write_axi_reg(0x07, 0x02)   # core_cfg = 2
 
 **Assembly Usage:**
 
@@ -1188,24 +1188,24 @@ These are not hardware peripherals but assembler macros that expand to instructi
 
 .. code-block:: text
 
-   // WAIT time @1000 expands to:
-   TEST -op(s_usr_time - #1000)
-   JUMP HERE -if(S)            // loop until s_usr_time >= 1000
+  // WAIT time @1000 expands to:
+  TEST -op(s_usr_time - #1000)
+  JUMP HERE -if(S)            // loop until s_usr_time >= 1000
 
 **WAIT arith_dt - Expansion:**
 
 .. code-block:: text
 
-   // WAIT arith_dt expands to:
-   TEST -op(s_status AND #2)   // test bit 1 (ARITH_DT_NEW)
-   JUMP HERE -if(Z)            // loop until set
+  // WAIT arith_dt expands to:
+  TEST -op(s_status AND #2)   // test bit 1 (ARITH_DT_NEW)
+  JUMP HERE -if(Z)            // loop until set
 
 **CLEAR arith - Expansion:**
 
 .. code-block:: text
 
-   // CLEAR arith expands to:
-   REG_WR s_ctrl imm clr_arith   // s_ctrl[16] = 1
+  // CLEAR arith expands to:
+  REG_WR s_ctrl imm clr_arith   // s_ctrl[16] = 1
 
 4.7.7. Summary: Peripheral Control Flow Pattern
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1214,57 +1214,57 @@ These are not hardware peripherals but assembler macros that expand to instructi
 
 .. code-block:: text
 
-   // 1. Start (instruction only)
-   ARITH T r1 r2
+  // 1. Start (instruction only)
+  ARITH T r1 r2
 
-   // 2. Wait for completion (poll s_status)
-   WAIT arith_dt
+  // 2. Wait for completion (poll s_status)
+  WAIT arith_dt
 
-   // 3. Read result (from dedicated sreg)
-   REG_WR r3 op -op(s_arith_low)
+  // 3. Read result (from dedicated sreg)
+  REG_WR r3 op -op(s_arith_low)
 
-   // 4. Clear new-data flag
-   CLEAR arith
+  // 4. Clear new-data flag
+  CLEAR arith
 
 **For peripherals that produce new data asynchronously (input ports):**
 
 .. code-block:: text
 
-   // 1. Wait for data arrival (poll s_status)
-   WAIT port_dt
+  // 1. Wait for data arrival (poll s_status)
+  WAIT port_dt
 
-   // 2. Read data
-   DPORT_RD p0
-   REG_WR r0 op -op(s_port_l)
+  // 2. Read data
+  DPORT_RD p0
+  REG_WR r0 op -op(s_port_l)
 
-   // 3. Clear flag (auto-cleared by read, or manually)
-   CLEAR port
+  // 3. Clear flag (auto-cleared by read, or manually)
+  CLEAR port
 
 4.8. Quick Reference: Register Naming in Assembly
 --------------------------------------------------
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
+  :header-rows: 1
+  :widths: 20 30 50
 
-   * - Register Type
-     - Prefix
-     - Examples
-   * - Data registers
-     - ``r``
-     - ``r0``, ``r1``, ... ``r31``
-   * - Special functions
-     - ``s``
-     - ``s0``, ``s_rand``, ``s_status``, ``s_out_time``
-   * - Wave parameters
-     - ``w``
-     - ``w0``, ``w_freq``, ``w_phase``, ``w_gain``
-   * - Composite wave
-     - ``r_wave``
-     - ``r_wave`` (no number)
-   * - Aliases (user-defined)
-     - any
-     - ``.ALIAS my_var r5`` then use ``my_var``
+  * - Register Type
+    - Prefix
+    - Examples
+  * - Data registers
+    - ``r``
+    - ``r0``, ``r1``, ... ``r31``
+  * - Special functions
+    - ``s``
+    - ``s0``, ``s_rand``, ``s_status``, ``s_out_time``
+  * - Wave parameters
+    - ``w``
+    - ``w0``, ``w_freq``, ``w_phase``, ``w_gain``
+  * - Composite wave
+    - ``r_wave``
+    - ``r_wave`` (no number)
+  * - Aliases (user-defined)
+    - any
+    - ``.ALIAS my_var r5`` then use ``my_var``
 
 **Important:** The assembler is case‑sensitive for register names. ``R0`` is NOT the same as ``r0``. Always use lowercase ``r``, ``s``, ``w``.
 
@@ -1275,31 +1275,31 @@ These are not hardware peripherals but assembler macros that expand to instructi
 
 .. code-block:: text
 
-   // Wrong: trying to write only frequency
-   REG_WR r_wave imm #0x1000000   // This would zero out other parameters!
+  // Wrong: trying to write only frequency
+  REG_WR r_wave imm #0x1000000   // This would zero out other parameters!
 
-   // Correct: write to w_freq directly
-   REG_WR w_freq imm #0x1000000
+  // Correct: write to w_freq directly
+  REG_WR w_freq imm #0x1000000
 
 **Mistake 2: Reading s_status without masking**
 
 .. code-block:: text
 
-   // Wrong: compares entire status (many bits may be set)
-   TEST -op(s_status - #4)        // checks if status == 4
+  // Wrong: compares entire status (many bits may be set)
+  TEST -op(s_status - #4)        // checks if status == 4
 
-   // Correct: mask only the bit you care about
-   TEST -op(s_status AND #4)      // checks only bit 2
+  // Correct: mask only the bit you care about
+  TEST -op(s_status AND #4)      // checks only bit 2
 
 **Mistake 3: Using s_out_time as read‑only**
 
 .. code-block:: text
 
-   // Wrong: trying to read current time
-   REG_WR r0 op -op(s_out_time)   // this reads the OUTPUT time, not current time!
+  // Wrong: trying to read current time
+  REG_WR r0 op -op(s_out_time)   // this reads the OUTPUT time, not current time!
 
-   // Correct: use s_usr_time for current time
-   REG_WR r0 op -op(s_usr_time)
+  // Correct: use s_usr_time for current time
+  REG_WR r0 op -op(s_usr_time)
 
 -------------------------------------------------------------------------------
 
@@ -1313,31 +1313,31 @@ These are not hardware peripherals but assembler macros that expand to instructi
 
 .. code-block:: text
 
-   REG_WR r1 op -op(r0)            // r1 = r0
-   REG_WR r1 op -op(s_rand)        // r1 = random number
+  REG_WR r1 op -op(r0)            // r1 = r0
+  REG_WR r1 op -op(s_rand)        // r1 = random number
 
 **Immediate to register:**
 
 .. code-block:: text
 
-   REG_WR r0 imm #12345            // r0 = 12345
-   REG_WR r0 imm #hDEADBEEF        // r0 = 0xDEADBEEF (hex)
-   REG_WR r0 imm #b10101010        // r0 = 0xAA (binary)
+  REG_WR r0 imm #12345            // r0 = 12345
+  REG_WR r0 imm #hDEADBEEF        // r0 = 0xDEADBEEF (hex)
+  REG_WR r0 imm #b10101010        // r0 = 0xAA (binary)
 
 **Memory to register:**
 
 .. code-block:: text
 
-   REG_WR r0 dmem [&100]           // r0 = DMEM[100]
-   REG_WR r_wave wmem [&5]         // r_wave = WMEM[5]
+  REG_WR r0 dmem [&100]           // r0 = DMEM[100]
+  REG_WR r_wave wmem [&5]         // r_wave = WMEM[5]
 
 **Register to memory:**
 
 .. code-block:: text
 
-   DMEM_WR [&100] imm #42          // DMEM[100] = 42
-   DMEM_WR [r0] op -op(r1)         // DMEM[r0] = r1
-   WMEM_WR [&5]                    // WMEM[5] = r_wave
+  DMEM_WR [&100] imm #42          // DMEM[100] = 42
+  DMEM_WR [r0] op -op(r1)         // DMEM[r0] = r1
+  WMEM_WR [&5]                    // WMEM[5] = r_wave
 
 5.2. Arithmetic and Logic
 -------------------------
@@ -1346,35 +1346,35 @@ These are not hardware peripherals but assembler macros that expand to instructi
 
 .. code-block:: text
 
-   REG_WR r2 op -op(r0 + #100)     // r2 = r0 + 100
-   REG_WR r2 op -op(r0 - r1)       // r2 = r0 - r1
+  REG_WR r2 op -op(r0 + #100)     // r2 = r0 + 100
+  REG_WR r2 op -op(r0 - r1)       // r2 = r0 - r1
 
 **Bitwise operations:**
 
 .. code-block:: text
 
-   REG_WR r2 op -op(r0 AND #hFF)   // r2 = r0 & 0xFF (lower byte)
-   REG_WR r2 op -op(r0 OR r1)      // r2 = r0 | r1
-   REG_WR r2 op -op(r0 XOR r1)     // r2 = r0 ^ r1
-   REG_WR r2 op -op(NOT r0)        // r2 = ~r0
+  REG_WR r2 op -op(r0 AND #hFF)   // r2 = r0 & 0xFF (lower byte)
+  REG_WR r2 op -op(r0 OR r1)      // r2 = r0 | r1
+  REG_WR r2 op -op(r0 XOR r1)     // r2 = r0 ^ r1
+  REG_WR r2 op -op(NOT r0)        // r2 = ~r0
 
 **Shifts:**
 
 .. code-block:: text
 
-   REG_WR r2 op -op(r0 SL #2)      // r2 = r0 << 2 (logical left)
-   REG_WR r2 op -op(r0 SR #1)      // r2 = r0 >> 1 (logical right)
-   REG_WR r2 op -op(r0 ASR #1)     // r2 = r0 >> 1 (arithmetic, sign preserved)
+  REG_WR r2 op -op(r0 SL #2)      // r2 = r0 << 2 (logical left)
+  REG_WR r2 op -op(r0 SR #1)      // r2 = r0 >> 1 (logical right)
+  REG_WR r2 op -op(r0 ASR #1)     // r2 = r0 >> 1 (arithmetic, sign preserved)
 
 **Special operations:**
 
 .. code-block:: text
 
-   REG_WR r2 op -op(MSH r0)        // r2 = upper 16 bits of r0
-   REG_WR r2 op -op(LSH r0)        // r2 = lower 16 bits of r0
-   REG_WR r2 op -op(SWP r0)        // r2 = swap upper and lower 16 bits
-   REG_WR r2 op -op(ABS r0)        // r2 = |r0| (absolute value)
-   REG_WR r2 op -op(PAR r0)        // r2 = parity of r0 (0 or 1)
+  REG_WR r2 op -op(MSH r0)        // r2 = upper 16 bits of r0
+  REG_WR r2 op -op(LSH r0)        // r2 = lower 16 bits of r0
+  REG_WR r2 op -op(SWP r0)        // r2 = swap upper and lower 16 bits
+  REG_WR r2 op -op(ABS r0)        // r2 = |r0| (absolute value)
+  REG_WR r2 op -op(PAR r0)        // r2 = parity of r0 (0 or 1)
 
 5.3. Multiplication (ARITH)
 ---------------------------
@@ -1384,58 +1384,58 @@ The ARITH unit uses the FPGA's DSP48 slices. It can compute (D ± A) * B ± C in
 **Operation codes (second letter indicates pattern):**
 
 .. list-table::
-   :header-rows: 1
-   :widths: 20 20 40
+  :header-rows: 1
+  :widths: 20 20 40
 
-   * - Mnemonic
-     - Formula
-     - Example
-   * - ``ARITH T A B``
-     - A * B
-     - ``ARITH T r1 r2`` = r1 * r2
-   * - ``ARITH TP A B C``
-     - A * B + C
-     - ``ARITH TP r1 w_freq s_rand`` = r1 * w0 + s1
-   * - ``ARITH TM A B C``
-     - A * B - C
-     - ``ARITH TM r1 s2 r3`` = r1 * s2 - r3
-   * - ``ARITH PT A B C``
-     - (D + A) * B
-     - ``ARITH PT r2 r1 w_gain`` = (r2 + r1) * w3
-   * - ``ARITH MT A B C``
-     - (D - A) * B
-     - ``ARITH MT r1 r2 r3`` = (r1 - r2) * r3
-   * - ``ARITH PTP A B C D``
-     - (D + A) * B + C
-     - ``ARITH PTP r1 s_rand r3 r4`` = (r1 + s1) * r3 + r4
-   * - ``ARITH PTM A B C D``
-     - (D + A) * B - C
-     - ``ARITH PTM r1 r2 r3 r4`` = (r1 + r2) * r3 - r4
-   * - ``ARITH MTP A B C D``
-     - (D - A) * B + C
-     - ``ARITH MTP r1 s2 w3 r4`` = (r1 - s2) * w3 + r4
-   * - ``ARITH MTM A B C D``
-     - (D - A) * B - C
-     - ``ARITH MTM r1 r2 r3 r4`` = (r1 - r2) * r3 - r4
+  * - Mnemonic
+    - Formula
+    - Example
+  * - ``ARITH T A B``
+    - A * B
+    - ``ARITH T r1 r2`` = r1 * r2
+  * - ``ARITH TP A B C``
+    - A * B + C
+    - ``ARITH TP r1 w_freq s_rand`` = r1 * w0 + s1
+  * - ``ARITH TM A B C``
+    - A * B - C
+    - ``ARITH TM r1 s2 r3`` = r1 * s2 - r3
+  * - ``ARITH PT A B C``
+    - (D + A) * B
+    - ``ARITH PT r2 r1 w_gain`` = (r2 + r1) * w3
+  * - ``ARITH MT A B C``
+    - (D - A) * B
+    - ``ARITH MT r1 r2 r3`` = (r1 - r2) * r3
+  * - ``ARITH PTP A B C D``
+    - (D + A) * B + C
+    - ``ARITH PTP r1 s_rand r3 r4`` = (r1 + s1) * r3 + r4
+  * - ``ARITH PTM A B C D``
+    - (D + A) * B - C
+    - ``ARITH PTM r1 r2 r3 r4`` = (r1 + r2) * r3 - r4
+  * - ``ARITH MTP A B C D``
+    - (D - A) * B + C
+    - ``ARITH MTP r1 s2 w3 r4`` = (r1 - s2) * w3 + r4
+  * - ``ARITH MTM A B C D``
+    - (D - A) * B - C
+    - ``ARITH MTM r1 r2 r3 r4`` = (r1 - r2) * r3 - r4
 
 
 **Typical use: multiply‑accumulate for digital filtering**
 
 .. code-block:: text
 
-   // Example: y = (r1 * r2) + r3
-   REG_WR r1 imm #100
-   REG_WR r2 imm #200
-   REG_WR r3 imm #50
-   ARITH T r1 r2                   // r1 * r2 takes 2 cycles
-   WAIT arith_dt
-   REG_WR r4 op -op(s_arith_low)   // r4 = 20000 (product)
-   REG_WR r4 op -op(r4 + r3)       // r4 = 20000 + 50 = 20050
+  // Example: y = (r1 * r2) + r3
+  REG_WR r1 imm #100
+  REG_WR r2 imm #200
+  REG_WR r3 imm #50
+  ARITH T r1 r2                   // r1 * r2 takes 2 cycles
+  WAIT arith_dt
+  REG_WR r4 op -op(s_arith_low)   // r4 = 20000 (product)
+  REG_WR r4 op -op(r4 + r3)       // r4 = 20000 + 50 = 20050
 
-   // Using combined operation (faster):
-   // ARITH PTP r1 r2 zero r3   // assuming zero is a register that holds 0
-   // WAIT arith_dt
-   // REG_WR r4 op -op(s_arith_low)   // r4 = (r1+r2)*0 + r3 ?? Not correct.
+  // Using combined operation (faster):
+  // ARITH PTP r1 r2 zero r3   // assuming zero is a register that holds 0
+  // WAIT arith_dt
+  // REG_WR r4 op -op(s_arith_low)   // r4 = (r1+r2)*0 + r3 ?? Not correct.
 
 **Better real example: (A * B) + C with ARITH**
 
@@ -1581,19 +1581,19 @@ The DIV block performs **unsigned** 32‑bit integer division in 32 cycles.
 
 .. code-block:: text
 
-   JUMP LABEL               // always jump
+  JUMP LABEL               // always jump
 
 **Conditional jump (most common for loops):**
 
 .. code-block:: text
 
-   JUMP LABEL -if(NZ)       // jump if last ALU result was not zero
+  JUMP LABEL -if(NZ)       // jump if last ALU result was not zero
 
 **Conditional jump with decrement (standard loop pattern):**
 
 .. code-block:: text
 
-   REG_WR r0 imm #10        // r0 = 10 (loop counter)
+  REG_WR r0 imm #10        // r0 = 10 (loop counter)
   LOOP:
     // ... do something ...
     JUMP LOOP -wr(r0 op) -op(r0 - #1) -uf   // decrement r0, update flags, jump if not zero
@@ -1604,13 +1604,13 @@ Because branches cause a 2‑cycle pipeline flush, use conditional execution for
 
 .. code-block:: text
 
-   // Instead of:
-   // JUMP SKIP -if(Z)
-   // REG_WR r1 imm #1
-   // SKIP:
+  // Instead of:
+  // JUMP SKIP -if(Z)
+  // REG_WR r1 imm #1
+  // SKIP:
 
-   // Do:
-   REG_WR r1 imm #1 -if(NZ)   // only executed if Z flag is NOT set
+  // Do:
+  REG_WR r1 imm #1 -if(NZ)   // only executed if Z flag is NOT set
 
 5.6. Memory Addressing Modes - Detailed Reference
 -------------------------------------------------
@@ -1659,8 +1659,8 @@ Data Memory (DMEM) supports 4 addressing modes:
 
 .. code-block:: text
 
-    REG_WR r0 imm #0        ; index
-    REG_WR r1 imm #10       ; base address
+  REG_WR r0 imm #0        ; index
+  REG_WR r1 imm #10       ; base address
   LOOP:
     REG_WR r2 dmem [r1 + r0]   ; read array[r0] from base r1
     ; ... process r2 ...
@@ -1693,7 +1693,7 @@ Wave Memory (WMEM) supports 2 addressing modes:
 
 .. code-block:: text
 
-    REG_WR r0 imm #0
+  REG_WR r0 imm #0
   LOOP:
     REG_WR r_wave wmem [r0]   ; load waveform from WMEM[r0]
     WPORT_WR p1 r_wave @s_out_time
@@ -1836,7 +1836,7 @@ One of the most powerful features of the tProcessor is the ability to execute
 
 .. code-block:: text
 
-    REG_WR r0 imm #10
+  REG_WR r0 imm #10
   LOOP:
     ; ... loop body ...
     JUMP LOOP -wr(r0 op) -op(r0 - #1) -uf -if(NZ)
@@ -1857,7 +1857,7 @@ Instructions with `HEADER = 111` (binary) control the peripheral blocks.
 This section provides the detailed bit encoding for each instruction.
 
 .. note::
-   The instruction width is **72 bits**. Tables show bit positions from MSB (bit 71) to LSB (bit 0).
+  The instruction width is **72 bits**. Tables show bit positions from MSB (bit 71) to LSB (bit 0).
 
 5.8.1. TIME Instruction (Header=111)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1977,10 +1977,10 @@ The TIME instruction controls the absolute time counter and reference time.
 
 .. code-block:: text
 
-   TIME rst                    // Reset absolute time
-   TIME set_ref r2             // Set reference time to value in r2
-   TIME inc_ref #15750         // Increment reference time by 15750
-   TIME set_cmp #16800         // Set comparator for time flag
+  TIME rst                    // Reset absolute time
+  TIME set_ref r2             // Set reference time to value in r2
+  TIME inc_ref #15750         // Increment reference time by 15750
+  TIME set_cmp #16800         // Set comparator for time flag
 
 5.8.2. FLAG Instruction (Header=111)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
