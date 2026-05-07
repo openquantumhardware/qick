@@ -1,16 +1,17 @@
 .PHONY: help wave sim verilate clean
 .DEFAULT_GOAL := help
 
-TOP_MODULE = tb_qick_emu_verilator
+TOP_MODULE = QICKEmu_harness
 
 
 # Paths
+# Makefile lives at <repo>/emulator/tb_dev_tmp/, so PROJ_ROOT is two levels up.
 PROJ_ROOT     = ../..
 FIRMWARE_DIR  = $(PROJ_ROOT)/firmware
-PULP_DIR      = $(PROJ_ROOT)/emulator/submodules/pulp_platform
-AXI_DIR       = $(PULP_DIR)/axi
-COM_VERIF_DIR = $(PULP_DIR)/common_verification
-COMMON_CELLS_DIR = $(PULP_DIR)/common_cells
+SUBMODULES_DIR = $(PROJ_ROOT)/emulator/submodules
+AXI_DIR       = $(SUBMODULES_DIR)/pulp_platform/axi
+COM_VERIF_DIR = $(SUBMODULES_DIR)/pulp_platform/common_verification
+COMMON_CELLS_DIR = $(SUBMODULES_DIR)/pulp_platform/common_cells
 
 # New Emulator Models Paths (Relative to emulator/models/axis_signal_gen_v6)
 EMU_DIR         = $(PROJ_ROOT)/emulator
@@ -26,19 +27,19 @@ TOP_MODULE_PARAMS =
 VERILOG_SOURCES = \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
     \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.sv) \
     \
     $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.sv) \
     \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.v) \
@@ -54,7 +55,7 @@ VERILOG_SOURCES = \
     \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
     \
     $(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
@@ -71,9 +72,8 @@ VERILOG_SOURCES = \
     $(AXI_DIR)/src/axi_test.sv \
     \
     $(EMU_DIR)/testbench/qick_emu_dut.sv \
-    $(EMU_DIR)/testbench/rf_delay.sv \
     $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
-    $(EMU_DIR)/testbench/tb_qick_emu_verilator.sv
+    $(EMU_DIR)/testbench/QICKEmu_harness.sv
 
 
 # Flags
@@ -105,7 +105,7 @@ wave:
 SIM_ARGS =
 # Pass SIM_EMU_DIR=path to override the default emulator input directory
 # Pass TRACE=1 to enable VCD waveform dump (warning: very large files)
-# Example: make sim SIM_EMU_DIR=../../../emulator/artifacts/00_intro/multi_pulse
+# Example: make sim SIM_EMU_DIR=artifacts/00_intro/multi_pulse
 
 sim:
 	cp -f $(MODELS_DIR)/sig_gen_dds/LUT_generator/*.hex .
@@ -123,7 +123,7 @@ clean:
 	rm -f fir_coe.txt
 
 help:
-	@echo "QICK Emu Testbench Simulator"
+	@echo "QICKEmu_harness Testbench Simulator"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo "If no target is specified, this help message is displayed."
@@ -147,4 +147,4 @@ help:
 	@echo "  4. make clean     - Clean up when done"
 	@echo ""
 	@echo "Example with artifacts:"
-	@echo "  make sim SIM_EMU_DIR=../../../emulator/artifacts/00_intro/multi_pulse"
+	@echo "  make sim SIM_EMU_DIR=artifacts/00_intro/multi_pulse"

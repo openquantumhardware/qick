@@ -4,7 +4,9 @@
 // the DAC and ADC, so it is not 100 percent accurate.
 
 module dac_adc_loop #(
-    parameter integer BITS = 16,
+    parameter integer DAC_BITS = 16,
+    parameter integer ADC_BITS = 16,
+    parameter integer OUT_BITS = 16,
     parameter real V_REF = 1.0,
     parameter integer N_DAC = 16,
     parameter integer N_ADC = 8,
@@ -16,16 +18,16 @@ module dac_adc_loop #(
     input  logic        dac_fs_clk,
     input  logic        adc_fs_clk,
 
-    input  logic [N_DAC*BITS-1:0] s_axis_tdata,
+    input  logic [N_DAC*DAC_BITS-1:0] s_axis_tdata,
     input  logic                  s_axis_tvalid,
-    output logic [N_ADC*BITS-1:0] m_axis_tdata,
+    output logic [N_ADC*OUT_BITS-1:0] m_axis_tdata,
     output logic                  m_axis_tvalid
 );
 
     // Internal Signals
-    reg [N_DAC*BITS-1:0]      dac_data_latched;
+    reg [N_DAC*DAC_BITS-1:0]      dac_data_latched;
     logic [$clog2(N_DAC)-1:0] dac_samp_cnt = 0;
-    logic [BITS-1:0]          dac_serial_data;
+    logic [DAC_BITS-1:0]          dac_serial_data;
     logic                     dac_serial_valid;
     real                      dac_out;
 
@@ -42,13 +44,14 @@ module dac_adc_loop #(
     int  idx_prev;
     real t1, t2, y1, y2;
 
-    logic [BITS-1:0]          adc_serial_out;
-    logic [N_ADC*BITS-1:0]    adc_shift_reg;
+    logic [ADC_BITS-1:0]          adc_serial_out;
+    logic [N_ADC*OUT_BITS-1:0]    adc_shift_reg;
     logic [$clog2(N_ADC)-1:0] adc_samp_cnt = 0;
+    logic                     adc_ready;
 
     // DAC model
     dac #(
-        .BITS(BITS),
+        .BITS(DAC_BITS),
         .V_REF(V_REF)
     ) dac_inst (
         .clk(dac_fs_clk),
@@ -59,7 +62,7 @@ module dac_adc_loop #(
 
     // ADC model
     adc_model #(
-        .BITS(BITS),
+        .BITS(ADC_BITS),
         .V_REF(V_REF)
     ) adc_inst (
         .clk(adc_fs_clk),
@@ -85,13 +88,13 @@ module dac_adc_loop #(
                 dac_data_latched <= 0;
 
             if (s_axis_tvalid)
-                dac_serial_data <= s_axis_tdata[0 +: BITS];
+                dac_serial_data <= s_axis_tdata[0 +: DAC_BITS];
             else
                 dac_serial_data <= 0;
 
             dac_samp_cnt <= 1;
         end else begin
-            dac_serial_data <= dac_data_latched[BITS*dac_samp_cnt +: BITS];
+            dac_serial_data <= dac_data_latched[DAC_BITS*dac_samp_cnt +: DAC_BITS];
             if (dac_samp_cnt == N_DAC - 1) dac_samp_cnt <= 0;
             else                           dac_samp_cnt <= dac_samp_cnt + 1;
         end
@@ -140,20 +143,28 @@ module dac_adc_loop #(
     end
     wire adc_clk_rise = adc_clk && !adc_clk_d;
 
-    // Deserialize ADC samples in adc_clk domain
+    logic signed [OUT_BITS-1:0] adc_padded_out;
+    assign adc_padded_out = $signed(adc_serial_out);
+    logic [N_ADC*OUT_BITS-1:0]    adc_out_reg;
+
+    // Deserialize ADC samples in adc_fs_clk domain
     always @(posedge adc_fs_clk) begin
         if (adc_clk_rise) begin
+            // Register from the last 8 cycles
+            adc_out_reg <= adc_shift_reg;
+            
+            // Start capturing the new word's first sample
             adc_samp_cnt <= 1;
-            adc_shift_reg[0 +: BITS] <= adc_serial_out;
+            adc_shift_reg[0 +: OUT_BITS] <= adc_padded_out;
         end else begin
-            adc_shift_reg[BITS*adc_samp_cnt +: BITS] <= adc_serial_out;
+            adc_shift_reg[OUT_BITS*adc_samp_cnt +: OUT_BITS] <= adc_padded_out;
             if (adc_samp_cnt == N_ADC - 1) adc_samp_cnt <= 0;
             else                           adc_samp_cnt <= adc_samp_cnt + 1;
         end
     end
 
     always @(posedge adc_clk) begin
-        m_axis_tdata  <= adc_shift_reg;
+        m_axis_tdata  <= adc_out_reg;
         m_axis_tvalid <= 1'b1;
     end
 

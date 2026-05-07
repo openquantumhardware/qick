@@ -5,7 +5,8 @@ TOP_MODULE = tb_qick
 
 
 # Paths
-PROJ_ROOT     = ../
+# Makefile lives at <repo>/emulator/tb_dev_tmp/, so PROJ_ROOT is two levels up.
+PROJ_ROOT     = ../..
 FIRMWARE_DIR  = $(PROJ_ROOT)/firmware
 SUBMODULES_DIR = $(PROJ_ROOT)/emulator/submodules
 AXI_DIR       = $(SUBMODULES_DIR)/pulp_platform/axi
@@ -70,7 +71,7 @@ VERILOG_SOURCES = \
     $(AXI_DIR)/src/axi_pkg.sv \
     $(AXI_DIR)/src/axi_test.sv \
 	\
-	$(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/tb_qick_verilator.sv
+	$(EMU_DIR)/tb_dev_tmp/tb_qick_verilator.sv
 
 
 # Flags
@@ -115,7 +116,7 @@ clean:
 	rm -f fir_coe.txt
 
 help:
-	@echo "QICK axis_signal_gen_v6 Testbench Simulator"
+	@echo "tb_qick_verilator Testbench Simulator"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo "If no target is specified, this help message is displayed."

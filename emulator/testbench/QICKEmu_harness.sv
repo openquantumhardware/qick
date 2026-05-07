@@ -96,7 +96,7 @@ localparam real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout 
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
 
-module tb_qick_emu_verilator ();
+module QICKEmu_harness ();
 
 // Emulator flag to conditionally instantiate 
 // behavioral models in place of VHDL/Xilinx IP.
@@ -592,7 +592,7 @@ logic              m1_axis_buf_dec_tready;
 
 
    //--------------------------------------
-   // TODO: RF DATA CONVERTER IP
+   // RF DATA CONVERTER IP (behavioral model — loopback DAC/ADC)
    //--------------------------------------
 
    // DAC-ADC RF frontend model
@@ -1114,11 +1114,6 @@ logic              m1_axis_buf_dec_tready;
    //----------------------------------------------------
    // TASKS
    //----------------------------------------------------
-
-   // task delayed_assign();
-   //    wire temp;
-   //    assign #50 temp = adc_samp_cnt[0];
-   // endtask
 
    // Load tProc program / waveform / data memories from QickEmu output files.
    task tproc_load_mem_emu(string emu_dir);

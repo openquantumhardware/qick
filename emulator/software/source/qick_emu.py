@@ -16,12 +16,66 @@ import io
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, Union
 
 import numpy as np
+
+
+# Lines matching any of these are dropped from streaming verilator/make output
+# when run_verilator_tb(..., quiet=True). Keep the list narrow — drop only
+# things that are pure noise to a notebook user, never errors.
+_VERILATOR_NOISE_RE = re.compile(
+    r"(?:%Warning"                  # verilator's own warnings
+    r"|warning:"                    # gcc/clang warnings (case sensitive on purpose)
+    r"|^\s*note:"                   # gcc/clang note lines
+    r"|^In file included from"      # gcc include trace
+    r"|^In function "               # gcc context line preceding a warning
+    r"|^\s*from "                   # gcc include trace continuation
+    r"|^\s*\d+ \| "                 # gcc source-line caret context
+    r"|^\s*\|"                      # gcc empty pipe / caret continuation
+    r"|^\s*\^"                      # gcc caret marker
+    r"|^make\[\d+\]: "              # sub-make 'Entering/Leaving directory'
+    r"|^make: Entering "            # top-make
+    r"|^make: Leaving "
+    r"|^cp -f "                     # Makefile recipe echoes for sim:
+    r"|^verilator "                 # verilator command echo from `make verilate`
+    r"|^g\+\+ "                     # gcc/g++ invocation echo
+    r"|^cc -"                       # cc invocation echo
+    r"|^ar "                        # archive step
+    r"|^perl "                      # verilator helper invocations
+    r"|^- V e r i l a t i "         # verilator banner
+    r")",
+    re.MULTILINE,
+)
+
+
+def _stream_filtered(cmd, *, cwd, timeout):
+    """Run ``cmd`` and stream stdout/stderr through :data:`_VERILATOR_NOISE_RE`.
+
+    Returns a :class:`subprocess.CompletedProcess` so callers can check
+    ``returncode``. ``stderr`` on the returned object is always empty
+    because we merge both streams; errors stay visible because the noise
+    regex only matches warnings, not ``%Error`` / ``Error:`` / ``ld:`` lines.
+    """
+    proc = subprocess.Popen(
+        cmd, cwd=cwd, text=True, bufsize=1,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )
+    try:
+        for line in proc.stdout:
+            if not _VERILATOR_NOISE_RE.search(line):
+                # flush=True so classic Jupyter shows lines as they come in
+                # rather than dumping the whole transcript at the end.
+                print(line, end="", flush=True)
+        proc.wait(timeout=timeout)
+    except Exception:
+        proc.kill()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, "", "")
 
 try:
     from qick import QickConfig
@@ -924,10 +978,15 @@ class QickEmu:
             out_path.write_text(buf.getvalue())
 
     def _find_proj_root(self) -> pathlib.Path:
-        """Find the root of the qick repository to locate the PULP submodules."""
+        """Find the root of the qick repository.
+
+        Anchored on ``emulator/Makefile`` (the project-level TB Makefile,
+        which moved here from ``firmware/testbench/qick_testbench/``).
+        """
         here = pathlib.Path(__file__).resolve().parent
         for ancestor in [here] + list(here.parents):
             candidate = ancestor / "qick_lib"
+            # candidate = ancestor / "emulator" / "Makefile"
             if candidate.exists():
                 return ancestor
         raise FileNotFoundError("Could not find the qick repository root from %s" % (here))
@@ -943,8 +1002,8 @@ class QickEmu:
         ro_dec_len: int = 1000,
         ro_avg_len: int = 1,
         verilog_dir=None,
-        top_module="tb_qick_emu_verilator",
-        sources=("tb_qick_emu_verilator.sv",),
+        top_module="QICKEmu_harness",
+        sources=("QICKEmu_harness.sv",),
         build_dir="build_tb_mem",
         log_csv_name="dac_out.csv",
         mem_filename_in_tb="wmem.mem",
@@ -1106,6 +1165,7 @@ class QickEmu:
         *,
         build: bool = True,
         verbose: bool = True,
+        quiet: bool = True,
         timeout: Optional[int] = 300,
     ) -> Dict[str, pathlib.Path]:
         """Invoke ``make verilate`` / ``make sim`` on the full-system TB and collect its CSVs.
@@ -1128,10 +1188,14 @@ class QickEmu:
             Override for the decimated-buffer read length plusarg.
         ro_avg_len : int, optional
             Override for the accumulated-buffer read length plusarg.
-        mr_len : int
-            Plusarg value passed as ``+MR_LEN``; set to 0 to disable MR logging.
-        test_run_ns : int or None
-            If not None, plusarg value passed as ``+TEST_RUN_NS`` to modify the TB's test run duration.
+        mr_len : int, optional
+            ``+MR_LEN`` plusarg (multi-rate buffer drain length). Default 0.
+        test_run_ns : int, optional
+            Sets the ``+TEST_RUN_NS`` plusarg — additional simulation time
+            (in ns) the TB runs after AXI replay completes, before draining
+            the avg/dec buffers. Increase if pulses near the end of a
+            program get truncated in ``dac_out.csv``. If ``None`` (default),
+            the plusarg is omitted and the TB uses its built-in default.
         build : bool
             Run ``make verilate`` before ``make sim`` (default ``True``).
         verbose : bool
@@ -1173,14 +1237,36 @@ class QickEmu:
         except ValueError:
             rel_emu = emu_dir
 
-        run_kw = dict(cwd=tb_dir, capture_output=not verbose, text=True)
+        # `make -s --no-print-directory` suppresses Make's own command echoing
+        # ('verilator ...', 'g++ ...', 'Entering directory ...') without
+        # touching tool stderr. Combined with the regex filter in
+        # `_stream_filtered`, this leaves only progress prints and real errors.
+        def _make(*targets):
+            cmd = ["make"]
+            if quiet:
+                cmd += ["-s", "--no-print-directory"]
+            cmd += list(targets)
+            return cmd
+
+        # When verbose+quiet, stream subprocess output through a line filter that
+        # drops verilator/gcc warning chatter while keeping errors and progress.
+        # Errors (%Error*, fatal:, ld:) and stderr are always preserved.
+        def _run(cmd):
+            if not verbose:
+                return subprocess.run(
+                    cmd, cwd=tb_dir, timeout=timeout,
+                    capture_output=True, text=True,
+                )
+            if not quiet:
+                return subprocess.run(
+                    cmd, cwd=tb_dir, timeout=timeout, text=True,
+                )
+            return _stream_filtered(cmd, cwd=tb_dir, timeout=timeout)
 
         if build:
             if verbose:
-                print(f"[verilate] Building tb_qick_emu_verilator ...")
-            result = subprocess.run(
-                ["make", "verilate"], timeout=30, **run_kw
-            )
+                print(f"[verilate] Building QICKEmu_harness ...")
+            result = _run(_make("verilate"))
             if result.returncode != 0:
                 raise RuntimeError(
                     f"make verilate failed (rc={result.returncode})"
@@ -1189,21 +1275,20 @@ class QickEmu:
 
         if verbose:
             print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
-            
-        sim_args_str = (
-            f"SIM_ARGS=+RO_DEC_LEN={int(ro_dec_len)} "
-            f"+RO_AVG_LEN={int(ro_avg_len)} "
-            f"+MR_LEN={int(mr_len)} "
-        )
-        if trace:
-            sim_args_str += f"+TRACE=1 "
-        if test_run_ns is not None:
-            sim_args_str += f"+TEST_RUN_NS={int(test_run_ns)} "
 
-        result = subprocess.run(
-            ["make", "sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str], timeout=timeout, **run_kw
-        )
-        
+        plusargs = [
+            f"+RO_DEC_LEN={int(ro_dec_len)}",
+            f"+RO_AVG_LEN={int(ro_avg_len)}",
+            f"+MR_LEN={int(mr_len)}",
+        ]
+        if test_run_ns is not None:
+            plusargs.append(f"+TEST_RUN_NS={int(test_run_ns)}")
+        if trace:
+            plusargs.append(f"+TRACE=1")
+
+        sim_args_str = "SIM_ARGS=" + " ".join(plusargs)
+        result = _run(_make("sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str))
+
         if result.returncode != 0:
             raise RuntimeError(
                 f"make sim failed (rc={result.returncode})"
