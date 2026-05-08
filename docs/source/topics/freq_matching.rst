@@ -76,4 +76,4 @@ Related Documentation
 * :doc:`/sg_v6` - Signal Generator v6
 * :doc:`/readout` - Readout system
 * :doc:`/firmware` - Clock domains and sample rates
-* :doc:`topics/changing_fs` - Custom sample rates
+* :doc:`changing_fs` - Custom sample rates

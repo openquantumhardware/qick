@@ -1,31 +1,30 @@
 """
-///////////////////////////////////////////////////////////////////////////////
-//  FERMI RESEARCH LAB
-///////////////////////////////////////////////////////////////////////////////
-//  Date        : 2024_8_2
-//  Version     : 3
-//  Revision    : 23
-///////////////////////////////////////////////////////////////////////////////
+FERMI RESEARCH LAB
+==================
+
+- Date: 2024_8_2
+- Version: 3
+- Revision: 23
+
 Description: Assembler for Qick Processor
--Create Binary Files  ( list2bin, file_asm2bin, str_asm2bin )
--Create Instruction List ( file_asm2list, str_asm2list )
--Create Assembler File from Instruction List ( list2asm )
 
-p_list        = Assembler.file_asm2list(filenames[0])
-p_list[0] > program_list
-p_list[1] > label_dict
+- Create Binary Files (list2bin, file_asm2bin, str_asm2bin)
+- Create Instruction List (file_asm2list, str_asm2list)
+- Create Assembler File from Instruction List (list2asm)
 
-p_txt, p_bin  = Assembler.file_asm2bin(filenames[0])
-p_txt > Used for Simulation
-p_bin > Used to store in the memory
+Usage::
 
-Get ASM from Program List Structure
-p_asm         = Assembler.list2asm(p_list[0], p_list[1])
+    p_list        = Assembler.file_asm2list(filenames[0])
+    p_list[0]     # program_list
+    p_list[1]     # label_dict
 
-///////////////////////////////////////////////////////////////////////////////
-Release (March 2024)
-To be used with qick_processor version 17th or Higher....
+    p_txt, p_bin  = Assembler.file_asm2bin(filenames[0])
+    p_txt         # Used for Simulation
+    p_bin         # Used to store in the memory
 
+    p_asm         = Assembler.list2asm(p_list[0], p_list[1])
+
+Release (March 2024) - To be used with qick_processor version 17th or higher.
 """
 
 ###################################

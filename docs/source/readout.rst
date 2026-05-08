@@ -15,7 +15,7 @@ The QICK readout system is built around two main IP blocks:
 
 The readout process is triggered by an external signal (typically from tProcessor Channel 0) and can be configured for raw sample capture or coherent averaging.
 
-.. figure:: ../graphics/qsystem-readout.svg
+.. figure:: ../../graphics/qsystem-readout.svg
   :width: 100%
   :align: center
 

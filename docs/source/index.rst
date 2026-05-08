@@ -5,23 +5,26 @@
 
 .. toctree::
    :maxdepth: 2
-   :hidden:
+   :caption: Contents:
 
    quick_start
-   modules
    topics/index
    firmware
+   readout
+   sg_v6
    tprocv2_trm
+   tutorials/README
+   modules
    contact
    
 Welcome to the QICK documentation!
 =================================================
 
-.. figure:: ../graphics/QICK.jpg
+.. figure:: ../../graphics/QICK.jpg
    :width: 100%
    :align: center
 
-.. figure:: ../graphics/ZCU216Board.jpg
+.. figure:: ../../graphics/ZCU216Board.jpg
    :width: 100%
    :align: center
 

@@ -38,7 +38,7 @@ dist/
 
 # Sphinx documentation
 docs/_build/
-docs/_autosummary/
+docs/source/_autosummary/
 
 ### macOS template
 # General

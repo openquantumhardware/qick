@@ -75,7 +75,7 @@ It runs user-written programs that control waveform generation, data acquisition
 For **complete documentation**, see:
 
 * :doc:`/tprocv2_trm` - Full reference manual (architecture, instruction set, programming examples)
-* :doc:`/asmv2_cheatsheet` - Quick reference for assembly programming
+* :doc:`topics/asmv2_cheatsheet` - Quick reference for assembly programming
 
 **Quick links to tProcessor topics:**
 
@@ -193,6 +193,6 @@ Related Documentation
 * :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
 * :doc:`/sg_v6` - Signal Generator v6 documentation
 * :doc:`/readout` - Readout system documentation
-* :doc:`/asmv2_cheatsheet` - tProc v2 assembly quick reference
+* :doc:`topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
 * `tProcessor v2 examples <https://github.com/openquantumhardware/qick/tree/main/firmware/examples/tprocv2>`_
 * `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

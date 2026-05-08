@@ -1,4 +1,3 @@
-
 <p align="center">
  <img src="graphics/logoQICK.svg" alt="QICK logo" width=50% height=auto>
 </p>
@@ -21,6 +20,37 @@ See our [Read the Docs site](https://docs.qick.dev/) for:
 * A [quick-start guide](https://docs.qick.dev/latest/quick_start.html) for setting up your board and running the example Jupyter notebooks
 * [Ways to communicate](https://docs.qick.dev/latest/contact.html) with QICK developers and the community
 * Extensions to QICK for added functionailty
+
+## Building the Documentation
+
+### Prerequisites
+
+Install Python dependencies:
+```bash
+pip install -r docs/requirements.txt
+```
+
+Install pandoc (required by nbsphinx for notebook conversion):
+
+- **Linux (Ubuntu/Debian):**
+```bash
+  sudo apt install pandoc
+```
+- **macOS:**
+```bash
+  brew install pandoc
+```
+- **Windows:**
+  Download the installer from https://pandoc.org/installing.html
+
+### Build
+
+```bash
+cd docs
+make html
+```
+
+The output will be in `docs/_build/html/index.html`.
 
 ## Updates
 

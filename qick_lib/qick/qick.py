@@ -1949,34 +1949,37 @@ class QickSoc(Overlay, QickConfig):
         return self.mr_buf.transfer(start)
 
     def tt_arm(self, blk):
-        """Start data capture on the specified time-tagger block.
+        """
+        Start data capture on the specified time-tagger block.
 
         Parameters
         ----------
         blk : int
-            The time tagger block to arm (index in `time_taggers' list).
+            The time tagger block to arm (index in `time_taggers` list).
         """
         self.time_taggers[blk].disarm()
         self.time_taggers[blk].arm()
 
     def tt_disarm(self, blk):
-        """Stop data capture on the specified time-tagger block.
+        """
+        Stop data capture on the specified time-tagger block.
 
         Parameters
         ----------
         blk : int
-            The time tagger block to arm (index in `time_taggers' list).
+            The time tagger block to arm (index in `time_taggers` list).
         """
         self.time_taggers[blk].disarm()
 
     def tt_readmem(self, blk, mem):
-        """Read one of the specified time-tagger block's memories.
+        """
+        Read one of the specified time-tagger block's memories.
         Reading a time-tagger memory clears it.
 
         Parameters
         ----------
         blk : int
-            The time tagger block to read (index in `time_taggers' list).
+            The time tagger block to read (index in `time_taggers` list).
         mem : str
             "ARM", "SMP", "TAG0"/"TAG1"/"TAG2"/"TAG3"
         """
@@ -1988,7 +1991,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to reset (index in `time_taggers' list).
+            The time tagger block to reset (index in `time_taggers` list).
         """
         #self.time_taggers[blk].reset()
         self.time_taggers[blk].flush_mems()
@@ -1999,7 +2002,7 @@ class QickSoc(Overlay, QickConfig):
         Parameters
         ----------
         blk : int
-            The time tagger block to flush (index in `time_taggers' list).
+            The time tagger block to flush (index in `time_taggers` list).
         threshold : int
             Tag threshold (-2^15 through 2^15-1).
         wr_smp : int

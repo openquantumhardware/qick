@@ -20,14 +20,6 @@ QICK tProcessor v2 - Complete Reference Manual
 .. contents:: Table of Contents
   :depth: 3
 
-:Version: 2.1
-:Last Update: 2026-05-06
-:Compatibility: QICK Firmware (>= v0.0.1)
-:Audience: Firmware developers, advanced QICK users, researchers
-
-.. contents:: Table of Contents
-  :depth: 3
-
 -------------------------------------------------------------------------------
 
 PREFACE: How to use this manual
