@@ -131,64 +131,128 @@ Python Examples
 
 .. code-block:: python
 
+   import numpy as np
    from qick import *
    from qick.tprocv2_assembler import Assembler
 
    soc = QickSoc()
 
-   asm_code = \"\"\"
-       .ADDR 0x00
+   asm_code = """
        REG_WR r0 imm #100
        DPROT_WR p0 reg r0 @1000
        .END
-   \"\"\"
+   """
 
-   p_bin = Assembler.str_asm2bin(asm_code)
-   soc.tproc.load_mem(prog_mem=p_bin)
+   # 1. Assembly
+   _, bin_arr = Assembler.str_asm2bin(asm_code)
+   # 2. Convert to ndarray uint8 (N,8)
+   buff = np.array(bin_arr, dtype=np.uint8)
+   # 3. Load in pmem
+   soc.tproc.load_mem('pmem', buff, check=False)
+   # 4. Execute
    soc.tproc.start()
+
 
 **Waveform loading and playback:**
 
 .. code-block:: python
 
-   # Load waveform to WMEM
-   soc.tproc.load_wave(0, {
-       'freq': 100_000_000,   # 100 MHz
-       'phase': 0,
-       'gain': 32768,          # 1.0 (max)
-       'length': 1024,
-       'conf': 0
-   })
+  # Load waveform to WMEM using the correct method for tProc V2
+  def pack_waveform(freq, phase, env, gain, length, conf):
+      """Pack waveform parameters into 8-word (256-bit) format for tProc WMEM"""
+      wave = np.zeros(8, dtype=np.int32)
+      wave[0] = freq & 0xFFFFFFFF      # 32-bit frequency
+      wave[1] = phase & 0xFFFFFFFF     # 32-bit phase
+      wave[2] = env & 0xFFFFFFFF       # 32-bit envelope index
+      wave[3] = gain & 0xFFFFFFFF      # 32-bit gain
+      wave[4] = length & 0xFFFFFFFF    # 32-bit length
+      wave[5] = conf & 0xFFFFFFFF      # 32-bit config
+      return wave.reshape(1, 8)
+  
+  # Create and pack waveform
+  waveform_data = pack_waveform(
+      freq=100_000_000,   # 100 MHz
+      phase=0,
+      env=0,
+      gain=32768,         # 1.0 (max)
+      length=1024,
+      conf=0
+  )
+  
+  # Load waveform to WMEM (tProc V2 method)
+  soc.tproc.load_mem('wmem', waveform_data, addr=0, check=False)
+  
+  # Assembly program to play waveform (corrected syntax)
+  asm_code = """
+      WAIT time @1000          ; Wait for 1000 clock cycles
+      WPORT_WR p0 wmem [&0]    ; Play waveform directly from WMEM address 0
+      .END
+  """
+  
+  # Assemble and run
+  _, bin_arr = Assembler.str_asm2bin(asm_code)
+  buff = np.array(bin_arr, dtype=np.uint8)
+  soc.tproc.load_mem('pmem', buff, check=False)
+  soc.tproc.start()
 
-   # Assembly program to play waveform
-   asm_code = \"\"\"
-       .ADDR 0x00
-       REG_WR r_wave wmem [&0]
-       WPORT_WR p1 r_wave @1000
-       .END
-   \"\"\"
-
-**Feedback example (read ADC, conditional output):**
+**Feedback Example (read ADC, conditional output)**
 
 .. code-block:: python
 
-   asm_feedback = \"\"\"
-       .ADDR 0x00
-       REG_WR r0 imm #100
-       REG_WR s_out_time imm #1000
+   asm_feedback = """
    LOOP:
        WAIT port_dt
        DPORT_RD p0
-       REG_WR r1 op -op(s_port_l)
-       TEST -op(r1 - #32768) -uf
-       REG_WR r_wave wmem [&0] -if(NS)
-       REG_WR r_wave wmem [&1] -if(S)
-       WPORT_WR p1 r_wave @s_out_time
-       REG_WR s_out_time op -op(s_out_time + #2000)
-       REG_WR r0 op -op(r0 - #1) -uf
-       JUMP LOOP -if(NZ)
+       TEST -op(s_port_l - #32768) -uf
+       JUMP LOAD_HIGH -if(NS)
+       JUMP LOAD_LOW -if(S)
+
+   LOAD_HIGH:
+       REG_WR r_wave wmem [&0]
+       WPORT_WR p0 r_wave @1000
+       JUMP NEXT
+
+   LOAD_LOW:
+       REG_WR r_wave wmem [&1]
+       WPORT_WR p0 r_wave @1000
+       JUMP NEXT
+
+   NEXT:
+       JUMP LOOP
+
        .END
-   \"\"\"
+   """
+
+**Optional, adding a counter (iterations)**
+
+.. code-block:: python
+
+  asm_feedback_with_counter = """
+      DMEM_WR [&0] imm #100
+  
+  LOOP:
+      WAIT port_dt
+      DPORT_RD p0
+      TEST -op(s_port_l - #32768) -uf
+      JUMP LOAD_HIGH -if(NS)
+      JUMP LOAD_LOW -if(S)
+  
+  LOAD_HIGH:
+      REG_WR r_wave wmem [&0]
+      WPORT_WR p0 r_wave @1000
+      JUMP DEC
+  
+  LOAD_LOW:
+      REG_WR r_wave wmem [&1]
+      WPORT_WR p0 r_wave @1000
+      JUMP DEC
+  
+  DEC:
+      DMEM_WR [&0] imm #99
+      JUMP LOOP
+  
+      .END
+  """
 
 Related Documentation
 ---------------------
