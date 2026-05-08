@@ -299,10 +299,12 @@ class AddrMap:
     def from_qick_config(cls, cfg: Dict[str, Any]) -> "AddrMap":
         """Build an :class:`AddrMap` from a raw ``qick_config`` dictionary.
 
-        Assigns each IP instance a sequential 64 KiB block starting at
-        ``0x40000000``, in the order used by the reference ZCU216 firmware:
-        ``ddr4_buf``, ``mr_buf``, signal generators, then per-readout the
-        ``(ro, avgbuf)`` pair, and finally the tProc(s).
+        Uses per-IP physical addresses from the config when available.
+        For older config files that lack those fields, falls back to
+        assigning sequential 64 KiB blocks starting at ``0x40000000`` in the
+        order used by the reference ZCU216 firmware: ``ddr4_buf``, ``mr_buf``,
+        signal generators, then per-readout the ``(ro, avgbuf)`` pair, and
+        finally the tProc(s).
 
         Parameters
         ----------
@@ -317,19 +319,34 @@ class AddrMap:
         am = default_addrmap_skeleton()
         current_addr = 0x40000000
 
-        def add(name, typ):
+        def add(
+            block_cfg: Dict[str, Any],
+            name_key: str = 'fullpath',
+            type_key: str = 'type',
+            phys_addr_key: str = 'phys_addr',
+        ):
             nonlocal current_addr
-            am.base_addrs[name] = current_addr
+            name = block_cfg[name_key]
+            typ = block_cfg[type_key]
+            phys_addr = block_cfg.get(phys_addr_key)
+            am.base_addrs[name] = int(phys_addr) if phys_addr is not None else current_addr
             am.type_by_fullpath[name] = typ
-            current_addr += 0x10000
+            if phys_addr is None:
+                current_addr += 0x10000
 
-        if 'ddr4_buf' in cfg: add(cfg['ddr4_buf']['fullpath'], cfg['ddr4_buf']['type'])
-        if 'mr_buf' in cfg:   add(cfg['mr_buf']['fullpath'],   cfg['mr_buf']['type'])
-        for g in cfg.get('gens', []):     add(g['fullpath'], g['type'])
+        if 'ddr4_buf' in cfg: add(cfg['ddr4_buf'])
+        if 'mr_buf' in cfg:   add(cfg['mr_buf'])
+        for g in cfg.get('gens', []):
+            add(g)
         for r in cfg.get('readouts', []):
-            add(r['ro_fullpath'], r['ro_type'])
-            add(r['avgbuf_fullpath'], r['avgbuf_type'])
-        for t in cfg.get('tprocs', []):   add(t.get('fullpath', 'qick_processor_0'), t['type'])
+            add(r, name_key='ro_fullpath', type_key='ro_type', phys_addr_key='ro_phys_addr')
+            add(r, name_key='avgbuf_fullpath', type_key='avgbuf_type', phys_addr_key='avgbuf_phys_addr')
+        for t in cfg.get('tprocs', []):
+            add({
+                'fullpath': t.get('fullpath', 'qick_processor_0'),
+                'type': t['type'],
+                'phys_addr': t.get('phys_addr'),
+            })
 
         return am
 
@@ -1893,17 +1910,17 @@ class QickEmu:
         avg_bases   = [v for k, v in ba.items() if 'avg_buffer' in tf.get(k, '')]
 
         if tproc_bases:
-            print(f"localparam integer TPROC_BASE  = 32'h{tproc_bases[0]:08X};")
+            print(f"localparam integer TPROC_BASE  = 40'h{tproc_bases[0]:09X};")
         if sg_bases:
             lo = min(sg_bases)
             hi = max(sg_bases) + 0x10000
-            print(f"localparam integer SG_BASE_LO  = 32'h{lo:08X};  // {len(sg_bases)} gen IP(s)")
-            print(f"localparam integer SG_BASE_HI  = 32'h{hi:08X};")
+            print(f"localparam integer SG_BASE_LO  = 40'h{lo:09X};  // {len(sg_bases)} gen IP(s)")
+            print(f"localparam integer SG_BASE_HI  = 40'h{hi:09X};")
         if avg_bases:
             lo = min(avg_bases)
             hi = max(avg_bases) + 0x10000
-            print(f"localparam integer AVG_BASE_LO = 32'h{lo:08X};  // {len(avg_bases)} avgbuf IP(s)")
-            print(f"localparam integer AVG_BASE_HI = 32'h{hi:08X};")
+            print(f"localparam integer AVG_BASE_LO = 40'h{lo:09X};  // {len(avg_bases)} avgbuf IP(s)")
+            print(f"localparam integer AVG_BASE_HI = 40'h{hi:09X};")
         print("-------------------------------------------------\n")
 
         return out_path

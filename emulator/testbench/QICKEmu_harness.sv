@@ -133,12 +133,18 @@ int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 
 // AVG_BASE_HI == TPROC_BASE is intentional — AVG_BASE_HI is an exclusive upper
 // bound, so the last avgbuf slot ends at 0x4025FFFF and tproc starts at
 // 0x40260000 with no overlap.
-localparam integer TPROC_BASE  = 32'h40260000;
-localparam integer SG_BASE_LO  = 32'h40020000;
-localparam integer SG_BASE_HI  = 32'h40120000;
-localparam integer AVG_BASE_LO = 32'h40130000;
-localparam integer AVG_BASE_HI = 32'h40260000;
-
+// DEFAULT ZCU216 ADDR MAP (see zcu216_addr_map.csv):
+// localparam integer TPROC_BASE  = 40'h40260000;
+// localparam integer SG_BASE_LO  = 40'h40020000;
+// localparam integer SG_BASE_HI  = 40'h40120000;
+// localparam integer AVG_BASE_LO = 40'h40130000;
+// localparam integer AVG_BASE_HI = 40'h40260000;
+// QICKEMU_DUT Address Map
+localparam integer TPROC_BASE  = 40'h400260000;
+localparam integer SG_BASE_LO  = 40'h4001C0000;  // 1 gen IP(s)
+localparam integer SG_BASE_HI  = 40'h4001D0000;
+localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
+localparam integer AVG_BASE_HI = 40'h400070000;
 
 // VIP Agents
 
