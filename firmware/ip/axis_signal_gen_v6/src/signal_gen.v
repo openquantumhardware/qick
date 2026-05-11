@@ -179,7 +179,7 @@ genvar i;
          /***********************/
          // DDS.
          // Latency: 10.
-         dds_compiler_0 dds_i 
+         sg_v6_dds_compiler_0 dds_i 
             (
                .aclk                   (clk                          ),
                .s_axis_phase_tvalid    (dds_tvalid_r                 ),

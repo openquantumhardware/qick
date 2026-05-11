@@ -122,7 +122,7 @@ genvar i;
 		/* Block instantiation */
 		/***********************/
 		// DDS.
-		dds_compiler_0 dds_i 
+		ro_v1_dds_compiler_0 dds_i 
 			(
 		  		.aclk					(clk						),
 		  		.s_axis_phase_tvalid	(dds_tvalid_r				),

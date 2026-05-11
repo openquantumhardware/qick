@@ -491,7 +491,7 @@
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/fir_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
+        <spirit:name>src/ro_v1_dds_compiler_0/ro_v1_dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i</spirit:userFileType>
       </spirit:file>
@@ -557,7 +557,7 @@
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/fir_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
+        <spirit:name>src/ro_v1_dds_compiler_0/ro_v1_dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i</spirit:userFileType>
       </spirit:file>
