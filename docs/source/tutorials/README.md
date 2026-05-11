@@ -2,7 +2,15 @@
 
 This directory contains Jupyter notebooks that introduce the QICK framework and the tProc v2.
 
+## Prerequisites
+
+- QICK installed on RFSoC board or remote PC
+- Firmware bitstream file (`.bit`) for your board
+- Jupyter notebook/lab
+
 ## Notebooks
+
+### Basic (00–05)
 
 | # | Notebook | Description |
 |:-|:---|:---|
@@ -12,8 +20,23 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 | 03 | `03_Advanced_Timing.ipynb` | `delay` vs `wait`, auto-timing, avoiding collisions |
 | 04 | `04_Real_Time_Feedback.ipynb` | Conditional pulses, active reset, thresholding |
 | 05 | `05_Dynamic_Parameters_Subroutines.ipynb` | Virtual-Z gates, subroutines, dynamic updates |
-| 06 | `06_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
-| 07 | `07_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
+
+### Intermediate (06–08)
+
+| # | Notebook | Description |
+|:-|:---|:---|
+| 06 | `06_Generators_And_Readouts.ipynb` | Waveform generators, readout resonators, I/Q mixing |
+| 07 | `07_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
+| 08 | `08_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
+
+### Advanced (09–12)
+
+| # | Notebook | Description |
+|:-|:---|:---|
+| 09 | `09_Multi_Core_Synchronization.ipynb` | Multi-tProc cores, triggers, cross-core dependencies |
+| 10 | `10_Streaming_And_RealTime_Processing.ipynb` | IQ streaming, on-FPGA averaging, real-time decimation |
+| 11 | `11_DSP_Blocks_And_Correlators.ipynb` | FIR filters, DDS tuning, hardware correlators |
+| 12 | `12_Custom_Firmware_Integration.ipynb` | Adding custom Verilog/VHDL, AXI-lite interface, rebuilding |
 
 ## Usage
 
@@ -30,11 +53,49 @@ For remote execution (e.g., from a PC), you'll need to start the QICK proxy serv
 ```bash
 python -m qick.pyro
 ```
-
 Then in your notebook, use:
 
 ```python
 from qick.pyro import make_proxy
 soc = make_proxy("board_ip_address")
 ```
+## Common Setup Cell (copy this to any notebook)
 
+```python
+# Configuration
+BITSTREAM_PATH = "/path/to/your/firmware.bit"  # ← CHANGE THIS
+
+# Optional: remote execution
+USE_PROXY = False
+PROXY_IP = "192.168.1.100"
+
+# Connection
+from qick import QickSoc
+import numpy as np
+import matplotlib.pyplot as plt
+
+if USE_PROXY:
+    from qick.pyro import make_proxy
+    soc = make_proxy(PROXY_IP)
+    print(f"Connected to proxy at {PROXY_IP}")
+else:
+    soc = QickSoc(bitfile=BITSTREAM_PATH)
+    print("Connected directly to RFSoC")
+
+print(f"Firmware: {soc.get_cfg()['fw_version']}")
+print(f"tProc cores: {soc.num_tprocs}")
+```
+
+## Notes
+
+* Notebooks 00–08 are self-contained and work on any QICK setup
+
+* Notebooks 09–12 require additional hardware resources (multi-core, streaming, DSP48)
+
+* Notebook 12 requires a licensed Vivado installation for custom firmware compilation
+
+## Troubleshooting
+
+If you see "Bitstream not found", check `BITSTREAM_PATH`
+If tProc commands fail, try `soc.reset_gens()` and `soc.reset_adcs()`
+For proxy connection issues, verify the board IP and that the proxy is running
