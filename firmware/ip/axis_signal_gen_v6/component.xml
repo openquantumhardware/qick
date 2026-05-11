@@ -1095,7 +1095,7 @@
         </spirit:define>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
+        <spirit:name>src/sg_v6_dds_compiler_0/sg_v6_dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_signal_gen_top_i/signal_gen_i/GEN_dds[0].genblk1.dds_i</spirit:userFileType>
       </spirit:file>
@@ -1155,7 +1155,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>src/dds_compiler_0/dds_compiler_0.xci</spirit:name>
+        <spirit:name>src/sg_v6_dds_compiler_0/sg_v6_dds_compiler_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
         <spirit:userFileType>CELL_NAME_signal_gen_top_i/signal_gen_i/GEN_dds[0].genblk1.dds_i</spirit:userFileType>
       </spirit:file>

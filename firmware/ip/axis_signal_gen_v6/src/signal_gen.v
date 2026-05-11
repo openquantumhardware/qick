@@ -183,7 +183,7 @@ genvar i;
          if (!EMULATOR) begin : gen_dds_compiler
             // DDS.
             // Latency: 10.
-            dds_compiler_0 dds_i (
+            sg_v6_dds_compiler_0 dds_i (
                .aclk                   (clk                          ),
                .s_axis_phase_tvalid    (dds_tvalid_r                 ),
                .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72]   ),

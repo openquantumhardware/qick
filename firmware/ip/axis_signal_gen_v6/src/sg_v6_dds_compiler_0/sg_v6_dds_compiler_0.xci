@@ -1,13 +1,13 @@
 {
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
-    "xci_name": "dds_compiler_0",
+    "xci_name": "sg_v6_dds_compiler_0",
     "component_reference": "xilinx.com:ip:dds_compiler:6.0",
     "ip_revision": "22",
-    "gen_directory": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0",
+    "gen_directory": "../../../../testbench/qick_testbench/qick_testbench.gen/sources_1/ip/sg_v6_dds_compiler_0",
     "parameters": {
       "component_parameters": {
-        "Component_Name": [ { "value": "dds_compiler_0", "resolve_type": "user", "usage": "all" } ],
+        "Component_Name": [ { "value": "sg_v6_dds_compiler_0", "resolve_type": "user", "usage": "all" } ],
         "PartsPresent": [ { "value": "Phase_Generator_and_SIN_COS_LUT", "value_src": "user", "resolve_type": "user", "usage": "all" } ],
         "DDS_Clock_Rate": [ { "value": "256", "value_src": "user", "resolve_type": "user", "format": "float", "usage": "all" } ],
         "Channels": [ { "value": "1", "resolve_type": "user", "usage": "all" } ],
@@ -162,10 +162,10 @@
       },
       "project_parameters": {
         "ARCHITECTURE": [ { "value": "zynquplusRFSOC" } ],
-        "BASE_BOARD_PART": [ { "value": "" } ],
+        "BASE_BOARD_PART": [ { "value": "xilinx.com:zcu216:part0:2.0" } ],
         "BOARD_CONNECTIONS": [ { "value": "" } ],
-        "DEVICE": [ { "value": "xczu48dr" } ],
-        "PACKAGE": [ { "value": "ffvg1517" } ],
+        "DEVICE": [ { "value": "xczu49dr" } ],
+        "PACKAGE": [ { "value": "ffvf1760" } ],
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
@@ -179,7 +179,7 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "22" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../projects/qick_tprocv2_4x2_standard/top/top.tmp/axis_signal_gen_v6_v1_0_project/axis_signal_gen_v6_v1_0_project.gen/sources_1/ip/dds_compiler_0" } ],
+        "OUTPUTDIR": [ { "value": "../../../../testbench/qick_testbench/qick_testbench.gen/sources_1/ip/sg_v6_dds_compiler_0" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.1" } ],
