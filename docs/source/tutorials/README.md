@@ -21,7 +21,7 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 | 04 | `04_Real_Time_Feedback.ipynb` | Conditional pulses, active reset, thresholding |
 | 05 | `05_Dynamic_Parameters_Subroutines.ipynb` | Virtual-Z gates, subroutines, dynamic updates |
 
-### Intermediate (06–08)
+### Intermediate (06–09)
 
 | # | Notebook | Description |
 |:-|:---|:---|
@@ -30,14 +30,15 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 | 08 | `08_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
 | 09 | `09_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
 
-### Advanced (10–13)
+### Advanced (10–14)
 
 | # | Notebook | Description |
 |:-|:---|:---|
-| 10 | `10_Multi_Core_Synchronization.ipynb` | Multi-tProc cores, triggers, cross-core dependencies |
+| 10 | `10_Multi_Board_Synchronization.ipynb` | Synchronize multiple boards using external clock and external start signals |
 | 11 | `11_Streaming_And_RealTime_Processing.ipynb` | IQ streaming, on-FPGA averaging, real-time decimation |
 | 12 | `12_DSP_Blocks_And_Correlators.ipynb` | FIR filters, DDS tuning, hardware correlators |
 | 13 | `13_Custom_Firmware_Integration.ipynb` | Adding custom Verilog/VHDL, AXI-lite interface, rebuilding |
+| 14 | `14_XCOM_Network_Synchronization.ipynb` | Full mesh network for multi-board synchronization and low-latency communication (requires FMC transceiver board) |
 
 ## Usage
 
@@ -54,6 +55,7 @@ For remote execution (e.g., from a PC), you'll need to start the QICK proxy serv
 ```bash
 python -m qick.pyro
 ```
+
 Then in your notebook, use:
 
 ```python
@@ -91,9 +93,11 @@ print(f"tProc cores: {soc.num_tprocs}")
 
 * Notebooks 00–09 are self-contained and work on any QICK setup
 
-* Notebooks 10–13 require additional hardware resources (multi-core, streaming, DSP48)
+* Notebooks 10–14 require additional hardware resources (multi-board, streaming, DSP48)
 
 * Notebook 13 requires a licensed Vivado installation for custom firmware compilation
+
+* Notebook 14 (XCOM) requires additional hardware: FMC transceiver board and external hub
 
 ## Troubleshooting
 

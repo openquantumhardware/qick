@@ -1,22 +1,7 @@
-.. Sphinx Apidoc Turorial documentation master file, created by
-   sphinx-quickstart on Fri Jan  8 20:52:00 2016.
+.. Sphinx Apidoc Tutorial documentation master file
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-   quick_start
-   topics/index
-   firmware
-   readout
-   sg_v6
-   tprocv2_trm
-   tutorials/README
-   modules
-   contact
-   
 Welcome to the QICK documentation!
 =================================================
 
@@ -28,79 +13,122 @@ Welcome to the QICK documentation!
    :width: 100%
    :align: center
 
-The Quantum Instrumentation Control Kit (QICK for short) is a Xilinx RFSoC-based qubit controller which supports the direct synthesis of control and readout pulses.
-The QICK consists of a digital board hosting an RFSoC (RF System-on-Chip) FPGA, custom firmware and software, and an optional companion custom-designed analog front-end board.
-All of the schematics, firmware, and software are open-source and available on `Github <https://github.com/openquantumhardware/qick>`_.
-We fully support the ZCU111, ZCU216, and RFSoC4x2 evaluation boards, and generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2) for better overall performance.
+What is QICK?
+==============
 
-Getting started with QICK
--------------------------
+The **Quantum Instrumentation Control Kit (QICK)** is an AMD RFSoC-based qubit controller 
+that supports the direct synthesis of control and readout pulses for quantum computing experiments.
 
-* First, for a global overview of the QICK and its capabilities, read `our instrumentation paper introducing the QICK <https://arxiv.org/abs/2110.00557>`_.
+QICK consists of:
 
-* If you have an RFSoC board and you want to configure it as a QICK board, follow :doc:`our quick start guide </quick_start>`.
+- **Hardware**: AMD RFSoC board (ZCU111, ZCU216, or RFSoC4x2) with optional custom analog front-end
+- **Firmware**: Custom FPGA logic including tProcessor, DDS generators, and readout system
+- **Software**: Python library for pulse programming, data acquisition, and real-time feedback
 
-* After you configure your board, you can test it with `our demo notebooks <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_.
-  These are intended as a tutorial.
-  The first demos explain important features of the QICK system and walk you through how to write working QICK programs.
-  The later demos provide examples of useful measurements you might make with the QICK.
-  We recommend that new users read and understand all of the demos.
+All schematics, firmware, and software are **open-source** and available on GitHub.
 
-More examples and resources
----------------------------
-
-Other examples and tutorials (compatibility with the current QICK software is not guaranteed):
-
-* `IEEE Quantum Week 2025 <https://github.com/openquantumhardware/QCE2025>`_
-* `IEEE Quantum Week 2024 <https://github.com/openquantumhardware/QCE2024>`_
-* `US QIS Summer School 2024 <https://github.com/openquantumhardware/QIS_SummerSchool_2024>`_
-* `IEEE Quantum Week 2023 <https://github.com/openquantumhardware/QCE2023_public>`_
-
-Talk to us
-------------
-
-You can get in touch with the QICK core team and the user community through our :doc:`community contact channels </contact>`.
-
-QICK software
+Key Features
 -------------
 
-`Source code <https://github.com/openquantumhardware/qick/tree/main/qick_lib>`_ and :doc:`API documentation </modules>`
+- **Real-time control** with tProcessor (multi-core, < 10 ns timing resolution)
+- **Direct RF synthesis** up to 6 GHz (ZCU216) without external mixers
+- **Multi-tone generation** with phase-coherent muxed generators
+- **Real-time feedback** and conditional logic
+- **High-speed data streaming** and on-FPGA processing
+- **Custom firmware** support via AXI-lite interface
 
-:doc:`/topics/index`
+Quick Links
+============
 
-QICK firmware
--------------
+- **Source Code**: `GitHub Repository <https://github.com/openquantumhardware/qick>`_
+- **Firmware**: `qick/firmware <https://github.com/openquantumhardware/qick/tree/main/firmware>`_
+- **QICK Paper**: `arXiv:2110.00557 <https://arxiv.org/abs/2110.00557>`_
+- **Community**: :repofile:`Contact & Support <CONTACT.md>`
 
-The QICK firmware includes several key components:
+Extensions & Customization
+===========================
 
-* **tProcessor** - A real-time co-processor for precise waveform sequencing and feedback
-* **Signal Generators (V4)** - DDS-based waveform generators for DAC outputs
-* **Readout System** - ADC data acquisition with DDC, filtering, and averaging
+- **Pyro4 Server**: Persist board state across notebooks (`Pyro4 demos <https://github.com/openquantumhardware/qick/blob/main/pyro4/00_nameserver.ipynb>`_)
+- **QCoDeS Driver**: Save instrument configuration (`QCoDeS-QICK <https://github.com/aalto-qcd/qcodes_qick>`_)
+- **QICK-DAWG**: NV centers and quantum defects (`GitHub <https://github.com/sandialabs/qick-dawg>`_)
+- **SpinQICK**: Solid-state spin qubits (`GitHub <https://github.com/HRL-Laboratories/spinqick>`_)
 
-For detailed documentation, see:
+📖 Documentation Navigation
+============================
 
-* :doc:`/firmware` - System overview and component descriptions
-* :doc:`/tprocv2_trm` - Complete tProcessor v2 reference manual
-
-Source code and instructions for compiling it yourself: `qick/firmware <https://github.com/openquantumhardware/qick/tree/main/firmware>`_
-
-Extensions beyond the core software and firmware
-------------------------------------------------
-
-If you want your board's state to persist between notebooks or scripts, you should install Pyro4 on your board and run QICK in a Pyro server: see `our Pyro4 demo notebooks <https://github.com/openquantumhardware/qick/blob/main/pyro4/00_nameserver.ipynb>`_
-
-If you would like to save the instrument configuration for every measurement using `QCoDeS <https://microsoft.github.io/Qcodes/>`_, you can also install `this QCoDeS driver <https://github.com/aalto-qcd/qcodes_qick>`_.
-
-If you're interested in using QICK to control and read out NV centers or other quantum defects, you might be interested in `QICK-DAWG <https://github.com/sandialabs/qick-dawg>`_ which extends QICK with pulses and measurement programs specific to that application.
-
-If you want to use QICK for control and readout of solid-state spin qubits, `SpinQICK <https://github.com/HRL-Laboratories/spinqick>`_ extends the QICK API and provides high-level experiment code.
-
-QICK papers
--------------
-
-* For a list of academic papers produced using the QICK system, check out :doc:`our papers page </papers>`
+The documentation is organized as a **progressive learning path** from beginner to expert.
 
 .. toctree::
    :maxdepth: 2
+   :caption:  1. Getting Started
 
+   quick_start
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  2. Jupyter Notebook Tutorials
+
+   tutorials/00_Getting_Started
+   tutorials/01_Basic_Sequencing
+   tutorials/02_Parameter_Sweeps
+   tutorials/03_Advanced_Timing
+   tutorials/04_Real_Time_Feedback
+   tutorials/05_Dynamic_Parameters_Subroutines
+   tutorials/06_Generators_And_Readouts
+   tutorials/07_Advanced_Generators_And_Readouts
+   tutorials/08_Hardware_Buffers
+   tutorials/09_Appendix_Tips_And_Limits
+   tutorials/10_Multi_Board_Synchronization
+   tutorials/11_Streaming_And_RealTime_Processing
+   tutorials/12_DSP_Blocks_And_Correlators
+   tutorials/13_Custom_Firmware_Integration
+   tutorials/14_XCOM_Network_Synchronization
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  3. Hardware & Firmware Reference
+
+   tprocv2_trm
+   firmware
+   readout
+   sg_v6
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  4. Technical Topics
+
+   topics/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  5. Python API Reference
+
+   modules
+
+.. toctree::
+   :maxdepth: 2
+   :caption:  6. Community
+
+   contact
    papers
+
+Learning Path Recommendations
+==============================
+
+**New to QICK?** Start here:
+
+1. Read the :doc:`quick_start` guide to set up your board
+2. Complete the **Basic Tutorials** (00-05) to understand core concepts
+3. Work through **Intermediate Tutorials** (06-09) for practical measurements
+4. Explore **Advanced Tutorials** (10-13) for specialized applications
+
+**Already familiar with QICK?** Jump directly to:
+
+- :doc:`tprocv2_trm` for tProcessor instruction reference
+- :doc:`topics/index` for deep dives on specific topics
+- :doc:`modules` for full API documentation
+
+Academic Papers
+================
+
+For a list of academic papers published using the QICK system, see :doc:`papers`.

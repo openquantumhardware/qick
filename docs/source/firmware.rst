@@ -194,5 +194,5 @@ Related Documentation
 * :doc:`/sg_v6` - Signal Generator v6 documentation
 * :doc:`/readout` - Readout system documentation
 * :doc:`topics/asmv2_cheatsheet` - tProc v2 assembly quick reference
-* `tProcessor v2 examples <https://github.com/openquantumhardware/qick/tree/main/firmware/examples/tprocv2>`_
+* :doc:`topics/tutorials` - tProc v2 tutorial examples
 * `Signal Generator v6 source <https://github.com/openquantumhardware/qick/tree/main/firmware/ip/axis_signal_gen_v6>`_

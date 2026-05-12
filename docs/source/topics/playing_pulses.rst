@@ -167,4 +167,4 @@ Related Documentation
 * :doc:`/tprocv2_trm` - tProcessor v2 instruction set
 * :doc:`/sg_v6` - Signal Generator v6 documentation
 * :doc:`/firmware` - Channel assignments and firmware overview
-* `QICK demo notebooks <https://github.com/openquantumhardware/qick/tree/main/qick_demos>`_
+* :doc:`tutorials` - tProc v2 tutorial examples
