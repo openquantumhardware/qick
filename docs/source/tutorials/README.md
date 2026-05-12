@@ -25,18 +25,19 @@ This directory contains Jupyter notebooks that introduce the QICK framework and 
 
 | # | Notebook | Description |
 |:-|:---|:---|
-| 06 | `06_Generators_And_Readouts.ipynb` | Waveform generators, readout resonators, I/Q mixing |
-| 07 | `07_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
-| 08 | `08_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
+| 06 | `06_Generators_And_Readouts.ipynb` | Basic waveform generators, readout resonators, I/Q mixing |
+| 07 | `07_Advanced_Generators_And_Readouts.ipynb` | Muxed generators, PFB readout, dynamic readouts, fast dynamic readout, electrical delay calibration, IQ offsets, performance benchmarks |
+| 08 | `08_Hardware_Buffers.ipynb` | DDR4 and MR buffers, data capture |
+| 09 | `09_Appendix_Tips_And_Limits.ipynb` | Common errors, limits, debugging tips |
 
-### Advanced (09–12)
+### Advanced (10–13)
 
 | # | Notebook | Description |
 |:-|:---|:---|
-| 09 | `09_Multi_Core_Synchronization.ipynb` | Multi-tProc cores, triggers, cross-core dependencies |
-| 10 | `10_Streaming_And_RealTime_Processing.ipynb` | IQ streaming, on-FPGA averaging, real-time decimation |
-| 11 | `11_DSP_Blocks_And_Correlators.ipynb` | FIR filters, DDS tuning, hardware correlators |
-| 12 | `12_Custom_Firmware_Integration.ipynb` | Adding custom Verilog/VHDL, AXI-lite interface, rebuilding |
+| 10 | `10_Multi_Core_Synchronization.ipynb` | Multi-tProc cores, triggers, cross-core dependencies |
+| 11 | `11_Streaming_And_RealTime_Processing.ipynb` | IQ streaming, on-FPGA averaging, real-time decimation |
+| 12 | `12_DSP_Blocks_And_Correlators.ipynb` | FIR filters, DDS tuning, hardware correlators |
+| 13 | `13_Custom_Firmware_Integration.ipynb` | Adding custom Verilog/VHDL, AXI-lite interface, rebuilding |
 
 ## Usage
 
@@ -88,14 +89,20 @@ print(f"tProc cores: {soc.num_tprocs}")
 
 ## Notes
 
-* Notebooks 00–08 are self-contained and work on any QICK setup
+* Notebooks 00–09 are self-contained and work on any QICK setup
 
-* Notebooks 09–12 require additional hardware resources (multi-core, streaming, DSP48)
+* Notebooks 10–13 require additional hardware resources (multi-core, streaming, DSP48)
 
-* Notebook 12 requires a licensed Vivado installation for custom firmware compilation
+* Notebook 13 requires a licensed Vivado installation for custom firmware compilation
 
 ## Troubleshooting
 
 If you see "Bitstream not found", check `BITSTREAM_PATH`
+
 If tProc commands fail, try `soc.reset_gens()` and `soc.reset_adcs()`
+
 For proxy connection issues, verify the board IP and that the proxy is running
+
+If no signal in readout, check DAC→ADC loopback cables, verify `gen_ch` is correct
+
+Phase rotates with frequency, run electrical delay calibration (see [Notebook 07](./07_Advanced_Generators_And_Readouts.ipynb))
