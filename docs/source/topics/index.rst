@@ -33,7 +33,7 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
 
    xcom
    XCOM-commands
-
+   pyro4
 
 Topic Descriptions
 ==================
@@ -65,6 +65,15 @@ Topic Descriptions
 **tutorials**
     Link to the full Jupyter notebook tutorials.
 
+**xcom**
+    XCOM: Full mesh network for multi-board synchronization and low-latency communication. Covers hardware requirements, communication protocol, command set, and Python interface.
+
+**XCOM-commands**
+    Complete reference of all XCOM commands, including NET commands (for network communication) and LOC commands (for local control).
+
+**pyro4**
+    Pyro4: Network-based multi-board connection for distributed control and data acquisition.
+
 When to Use Each Topic
 ======================
 
@@ -74,3 +83,5 @@ When to Use Each Topic
 - **Changing hardware config?** Check :doc:`gen_config` and :doc:`changing_fs`
 - **Using external clock?** Refer to :doc:`reference_clock`
 - **Writing assembly code?** Keep :doc:`asmv2_cheatsheet` handy
+- **Synchronizing multiple boards?** Read :doc:`xcom` for the network-based solution
+- **Need XCOM command details?** See :doc:`XCOM-commands` for the complete command reference
