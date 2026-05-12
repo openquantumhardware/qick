@@ -192,7 +192,10 @@ genvar i;
             );
          end
          else begin : gen_dds_model
-            dds_behavioral_model dds_i (
+            dds_behavioral_model #(
+               .DDS_LATENCY (10)
+            )
+            dds_i (
                .aclk                   (clk                          ),
                .s_axis_phase_tvalid    (dds_tvalid_r                 ),
                .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72]   ),

@@ -176,6 +176,7 @@ initial begin
       vcd_file = {EMU_DIR, "/waveform.vcd"};
       $dumpfile(vcd_file);
       $dumpvars(0, tb_qick_emu_verilator);
+      $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
    end
 end
 // ++++++++++++
@@ -911,7 +912,7 @@ logic              m1_axis_buf_dec_tready;
 
    always @(posedge sg_clk) begin
       if (axis_sg_dac_tvalid) begin
-         $fwrite(dac_csv_fd, "%0t", $time);
+         $fwrite(dac_csv_fd, "%0t", $realtime);
          for (int i = 0; i < N_DDS_SG; i++)
             $fwrite(dac_csv_fd, ",%0d", $signed(axis_sg_dac_tdata[16*i +: 16]));
          $fwrite(dac_csv_fd, "\n");
@@ -920,14 +921,14 @@ logic              m1_axis_buf_dec_tready;
 
    always @(posedge s_ps_dma_aclk) begin
       if (m0_axis_buf_avg_tvalid)
-         $fwrite(avg_csv_fd, "%0t,%0d,%0d\n", $time,
+         $fwrite(avg_csv_fd, "%0t,%0d,%0d\n", $realtime,
                  $signed(m0_axis_buf_avg_tdata[31:0]),
                  $signed(m0_axis_buf_avg_tdata[63:32]));
    end
 
    always @(posedge s_ps_dma_aclk) begin
       if (m1_axis_buf_dec_tvalid)
-         $fwrite(dec_csv_fd, "%0t,%0d,%0d\n", $time,
+         $fwrite(dec_csv_fd, "%0t,%0d,%0d\n", $realtime,
                  $signed(m1_axis_buf_dec_tdata[15:0]),
                  $signed(m1_axis_buf_dec_tdata[31:16]));
    end
@@ -958,7 +959,7 @@ logic              m1_axis_buf_dec_tready;
 
    always @(posedge ro_clk) begin
       if (mr_log) begin
-         $fwrite(mr_csv_fd, "%0t", $time);
+         $fwrite(mr_csv_fd, "%0t", $realtime);
          for (int i = 0; i < 8; i++)
             $fwrite(mr_csv_fd, ",%0d,%0d",
                     $signed(axis_ro_mrbuf_tdata[16*(2*i)   +: 16]),
@@ -1078,13 +1079,13 @@ logic              m1_axis_buf_dec_tready;
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
 
-      $display("### %0t - Start tProc execution ###", $time);
+      $display("### %0t - Start tProc execution ###", $realtime);
       #(TEST_RUN_TIME);
-      $display("### %0t - End tProc execution ###", $time);
+      $display("### %0t - End tProc execution ###", $realtime);
 
 
       // READ CAPTURED DATA FROM AVG BUFFER.
-      $display("### %0t - Reading avg/dec buffers ###", $time);
+      $display("### %0t - Reading avg/dec buffers ###", $realtime);
 
       @(posedge s_ps_dma_aclk); #0.1;
       axi_mst_avg_agent.write(AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
@@ -1107,13 +1108,13 @@ logic              m1_axis_buf_dec_tready;
 
       #50us;
 
-      $display("### %0t - Closing CSV files ###", $time);
+      $display("### %0t - Closing CSV files ###", $realtime);
       $fclose(dac_csv_fd);
       $fclose(avg_csv_fd);
       $fclose(dec_csv_fd);
       $fclose(mr_csv_fd);
 
-      $display("*** %0t - End Simulation ***", $time);
+      $display("*** %0t - End Simulation ***", $realtime);
       $finish();
    end
 
@@ -1155,11 +1156,11 @@ logic              m1_axis_buf_dec_tready;
       sg_file = $sformatf("%s/sgmem_ch%0d.mem", emu_dir, sg_ch);
       fd = $fopen(sg_file, "r");
       if (fd == 0) begin
-         $display("### %0t - SG ch%0d: no envelope file %s ###", $time, sg_ch, sg_file);
+         $display("### %0t - SG ch%0d: no envelope file %s ###", $realtime, sg_ch, sg_file);
          return;
       end
 
-      $display("### %0t - Loading SG ch%0d envelope from %s ###", $time, sg_ch, sg_file);
+      $display("### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
 
       @(posedge s_ps_dma_aclk); #0.1;
       axi_mst_sg_agent.write(SG_ADDR_START_ADDR, prot, 0, 8'hFF, resp);
@@ -1181,7 +1182,7 @@ logic              m1_axis_buf_dec_tready;
       @(posedge sg_s0_axis_aclk);
       sg_s0_axis_tvalid = 0;
       tb_load_mem_done  = 1;
-      $display("### %0t - SG ch%0d envelope loaded ###", $time, sg_ch);
+      $display("### %0t - SG ch%0d envelope loaded ###", $realtime, sg_ch);
    endtask
 
    // Replay QickEmu AXI-Lite write log, one "addr data" hex pair per line.

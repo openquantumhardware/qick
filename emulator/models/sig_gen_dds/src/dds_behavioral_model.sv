@@ -14,7 +14,7 @@ module dds_behavioral_model # (
     parameter int       LUT_SIZE        = 256, // Lookup Table size
     parameter int       PHASE_WIDTH     = 32, // phase width
     parameter string    INIT_FILE       = "sine_cos_full32.hex", // ROM for LUT
-    parameter int       DDS_LATENCY     = 10   // MUST MATCH DDS Compiler GUI Latency
+    parameter int       DDS_LATENCY     = 8   // MUST MATCH DDS Compiler GUI Latency
 ) (
     input   logic        aclk, // clock at @ ??? MHz
     input   logic        s_axis_phase_tvalid,
@@ -22,6 +22,12 @@ module dds_behavioral_model # (
     output  logic        m_axis_data_tvalid,
     output  logic [31:0] m_axis_data_tdata
 );
+
+initial begin
+    if (DDS_LATENCY < 2 || DDS_LATENCY > 21) begin
+        $fatal(1, "DDS_LATENCY must be between 2 and 21 (inclusive) to match valid latency settings in Xilinx DDS Compiler GUI. Current value: %0d", DDS_LATENCY);
+    end
+end
 
 logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
 logic [PHASE_WIDTH-1:0] phase_acc = 0;     // phase accumulator result
@@ -66,26 +72,32 @@ assign lut_addr = phase_acc[PHASE_WIDTH-1 -:LUT_ADDR_BITS]; // address = top LUT
 // ROM (synchronous read -> 1-cycle latency)
 localparam int DEPTH = (1 << LUT_ADDR_BITS);
 (* rom_style = "block", ram_style = "block" *)
-logic signed [31:0] rom [0:DEPTH-1];
+logic [31:0] rom [0:DEPTH-1];
 
 initial begin : init_rom
-        integer i;
-        for (i = 0; i < DEPTH; i++) rom[i] = '0;
-        $readmemh(INIT_FILE, rom);
-        $display("ROM init from %s: DEPTH=%0d, WIDTH=32", INIT_FILE, DEPTH);
+    integer i;
+    integer fd;
+    fd = $fopen(INIT_FILE,"r");
+    if (fd == 0) begin
+        $fatal(1, "dds_behavioral_model(): failed to open init file '%s'", INIT_FILE);
     end
+    $fclose(fd);
+    for (i = 0; i < DEPTH; i++) rom[i] = '0;
+    $readmemh(INIT_FILE, rom);
+    // $display("ROM init from %s: DEPTH=%0d, WIDTH=32", INIT_FILE, DEPTH);
+end
 
  // --------- DATA PIPELINE TO MATCH DDS_LATENCY -----------------
     // data_pipe[0] gets ROM output for current lut_addr (1st stage)
     // data_pipe[DDS_LATENCY-1] drives AXIS tdata (total latency = DDS_LATENCY)
-    logic signed [31:0] data_pipe [0:DDS_LATENCY-1];
+    logic [31:0] data_pipe [0:DDS_LATENCY-1];
+
+    // Stage 0: ROM read
+    assign data_pipe[0] = rom[lut_addr];
 
     integer k;
     always_ff @(posedge aclk) begin
-        // Stage 0: ROM read
-        data_pipe[0] <= rom[lut_addr];
-
-        // Remaining stages
+        // Remaining pipeline stages
         for (k = 1; k < DDS_LATENCY; k++) begin
             data_pipe[k] <= data_pipe[k-1];
         end
@@ -93,6 +105,8 @@ initial begin : init_rom
 
     assign m_axis_data_tdata = data_pipe[DDS_LATENCY-1];
 
+    wire [15:0] tdata_real = m_axis_data_tdata[15:0];
+    wire [15:0] tdata_imag = m_axis_data_tdata[31:16];
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
     logic                   started    = 1'b0;

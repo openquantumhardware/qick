@@ -19,15 +19,18 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="60.105501 us"></ZoomEndTime>
-      <Cursor1Time time="60.105500 us"></Cursor1Time>
+      <ZoomStartTime time="25,407.453 ns"></ZoomStartTime>
+      <ZoomEndTime time="25,434.770 ns"></ZoomEndTime>
+      <Cursor1Time time="25,428.416 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="134"></ValueColumnWidth>
+      <ValueColumnWidth column_width="130"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="9" />
+   <WVObjectSize size="19" />
+   <wave_markers>
+      <marker label="" time="25413440" />
+   </wave_markers>
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -866,10 +869,6 @@
          <obj_property name="ElementShortName">s_axis_aclk</obj_property>
          <obj_property name="ObjectShortName">s_axis_aclk</obj_property>
       </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_sgcdcsync_v1/cdcsync_i/fifo_i/full">
-         <obj_property name="ElementShortName">full</obj_property>
-         <obj_property name="ObjectShortName">full</obj_property>
-      </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_sgcdcsync_v1/cdcsync_i/s0_axis_tready">
          <obj_property name="ElementShortName">s0_axis_tready</obj_property>
          <obj_property name="ObjectShortName">s0_axis_tready</obj_property>
@@ -895,10 +894,6 @@
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_sgcdcsync_v1/cdcsync_i/m_axis_aclk">
          <obj_property name="ElementShortName">m_axis_aclk</obj_property>
          <obj_property name="ObjectShortName">m_axis_aclk</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_sgcdcsync_v1/cdcsync_i/fifo_i/empty">
-         <obj_property name="ElementShortName">empty</obj_property>
-         <obj_property name="ObjectShortName">empty</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_sgcdcsync_v1/cdcsync_i/m0_axis_tready">
          <obj_property name="ElementShortName">m0_axis_tready</obj_property>
@@ -953,34 +948,6 @@
       <wvobject type="group" fp_name="group1352">
          <obj_property name="label">SG_FIFO</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/clk">
-            <obj_property name="ElementShortName">clk</obj_property>
-            <obj_property name="ObjectShortName">clk</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/wr_en">
-            <obj_property name="ElementShortName">wr_en</obj_property>
-            <obj_property name="ObjectShortName">wr_en</obj_property>
-         </wvobject>
-         <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/din">
-            <obj_property name="ElementShortName">din[159:0]</obj_property>
-            <obj_property name="ObjectShortName">din[159:0]</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/full">
-            <obj_property name="ElementShortName">full</obj_property>
-            <obj_property name="ObjectShortName">full</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/rd_en">
-            <obj_property name="ElementShortName">rd_en</obj_property>
-            <obj_property name="ObjectShortName">rd_en</obj_property>
-         </wvobject>
-         <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/dout">
-            <obj_property name="ElementShortName">dout[159:0]</obj_property>
-            <obj_property name="ObjectShortName">dout[159:0]</obj_property>
-         </wvobject>
-         <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/fifo_i/empty">
-            <obj_property name="ElementShortName">empty</obj_property>
-            <obj_property name="ObjectShortName">empty</obj_property>
-         </wvobject>
       </wvobject>
       <wvobject type="group" fp_name="group1024">
          <obj_property name="label">SG_CTRL</obj_property>
@@ -1224,9 +1191,8 @@
          <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
-         <obj_property name="AnalogYRangeMin">0.000000</obj_property>
-         <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
+         <obj_property name="AnalogYRangeMin">-32067</obj_property>
+         <obj_property name="AnalogYRRangeMax">-17428</obj_property>
          <obj_property name="AnalogInterpolation">ANALOG_INTERPOLATION_HOLD</obj_property>
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
@@ -1359,10 +1325,6 @@
          <obj_property name="ObjectShortName">s1_axis_tdata[127:0]</obj_property>
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/GEN_dds[0].dds_i/m_axis_data_tdata">
-         <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
-         <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_dyn_readout_v1_0/m0_axis_tready">
          <obj_property name="ElementShortName">m0_axis_tready</obj_property>
@@ -1609,12 +1571,6 @@
          <obj_property name="label">buf_wr_cnt[9:0]</obj_property>
          <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
       </wvobject>
-      <wvobject type="other" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/avg_buffer_i/buffer_top_i/data_reader_i/current_state">
-         <obj_property name="ElementShortName">current_state</obj_property>
-         <obj_property name="ObjectShortName">current_state</obj_property>
-         <obj_property name="CustomSignalColor">#FF0080</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
       <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/avg_buffer_i/avg_top_i/avg_i/state">
          <obj_property name="DisplayName">label</obj_property>
          <obj_property name="ElementShortName">state[31:0]</obj_property>
@@ -1633,12 +1589,6 @@
       <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/avg_buffer_i/AVG_DR_LEN_REG">
          <obj_property name="ElementShortName">AVG_DR_LEN_REG[12:0]</obj_property>
          <obj_property name="ObjectShortName">AVG_DR_LEN_REG[12:0]</obj_property>
-      </wvobject>
-      <wvobject type="other" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/avg_buffer_i/avg_top_i/data_reader_i/current_state">
-         <obj_property name="ElementShortName">current_state</obj_property>
-         <obj_property name="ObjectShortName">current_state</obj_property>
-         <obj_property name="CustomSignalColor">#FF00FF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/m_axis_aclk">
          <obj_property name="ElementShortName">m_axis_aclk</obj_property>
@@ -2456,5 +2406,47 @@
          <obj_property name="ElementShortName">m_axis_tlast</obj_property>
          <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/src_la">
+      <obj_property name="ElementShortName">src_la[1:0]</obj_property>
+      <obj_property name="ObjectShortName">src_la[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/dds_la_mux[0]">
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="ElementShortName">[0][15:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
+      <obj_property name="label">dds_la_mux[0][15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/src_int">
+      <obj_property name="ElementShortName">src_int[1:0]</obj_property>
+      <obj_property name="ObjectShortName">src_int[1:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_rd_en_o">
+      <obj_property name="ElementShortName">fifo_rd_en_o</obj_property>
+      <obj_property name="ObjectShortName">fifo_rd_en_o</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_empty_i">
+      <obj_property name="ElementShortName">fifo_empty_i</obj_property>
+      <obj_property name="ObjectShortName">fifo_empty_i</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_dout_i">
+      <obj_property name="ElementShortName">fifo_dout_i[159:0]</obj_property>
+      <obj_property name="ObjectShortName">fifo_dout_i[159:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tvalid">
+      <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tdata">
+      <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
+      <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/dds_dout[0]">
+      <obj_property name="ElementShortName">[0][31:0]</obj_property>
+      <obj_property name="ObjectShortName">[0][31:0]</obj_property>
    </wvobject>
 </wave_config>
