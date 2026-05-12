@@ -27,6 +27,14 @@ These topics assume you have completed the basic tutorials (00-05) and are famil
    asmv2_cheatsheet
    tutorials
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Advanced Topics
+
+   xcom
+   XCOM-commands
+
+
 Topic Descriptions
 ==================
 
