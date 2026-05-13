@@ -606,7 +606,7 @@ logic              m1_axis_buf_dec_tready;
 
    localparam DAC_W = 16;
    logic signed [DAC_W-1:0] dac_data;
-   localparam ADC_W = 14;
+   localparam ADC_W = 16;
    logic signed [ADC_W-1:0] adc_sample;
    logic signed [15:0] adc_data;
 
@@ -1195,7 +1195,7 @@ logic              m1_axis_buf_dec_tready;
 
       fd = $fopen(replay_file, "r");
       if (fd == 0) begin
-         $display("ERROR: Cannot open AXI replay file: %s", replay_file);
+         $fatal(1, "ERROR: Cannot open AXI replay file: %s", replay_file);
          return;
       end
 
@@ -1222,23 +1222,22 @@ logic              m1_axis_buf_dec_tready;
    task route_and_write(integer addr, integer data);
       logic [31:0] offset;
 
+      @(posedge s_ps_dma_aclk); #0.1;
+      $display("### %0t - Routing AXI write: addr=0x%08X data=0x%08X ###", $realtime, addr, data);
       if (addr >= TPROC_BASE && addr < TPROC_BASE + 32'h10000) begin
          offset = addr - TPROC_BASE;
-         @(posedge s_ps_dma_aclk); #0.1;
          axi_mst_tproc_agent.write(offset[7:0], prot, data, 8'hFF, resp);
       end
       else if (addr >= SG_BASE_LO && addr < SG_BASE_HI) begin
          offset = addr & 32'h0000FFFF;
-         @(posedge s_ps_dma_aclk); #0.1;
          axi_mst_sg_agent.write(offset[5:0], prot, data, 8'hFF, resp);
       end
       else if (addr >= AVG_BASE_LO && addr < AVG_BASE_HI) begin
          offset = addr & 32'h0000FFFF;
-         @(posedge s_ps_dma_aclk); #0.1;
          axi_mst_avg_agent.write(offset[5:0], prot, data, 8'hFF, resp);
       end
       else begin
-         $display("WARNING: Unrouted AXI write addr=0x%08X data=0x%08X", addr, data);
+         $fatal(1, "ERROR: Unrouted AXI write addr=0x%08X data=0x%08X", addr, data);
          $fflush();
       end
    endtask

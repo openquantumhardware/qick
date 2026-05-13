@@ -769,12 +769,9 @@ class SocEmu:
         pass
 
     def start_tproc(self):
-        """Mirror :meth:`QickSoc.start_tproc`: issue a TIME_RST, then start processor and core."""
+        """Mirror :meth:`QickSoc.start_tproc`: start processor execution by writing to the CTRL register."""
         path = self.raw_cfg['tprocs'][0].get('fullpath', "qick_processor_0")
-        # Step 1: Reset time counter
-        self.reg_write(path, "CTRL", 0x10, comment="TIME_RST (bit 4)")
-        # Step 2: Start processor + core
-        self.reg_write(path, "CTRL", 0x05, comment="PROC_START (bit 0) + CORE_START (bit 2)")
+        self.reg_write(path, "CTRL", (0x01 << 2), comment="PROC_START (bit 2)")
 
     def start_src(self, mode: str):
         """Record the configured start source; not otherwise used by the emulator."""
