@@ -19,7 +19,7 @@ When converting a frequency to an integer register value, specify both the chann
    from qick import *
 
    soc = QickSoc()
-   soccfg = soc.config
+   soccfg = soc
 
    # Convert frequency for generator 0, matching to readout 0
    freq_reg = soccfg.freq2reg(100e6, gen_ch=0, ro_ch=0)
