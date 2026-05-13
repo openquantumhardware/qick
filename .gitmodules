@@ -1,0 +1,3 @@
+[submodule "firmware/hog"]
+	path = firmware/hog
+	url = https://gitlab.com/hog-cern/Hog.git
