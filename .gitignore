@@ -33,12 +33,12 @@ __pycache__/
 *.egg
 
 # Distribution / packaging
-build/
+_build/
 dist/
 
 # Sphinx documentation
 docs/_build/
-docs/_autosummary/
+docs/source/_autosummary/
 
 ### macOS template
 # General
@@ -71,3 +71,6 @@ Temporary Items
 
 !/.gitignore
 !/README.md
+
+#VSCode
+settings.json
