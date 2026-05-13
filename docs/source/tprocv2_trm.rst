@@ -8,12 +8,12 @@ QICK tProcessor v2 - Complete Reference Manual
   :description: Complete reference manual for the QICK tProcessor v2 real-time co-processor
 
 :Version: 2.1
-:Last Update: 2026-05-05
+:Last Update: 2026-05-13
 :Compatibility: QICK Firmware (>= v0.0.1)
 :Audience: Firmware developers, advanced QICK users, researchers
 
 .. note::
-  This is the complete reference manual for the tProcessor v2.
+  This is the complete reference manual for the qick_processor (tProcV2).
   For system-level firmware overview (signal generators, readout, channel assignments),
   see :doc:`/firmware`.
 
@@ -51,8 +51,10 @@ This manual is organized by **task**, not just by instruction. If you know what 
 
 -------------------------------------------------------------------------------
 
-1. What is the tProcessor? (Executive Summary)
-===============================================
+.. _tproc-wis:
+
+1. What is the qick_processor (tProcV2)? (Executive Summary)
+============================================================
 
 The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It runs a user‑written program that controls waveform generation, data acquisition, and feedback with **nanosecond precision**.
 
@@ -81,6 +83,76 @@ The tProcessor is a **hard real‑time co‑processor** inside the QICK FPGA. It
           |                    v                   v                    v
       Python (PS)          Python/ARM          tProcessor           Python/ARM
       (once)               (pre‑compute)       (real‑time)           (post‑process)
+
+-------------------------------------------------------------------------------
+
+Overview
+--------
+
+The ``qick_processor`` (tProcV2) is a custom 32-bit data, 72-bit instruction processor
+designed specifically for generating precisely timed waveforms, handling data, and
+triggering events in quantum computing control systems.
+
+Architecture
+------------
+
+The processor is composed of two main blocks:
+
+- **CORE**: Contains the Processing Unit (``CORE_CPU``) and the Memory Unit (``CORE_MEM``).
+  The ``CORE_CPU`` is a 5-stage pipelined Harvard architecture executing one instruction per
+  clock cycle, with 18 instructions optimized for multi-operation execution. It includes a
+  PC-Stack supporting up to 256 nested ``CALL`` functions and a Pseudo Random Number Generator
+  (LFSR) for 32-bit pseudorandom number generation.
+
+- **DISPATCHER**: Responsible for timely port signal output. It manages three FIFOs (Wave,
+  Trigger, and Data), each holding specific information for output along with a designated
+  time. The Dispatcher continuously compares the current time against the scheduled time in
+  each FIFO, updating the corresponding port when the scheduled time is reached.
+
+Memory
+------
+
+``CORE_MEM`` consists of three distinct memory components:
+
+- **Program Memory (PMEM)**: 72-bit memory for storing instructions.
+- **Data Memory (DMEM)**: 32-bit memory for user data storage.
+- **WaveParam Memory (WMEM)**: 32-bit memory for storing waveform parameters to be written
+  to the Analog Wave Ports.
+
+Output Ports
+------------
+
+The ``qick_processor`` provides three groups of output ports:
+
+- **Four** 32-bit Data Ports (DPORT)
+- **Thirty-two** Trigger Output Ports (TRIG)
+- **Sixteen** Analog Wave Ports (WPORT)
+
+Special Features
+----------------
+
+- **Multiplication Unit (FPGA DSP)**: Performs the operation ``(D±A)*B±C`` in 2 clock cycles.
+- **Division Unit (Custom)**: Provides the quotient and remainder of an integer division in
+  32 clock cycles.
+- **Pseudo Random Number Generator (LFSR)**: Configurable Linear Feedback Shift Register for
+  32-bit pseudorandom number generation.
+- **Nested CALL**: Supports function call nesting up to 256 levels.
+- **Debugging Capabilities**: Step-by-step execution, time stepping, core stepping, status
+  reading, and debug signal output.
+
+AXI Interface
+-------------
+
+The AXI stream interface is monitored by a block (``DPORT_IN Register``) that updates on
+every new data reception, storing it and updating a status bit in the SREG
+(``PROC_xREG``). The ``qick_processor`` exposes a set of AXI Registers (``PROC_xREG``)
+that can be read and written through the AXI-Lite interface.
+
+Compatibility
+-------------
+
+tProcV2 is compatible with Signal Generators of types **INT**, **Mux**, and **SGV6**
+for waveform generation and output.
 
 -------------------------------------------------------------------------------
 
@@ -193,27 +265,27 @@ Complete Instruction Header Reference
   * - 000
     - Configuration
     - NOP, TEST
-    - 5.13
+    - 5.15
   * - 001
     - Branch
     - JUMP, CALL, RET
-    - 5.14
+    - 5.16
   * - 100
     - Register Write
     - REG_WR
-    - 5.12
+    - 5.14
   * - 101
     - Memory Write
     - DMEM_WR, WMEM_WR
-    - 5.11
+    - 5.13
   * - 110
     - Port I/O
     - DPORT_WR, TRIG, WPORT_WR, DPORT_RD
-    - 5.10
+    - 5.12
   * - 111
     - Peripheral Control
     - TIME, FLAG, ARITH, DIV, NET, PA, PB
-    - 5.6
+    - 5.8
 
 -------------------------------------------------------------------------------
 
