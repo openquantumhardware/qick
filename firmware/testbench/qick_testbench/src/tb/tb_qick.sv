@@ -51,6 +51,7 @@ module tb_qick ();
 // Define Test to run
 //----------------------------------------------------
 string TEST_NAME = "test_adaptive_sweep";
+// string TEST_NAME = "test_fine_tuning_sweep";
 // string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
@@ -396,7 +397,39 @@ reg qcom_rdy_i, qp2_rdy_i;
       // Trigger from tProc (already declared at line ~175 as wire trigger_0)
       .trigger_i         (trigger_0)
    );
-   
+
+   // --- FINE_TUNING_SWEEP: alternative on QP2 (commented out by default) ---
+   // Two-pass peak finder: coarse sweep then fine sweep within a window.
+   // To activate: comment out the u_adaptive_sweep block above and
+   // uncomment the block below.  Only one can be live at a time because
+   // both drive qp2_rdy_i / qp2_dt_i / qp2_vld_i.
+   // Clock note: single clock domain (c_clk).  axis_ro_avg_* is in ro_clk;
+   // fine in simulation, but real hardware needs a CDC FIFO on s_axis.
+   //
+   // fine_tuning_sweep #(
+   //    .MAX_AVG (64)
+   // ) u_fine_tuning_sweep (
+   //    .clk            (c_clk),
+   //    .rst_n          (rst_ni),
+   //    // QP2 — same wires as u_adaptive_sweep
+   //    .qtag_en_i      (qp2_en_o),
+   //    .qtag_op_i      (qp2_op_o),
+   //    .qtag_dt1_i     (qp2_a_dt_o),
+   //    .qtag_dt2_i     (qp2_b_dt_o),
+   //    .qtag_dt3_i     (qp2_c_dt_o),
+   //    .qtag_dt4_i     (qp2_d_dt_o),
+   //    .qtag_rdy_o     (qp2_rdy_i),
+   //    .qtag_dt1_o     (qp2_dt_i[0]),
+   //    .qtag_dt2_o     (qp2_dt_i[1]),
+   //    .qtag_vld_o     (qp2_vld_i),
+   //    // Readout stream: decimated I/Q from axis_dyn_readout_v1 m1_axis
+   //    .s_axis_tvalid  (axis_ro_avg_tvalid),
+   //    .s_axis_tdata   (axis_ro_avg_tdata),   // [31:16]=I  [15:0]=Q
+   //    // Trigger + sample count (forced by test_fine_tuning_sweep stimulus)
+   //    .trigger        (trigger_0),
+   //    .nsamp          (32'd256)
+   // );
+
    axis_qick_processor # (
       .DUAL_CORE           (  `DUAL_CORE        ) ,
       .GEN_SYNC            (  `GEN_SYNC         ) ,
@@ -1776,6 +1809,67 @@ initial begin
       #100ns;
       $display("*** %t - End of test_adaptive_sweep Test ***", $realtime());
    end
+
+
+   // --- TEST_FINE_TUNING_SWEEP (commented out by default) ---
+   // To activate: uncomment u_fine_tuning_sweep above, comment u_adaptive_sweep,
+   // and change TEST_NAME to "test_fine_tuning_sweep".
+   // Drives QP2 directly via force/release (no tProc .mem files needed).
+   // Freq values match tb_fine_tuning_sweep.sv (6–30 MHz CW).
+   // Note: resonator_emulator covers 3–4 GHz so no real peak is expected;
+   //       this validates that the IP simulates and completes without error.
+   //
+   // if (TEST_NAME == "test_fine_tuning_sweep") begin
+   //    $display("*** %t - Start test_fine_tuning_sweep Test ***", $realtime());
+   //    TEST_RUN_TIME       = 200us;
+   //    TEST_READ_TIME      = 10us;
+   //    REPEAT_EXEC         = 1;
+   //    ro_length           = 1000.0 / (2.0*T_RO_CLK);
+   //    ro_decimated_length = 1000.0 / (2.0*T_RO_CLK);
+   //    ro_average_length   = 1;
+   //
+   //    wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+   //    #100ns;
+   //
+   //    // Op0: Start=6MHz, Stop=30MHz, Avg=3, CoarseStep=1MHz
+   //    @(posedge c_clk); #1;
+   //    force qp2_en_o   = 1'b1; force qp2_op_o = 5'd0;
+   //    force qp2_a_dt_o = 32'd6000000;
+   //    force qp2_b_dt_o = 32'd30000000;
+   //    force qp2_c_dt_o = 32'd3;
+   //    force qp2_d_dt_o = 32'd1000000;
+   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
+   //    #50ns;
+   //
+   //    // Op3: FineStep=100kHz, Window=5MHz
+   //    @(posedge c_clk); #1;
+   //    force qp2_en_o   = 1'b1; force qp2_op_o = 5'd3;
+   //    force qp2_a_dt_o = 32'd0;
+   //    force qp2_b_dt_o = 32'd100000;
+   //    force qp2_c_dt_o = 32'd5000000;
+   //    force qp2_d_dt_o = 32'd0;
+   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
+   //    #50ns;
+   //
+   //    // Op1: Start sweep
+   //    @(posedge c_clk); #1;
+   //    force qp2_en_o = 1'b1; force qp2_op_o = 5'd1;
+   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
+   //
+   //    // Pulse trigger_0 every ~400 c_clk cycles so amplitude_calculator
+   //    // accumulates bursts.  The IP itself polls via Op2 read cycles.
+   //    fork
+   //       begin : fts_trigger_pump
+   //          forever begin
+   //             repeat(400) @(posedge c_clk);
+   //             force trigger_0 = 1'b1;
+   //             @(posedge c_clk); force trigger_0 = 1'b0;
+   //          end
+   //       end
+   //    join_none
+   //
+   //    $display("*** %t - End of test_fine_tuning_sweep Test ***", $realtime());
+   // end
 
 
    if (TEST_NAME == "test_qubit_emulator") begin
