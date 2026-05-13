@@ -50,8 +50,8 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-// string TEST_NAME = "test_adaptive_sweep";
-string TEST_NAME = "test_basic_pulses";
+string TEST_NAME = "test_adaptive_sweep";
+// string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
@@ -66,8 +66,10 @@ string TEST_NAME = "test_basic_pulses";
 time TEST_RUN_TIME         = 6us;   // Time to run tProc execution
 time TEST_READ_TIME        = 1us;   // Time to read data from buffers
 time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
-string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
+// string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
 // string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
+string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR";       // Resonator emulator (DAC->emu->ADC->readout)
+// string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR_BYPASS"; // Bypass readout DSP -- see commented block below axis_dyn_readout_v1_0 instance
 //----------------------------------------------------
 
 // VIP Agents
@@ -356,24 +358,43 @@ reg qcom_rdy_i, qp2_rdy_i;
    wire        qp2_vld_i;
     
    // --- ADAPTIVE_SWEEP: Instance on QP2 (Peripheral B) ---
+   // Section 9 KW + Polyak + bisection algorithm.  Snoops the decimated
+   // I/Q output of u_axis_dyn_readout_v1_0 (axis_ro_avg_*) on ro_clk and
+   // is armed by trigger_0 from the tProc.
    adaptive_sweep #(
-      .INIT_START  (32'd100),
-      .INIT_END    (32'd200),
-      .INIT_STEP   (32'd1),
-      .SHRINK      (32'd10)
+      .LUT_DEPTH          (256),
+      .LUT_AW             (8),
+      .X_WIDTH            (32),
+      .IQ_WIDTH           (16),
+      .SUM_WIDTH          (48),
+      .POW_WIDTH          (32),
+      .COUNT_WIDTH        (16),
+      .RO_FIFO_DEPTH_LOG2 (6),
+      .KW_TOL             (32'h0000_07D0)
    ) u_adaptive_sweep (
-      .clk         (c_clk),
-      .rst_n       (rst_ni),
-      .qtag_en_i   (qp2_en_o),
-      .qtag_op_i   (qp2_op_o),
-      .qtag_dt1_i  (qp2_a_dt_o),
-      .qtag_dt2_i  (qp2_b_dt_o),
-      .qtag_dt3_i  (qp2_c_dt_o),
-      .qtag_dt4_i  (qp2_d_dt_o),
-      .qtag_rdy_o  (qp2_rdy_i),
-      .qtag_dt1_o  (qp2_dt_i[0]),
-      .qtag_dt2_o  (qp2_dt_i[1]),
-      .qtag_vld_o  (qp2_vld_i)
+      .clk               (c_clk),
+      .rst_n             (rst_ni),
+      // QP2 (unchanged)
+      .qtag_en_i         (qp2_en_o),
+      .qtag_op_i         (qp2_op_o),
+      .qtag_dt1_i        (qp2_a_dt_o),
+      .qtag_dt2_i        (qp2_b_dt_o),
+      .qtag_dt3_i        (qp2_c_dt_o),
+      .qtag_dt4_i        (qp2_d_dt_o),
+      .qtag_rdy_o        (qp2_rdy_i),
+      .qtag_dt1_o        (qp2_dt_i[0]),
+      .qtag_dt2_o        (qp2_dt_i[1]),
+      .qtag_vld_o        (qp2_vld_i),
+      // Readout snoop (m1_axis of u_axis_dyn_readout_v1_0 -> avg_buffer).
+      // We do NOT drive axis_ro_avg_tready; the avg_buffer keeps that role.
+      // Our internal tready output is left unconnected (hardwired to 1 inside).
+      .s_ro_axis_aclk    (ro_clk),
+      .s_ro_axis_aresetn (rst_ni),
+      .s_ro_axis_tdata   (axis_ro_avg_tdata),
+      .s_ro_axis_tvalid  (axis_ro_avg_tvalid),
+      .s_ro_axis_tready  (),
+      // Trigger from tProc (already declared at line ~175 as wire trigger_0)
+      .trigger_i         (trigger_0)
    );
    
    axis_qick_processor # (
@@ -1017,6 +1038,40 @@ reg qcom_rdy_i, qp2_rdy_i;
    //    end
    // end
 
+   //--------------------------------------
+   // Resonator Emulator (test_adaptive_sweep)
+   //--------------------------------------
+   // Stands in for a superconducting resonator/qubit.  Plays back a
+   // Python-generated I/Q dataset (iq_shots.mem) indexed by drive
+   // frequency, modulated onto the carrier so axis_dyn_readout_v1's
+   // demodulation recovers the intended (I, Q) at m1_axis.
+   wire [8*16-1:0]  emu_adc_tdata;
+   wire             emu_adc_tvalid;
+   wire             emu_enable = (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR");
+
+   resonator_emulator #(
+      .N_SWEEP    (1000),
+      .N_SHOTS    (1000),
+      .F_START_HZ (3.0e9),
+      .F_STEP_HZ  (1.001001e6),
+      .IQ_SCALE   (16384),
+      .F_DAC_HZ   (6.144e9),
+      .MEM_FILE   ("../../../../src/tb/test_adaptive_sweep/iq_shots.mem")
+   ) u_resonator_emulator (
+      .clk_sg            (sg_clk),
+      .clk_adc           (adc_fs),
+      .clk_ro            (ro_clk),
+      .rst_n             (rst_ni),
+      .enable            (emu_enable),
+      // Snoop drive pinc from the SG waveform queue (sgt_sg_0_axis_*)
+      .sg_queue_tdata    (sgt_sg_0_axis_tdata),
+      .sg_queue_tvalid   (sgt_sg_0_axis_tvalid),
+      .sg_queue_tready   (sgt_sg_0_axis_tready),
+      // Modulated ADC samples
+      .m_adc_axis_tdata  (emu_adc_tdata),
+      .m_adc_axis_tvalid (emu_adc_tvalid)
+   );
+
    logic [2:0] rf_signal_cnt;
    always_ff @(posedge adc_fs) begin
       if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
@@ -1032,6 +1087,11 @@ reg qcom_rdy_i, qp2_rdy_i;
          else begin
             rf_signal_cnt  <= 0;
          end
+      end
+      else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR") begin
+         // REALISTIC: emulator's modulated 8 ADC samples drive the readout.
+         axis_adc_ro_tvalid                  <= emu_adc_tvalid;
+         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= emu_adc_tdata;
       end
    end
 
@@ -1221,6 +1281,51 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m1_axis_tvalid   (axis_ro_avg_tvalid),
       .m1_axis_tdata    (axis_ro_avg_tdata)
    );
+
+   //--------------------------------------------------------------------
+   // BYPASS streamer  --  COMMENTED OUT BY DEFAULT
+   //
+   // Debug shortcut: stream iq_shots.mem DIRECTLY into axis_ro_avg_*
+   // without going through axis_dyn_readout_v1.  This isolates
+   // adaptive_sweep from the readout DSP entirely (resonator_emulator
+   // not used in this mode).
+   //
+   // To enable:
+   //   1. Set TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR_BYPASS" above.
+   //   2. Comment out the three .m1_axis_* hookups in
+   //      u_axis_dyn_readout_v1_0 above (or just uncomment the `force`
+   //      block below -- force overrides the wires regardless).
+   //   3. Uncomment everything between BEGIN BYPASS and END BYPASS.
+   //
+   // // --- BEGIN BYPASS ---
+   // localparam integer BYPASS_DEPTH = 1000*1000;
+   // logic [31:0] bypass_iq_mem [0:BYPASS_DEPTH-1];
+   // initial $readmemh("../../../../src/tb/test_adaptive_sweep/iq_shots.mem", bypass_iq_mem);
+   //
+   // logic [31:0] bypass_addr_r;
+   // logic [31:0] bypass_tdata_r;
+   // logic        bypass_tvalid_r;
+   // always_ff @(posedge ro_clk) begin
+   //    if (!rst_ni) begin
+   //       bypass_addr_r   <= 0;
+   //       bypass_tdata_r  <= 0;
+   //       bypass_tvalid_r <= 0;
+   //    end else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
+   //       bypass_tdata_r  <= bypass_iq_mem[bypass_addr_r];
+   //       bypass_tvalid_r <= 1'b1;
+   //       bypass_addr_r   <= (bypass_addr_r == BYPASS_DEPTH-1) ? 0 : bypass_addr_r + 1;
+   //    end
+   // end
+   //
+   // initial begin : bypass_force
+   //    wait (rst_ni == 1'b1);
+   //    if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
+   //       force tb_qick.axis_ro_avg_tdata  = bypass_tdata_r;
+   //       force tb_qick.axis_ro_avg_tvalid = bypass_tvalid_r;
+   //    end
+   // end
+   // // --- END BYPASS ---
+   //--------------------------------------------------------------------
 
    // For Waveform Debug
    logic signed [15:0] axis_ro_avg_tdata_dbg [0:1];
@@ -1648,6 +1753,28 @@ initial begin
          $display("*** %t - End of test_tproc_basic Test ***", $realtime());
          wait (tb_qick.AXIS_QPROC.QPROC.QPROC_CTRL.core_en_o == 1'b0);
       end
+   end
+
+
+   if (TEST_NAME == "test_adaptive_sweep") begin
+      $display("*** %t - Start test_adaptive_sweep Test ***", $realtime());
+      // The adaptive_sweep IP runs phases 1..3 of the resonator-sweep
+      // algorithm.  This case just configures readout/run/read timing
+      // and lets the tProc program (loaded from
+      // src/tb/test_adaptive_sweep/{pmem,wmem,dmem}.mem) drive QP2.
+      // The resonator_emulator on axis_adc_ro_* supplies the I/Q samples
+      // that adaptive_sweep snoops via axis_dyn_readout_v1.m1_axis.
+      TEST_RUN_TIME        = 200us;
+      TEST_READ_TIME       = 10us;
+      REPEAT_EXEC          = 1;
+
+      ro_length            = 1000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
+      ro_average_length    = 1;
+
+      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
+      $display("*** %t - End of test_adaptive_sweep Test ***", $realtime());
    end
 
 

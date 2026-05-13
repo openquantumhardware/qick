@@ -1,0 +1,3 @@
+// Placeholder -- replace with output of gen_iq_mem.py (see README.md).
+// Format: int32 hex per line, packed {Q[15:0], I[15:0]}
+00000000
