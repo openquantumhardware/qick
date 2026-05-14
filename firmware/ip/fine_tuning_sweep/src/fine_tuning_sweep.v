@@ -174,13 +174,13 @@ module fine_tuning_sweep #(
     // =========================================================
     // s_axis_aclk: amplitude_calculator
     // =========================================================
-    wire [63:0] amp_data_ro;
+    wire [51:0] amp_data_ro;
     wire        amp_valid_ro;
     wire        burst_done_ro;
 
     amplitude_calculator #(
         .MAX_AVG     (64),
-        .ACCUM_WIDTH (64)
+        .ACCUM_WIDTH (52)
     ) u_amplitude_calculator (
         .clk            (s_axis_aclk),
         .rst_n          (s_axis_aresetn),
@@ -200,11 +200,11 @@ module fine_tuning_sweep #(
     // =========================================================
     // CDC: s_axis_aclk -> c_clk
     // =========================================================
-    wire [63:0] amp_data_c;
+    wire [51:0] amp_data_c;
     wire        amp_valid_c;
     wire        burst_done_c;
 
-    ftc_data_handshake_cdc #(.WIDTH(64)) u_amp_cdc (
+    ftc_data_handshake_cdc #(.WIDTH(52)) u_amp_cdc (
         .clk_src  (s_axis_aclk),
         .rst_n_src(s_axis_aresetn),
         .clk_dst  (clk),
@@ -230,7 +230,7 @@ module fine_tuning_sweep #(
     peak_finder #(
         .ADC_DAC_freq (64'd491520000),
         .MAX_AVG      (64),
-        .ACCUM_WIDTH  (64)
+        .ACCUM_WIDTH  (52)
     ) u_peak_finder_v2 (
         .clk                 (clk),
         .rstn                (rst_n),
