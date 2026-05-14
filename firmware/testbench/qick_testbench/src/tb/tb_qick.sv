@@ -459,15 +459,25 @@ logic                sg_s0_axis_tvalid;
       .axis_adc_ro_tvalid        (axis_adc_ro_tvalid     ),
       .axis_adc_ro_tdata         (axis_adc_ro_tdata      ),
 
+      .axis_ro_mrbuf_tvalid      (),
+      .axis_ro_mrbuf_tdata       (),
+
       // Readout Averaged Buffer AXIS
       .m0_axis_buf_avg_tready    (1'b1                   ),
       .m0_axis_buf_avg_tvalid    (                       ),
       .m0_axis_buf_avg_tdata     (                       ),
+      .m0_axis_buf_avg_tlast     (                       ),
 
       // Readout Decimated Buffer AXIS
       .m1_axis_buf_dec_tready    (m1_axis_buf_dec_tready ),
       .m1_axis_buf_dec_tvalid    (                       ),
-      .m1_axis_buf_dec_tdata     (                       )
+      .m1_axis_buf_dec_tdata     (                       ),
+      .m1_axis_buf_dec_tlast     (                       ),
+
+      // Readout Buffer Reg AXIS
+      .m2_axis_buf_reg_tready    (                       ),
+      .m2_axis_buf_reg_tvalid    (                       ),
+      .m2_axis_buf_reg_tdata     (                       )
    );
 
 

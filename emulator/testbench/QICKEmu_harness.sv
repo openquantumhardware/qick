@@ -120,7 +120,7 @@ localparam N_DDS_RO = 8;
 //   +RO_AVG_LEN=<int>     — override averaged-readout drain length
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
-string EMU_DIR       = "../artifacts/qick_emu_data";
+string EMU_DIR       = "../artifacts";
 time   TEST_RUN_TIME = 1us;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
@@ -672,7 +672,7 @@ logic              m1_axis_buf_dec_tready;
 // ============
    // assign #250ns rf_signal_valid_dly = rf_signal_valid;
    // assign #250ns rf_signal_data_dly  = rf_signal_data;
-   localparam RF_DELAY_TIME_NS = 10;
+   localparam RF_DELAY_TIME_NS = 100;
    localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK/N_DDS_RO));
    logic                    rf_signal_valid_dly;
    logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
@@ -1014,9 +1014,9 @@ logic              m1_axis_buf_dec_tready;
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_dv_IF,     "axi_mst_sg VIP Agent"    );
-      axi_mst_avg_agent    = new(qick_dut.axi_mst_avg_dv_IF,    "axi_mst_avg VIP Agent"   );
+      axi_mst_tproc_agent  = new(qick_dut.gen_axi_tproc_emu.axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
+      axi_mst_sg_agent     = new(qick_dut.gen_axi_sg_emu.axi_mst_sg_dv_IF,        "axi_mst_sg VIP Agent"    );
+      axi_mst_avg_agent    = new(qick_dut.gen_axi_avg_emu.axi_mst_avg_dv_IF,      "axi_mst_avg VIP Agent"   );
       // initialize agent signals to '0.
       axi_mst_tproc_agent.reset();
       axi_mst_sg_agent.reset();

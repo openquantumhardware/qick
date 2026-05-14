@@ -19,28 +19,26 @@ integer ro_average_length;
 initial begin
 
    // Create agents.
-   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.u_axi_mst_tproc_0.inst.IF);
+   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.gen_axi_tproc_vip.u_axi_mst_tproc_0.inst.IF);
+   axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.gen_axi_sg_vip.u_axi_mst_sg_0.inst.IF);
+   axi_mst_avg_agent    = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.gen_axi_avg_vip.u_axi_mst_avg_0.inst.IF);
+   axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
+
    // Set tag for agents.
    axi_mst_tproc_agent.set_agent_tag("axi_mst_tproc VIP");
    // Start agents.
    axi_mst_tproc_agent.start_master();
 
-   // Create agents.
-   axi_mst_sg_agent   = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_sg_0.inst.IF);
    // Set tag for agents.
    axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
    // Start agents.
    axi_mst_sg_agent.start_master();
 
-   // Create agents.
-   axi_mst_avg_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
    // Set tag for agents.
    axi_mst_avg_agent.set_agent_tag("axi_mst_avg_0 VIP");
    // Start agents.
    axi_mst_avg_agent.start_master();
 
-   // Create agents.
-   axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
    // Set tag for agents.
    axi_mst_qemu_agent.set_agent_tag("axi_mst_qemu_0 VIP");
    // Start agents.

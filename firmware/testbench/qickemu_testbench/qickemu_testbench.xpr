@@ -61,7 +61,7 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="1233"/>
+    <Option Name="WTXSimLaunchSim" Val="1235"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
@@ -487,7 +487,14 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/dds_compiler_0/dds_compiler_0.xci">
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/ro_v1_dds_compiler_0/ro_v1_dds_compiler_0.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/sg_v6_dds_compiler_0/sg_v6_dds_compiler_0.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>

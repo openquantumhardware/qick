@@ -71,7 +71,7 @@ VERILOG_SOURCES = \
     $(AXI_DIR)/src/axi_pkg.sv \
     $(AXI_DIR)/src/axi_test.sv \
     \
-    $(EMU_DIR)/testbench/qick_emu_dut.sv \
+    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
     $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
     $(EMU_DIR)/testbench/QICKEmu_harness.sv
 

@@ -19,18 +19,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="25,407.453 ns"></ZoomStartTime>
-      <ZoomEndTime time="25,434.770 ns"></ZoomEndTime>
-      <Cursor1Time time="25,428.416 ns"></Cursor1Time>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="60.105501 us"></ZoomEndTime>
+      <Cursor1Time time="60.105500 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="130"></ValueColumnWidth>
+      <ValueColumnWidth column_width="122"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="19" />
-   <wave_markers>
-      <marker label="" time="25413440" />
-   </wave_markers>
+   <WVObjectSize size="9" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -2406,47 +2403,5 @@
          <obj_property name="ElementShortName">m_axis_tlast</obj_property>
          <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/src_la">
-      <obj_property name="ElementShortName">src_la[1:0]</obj_property>
-      <obj_property name="ObjectShortName">src_la[1:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/dds_la_mux[0]">
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="ElementShortName">[0][15:0]</obj_property>
-      <obj_property name="ObjectShortName">[0][15:0]</obj_property>
-      <obj_property name="label">dds_la_mux[0][15:0]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/src_int">
-      <obj_property name="ElementShortName">src_int[1:0]</obj_property>
-      <obj_property name="ObjectShortName">src_int[1:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_rd_en_o">
-      <obj_property name="ElementShortName">fifo_rd_en_o</obj_property>
-      <obj_property name="ObjectShortName">fifo_rd_en_o</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_empty_i">
-      <obj_property name="ElementShortName">fifo_empty_i</obj_property>
-      <obj_property name="ObjectShortName">fifo_empty_i</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/fifo_dout_i">
-      <obj_property name="ElementShortName">fifo_dout_i[159:0]</obj_property>
-      <obj_property name="ObjectShortName">fifo_dout_i[159:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tvalid">
-      <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
-      <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tdata">
-      <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
-      <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/clk">
-      <obj_property name="ElementShortName">clk</obj_property>
-      <obj_property name="ObjectShortName">clk</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/dds_dout[0]">
-      <obj_property name="ElementShortName">[0][31:0]</obj_property>
-      <obj_property name="ObjectShortName">[0][31:0]</obj_property>
    </wvobject>
 </wave_config>
