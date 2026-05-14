@@ -50,8 +50,8 @@ module tb_qick ();
 //----------------------------------------------------
 // Define Test to run
 //----------------------------------------------------
-string TEST_NAME = "test_adaptive_sweep";
-// string TEST_NAME = "test_fine_tuning_sweep";
+// string TEST_NAME = "test_adaptive_sweep";
+string TEST_NAME = "test_fine_tuning_sweep";
 // string TEST_NAME = "test_basic_pulses";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
@@ -69,8 +69,8 @@ time TEST_READ_TIME        = 1us;   // Time to read data from buffers
 time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
 // string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
 // string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
-string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR";       // Resonator emulator (DAC->emu->ADC->readout)
-// string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR_BYPASS"; // Bypass readout DSP -- see commented block below axis_dyn_readout_v1_0 instance
+// string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR";       // Resonator emulator (DAC->emu->ADC->readout)
+string TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR_BYPASS"; // Bypass readout DSP -- see block below axis_dyn_readout_v1_0 instance
 //----------------------------------------------------
 
 // VIP Agents
@@ -352,16 +352,22 @@ reg qcom_rdy_i, qp2_rdy_i;
       .m_axi_wvalid  (s_axi_tproc_wvalid  )
    );
     
-   // --- ADAPTIVE_SWEEP: QP2 wires ---
+   // --- QP2 wires (shared by adaptive_sweep and fine_tuning_sweep) ---
    wire        qp2_en_o;
    wire [4:0]  qp2_op_o;
    wire [31:0] qp2_a_dt_o, qp2_b_dt_o, qp2_c_dt_o, qp2_d_dt_o;
    wire        qp2_vld_i;
-    
+
+   // === Only ONE of u_adaptive_sweep / u_fine_tuning_sweep may be live at a
+   // === time -- both drive qp2_rdy_i / qp2_dt_i / qp2_vld_i.
+
    // --- ADAPTIVE_SWEEP: Instance on QP2 (Peripheral B) ---
    // Section 9 KW + Polyak + bisection algorithm.  Snoops the decimated
    // I/Q output of u_axis_dyn_readout_v1_0 (axis_ro_avg_*) on ro_clk and
    // is armed by trigger_0 from the tProc.
+   //
+   // ** DISABLED while running test_fine_tuning_sweep. **
+   /*
    adaptive_sweep #(
       .LUT_DEPTH          (256),
       .LUT_AW             (8),
@@ -397,38 +403,43 @@ reg qcom_rdy_i, qp2_rdy_i;
       // Trigger from tProc (already declared at line ~175 as wire trigger_0)
       .trigger_i         (trigger_0)
    );
+   */
 
-   // --- FINE_TUNING_SWEEP: alternative on QP2 (commented out by default) ---
-   // Two-pass peak finder: coarse sweep then fine sweep within a window.
-   // To activate: comment out the u_adaptive_sweep block above and
-   // uncomment the block below.  Only one can be live at a time because
-   // both drive qp2_rdy_i / qp2_dt_i / qp2_vld_i.
-   // Clock note: single clock domain (c_clk).  axis_ro_avg_* is in ro_clk;
-   // fine in simulation, but real hardware needs a CDC FIFO on s_axis.
+   // --- FINE_TUNING_SWEEP: Two-pass peak finder on QP2 ---
+   // Coarse sweep -> argmax -> fine sweep in [argmax-window, argmax+window].
    //
-   // fine_tuning_sweep #(
-   //    .MAX_AVG (64)
-   // ) u_fine_tuning_sweep (
-   //    .clk            (c_clk),
-   //    .rst_n          (rst_ni),
-   //    // QP2 — same wires as u_adaptive_sweep
-   //    .qtag_en_i      (qp2_en_o),
-   //    .qtag_op_i      (qp2_op_o),
-   //    .qtag_dt1_i     (qp2_a_dt_o),
-   //    .qtag_dt2_i     (qp2_b_dt_o),
-   //    .qtag_dt3_i     (qp2_c_dt_o),
-   //    .qtag_dt4_i     (qp2_d_dt_o),
-   //    .qtag_rdy_o     (qp2_rdy_i),
-   //    .qtag_dt1_o     (qp2_dt_i[0]),
-   //    .qtag_dt2_o     (qp2_dt_i[1]),
-   //    .qtag_vld_o     (qp2_vld_i),
-   //    // Readout stream: decimated I/Q from axis_dyn_readout_v1 m1_axis
-   //    .s_axis_tvalid  (axis_ro_avg_tvalid),
-   //    .s_axis_tdata   (axis_ro_avg_tdata),   // [31:16]=I  [15:0]=Q
-   //    // Trigger + sample count (forced by test_fine_tuning_sweep stimulus)
-   //    .trigger        (trigger_0),
-   //    .nsamp          (32'd256)
-   // );
+   // Dual-clock IP: peak_finder + QP2 FSM on clk (c_clk); amplitude_calculator
+   // on s_axis_aclk (= ro_clk in the real BD).  Here in the TB we tie
+   // s_axis_aclk = c_clk so the BYPASS streamer (which drives axis_ro_avg_*
+   // from c_clk regs) keeps working without an extra CDC.
+   //
+   // nsamp is now a software-programmable register inside the IP (QP2 OP 4).
+   // Default after reset is 256; the tProc program can override before OP 1.
+   fine_tuning_sweep #(
+      .MAX_AVG (64)
+   ) u_fine_tuning_sweep (
+      // c_clk domain
+      .clk            (c_clk),
+      .rst_n          (rst_ni),
+      // QP2 (c_clk)
+      .qtag_en_i      (qp2_en_o),
+      .qtag_op_i      (qp2_op_o),
+      .qtag_dt1_i     (qp2_a_dt_o),
+      .qtag_dt2_i     (qp2_b_dt_o),
+      .qtag_dt3_i     (qp2_c_dt_o),
+      .qtag_dt4_i     (qp2_d_dt_o),
+      .qtag_rdy_o     (qp2_rdy_i),
+      .qtag_dt1_o     (qp2_dt_i[0]),
+      .qtag_dt2_o     (qp2_dt_i[1]),
+      .qtag_vld_o     (qp2_vld_i),
+      // Trigger pulse from tProc (c_clk)
+      .trigger        (trigger_0),
+      // s_axis_aclk domain (tied to c_clk in TB; ro_clk in BD)
+      .s_axis_aclk    (c_clk),
+      .s_axis_aresetn (rst_ni),
+      .s_axis_tvalid  (axis_ro_avg_tvalid),
+      .s_axis_tdata   (axis_ro_avg_tdata)   // [31:16]=I  [15:0]=Q
+   );
 
    axis_qick_processor # (
       .DUAL_CORE           (  `DUAL_CORE        ) ,
@@ -1126,6 +1137,12 @@ reg qcom_rdy_i, qp2_rdy_i;
          axis_adc_ro_tvalid                  <= emu_adc_tvalid;
          axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= emu_adc_tdata;
       end
+      else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
+         // Bypass: keep the readout's input quiet (its output m1_axis is
+         // force-overridden below; we just don't want X on its input).
+         axis_adc_ro_tvalid                  <= 1'b0;
+         axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= '0;
+      end
    end
 
    // For Waveform Debug
@@ -1316,48 +1333,60 @@ reg qcom_rdy_i, qp2_rdy_i;
    );
 
    //--------------------------------------------------------------------
-   // BYPASS streamer  --  COMMENTED OUT BY DEFAULT
+   // BYPASS streamer for test_fine_tuning_sweep
    //
-   // Debug shortcut: stream iq_shots.mem DIRECTLY into axis_ro_avg_*
-   // without going through axis_dyn_readout_v1.  This isolates
-   // adaptive_sweep from the readout DSP entirely (resonator_emulator
-   // not used in this mode).
+   // Streams iq_shots.mem directly into axis_ro_avg_*, skipping
+   // axis_dyn_readout_v1 entirely.  Row index advances on each rising edge
+   // of u_fine_tuning_sweep.u_peak_finder_v2.freq_valid so each measurement
+   // step sees a fresh (I, Q) held constant for the whole nsamp*avg burst.
    //
-   // To enable:
-   //   1. Set TEST_OUT_CONNECTION = "TEST_OUT_RESONATOR_BYPASS" above.
-   //   2. Comment out the three .m1_axis_* hookups in
-   //      u_axis_dyn_readout_v1_0 above (or just uncomment the `force`
-   //      block below -- force overrides the wires regardless).
-   //   3. Uncomment everything between BEGIN BYPASS and END BYPASS.
+   // Active only when TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS".
+   // iq_shots.mem is generated by
+   //   personal_files/adaptive_sweep_simulation/gen_iq_lorentzian.py
+   // and must be copied into src/tb/test_fine_tuning_sweep/iq_shots.mem.
    //
-   // // --- BEGIN BYPASS ---
-   // localparam integer BYPASS_DEPTH = 1000*1000;
-   // logic [31:0] bypass_iq_mem [0:BYPASS_DEPTH-1];
-   // initial $readmemh("../../../../src/tb/test_adaptive_sweep/iq_shots.mem", bypass_iq_mem);
-   //
-   // logic [31:0] bypass_addr_r;
-   // logic [31:0] bypass_tdata_r;
-   // logic        bypass_tvalid_r;
-   // always_ff @(posedge ro_clk) begin
-   //    if (!rst_ni) begin
-   //       bypass_addr_r   <= 0;
-   //       bypass_tdata_r  <= 0;
-   //       bypass_tvalid_r <= 0;
-   //    end else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
-   //       bypass_tdata_r  <= bypass_iq_mem[bypass_addr_r];
-   //       bypass_tvalid_r <= 1'b1;
-   //       bypass_addr_r   <= (bypass_addr_r == BYPASS_DEPTH-1) ? 0 : bypass_addr_r + 1;
-   //    end
-   // end
-   //
-   // initial begin : bypass_force
-   //    wait (rst_ni == 1'b1);
-   //    if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
-   //       force tb_qick.axis_ro_avg_tdata  = bypass_tdata_r;
-   //       force tb_qick.axis_ro_avg_tvalid = bypass_tvalid_r;
-   //    end
-   // end
-   // // --- END BYPASS ---
+   // --- BEGIN BYPASS ---
+   localparam integer BYPASS_DEPTH = 128;
+   logic [31:0] bypass_iq_mem [0:BYPASS_DEPTH-1];
+   initial begin
+      $readmemh("../../../../src/tb/test_fine_tuning_sweep/iq_shots.mem",
+                bypass_iq_mem);
+   end
+
+   logic [$clog2(BYPASS_DEPTH)-1:0] bypass_addr_r;
+   logic                            bypass_freq_valid_d;
+   wire                             bypass_freq_valid_now =
+                                       u_fine_tuning_sweep.u_peak_finder_v2.freq_valid;
+   wire                             bypass_freq_valid_rise =
+                                       bypass_freq_valid_now & ~bypass_freq_valid_d;
+
+   logic [31:0] bypass_tdata_r;
+   logic        bypass_tvalid_r;
+
+   always_ff @(posedge c_clk) begin
+      if (!rst_ni) begin
+         bypass_addr_r       <= 0;
+         bypass_freq_valid_d <= 1'b0;
+         bypass_tdata_r      <= 32'h0;
+         bypass_tvalid_r     <= 1'b0;
+      end else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
+         bypass_freq_valid_d <= bypass_freq_valid_now;
+         if (bypass_freq_valid_rise && bypass_addr_r < BYPASS_DEPTH-1) begin
+            bypass_addr_r <= bypass_addr_r + 1;
+         end
+         bypass_tdata_r  <= bypass_iq_mem[bypass_addr_r];
+         bypass_tvalid_r <= 1'b1;
+      end
+   end
+
+   initial begin : bypass_force
+      wait (rst_ni == 1'b1);
+      if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
+         force tb_qick.axis_ro_avg_tdata  = bypass_tdata_r;
+         force tb_qick.axis_ro_avg_tvalid = bypass_tvalid_r;
+      end
+   end
+   // --- END BYPASS ---
    //--------------------------------------------------------------------
 
    // For Waveform Debug
@@ -1811,65 +1840,26 @@ initial begin
    end
 
 
-   // --- TEST_FINE_TUNING_SWEEP (commented out by default) ---
-   // To activate: uncomment u_fine_tuning_sweep above, comment u_adaptive_sweep,
-   // and change TEST_NAME to "test_fine_tuning_sweep".
-   // Drives QP2 directly via force/release (no tProc .mem files needed).
-   // Freq values match tb_fine_tuning_sweep.sv (6–30 MHz CW).
-   // Note: resonator_emulator covers 3–4 GHz so no real peak is expected;
-   //       this validates that the IP simulates and completes without error.
-   //
-   // if (TEST_NAME == "test_fine_tuning_sweep") begin
-   //    $display("*** %t - Start test_fine_tuning_sweep Test ***", $realtime());
-   //    TEST_RUN_TIME       = 200us;
-   //    TEST_READ_TIME      = 10us;
-   //    REPEAT_EXEC         = 1;
-   //    ro_length           = 1000.0 / (2.0*T_RO_CLK);
-   //    ro_decimated_length = 1000.0 / (2.0*T_RO_CLK);
-   //    ro_average_length   = 1;
-   //
-   //    wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
-   //    #100ns;
-   //
-   //    // Op0: Start=6MHz, Stop=30MHz, Avg=3, CoarseStep=1MHz
-   //    @(posedge c_clk); #1;
-   //    force qp2_en_o   = 1'b1; force qp2_op_o = 5'd0;
-   //    force qp2_a_dt_o = 32'd6000000;
-   //    force qp2_b_dt_o = 32'd30000000;
-   //    force qp2_c_dt_o = 32'd3;
-   //    force qp2_d_dt_o = 32'd1000000;
-   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
-   //    #50ns;
-   //
-   //    // Op3: FineStep=100kHz, Window=5MHz
-   //    @(posedge c_clk); #1;
-   //    force qp2_en_o   = 1'b1; force qp2_op_o = 5'd3;
-   //    force qp2_a_dt_o = 32'd0;
-   //    force qp2_b_dt_o = 32'd100000;
-   //    force qp2_c_dt_o = 32'd5000000;
-   //    force qp2_d_dt_o = 32'd0;
-   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
-   //    #50ns;
-   //
-   //    // Op1: Start sweep
-   //    @(posedge c_clk); #1;
-   //    force qp2_en_o = 1'b1; force qp2_op_o = 5'd1;
-   //    @(posedge c_clk); #1; force qp2_en_o = 1'b0;
-   //
-   //    // Pulse trigger_0 every ~400 c_clk cycles so amplitude_calculator
-   //    // accumulates bursts.  The IP itself polls via Op2 read cycles.
-   //    fork
-   //       begin : fts_trigger_pump
-   //          forever begin
-   //             repeat(400) @(posedge c_clk);
-   //             force trigger_0 = 1'b1;
-   //             @(posedge c_clk); force trigger_0 = 1'b0;
-   //          end
-   //       end
-   //    join_none
-   //
-   //    $display("*** %t - End of test_fine_tuning_sweep Test ***", $realtime());
-   // end
+   // --- TEST_FINE_TUNING_SWEEP ---
+   // The tProc program (pmem/wmem/dmem under src/tb/test_fine_tuning_sweep/)
+   // drives QP2: OP 0 -> OP 3 -> OP 1 -> poll OP 2 -> trigger -> log -> exit.
+   // The bypass streamer above feeds iq_shots.mem into axis_ro_avg_* so the
+   // IP sees a Lorentzian amplitude landscape without going through the SG
+   // or readout DSP.  Expected final freq_word is F0 from gen_iq_lorentzian.py.
+   if (TEST_NAME == "test_fine_tuning_sweep") begin
+      $display("*** %t - Start test_fine_tuning_sweep Test ***", $realtime());
+      TEST_RUN_TIME        = 500us;
+      TEST_READ_TIME       = 10us;
+      REPEAT_EXEC          = 1;
+
+      ro_length            = 1000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
+      ro_average_length    = 1;
+
+      wait (tb_qick.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
+      $display("*** %t - End of test_fine_tuning_sweep Test ***", $realtime());
+   end
 
 
    if (TEST_NAME == "test_qubit_emulator") begin
