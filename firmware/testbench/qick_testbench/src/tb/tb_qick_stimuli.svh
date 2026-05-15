@@ -1,3 +1,37 @@
+//----------------------------------------------------
+// Define Test to run
+//----------------------------------------------------
+string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_fast_short_pulses";
+// string TEST_NAME = "test_many_envelopes";
+// string TEST_NAME = "test_tproc_basic";
+// string TEST_NAME = "test_issue359";
+// string TEST_NAME = "test_issue361";
+// string TEST_NAME = "test_issue53";
+// string TEST_NAME = "test_randomized_benchmarking";
+// string TEST_NAME = "test_hmc_qickemu";
+// string TEST_NAME = "test_qubit_emulator";
+//----------------------------------------------------
+
+// Change default directory for test data files
+parameter string TB_DIR    = "../../../../../qick_testbench/src/tb";
+
+// Default Simulation Settings
+time TEST_RUN_TIME         = 6us;   // Time to run tProc execution
+time TEST_READ_TIME        = 1us;   // Time to read data from buffers
+time REPEAT_EXEC           = 2;     // Number of Times to Repeat tProc Program Execution
+string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loopback
+// string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
+//----------------------------------------------------
+
+// VIP Agents
+axi_mst_0_mst_t     axi_mst_tproc_agent;
+axi_mst_0_mst_t     axi_mst_sg_agent;
+axi_mst_0_mst_t     axi_mst_avg0_agent;
+axi_mst_0_mst_t     axi_mst_avg1_agent;
+axi_mst_0_mst_t     axi_mst_rov2_agent;
+axi_mst_0_mst_t     axi_mst_qemu_agent;
+
 //--------------------------------------
 // TEST STIMULI
 //--------------------------------------
@@ -11,17 +45,29 @@ logic tb_test_run_start;
 logic tb_test_run_done;
 logic tb_test_read_start;
 logic tb_test_read_done;
+logic tb_test_end;
 
 integer ro_length;
 integer ro_decimated_length;
 integer ro_average_length;
 
 initial begin
+   forever begin
+      #10us;
+      $display("*** Time Elapsed: %0t ***", $realtime);
+   end
+end
+
+
+initial begin
 
    // Create agents.
    axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.gen_axi_tproc_vip.u_axi_mst_tproc_0.inst.IF);
    axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.gen_axi_sg_vip.u_axi_mst_sg_0.inst.IF);
-   axi_mst_avg_agent    = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.gen_axi_avg_vip.u_axi_mst_avg_0.inst.IF);
+   axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.gen_axi_avg0_vip.u_axi_mst_avg_0.inst.IF);
+   axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.gen_axi_avg1_vip.u_axi_mst_avg_1.inst.IF);
+   axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.gen_axi_rov2_vip.u_axi_mst_rov2_0.inst.IF);
+
    axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
 
    // Set tag for agents.
@@ -34,10 +80,23 @@ initial begin
    // Start agents.
    axi_mst_sg_agent.start_master();
 
+   // Create agents.
    // Set tag for agents.
-   axi_mst_avg_agent.set_agent_tag("axi_mst_avg_0 VIP");
+   axi_mst_avg0_agent.set_agent_tag("axi_mst_avg_0 VIP");
    // Start agents.
-   axi_mst_avg_agent.start_master();
+   axi_mst_avg0_agent.start_master();
+
+   // Create agents.
+   // Set tag for agents.
+   axi_mst_avg1_agent.set_agent_tag("axi_mst_avg_1 VIP");
+   // Start agents.
+   axi_mst_avg1_agent.start_master();
+
+   // Create agents.
+   // Set tag for agents.
+   axi_mst_rov2_agent.set_agent_tag("axi_mst_rov2_0 VIP");
+   // Start agents.
+   axi_mst_rov2_agent.start_master();
 
    // Set tag for agents.
    axi_mst_qemu_agent.set_agent_tag("axi_mst_qemu_0 VIP");
@@ -71,8 +130,6 @@ initial begin
    rst_ni                  = 1'b0;
    axi_dt                  = 0 ;
    // axis_dma_start          = 1'b0;
-   s1_axis_tvalid          = 1'b0 ;
-   port_1_dt_i             = 0;
    qcom_rdy_i              = 0 ;
    qp2_rdy_i               = 0 ;
    periph_dt_i             = '{default:'0} ;
@@ -94,13 +151,16 @@ initial begin
    tb_test_run_done        = 1'b0;
    tb_test_read_start      = 1'b1;
    tb_test_read_done       = 1'b0;
+   tb_test_end             = 1'b0;
 
    ro_length               = 0;
    ro_decimated_length     = 0;
    ro_average_length       = 0;
 
-   sg_s0_axis_tvalid       = 0;
-   sg_s0_axis_tdata        = 0;
+   sg0_s0_axis_tvalid       = 0;
+   sg0_s0_axis_tdata        = 0;
+   sg1_s0_axis_tvalid       = 0;
+   sg1_s0_axis_tdata        = 0;
 
    m1_axis_buf_dec_tready      = 1'b1;
 
@@ -116,17 +176,20 @@ initial begin
    #1us;
 
    // Load Signal Generator Envelope Table Memory.
-   sg_load_mem(TEST_NAME, TB_DIR);
+   sg_load_mem(TEST_NAME, 0, TB_DIR);
+   sg_load_mem(TEST_NAME, 1, TB_DIR);
+
+   tb_load_mem_done = 1;
 
    #1us;
 
    // Configure TPROC
    // LFSR Enable (1: Free Running, 2: Step on s1 Read, 3: Step on s0 Write)
-   WRITE_AXI( REG_CORE_CFG , 1);
+   tproc_write_axi( REG_CORE_CFG , 1);
    #100ns;
-   WRITE_AXI( REG_CORE_CFG , 0);
+   tproc_write_axi( REG_CORE_CFG , 0);
    #100ns;
-   WRITE_AXI( REG_CORE_CFG , 2);
+   tproc_write_axi( REG_CORE_CFG , 2);
    #100ns;
 
 
@@ -134,27 +197,27 @@ initial begin
 
    repeat (REPEAT_EXEC) begin
 
-      config_decimated_readout(0, ro_length);
-      config_average_readout(0, ro_length);
+      readout_buffer_config_decimated(0, ro_length);
+      readout_buffer_config_average(0, ro_length);
 
       wait(tb_test_run_start);
 
-      WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
+      tproc_write_axi( REG_TPROC_CTRL , 4); //PROC_START
 
       #(TEST_RUN_TIME);
 
       
-      WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
+      tproc_write_axi( REG_TPROC_CTRL , 8); //PROC_STOP
       
       tb_test_run_done = 1'b1;
 
       wait(tb_test_read_start);
 
       // Read Decimated Buffer
-      read_decimated_readout(0, ro_decimated_length);
+      readout_buffer_read_decimated(0, ro_decimated_length);
 
       // Read Averaged Buffer (number of triggers in experiment)
-      read_average_readout(0, ro_average_length);
+      readout_buffer_read_average(0, ro_average_length);
 
       #(TEST_READ_TIME);
 
@@ -162,12 +225,14 @@ initial begin
 
    end
     
-//   WRITE_AXI( REG_TPROC_CTRL , 16); //CORE_START 
+//   tproc_write_axi( REG_TPROC_CTRL , 16); //CORE_START 
 //   #1000;
-//   WRITE_AXI( REG_TPROC_CTRL , 128); //PROC_RUN
+//   tproc_write_axi( REG_TPROC_CTRL , 128); //PROC_RUN
 //   #900;
    
    #1us;
+
+   tb_test_end = 1'b1;
 
    $display("*** End Test ***");
    $finish();
@@ -346,6 +411,38 @@ initial begin
       wait(tb_test_run_done);
 
       $display("*** %t - End of test_issue53 Test ***", $realtime());
+   end
+
+
+   if (TEST_NAME == "test_hmc_qickemu") begin
+      $display("*** %t - Start test_hmc_qickemu Test ***", $realtime());
+      
+      // rf_delay = 50ns;
+
+      ro_length            = 1000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 1000.0 / (2.0*T_RO_CLK);
+      ro_average_length    = 1;
+
+      REPEAT_EXEC          = 1;
+      TEST_RUN_TIME        = 25us;
+      TEST_READ_TIME       = 10us;
+
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
+
+      #1us;
+
+      // Configure READOUT_V2
+      config_readout_v2(100e6, 0, ro_length, 0, 0, 1);
+      #100ns;
+      // Configure Readout1 Buffers
+      readout_buffer_config_decimated(1, ro_length);
+      #100ns;
+      readout_buffer_config_average(1, ro_length);
+      #100ns;
+
+      wait(tb_test_end);
+      $display("*** %t - End of test_hmc_qickemu Test ***", $realtime());
    end
 
 end

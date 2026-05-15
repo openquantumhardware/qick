@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity axi_slv is
+entity axi_slv_std_ro_v2 is
 	Generic 
 	(
 		DATA_WIDTH	: integer	:= 32;
@@ -50,9 +50,9 @@ entity axi_slv is
 		MODE_REG		: out std_logic;
 		WE_REG			: out std_logic
 	);
-end axi_slv;
+end axi_slv_std_ro_v2;
 
-architecture rtl of axi_slv is
+architecture rtl of axi_slv_std_ro_v2 is
 
 	-- AXI4LITE signals
 	signal axi_awaddr	: std_logic_vector(ADDR_WIDTH-1 downto 0);

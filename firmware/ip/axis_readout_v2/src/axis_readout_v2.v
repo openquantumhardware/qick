@@ -116,7 +116,7 @@ wire			WE_REG;
 /* Begin Architecture */
 /**********************/
 // AXI Slave.
-axi_slv axi_slv_i
+axi_slv_std_ro_v2 axi_slv_std_ro_v2_i
 	(
 		.aclk			(s_axi_aclk	 	),
 		.aresetn		(s_axi_aresetn	),
@@ -160,7 +160,7 @@ axi_slv axi_slv_i
 	);
 
 // Readout Top.
-readout_top readout_top_i
+std_readout_top std_readout_top_i
 	(
 		// Reset and clock (s0_axis, s1_axis, m0_axis, m1_axis).
     	.aresetn		(aresetn		),

@@ -2,25 +2,42 @@
 //  Fermilab National Accelerator Laboratory
 ///////////////////////////////////////////////////////////////////////////////
 // Description: 
-// DAC-ADC RF frontend model
+// DAC RF frontend model
 ///////////////////////////////////////////////////////////////////////////
+module model_DAC #(
+   parameter integer DAC_W = 16
+)(
+   input wire clk_DAC,
+   input wire [DAC_W-1:0] dac_sample,
+   output real dac_signal_rf
+);
 
-module model_DAC_ADC #(
-   parameter integer DAC_W = 16,
+   // DAC processing
+   always @(posedge clk_DAC) begin
+      dac_signal_rf = $signed(dac_sample) / 2.0**(DAC_W-1);
+
+      // $display("[%0t ns] DAC sample: %f", $time, dac_signal_rf);
+   end
+
+endmodule
+
+
+///////////////////////////////////////////////////////////////////////////////
+//  Fermilab National Accelerator Laboratory
+///////////////////////////////////////////////////////////////////////////////
+// Description: 
+// ADC RF frontend model
+///////////////////////////////////////////////////////////////////////////
+module model_ADC #(
    parameter integer ADC_W = 16,
    parameter integer BUFFER_SIZE = 16
 )(
    input wire clk_DAC,
-   input wire [DAC_W-1:0] dac_sample,
-
+   input real dac_signal_rf,
    input wire clk_ADC,
-   output logic [ADC_W-1:0] adc_sample,
-
-   input int mode  // 0 = ZOH, 1 = linear
+   input wire mode,  // 0 = ZOH, 1 = linear
+   output logic [ADC_W-1:0] adc_sample
 );
-
-   // Parameters
-   real pi = 3.14159265358979;
 
    // DAC samples Buffer
    real buffer_samples[BUFFER_SIZE];
@@ -28,7 +45,6 @@ module model_DAC_ADC #(
    int wr_ptr = 0;
 
    // Internal Signals
-   real signal_in;
    real sampled_ADC;
 
    initial begin
@@ -40,14 +56,11 @@ module model_DAC_ADC #(
 
    // DAC processing
    always @(posedge clk_DAC) begin
-      real t_now = $realtime * 1e-9;
-      signal_in = $signed(dac_sample) / 2.0**(DAC_W-1);
+      real t_dac = $realtime * 1e-9;
 
-      buffer_samples[wr_ptr] = signal_in;
-      buffer_times[wr_ptr] = t_now;
+      buffer_samples[wr_ptr] = dac_signal_rf;
+      buffer_times[wr_ptr] = t_dac;
       wr_ptr = (wr_ptr + 1) % BUFFER_SIZE;
-
-      // $display("[%0t ns] DAC sample: %f", $time, signal_in);
    end
 
    // ADC processing
