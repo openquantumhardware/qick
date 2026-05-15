@@ -138,13 +138,13 @@ module qick_dut #(
    output logic                  sg1_s0_axis_tready,
 
    // AXIS DAC Signal Generator
-   input logic                      axis_sg0_dac_tready,
-   output logic                     axis_sg0_dac_tvalid,
-   output logic [N_DDS_SG*16-1:0]   axis_sg0_dac_tdata,
+   input logic                      axis_sg0_dac0_tready,
+   output logic                     axis_sg0_dac0_tvalid,
+   output logic [N_DDS_SG*16-1:0]   axis_sg0_dac0_tdata,
 
-   input logic                      axis_sg1_dac_tready,
-   output logic                     axis_sg1_dac_tvalid,
-   output logic [N_DDS_SG*16-1:0]   axis_sg1_dac_tdata,
+   input logic                      axis_sg1_dac1_tready,
+   output logic                     axis_sg1_dac1_tvalid,
+   output logic [N_DDS_SG*16-1:0]   axis_sg1_dac1_tdata,
    
    // AXIS ADC0 Readout
    output logic                     axis_adc0_ro0_tready,
@@ -154,7 +154,7 @@ module qick_dut #(
    // AXIS ADC1 Readout
    output logic                     axis_adc1_ro1_tready,
    input logic                      axis_adc1_ro1_tvalid,
-   input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata,
+   input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata /*,
 
    // Readout1 Buffer Averaged Data AXIS
    input logic                      m0_axis_buf1_avg_tready,
@@ -167,8 +167,7 @@ module qick_dut #(
    // Readout1 Buffer Register Data AXIS
    input logic                      m2_axis_buf1_reg_tready,
    output logic                     m2_axis_buf1_reg_tvalid,
-   output logic [63:0]              m2_axis_buf1_reg_tdata 
-
+   output logic [63:0]              m2_axis_buf1_reg_tdata */
 );
 
    // AXI VIP master address.
@@ -841,8 +840,10 @@ module qick_dut #(
       .N                   (N                ),
       .N_DDS               (N_DDS_SG         ),
       .GEN_DDS             ("TRUE"           ),
-      // .GEN_DDS             ("FALSE"           ),
-      .ENVELOPE_TYPE       ("COMPLEX"        )
+      .ENVELOPE_TYPE       ("COMPLEX"        ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR            (EMULATOR         )
+      // +++++++++++++
    )
    u_axis_signal_gen_v6_0 ( 
       // AXI Slave I/F for configuration.
@@ -885,17 +886,17 @@ module qick_dut #(
       .s1_axis_tready      (sgt0_sg0_axis_tready   ),
 
       // AXIS Master for output data.
-      .m_axis_tready       (axis_sg0_dac_tready     ),
-      .m_axis_tvalid       (axis_sg0_dac_tvalid     ),
-      .m_axis_tdata        (axis_sg0_dac_tdata      )
+      .m_axis_tready       (axis_sg0_dac0_tready     ),
+      .m_axis_tvalid       (axis_sg0_dac0_tvalid     ),
+      .m_axis_tdata        (axis_sg0_dac0_tdata      )
    );
 
 
    // For Waveform Debug
-   logic signed [15:0] axis_sg0_dac_tdata_dbg [0:N_DDS_SG-1];
+   logic signed [15:0] axis_sg0_dac0_tdata_dbg [0:N_DDS_SG-1];
    always @* begin
       for (int i=0; i<N_DDS_SG; i=i+1) begin
-         axis_sg0_dac_tdata_dbg[i] = axis_sg0_dac_tdata[16*i +: 16];
+         axis_sg0_dac0_tdata_dbg[i] = axis_sg0_dac0_tdata[16*i +: 16];
       end
    end
 
@@ -906,8 +907,10 @@ module qick_dut #(
       .N                   (N                ),
       .N_DDS               (N_DDS_SG         ),
       .GEN_DDS             ("TRUE"           ),
-      // .GEN_DDS             ("FALSE"           ),
-      .ENVELOPE_TYPE       ("COMPLEX"        )
+      .ENVELOPE_TYPE       ("COMPLEX"        ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR            (EMULATOR         )
+      // +++++++++++++
    )
    u_axis_signal_gen_v6_1 ( 
       // AXI Slave I/F for configuration.
@@ -950,9 +953,9 @@ module qick_dut #(
       .s1_axis_tready      (sgt1_sg1_axis_tready   ),
 
       // AXIS Master for output data.
-      .m_axis_tready       (axis_sg1_dac_tready     ),
-      .m_axis_tvalid       (axis_sg1_dac_tvalid     ),
-      .m_axis_tdata        (axis_sg1_dac_tdata      )
+      .m_axis_tready       (axis_sg1_dac1_tready     ),
+      .m_axis_tvalid       (axis_sg1_dac1_tvalid     ),
+      .m_axis_tdata        (axis_sg1_dac1_tdata      )
    );
 
    //-----------------------------------------
@@ -1117,9 +1120,12 @@ module qick_dut #(
    wire              axis_ro0_mrbuf_tvalid;
    wire [8*2*16-1:0] axis_ro0_mrbuf_tdata;
 
-   axis_dyn_readout_v1 /*#(
-      .N_DDS            (N_DDS_RO)
-   )*/
+   axis_dyn_readout_v1 #(
+      /*.N_DDS            (N_DDS_RO)*/
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR         (EMULATOR         )
+      // +++++++++++++
+   )
    u_axis_dyn_readout_v1_0 (
       // Reset and clock.
       .aresetn          (ro_resetn),
@@ -1443,7 +1449,8 @@ module qick_dut #(
       end
    endgenerate
 
-
+generate;
+if (!EMULATOR) begin: gen_assert_axi_rov2_vip
    // Readout_v2 PYNQ configured
    axis_readout_v2 u_axis_readout_v2 (
       // AXI Slave I/F for configuration.
@@ -1484,6 +1491,8 @@ module qick_dut #(
       .m1_axis_tvalid    (axis_ro1_avg1_tvalid  ),
       .m1_axis_tdata     (axis_ro1_avg1_tdata   )
    );
+end
+endgenerate
 
 
    wire              axis_ro1_avg1_tready;
@@ -1590,12 +1599,15 @@ module qick_dut #(
    axis_avg_buffer #(
       .N_AVG                  (13               ),
       .N_BUF                  (12               ),
-      .B                      (16               )
+      .B                      (16               ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR               (EMULATOR         )
+      // +++++++++++++
    )
    u_axis_avg_buffer_1 ( 
       // AXI Slave I/F for configuration.
-      .s_axi_aclk             (ps_clk       ),
-      .s_axi_aresetn          (ps_resetn    ),
+      .s_axi_aclk             (ps_clk               ),
+      .s_axi_aresetn          (ps_resetn            ),
       .s_axi_araddr           (s_axi_avg1_araddr    ),
       .s_axi_arprot           (s_axi_avg1_arprot    ),
       .s_axi_arready          (s_axi_avg1_arready   ),
@@ -1617,7 +1629,7 @@ module qick_dut #(
       .s_axi_wvalid           (s_axi_avg1_wvalid    ),
 
       // Trigger input.
-      .trigger                (trig_1_o            ),
+      .trigger                (trig_1_o             ),
 
       // AXIS Slave for input data.
       .s_axis_aresetn         (ro_resetn             ),

@@ -134,8 +134,6 @@ task sg_load_mem(string test_name, int channel, string dir);
       sg1_s0_axis_tvalid    = 0;
    end
 
-   tb_load_mem_done = 1;
-
    $display("### %t - Task sg_load_mem() end ###", $realtime());
 endtask
 

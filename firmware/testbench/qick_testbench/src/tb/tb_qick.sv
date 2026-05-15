@@ -243,12 +243,12 @@ reg qcom_rdy_i, qp2_rdy_i;
 
 
    // DAC-ADC connections
-   logic                      axis_sg0_dac_tready;
-   logic                      axis_sg0_dac_tvalid;
-   logic [N_DDS_SG*16-1:0]    axis_sg0_dac_tdata;
-   logic                      axis_sg1_dac_tready;
-   logic                      axis_sg1_dac_tvalid;
-   logic [N_DDS_SG*16-1:0]    axis_sg1_dac_tdata;
+   logic                      axis_sg0_dac0_tready;
+   logic                      axis_sg0_dac0_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg0_dac0_tdata;
+   logic                      axis_sg1_dac1_tready;
+   logic                      axis_sg1_dac1_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg1_dac1_tdata;
 
    logic                      rf_signal_valid;
    logic [N_DDS_RO*16-1:0]    rf_signal_data;
@@ -414,35 +414,36 @@ logic                   sg1_s0_axis_tvalid;
       .c_port_do            ( ),
       .c_core_do            ( ),
 
-      // Signal Generator 0 from tProc interface
+      // PS --> Signal Generator 0 Interface
       .sg0_s0_axis_aclk           (sg0_s0_axis_aclk        ),
-      .sg0_s0_axis_aresetn        (s_ps_dma_aresetn       ),
+      .sg0_s0_axis_aresetn        (s_ps_dma_aresetn        ),
       .sg0_s0_axis_tdata          (sg0_s0_axis_tdata       ),
       .sg0_s0_axis_tvalid         (sg0_s0_axis_tvalid      ),
       .sg0_s0_axis_tready         (sg0_s0_axis_tready      ),
-      // Signal Generator 1 from tProc interface
+
+      // PS --> Signal Generator 1 Interface
       .sg1_s0_axis_aclk           (sg1_s0_axis_aclk        ),
-      .sg1_s0_axis_aresetn        (s_ps_dma_aresetn       ),
+      .sg1_s0_axis_aresetn        (s_ps_dma_aresetn        ),
       .sg1_s0_axis_tdata          (sg1_s0_axis_tdata       ),
       .sg1_s0_axis_tvalid         (sg1_s0_axis_tvalid      ),
       .sg1_s0_axis_tready         (sg1_s0_axis_tready      ),
 
-      // Signal Generator 0 to DAC 0 interface
-      .axis_sg0_dac_tready        (axis_sg0_dac_tready     ),
-      .axis_sg0_dac_tvalid        (axis_sg0_dac_tvalid     ),
-      .axis_sg0_dac_tdata         (axis_sg0_dac_tdata      ),
+      // Signal Generator 0 --> DAC 0 interface
+      .axis_sg0_dac0_tready       (axis_sg0_dac0_tready     ),
+      .axis_sg0_dac0_tvalid       (axis_sg0_dac0_tvalid     ),
+      .axis_sg0_dac0_tdata        (axis_sg0_dac0_tdata      ),
 
-      // Signal Generator 1 to DAC 1 interface
-      .axis_sg1_dac_tready        (axis_sg1_dac_tready     ),
-      .axis_sg1_dac_tvalid        (axis_sg1_dac_tvalid     ),
-      .axis_sg1_dac_tdata         (axis_sg1_dac_tdata      ),
+      // Signal Generator 1 --> DAC 1 interface
+      .axis_sg1_dac1_tready       (axis_sg1_dac1_tready     ),
+      .axis_sg1_dac1_tvalid       (axis_sg1_dac1_tvalid     ),
+      .axis_sg1_dac1_tdata        (axis_sg1_dac1_tdata      ),
 
-      // ADC0 to Readout interface
+      // ADC 0 --> Readout 0 Interface
       .axis_adc0_ro0_tready       (axis_adc0_ro0_tready     ),
       .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
       .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
 
-      // ADC1 to Readout interface
+      // ADC 1 --> Readout 1 Interface
       .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
       .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
       .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      )
@@ -452,10 +453,8 @@ logic                   sg1_s0_axis_tvalid;
    assign axis_adc1_ro1_tdata  = axis_adc0_ro0_tdata;
 
    //--------------------------------------
-   // TODO: RF DATA CONVERTER IP
-   //--------------------------------------
-
    // DAC-ADC RF frontend model
+   //--------------------------------------
 
    localparam DAC0_W = 16;
    logic signed [DAC0_W-1:0] dac0_data;
@@ -487,12 +486,12 @@ logic                   sg1_s0_axis_tvalid;
 
    // SG0 to DAC0 RF processes 16 samples per clock
 
-   assign axis_sg0_dac_tready        = 1'b1;  // DAC always ready to receive samples
+   assign axis_sg0_dac0_tready        = 1'b1;  // DAC always ready to receive samples
 
    logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
    always @(posedge dac_fs) begin
-      if (axis_sg0_dac_tvalid) begin
-         dac0_data       <= axis_sg0_dac_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
+      if (axis_sg0_dac0_tvalid) begin
+         dac0_data       <= axis_sg0_dac0_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
          dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
       end
       else begin
@@ -532,12 +531,12 @@ logic                   sg1_s0_axis_tvalid;
 
    // SG1 to DAC1 RF processes 16 samples per clock
 
-   assign axis_sg1_dac_tready        = 1'b1;  // DAC always ready to receive samples
+   assign axis_sg1_dac1_tready        = 1'b1;  // DAC always ready to receive samples
 
    logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
    always @(posedge dac_fs) begin
-      if (axis_sg1_dac_tvalid) begin
-         dac1_data       <= axis_sg1_dac_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
+      if (axis_sg1_dac1_tvalid) begin
+         dac1_data       <= axis_sg1_dac1_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
          dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
       end
       else begin
@@ -565,25 +564,12 @@ logic                   sg1_s0_axis_tvalid;
    end
 
    // Model Transport delay
-   // // NOTE: THESE MUST BE REG TO WORK!!!
-   // reg                    rf_signal_valid_dly;
-   // reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   // always @(*) begin
-   //    rf_signal_valid_dly <= #(250ns) rf_signal_valid;
-   //    rf_signal_data_dly  <= #(250ns) rf_signal_data;
-   // end
-   localparam RF_DELAY_TIME_NS = 10;
-   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK/N_DDS_RO));
-   logic                    rf_signal_valid_dly;
-   logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   logic [N_DDS_RO*16:0] rf_delay_line [0:RF_DELAY_CYCLES-1];
-   always_ff @(posedge adc_fs) begin
-      rf_delay_line[0] <= {rf_signal_valid, rf_signal_data};
-      for (int i=1; i<RF_DELAY_CYCLES; i++) begin
-         rf_delay_line[i] <= rf_delay_line[i-1];
-      end
-      rf_signal_valid_dly <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16];
-      rf_signal_data_dly  <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16-1:0];
+   // NOTE: THESE MUST BE REG TO WORK!!!
+   reg                    rf_signal_valid_dly;
+   reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
+   always @(*) begin
+      rf_signal_valid_dly <= #(250ns) rf_signal_valid;
+      rf_signal_data_dly  <= #(250ns) rf_signal_data;
    end
 
 
