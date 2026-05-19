@@ -107,8 +107,8 @@ module bisect_control #(
             end
 
             // Stage 2: apply decision
-            if (s1_step) begin
-                automatic logic raise_lo;
+            if (s1_step) begin : apply_decision
+                reg raise_lo;
                 raise_lo = polarity_peak_r
                            ? (side_left_r ? ~s1_cmp_gt :  s1_cmp_gt)
                            : (side_left_r ?  s1_cmp_gt : ~s1_cmp_gt);

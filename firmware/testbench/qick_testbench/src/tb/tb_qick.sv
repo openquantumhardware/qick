@@ -1355,6 +1355,7 @@ reg qcom_rdy_i, qp2_rdy_i;
 
    logic [$clog2(BYPASS_DEPTH)-1:0] bypass_addr_r;
    logic                            bypass_freq_valid_d;
+   logic                            bypass_first_rise_done;
    wire                             bypass_freq_valid_now =
                                        u_fine_tuning_sweep.u_peak_finder_v2.freq_valid;
    wire                             bypass_freq_valid_rise =
@@ -1363,19 +1364,41 @@ reg qcom_rdy_i, qp2_rdy_i;
    logic [31:0] bypass_tdata_r;
    logic        bypass_tvalid_r;
 
+   // --- BYPASS streamer behavior ---
+   //
+   // (1) bypass_tvalid_r toggles every c_clk.  The amplitude_calculator's
+   //     completion check `if (finish_delay && !acc_en)` requires acc_en to
+   //     drop after the last sample.  acc_en = run_d2 & v_s2 where v_s2 is
+   //     the 3-stage pipelined version of s_axis_tvalid.  If we drive tvalid
+   //     constantly high, v_s2 stays high, acc_en stays high, and the burst
+   //     never finishes.  Toggling gives v_s2 a low cycle so the completion
+   //     drain logic can fire.  Sample count is still nsamp because acc_en
+   //     only counts on the high cycles -- so a burst takes ~2*nsamp c_clks.
+   //
+   // (2) The FIRST freq_valid rise (from the peak_finder's very first
+   //     SEND_FREQ) does NOT advance bypass_addr_r.  Because of NBA
+   //     semantics, advancing on the rise would leave tdata at mem[N+1] for
+   //     measurement N+1 (we want mem[N]).  Skipping the first rise gives
+   //     the correct mapping: measurement K (cw_current = start_freq +
+   //     (K-1)*step) sees mem[K-1], matching gen_iq_lorentzian.py's intent
+   //     ("row N is the (I, Q) the IP sees on its Nth measurement").
    always_ff @(posedge c_clk) begin
       if (!rst_ni) begin
-         bypass_addr_r       <= 0;
-         bypass_freq_valid_d <= 1'b0;
-         bypass_tdata_r      <= 32'h0;
-         bypass_tvalid_r     <= 1'b0;
+         bypass_addr_r          <= 0;
+         bypass_freq_valid_d    <= 1'b0;
+         bypass_first_rise_done <= 1'b0;
+         bypass_tdata_r         <= 32'h0;
+         bypass_tvalid_r        <= 1'b0;
       end else if (TEST_OUT_CONNECTION == "TEST_OUT_RESONATOR_BYPASS") begin
          bypass_freq_valid_d <= bypass_freq_valid_now;
-         if (bypass_freq_valid_rise && bypass_addr_r < BYPASS_DEPTH-1) begin
-            bypass_addr_r <= bypass_addr_r + 1;
+         if (bypass_freq_valid_rise) begin
+            if (bypass_first_rise_done && bypass_addr_r < BYPASS_DEPTH-1) begin
+               bypass_addr_r <= bypass_addr_r + 1;
+            end
+            bypass_first_rise_done <= 1'b1;
          end
          bypass_tdata_r  <= bypass_iq_mem[bypass_addr_r];
-         bypass_tvalid_r <= 1'b1;
+         bypass_tvalid_r <= ~bypass_tvalid_r;
       end
    end
 
@@ -1693,9 +1716,26 @@ initial begin
 
       WRITE_AXI( REG_TPROC_CTRL , 4); //PROC_START
 
-      #(TEST_RUN_TIME);
+      // Wait for either TEST_RUN_TIME to elapse OR (for fine_tuning_sweep)
+      // the IP's sticky_finish signal to assert -- whichever happens first.
+      // This lets the algorithm-done test finish as soon as it's actually
+      // done, instead of waiting out the full TEST_RUN_TIME window.
+      if (TEST_NAME == "test_fine_tuning_sweep") begin
+         fork : ft_timeout_or_finish
+            #(TEST_RUN_TIME);
+            begin
+               wait (u_fine_tuning_sweep.sticky_finish == 1'b1);
+               #500ns;   // brief grace so the last dmem write retires
+               $display("*** %t - sticky_finish detected, ending test early ***",
+                        $realtime());
+            end
+         join_any
+         disable ft_timeout_or_finish;
+      end else begin
+         #(TEST_RUN_TIME);
+      end
 
-      
+
       WRITE_AXI( REG_TPROC_CTRL , 8); //PROC_STOP
       
       tb_test_run_done = 1'b1;
@@ -1722,8 +1762,91 @@ initial begin
    #1us;
 
    $display("*** End Test ***");
+
+   // --- For test_fine_tuning_sweep: dump the algorithm result and DMEM log.
+   //     The first 80 dmem words contain the freq_word logged on each
+   //     iteration; index `r10` holds the count of log entries written.
+   //     The final answer is dmem[r10-2] (or `u_peak_finder_v2.freq_word`
+   //     when `sticky_finish=1`).
+   if (TEST_NAME == "test_fine_tuning_sweep") begin : ft_dump
+      integer dump_i;
+      $display("====================== TEST RESULT =======================");
+      $display("  freq_word (final IP output)         = %0d",
+               u_fine_tuning_sweep.u_peak_finder_v2.freq_word);
+      $display("  sticky_finish (1 = algorithm done)  = %0d",
+               u_fine_tuning_sweep.sticky_finish);
+      $display("  sticky_freq_valid                   = %0d",
+               u_fine_tuning_sweep.sticky_freq_valid);
+      $display("  peak_finder state (3=FINE_INIT, 0=IDLE) = %0d",
+               u_fine_tuning_sweep.u_peak_finder_v2.state);
+      $display("  freq_at_max (max found during sweep) = %0d",
+               u_fine_tuning_sweep.u_peak_finder_v2.freq_at_max);
+      $display("  bypass_addr_r (mem rows consumed)   = %0d", bypass_addr_r);
+      $display("  trig_cnt (TRIGs fired by tProc)     = %0d",
+               ft_event_counters.trig_cnt);
+      $display("  amp_valid_cnt (bursts completed)    = %0d",
+               ft_event_counters.amp_valid_cnt);
+      $display("  freq_valid_rise_cnt (IP steps)      = %0d",
+               ft_event_counters.freq_valid_rise_cnt);
+      $display("  r10 (tProc dmem cursor)             = %0d",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[10]);
+      $display("  r11 (tProc safety cap)              = %0d",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[11]);
+      $display("  r5  (last freq_word read)           = %0d",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[5]);
+      $display("  r6  (last status read, bit0=fin bit1=fv) = 0x%h",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[6]);
+      $display("  qp2_dt_r[0] (latched freq_word resp) = %0d",
+               AXIS_QPROC.QPROC.qp2_dt_r[0]);
+      $display("  qp2_dt_r[1] (latched status resp)    = 0x%h",
+               AXIS_QPROC.QPROC.qp2_dt_r[1]);
+      $display("  qp2_dt_new                          = %0d",
+               AXIS_QPROC.QPROC.qp2_dt_new);
+      $display("  core0_src_dt (should be 5 for QPB)  = %0d",
+               AXIS_QPROC.QPROC.core0_src_dt);
+      $display("=================== DMEM LOG (first 80 words) ===================");
+      for (dump_i = 0; dump_i < 80; dump_i = dump_i + 1) begin
+         $display("  dmem[%2d] = %0d  (0x%08h)",
+                  dump_i,
+                  AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[dump_i],
+                  AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[dump_i]);
+      end
+      $display("==================================================================");
+   end
+
    $finish();
 end
+
+// --- Diagnostic: count algorithm progress events for test_fine_tuning_sweep.
+//     Lightweight (no per-event $display, just counters) so the simulation
+//     log stays clean.  Printed at $finish.
+generate
+if (1) begin : ft_event_counters
+   integer trig_cnt;
+   integer amp_valid_cnt;
+   integer freq_valid_rise_cnt;
+   reg trig0_d, amp_valid_d, freq_valid_d_cnt;
+   always @(posedge c_clk) begin
+      if (!rst_ni) begin
+         trig_cnt            <= 0;
+         amp_valid_cnt       <= 0;
+         freq_valid_rise_cnt <= 0;
+         trig0_d             <= 1'b0;
+         amp_valid_d         <= 1'b0;
+         freq_valid_d_cnt    <= 1'b0;
+      end else if (TEST_NAME == "test_fine_tuning_sweep") begin
+         trig0_d          <= trigger_0;
+         amp_valid_d      <= u_fine_tuning_sweep.amp_valid_c;
+         freq_valid_d_cnt <= u_fine_tuning_sweep.u_peak_finder_v2.freq_valid;
+         if (trigger_0 & ~trig0_d) trig_cnt <= trig_cnt + 1;
+         if (u_fine_tuning_sweep.amp_valid_c & ~amp_valid_d)
+            amp_valid_cnt <= amp_valid_cnt + 1;
+         if (u_fine_tuning_sweep.u_peak_finder_v2.freq_valid & ~freq_valid_d_cnt)
+            freq_valid_rise_cnt <= freq_valid_rise_cnt + 1;
+      end
+   end
+end
+endgenerate
 
 initial begin
    integer N;

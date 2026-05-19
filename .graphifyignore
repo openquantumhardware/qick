@@ -1,0 +1,10 @@
+# Vivado build artifacts - regenerated on every synthesis run
+**/top.cache/
+**/top.gen/
+**/top.runs/
+**/top.sim/
+**/top.hw/
+**/top.ip_user_files/
+**/.Xil/
+**/*.jou
+**/*.log
