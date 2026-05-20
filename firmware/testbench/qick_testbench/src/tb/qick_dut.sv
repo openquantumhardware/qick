@@ -262,72 +262,69 @@ module qick_dut #(
    logic           s_axi_tproc_rready;
 
    // Instantiate Axi Master for tproc (connect to internal s_axi_tproc_* wires)
-   generate
-      if (EMULATOR == 0) begin: gen_axi_tproc_vip
-         // <<<<<<<<<<<< XILINX AXI VIP
-         axi_mst_0 u_axi_mst_tproc_0 (
-            .aclk          (ps_clk              ),
-            .aresetn       (ps_resetn           ),
-            .m_axi_araddr  (s_axi_tproc_araddr  ),
-            .m_axi_arprot  (s_axi_tproc_arprot  ),
-            .m_axi_arready (s_axi_tproc_arready ),
-            .m_axi_arvalid (s_axi_tproc_arvalid ),
-            .m_axi_awaddr  (s_axi_tproc_awaddr  ),
-            .m_axi_awprot  (s_axi_tproc_awprot  ),
-            .m_axi_awready (s_axi_tproc_awready ),
-            .m_axi_awvalid (s_axi_tproc_awvalid ),
-            .m_axi_bready  (s_axi_tproc_bready  ),
-            .m_axi_bresp   (s_axi_tproc_bresp   ),
-            .m_axi_bvalid  (s_axi_tproc_bvalid  ),
-            .m_axi_rdata   (s_axi_tproc_rdata   ),
-            .m_axi_rready  (s_axi_tproc_rready  ),
-            .m_axi_rresp   (s_axi_tproc_rresp   ),
-            .m_axi_rvalid  (s_axi_tproc_rvalid  ),
-            .m_axi_wdata   (s_axi_tproc_wdata   ),
-            .m_axi_wready  (s_axi_tproc_wready  ),
-            .m_axi_wstrb   (s_axi_tproc_wstrb   ),
-            .m_axi_wvalid  (s_axi_tproc_wvalid  )
-         );
-      end
-      else begin: gen_axi_tproc_emu
-         // <<<<<<<<<<<< PULP PLATFORM AXI VIP
-         AXI_LITE #(
-            .AXI_ADDR_WIDTH ( 8      ),
-            .AXI_DATA_WIDTH ( 32     )
-         ) axi_mst_tproc_IF ();
-         AXI_LITE_DV #(
-            .AXI_ADDR_WIDTH ( 8       ),
-            .AXI_DATA_WIDTH ( 32      )
-         ) axi_mst_tproc_dv_IF (ps_clk);
-         `ifdef VERILATOR
-         `AXI_LITE_ASSIGN(axi_mst_tproc_IF, axi_mst_tproc_dv_IF)
-         `endif
+   `ifndef VERILATOR
+      // <<<<<<<<<<<< XILINX AXI VIP
+      axi_mst_0 u_axi_mst_tproc_0 (
+         .aclk          (ps_clk              ),
+         .aresetn       (ps_resetn           ),
+         .m_axi_araddr  (s_axi_tproc_araddr  ),
+         .m_axi_arprot  (s_axi_tproc_arprot  ),
+         .m_axi_arready (s_axi_tproc_arready ),
+         .m_axi_arvalid (s_axi_tproc_arvalid ),
+         .m_axi_awaddr  (s_axi_tproc_awaddr  ),
+         .m_axi_awprot  (s_axi_tproc_awprot  ),
+         .m_axi_awready (s_axi_tproc_awready ),
+         .m_axi_awvalid (s_axi_tproc_awvalid ),
+         .m_axi_bready  (s_axi_tproc_bready  ),
+         .m_axi_bresp   (s_axi_tproc_bresp   ),
+         .m_axi_bvalid  (s_axi_tproc_bvalid  ),
+         .m_axi_rdata   (s_axi_tproc_rdata   ),
+         .m_axi_rready  (s_axi_tproc_rready  ),
+         .m_axi_rresp   (s_axi_tproc_rresp   ),
+         .m_axi_rvalid  (s_axi_tproc_rvalid  ),
+         .m_axi_wdata   (s_axi_tproc_wdata   ),
+         .m_axi_wready  (s_axi_tproc_wready  ),
+         .m_axi_wstrb   (s_axi_tproc_wstrb   ),
+         .m_axi_wvalid  (s_axi_tproc_wvalid  )
+      );
+   `else
+      // <<<<<<<<<<<< PULP PLATFORM AXI VIP
+      AXI_LITE #(
+         .AXI_ADDR_WIDTH ( 8      ),
+         .AXI_DATA_WIDTH ( 32     )
+      ) axi_mst_tproc_IF ();
+      AXI_LITE_DV #(
+         .AXI_ADDR_WIDTH ( 8       ),
+         .AXI_DATA_WIDTH ( 32      )
+      ) axi_mst_tproc_dv_IF (ps_clk);
+      `ifdef VERILATOR
+      `AXI_LITE_ASSIGN(axi_mst_tproc_IF, axi_mst_tproc_dv_IF)
+      `endif
 
-         assign s_axi_tproc_araddr        = axi_mst_tproc_IF.ar_addr  ; /* TPROC  input */
-         assign s_axi_tproc_arprot        = axi_mst_tproc_IF.ar_prot  ; /* TPROC  input */
-         assign s_axi_tproc_arvalid       = axi_mst_tproc_IF.ar_valid ; /* TPROC  input */
-         assign axi_mst_tproc_IF.ar_ready = s_axi_tproc_arready       ; /* TPROC output */
+      assign s_axi_tproc_araddr        = axi_mst_tproc_IF.ar_addr  ; /* TPROC  input */
+      assign s_axi_tproc_arprot        = axi_mst_tproc_IF.ar_prot  ; /* TPROC  input */
+      assign s_axi_tproc_arvalid       = axi_mst_tproc_IF.ar_valid ; /* TPROC  input */
+      assign axi_mst_tproc_IF.ar_ready = s_axi_tproc_arready       ; /* TPROC output */
 
-         assign s_axi_tproc_awaddr        = axi_mst_tproc_IF.aw_addr  ; /* TPROC  input */
-         assign s_axi_tproc_awprot        = axi_mst_tproc_IF.aw_prot  ; /* TPROC  input */
-         assign s_axi_tproc_awvalid       = axi_mst_tproc_IF.aw_valid ; /* TPROC  input */
-         assign axi_mst_tproc_IF.aw_ready = s_axi_tproc_awready       ; /* TPROC output */
+      assign s_axi_tproc_awaddr        = axi_mst_tproc_IF.aw_addr  ; /* TPROC  input */
+      assign s_axi_tproc_awprot        = axi_mst_tproc_IF.aw_prot  ; /* TPROC  input */
+      assign s_axi_tproc_awvalid       = axi_mst_tproc_IF.aw_valid ; /* TPROC  input */
+      assign axi_mst_tproc_IF.aw_ready = s_axi_tproc_awready       ; /* TPROC output */
 
-         assign axi_mst_tproc_IF.b_resp   = s_axi_tproc_bresp         ; /* TPROC output */
-         assign axi_mst_tproc_IF.b_valid  = s_axi_tproc_bvalid        ; /* TPROC output */
-         assign s_axi_tproc_bready        = axi_mst_tproc_IF.b_ready  ; /* TPROC  input */
+      assign axi_mst_tproc_IF.b_resp   = s_axi_tproc_bresp         ; /* TPROC output */
+      assign axi_mst_tproc_IF.b_valid  = s_axi_tproc_bvalid        ; /* TPROC output */
+      assign s_axi_tproc_bready        = axi_mst_tproc_IF.b_ready  ; /* TPROC  input */
 
-         assign axi_mst_tproc_IF.r_resp   = s_axi_tproc_rresp         ; /* TPROC output */
-         assign axi_mst_tproc_IF.r_valid  = s_axi_tproc_rvalid        ; /* TPROC output */
-         assign axi_mst_tproc_IF.r_data   = s_axi_tproc_rdata         ; /* TPROC output */
-         assign s_axi_tproc_rready        = axi_mst_tproc_IF.r_ready  ; /* TPROC  input */
+      assign axi_mst_tproc_IF.r_resp   = s_axi_tproc_rresp         ; /* TPROC output */
+      assign axi_mst_tproc_IF.r_valid  = s_axi_tproc_rvalid        ; /* TPROC output */
+      assign axi_mst_tproc_IF.r_data   = s_axi_tproc_rdata         ; /* TPROC output */
+      assign s_axi_tproc_rready        = axi_mst_tproc_IF.r_ready  ; /* TPROC  input */
 
-         assign s_axi_tproc_wdata         = axi_mst_tproc_IF.w_data   ; /* TPROC  input */
-         assign s_axi_tproc_wstrb         = axi_mst_tproc_IF.w_strb   ; /* TPROC  input */
-         assign s_axi_tproc_wvalid        = axi_mst_tproc_IF.w_valid  ; /* TPROC  input */
-         assign axi_mst_tproc_IF.w_ready  = s_axi_tproc_wready        ; /* TPROC output */
-      end
-   endgenerate
+      assign s_axi_tproc_wdata         = axi_mst_tproc_IF.w_data   ; /* TPROC  input */
+      assign s_axi_tproc_wstrb         = axi_mst_tproc_IF.w_strb   ; /* TPROC  input */
+      assign s_axi_tproc_wvalid        = axi_mst_tproc_IF.w_valid  ; /* TPROC  input */
+      assign axi_mst_tproc_IF.w_ready  = s_axi_tproc_wready        ; /* TPROC output */
+   `endif
 
    // Instantiate Axis Qick Processor and connect AXI ports to internal wires
    axis_qick_processor #(
@@ -596,8 +593,7 @@ module qick_dut #(
 
    // Signal Generator Components
 
-   generate;
-      if (EMULATOR == 0) begin: gen_axi_sg_vip
+   `ifndef VERILATOR
          // <<<<<<<<<<<< XILINX AXI VIP
          axi_mst_0 u_axi_mst_sg_0 (
             .aclk          (ps_clk           ),
@@ -622,8 +618,7 @@ module qick_dut #(
             .m_axi_wstrb   (s_axi_sg_wstrb   ),
             .m_axi_wvalid  (s_axi_sg_wvalid  )
          );
-      end
-      else begin: gen_axi_sg_emu
+      `else
          // <<<<<<<<<<<< PULP PLATFORM AXI VIP
          AXI_LITE #(
             .AXI_ADDR_WIDTH ( 6      ),
@@ -659,12 +654,11 @@ module qick_dut #(
          assign s_axi_sg_wstrb         = axi_mst_sg_IF.w_strb   ; /* SG  input */
          assign s_axi_sg_wvalid        = axi_mst_sg_IF.w_valid  ; /* SG  input */
          assign axi_mst_sg_IF.w_ready  = s_axi_sg_wready        ; /* SG output */
-      end
-   endgenerate
+      `endif
 
    // CDC for signal generator
    axis_cdcsync_v1 #(
-      .N                         (1),     // Number of inputs/outputs.
+      .N                         (2),     // Number of inputs/outputs.
       .B                         (168),   // Number of data bits.
       // ++++++++++++ ADD EMULATOR PARAMETER
       .EMULATOR                  (EMULATOR)
@@ -1193,8 +1187,7 @@ module qick_dut #(
    wire  [3:0]       s_axi_avg0_wstrb;
    wire              s_axi_avg0_wvalid;
 
-   generate
-      if (EMULATOR == 0) begin: gen_axi_avg0_vip
+   `ifndef VERILATOR
          // <<<<<<<<<<<< XILINX AXI VIP
          axi_mst_0 u_axi_mst_avg_0 (
             .aresetn       (ps_resetn           ),
@@ -1219,8 +1212,7 @@ module qick_dut #(
             .m_axi_wstrb   (s_axi_avg0_wstrb     ),
             .m_axi_wvalid  (s_axi_avg0_wvalid    )
          );
-      end
-      else begin: gen_axi_avg0_emu
+      `else
          // PULP PLATFORM AXI VIP
          AXI_LITE #(
             .AXI_ADDR_WIDTH ( 6      ),
@@ -1256,8 +1248,7 @@ module qick_dut #(
          assign s_axi_avg0_wstrb         = axi_mst_avg0_IF.w_strb   ; /* AVG  input */
          assign s_axi_avg0_wvalid        = axi_mst_avg0_IF.w_valid  ; /* AVG  input */
          assign axi_mst_avg0_IF.w_ready  = s_axi_avg0_wready        ; /* AVG output */
-      end
-   endgenerate
+      `endif
 
    // Readout0 Buffer Averaged Data AXIS
    logic                     m0_axis_buf0_avg_tvalid;
@@ -1383,8 +1374,7 @@ module qick_dut #(
    wire  [3:0]       s_axi_rov2_wstrb;
    wire              s_axi_rov2_wvalid;
 
-   generate
-      if (EMULATOR == 0) begin: gen_axi_rov2_vip
+   `ifndef VERILATOR
          // <<<<<<<<<<<< XILINX AXI VIP
          axi_mst_0 u_axi_mst_rov2_0 (
             .aresetn       (ps_resetn           ),
@@ -1409,8 +1399,7 @@ module qick_dut #(
             .m_axi_wstrb   (s_axi_rov2_wstrb     ),
             .m_axi_wvalid  (s_axi_rov2_wvalid    )
          );
-      end
-      else begin: gen_axi_rov2_emu
+      `else
          // PULP PLATFORM AXI VIP
          AXI_LITE #(
             .AXI_ADDR_WIDTH ( 6      ),
@@ -1446,11 +1435,10 @@ module qick_dut #(
          assign s_axi_rov2_wstrb         = axi_mst_rov2_IF.w_strb   ; /* ROV2  input */
          assign s_axi_rov2_wvalid        = axi_mst_rov2_IF.w_valid  ; /* ROV2  input */
          assign axi_mst_rov2_IF.w_ready  = s_axi_rov2_wready        ; /* ROV2 output */
-      end
-   endgenerate
+      `endif
 
-generate;
-if (!EMULATOR) begin: gen_assert_axi_rov2_vip
+   `ifndef VERILATOR
+
    // Readout_v2 PYNQ configured
    axis_readout_v2 u_axis_readout_v2 (
       // AXI Slave I/F for configuration.
@@ -1491,9 +1479,7 @@ if (!EMULATOR) begin: gen_assert_axi_rov2_vip
       .m1_axis_tvalid    (axis_ro1_avg1_tvalid  ),
       .m1_axis_tdata     (axis_ro1_avg1_tdata   )
    );
-end
-endgenerate
-
+   `endif
 
    wire              axis_ro1_avg1_tready;
    wire              axis_ro1_avg1_tvalid;
@@ -1520,8 +1506,7 @@ endgenerate
    wire  [3:0]       s_axi_avg1_wstrb;
    wire              s_axi_avg1_wvalid;
 
-   generate
-      if (EMULATOR == 0) begin: gen_axi_avg1_vip
+   `ifndef VERILATOR
          // <<<<<<<<<<<< XILINX AXI VIP
          axi_mst_0 u_axi_mst_avg_1 (
             .aresetn       (ps_resetn           ),
@@ -1546,8 +1531,7 @@ endgenerate
             .m_axi_wstrb   (s_axi_avg1_wstrb     ),
             .m_axi_wvalid  (s_axi_avg1_wvalid    )
          );
-      end
-      else begin: gen_axi_avg1_emu
+      `else
          // PULP PLATFORM AXI VIP
          AXI_LITE #(
             .AXI_ADDR_WIDTH ( 6      ),
@@ -1583,8 +1567,7 @@ endgenerate
          assign s_axi_avg1_wstrb         = axi_mst_avg1_IF.w_strb   ; /* AVG  input */
          assign s_axi_avg1_wvalid        = axi_mst_avg1_IF.w_valid  ; /* AVG  input */
          assign axi_mst_avg1_IF.w_ready  = s_axi_avg1_wready        ; /* AVG output */
-      end
-   endgenerate
+      `endif
 
    // Readout0 Buffer Averaged Data AXIS
    logic                     m0_axis_buf1_avg_tvalid;

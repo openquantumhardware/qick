@@ -48,6 +48,32 @@
       "version": "1.0",
       "phys_addr": 17181704192,
       "addr_range": 64
+    },
+    {
+      "b_dds": 32,
+      "b_phase": 32,
+      "complex_env": true,
+      "dac": "01",
+      "f_dds": 9584.64,
+      "f_fabric": 599.04,
+      "fdds_div": 1,
+      "fs": 9584.64,
+      "fs_div": 1,
+      "fs_mult": 39,
+      "fullpath": "axis_signal_gen_v6_1",
+      "has_dds": true,
+      "has_mixer": false,
+      "interpolation": 1,
+      "maxlen": 16384,
+      "maxv": 32766,
+      "maxv_scale": 1.0,
+      "revision": 4,
+      "samps_per_clk": 16,
+      "tproc_ch": 1,
+      "type": "axis_signal_gen_v6",
+      "version": "1.0",
+      "phys_addr": 17181769728,
+      "addr_range": 64
     }
   ],
   "iqs": [],
@@ -167,6 +193,20 @@
           0
         ],
         "interpolation": 1
+      },
+      "01": {
+        "coupling": "AC",
+        "datapath": 4,
+        "f_fabric": 599.04,
+        "f_ref": 245.76,
+        "fs": 9584.64,
+        "fs_div": 1,
+        "fs_mult": 39,
+        "index": [
+          0,
+          1
+        ],
+        "interpolation": 1
       }
     },
     "fullpath": "usp_rf_data_converter_0",
@@ -194,7 +234,8 @@
       "dac": {
         "0": {
           "blocks": [
-            "00"
+            "00",
+            "01"
           ],
           "coupling": "AC",
           "f_fabric": 599.04,

@@ -23,7 +23,7 @@
 // Then set EMU_DIR to your "emulator/" directory and simulate.
 //////////////////////////////////////////////////////////////////////////////
 
-`timescale 1ns/1fs
+`timescale 1ns/1ps
 
 `include "_qproc_defines.svh"
 

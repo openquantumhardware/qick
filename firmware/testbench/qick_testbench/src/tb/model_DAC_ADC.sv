@@ -56,16 +56,22 @@ module model_ADC #(
 
    // DAC processing
    always @(posedge clk_DAC) begin
-      real t_dac = $realtime * 1e-9;
+      real t_dac = $realtime /* * 1e-9*/;
 
       buffer_samples[wr_ptr] = dac_signal_rf;
       buffer_times[wr_ptr] = t_dac;
       wr_ptr = (wr_ptr + 1) % BUFFER_SIZE;
    end
 
+   // // To see buffer in Verilator
+   // real buf_time_0 = buffer_times[0];
+   // real buf_time_1 = buffer_times[1];
+   // real buf_time_2 = buffer_times[2];
+   // real buf_time_3 = buffer_times[3];
+
    // ADC processing
    always @(posedge clk_ADC) begin
-      real t_adc = $realtime * 1e-9;
+      real t_adc = $realtime /* * 1e-9*/;
       real val;
       case (mode)
          0: begin

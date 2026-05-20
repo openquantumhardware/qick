@@ -7,9 +7,7 @@
 //   Dynamically replays AXI transactions and loads memories from QickEmu.
 //////////////////////////////////////////////////////////////////////////////
 
-`timescale 1ns/1fs
-
-`include "_qproc_defines.svh"
+`timescale 1ns/1ps
 
 // <<<<<<<<<<<< XILINX VIP PACKAGES
 // import axi_vip_pkg::*;
@@ -67,11 +65,9 @@ localparam real T_TCLK          =  1.162;      // Half Clock Period for tProc Di
 localparam real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
 localparam real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
 
-// localparam real T_SG_CLK        =  0.833;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
-localparam real T_SG_CLK        =  0.8346688;  // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+localparam real T_SG_CLK        =  0.833;      // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
 
-// localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
-localparam real T_RO_CLK        =  1.62760416; // Half Clock Period for Readout (307.2MHz — ZCU216 RFDC)
+localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -135,12 +131,20 @@ int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 
 // localparam integer SG_BASE_HI  = 40'h40120000;
 // localparam integer AVG_BASE_LO = 40'h40130000;
 // localparam integer AVG_BASE_HI = 40'h40260000;
+// // QICKEMU_DUT Address Map
+// localparam integer TPROC_BASE  = 40'h400260000;
+// localparam integer SG_BASE_LO  = 40'h4001C0000;  // 1 gen IP(s)
+// localparam integer SG_BASE_HI  = 40'h4001D0000;
+// localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
+// localparam integer AVG_BASE_HI = 40'h400070000;
+
 // QICKEMU_DUT Address Map
 localparam integer TPROC_BASE  = 40'h400260000;
-localparam integer SG_BASE_LO  = 40'h4001C0000;  // 1 gen IP(s)
-localparam integer SG_BASE_HI  = 40'h4001D0000;
+localparam integer SG_BASE_LO  = 40'h4001C0000;  // 2 gen IP(s)
+localparam integer SG_BASE_HI  = 40'h4001E0000;
 localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
 localparam integer AVG_BASE_HI = 40'h400070000;
+
 
 // VIP Agents
 
@@ -907,13 +911,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // -----------------------------------------------------------------------------
    // CSV Output Logging.
    //
-   // dac_out.csv — one row per sg_clk with axis_sg0_dac0_tvalid, N_DDS lanes.
+   // dacN_out.csv — one row per sg_clk with axis_sg0_dac0_tvalid, N_DDS lanes.
    // avg_out.csv — one row per averaged I/Q sample from avg_buffer m0.
    // dec_out.csv — one row per decimated I/Q sample from avg_buffer m1.
    // mr_out.csv  — one row per ro_clk while axis_ro0_mrbuf_tvalid, 8 I/Q lanes
    //               (post-downconversion, pre-FIR). Capped by +MR_LEN plusarg.
    // -----------------------------------------------------------------------------
    integer dac_csv_fd;
+   integer dac1_csv_fd;
    integer avg_csv_fd;
    integer dec_csv_fd;
    integer mr_csv_fd;
@@ -921,6 +926,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    initial begin
       string dac_csv_path;
+      string dac1_csv_path;
       string avg_csv_path;
       string dec_csv_path;
       string mr_csv_path;
@@ -928,12 +934,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       #0;  // yield so the plusarg initial block runs first
 
       dac_csv_path = {EMU_DIR, "/dac_out.csv"};
+      dac1_csv_path = {EMU_DIR, "/dac_out_ch1.csv"};
       avg_csv_path = {EMU_DIR, "/avg_out.csv"};
       dec_csv_path = {EMU_DIR, "/dec_out.csv"};
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
       $display("### Opening CSV: %s ###", dac_csv_path);
       dac_csv_fd = $fopen(dac_csv_path, "w");
+      dac1_csv_fd = $fopen(dac1_csv_path, "w");
       avg_csv_fd = $fopen(avg_csv_path, "w");
       dec_csv_fd = $fopen(dec_csv_path, "w");
       mr_csv_fd  = $fopen(mr_csv_path, "w");
@@ -941,6 +949,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fwrite(dac_csv_fd, "time_ps");
       for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac_csv_fd, ",s%0d", i);
       $fwrite(dac_csv_fd, "\n");
+      $fwrite(dac1_csv_fd, "time_ps");
+      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac1_csv_fd, ",s%0d", i);
+      $fwrite(dac1_csv_fd, "\n");
       $fwrite(avg_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec_csv_fd, "time_ps,I,Q\n");
       $fwrite(mr_csv_fd, "time_ps");
@@ -954,6 +965,15 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          for (int i = 0; i < N_DDS_SG; i++)
             $fwrite(dac_csv_fd, ",%0d", $signed(axis_sg0_dac0_tdata[16*i +: 16]));
          $fwrite(dac_csv_fd, "\n");
+      end
+   end
+
+   always @(posedge sg_clk) begin
+      if (axis_sg1_dac1_tvalid) begin
+         $fwrite(dac1_csv_fd, "%0t", $realtime);
+         for (int i = 0; i < N_DDS_SG; i++)
+            $fwrite(dac1_csv_fd, ",%0d", $signed(axis_sg1_dac1_tdata[16*i +: 16]));
+         $fwrite(dac1_csv_fd, "\n");
       end
    end
 
@@ -1052,18 +1072,18 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(qick_dut.gen_axi_tproc_emu.axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(qick_dut.gen_axi_sg_emu.axi_mst_sg_dv_IF,        "axi_mst_sg VIP Agent"    );
-      axi_mst_avg0_agent   = new(qick_dut.gen_axi_avg0_emu.axi_mst_avg0_dv_IF,    "axi_mst_avg0 VIP Agent"  );
-      axi_mst_avg1_agent   = new(qick_dut.gen_axi_avg1_emu.axi_mst_avg1_dv_IF,    "axi_mst_avg1 VIP Agent"  );
-      axi_mst_rov2_agent   = new(qick_dut.gen_axi_rov2_emu.axi_mst_rov2_dv_IF,    "axi_mst_rov2 VIP Agent"  );
+      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_dv_IF,  "axi_mst_tproc VIP Agent" );
+      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_dv_IF,        "axi_mst_sg VIP Agent"    );
+      axi_mst_avg0_agent   = new(qick_dut.axi_mst_avg0_dv_IF,    "axi_mst_avg0 VIP Agent"  );
+      axi_mst_avg1_agent   = new(qick_dut.axi_mst_avg1_dv_IF,    "axi_mst_avg1 VIP Agent"  );
+      // axi_mst_rov2_agent   = new(qick_dut.axi_mst_rov2_dv_IF,    "axi_mst_rov2 VIP Agent"  );
 
       // initialize agent signals to '0.
       axi_mst_tproc_agent.reset();
       axi_mst_sg_agent.reset();
       axi_mst_avg0_agent.reset();
       axi_mst_avg1_agent.reset();
-      axi_mst_rov2_agent.reset();
+      // axi_mst_rov2_agent.reset();
 
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
@@ -1154,6 +1174,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       $display("### %0t - Closing CSV files ###", $realtime);
       $fclose(dac_csv_fd);
+      $fclose(dac1_csv_fd);
       $fclose(avg_csv_fd);
       $fclose(dec_csv_fd);
       $fclose(mr_csv_fd);

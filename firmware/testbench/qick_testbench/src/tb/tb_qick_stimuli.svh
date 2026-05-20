@@ -62,11 +62,11 @@ end
 initial begin
 
    // Create agents.
-   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.gen_axi_tproc_vip.u_axi_mst_tproc_0.inst.IF);
-   axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.gen_axi_sg_vip.u_axi_mst_sg_0.inst.IF);
-   axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.gen_axi_avg0_vip.u_axi_mst_avg_0.inst.IF);
-   axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.gen_axi_avg1_vip.u_axi_mst_avg_1.inst.IF);
-   axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.gen_axi_rov2_vip.u_axi_mst_rov2_0.inst.IF);
+   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.u_axi_mst_tproc_0.inst.IF);
+   axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_sg_0.inst.IF);
+   axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
+   axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_1.inst.IF);
+   axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_rov2_0.inst.IF);
 
    axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
 

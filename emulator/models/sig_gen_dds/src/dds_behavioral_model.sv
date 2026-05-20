@@ -51,7 +51,6 @@ assign phase_inc    = s_axis_phase_tdata[31:0];
 assign phase_seed   = s_axis_phase_tdata[63:32];
 assign sync         = s_axis_phase_tdata[64];
 
-assign m_axis_data_tvalid = 1;
 
 // --------- PHASE ACCUMULATOR -------------------
 always_ff @(posedge aclk) begin
@@ -109,28 +108,17 @@ end
     wire [15:0] tdata_imag = m_axis_data_tdata[31:16];
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
-    logic                   started    = 1'b0;
+    // logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
-        if (!started) begin
-            valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], s_axis_phase_tvalid};
-
-            // When the delayed valid finally goes high once, we've completed
-            // the initial DDS_LATENCY cycles of "startup".
-            if (valid_pipe[DDS_LATENCY-1]) begin
-                started <= 1'b1;
-            end
+        if (!s_axis_phase_tvalid) begin
+            valid_pipe <= '0; // reset the valid pipeline when input is not valid
         end
-        // else begin
-        //     valid_pipe <= valid_pipe;
-        // end
+        else begin
+            valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], 1'b1}; // shift in 1's when input is valid
+        end
     end
 
-    // Before startup: tvalid is the delayed version (first high after DDS_LATENCY cycles).
-    // After startup: tvalid = s_axis_phase_tvalid (no extra latency, and still 0 when input is 0).
-    assign m_axis_data_tvalid = started ? s_axis_phase_tvalid
-                                        : valid_pipe[DDS_LATENCY-1];
-
-
+    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1];
 
 endmodule

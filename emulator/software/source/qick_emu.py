@@ -1378,21 +1378,19 @@ class QickEmu:
         seq_data = np.column_stack([data[f"s{i}"] for i in range(n_dds)]).flatten()
         
         # Reconstruct the high-resolution time array
-        # NB: the TB writes "$time" with `timescale 1ns/1fs`, so the column
-        # labelled "time_ps" actually contains *fs* counts.
         if len(data) > 1:
-            clk_period_fs = data["time_ps"][1] - data["time_ps"][0]
+            clk_period_ps = data["time_ps"][1] - data["time_ps"][0]
         else:
-            clk_period_fs = 1.6693e6  # Fallback (~1669 ps)
+            clk_period_ps = 1.6693e6  # Fallback (~1669 ps)
 
-        sample_period_fs = clk_period_fs / n_dds
+        sample_period_ps = clk_period_ps / n_dds
         # By default normalise to t=0 (TB has ~20 µs of SG-load setup time
         # before the first DAC sample). Pass absolute_time=True to opt out.
-        t_origin_fs = 0.0 if absolute_time else float(data["time_ps"][0])
-        t_fs = (data["time_ps"][0] - t_origin_fs) + np.arange(len(seq_data)) * sample_period_fs
+        t_origin_ps = 0.0 if absolute_time else float(data["time_ps"][0])
+        t_ps = (data["time_ps"][0] - t_origin_ps) + np.arange(len(seq_data)) * sample_period_ps
 
-        scale = {"fs": 1.0, "ps": 1e-3, "ns": 1e-6, "us": 1e-9, "ms": 1e-12}[time_unit]
-        t = t_fs * scale
+        scale = {"fs": 1e3, "ps": 1e0, "ns": 1e-3, "us": 1e-6, "ms": 1e-9}[time_unit]
+        t = t_ps * scale
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(12, 4))
@@ -1537,8 +1535,6 @@ class QickEmu:
             return np.array([]), np.array([])
 
         n_dds = 16
-        # NB: TB uses `timescale 1ns/1fs`, so the column labelled "time_ps"
-        # actually contains *fs* counts.
         t_rows = np.atleast_1d(data["time_ps"]).astype(float)
 
         # Estimate the sg_clk period. Verilator can quantize $time to 1 ns
@@ -1548,7 +1544,7 @@ class QickEmu:
         # biased high by the much larger inter-pulse gaps. Compromise: mean of
         # diffs within 3× the minimum — keeps every legitimate consecutive-clock
         # delta and excludes only the big idle gaps.
-        clk_period_fs = 1.6693e6  # fallback (~600 MHz sg_clk)
+        clk_period_ps = 1.6693e6  # fallback (~600 MHz sg_clk)
         if t_rows.size > 1:
             diffs = np.diff(t_rows)
             positive = diffs[diffs > 0]
@@ -1556,15 +1552,15 @@ class QickEmu:
                 min_d = float(np.min(positive))
                 close = positive[positive < 3 * min_d]
                 if close.size:
-                    clk_period_fs = float(np.mean(close))
-        sample_period_fs = clk_period_fs / n_dds
+                    clk_period_ps = float(np.mean(close))
+        sample_period_ps = clk_period_ps / n_dds
 
         # Per-row sub-sample layout: row i spans [t_row[i], t_row[i] + 16*sample_period).
         # float dtype so we can mix in zero bookends without losing precision.
         samples_2d = np.column_stack(
             [data[f"s{i}"] for i in range(n_dds)]
         ).astype(float)
-        t_2d = t_rows[:, None] + np.arange(n_dds)[None, :] * sample_period_fs
+        t_2d = t_rows[:, None] + np.arange(n_dds)[None, :] * sample_period_ps
 
         # Detect row-to-row gaps larger than one clock period. These are dead-time
         # intervals where the SG held tvalid low (no CSV row logged) but the DAC
@@ -1573,7 +1569,7 @@ class QickEmu:
         # renders the idle baseline as a flat zero line rather than a diagonal
         # joining the last sample of one pulse to the first sample of the next.
         if t_rows.size > 1:
-            gap_mask = np.diff(t_rows) > 1.5 * clk_period_fs
+            gap_mask = np.diff(t_rows) > 1.5 * clk_period_ps
         else:
             gap_mask = np.array([], dtype=bool)
 
@@ -1584,25 +1580,25 @@ class QickEmu:
                 t_chunks.append(t_2d[i])
                 s_chunks.append(samples_2d[i])
                 if i < gap_mask.size and gap_mask[i]:
-                    t_gap_lo = t_rows[i] + n_dds * sample_period_fs
-                    t_gap_hi = t_rows[i + 1] - sample_period_fs
+                    t_gap_lo = t_rows[i] + n_dds * sample_period_ps
+                    t_gap_hi = t_rows[i + 1] - sample_period_ps
                     # Guard against pathologically small gaps — shouldn't happen
                     # given the 1.5× threshold above, but cheap to check.
                     if t_gap_hi > t_gap_lo:
                         t_chunks.append(np.array([t_gap_lo, t_gap_hi]))
                         s_chunks.append(np.array([0.0, 0.0]))
-            t_fs = np.concatenate(t_chunks)
+            t_ps = np.concatenate(t_chunks)
             samples = np.concatenate(s_chunks)
         else:
-            t_fs = t_2d.flatten()
+            t_ps = t_2d.flatten()
             samples = samples_2d.flatten()
 
         # Normalise to the first sample by default — see docstring.
-        if not absolute_time and t_fs.size:
-            t_fs = t_fs - np.nanmin(t_fs)
+        if not absolute_time and t_ps.size:
+            t_ps = t_ps - np.nanmin(t_ps)
 
-        scale = {"fs": 1.0, "ps": 1e-3, "ns": 1e-6, "us": 1e-9, "ms": 1e-12}[time_unit]
-        return t_fs * scale, samples
+        scale = {"fs": 1e3, "ps": 1e0, "ns": 1e-3, "us": 1e-6, "ms": 1e-9}[time_unit]
+        return t_ps * scale, samples
 
     def load_mr(
         self,
@@ -1648,7 +1644,7 @@ class QickEmu:
         # Estimate ro_clk period from consecutive-row deltas (same trick as
         # load_dac). Verilator's $time is quantised to 1 ns, so pick the mean
         # over diffs within 3× the minimum.
-        clk_period_fs = float(1e6 / 0.3072)  # ~3.255 ns (307.2 MHz ro_clk)
+        clk_period_ps = float(1e6 / 0.3072)  # ~3.255 ns (307.2 MHz ro_clk)
         if t_rows.size > 1:
             diffs = np.diff(t_rows)
             positive = diffs[diffs > 0]
@@ -1656,19 +1652,19 @@ class QickEmu:
                 min_d = float(np.min(positive))
                 close = positive[positive < 3 * min_d]
                 if close.size:
-                    clk_period_fs = float(np.mean(close))
-        sample_period_fs = clk_period_fs / n_lanes
+                    clk_period_ps = float(np.mean(close))
+        sample_period_ps = clk_period_ps / n_lanes
 
         I = np.column_stack([data[f"I{i}"] for i in range(n_lanes)]).astype(float)
         Q = np.column_stack([data[f"Q{i}"] for i in range(n_lanes)]).astype(float)
         iq = np.stack([I.flatten(), Q.flatten()], axis=-1)
 
-        t_fs = (t_rows[:, None] + np.arange(n_lanes)[None, :] * sample_period_fs).flatten()
-        if not absolute_time and t_fs.size:
-            t_fs = t_fs - np.nanmin(t_fs)
+        t_ps = (t_rows[:, None] + np.arange(n_lanes)[None, :] * sample_period_ps).flatten()
+        if not absolute_time and t_ps.size:
+            t_ps = t_ps - np.nanmin(t_ps)
 
-        scale = {"fs": 1.0, "ps": 1e-3, "ns": 1e-6, "us": 1e-9, "ms": 1e-12}[time_unit]
-        return t_fs * scale, iq
+        scale = {"fs": 1e3, "ps": 1e0, "ns": 1e-3, "us": 1e-6, "ms": 1e-9}[time_unit]
+        return t_ps * scale, iq
 
     @staticmethod
     def _read_iq_csv(csv: pathlib.Path) -> np.ndarray:

@@ -19,15 +19,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="60.105501 us"></ZoomEndTime>
-      <Cursor1Time time="60.105500 us"></Cursor1Time>
+      <ZoomStartTime time="26,290.324 ns"></ZoomStartTime>
+      <ZoomEndTime time="26,636.180 ns"></ZoomEndTime>
+      <Cursor1Time time="35,850.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="138"></ValueColumnWidth>
+      <ValueColumnWidth column_width="134"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="9" />
+   <WVObjectSize size="18" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -1162,26 +1162,14 @@
       <obj_property name="label">model_DAC_ADC</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/mode">
-         <obj_property name="ElementShortName">mode[31:0]</obj_property>
-         <obj_property name="ObjectShortName">mode[31:0]</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/clk_DAC">
-         <obj_property name="ElementShortName">clk_DAC</obj_property>
-         <obj_property name="ObjectShortName">clk_DAC</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/dac_sample">
-         <obj_property name="ElementShortName">dac_sample[15:0]</obj_property>
-         <obj_property name="ObjectShortName">dac_sample[15:0]</obj_property>
+      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /dac0_data">
+         <obj_property name="ElementShortName">dac0_data[15:0]</obj_property>
+         <obj_property name="ObjectShortName">dac0_data[15:0]</obj_property>
          <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
          <obj_property name="CellHeight">100</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
          <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
          <obj_property name="AnalogYRangeMin">0.000000</obj_property>
          <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
@@ -1189,32 +1177,14 @@
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
       </wvobject>
-      <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/signal_in">
-         <obj_property name="ElementShortName">signal_in</obj_property>
-         <obj_property name="ObjectShortName">signal_in</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/clk_ADC">
-         <obj_property name="ElementShortName">clk_ADC</obj_property>
-         <obj_property name="ObjectShortName">clk_ADC</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/sampled_ADC">
-         <obj_property name="ElementShortName">sampled_ADC</obj_property>
-         <obj_property name="ObjectShortName">sampled_ADC</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /u_model_DAC_ADC/adc_sample">
-         <obj_property name="ElementShortName">adc_sample[13:0]</obj_property>
-         <obj_property name="ObjectShortName">adc_sample[13:0]</obj_property>
+      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /dac1_data">
+         <obj_property name="ElementShortName">dac1_data[15:0]</obj_property>
+         <obj_property name="ObjectShortName">dac1_data[15:0]</obj_property>
          <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
          <obj_property name="CellHeight">100</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
          <obj_property name="AnalogYRangeType">ANALOG_YRANGETYPE_AUTO</obj_property>
          <obj_property name="AnalogYRangeMin">0.000000</obj_property>
          <obj_property name="AnalogYRRangeMax">0.000000</obj_property>
@@ -1226,50 +1196,6 @@
    <wvobject type="group" fp_name="group1914">
       <obj_property name="label">RO_CDC_SYNC</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/s_axis_aresetn">
-         <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
-         <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/s_axis_aclk">
-         <obj_property name="ElementShortName">s_axis_aclk</obj_property>
-         <obj_property name="ObjectShortName">s_axis_aclk</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/s0_axis_tready">
-         <obj_property name="ElementShortName">s0_axis_tready</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tready</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/s0_axis_tvalid">
-         <obj_property name="ElementShortName">s0_axis_tvalid</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tvalid</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/s0_axis_tdata">
-         <obj_property name="ElementShortName">s0_axis_tdata[167:0]</obj_property>
-         <obj_property name="ObjectShortName">s0_axis_tdata[167:0]</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m0_axis_tready">
-         <obj_property name="ElementShortName">m0_axis_tready</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tready</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m0_axis_tvalid">
-         <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m0_axis_tdata">
-         <obj_property name="ElementShortName">m0_axis_tdata[167:0]</obj_property>
-         <obj_property name="ObjectShortName">m0_axis_tdata[167:0]</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m1_axis_tready">
-         <obj_property name="ElementShortName">m1_axis_tready</obj_property>
-         <obj_property name="ObjectShortName">m1_axis_tready</obj_property>
-      </wvobject>
-      <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m1_axis_tvalid">
-         <obj_property name="ElementShortName">m1_axis_tvalid</obj_property>
-         <obj_property name="ObjectShortName">m1_axis_tvalid</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_cdcsync_v1/m1_axis_tdata">
-         <obj_property name="ElementShortName">m1_axis_tdata[167:0]</obj_property>
-         <obj_property name="ObjectShortName">m1_axis_tdata[167:0]</obj_property>
-      </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group947">
       <obj_property name="label">DYN_READOUT_0</obj_property>
@@ -1510,14 +1436,6 @@
             <obj_property name="ElementShortName">[0]</obj_property>
             <obj_property name="ObjectShortName">[0]</obj_property>
          </wvobject>
-      </wvobject>
-      <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/m1_ro_avg_abs_dbg">
-         <obj_property name="ElementShortName">m1_ro_avg_abs_dbg[32:0]</obj_property>
-         <obj_property name="ObjectShortName">m1_ro_avg_abs_dbg[32:0]</obj_property>
-         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
-         <obj_property name="CellHeight">100</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="group" fp_name="group1417">
@@ -1997,5 +1915,44 @@
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/clk_fast">
+      <obj_property name="ElementShortName">clk_fast</obj_property>
+      <obj_property name="ObjectShortName">clk_fast</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/t1">
+      <obj_property name="ElementShortName">t1</obj_property>
+      <obj_property name="ObjectShortName">t1</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/t2">
+      <obj_property name="ElementShortName">t2</obj_property>
+      <obj_property name="ObjectShortName">t2</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/t_clk">
+      <obj_property name="ElementShortName">t_clk</obj_property>
+      <obj_property name="ObjectShortName">t_clk</obj_property>
+   </wvobject>
+   <wvobject type="other" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/t_clk_ovN">
+      <obj_property name="ElementShortName">t_clk_ovN</obj_property>
+      <obj_property name="ObjectShortName">t_clk_ovN</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/dout_re_dbg">
+      <obj_property name="ElementShortName">dout_re_dbg[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dout_re_dbg[15:0]</obj_property>
+      <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+      <obj_property name="CellHeight">100</obj_property>
+      <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/dout_im_dbg">
+      <obj_property name="ElementShortName">dout_im_dbg[15:0]</obj_property>
+      <obj_property name="ObjectShortName">dout_im_dbg[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/dout_cnt">
+      <obj_property name="ElementShortName">dout_cnt[2:0]</obj_property>
+      <obj_property name="ObjectShortName">dout_cnt[2:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/\tb_qick(EMULATOR=1) /qick_dut/u_axis_dyn_readout_v1_0/readout_top_i/down_conversion_fir_i/down_conversion_i/N_DDS">
+      <obj_property name="ElementShortName">N_DDS[15:0]</obj_property>
+      <obj_property name="ObjectShortName">N_DDS[15:0]</obj_property>
    </wvobject>
 </wave_config>
