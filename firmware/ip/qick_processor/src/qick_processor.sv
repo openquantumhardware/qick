@@ -306,10 +306,10 @@ always_ff @(posedge c_clk_i) begin
          qp1_dt_r     <= qp1_dt_i ;
       end else if  ( qp1_clr ) qp1_dt_new  <= 0 ;
       // Q-PERIPHERAL 2 Control
-      if       ( qp2_vld_i ) begin 
+      if       ( qp2_vld_i ) begin
          qp2_dt_new   <= 1 ;
          qp2_dt_r     <= qp2_dt_i ;
-      end else if  ( qp1_clr ) qp2_dt_new  <= 0 ;
+      end else if  ( qp2_clr ) qp2_dt_new  <= 0 ;
      
    end
 end

@@ -61,7 +61,7 @@ reg [31:0] freq_at_max;
 
 reg [63:0] temp;
 reg freq_valid_d;
-always @(posedge clk or negedge rstn) begin
+always @(posedge clk) begin
     if(!rstn) begin
         state <= IDLE;
         freq_valid <= 0;

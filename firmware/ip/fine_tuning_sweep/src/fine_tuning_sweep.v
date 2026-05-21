@@ -268,7 +268,7 @@ module ftc_sync_array #(parameter WIDTH = 1) (
     (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s0;
     (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s1;
 
-    always @(posedge clk or negedge rst_n) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             s0 <= {WIDTH{1'b0}};
             s1 <= {WIDTH{1'b0}};
@@ -296,7 +296,7 @@ module ftc_pulse_cdc (
     output reg  p_out
 );
     reg tog_src;
-    always @(posedge clk_src or negedge rst_n_src) begin
+    always @(posedge clk_src) begin
         if (!rst_n_src) tog_src <= 1'b0;
         else if (p_in)  tog_src <= ~tog_src;
     end
@@ -305,7 +305,7 @@ module ftc_pulse_cdc (
     (* ASYNC_REG = "TRUE" *) reg tog_s1;
     reg                       tog_s2;
 
-    always @(posedge clk_dst or negedge rst_n_dst) begin
+    always @(posedge clk_dst) begin
         if (!rst_n_dst) begin
             tog_s0 <= 1'b0;
             tog_s1 <= 1'b0;
@@ -347,7 +347,7 @@ module ftc_data_handshake_cdc #(parameter WIDTH = 64) (
     (* ASYNC_REG = "TRUE" *) reg ack_s1;
     wire src_idle = (req_src == ack_s1);
 
-    always @(posedge clk_src or negedge rst_n_src) begin
+    always @(posedge clk_src) begin
         if (!rst_n_src) begin
             req_src    <= 1'b0;
             data_latch <= {WIDTH{1'b0}};
@@ -371,7 +371,7 @@ module ftc_data_handshake_cdc #(parameter WIDTH = 64) (
 
     wire req_edge = (req_s1 ^ req_s2);
 
-    always @(posedge clk_dst or negedge rst_n_dst) begin
+    always @(posedge clk_dst) begin
         if (!rst_n_dst) begin
             req_s0    <= 1'b0;
             req_s1    <= 1'b0;

@@ -3,7 +3,7 @@
 // Row order = peak_finder measurement order (NOT freq order).
 // PINC_START=0  PINC_STOP=1280
 // COARSE_STEP=40  FINE_STEP=4  WINDOW=80
-// AVERAGER_VAL=3  NSAMP=256
+// AVERAGER_VAL=1  NSAMP=256
 // F0=640  GAMMA=60  A_MAX=16000  RESPONSE=peak
 // coarse_count=32  fine_count=40  used=72/128
 // expected coarse_argmax_freq=640

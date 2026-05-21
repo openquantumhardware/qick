@@ -1763,52 +1763,68 @@ initial begin
 
    $display("*** End Test ***");
 
-   // --- For test_fine_tuning_sweep: dump the algorithm result and DMEM log.
-   //     The first 80 dmem words contain the freq_word logged on each
-   //     iteration; index `r10` holds the count of log entries written.
-   //     The final answer is dmem[r10-2] (or `u_peak_finder_v2.freq_word`
-   //     when `sticky_finish=1`).
+   // --- For test_fine_tuning_sweep: dump the algorithm result.
+   //     PS-visible DMEM contract (matches Compiler.ipynb fine_tuning ASM):
+   //       dmem[0] = final freq_word
+   //       dmem[1] = 0xDEADBEEF  (done sentinel)
+   //     Plus a few internal probes for bring-up forensics; remove once
+   //     the IP is bench-validated.
    if (TEST_NAME == "test_fine_tuning_sweep") begin : ft_dump
+      logic [31:0] dmem_final;
+      logic [31:0] dmem_sentinel;
       integer dump_i;
+      dmem_final    = AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[0];
+      dmem_sentinel = AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[1];
       $display("====================== TEST RESULT =======================");
-      $display("  freq_word (final IP output)         = %0d",
-               u_fine_tuning_sweep.u_peak_finder_v2.freq_word);
-      $display("  sticky_finish (1 = algorithm done)  = %0d",
+      $display("  dmem[0] (final freq_word, PS-visible) = %0d  (0x%08h)",
+               dmem_final, dmem_final);
+      $display("  dmem[1] (done sentinel, expect DEADBEEF) = 0x%08h  %s",
+               dmem_sentinel,
+               (dmem_sentinel == 32'hDEADBEEF) ? "OK" : "MISSING");
+      $display("  sticky_finish (1 = algorithm done)    = %0d",
                u_fine_tuning_sweep.sticky_finish);
-      $display("  sticky_freq_valid                   = %0d",
+      $display("  sticky_freq_valid                     = %0d",
                u_fine_tuning_sweep.sticky_freq_valid);
-      $display("  peak_finder state (3=FINE_INIT, 0=IDLE) = %0d",
+      $display("  peak_finder state                     = %0d",
                u_fine_tuning_sweep.u_peak_finder_v2.state);
-      $display("  freq_at_max (max found during sweep) = %0d",
+      $display("  freq_at_max (IP internal)             = %0d",
                u_fine_tuning_sweep.u_peak_finder_v2.freq_at_max);
-      $display("  bypass_addr_r (mem rows consumed)   = %0d", bypass_addr_r);
-      $display("  trig_cnt (TRIGs fired by tProc)     = %0d",
-               ft_event_counters.trig_cnt);
-      $display("  amp_valid_cnt (bursts completed)    = %0d",
+      $display("  bypass_addr_r (mem rows consumed)     = %0d", bypass_addr_r);
+      $display("  trig_cnt / amp_valid_cnt              = %0d / %0d",
+               ft_event_counters.trig_cnt,
                ft_event_counters.amp_valid_cnt);
-      $display("  freq_valid_rise_cnt (IP steps)      = %0d",
+      $display("  freq_valid_rise_cnt (IP steps)        = %0d",
                ft_event_counters.freq_valid_rise_cnt);
-      $display("  r10 (tProc dmem cursor)             = %0d",
-               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[10]);
-      $display("  r11 (tProc safety cap)              = %0d",
-               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[11]);
-      $display("  r5  (last freq_word read)           = %0d",
+      $display("  r5  (last freq_word read)             = %0d",
                AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[5]);
-      $display("  r6  (last status read, bit0=fin bit1=fv) = 0x%h",
+      $display("  r6  (last status: bit0=fin bit1=fv)   = 0x%h",
                AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[6]);
-      $display("  qp2_dt_r[0] (latched freq_word resp) = %0d",
-               AXIS_QPROC.QPROC.qp2_dt_r[0]);
-      $display("  qp2_dt_r[1] (latched status resp)    = 0x%h",
-               AXIS_QPROC.QPROC.qp2_dt_r[1]);
-      $display("  qp2_dt_new                          = %0d",
+      $display("  r10 (step log cursor)                 = %0d",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.reg_bank.dreg_32_dt[10]);
+      $display("--- tProc / QPROC state at $finish ---");
+      $display("  PC (program counter)                 = %0d",
+               AXIS_QPROC.QPROC.CORE_0.CORE_CPU.PC_curr);
+      $display("  qp2_dt_new (sreg_status[11])         = %0d",
                AXIS_QPROC.QPROC.qp2_dt_new);
-      $display("  core0_src_dt (should be 5 for QPB)  = %0d",
-               AXIS_QPROC.QPROC.core0_src_dt);
-      $display("=================== DMEM LOG (first 80 words) ===================");
-      for (dump_i = 0; dump_i < 80; dump_i = dump_i + 1) begin
-         $display("  dmem[%2d] = %0d  (0x%08h)",
-                  dump_i,
-                  AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[dump_i],
+      $display("  qp2_rdy_r  (sreg_status[10])         = %0d",
+               AXIS_QPROC.QPROC.qp2_rdy_r);
+      $display("  some_fifo_full                       = %0d",
+               AXIS_QPROC.QPROC.some_fifo_full);
+      $display("  core_en                              = %0d",
+               AXIS_QPROC.QPROC.core_en);
+      $display("  qp2_dt_r[0] (latched freq_word)      = %0d",
+               AXIS_QPROC.QPROC.qp2_dt_r[0]);
+      $display("  qp2_dt_r[1] (latched status)         = 0x%h",
+               AXIS_QPROC.QPROC.qp2_dt_r[1]);
+      $display("  pb_issue_cnt[0..4]                   = %0d %0d %0d %0d %0d",
+               pb_trace.pb_op_cnt[0], pb_trace.pb_op_cnt[1],
+               pb_trace.pb_op_cnt[2], pb_trace.pb_op_cnt[3],
+               pb_trace.pb_op_cnt[4]);
+      $display("  qp2_vld_i_rise_cnt (IP responses)    = %0d",
+               pb_trace.vld_i_cnt);
+      $display("=================== STEP LOG (dmem[2..]) ====================");
+      for (dump_i = 2; dump_i < 40; dump_i = dump_i + 1) begin
+         $display("  dmem[%2d] = %0d", dump_i,
                   AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM[dump_i]);
       end
       $display("==================================================================");
@@ -1816,6 +1832,42 @@ initial begin
 
    $finish();
 end
+
+// --- Diagnostic: per-PB issue trace (test_fine_tuning_sweep).
+//     Counts rising edges of qp2_en_o per opcode and prints each PB inline so
+//     we can see exactly which ops fired, plus IP vld_i responses.
+generate
+if (1) begin : pb_trace
+   integer pb_op_cnt [0:31];
+   integer vld_i_cnt;
+   reg     en_d;
+   reg     vld_d;
+   initial begin
+      for (int i = 0; i < 32; i++) pb_op_cnt[i] = 0;
+      vld_i_cnt = 0;
+   end
+   always @(posedge c_clk) begin
+      if (!rst_ni) begin
+         en_d  <= 1'b0;
+         vld_d <= 1'b0;
+      end else if (TEST_NAME == "test_fine_tuning_sweep") begin
+         en_d  <= qp2_en_o;
+         vld_d <= qp2_vld_i;
+         if (qp2_en_o & ~en_d) begin
+            pb_op_cnt[qp2_op_o] <= pb_op_cnt[qp2_op_o] + 1;
+            $display("[%0t] PB EN op=%0d a=%0d b=%0d c=%0d d=%0d",
+                     $time, qp2_op_o, qp2_a_dt_o, qp2_b_dt_o,
+                     qp2_c_dt_o, qp2_d_dt_o);
+         end
+         if (qp2_vld_i & ~vld_d) begin
+            vld_i_cnt <= vld_i_cnt + 1;
+            $display("[%0t] QP2 VLD_I rise (IP response #%0d)",
+                     $time, vld_i_cnt + 1);
+         end
+      end
+   end
+end
+endgenerate
 
 // --- Diagnostic: count algorithm progress events for test_fine_tuning_sweep.
 //     Lightweight (no per-event $display, just counters) so the simulation
