@@ -2,26 +2,14 @@
 //------------------------------------------------------------------------------
 // fine_tuning_sweep -- dual-clock top wrapper.
 //
-//   amplitude_calculator runs in the s_axis_aclk (ADC/readout-clock) domain so
-//   snooped IQ samples are integrated natively, without per-sample CDC.
+//   amplitude_calculator runs in the s_axis_aclk (ADC/readout-clock) domain.
+//   peak_finder + QP2 opcode FSM run in the clk (c_clk / FPGA) domain.
 //
-//   peak_finder + QP2 opcode FSM run in the clk (c_clk / FPGA) domain so they
-//   stay aligned with the tProc.
-//
-//   CDCs between them:
-//     trigger          : clk  -> s_axis_aclk    (pulse, toggle-sync)
-//     reg_nsamp        : clk  -> s_axis_aclk    (slow level, 2-FF sync)
-//     reg_averager_val : clk  -> s_axis_aclk    (slow level, 2-FF sync)
-//     amplitude_data   : s_axis_aclk -> clk     (data + valid, handshake)
-//     one_burst_done   : s_axis_aclk -> clk     (pulse, toggle-sync)
-//
-// QP2 opcode map (5-bit, latched on rising edge of qtag_en_i):
-//   OP 0: dt1=start_freq dt2=stop_freq dt3=averager_value dt4=first_sweep_step
-//   OP 1: start (w_start_pulse) -- clears sticky_finish/sticky_freq_valid
-//   OP 2: read  -> dt1_o=freq_word  dt2_o={30'b0, sticky_freq_valid, sticky_finish}
-//                  -- auto-clears sticky_freq_valid
-//   OP 3: dt2=second_sweep_step dt3=second_sweep_window
-//   OP 4: dt1=nsamp                            <-- NEW (software-programmable)
+// QP2 opcode map:
+//   OP 0: dt1=nsamp                              -- one-time burst config
+//   OP 1: dt1=current_freq                       -- freq for the upcoming TRIG
+//   OP 2: IP-> dt1=freq_at_max dt2={31'd0,burst_done_sticky} -- poll burst done
+//   OP 3: (no data)                              -- reset_max pulse
 //------------------------------------------------------------------------------
 
 module fine_tuning_sweep #(
@@ -54,87 +42,47 @@ module fine_tuning_sweep #(
 );
 
     // =========================================================
-    // c_clk: QP2 opcode FSM, sticky flags, config registers
+    // c_clk: rising-edge detect on qtag_en_i
     // =========================================================
-    reg sticky_finish;
-    reg sticky_freq_valid;
-
-    wire [31:0] freq_word;
-    wire        freq_valid;
-    wire        finish;
-
     reg  en_d;
     wire en_rise = qtag_en_i & ~en_d;
-
-    reg [31:0]                 reg_start_freq;
-    reg [31:0]                 reg_stop_freq;
-    reg [$clog2(MAX_AVG)-1:0]  reg_averager_value;
-    reg [31:0]                 reg_first_sweep_step;
-    reg [31:0]                 reg_second_sweep_step;
-    reg [31:0]                 reg_second_sweep_window;
-    reg [31:0]                 reg_nsamp;     // NEW (OP 4)
-
-    wire w_start_pulse = en_rise & (qtag_op_i == 5'd1);
-    wire w_read_pulse  = en_rise & (qtag_op_i == 5'd2);
-
-    always @(posedge clk) begin
-        if (!rst_n) begin
-            sticky_finish     <= 1'b0;
-            sticky_freq_valid <= 1'b0;
-        end else if (w_start_pulse) begin
-            sticky_finish     <= 1'b0;
-            sticky_freq_valid <= 1'b0;
-        end else begin
-            if (finish)            sticky_finish     <= 1'b1;
-            if (freq_valid)        sticky_freq_valid <= 1'b1;
-            else if (w_read_pulse) sticky_freq_valid <= 1'b0;
-        end
-    end
 
     always @(posedge clk) begin
         if (!rst_n) en_d <= 1'b0;
         else        en_d <= qtag_en_i;
     end
 
+    // Named strobes -- testbench accesses these via hierarchical reference
+    wire set_current_freq_now = en_rise & (qtag_op_i == 5'd1);
+    wire reset_max_now        = en_rise & (qtag_op_i == 5'd3);
+
+    // =========================================================
+    // c_clk: config registers + QP2 opcode FSM
+    // =========================================================
+    reg [31:0] reg_nsamp;
+
+    wire [51:0] max_amplitude;
+    wire [31:0] freq_at_max;
+
     always @(posedge clk) begin
         if (!rst_n) begin
-            qtag_rdy_o              <= 1'b1;
-            qtag_vld_o              <= 1'b0;
-            qtag_dt1_o              <= 32'd0;
-            qtag_dt2_o              <= 32'd0;
-            reg_start_freq          <= 32'd0;
-            reg_stop_freq           <= 32'd0;
-            reg_averager_value      <= 0;
-            reg_first_sweep_step    <= 32'd0;
-            reg_second_sweep_step   <= 32'd0;
-            reg_second_sweep_window <= 32'd0;
-            reg_nsamp               <= 32'd256;   // safe default until OP 4 writes it
+            qtag_rdy_o <= 1'b1;
+            qtag_vld_o <= 1'b0;
+            qtag_dt1_o <= 32'd0;
+            qtag_dt2_o <= 32'd0;
+            reg_nsamp  <= 32'd256;
         end else begin
             qtag_vld_o <= 1'b0;
-
             if (en_rise) begin
                 case (qtag_op_i)
-                    5'd0: begin
-                        reg_start_freq       <= qtag_dt1_i;
-                        reg_stop_freq        <= qtag_dt2_i;
-                        reg_averager_value   <= qtag_dt3_i[$clog2(MAX_AVG)-1:0];
-                        reg_first_sweep_step <= qtag_dt4_i;
-                    end
-                    5'd1: begin
-                        // start: handled by w_start_pulse
-                    end
+                    5'd0: reg_nsamp <= qtag_dt1_i;
+                    5'd1: ; // set_current_freq_now pulse drives peak_finder directly
                     5'd2: begin
-                        qtag_dt1_o <= freq_word;
-                        qtag_dt2_o <= {30'd0, sticky_freq_valid, sticky_finish};
+                        qtag_dt1_o <= freq_at_max;
+                        qtag_dt2_o <= {31'd0, burst_done_sticky};
                         qtag_vld_o <= 1'b1;
                     end
-                    5'd3: begin
-                        reg_second_sweep_step   <= qtag_dt2_i;
-                        reg_second_sweep_window <= qtag_dt3_i;
-                    end
-                    5'd4: begin
-                        reg_nsamp <= qtag_dt1_i;
-                    end
+                    5'd3: ; // reset_max_now pulse drives peak_finder directly
                     default: ;
                 endcase
             end
@@ -144,25 +92,20 @@ module fine_tuning_sweep #(
     // =========================================================
     // CDC: c_clk -> s_axis_aclk
     // =========================================================
-    wire [31:0]                  nsamp_ro;
-    wire [$clog2(MAX_AVG)-1:0]   averager_value_ro;
-    wire                         trigger_ro;
+    localparam AVG_BITS = $clog2(MAX_AVG);
 
-    ftc_sync_array #(.WIDTH(32)) u_sync_nsamp (
+    wire [31:0]          nsamp_ro;
+    wire [AVG_BITS-1:0]  averager_value_ro = {AVG_BITS{1'b0}};
+    wire                 trigger_ro;
+
+    synchronizer #(.WIDTH(32)) u_sync_nsamp (
         .clk   (s_axis_aclk),
         .rst_n (s_axis_aresetn),
         .d_in  (reg_nsamp),
         .d_out (nsamp_ro)
     );
 
-    ftc_sync_array #(.WIDTH($clog2(MAX_AVG))) u_sync_avg (
-        .clk   (s_axis_aclk),
-        .rst_n (s_axis_aresetn),
-        .d_in  (reg_averager_value),
-        .d_out (averager_value_ro)
-    );
-
-    ftc_pulse_cdc u_trig_cdc (
+    synchronizer_pulse u_trig_cdc (
         .clk_src  (clk),
         .rst_n_src(rst_n),
         .clk_dst  (s_axis_aclk),
@@ -198,13 +141,22 @@ module fine_tuning_sweep #(
     );
 
     // =========================================================
-    // CDC: s_axis_aclk -> c_clk
+    // CDC: s_axis_aclk -> c_clk  (amplitude data + burst-done pulse)
     // =========================================================
     wire [51:0] amp_data_c;
     wire        amp_valid_c;
     wire        burst_done_c;
 
-    ftc_data_handshake_cdc #(.WIDTH(52)) u_amp_cdc (
+    synchronizer_pulse u_burst_cdc (
+        .clk_src  (s_axis_aclk),
+        .rst_n_src(s_axis_aresetn),
+        .clk_dst  (clk),
+        .rst_n_dst(rst_n),
+        .p_in     (burst_done_ro),
+        .p_out    (burst_done_c)
+    );
+
+    synchronizer_handshake #(.WIDTH(52)) u_amp_cdc (
         .clk_src  (s_axis_aclk),
         .rst_n_src(s_axis_aresetn),
         .clk_dst  (clk),
@@ -215,179 +167,40 @@ module fine_tuning_sweep #(
         .data_out (amp_data_c)
     );
 
-    ftc_pulse_cdc u_burst_cdc (
-        .clk_src  (s_axis_aclk),
-        .rst_n_src(s_axis_aresetn),
-        .clk_dst  (clk),
-        .rst_n_dst(rst_n),
-        .p_in     (burst_done_ro),
-        .p_out    (burst_done_c)
-    );
-
     // =========================================================
-    // c_clk: peak_finder
+    // c_clk: burst_done sticky flag
+    //   - cleared by OP 1 (set_current_freq_now) at the START of each step
+    //   - set by burst_done_c when amplitude_calculator finishes
+    //   Clearing on OP 1 (not OP 2) avoids any race between the clear and
+    //   burst_done_c: by the time the next OP 1 fires the current burst is
+    //   already confirmed done and burst_done_c is long gone.
     // =========================================================
-    peak_finder #(
-        .ADC_DAC_freq (64'd491520000),
-        .MAX_AVG      (64),
-        .ACCUM_WIDTH  (52)
-    ) u_peak_finder_v2 (
-        .clk                 (clk),
-        .rstn                (rst_n),
-
-        .start               (w_start_pulse),
-        .start_freq          (reg_start_freq),
-        .stop_freq            (reg_stop_freq),
-
-        .first_sweep_step    (reg_first_sweep_step),
-        .second_sweep_step   (reg_second_sweep_step),
-        .second_sweep_window (reg_second_sweep_window),
-
-        .amplitude_valid     (amp_valid_c),
-        .amplitude_data      (amp_data_c),
-        .one_sample_done     (burst_done_c),
-
-        .freq_word           (freq_word),
-        .freq_valid          (freq_valid),
-        .finish              (finish)
-    );
-
-endmodule
-
-//------------------------------------------------------------------------------
-// 2-FF synchronizer for slow-changing multi-bit signals. Caller MUST hold d_in
-// stable across enough clk_dst cycles for the sync to propagate (true here:
-// nsamp / averager_value are written once via QP2 and held).
-//------------------------------------------------------------------------------
-module ftc_sync_array #(parameter WIDTH = 1) (
-    input  wire             clk,
-    input  wire             rst_n,
-    input  wire [WIDTH-1:0] d_in,
-    output wire [WIDTH-1:0] d_out
-);
-    (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s0;
-    (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s1;
+    reg burst_done_sticky;
 
     always @(posedge clk) begin
-        if (!rst_n) begin
-            s0 <= {WIDTH{1'b0}};
-            s1 <= {WIDTH{1'b0}};
-        end else begin
-            s0 <= d_in;
-            s1 <= s0;
-        end
+        if (!rst_n)
+            burst_done_sticky <= 1'b0;
+        else if (set_current_freq_now)
+            burst_done_sticky <= 1'b0;
+        else if (burst_done_c)
+            burst_done_sticky <= 1'b1;
     end
 
-    assign d_out = s1;
-endmodule
+    // =========================================================
+    // c_clk: peak_finder (max-tracker)
+    // =========================================================
+    peak_finder #(
+        .ACCUM_WIDTH (52)
+    ) u_peak_finder_v2 (
+        .clk             (clk),
+        .rstn            (rst_n),
+        .reset_max       (reset_max_now),
+        .set_current_freq(set_current_freq_now),
+        .current_freq_i  (qtag_dt1_i),   // valid on the cycle set_current_freq_now is high
+        .amp_valid       (amp_valid_c),
+        .amp_data        (amp_data_c),
+        .max_amplitude   (max_amplitude),
+        .freq_at_max     (freq_at_max)
+    );
 
-//------------------------------------------------------------------------------
-// Pulse CDC: toggle on each input pulse on src side, 2-FF sync on dst side,
-// edge-detect to recover a one-cycle pulse.
-// Assumes p_in is a single-src-cycle pulse (true for tProc trig_X_o and for
-// amplitude_calculator's one_burst_done).
-//------------------------------------------------------------------------------
-module ftc_pulse_cdc (
-    input  wire clk_src,
-    input  wire rst_n_src,
-    input  wire clk_dst,
-    input  wire rst_n_dst,
-    input  wire p_in,
-    output reg  p_out
-);
-    reg tog_src;
-    always @(posedge clk_src) begin
-        if (!rst_n_src) tog_src <= 1'b0;
-        else if (p_in)  tog_src <= ~tog_src;
-    end
-
-    (* ASYNC_REG = "TRUE" *) reg tog_s0;
-    (* ASYNC_REG = "TRUE" *) reg tog_s1;
-    reg                       tog_s2;
-
-    always @(posedge clk_dst) begin
-        if (!rst_n_dst) begin
-            tog_s0 <= 1'b0;
-            tog_s1 <= 1'b0;
-            tog_s2 <= 1'b0;
-            p_out  <= 1'b0;
-        end else begin
-            tog_s0 <= tog_src;
-            tog_s1 <= tog_s0;
-            tog_s2 <= tog_s1;
-            p_out  <= tog_s1 ^ tog_s2;
-        end
-    end
-endmodule
-
-//------------------------------------------------------------------------------
-// Handshake CDC: transfers a wide data word + valid pulse across clock
-// domains. src latches data + toggles req on valid_in (only when idle). dst
-// 2-FF-syncs req, captures data on the req-toggle edge, emits a 1-cycle
-// valid_out, and toggles ack back. src reads ack via its own 2-FF sync and
-// returns to idle when ack matches req.
-//
-// Throughput limited to ~1 sample per 6-8 cycles total, which is fine: an
-// amplitude pulse is emitted once per (nsamp x averager_value) ADC samples.
-//------------------------------------------------------------------------------
-module ftc_data_handshake_cdc #(parameter WIDTH = 64) (
-    input  wire             clk_src,
-    input  wire             rst_n_src,
-    input  wire             clk_dst,
-    input  wire             rst_n_dst,
-    input  wire             valid_in,
-    input  wire [WIDTH-1:0] data_in,
-    output reg              valid_out,
-    output reg  [WIDTH-1:0] data_out
-);
-    // ---- src side ----
-    reg              req_src;
-    reg  [WIDTH-1:0] data_latch;
-    (* ASYNC_REG = "TRUE" *) reg ack_s0;
-    (* ASYNC_REG = "TRUE" *) reg ack_s1;
-    wire src_idle = (req_src == ack_s1);
-
-    always @(posedge clk_src) begin
-        if (!rst_n_src) begin
-            req_src    <= 1'b0;
-            data_latch <= {WIDTH{1'b0}};
-            ack_s0     <= 1'b0;
-            ack_s1     <= 1'b0;
-        end else begin
-            ack_s0 <= ack_dst;
-            ack_s1 <= ack_s0;
-            if (valid_in && src_idle) begin
-                req_src    <= ~req_src;
-                data_latch <= data_in;
-            end
-        end
-    end
-
-    // ---- dst side ----
-    (* ASYNC_REG = "TRUE" *) reg req_s0;
-    (* ASYNC_REG = "TRUE" *) reg req_s1;
-    reg                       req_s2;
-    reg                       ack_dst;
-
-    wire req_edge = (req_s1 ^ req_s2);
-
-    always @(posedge clk_dst) begin
-        if (!rst_n_dst) begin
-            req_s0    <= 1'b0;
-            req_s1    <= 1'b0;
-            req_s2    <= 1'b0;
-            ack_dst   <= 1'b0;
-            valid_out <= 1'b0;
-            data_out  <= {WIDTH{1'b0}};
-        end else begin
-            req_s0    <= req_src;
-            req_s1    <= req_s0;
-            req_s2    <= req_s1;
-            valid_out <= req_edge;
-            if (req_edge) begin
-                data_out <= data_latch;
-                ack_dst  <= req_s1;
-            end
-        end
-    end
 endmodule
