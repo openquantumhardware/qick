@@ -13,7 +13,6 @@ module dds_behavioral_model # (
     // Reserve for Parameters
     parameter int       LUT_SIZE        = 256, // Lookup Table size
     parameter int       PHASE_WIDTH     = 32, // phase width
-    parameter string    INIT_FILE       = "sine_cos_full32.hex", // ROM for LUT
     parameter int       DDS_LATENCY     = 8   // MUST MATCH DDS Compiler GUI Latency
 ) (
     input   logic        aclk, // clock at @ ??? MHz
@@ -73,17 +72,47 @@ localparam int DEPTH = (1 << LUT_ADDR_BITS);
 (* rom_style = "block", ram_style = "block" *)
 logic [31:0] rom [0:DEPTH-1];
 
+localparam real TWO_PI = 6.28318530717958647692;
+
+function automatic logic signed [15:0] real_to_q15(input real value);
+    real clamped_value;
+    int rounded_value;
+begin
+    if (value >= 1.0) begin
+        clamped_value = 0.999969482421875;
+    end else if (value < -1.0) begin
+        clamped_value = -1.0;
+    end else begin
+        clamped_value = value;
+    end
+
+    if (clamped_value >= 0.0) begin
+        rounded_value = $rtoi(clamped_value * 32767.0 + 0.5);
+    end else begin
+        rounded_value = $rtoi(clamped_value * 32767.0 - 0.5);
+    end
+
+    real_to_q15 = rounded_value;
+end
+endfunction
+
+function automatic logic [31:0] make_rom_word(input int unsigned index);
+    real theta;
+    logic signed [15:0] sine_q15;
+    logic signed [15:0] cosine_q15;
+begin
+    theta = (TWO_PI * real'(index)) / real'(DEPTH);
+    sine_q15 = real_to_q15($sin(theta));
+    cosine_q15 = real_to_q15($cos(theta));
+    make_rom_word = {sine_q15, cosine_q15};
+end
+endfunction
+
 initial begin : init_rom
     integer i;
-    integer fd;
-    fd = $fopen(INIT_FILE,"r");
-    if (fd == 0) begin
-        $fatal(1, "dds_behavioral_model(): failed to open init file '%s'", INIT_FILE);
+    for (i = 0; i < DEPTH; i++) begin
+        rom[i] = make_rom_word(i);
     end
-    $fclose(fd);
-    for (i = 0; i < DEPTH; i++) rom[i] = '0;
-    $readmemh(INIT_FILE, rom);
-    // $display("ROM init from %s: DEPTH=%0d, WIDTH=32", INIT_FILE, DEPTH);
 end
 
  // --------- DATA PIPELINE TO MATCH DDS_LATENCY -----------------

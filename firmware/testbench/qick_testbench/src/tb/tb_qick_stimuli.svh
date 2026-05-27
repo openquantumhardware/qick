@@ -2,6 +2,7 @@
 // Define Test to run
 //----------------------------------------------------
 string TEST_NAME = "test_basic_pulses";
+// string TEST_NAME = "test_pulses_phases";
 // string TEST_NAME = "test_fast_short_pulses";
 // string TEST_NAME = "test_many_envelopes";
 // string TEST_NAME = "test_tproc_basic";
@@ -259,12 +260,30 @@ initial begin
       ro_decimated_length  = 2000.0 / (2.0*T_RO_CLK);
       ro_average_length    = 1;
 
-      TEST_READ_TIME       = 10us;
+      TEST_READ_TIME       = 20us;
 
       wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
       #100ns;
 
       $display("*** %t - End of test_basic_pulses Test ***", $realtime());
+   end
+
+
+   if (TEST_NAME == "test_pulses_phases") begin
+      $display("*** %t - Start test_pulses_phases Test ***", $realtime());
+
+      TEST_RUN_TIME        = 10us;
+      TEST_READ_TIME       = 40us;
+      REPEAT_EXEC          = 1;
+
+      ro_length            = 4000.0 / (2.0*T_RO_CLK);
+      ro_decimated_length  = 4000.0 / (2.0*T_RO_CLK);
+      ro_average_length    = 10;
+
+      wait (tb_qick.qick_dut.AXIS_QPROC.t_resetn == 1'b1);
+      #100ns;
+
+      $display("*** %t - End of test_pulses_phases Test ***", $realtime());
    end
 
 

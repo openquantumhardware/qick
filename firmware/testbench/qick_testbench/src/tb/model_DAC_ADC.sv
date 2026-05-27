@@ -4,6 +4,9 @@
 // Description: 
 // DAC RF frontend model
 ///////////////////////////////////////////////////////////////////////////
+
+`timescale 1ns/1fs
+
 module model_DAC #(
    parameter integer DAC_W = 16
 )(

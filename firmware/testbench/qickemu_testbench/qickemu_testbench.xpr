@@ -738,12 +738,6 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/LUT_generator/sine_cos_full32.hex">
-        <FileInfo SFType="MIF">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../ip/qick_processor/src/verilog/axi_slv_qproc_sv.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -885,12 +879,6 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../emulator/models/fir/fir_coe.txt"/>
-      <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/LUT_generator/sine_cos_full32.hex">
-        <FileInfo SFType="MIF">
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../qick_testbench/src/tb/model_DAC_ADC.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>

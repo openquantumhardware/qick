@@ -7,7 +7,7 @@
 //   Dynamically replays AXI transactions and loads memories from QickEmu.
 //////////////////////////////////////////////////////////////////////////////
 
-`timescale 1ns/1ps
+`timescale 1ns/1fs
 
 // <<<<<<<<<<<< XILINX VIP PACKAGES
 // import axi_vip_pkg::*;
@@ -61,13 +61,13 @@ typedef axi_test::axi_lite_rand_master #(
 
 // +++++++++++++
 
-localparam real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
-localparam real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
-localparam real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
+localparam real T_TCLK_HALF          =  1.162;      // Half Clock Period for tProc Dispatcher (430 MHz)
+localparam real T_CCLK_HALF          =    2.5;      // Half Clock Period for tProc Core (200 MHz)
+localparam real T_SCLK_HALF          =    5.0;      // Half Clock Period for PS & AXI (100 MHz)
 
-localparam real T_SG_CLK        =  0.833;      // Half Clock Period for Signal Gens (600MHz — ZCU216 RFDC)
+localparam real T_SG_CLK_HALF        =  0.834669;      // Half Clock Period for Signal Gens (599.04 MHz)
 
-localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
+localparam real T_RO_CLK_HALF        =  1.627604;      // Half Clock Period for Readout (307.2 MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -195,30 +195,30 @@ logic          adc_fs, ro_clk;
 
 initial begin
   t_clk = 1'b0;
-  forever # (T_TCLK*1.0ns) t_clk = ~t_clk;
+  forever # (T_TCLK_HALF*1.0ns) t_clk = ~t_clk;
 end
 
 initial begin
   c_clk = 1'b0;
-  forever # (T_CCLK*1.0ns) c_clk = ~c_clk;
+  forever # (T_CCLK_HALF*1.0ns) c_clk = ~c_clk;
 end
 
 initial begin
   s_ps_dma_aclk = 1'b0;
   #0.5ns
-  forever # (T_SCLK*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
+  forever # (T_SCLK_HALF*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
 end
 
 initial begin
    dac_fs_gen = 'd0;
-   forever # (T_SG_CLK*1.0ns/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
+   forever # (T_SG_CLK_HALF*1.0ns/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
 end
 assign dac_fs  = dac_fs_gen[0];
 assign sg_clk  = dac_fs_gen[4];
 
 initial begin
    adc_fs_gen = 'd0;
-   forever # (T_RO_CLK*1.0ns/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
+   forever # (T_RO_CLK_HALF*1.0ns/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
 end
 assign adc_fs  = adc_fs_gen[0];
 assign ro_clk  = adc_fs_gen[3];
@@ -715,7 +715,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // assign #250ns rf_signal_valid_dly = rf_signal_valid;
    // assign #250ns rf_signal_data_dly  = rf_signal_data;
    localparam RF_DELAY_TIME_NS = 100;
-   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK/N_DDS_RO));
+   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK_HALF/N_DDS_RO));
    logic                    rf_signal_valid_dly;
    logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
    logic [N_DDS_RO*16:0] rf_delay_line [0:RF_DELAY_CYCLES-1];
@@ -930,6 +930,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       string avg_csv_path;
       string dec_csv_path;
       string mr_csv_path;
+
+      // Print times in ps
+      $timeformat(-12, 3);
 
       #0;  // yield so the plusarg initial block runs first
 

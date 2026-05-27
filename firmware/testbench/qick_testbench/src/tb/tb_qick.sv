@@ -5,7 +5,7 @@
 // Test Bench for Qick Project
 //////////////////////////////////////////////////////////////////////////////
 
-`timescale 1ns/1ps
+`timescale 1ns/1fs
 
 `include "_qproc_defines.svh"
 
@@ -39,11 +39,9 @@ real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (4
 real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
 real T_SCLK          =    5.0;      // Half Clock Period for PS & AXI (100MHz)
 
-// real T_SG_CLK     =    0.8;      // Half Clock Period for Signal Gens (625MHz)
-real T_SG_CLK        =  0.833;      // Half Clock Period for Signal Gens (600MHz)
+localparam real T_SG_CLK        =  0.834669;      // Half Clock Period for Signal Gens (600MHz)
 
-// real T_RO_CLK     =   1.66;      // Half Clock Period for Readout (300MHz)
-localparam real T_RO_CLK        =  1.627;      // Half Clock Period for Readout (307.2MHz)
+localparam real T_RO_CLK        =  1.627604;      // Half Clock Period for Readout (307.2MHz)
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
