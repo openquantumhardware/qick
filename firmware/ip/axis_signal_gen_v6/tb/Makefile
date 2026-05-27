@@ -24,7 +24,6 @@ wave:
 	gtkwave $(OBJ_DIR)/waveform.vcd
 
 sim: 
-	cp -f $(EMU_DIR)/models/sig_gen_dds/LUT_generator/*.hex .
 	./$(OBJ_DIR)/V$(TOP_MODULE)
 
 verilate: 

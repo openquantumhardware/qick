@@ -108,7 +108,6 @@ SIM_ARGS =
 # Example: make sim SIM_EMU_DIR=artifacts/00_intro/multi_pulse
 
 sim:
-	cp -f $(MODELS_DIR)/sig_gen_dds/LUT_generator/*.hex .
 	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
 	./$(OBJ_DIR)/V$(TOP_MODULE) $(if $(SIM_EMU_DIR),+EMU_DIR=$(SIM_EMU_DIR)) $(if $(TRACE),+TRACE) $(SIM_ARGS)
 

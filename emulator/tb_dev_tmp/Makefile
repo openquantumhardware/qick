@@ -100,7 +100,6 @@ wave:
 	gtkwave $(OBJ_DIR)/waveform.vcd
 
 sim: 
-	cp -f $(MODELS_DIR)/sig_gen_dds/LUT_generator/*.hex .
 	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
 #   TODO: we will likely have to copy other dependant input files here too...
 	./$(OBJ_DIR)/V$(TOP_MODULE)
