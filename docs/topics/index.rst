@@ -22,5 +22,4 @@ reference.
    changing_fs
    reference_clock
    tprocv2
-   example_code
-
+   example
