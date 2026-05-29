@@ -1775,6 +1775,58 @@ class AcquireMixin:
             for i, ro in enumerate(self.ro_chs.values()):
                 ro['trigs'] = reads_per_shot[i]
 
+    @staticmethod
+    def _is_emu_soc(soc):
+        """Return True when ``soc`` is the emulator or a compatible emulator-like object."""
+        if soc.__class__.__name__ == 'QickEmu':
+            return True
+        if hasattr(soc, 'soccfg'):
+            try:
+                if soc.soccfg['board'] == 'QICKEmu':
+                    return True
+            except Exception:
+                pass
+        return all(hasattr(soc, attr) for attr in ('prepare', 'run_verilator_tb', 'load_iq_decimated', 'load_iq_averaged')) and hasattr(soc, 'memdir')
+
+    def _run_emu_acquire(self, soc, load_envelopes=True, *, decimated=True, rounds=1, threshold=None, angle=None, remove_offset=True):
+        """Run the emulator end-to-end and load back the generated CSV outputs."""
+        emu_dir = getattr(soc, 'memdir', None)
+        if emu_dir is None and hasattr(soc, 'soc'):
+            emu_dir = getattr(soc.soc, 'memdir', None)
+        if emu_dir is None:
+            raise RuntimeError("QickEmu acquire path needs soc.memdir (set via make_soc(memdir=...)).")
+
+        round_results = []
+        for _ in range(rounds):
+            soc.prepare(self, soc=soc, memdir=emu_dir)
+            soc.export_vivado_files(memdir=emu_dir)
+            soc.run_verilator_tb(emu_dir, prog=self)
+
+            if decimated:
+                round_results.append(soc.load_iq_decimated(emu_dir, self))
+            else:
+                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True))
+
+        if decimated:
+            if rounds == 1:
+                return round_results[0]
+            return [np.mean([round_d[i] for round_d in round_results], axis=0) for i in range(len(round_results[0]))]
+
+        if rounds == 1:
+            iq_list = round_results[0]
+        else:
+            iq_list = [np.mean([round_d[i] for round_d in round_results], axis=0) for i in range(len(round_results[0]))]
+
+        if threshold is None:
+            return iq_list
+
+        raw_like = [d * ro['length'] for d, ro in zip(iq_list, self.ro_chs.values())]
+        shots = self._apply_threshold(raw_like, threshold, angle, remove_offset)
+        result = [np.zeros_like(d) for d in iq_list]
+        for i, ch_shot in enumerate(shots):
+            result[i][..., 0] = ch_shot
+        return result
+
     def get_rounds(self):
         """Get the results from each round, before averaging over rounds.
         This can be called after acquire() or acquire_decimated().
@@ -1925,6 +1977,17 @@ class AcquireMixin:
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
+
+        if self._is_emu_soc(soc):
+            return self._run_emu_acquire(
+                soc,
+                load_envelopes=load_envelopes,
+                decimated=False,
+                rounds=rounds,
+                threshold=threshold,
+                angle=angle,
+                remove_offset=remove_offset,
+            )
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
         reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
@@ -2175,6 +2238,15 @@ class AcquireMixin:
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
 
+        if self._is_emu_soc(soc):
+            return self._run_emu_acquire(
+                soc,
+                load_envelopes=load_envelopes,
+                decimated=True,
+                rounds=rounds,
+                remove_offset=remove_offset,
+            )
+
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # check that the data will fit in the buffers
@@ -2185,30 +2257,22 @@ class AcquireMixin:
 
         self.rounds_buf = []
 
-        # Check if soc board config is QICKEmu
-        if soc.soccfg['board'] == 'QICKEmu':
-            # Run simulation
+        # Execute on Board
 
-            # Load data for CSV file
-            return soc.load_iq_decimated(soc.soc.memdir, self)
+        # load the program - don't load data memory now, we'll do that later
+        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
 
-        else:
-            # Execute on Board
+        self.rounds_pbar = tqdm(total=rounds, disable=not progress)
+        self.prepare_round()
 
-            # load the program - don't load data memory now, we'll do that later
-            self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+        # if user code is going to step through the rounds, this is where we stop
+        if step_rounds: return
 
-            self.rounds_pbar = tqdm(total=rounds, disable=not progress)
+        # for each soft average, run and acquire data
+        while self.finish_round():
             self.prepare_round()
 
-            # if user code is going to step through the rounds, this is where we stop
-            if step_rounds: return
-
-            # for each soft average, run and acquire data
-            while self.finish_round():
-                self.prepare_round()
-
-            return self.finish_acquire()
+        return self.finish_acquire()
 
     def _process_decimated(self, dec_buf):
         """convert raw decimated data to the format returned by acquire_decimated()

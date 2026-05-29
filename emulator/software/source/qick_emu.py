@@ -658,6 +658,7 @@ class QickEmu:
         self.axi = recorder or AxiRecorder()
         self._results = {}
         self._start_src = "internal"
+        self._default_test_run_ns = getattr(self, "_default_test_run_ns", None)
 
         # Mock Drivers
         self.gens = [MockIpDriver(self, g['fullpath'], g['type']) for g in self.soccfg['gens']]
@@ -690,19 +691,23 @@ class QickEmu:
         # Some existing notebooks/scripts expect `emu.soc` after make_soc().
         self.soc = self
 
-    def make_soc(self, memdir: Union[str, pathlib.Path] = "tb_mem") -> "QickEmu":
+    def make_soc(self, memdir: Union[str, pathlib.Path] = "tb_mem", test_run_ns: Optional[int] = None) -> "QickEmu":
         """Reset and return this emulator as a drop-in :class:`QickSoc` replacement.
 
         Parameters
         ----------
         memdir : str or pathlib.Path
             Directory where :meth:`prepare` will write the testbench artifacts.
+        test_run_ns : int, optional
+            Default ``+TEST_RUN_NS`` used by :meth:`run_verilator_tb` when a
+            call does not override it explicitly.
 
         Returns
         -------
         QickEmu
             This same instance, ready to be passed as ``soc``.
         """
+        self._default_test_run_ns = test_run_ns
         self._reset_soc_state(memdir=memdir)
         return self
 
@@ -1245,6 +1250,9 @@ class QickEmu:
             f"+RO_AVG_LEN={int(ro_avg_len)}",
             f"+MR_LEN={int(mr_len)}",
         ]
+        if test_run_ns is None:
+            test_run_ns = getattr(self, "_default_test_run_ns", None)
+
         if test_run_ns is not None:
             plusargs.append(f"+TEST_RUN_NS={int(test_run_ns)}")
         if trace:
