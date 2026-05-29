@@ -870,7 +870,7 @@ class QickEmu:
         SocEmu
             A drop-in replacement for :class:`QickSoc`.
         """
-        return SocEmu(self.soccfg, self.raw_cfg, self.addrmap, memdir=memdir)
+        self.soc = SocEmu(self.soccfg, self.raw_cfg, self.addrmap, memdir=memdir)
 
     # Known artifact filenames that prepare()/run_verilator_tb() produce.
     # Wiped by prepare() before a new run so stale files from a prior experiment

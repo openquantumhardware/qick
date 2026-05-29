@@ -69,6 +69,8 @@ class QickConfig():
             label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
+        elif self['board']=='QICKEmu':
+            label = "QICKEmu DAC port %0d" % (block)
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
@@ -87,6 +89,8 @@ class QickConfig():
                 label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
+        elif self['board']=='QICKEmu':
+            label = "QICKEmu ADC port %0d" % (block)
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
 
     def description(self):
@@ -2181,20 +2185,30 @@ class AcquireMixin:
 
         self.rounds_buf = []
 
-        # load the program - don't load data memory now, we'll do that later
-        self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+        # Check if soc board config is QICKEmu
+        if soc.soccfg['board'] == 'QICKEmu':
+            # Run simulation
 
-        self.rounds_pbar = tqdm(total=rounds, disable=not progress)
-        self.prepare_round()
+            # Load data for CSV file
+            return soc.load_iq_decimated(soc.soc.memdir, self)
 
-        # if user code is going to step through the rounds, this is where we stop
-        if step_rounds: return
+        else:
+            # Execute on Board
 
-        # for each soft average, run and acquire data
-        while self.finish_round():
+            # load the program - don't load data memory now, we'll do that later
+            self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+
+            self.rounds_pbar = tqdm(total=rounds, disable=not progress)
             self.prepare_round()
 
-        return self.finish_acquire()
+            # if user code is going to step through the rounds, this is where we stop
+            if step_rounds: return
+
+            # for each soft average, run and acquire data
+            while self.finish_round():
+                self.prepare_round()
+
+            return self.finish_acquire()
 
     def _process_decimated(self, dec_buf):
         """convert raw decimated data to the format returned by acquire_decimated()
