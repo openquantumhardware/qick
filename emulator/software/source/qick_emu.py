@@ -147,7 +147,7 @@ class AxiTxn:
 class AxiRecorder:
     """Ordered log of AXI-Lite transactions performed against the emulated SoC.
 
-    A single recorder instance is shared by :class:`SocEmu` and all its mock
+    A single recorder instance is shared by :class:`QickEmu` and all its mock
     IP drivers; every ``reg_write`` / ``reg_read`` on the SoC adds one entry
     here. After the QICK program's ``config_all`` / ``start_tproc`` have run
     :meth:`save_jsonl` is used to dump the captured script for the
@@ -469,23 +469,23 @@ def default_addrmap_skeleton() -> AddrMap:
 # =============================================================================
 
 class MockIpDriver:
-    """Base class for the minimal IP driver stubs used by :class:`SocEmu`.
+    """Base class for the minimal IP driver stubs used by :class:`QickEmu`.
 
     Real QICK IP drivers talk to mmap'd registers on a PYNQ overlay. In the
     emulator we only need to know which IP instance a shim method is targeting
     so the resulting AXI write is tagged with the correct ``fullpath`` —
-    everything else is routed through :meth:`SocEmu.reg_write`.
+    everything else is routed through :meth:`QickEmu.reg_write`.
 
     Parameters
     ----------
-    soc : SocEmu
+    soc : QickEmu
         Parent emulated SoC (owns the :class:`AxiRecorder` and :class:`AddrMap`).
     fullpath : str
         Full hierarchical name of the IP instance.
     ip_type : str
         IP type string (matches a key in ``AddrMap.reg_defs_by_type``).
     """
-    def __init__(self, soc: 'SocEmu', fullpath: str, ip_type: str):
+    def __init__(self, soc: 'QickEmu', fullpath: str, ip_type: str):
         self.soc = soc
         self.fullpath = fullpath
         self.ip_type = ip_type
@@ -577,7 +577,7 @@ class MockTProc(MockIpDriver):
     """Mock driver for :ref:`qick_processor` / :ref:`axis_tproc_v2`.
 
     Only the register writes needed for LFSR configuration and
-    :meth:`SocEmu.start_tproc` are modelled; everything else on the real
+    :meth:`QickEmu.start_tproc` are modelled; everything else on the real
     tProc driver is a no-op or omitted.
     """
 
@@ -602,227 +602,18 @@ class MockTProc(MockIpDriver):
         self.soc.reg_write(self.fullpath, "CORE_CFG", self._core_cfg, comment=f"LFSR mode={mode} core={core}")
 
 
-# =============================================================================
-# Emulated Soc
-# =============================================================================
-
-class SocEmu:
-    """Drop-in mock for :class:`QickSoc` used by QICK programs during ``prepare()``.
-
-    ``SocEmu`` exposes the subset of :class:`QickSoc` methods that QICK
-    programs call while configuring the board (``set_nyquist``,
-    ``set_mixer_freq``, ``config_avg``, ``config_buf``, ``start_tproc``,
-    etc.). Every call is redirected to an :class:`AxiRecorder`, producing
-    a deterministic transaction log for the Verilator testbench to replay.
-
-    Parameters
-    ----------
-    soccfg : QickConfig
-        Parsed QICK configuration for the target board.
-    raw_cfg : dict
-        The raw ``qick_config_*.json`` contents (for fields not exposed by
-        :class:`QickConfig`, e.g. ``ddr4_buf``, ``mr_buf``, ``tprocs``).
-    addrmap : AddrMap
-        Address map used to resolve ``(fullpath, regname)`` to absolute
-        AXI-Lite addresses.
-    memdir : str or pathlib.Path
-        Directory where ``prepare()`` will emit ``pmem.mem`` / ``wmem.mem`` /
-        ``sgmem_ch*.mem`` / ``axi_replay.jsonl``.
-    recorder : AxiRecorder, optional
-        Externally supplied recorder. If ``None``, a new one is created.
-    """
-    def __init__(
-        self,
-        soccfg: QickConfig,
-        raw_cfg: Dict[str, Any],
-        addrmap: AddrMap,
-        memdir: Union[str, pathlib.Path],
-        recorder: Optional[AxiRecorder] = None,
-    ):
-        self.soccfg = soccfg
-        self.raw_cfg = raw_cfg
-        self.addrmap = addrmap
-        self.memdir = pathlib.Path(memdir)
-        self.memdir.mkdir(parents=True, exist_ok=True)
-        self.axi = recorder or AxiRecorder()
-        self._results = {}
-        self._start_src = "internal"
-
-        # Mock Drivers
-        self.gens = [MockIpDriver(self, g['fullpath'], g['type']) for g in soccfg['gens']]
-        
-        self.avg_bufs = []
-        for ro in soccfg['readouts']:
-            self.avg_bufs.append(MockAvgBuffer(self, ro['avgbuf_fullpath'], ro['avgbuf_type']))
-            
-        self.readouts = [MockIpDriver(self, r['ro_fullpath'], r['ro_type']) for r in soccfg['readouts']]
-        
-        if 'ddr4_buf' in self.raw_cfg:
-            self.ddr4_buf = MockDDR4Buffer(self, self.raw_cfg['ddr4_buf']['fullpath'], self.raw_cfg['ddr4_buf']['type'])
-
-        if 'mr_buf' in self.raw_cfg:
-            self.mr_buf = MockIpDriver(self, self.raw_cfg['mr_buf']['fullpath'], self.raw_cfg['mr_buf']['type'])
-
-        tproc_cfg = self.raw_cfg['tprocs'][0]
-        tproc_path = tproc_cfg.get('fullpath', 'qick_processor_0')
-        self.tproc = MockTProc(self, tproc_path, tproc_cfg['type'])
-
-        self._pfb_readouts: Dict[str, MockPFBReadout] = {}
-        for ro in soccfg['readouts']:
-            if 'pfb_readout' in ro['ro_type']:
-                pfb = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
-                self._pfb_readouts[ro['ro_fullpath']] = pfb
-
-    def __getitem__(self, key):
-        return self.soccfg[key]
-
-    # ---- QickSoc Shim Methods ----
-
-    def set_nyquist(self, ch, nqz, force=False):
-        """Mirror :meth:`QickSoc.set_nyquist`: log the Nyquist-zone write for generator ``ch``."""
-        gen = self.gens[ch]
-        self.reg_write(gen.fullpath, "NQZ", int(nqz))
-
-    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True, force=False):
-        """Mirror :meth:`QickSoc.set_mixer_freq`: log the DAC mixer-frequency write for generator ``ch``."""
-        gen = self.gens[ch]
-        self.reg_write(gen.fullpath, "MIXER_FREQ", int(f))
-
-    def config_mux_gen(self, ch, tones):
-        """Program per-tone frequency registers for a mux signal generator.
-
-        Parameters
-        ----------
-        ch : int
-            Generator channel index.
-        tones : list of dict
-            One dict per mux tone. ``freq_int`` is the integer frequency
-            word the hardware expects.
-        """
-        gen = self.gens[ch]
-        BASE_TONE_REG = 0x40
-        for i, tone in enumerate(tones):
-            reg_offset = BASE_TONE_REG + (i * 16)
-            try:
-                base = self.addrmap.base_addrs[gen.fullpath]
-                addr = base + reg_offset
-                self.axi.write(addr, tone['freq_int'], comment=f"Gen{ch} Tone{i} Freq")
-            except KeyError:
-                self.axi.write(0xFFFFFFFF, tone['freq_int'], comment=f"UNRESOLVED Gen{ch} Tone{i}")
-
-    def configure_readout(self, ch, ro_regs):
-        """Mirror :meth:`QickSoc.configure_readout`: push the program-generated readout register values."""
-        ro = self.readouts[ch]
-        if 'ro_len' in ro_regs:
-            self.reg_write(ro.fullpath, "RO_LEN", ro_regs['ro_len'])
-
-    def config_mux_readout(self, pfbpath, cfgs, sel=None):
-        """Configure a PFB readout: set OUTSEL (if supported) and one NCO per tone.
-
-        Parameters
-        ----------
-        pfbpath : str
-            Full hierarchical name of the PFB readout instance.
-        cfgs : list of dict
-            One dict per tone (as produced by QICK's PFB readout helpers).
-        sel : {'product', 'input', 'dds', None}
-            Output selection. Only supported on ``axis_pfb_readout_v2``; raise
-            on other variants if non-None.
-        """
-        pfb = self._pfb_readouts[pfbpath]
-        if pfb.HAS_OUTSEL:
-            if sel is None: sel = 'product'
-            pfb.set_out(sel)
-        else:
-            if sel is not None:
-                raise RuntimeError("this readout doesn't support configuring sel, you have sel=%s" % (sel))
-        for cfg in cfgs:
-            pfb.set_freq_int(cfg)
-
-    def config_avg(self, ch, **kwargs):
-        """Forward accumulated-buffer config to :meth:`MockAvgBuffer.config_avg`."""
-        self.avg_bufs[ch].config_avg(**kwargs)
-
-    def config_buf(self, ch, **kwargs):
-        """Forward decimated-buffer config to :meth:`MockAvgBuffer.config_buf`."""
-        self.avg_bufs[ch].config_buf(**kwargs)
-
-    def enable_buf(self, ch, enable_avg=True, enable_buf=True):
-        """Forward buffer-enable to :meth:`MockAvgBuffer.enable`."""
-        self.avg_bufs[ch].enable(avg=enable_avg, buf=enable_buf)
-
-    def arm_ddr4(self, ch, nt, force_overwrite=False):
-        """Arm the DDR4 capture buffer (no-op if the board has no ``ddr4_buf``)."""
-        if hasattr(self, 'ddr4_buf'):
-            self.ddr4_buf.arm(nt, force_overwrite)
-
-    def load_envelope(self, ch, data, addr):
-        """No-op: envelopes are loaded from ``sgmem_ch*.mem`` in the TB, not at configure time."""
-        pass
-
-    def load_weights(self, ch, data, addr=0):
-        """No-op: readout weights are not modelled in the current testbench."""
-        pass
-
-    def load_bin_program(self, binprog, load_mem=True):
-        """No-op: the compiled program is loaded from ``pmem.mem`` / ``dmem.mem`` by the TB."""
-        pass
-
-    def start_tproc(self):
-        """Mirror :meth:`QickSoc.start_tproc`: start processor execution by writing to the CTRL register."""
-        path = self.raw_cfg['tprocs'][0].get('fullpath', "qick_processor_0")
-        self.reg_write(path, "CTRL", (0x01 << 2), comment="PROC_START (bit 2)")
-
-    def start_src(self, mode: str):
-        """Record the configured start source; not otherwise used by the emulator."""
-        self._start_src = mode
-
-    def stop_tproc(self, lazy=False):
-        """No-op: the TB runs for a fixed ``TEST_RUN_TIME`` regardless."""
-        pass
-
-    def reg_write(self, fullpath: str, regname: str, value: int, comment: str = ""):
-        """Resolve ``(fullpath, regname)`` through :class:`AddrMap` and append a write to the recorder.
-
-        If the register can't be resolved, the transaction is still recorded
-        at the sentinel address ``0xFFFFFFFF`` so missing entries show up as
-        a hard-to-miss marker in the replay log.
-        """
-        try:
-            addr = self.addrmap.resolve(fullpath, regname)
-            self.axi.write(addr, int(value), comment=comment)
-        except KeyError:
-            self.axi.write(0xFFFFFFFF, int(value), comment=f"UNRESOLVED: {fullpath}.{regname}")
-
-    def reg_read(self, fullpath: str, regname: str, comment: str = ""):
-        """No-op: the emulator doesn't model return values."""
-        pass
-
-    def get_decimated(self, ro_ch: int, address=0, length=None) -> np.ndarray:
-        """Return a dummy decimated buffer (real data is loaded from CSV post-simulation)."""
-        return self._results.get("decimated", {}).get(ro_ch, np.zeros((100, 2)))
-
-    def get_accumulated(self, ro_ch: int, address=0, length=None) -> np.ndarray:
-        """Return a dummy accumulated buffer (real data is loaded from CSV post-simulation)."""
-        return self._results.get("accumulated", {}).get(ro_ch, np.zeros((1, 2)))
-
-
-# =============================================================================
-# QickEmu
-# =============================================================================
-
 class QickEmu:
-    """Top-level entry point for preparing and running Verilator simulations of QICK programs.
+    """QickSoc-compatible emulator and orchestration entry point.
 
     A :class:`QickEmu` instance owns the :class:`QickConfig` and
-    :class:`AddrMap` for a specific board (described by a
-    ``qick_config_*.json`` file). Typical usage:
+    :class:`AddrMap` for a specific board and directly implements the subset
+    of :class:`QickSoc` methods used while configuring programs. Typical usage:
 
     .. code-block:: python
 
         emu = QickEmu("qick_emu_config.json")
-        soc = emu.make_soc(memdir="tb_mem")
-        emu.prepare(prog, soc, memdir="tb_mem")
+        soc = emu.make_soc(memdir="tb_mem")   # returns emu itself
+        emu.prepare(prog, soc=soc, memdir="tb_mem")
         csvs = emu.run_verilator_tb("tb_mem", prog=prog)
         t, samples = emu.load_dac(csvs['dac'].parent)
 
@@ -857,8 +648,50 @@ class QickEmu:
 
         self.backend = backend
 
-    def make_soc(self, memdir: Union[str, pathlib.Path] = "tb_mem") -> SocEmu:
-        """Return a fresh :class:`SocEmu` wired to this emulator's config and address map.
+        # `make_soc` is kept for API compatibility; initialize default state now.
+        self.make_soc(memdir="tb_mem")
+
+    def _reset_soc_state(self, memdir: Union[str, pathlib.Path], recorder: Optional[AxiRecorder] = None) -> None:
+        """Reset QickSoc-compatible runtime state for a new emulation run."""
+        self.memdir = pathlib.Path(memdir)
+        self.memdir.mkdir(parents=True, exist_ok=True)
+        self.axi = recorder or AxiRecorder()
+        self._results = {}
+        self._start_src = "internal"
+
+        # Mock Drivers
+        self.gens = [MockIpDriver(self, g['fullpath'], g['type']) for g in self.soccfg['gens']]
+        self.avg_bufs = [
+            MockAvgBuffer(self, ro['avgbuf_fullpath'], ro['avgbuf_type'])
+            for ro in self.soccfg['readouts']
+        ]
+        self.readouts = [MockIpDriver(self, r['ro_fullpath'], r['ro_type']) for r in self.soccfg['readouts']]
+
+        if 'ddr4_buf' in self.raw_cfg:
+            self.ddr4_buf = MockDDR4Buffer(self, self.raw_cfg['ddr4_buf']['fullpath'], self.raw_cfg['ddr4_buf']['type'])
+        elif hasattr(self, 'ddr4_buf'):
+            del self.ddr4_buf
+
+        if 'mr_buf' in self.raw_cfg:
+            self.mr_buf = MockIpDriver(self, self.raw_cfg['mr_buf']['fullpath'], self.raw_cfg['mr_buf']['type'])
+        elif hasattr(self, 'mr_buf'):
+            del self.mr_buf
+
+        tproc_cfg = self.raw_cfg['tprocs'][0]
+        tproc_path = tproc_cfg.get('fullpath', 'qick_processor_0')
+        self.tproc = MockTProc(self, tproc_path, tproc_cfg['type'])
+
+        self._pfb_readouts: Dict[str, MockPFBReadout] = {}
+        for ro in self.soccfg['readouts']:
+            if 'pfb_readout' in ro['ro_type']:
+                pfb = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
+                self._pfb_readouts[ro['ro_fullpath']] = pfb
+
+        # Some existing notebooks/scripts expect `emu.soc` after make_soc().
+        self.soc = self
+
+    def make_soc(self, memdir: Union[str, pathlib.Path] = "tb_mem") -> "QickEmu":
+        """Reset and return this emulator as a drop-in :class:`QickSoc` replacement.
 
         Parameters
         ----------
@@ -867,10 +700,119 @@ class QickEmu:
 
         Returns
         -------
-        SocEmu
-            A drop-in replacement for :class:`QickSoc`.
+        QickEmu
+            This same instance, ready to be passed as ``soc``.
         """
-        self.soc = SocEmu(self.soccfg, self.raw_cfg, self.addrmap, memdir=memdir)
+        self._reset_soc_state(memdir=memdir)
+        return self
+
+    def __getitem__(self, key):
+        return self.soccfg[key]
+
+    # ---- QickSoc Shim Methods ----
+
+    def set_nyquist(self, ch, nqz, force=False):
+        """Mirror :meth:`QickSoc.set_nyquist`: log the Nyquist-zone write for generator ``ch``."""
+        gen = self.gens[ch]
+        self.reg_write(gen.fullpath, "NQZ", int(nqz))
+
+    def set_mixer_freq(self, ch, f, ro_ch=None, phase_reset=True, force=False):
+        """Mirror :meth:`QickSoc.set_mixer_freq`: log the DAC mixer-frequency write for generator ``ch``."""
+        gen = self.gens[ch]
+        self.reg_write(gen.fullpath, "MIXER_FREQ", int(f))
+
+    def config_mux_gen(self, ch, tones):
+        """Program per-tone frequency registers for a mux signal generator."""
+        gen = self.gens[ch]
+        BASE_TONE_REG = 0x40
+        for i, tone in enumerate(tones):
+            reg_offset = BASE_TONE_REG + (i * 16)
+            try:
+                base = self.addrmap.base_addrs[gen.fullpath]
+                addr = base + reg_offset
+                self.axi.write(addr, tone['freq_int'], comment=f"Gen{ch} Tone{i} Freq")
+            except KeyError:
+                self.axi.write(0xFFFFFFFF, tone['freq_int'], comment=f"UNRESOLVED Gen{ch} Tone{i}")
+
+    def configure_readout(self, ch, ro_regs):
+        """Mirror :meth:`QickSoc.configure_readout`: push generated readout register values."""
+        ro = self.readouts[ch]
+        if 'ro_len' in ro_regs:
+            self.reg_write(ro.fullpath, "RO_LEN", ro_regs['ro_len'])
+
+    def config_mux_readout(self, pfbpath, cfgs, sel=None):
+        """Configure a PFB readout: set OUTSEL (if supported) and one NCO per tone."""
+        pfb = self._pfb_readouts[pfbpath]
+        if pfb.HAS_OUTSEL:
+            if sel is None:
+                sel = 'product'
+            pfb.set_out(sel)
+        elif sel is not None:
+            raise RuntimeError("this readout doesn't support configuring sel, you have sel=%s" % (sel))
+        for cfg in cfgs:
+            pfb.set_freq_int(cfg)
+
+    def config_avg(self, ch, **kwargs):
+        """Forward accumulated-buffer config to :meth:`MockAvgBuffer.config_avg`."""
+        self.avg_bufs[ch].config_avg(**kwargs)
+
+    def config_buf(self, ch, **kwargs):
+        """Forward decimated-buffer config to :meth:`MockAvgBuffer.config_buf`."""
+        self.avg_bufs[ch].config_buf(**kwargs)
+
+    def enable_buf(self, ch, enable_avg=True, enable_buf=True):
+        """Forward buffer-enable to :meth:`MockAvgBuffer.enable`."""
+        self.avg_bufs[ch].enable(avg=enable_avg, buf=enable_buf)
+
+    def arm_ddr4(self, ch, nt, force_overwrite=False):
+        """Arm the DDR4 capture buffer (no-op if the board has no ``ddr4_buf``)."""
+        if hasattr(self, 'ddr4_buf'):
+            self.ddr4_buf.arm(nt, force_overwrite)
+
+    def load_envelope(self, ch, data, addr):
+        """No-op: envelopes are loaded from ``sgmem_ch*.mem`` in the TB, not at configure time."""
+        pass
+
+    def load_weights(self, ch, data, addr=0):
+        """No-op: readout weights are not modelled in the current testbench."""
+        pass
+
+    def load_bin_program(self, binprog, load_mem=True):
+        """No-op: the compiled program is loaded from ``pmem.mem`` / ``dmem.mem`` by the TB."""
+        pass
+
+    def start_tproc(self):
+        """Mirror :meth:`QickSoc.start_tproc`: write PROC_START to the CTRL register."""
+        path = self.raw_cfg['tprocs'][0].get('fullpath', "qick_processor_0")
+        self.reg_write(path, "CTRL", (0x01 << 2), comment="PROC_START (bit 2)")
+
+    def start_src(self, mode: str):
+        """Record the configured start source; not otherwise used by the emulator."""
+        self._start_src = mode
+
+    def stop_tproc(self, lazy=False):
+        """No-op: the TB runs for a fixed ``TEST_RUN_TIME`` regardless."""
+        pass
+
+    def reg_write(self, fullpath: str, regname: str, value: int, comment: str = ""):
+        """Resolve ``(fullpath, regname)`` and append a write to the recorder."""
+        try:
+            addr = self.addrmap.resolve(fullpath, regname)
+            self.axi.write(addr, int(value), comment=comment)
+        except KeyError:
+            self.axi.write(0xFFFFFFFF, int(value), comment=f"UNRESOLVED: {fullpath}.{regname}")
+
+    def reg_read(self, fullpath: str, regname: str, comment: str = ""):
+        """No-op: the emulator doesn't model return values."""
+        pass
+
+    def get_decimated(self, ro_ch: int, address=0, length=None) -> np.ndarray:
+        """Return a dummy decimated buffer (real data is loaded from CSV post-simulation)."""
+        return self._results.get("decimated", {}).get(ro_ch, np.zeros((100, 2)))
+
+    def get_accumulated(self, ro_ch: int, address=0, length=None) -> np.ndarray:
+        """Return a dummy accumulated buffer (real data is loaded from CSV post-simulation)."""
+        return self._results.get("accumulated", {}).get(ro_ch, np.zeros((1, 2)))
 
     # Known artifact filenames that prepare()/run_verilator_tb() produce.
     # Wiped by prepare() before a new run so stale files from a prior experiment
@@ -891,7 +833,7 @@ class QickEmu:
                 if p.is_file():
                     p.unlink()
 
-    def prepare(self, prog, soc: SocEmu, memdir: Union[str, pathlib.Path] = "tb_mem",
+    def prepare(self, prog, soc: Optional["QickEmu"] = None, memdir: Union[str, pathlib.Path] = "tb_mem",
                 clean: bool = True) -> Dict[str, Any]:
         """Run a QICK program against the emulated SoC and emit the testbench inputs.
 
@@ -912,8 +854,9 @@ class QickEmu:
         ----------
         prog : qick.QickProgramV2
             A compiled QICK program.
-        soc : SocEmu
-            Emulated SoC (from :meth:`make_soc`).
+        soc : QickEmu, optional
+            Kept for compatibility with old call sites. If provided, it must
+            be ``self`` (the object returned by :meth:`make_soc`).
         memdir : str or pathlib.Path
             Destination directory for the artifacts listed above.
         clean : bool
@@ -926,11 +869,18 @@ class QickEmu:
         dict
             ``{"memdir": str(memdir), "axi_script": str(axi_replay.jsonl)}``.
         """
-        prog.config_all(soc, load_mem=False)
-        prog.config_bufs(soc, enable_avg=True, enable_buf=True)
+        if soc is None:
+            soc = self
+        if soc is not self:
+            raise ValueError("QickEmu.prepare now expects soc=self (returned by make_soc()).")
 
-        memdir = pathlib.Path(memdir)
-        memdir.mkdir(parents=True, exist_ok=True)
+        # Always start from a fresh recorder/driver state for deterministic logs.
+        self._reset_soc_state(memdir=memdir)
+
+        prog.config_all(self, load_mem=False)
+        prog.config_bufs(self, enable_avg=True, enable_buf=True)
+
+        memdir = self.memdir
         if clean:
             self._clean_artifacts(memdir)
         
@@ -970,8 +920,8 @@ class QickEmu:
                 if content.strip():
                     (memdir / f"sgmem_ch{ch}.mem").write_text(content)
 
-        soc.start_tproc()
-        axi_script = soc.axi.save_jsonl(memdir / "axi_replay.jsonl")
+        self.start_tproc()
+        axi_script = self.axi.save_jsonl(memdir / "axi_replay.jsonl")
         
         return {"memdir": str(memdir), "axi_script": str(axi_script)}
 
@@ -1917,3 +1867,7 @@ class QickEmu:
         print("-------------------------------------------------\n")
 
         return out_path
+
+
+# Backward-compatible import alias.
+SocEmu = QickEmu
