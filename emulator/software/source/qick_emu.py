@@ -1132,6 +1132,7 @@ class QickEmu:
         test_run_ns: Optional[int] = None,
         trace: bool = False,
         *,
+        pre_run_delay_ns: Optional[int] = None,
         build: bool = True,
         verbose: bool = True,
         quiet: bool = True,
@@ -1165,6 +1166,10 @@ class QickEmu:
             the avg/dec buffers. Increase if pulses near the end of a
             program get truncated in ``dac_out.csv``. If ``None`` (default),
             the plusarg is omitted and the TB uses its built-in default.
+        pre_run_delay_ns : int, optional
+            Sets the ``+PRE_RUN_DELAY_NS`` plusarg used by the TB to wait
+            before replaying AXI start transactions. If ``None`` (default),
+            this method picks a fresh random delay in ``[0, 100]`` each run.
         build : bool
             Run ``make verilate`` before ``make sim`` (default ``True``).
         verbose : bool
@@ -1255,6 +1260,16 @@ class QickEmu:
 
         if test_run_ns is not None:
             plusargs.append(f"+TEST_RUN_NS={int(test_run_ns)}")
+
+        if pre_run_delay_ns is None:
+            # Verilator's $urandom stream is deterministic unless externally
+            # seeded. Pick the startup jitter in Python so repeated notebook
+            # runs naturally get different delays.
+            pre_run_delay_ns = int.from_bytes(os.urandom(2), "little") % 101
+        else:
+            pre_run_delay_ns = max(0, min(100, int(pre_run_delay_ns)))
+        plusargs.append(f"+PRE_RUN_DELAY_NS={pre_run_delay_ns}")
+
         if trace:
             plusargs.append(f"+TRACE=1")
 

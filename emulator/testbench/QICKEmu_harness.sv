@@ -109,14 +109,17 @@ localparam N_DDS_RO = 8;
 // Override via plusargs:
 //   +EMU_DIR=<path>       — alternate directory for TB inputs/outputs
 //   +TEST_RUN_NS=<int>    — override TEST_RUN_TIME (ns)
+//   +PRE_RUN_DELAY_NS=<int> — startup delay before AXI replay/program launch (0-100 ns)
 //   +RO_AVG_LEN=<int>     — override averaged-readout drain length
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
 string EMU_DIR       = "../artifacts";
 time   TEST_RUN_TIME = 1us;
+time   PRE_RUN_DELAY_TIME = 0ns;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
 int    mr_len        = 0;          // max ro_clk rows to log into mr_out.csv (0 = disabled)
+int    pre_run_delay_ns = -1;
 
 
 //----------------------------------------------------
@@ -885,6 +888,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // -----------------------------------------------------------------------------
    initial begin
       int t_ns;
+      int d_ns;
 
       if (!$value$plusargs("EMU_DIR=%s", EMU_DIR))
          $display("### Using default EMU_DIR=%s ###", EMU_DIR);
@@ -895,6 +899,18 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          TEST_RUN_TIME = t_ns * 1ns;
          $display("### TEST_RUN_TIME overridden to %0d ns ###", t_ns);
       end
+
+      if ($value$plusargs("PRE_RUN_DELAY_NS=%d", d_ns)) begin
+         if (d_ns < 0) d_ns = 0;
+         if (d_ns > 100) d_ns = 100;
+         pre_run_delay_ns = d_ns;
+         $display("### PRE_RUN_DELAY_NS overridden to %0d ns ###", pre_run_delay_ns);
+      end
+      else begin
+         pre_run_delay_ns = $urandom_range(0, 100);
+         $display("### PRE_RUN_DELAY_NS randomized to %0d ns ###", pre_run_delay_ns);
+      end
+      PRE_RUN_DELAY_TIME = pre_run_delay_ns * 1ns;
 
       if ($value$plusargs("RO_AVG_LEN=%d", ro_avg_len))
          $display("### RO_AVG_LEN overridden to %0d via plusarg ###", ro_avg_len);
@@ -1142,6 +1158,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       sg_load_mem_emu(EMU_DIR, 0);
 
       #1us;
+
+      $display("### %0t - Applying pre-run startup delay of %0d ns ###", $realtime, pre_run_delay_ns);
+      #(PRE_RUN_DELAY_TIME);
 
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
