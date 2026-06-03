@@ -25,57 +25,48 @@ from typing import Any, Dict, Iterable, List, Optional, Protocol, Tuple, Union
 import numpy as np
 
 
-# Lines matching any of these are dropped from streaming verilator/make output
-# when run_verilator_tb(..., quiet=True). Keep the list narrow — drop only
-# things that are pure noise to a notebook user, never errors.
-_VERILATOR_NOISE_RE = re.compile(
-    r"(?:%Warning"                  # verilator's own warnings
-    r"|warning:"                    # gcc/clang warnings (case sensitive on purpose)
-    r"|^\s*note:"                   # gcc/clang note lines
-    r"|^In file included from"      # gcc include trace
-    r"|^In function "               # gcc context line preceding a warning
-    r"|^\s*from "                   # gcc include trace continuation
-    r"|^\s*\d+ \| "                 # gcc source-line caret context
-    r"|^\s*\|"                      # gcc empty pipe / caret continuation
-    r"|^\s*\^"                      # gcc caret marker
-    r"|^make\[\d+\]: "              # sub-make 'Entering/Leaving directory'
-    r"|^make: Entering "            # top-make
-    r"|^make: Leaving "
-    r"|^cp -f "                     # Makefile recipe echoes for sim:
-    r"|^verilator "                 # verilator command echo from `make verilate`
-    r"|^g\+\+ "                     # gcc/g++ invocation echo
-    r"|^cc -"                       # cc invocation echo
-    r"|^ar "                        # archive step
-    r"|^perl "                      # verilator helper invocations
-    r"|^- V e r i l a t i "         # verilator banner
+# In quiet streaming mode, only pass through hard error lines from make,
+# compiler, linker, or simulator. This suppresses SV testbench chatter from
+# $display while preserving failure context.
+_VERILATOR_ERROR_RE = re.compile(
+    r"(?:%Error"                    # verilator hard errors
+    r"|\berror:"                    # compiler/linker errors
+    r"|\bfatal:"                    # fatal diagnostics
+    r"|\bundefined reference\b"     # linker undefined symbols
+    r"|\bcollect2: error:"          # gcc linker wrapper
+    r"|\bld: "                      # linker diagnostics
+    r"|No rule to make target"       # make fatal error text
+    r"|^make(?::|\[\d+\]:).+\*\*\*"  # make failures
     r")",
-    re.MULTILINE,
+    re.IGNORECASE,
 )
 
 
 def _stream_filtered(cmd, *, cwd, timeout):
-    """Run ``cmd`` and stream stdout/stderr through :data:`_VERILATOR_NOISE_RE`.
+    """Run ``cmd`` and stream only hard-error lines from merged output.
 
     Returns a :class:`subprocess.CompletedProcess` so callers can check
-    ``returncode``. ``stderr`` on the returned object is always empty
-    because we merge both streams; errors stay visible because the noise
-    regex only matches warnings, not ``%Error`` / ``Error:`` / ``ld:`` lines.
+    ``returncode``. ``stderr`` on the returned object is always empty because
+    we merge both streams. Matching error lines are returned in ``stdout`` to
+    provide context in raised exceptions.
     """
     proc = subprocess.Popen(
         cmd, cwd=cwd, text=True, bufsize=1,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
     )
+    kept_lines: List[str] = []
     try:
         for line in proc.stdout:
-            if not _VERILATOR_NOISE_RE.search(line):
+            if _VERILATOR_ERROR_RE.search(line):
                 # flush=True so classic Jupyter shows lines as they come in
                 # rather than dumping the whole transcript at the end.
                 print(line, end="", flush=True)
+                kept_lines.append(line)
         proc.wait(timeout=timeout)
     except Exception:
         proc.kill()
         raise
-    return subprocess.CompletedProcess(cmd, proc.returncode, "", "")
+    return subprocess.CompletedProcess(cmd, proc.returncode, "".join(kept_lines), "")
 
 try:
     from qick import QickConfig
@@ -612,7 +603,7 @@ class QickEmu:
     .. code-block:: python
 
         emu = QickEmu("qick_emu_config.json")
-        soc = emu.make_soc(memdir="tb_mem")   # returns emu itself
+        soc = emu.prepare_emu(memdir="tb_mem")   # returns emu itself
         emu.prepare(prog, soc=soc, memdir="tb_mem")
         csvs = emu.run_verilator_tb("tb_mem", prog=prog)
         t, samples = emu.load_dac(csvs['dac'].parent)
@@ -648,8 +639,8 @@ class QickEmu:
 
         self.backend = backend
 
-        # `make_soc` is kept for API compatibility; initialize default state now.
-        self.make_soc(memdir="tb_mem")
+        # Initialize default emulator runtime state.
+        self.prepare_emu(memdir="tb_mem")
 
     def _reset_soc_state(self, memdir: Union[str, pathlib.Path], recorder: Optional[AxiRecorder] = None) -> None:
         """Reset QickSoc-compatible runtime state for a new emulation run."""
@@ -658,7 +649,10 @@ class QickEmu:
         self.axi = recorder or AxiRecorder()
         self._results = {}
         self._start_src = "internal"
+        self._default_build = getattr(self, "_default_build", True)
         self._default_test_run_ns = getattr(self, "_default_test_run_ns", None)
+        self._default_trace = getattr(self, "_default_trace", False)
+        self._default_mr_len = getattr(self, "_default_mr_len", 0)
 
         # Mock Drivers
         self.gens = [MockIpDriver(self, g['fullpath'], g['type']) for g in self.soccfg['gens']]
@@ -688,28 +682,71 @@ class QickEmu:
                 pfb = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
                 self._pfb_readouts[ro['ro_fullpath']] = pfb
 
-        # Some existing notebooks/scripts expect `emu.soc` after make_soc().
+        # Existing notebooks/scripts expect `emu.soc` after prepare_emu().
         self.soc = self
 
-    def make_soc(self, memdir: Union[str, pathlib.Path] = "tb_mem", test_run_ns: Optional[int] = None) -> "QickEmu":
+    def prepare_emu(
+        self,
+        memdir: Union[str, pathlib.Path] = "tb_mem",
+        build: bool = True,
+        test_run_ns: Optional[int] = None,
+        mr_len: int = 0,
+        trace: bool = False,
+        verbose: bool = False,
+    ) -> "QickEmu":
         """Reset and return this emulator as a drop-in :class:`QickSoc` replacement.
 
         Parameters
         ----------
         memdir : str or pathlib.Path
             Directory where :meth:`prepare` will write the testbench artifacts.
+        build : bool, optional
+            Default build mode forwarded to :meth:`run_verilator_tb` during
+            acquire execution.
         test_run_ns : int, optional
             Default ``+TEST_RUN_NS`` used by :meth:`run_verilator_tb` when a
             call does not override it explicitly.
+        mr_len : int, optional
+            Default ``+MR_LEN`` used by :meth:`run_verilator_tb` when a call
+            does not override it explicitly.
+        trace : bool, optional
+            If ``True``, enable waveform tracing in the simulator by default.
+        verbose : bool, optional
+            If ``True``, enable simulator build/run progress prints during
+            acquire execution. SV testbench chatter remains suppressed when
+            ``quiet=True``. Defaults to ``False`` for minimal output.
 
         Returns
         -------
         QickEmu
             This same instance, ready to be passed as ``soc``.
         """
+        self._default_build = bool(build)
         self._default_test_run_ns = test_run_ns
+        self._default_mr_len = int(mr_len)
+        self._default_trace = bool(trace)
+        self._sim_verbose = bool(verbose)
         self._reset_soc_state(memdir=memdir)
         return self
+
+    def make_soc(
+        self,
+        memdir: Union[str, pathlib.Path] = "tb_mem",
+        build: bool = True,
+        test_run_ns: Optional[int] = None,
+        mr_len: int = 0,
+        trace: bool = False,
+        verbose: bool = False,
+    ) -> "QickEmu":
+        """Compatibility alias for :meth:`prepare_emu`."""
+        return self.prepare_emu(
+            memdir=memdir,
+            build=build,
+            test_run_ns=test_run_ns,
+            mr_len=mr_len,
+            trace=trace,
+            verbose=verbose,
+        )
 
     def __getitem__(self, key):
         return self.soccfg[key]
@@ -861,7 +898,7 @@ class QickEmu:
             A compiled QICK program.
         soc : QickEmu, optional
             Kept for compatibility with old call sites. If provided, it must
-            be ``self`` (the object returned by :meth:`make_soc`).
+            be ``self`` (the object returned by :meth:`prepare_emu`).
         memdir : str or pathlib.Path
             Destination directory for the artifacts listed above.
         clean : bool
@@ -877,7 +914,7 @@ class QickEmu:
         if soc is None:
             soc = self
         if soc is not self:
-            raise ValueError("QickEmu.prepare now expects soc=self (returned by make_soc()).")
+            raise ValueError("QickEmu.prepare now expects soc=self (returned by prepare_emu()).")
 
         # Always start from a fresh recorder/driver state for deterministic logs.
         self._reset_soc_state(memdir=memdir)
@@ -1134,8 +1171,8 @@ class QickEmu:
         *,
         pre_run_delay_ns: Optional[int] = None,
         build: bool = True,
-        verbose: bool = True,
-        quiet: bool = True,
+        verbose: Optional[bool] = None,
+        quiet: Optional[bool] = None,
         timeout: Optional[int] = 300,
     ) -> Dict[str, pathlib.Path]:
         """Invoke ``make verilate`` / ``make sim`` on the full-system TB and collect its CSVs.
@@ -1172,9 +1209,14 @@ class QickEmu:
             this method picks a fresh random delay in ``[0, 100]`` each run.
         build : bool
             Run ``make verilate`` before ``make sim`` (default ``True``).
-        verbose : bool
-            If ``True``, stream build/sim output to the terminal. If
-            ``False``, capture and include it only when the subprocess fails.
+        verbose : bool, optional
+            Controls simulator output verbosity. If omitted, inherits the
+            value set by :meth:`prepare_emu` (default ``False``). When ``True``,
+            high-level progress prints are enabled.
+        quiet : bool, optional
+            Controls subprocess streaming. If omitted, defaults to
+            ``not verbose``. In quiet mode, SV testbench chatter is suppressed
+            and only hard-error lines are streamed.
         trace: bool
             If ``True``, compile the TB with waveform tracing enabled (``+TRACE=1``).
         timeout : int or None
@@ -1186,6 +1228,16 @@ class QickEmu:
             Mapping of short key (``"dac"``, ``"avg"``, ``"dec"``) to
             :class:`pathlib.Path` for each CSV file actually produced.
         """
+        if verbose is None:
+            verbose = bool(getattr(self, "_sim_verbose", False))
+        else:
+            verbose = bool(verbose)
+        if quiet is None:
+            # Default to quiet subprocess output when not in verbose mode.
+            quiet = not verbose
+        else:
+            quiet = bool(quiet)
+
         # Auto-size buffer reads from `prog` so CSV lengths line up with
         # prog.get_time_axis() / prog.ro_chs and downstream loaders work without
         # the user having to compute them by hand.
@@ -1231,24 +1283,24 @@ class QickEmu:
                     cmd, cwd=tb_dir, timeout=timeout,
                     capture_output=True, text=True,
                 )
-            if not quiet:
-                return subprocess.run(
-                    cmd, cwd=tb_dir, timeout=timeout, text=True,
-                )
-            return _stream_filtered(cmd, cwd=tb_dir, timeout=timeout)
+            if quiet:
+                return _stream_filtered(cmd, cwd=tb_dir, timeout=timeout)
+            return subprocess.run(
+                cmd, cwd=tb_dir, timeout=timeout, text=True,
+            )
 
         if build:
             if verbose:
                 print(f"[verilate] Building QICKEmu_harness ...")
             result = _run(_make("verilate"))
             if result.returncode != 0:
+                err_text = result.stdout or result.stderr or ""
                 raise RuntimeError(
                     f"make verilate failed (rc={result.returncode})"
-                    + ("" if verbose else f"\n{result.stderr}")
+                    + (f"\n{err_text}" if err_text else "")
                 )
 
-        if verbose:
-            print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
+        print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
 
         plusargs = [
             f"+RO_DEC_LEN={int(ro_dec_len)}",
@@ -1277,9 +1329,10 @@ class QickEmu:
         result = _run(_make("sim", f"SIM_EMU_DIR={rel_emu}", sim_args_str))
 
         if result.returncode != 0:
+            err_text = result.stdout or result.stderr or ""
             raise RuntimeError(
                 f"make sim failed (rc={result.returncode})"
-                + ("" if verbose else f"\n{result.stderr}")
+                + (f"\n{err_text}" if err_text else "")
             )
 
         csvs = {}
@@ -1864,10 +1917,13 @@ class QickEmu:
                 comment = txn.get("comment", "")
                 fout.write(f"{addr:08X} {data:08X}  # {comment}\n")
 
-        print(f"[ok] Wrote {out_path}  ({sum(1 for _ in out_path.open()) - 4} transactions)")
+        verbose = bool(getattr(self, "_sim_verbose", False))
 
-        print("\n--- tb_qick_emu.sv address routing parameters ---")
-        print("# Paste these localparam values into tb_qick_emu.sv if defaults differ:")
+        if verbose:
+            print(f"[ok] Wrote {out_path}  ({sum(1 for _ in out_path.open()) - 4} transactions)")
+
+            print("\n--- tb_qick_emu.sv address routing parameters ---")
+            print("# Paste these localparam values into tb_qick_emu.sv if defaults differ:")
         ba = self.addrmap.base_addrs
         tf = self.addrmap.type_by_fullpath
 
@@ -1875,19 +1931,20 @@ class QickEmu:
         sg_bases    = [v for k, v in ba.items() if 'signal_gen' in tf.get(k, '') or 'sg_int4' in tf.get(k, '') or 'sg_mix' in tf.get(k, '')]
         avg_bases   = [v for k, v in ba.items() if 'avg_buffer' in tf.get(k, '')]
 
-        if tproc_bases:
-            print(f"localparam integer TPROC_BASE  = 40'h{tproc_bases[0]:09X};")
-        if sg_bases:
-            lo = min(sg_bases)
-            hi = max(sg_bases) + 0x10000
-            print(f"localparam integer SG_BASE_LO  = 40'h{lo:09X};  // {len(sg_bases)} gen IP(s)")
-            print(f"localparam integer SG_BASE_HI  = 40'h{hi:09X};")
-        if avg_bases:
-            lo = min(avg_bases)
-            hi = max(avg_bases) + 0x10000
-            print(f"localparam integer AVG_BASE_LO = 40'h{lo:09X};  // {len(avg_bases)} avgbuf IP(s)")
-            print(f"localparam integer AVG_BASE_HI = 40'h{hi:09X};")
-        print("-------------------------------------------------\n")
+        if verbose:
+            if tproc_bases:
+                print(f"localparam integer TPROC_BASE  = 40'h{tproc_bases[0]:09X};")
+            if sg_bases:
+                lo = min(sg_bases)
+                hi = max(sg_bases) + 0x10000
+                print(f"localparam integer SG_BASE_LO  = 40'h{lo:09X};  // {len(sg_bases)} gen IP(s)")
+                print(f"localparam integer SG_BASE_HI  = 40'h{hi:09X};")
+            if avg_bases:
+                lo = min(avg_bases)
+                hi = max(avg_bases) + 0x10000
+                print(f"localparam integer AVG_BASE_LO = 40'h{lo:09X};  // {len(avg_bases)} avgbuf IP(s)")
+                print(f"localparam integer AVG_BASE_HI = 40'h{hi:09X};")
+            print("-------------------------------------------------\n")
 
         return out_path
 

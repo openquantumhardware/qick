@@ -1788,19 +1788,67 @@ class AcquireMixin:
                 pass
         return all(hasattr(soc, attr) for attr in ('prepare', 'run_verilator_tb', 'load_iq_decimated', 'load_iq_averaged')) and hasattr(soc, 'memdir')
 
-    def _run_emu_acquire(self, soc, load_envelopes=True, *, decimated=True, rounds=1, threshold=None, angle=None, remove_offset=True):
+    def _run_emu_acquire(
+        self,
+        soc,
+        load_envelopes=True,
+        *,
+        decimated=True,
+        rounds=1,
+        threshold=None,
+        angle=None,
+        remove_offset=True,
+    ):
         """Run the emulator end-to-end and load back the generated CSV outputs."""
         emu_dir = getattr(soc, 'memdir', None)
         if emu_dir is None and hasattr(soc, 'soc'):
             emu_dir = getattr(soc.soc, 'memdir', None)
         if emu_dir is None:
-            raise RuntimeError("QickEmu acquire path needs soc.memdir (set via make_soc(memdir=...)).")
+            raise RuntimeError("QickEmu acquire path needs soc.memdir (set via prepare_emu(memdir=...)).")
+
+        sim_verbose = getattr(soc, '_sim_verbose', None)
+        if sim_verbose is None and hasattr(soc, 'soc'):
+            sim_verbose = getattr(soc.soc, '_sim_verbose', False)
+        sim_verbose = bool(sim_verbose)
+
+        build = getattr(soc, '_default_build', None)
+        if build is None and hasattr(soc, 'soc'):
+            build = getattr(soc.soc, '_default_build', None)
+        if build is None:
+            build = True
+        build = bool(build)
+
+        test_run_ns = getattr(soc, '_default_test_run_ns', None)
+        if test_run_ns is None and hasattr(soc, 'soc'):
+            test_run_ns = getattr(soc.soc, '_default_test_run_ns', None)
+
+        trace = getattr(soc, '_default_trace', None)
+        if trace is None and hasattr(soc, 'soc'):
+            trace = getattr(soc.soc, '_default_trace', None)
+        if trace is None:
+            trace = False
+        trace = bool(trace)
+
+        mr_len = getattr(soc, '_default_mr_len', None)
+        if mr_len is None and hasattr(soc, 'soc'):
+            mr_len = getattr(soc.soc, '_default_mr_len', None)
+        if mr_len is None:
+            mr_len = 0
 
         round_results = []
         for _ in range(rounds):
             soc.prepare(self, soc=soc, memdir=emu_dir)
             soc.export_vivado_files(memdir=emu_dir)
-            soc.run_verilator_tb(emu_dir, prog=self)
+            soc.run_verilator_tb(
+                emu_dir,
+                prog=self,
+                build=build,
+                test_run_ns=test_run_ns,
+                mr_len=mr_len,
+                trace=trace,
+                verbose=sim_verbose,
+                quiet=not sim_verbose,
+            )
 
             if decimated:
                 round_results.append(soc.load_iq_decimated(emu_dir, self))

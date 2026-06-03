@@ -15,7 +15,7 @@
 // Python workflow:
 //   from qick_emu import QickEmu
 //   emu = QickEmu("qick_config.json")
-//   soc = emu.make_soc(memdir="emulator/")
+//   soc = emu.prepare_emu(memdir="emulator/")
 //   soc.tproc.set_lfsr_cfg(2)
 //   emu.prepare(prog, soc, memdir="emulator/")
 //   emu.export_vivado_files(memdir="emulator/")   # generates axi_replay.txt
