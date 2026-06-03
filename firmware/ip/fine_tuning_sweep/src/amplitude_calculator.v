@@ -63,8 +63,8 @@ module amplitude_calculator #(
     // ------------------------------------------------------------------
     //  Stage 1 – i*i and q*q (each synthesises into one DSP48 with M-reg)
     // ------------------------------------------------------------------
-    (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1;
-    reg                              v_s1;
+    (* mark_debug = "true" *) (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1;
+    (* mark_debug = "true" *) reg                              v_s1;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -79,8 +79,8 @@ module amplitude_calculator #(
     // ------------------------------------------------------------------
     //  Stage 2 – i*i + q*q  (32-bit add, one CARRY8 chain)
     // ------------------------------------------------------------------
-    reg [32:0] power_s2;
-    reg        v_s2;
+    (* mark_debug = "true" *) reg [32:0] power_s2;
+    (* mark_debug = "true" *) reg        v_s2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -104,14 +104,14 @@ module amplitude_calculator #(
     (* mark_debug = "true" *) reg state;
 
     (* mark_debug = "true" *) reg [31:0]                  sample_cnt;
-    reg [$clog2(MAX_AVG)-1:0]   burst_cnt;
-    reg [ACCUM_WIDTH-1:0]       accumulator;
-    reg [ACCUM_WIDTH-1:0]       sum_reg;
-    reg                         finish_delay;
+    (* mark_debug = "true" *) reg [$clog2(MAX_AVG)-1:0]   burst_cnt;
+    (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0]       accumulator;
+    (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0]       sum_reg;
+    (* mark_debug = "true" *) reg                         finish_delay;
     (* mark_debug = "true" *) reg [31:0]                  nsamp_latched;
     (* mark_debug = "true" *) reg [31:0]                  wdog;          // cycles in RUN with no accepted sample
 
-    reg run_d0, run_d1, run_d2;
+    (* mark_debug = "true" *) reg run_d0, run_d1, run_d2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -135,7 +135,7 @@ module amplitude_calculator #(
     // cycle after the nsamp-th sample is accumulated, so `accumulator` already
     // holds the full nsamp-sample sum here. The watchdog still covers a stream
     // that STARVES before nsamp samples arrive.
-    wire emit_now = finish_delay ||
+    (* mark_debug = "true" *) wire emit_now = finish_delay ||
                     (state == RUN && wdog >= WDOG_LIMIT);
 
     always @(posedge clk) begin

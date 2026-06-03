@@ -20,32 +20,32 @@ module fine_tuning_sweep #(
     input  wire        rst_n,
 
     // QP2 (c_clk)
-    input  wire        qtag_en_i,
-    input  wire [4:0]  qtag_op_i,
-    input  wire [31:0] qtag_dt1_i,
+    (* mark_debug = "true" *) input  wire        qtag_en_i,
+    (* mark_debug = "true" *) input  wire [4:0]  qtag_op_i,
+    (* mark_debug = "true" *) input  wire [31:0] qtag_dt1_i,
     input  wire [31:0] qtag_dt2_i,
     input  wire [31:0] qtag_dt3_i,
     input  wire [31:0] qtag_dt4_i,
     output reg         qtag_rdy_o,
-    output reg  [31:0] qtag_dt1_o,
-    output reg  [31:0] qtag_dt2_o,
-    output reg         qtag_vld_o,
+    (* mark_debug = "true" *) output reg  [31:0] qtag_dt1_o,
+    (* mark_debug = "true" *) output reg  [31:0] qtag_dt2_o,
+    (* mark_debug = "true" *) output reg         qtag_vld_o,
 
     // tProc trigger pulse (c_clk)
-    input  wire        trigger,
+    (* mark_debug = "true" *) input  wire        trigger,
 
     // ---- s_axis_aclk (ro_clk) domain ----
     input  wire        s_axis_aclk,
     input  wire        s_axis_aresetn,
-    input  wire        s_axis_tvalid,
-    input  wire [31:0] s_axis_tdata
+    (* mark_debug = "true" *) input  wire        s_axis_tvalid,
+    (* mark_debug = "true" *) input  wire [31:0] s_axis_tdata
 );
 
     // =========================================================
     // c_clk: rising-edge detect on qtag_en_i
     // =========================================================
-    reg  en_d;
-    wire en_rise = qtag_en_i & ~en_d;
+    (* mark_debug = "true" *) reg  en_d;
+    (* mark_debug = "true" *) wire en_rise = qtag_en_i & ~en_d;
 
     always @(posedge clk) begin
         if (!rst_n) en_d <= 1'b0;
@@ -54,15 +54,15 @@ module fine_tuning_sweep #(
 
     // Named strobes -- testbench accesses these via hierarchical reference
     (* mark_debug = "true" *) wire set_current_freq_now = en_rise & (qtag_op_i == 5'd1);
-    wire reset_max_now        = en_rise & (qtag_op_i == 5'd3);
+    (* mark_debug = "true" *) wire reset_max_now        = en_rise & (qtag_op_i == 5'd3);
 
     // =========================================================
     // c_clk: config registers + QP2 opcode FSM
     // =========================================================
-    reg [31:0] reg_nsamp;
+    (* mark_debug = "true" *) reg [31:0] reg_nsamp;
 
-    wire [51:0] max_amplitude;
-    wire [31:0] freq_at_max;
+    (* mark_debug = "true" *) wire [51:0] max_amplitude;
+    (* mark_debug = "true" *) wire [31:0] freq_at_max;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -94,7 +94,7 @@ module fine_tuning_sweep #(
     // =========================================================
     localparam AVG_BITS = $clog2(MAX_AVG);
 
-    wire [31:0]          nsamp_ro;
+    (* mark_debug = "true" *) wire [31:0]          nsamp_ro;
     wire [AVG_BITS-1:0]  averager_value_ro = {AVG_BITS{1'b0}};
     (* mark_debug = "true" *) wire                 trigger_ro;
 
@@ -109,7 +109,7 @@ module fine_tuning_sweep #(
     // synchronizer_pulse expects a single-cycle pulse (it toggles tog_src once
     // per high cycle). Rising-edge-detect on clk so the CDC -- and the
     // amplitude_calculator re-arm -- see exactly one pulse per trigger.
-    reg trig_d;
+    (* mark_debug = "true" *) reg trig_d;
     always @(posedge clk) begin
         if (!rst_n) trig_d <= 1'b0;
         else        trig_d <= trigger;
@@ -128,9 +128,9 @@ module fine_tuning_sweep #(
     // =========================================================
     // s_axis_aclk: amplitude_calculator
     // =========================================================
-    wire [51:0] amp_data_ro;
-    wire        amp_valid_ro;
-    wire        burst_done_ro;
+    (* mark_debug = "true" *) wire [51:0] amp_data_ro;
+    (* mark_debug = "true" *) wire        amp_valid_ro;
+    (* mark_debug = "true" *) wire        burst_done_ro;
 
     amplitude_calculator #(
         .MAX_AVG     (64),
@@ -154,7 +154,7 @@ module fine_tuning_sweep #(
     // =========================================================
     // CDC: s_axis_aclk -> c_clk  (amplitude data + burst-done pulse)
     // =========================================================
-    wire [51:0] amp_data_c;
+    (* mark_debug = "true" *) wire [51:0] amp_data_c;
     (* mark_debug = "true" *) wire        amp_valid_c;
     (* mark_debug = "true" *) wire        burst_done_c;
 

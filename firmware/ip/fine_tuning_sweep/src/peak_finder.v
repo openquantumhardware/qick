@@ -20,7 +20,7 @@ module peak_finder #(
     output reg  [31:0]            freq_at_max
 );
 
-reg [31:0] current_freq_r;
+(* mark_debug = "true" *) reg [31:0] current_freq_r;
 
 always @(posedge clk) begin
     if (!rstn) begin
