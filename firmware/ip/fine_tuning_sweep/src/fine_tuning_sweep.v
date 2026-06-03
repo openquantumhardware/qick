@@ -53,7 +53,7 @@ module fine_tuning_sweep #(
     end
 
     // Named strobes -- testbench accesses these via hierarchical reference
-    wire set_current_freq_now = en_rise & (qtag_op_i == 5'd1);
+    (* mark_debug = "true" *) wire set_current_freq_now = en_rise & (qtag_op_i == 5'd1);
     wire reset_max_now        = en_rise & (qtag_op_i == 5'd3);
 
     // =========================================================
@@ -96,7 +96,7 @@ module fine_tuning_sweep #(
 
     wire [31:0]          nsamp_ro;
     wire [AVG_BITS-1:0]  averager_value_ro = {AVG_BITS{1'b0}};
-    wire                 trigger_ro;
+    (* mark_debug = "true" *) wire                 trigger_ro;
 
     synchronizer #(.WIDTH(32)) u_sync_nsamp (
         .clk   (s_axis_aclk),
@@ -105,12 +105,23 @@ module fine_tuning_sweep #(
         .d_out (nsamp_ro)
     );
 
+    // trig_0_o from the tProc is held high for ~10 tProc cycles, but
+    // synchronizer_pulse expects a single-cycle pulse (it toggles tog_src once
+    // per high cycle). Rising-edge-detect on clk so the CDC -- and the
+    // amplitude_calculator re-arm -- see exactly one pulse per trigger.
+    reg trig_d;
+    always @(posedge clk) begin
+        if (!rst_n) trig_d <= 1'b0;
+        else        trig_d <= trigger;
+    end
+    (* mark_debug = "true" *) wire trigger_pulse = trigger & ~trig_d;
+
     synchronizer_pulse u_trig_cdc (
         .clk_src  (clk),
         .rst_n_src(rst_n),
         .clk_dst  (s_axis_aclk),
         .rst_n_dst(s_axis_aresetn),
-        .p_in     (trigger),
+        .p_in     (trigger_pulse),
         .p_out    (trigger_ro)
     );
 
@@ -144,8 +155,8 @@ module fine_tuning_sweep #(
     // CDC: s_axis_aclk -> c_clk  (amplitude data + burst-done pulse)
     // =========================================================
     wire [51:0] amp_data_c;
-    wire        amp_valid_c;
-    wire        burst_done_c;
+    (* mark_debug = "true" *) wire        amp_valid_c;
+    (* mark_debug = "true" *) wire        burst_done_c;
 
     synchronizer_pulse u_burst_cdc (
         .clk_src  (s_axis_aclk),
@@ -175,7 +186,7 @@ module fine_tuning_sweep #(
     //   burst_done_c: by the time the next OP 1 fires the current burst is
     //   already confirmed done and burst_done_c is long gone.
     // =========================================================
-    reg burst_done_sticky;
+    (* mark_debug = "true" *) reg burst_done_sticky;
 
     always @(posedge clk) begin
         if (!rst_n)

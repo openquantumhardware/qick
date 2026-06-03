@@ -492,7 +492,18 @@ class QickMetadata:
         """Helper function for finding the tProc port that triggers a buffer.
         """
         # which tProc output bit triggers this buffer?
-        ((block, port),) = self.trace_sig(start_block, start_port)
+        sigs = self.trace_sig(start_block, start_port)
+        if len(sigs) > 1:
+            # The trigger net fans out to more than just this buffer (e.g. a custom
+            # IP shares the same tProc trigger bit). Keep only the driver: the tProc,
+            # or a vect2bits/axis_set_reg that leads to it; drop sibling consumers.
+            def _is_driver(b):
+                t = self.mod2type(b)
+                return (t in ('qick_processor', 'axis_set_reg')
+                        or t.startswith('axis_tproc')
+                        or t == 'qick_vec2bit' or 'vect2bits' in t)
+            sigs = [(b, p) for (b, p) in sigs if _is_driver(b)]
+        ((block, port),) = sigs
         blocktype = self.mod2type(block)
         if blocktype=='qick_vec2bit' or 'vect2bits' in blocktype:
             # vect2bits/qick_vec2bit port names are of the form 'dout14'

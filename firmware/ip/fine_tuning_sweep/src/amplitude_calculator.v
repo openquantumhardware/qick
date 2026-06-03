@@ -1,8 +1,33 @@
 `timescale 1ns / 1ps
 
+//------------------------------------------------------------------------------
+// amplitude_calculator -- integrates |IQ|^2 over one measurement window and
+// emits the accumulated power once per trigger.
+//
+// Robustness contract (so the IP can never wedge on hardware):
+//   * A trigger (re)arms a FRESH window in ANY state. A burst that under-
+//     delivered samples is therefore abandoned on the next trigger instead of
+//     sticking in RUN forever.
+//   * A watchdog force-completes the window if the sample stream ends before
+//     `nsamp` valid beats arrive (e.g. nsamp set larger than the readout
+//     delivers). It emits whatever was accumulated -- consistent across points
+//     since every shot streams the same sample count -- so the downstream
+//     argmax stays correct. This removes the hard dependency on nsamp exactly
+//     matching the per-shot decimated-sample count.
+//
+// Completion therefore happens on whichever fires first:
+//   (a) sample_cnt reaches nsamp  (clean, exact integral; nsamp <= delivered)
+//   (b) WDOG_LIMIT cycles elapse with no new sample (stream ended / starved)
+//------------------------------------------------------------------------------
+
 module amplitude_calculator #(
     parameter MAX_AVG     = 64,
-    parameter ACCUM_WIDTH = 52
+    parameter ACCUM_WIDTH = 52,
+    // RUN cycles with no newly-accepted sample before the window is force-
+    // completed. Must be >> the largest inter-sample gap on s_axis (so it never
+    // fires mid-stream) and << the host inter-trigger time. 65536 @ 552.96 MHz
+    // ~= 118 us: far above any decimated-readout gap, far below a host round-trip.
+    parameter WDOG_LIMIT  = 32'd65536
 )(
     input                            clk,
     input                            rst_n,
@@ -22,8 +47,8 @@ module amplitude_calculator #(
     // ------------------------------------------------------------------
     //  Stage 0 – latch IQ so the DSP A/B input regs see stable data
     // ------------------------------------------------------------------
-    reg signed [15:0] i_s0, q_s0;
-    reg               v_s0;
+    (* mark_debug = "true" *) reg signed [15:0] i_s0, q_s0;
+    (* mark_debug = "true" *) reg               v_s0;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -69,24 +94,31 @@ module amplitude_calculator #(
     // ------------------------------------------------------------------
     //  Control FSM + accumulator
     //
-    //  "run" state is pipelined 3 cycles (run_d2) so the accumulator
-    //  only counts power_s2 samples that originated in state==RUN.
+    //  "run" state is pipelined 3 cycles (run_d2) so the accumulator only
+    //  counts power_s2 samples that originated in state==RUN. The pipeline is
+    //  flushed on every (re)trigger so a fresh window always re-applies the
+    //  3-cycle startup mask.
     // ------------------------------------------------------------------
     localparam IDLE = 1'b0;
     localparam RUN  = 1'b1;
-    reg state;
+    (* mark_debug = "true" *) reg state;
 
-    reg [31:0]                  sample_cnt;
+    (* mark_debug = "true" *) reg [31:0]                  sample_cnt;
     reg [$clog2(MAX_AVG)-1:0]   burst_cnt;
     reg [ACCUM_WIDTH-1:0]       accumulator;
     reg [ACCUM_WIDTH-1:0]       sum_reg;
     reg                         finish_delay;
-    reg [31:0]                  nsamp_latched;
+    (* mark_debug = "true" *) reg [31:0]                  nsamp_latched;
+    (* mark_debug = "true" *) reg [31:0]                  wdog;          // cycles in RUN with no accepted sample
 
     reg run_d0, run_d1, run_d2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
+            run_d0 <= 0; run_d1 <= 0; run_d2 <= 0;
+        end else if (trigger) begin
+            // flush the startup mask so every (re)armed window discards its
+            // first 3 pipeline cycles, exactly like a fresh IDLE->RUN entry.
             run_d0 <= 0; run_d1 <= 0; run_d2 <= 0;
         end else begin
             run_d0 <= (state == RUN);
@@ -95,7 +127,16 @@ module amplitude_calculator #(
         end
     end
 
-    wire acc_en = run_d2 & v_s2;
+    (* mark_debug = "true" *) wire acc_en   = run_d2 & v_s2;
+    // Complete as soon as the sample count is reached -- do NOT wait for
+    // s_axis_tvalid to drop. The real readout can hold tvalid high for the
+    // whole window; the old `&& !acc_en` wait (plus the watchdog, which resets
+    // on every accepted sample) would then never fire. finish_delay is set the
+    // cycle after the nsamp-th sample is accumulated, so `accumulator` already
+    // holds the full nsamp-sample sum here. The watchdog still covers a stream
+    // that STARVES before nsamp samples arrive.
+    wire emit_now = finish_delay ||
+                    (state == RUN && wdog >= WDOG_LIMIT);
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -109,50 +150,58 @@ module amplitude_calculator #(
             one_burst_done <= 0;
             finish_delay   <= 0;
             nsamp_latched  <= 0;
+            wdog           <= 0;
         end else begin
             m_axis_tvalid  <= 0;
             one_burst_done <= 0;
 
-            case (state)
-                IDLE: begin
-                    if (trigger) begin
-                        state         <= RUN;
-                        sample_cnt    <= 0;
-                        accumulator   <= 0;
-                        nsamp_latched <= nsamp;
-                    end
-                end
+            if (trigger) begin
+                // (Re)arm a fresh window on ANY trigger -- never wedges. A burst
+                // still in flight from a previous (under-delivered) shot is
+                // simply abandoned here.
+                state         <= RUN;
+                sample_cnt    <= 0;
+                accumulator   <= 0;
+                finish_delay  <= 0;
+                nsamp_latched <= nsamp;
+                wdog          <= 0;
+            end else begin
+                case (state)
+                    IDLE: ; // wait for trigger
 
-                RUN: begin
-                    if (acc_en) begin
-                        accumulator <= accumulator + power_s2;
-                        sample_cnt  <= sample_cnt + 1;
-                        if (sample_cnt == nsamp_latched - 1)
-                            finish_delay <= 1;
-                    end
-
-                    // Wait for the 3-stage pipeline to drain (acc_en goes
-                    // low) before snapping the accumulator into sum_reg.
-                    if (finish_delay && !acc_en) begin
-                        one_burst_done <= 1;
-
-                        sum_reg   <= sum_reg + accumulator;
-                        burst_cnt <= burst_cnt + 1;
-
-                        if (burst_cnt + 1 >= averager_value) begin
-                            m_axis_tdata  <= sum_reg + accumulator;
-                            m_axis_tvalid <= 1;
-                            burst_cnt     <= 0;
-                            sum_reg       <= 0;
+                    RUN: begin
+                        if (acc_en) begin
+                            accumulator <= accumulator + power_s2;
+                            sample_cnt  <= sample_cnt + 1;
+                            wdog        <= 0;                  // progress -> reset watchdog
+                            if (sample_cnt == nsamp_latched - 1)
+                                finish_delay <= 1;
+                        end else begin
+                            wdog <= wdog + 1'b1;               // idle cycle -> age watchdog
                         end
 
-                        accumulator  <= 0;
-                        sample_cnt   <= 0;
-                        finish_delay <= 0;
-                        state        <= IDLE;
+                        if (emit_now) begin
+                            one_burst_done <= 1;
+
+                            sum_reg   <= sum_reg + accumulator;
+                            burst_cnt <= burst_cnt + 1;
+
+                            if (burst_cnt + 1 >= averager_value) begin
+                                m_axis_tdata  <= sum_reg + accumulator;
+                                m_axis_tvalid <= 1;
+                                burst_cnt     <= 0;
+                                sum_reg       <= 0;
+                            end
+
+                            accumulator  <= 0;
+                            sample_cnt   <= 0;
+                            finish_delay <= 0;
+                            wdog         <= 0;
+                            state        <= IDLE;
+                        end
                     end
-                end
-            endcase
+                endcase
+            end
         end
     end
 
