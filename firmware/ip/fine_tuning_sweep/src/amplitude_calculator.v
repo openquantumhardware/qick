@@ -61,35 +61,28 @@ module amplitude_calculator #(
     end
 
     // ------------------------------------------------------------------
-    //  Stage 1 – i*i and q*q.
+    //  Stage 1 – i*i and q*q (each maps to ONE DSP48E2 with its M-register
+    //  active). The single registered multiply below is enough: Vivado
+    //  puts ii_s1/qq_s1 in the DSP MREG, so the 16x16 multiply is no longer
+    //  combinational and the 552 MHz clk_adc0_x2 domain closes.
     //
-    //  Split into TWO register layers (product + output) so each square
-    //  maps to a FULLY pipelined DSP48E2: i_s0/q_s0 -> A/B input reg,
-    //  ii_m/qq_m -> M reg (the multiplier-output register), ii_s1/qq_s1
-    //  -> P reg. The M reg is what closes timing on the 552 MHz
-    //  clk_adc0_x2 domain. With only ONE register layer the synthesiser
-    //  leaves the 16x16 multiply combinational (no MREG) and the
-    //  i_s0 -> DSP -> ii_s1 path fails setup by ~0.46 ns. The extra
-    //  pipeline cycle is absorbed by the v_s*/run_d* valid pipeline below
-    //  and does not change the accumulated value.
+    //  DO NOT put (* mark_debug *) on ii_s1/qq_s1. Marking a register for
+    //  debug pins it in fabric, which forbids absorption into the DSP's
+    //  internal MREG and forces the whole multiply+ALU+output combinational
+    //  (~2.2 ns -> fails setup by ~0.46 ns). The IQ input (i_s0/q_s0) and
+    //  the power output (power_s2) keep their probes; the intermediate
+    //  squares are internal to the DSP and need no debug net.
     // ------------------------------------------------------------------
-    (* mark_debug = "true" *) (* use_dsp = "yes" *) reg [31:0] ii_m,  qq_m;   // DSP M-reg (product)
-    (* mark_debug = "true" *) (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1;  // DSP P-reg (output)
-    (* mark_debug = "true" *) reg                              v_s0b, v_s1;
+    (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1;   // -> DSP MREG (do NOT mark_debug)
+    (* mark_debug = "true" *) reg    v_s1;
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ii_m  <= 0; qq_m  <= 0; v_s0b <= 0;
-            ii_s1 <= 0; qq_s1 <= 0; v_s1  <= 0;
+            ii_s1 <= 0; qq_s1 <= 0; v_s1 <= 0;
         end else begin
-            // multiplier output -> MREG
-            ii_m  <= i_s0 * i_s0;
-            qq_m  <= q_s0 * q_s0;
-            v_s0b <= v_s0;
-            // MREG -> PREG
-            ii_s1 <= ii_m;
-            qq_s1 <= qq_m;
-            v_s1  <= v_s0b;
+            ii_s1 <= i_s0 * i_s0;
+            qq_s1 <= q_s0 * q_s0;
+            v_s1  <= v_s0;
         end
     end
 
@@ -111,10 +104,10 @@ module amplitude_calculator #(
     // ------------------------------------------------------------------
     //  Control FSM + accumulator
     //
-    //  "run" state is pipelined 4 cycles (run_d3) so the accumulator only
+    //  "run" state is pipelined 3 cycles (run_d2) so the accumulator only
     //  counts power_s2 samples that originated in state==RUN. The pipeline is
     //  flushed on every (re)trigger so a fresh window always re-applies the
-    //  4-cycle startup mask. (4 = i_s0 -> ii_m -> ii_s1 -> power_s2.)
+    //  3-cycle startup mask. (3 = i_s0 -> ii_s1 -> power_s2.)
     // ------------------------------------------------------------------
     localparam IDLE = 1'b0;
     localparam RUN  = 1'b1;
@@ -128,24 +121,23 @@ module amplitude_calculator #(
     (* mark_debug = "true" *) reg [31:0]                  nsamp_latched;
     (* mark_debug = "true" *) reg [31:0]                  wdog;          // cycles in RUN with no accepted sample
 
-    (* mark_debug = "true" *) reg run_d0, run_d1, run_d2, run_d3;
+    (* mark_debug = "true" *) reg run_d0, run_d1, run_d2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            run_d0 <= 0; run_d1 <= 0; run_d2 <= 0; run_d3 <= 0;
+            run_d0 <= 0; run_d1 <= 0; run_d2 <= 0;
         end else if (trigger) begin
             // flush the startup mask so every (re)armed window discards its
-            // first 4 pipeline cycles, exactly like a fresh IDLE->RUN entry.
-            run_d0 <= 0; run_d1 <= 0; run_d2 <= 0; run_d3 <= 0;
+            // first 3 pipeline cycles, exactly like a fresh IDLE->RUN entry.
+            run_d0 <= 0; run_d1 <= 0; run_d2 <= 0;
         end else begin
             run_d0 <= (state == RUN);
             run_d1 <= run_d0;
             run_d2 <= run_d1;
-            run_d3 <= run_d2;
         end
     end
 
-    (* mark_debug = "true" *) wire acc_en   = run_d3 & v_s2;
+    (* mark_debug = "true" *) wire acc_en   = run_d2 & v_s2;
     // Complete as soon as the sample count is reached -- do NOT wait for
     // s_axis_tvalid to drop. The real readout can hold tvalid high for the
     // whole window; the old `&& !acc_en` wait (plus the watchdog, which resets
