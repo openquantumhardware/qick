@@ -110,6 +110,10 @@ module synchronizer_handshake #(parameter WIDTH = 64) (
     output reg              valid_out,
     output reg  [WIDTH-1:0] data_out
 );
+    // ack_dst is driven on the dst side below but read on the src side; declare
+    // it up here so strict analyzers (xsim/xvlog) don't flag a forward use.
+    reg ack_dst;
+
     // ---- src side ----
     reg              req_src;
     reg  [WIDTH-1:0] data_latch;
@@ -133,11 +137,10 @@ module synchronizer_handshake #(parameter WIDTH = 64) (
         end
     end
 
-    // ---- dst side ----
+    // ---- dst side ----  (ack_dst declared above)
     (* ASYNC_REG = "TRUE" *) reg req_s0;
     (* ASYNC_REG = "TRUE" *) reg req_s1;
     reg                       req_s2;
-    reg                       ack_dst;
 
     wire req_edge = (req_s1 ^ req_s2);
 

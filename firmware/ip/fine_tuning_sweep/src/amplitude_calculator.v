@@ -40,8 +40,7 @@ module amplitude_calculator #(
     input  [$clog2(MAX_AVG)-1:0]     averager_value,
 
     output reg [ACCUM_WIDTH-1:0]     m_axis_tdata,
-    output reg                       m_axis_tvalid,
-    output reg                       one_burst_done
+    output reg                       m_axis_tvalid
 );
 
     // ------------------------------------------------------------------
@@ -157,13 +156,11 @@ module amplitude_calculator #(
             sum_reg        <= 0;
             m_axis_tvalid  <= 0;
             m_axis_tdata   <= 0;
-            one_burst_done <= 0;
             finish_delay   <= 0;
             nsamp_latched  <= 0;
             wdog           <= 0;
         end else begin
             m_axis_tvalid  <= 0;
-            one_burst_done <= 0;
 
             if (trigger) begin
                 // (Re)arm a fresh window on ANY trigger -- never wedges. A burst
@@ -191,8 +188,6 @@ module amplitude_calculator #(
                         end
 
                         if (emit_now) begin
-                            one_burst_done <= 1;
-
                             sum_reg   <= sum_reg + accumulator;
                             burst_cnt <= burst_cnt + 1;
 
