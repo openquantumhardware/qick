@@ -96,7 +96,6 @@ module fine_tuning_sweep #(
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            qtag_rdy_o  <= 1'b1;
             qtag_vld_o  <= 1'b0;
             qtag_dt1_o  <= 32'd0;
             qtag_dt2_o  <= 32'd0;
@@ -148,6 +147,21 @@ module fine_tuning_sweep #(
         if (!rst_n)            sticky_finish <= 1'b0;
         else if (pf_finish)    sticky_finish <= 1'b1;
         else if (start_now)    sticky_finish <= 1'b0;
+    end
+
+    // qtag_rdy_o: the "answer ready" signal the tProc waits on before launching
+    // the next sweep. Surfaced to the core as s_status bit_qpb_rdy (#h0400) via
+    // qp2_rdy_i -> qp2_rdy_r (qick_processor.sv). It drops LOW the moment a sweep
+    // starts (OP1) and rises HIGH when peak_finder asserts finish (freq_word now
+    // parked at freq_at_max, ready to read). Reset = 1 (idle, ready for the first
+    // command). This block is the SOLE driver of qtag_rdy_o (Verilog single-
+    // driver rule), which is why the old reset-only assignment moved here. PB
+    // issue does NOT gate on rdy, so holding it low through a sweep never blocks
+    // the per-point OP2 ops.
+    always @(posedge clk) begin
+        if (!rst_n)          qtag_rdy_o <= 1'b1;   // idle: ready for a command
+        else if (start_now)  qtag_rdy_o <= 1'b0;   // sweep running: busy
+        else if (pf_finish)  qtag_rdy_o <= 1'b1;   // sweep done: answer ready
     end
 
     // =========================================================
