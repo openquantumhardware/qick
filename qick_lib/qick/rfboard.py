@@ -1504,6 +1504,12 @@ class AbsAdcDcChain(ABC):
     def get_gain(self):
         pass
 
+class AbsDacBalunChain(ABC):
+    pass
+
+class AbsAdcBalunChain(ABC):
+    pass
+
 class AdcRfChain111(AbsAdcRfChain):
     def __init__(self, ch, switches, attn_spi):
         # Channel number.
@@ -1764,6 +1770,14 @@ class AdcDcChain216(AbsAdcDcChain, Chain216):
         with self.soc.board_sel.enable_context(self.card_num):
             return self.gain.get_gain()
 
+class DacBalunChain216(AbsDacBalunChain, Chain216):
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
+
+class AdcBalunChain216(AbsAdcBalunChain, Chain216):
+    def __init__(self, soc, card, global_ch, card_num, card_ch):
+        super().__init__(soc, card, global_ch, card_num, card_ch)
+
 class DaughterCard216(ABC):
     NCH = None # channels per daughter card
     CARDNUM_OFFSET = None # DAC cards are 0-3, ADC cards are 4-7
@@ -1807,6 +1821,13 @@ class DacDcCard216(DaughterCard216):
     GPIO_OUTPUTS = [("PD%d"%(i), 0) for i in range(4)]
     NAME = 'DC Out'
 
+class DacBalunCard216(DaughterCard216):
+    NCH = 4
+    CARDNUM_OFFSET = 0
+    CHAIN_CLASS = DacBalunChain216
+    GPIO_OUTPUTS = [None]*4
+    NAME = 'Balun Out'
+
 class AdcRfCard216(DaughterCard216):
     NCH = 2
     CARDNUM_OFFSET = 4
@@ -1822,6 +1843,13 @@ class AdcDcCard216(DaughterCard216):
     # power-down all outputs by default
     GPIO_OUTPUTS = [("PD%d"%(i), 1) for i in range(2)] + [None]*2
     NAME = 'DC In'
+
+class AdcBalunCard216(DaughterCard216):
+    NCH = 2
+    CARDNUM_OFFSET = 4
+    CHAIN_CLASS = AdcBalunChain216
+    GPIO_OUTPUTS = [None]*4
+    NAME = 'Balun In'
 
 class BoardSelection:
     """
@@ -2277,6 +2305,8 @@ class RFQickSoc216V1(RFQickSoc):
                     card = DacDcCard216(card_num, self, gpio)
                 elif card_id == 3:
                     card = DacRfCard216(card_num, self, gpio)
+                elif card_id == 6:
+                    card = DacBalunCard216(card_num, self, gpio)
                 else:
                     card = None
             if card is None:
@@ -2299,6 +2329,8 @@ class RFQickSoc216V1(RFQickSoc):
                     card = AdcDcCard216(card_num, self, gpio)
                 elif card_id == 2:
                     card = AdcRfCard216(card_num, self, gpio)
+                elif card_id == 5:
+                    card = AdcBalunCard216(card_num, self, gpio)
                 else:
                     card = None
             if card is None:
