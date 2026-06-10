@@ -9,4 +9,4 @@
 	url = https://github.com/pulp-platform/common_cells.git
 [submodule "emulator/submodules/verilator"]
 	path = emulator/submodules/verilator
-	url = git@github.com:verilator/verilator.git
+	url = https://github.com/verilator/verilator.git
