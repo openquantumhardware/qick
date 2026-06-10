@@ -1,0 +1,18 @@
+[submodule "firmware/Hog"]
+	path = firmware/Hog
+	url = https://gitlab.com/hog-cern/Hog.git
+[submodule "firmware/QCE2024"]
+	path = firmware/QCE2024
+	url = git@github.com:openquantumhardware/QCE2024.git
+[submodule "firmware/qick_fw_misc"]
+	path = firmware/qick_fw_misc
+	url = git@github.com:openquantumhardware/qick_fw_misc.git
+[submodule "firmware/qick_tools"]
+	path = firmware/qick_tools
+	url = git@github.com:openquantumhardware/qick-tools.git
+[submodule "firmware/qick_fw_other"]
+	path = firmware/qick_fw_other
+	url = git@github.com:openquantumhardware/qick_fw_other.git
+[submodule "firmware/qick_fw_mkids"]
+	path = firmware/qick_fw_mkids
+	url = git@github.com:openquantumhardware/qick_fw_mkids.git
