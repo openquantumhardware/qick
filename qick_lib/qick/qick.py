@@ -568,7 +568,7 @@ class RFDC(SocIP, xrfdc.RFdc):
 
     def get_mixer_freq(self, blockname, blocktype='dac'):
         try:
-            return self.mixer_dict[blocktype+'s'][blockname]
+            return self.mixer_dict[blocktype][blockname]
         except KeyError:
             blk_mixer = self._get_block(blocktype, blockname).MixerSettings
             if blk_mixer['MixerType'] != xrfdc.MIXER_TYPE_FINE:
