@@ -37,8 +37,8 @@ build/
 dist/
 
 # Sphinx documentation
-docs/_build/
-docs/_autosummary/
+*_build/
+*_autosummary/
 
 ### macOS template
 # General
@@ -71,3 +71,8 @@ Temporary Items
 
 !/.gitignore
 !/README.md
+
+.vscode/
+*.tmp
+*.cache/
+*.hw/
