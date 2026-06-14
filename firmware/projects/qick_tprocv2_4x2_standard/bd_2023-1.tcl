@@ -239,7 +239,10 @@ proc create_hier_cell_ddr4 { parentCell nameHier } {
 
   # Create instance: axis_buffer_ddr_0, and set properties
   set axis_buffer_ddr_0 [ create_bd_cell -type ip -vlnv QICK:QICK:axis_buffer_ddr:1.1 axis_buffer_ddr_0 ]
-  set_property CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} $axis_buffer_ddr_0
+  set_property -dict [list \
+    CONFIG.DATA_WIDTH {512} \
+    CONFIG.TARGET_SLAVE_BASE_ADDR {0x00000000} \
+  ] $axis_buffer_ddr_0
 
 
   # Create instance: axis_clock_converter_0, and set properties
@@ -596,15 +599,15 @@ proc create_root_design { parentCell } {
   # Create instance: clk_core, and set properties
   set clk_core [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wiz:6.0 clk_core ]
   set_property -dict [list \
-    CONFIG.CLKIN1_JITTER_PS {20.339999999999996} \
-    CONFIG.CLKOUT1_JITTER {85.052} \
-    CONFIG.CLKOUT1_PHASE_ERROR {77.902} \
-    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {245.76} \
-    CONFIG.MMCM_CLKFBOUT_MULT_F {4.875} \
-    CONFIG.MMCM_CLKIN1_PERIOD {2.034} \
+    CONFIG.CLKIN1_JITTER_PS {16.279999999999998} \
+    CONFIG.CLKOUT1_JITTER {90.348} \
+    CONFIG.CLKOUT1_PHASE_ERROR {80.725} \
+    CONFIG.CLKOUT1_REQUESTED_OUT_FREQ {204.8} \
+    CONFIG.MMCM_CLKFBOUT_MULT_F {5.875} \
+    CONFIG.MMCM_CLKIN1_PERIOD {1.628} \
     CONFIG.MMCM_CLKIN2_PERIOD {10.0} \
-    CONFIG.MMCM_CLKOUT0_DIVIDE_F {4.875} \
-    CONFIG.MMCM_DIVCLK_DIVIDE {2} \
+    CONFIG.MMCM_CLKOUT0_DIVIDE_F {5.875} \
+    CONFIG.MMCM_DIVCLK_DIVIDE {3} \
     CONFIG.OPTIMIZE_CLOCKING_STRUCTURE_EN {true} \
     CONFIG.PRIM_SOURCE {Global_buffer} \
     CONFIG.RESET_PORT {resetn} \
@@ -636,14 +639,14 @@ proc create_root_design { parentCell } {
     CONFIG.ADC_Slice02_Enable {true} \
     CONFIG.ADC_Slice20_Enable {true} \
     CONFIG.ADC_Slice22_Enable {true} \
-    CONFIG.DAC0_Outclk_Freq {491.520} \
+    CONFIG.DAC0_Outclk_Freq {614.400} \
     CONFIG.DAC0_PLL_Enable {true} \
     CONFIG.DAC0_Refclk_Freq {491.520} \
-    CONFIG.DAC0_Sampling_Rate {7.86432} \
-    CONFIG.DAC2_Outclk_Freq {491.520} \
+    CONFIG.DAC0_Sampling_Rate {9.8304} \
+    CONFIG.DAC2_Outclk_Freq {614.400} \
     CONFIG.DAC2_PLL_Enable {true} \
     CONFIG.DAC2_Refclk_Freq {491.520} \
-    CONFIG.DAC2_Sampling_Rate {7.86432} \
+    CONFIG.DAC2_Sampling_Rate {9.8304} \
     CONFIG.DAC_Coarse_Mixer_Freq00 {3} \
     CONFIG.DAC_Coarse_Mixer_Freq20 {3} \
     CONFIG.DAC_Interpolation_Mode00 {1} \
@@ -654,6 +657,7 @@ proc create_root_design { parentCell } {
     CONFIG.DAC_Mode20 {3} \
     CONFIG.DAC_Slice00_Enable {true} \
     CONFIG.DAC_Slice20_Enable {true} \
+    CONFIG.DAC_VOP_Mode {0} \
   ] $usp_rf_data_converter_0
 
 
