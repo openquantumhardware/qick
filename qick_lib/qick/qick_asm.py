@@ -285,7 +285,6 @@ class QickConfig():
             with open(gen_file_path, "w") as json_file:
                 json_file.write(cfg_json)
                 logger.info(f"JSON data successfully saved to {gen_file_path}")
-                # print(f"JSON data successfully saved to {gen_file_path}")
 
         return cfg_json
 
@@ -1623,6 +1622,7 @@ class AbsQickProgram(ABC):
 
     def print_sg_mem(self, sg_idx=0, gen_file=False):
         """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
+        This assumes that the envelopes defined for this channel are contiguous in memory and start at address 0.
 
         Parameters
         ----------
