@@ -1081,9 +1081,13 @@ class QickEmu:
             if not sp.exists():
                 print(f"[warn] Verilog source not found: {sp}")
 
-        verilator = shutil.which("verilator") or "/opt/homebrew/bin/verilator"
-        if not shutil.which("verilator") and not Path(verilator).exists():
-            raise FileNotFoundError("verilator not found in PATH.")
+        verilator_root = os.environ.get("VERILATOR_ROOT")
+        if verilator_root:
+            verilator = Path(verilator_root) / "bin" / "verilator"
+        else:
+            verilator = shutil.which("verilator")
+        if not verilator or not Path(verilator).exists():
+            raise FileNotFoundError("verilator not found. Set VERILATOR_ROOT or add verilator to PATH.")
 
         mem_file = Path(mem_file)
         if not mem_file.exists():

@@ -798,35 +798,6 @@ module qick_dut #(
       .m_readout_axis_tready  ()
    );
 
-   sg_translator # (
-      .OUT_TYPE               (0) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
-   ) 
-   u_sg_translator_1 (
-      // Reset and clock.
-      .aresetn                (1'bx),  // not used
-      .aclk                   (1'bx),  // not used
-      // IN WAVE PORT
-      .s_axis_tdata           (sg1cdc_sgt1_axis_tdata),
-      .s_axis_tvalid          (sg1cdc_sgt1_axis_tvalid),
-      .s_axis_tready          (sg1cdc_sgt1_axis_tready),
-      // OUT DATA gen_v6 (SEL:0)
-      .m_gen_v6_axis_tdata    (sgt1_sg1_axis_tdata),
-      .m_gen_v6_axis_tvalid   (sgt1_sg1_axis_tvalid),
-      .m_gen_v6_axis_tready   (sgt1_sg1_axis_tready),
-      // OUT DATA int4_v1 (SEL:1)
-      .m_int4_axis_tdata      (),
-      .m_int4_axis_tvalid     (),
-      .m_int4_axis_tready     (),
-      // OUT DATA mux4_v1 (SEL:2)
-      .m_mux4_axis_tdata      (),
-      .m_mux4_axis_tvalid     (),
-      .m_mux4_axis_tready     (),
-      // OUT DATA readout_v3 (SEL:3)
-      .m_readout_axis_tdata   (),
-      .m_readout_axis_tvalid  (),
-      .m_readout_axis_tready  ()
-   );
-
    // axis_signal_gen_v6_0 parameters
    localparam N       = 10;
 
@@ -894,6 +865,39 @@ module qick_dut #(
       end
    end
 
+`define SG_1   // Comment to disable SG_1
+`ifndef SG_1
+   assign sg1cdc_sgt1_axis_tready = 1'b1;
+`else
+   sg_translator # (
+      .OUT_TYPE               (0) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
+   ) 
+   u_sg_translator_1 (
+      // Reset and clock.
+      .aresetn                (1'bx),  // not used
+      .aclk                   (1'bx),  // not used
+      // IN WAVE PORT
+      .s_axis_tdata           (sg1cdc_sgt1_axis_tdata),
+      .s_axis_tvalid          (sg1cdc_sgt1_axis_tvalid),
+      .s_axis_tready          (sg1cdc_sgt1_axis_tready),
+      // OUT DATA gen_v6 (SEL:0)
+      .m_gen_v6_axis_tdata    (sgt1_sg1_axis_tdata),
+      .m_gen_v6_axis_tvalid   (sgt1_sg1_axis_tvalid),
+      .m_gen_v6_axis_tready   (sgt1_sg1_axis_tready),
+      // OUT DATA int4_v1 (SEL:1)
+      .m_int4_axis_tdata      (),
+      .m_int4_axis_tvalid     (),
+      .m_int4_axis_tready     (),
+      // OUT DATA mux4_v1 (SEL:2)
+      .m_mux4_axis_tdata      (),
+      .m_mux4_axis_tvalid     (),
+      .m_mux4_axis_tready     (),
+      // OUT DATA readout_v3 (SEL:3)
+      .m_readout_axis_tdata   (),
+      .m_readout_axis_tvalid  (),
+      .m_readout_axis_tready  ()
+   );
+
    // axis_signal_gen_v6_1 parameters
    // localparam N       = 10;
 
@@ -951,6 +955,7 @@ module qick_dut #(
       .m_axis_tvalid       (axis_sg1_dac1_tvalid     ),
       .m_axis_tdata        (axis_sg1_dac1_tdata      )
    );
+`endif
 
    //-----------------------------------------
    // READOUT

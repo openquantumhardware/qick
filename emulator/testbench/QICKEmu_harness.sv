@@ -715,20 +715,21 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    //    rf_signal_data_dly  <= #250ns rf_signal_data;
    // end
 // ============
-   // assign #250ns rf_signal_valid_dly = rf_signal_valid;
-   // assign #250ns rf_signal_data_dly  = rf_signal_data;
+   // Fast buffer-based approach
    localparam RF_DELAY_TIME_NS = 100;
    localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK_HALF/N_DDS_RO));
    logic                    rf_signal_valid_dly;
    logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   logic [N_DDS_RO*16:0] rf_delay_line [0:RF_DELAY_CYCLES-1];
-   always_ff @(posedge adc_fs) begin
-      rf_delay_line[0] <= {rf_signal_valid, rf_signal_data};
-      for (int i=1; i<RF_DELAY_CYCLES; i++) begin
-         rf_delay_line[i] <= rf_delay_line[i-1];
-      end
-      rf_signal_valid_dly <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16];
-      rf_signal_data_dly  <= rf_delay_line[RF_DELAY_CYCLES-1][N_DDS_RO*16-1:0];
+   logic [N_DDS_RO*16:0]    delay_buffer [0:RF_DELAY_CYCLES-1];
+   int                      write_ptr = 0;
+   int                      read_ptr  = 0;
+
+   always @(posedge adc_fs) begin
+      delay_buffer[write_ptr] <= {rf_signal_valid, rf_signal_data};
+      write_ptr <= (write_ptr + 1) % RF_DELAY_CYCLES;
+      rf_signal_valid_dly <= delay_buffer[read_ptr][N_DDS_RO*16];
+      rf_signal_data_dly  <= delay_buffer[read_ptr][N_DDS_RO*16-1:0];
+      read_ptr <= (read_ptr + 1) % RF_DELAY_CYCLES;
    end
 // >>>>>>>>>>>> VERILATOR COMPATIBLE CONTINUOUS DELAY
 

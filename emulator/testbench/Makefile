@@ -24,6 +24,10 @@ SIG_GEN_DDS_DIR = $(MODELS_DIR)/sig_gen_dds
 TOP_MODULE_PARAMS = 
 # -param EXAMPLE1=32 -param EXAMPLE2=16 
 
+# Verilator executable path
+# Uses VERILATOR_ROOT environment variable if set, otherwise falls back to 'verilator' in PATH
+VERILATOR_BIN = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator,verilator)
+
 VERILOG_SOURCES = \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
@@ -112,7 +116,7 @@ sim:
 	./$(OBJ_DIR)/V$(TOP_MODULE) $(if $(SIM_EMU_DIR),+EMU_DIR=$(SIM_EMU_DIR)) $(if $(TRACE),+TRACE) $(SIM_ARGS)
 
 verilate:
-	verilator $(VERILATOR_FLAGS) verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
+	$(VERILATOR_BIN) $(VERILATOR_FLAGS) verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
 
 clean:
 	rm -rf $(OBJ_DIR)
