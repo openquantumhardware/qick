@@ -259,20 +259,34 @@ class QickConfig():
         """
         return self._cfg
 
-    def dump_cfg(self):
+    def dump_cfg(self, gen_file_path=None):
         """Generate a JSON description of the QICK configuration.
         You can save this string to a file and load it to recreate the QickConfig.
 
         Parameters
         ----------
+        gen_file_path : str or path-like, optional
+            If provided, write the generated JSON configuration to this file path.
 
         Returns
         -------
         str
             configuration in JSON format
 
+        Raises
+        ------
+        OSError
+            If ``gen_file_path`` is provided and the JSON configuration cannot be
+            written to the specified file.
         """
-        return json.dumps(self._cfg, indent=4)
+        cfg_json = json.dumps(self._cfg, indent=4)
+
+        if gen_file_path is not None:
+            with open(gen_file_path, "w") as json_file:
+                json_file.write(cfg_json)
+                logger.info(f"JSON data successfully saved to {gen_file_path}")
+
+        return cfg_json
 
     def calc_fstep_int(self, dict1, other_dicts):
         """Finds the multiplier that needs to be applied to a channel's frequency step size to allow this channel to be frequency-matched with another channel.
@@ -1606,6 +1620,33 @@ class AbsQickProgram(ABC):
                 assert weights.dtype==np.int16
                 soc.load_weights(ch, weights.tolist())
 
+    def print_sg_mem(self, sg_idx=0, gen_file=False):
+        """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
+        This assumes that the envelopes defined for this channel are contiguous in memory and start at address 0.
+
+        Parameters
+        ----------
+        sg_idx : int
+            Signal Generator index to dump.
+        gen_file : bool
+            If True, dumps content to a file with name sg_{sg_idx}.mem. If False, prints content to stdout
+        """
+
+        # Get the envelopes defined for the SG channel
+        sg_env = self.envelopes[sg_idx]
+
+        s = ""
+        for name, pulse in sg_env['envs'].items():
+            for val in pulse['data']:
+                s += "%0d,%0d\n" % (val[0], val[1])
+
+        if gen_file:
+            with open("sg_%0d.mem"%(sg_idx), "w") as file:
+                print(s, file=file)
+            print("Dumped SG envelope table memory to file sg_%0d.mem"%(sg_idx))
+        else:
+            print(s)
+
     def reset_timestamps(self, gen_t0=None):
         # used by init and sync_all()
         self._gen_ts = [0]*len(self._gen_ts) if gen_t0 is None else gen_t0.copy()
@@ -2325,30 +2366,3 @@ class AcquireMixin:
             pass
         else: # accumulated
             return self._summarize_accumulated(self.rounds_buf)
-
-    def print_sg_mem(self, sg_idx=0, gen_file=False):
-        """Prints the content of the SG envelope table memory to be loaded in an RTL simulation.
-
-        Parameters
-        ----------
-        sg_idx : int
-            Signal Generator index to dump.
-        gen_file : bool
-            If True, dumps content to a file with name sg_{sg_idx}.mem. If False, prints content to stdout
-        """
-
-        # Get the envelopes defined for the SG channel
-        sg_env = self.envelopes[sg_idx]
-
-        s = ""
-        for name, pulse in sg_env['envs'].items():
-            for val in pulse['data']:
-                s += "%0d,%0d\n" % (val[0], val[1])
-
-        if gen_file:
-            with open("sg_%0d.mem"%(sg_idx), "w") as file:
-                print(s, file=file)
-            print("Dumped SG envelope table memory to file sg_%0d.mem"%(sg_idx))
-        else:
-            print(s)
-
