@@ -59,7 +59,14 @@ We welcome bug reports and feature requests via GitHub Issues.
 
 ## License
 
-The QICK source code is licensed under the MIT license, which you can find in the LICENSE file.
+The QICK source code is licensed under the MIT license, which you can find in the [LICENSE file](LICENSE).
+You are free to use QICK, with or without modification, under the terms of this license.
+
 The [QICK logo](graphics/logoQICK.svg) was designed by Dr. Christie Chiu.
 
-You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE file are satisfied.
+### Open-Source Commitment
+
+QICK is and will remain a fully open-source project under the MIT license.
+Commercial partnerships or integration agreements with third-party companies do not change the licensing, governance, or availability of this project.
+All QICK source code, including firmware, software, and documentation, will continue to be freely available in this repository, and the QICK developers will continue to support the community.
+If you have questions or concerns, please don't hesitate to [reach out](https://docs.qick.dev/latest/contact.html).

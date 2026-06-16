@@ -2,36 +2,58 @@ QICK papers
 ===========
 
 In the news
-----------------
-* `Fermilab articles <https://news.fnal.gov/tag/qick/>`_
+-----------
+* `QICK news articles <https://news.fnal.gov/tag/qick/>`_
+
+Commercial products based on QICK
+---------------------------------
+* `RealDigital QICK box <https://www.realdigital.org/hardware/qick>`_
+* `Safran QICK box <https://safran-navigation-timing.com/product/quantum-instrumentation-control-kit/>`_
+* `iWave RFSoC SoM <https://iwave-global.com/articles/real-time-quantum-control-using-qick-on-iwave-zynq-ultrascale-rfsoc-system-on-module/>`_
+* `Mimothor <https://viqthor.com/wp-content/uploads/Datasheets/Mimothor_202509.pdf>`_
+
+QICK and AMD
+------------
+* `AMD quantum computing partnership with QICK <https://www.amd.com/en/solutions/quantum-computing.html#partners>`_
+* `AMD blog post about hybrid quantum-supercomputing <https://www.amd.com/en/blogs/2025/amd-accelerates-hybrid-quantum-supercomputing-innovation.html>`_
 
 Paper counts
 ------------
-These stats were computed from the next section's list of QICK papers as of January 26, 2026.
+These stats were computed from the next section's list of QICK papers as of May 2, 2026.
 
-.. image:: images/papers/QICKpapers_count_Jan26.png
+.. image:: images/papers/QICKpapers_count_May26.png
    :alt: QICK papers, total count
 
-.. image:: images/papers/QICKpapers_qubit_types_Jan26.png
+.. image:: images/papers/QICKpapers_qubit_types_May26.png
    :alt: QICK papers, by qubit type
 
-.. image:: images/papers/QICKpapers_scaling_Jan26_final.png
+.. image:: images/papers/QICKpapers_scaling_May26.png
    :alt: QICK papers, superconducting qubits, by topic
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated January 28, 2026.
+This list of academic papers that used the QICK was last updated May 2, 2026.
 
 QICK system
 ^^^^^^^^^^^
+* `Martin, D. et al. XCOM: Full Mesh Network Synchronization and Low-Latency Communication for QICK (Quantum Instrumentation Control Kit). (2026) <https://arxiv.org/abs/2603.18977>`_.
 * `Ding, C. et al. Experimental advances with the QICK (Quantum Instrumentation Control Kit) for superconducting quantum hardware. (2023) <https://arxiv.org/abs/2311.17171>`_.
 * `Stefanazzi, L. et al. The QICK (Quantum Instrumentation Control Kit): Readout and control for qubits and detectors. (2021) <https://arxiv.org/abs/2110.00557>`_.
 
 Superconducting circuits
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+Autonomous control with QICK
+"""""""""""""""""""""""""""""
+* `Li, S. et al. Large Language Model-Assisted Superconducting Qubit Experiments (2026) <https://arxiv.org/abs/2603.08801>`_.
+
+Neural network + QICK
+"""""""""""""""""""""
+* `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
+
 Scaling
 """""""
+* `Hoyt, A. et al. QASMTrans: An End-to-End QASM Compilation Framework with Pulse Generation for Near-Term Quantum Devices (2026) <https://arxiv.org/abs/2602.05154>`_.
 * `Li, A. et al. NWQWorkflow: The Northwest Quantum Workflow (2026) <https://arxiv.org/abs/2601.15521>`_.
 * `Silva, A. et al. Manarat: A Scalable QICK-Based Control System for Superconducting Quantum Processors Supporting Synchronized Control of 10 Flux-Tunable Qubits. (2025) <https://arxiv.org/abs/2507.10676>`_.
 
@@ -41,6 +63,12 @@ Quantum error correction hardware
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
 
+Quantum simulation
+""""""""""""""""""
+* `Mucci, M. et al. A superconducting quantum circuit single artificial atom maser. (2026) <https://arxiv.org/abs/2604.05105>`_.
+* `Molinelli, M. et al. Chiral and bond-ordered phases in a triangular-ladder superconducting-qubit quantum simulator. (2026) <https://arxiv.org/abs/2603.16993>`_.
+* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
+
 Gates/couplers
 """"""""""""""
 * `Xia, M. et al. Exceeding the Parametric Drive Strength Threshold in Nonlinear Circuits. (2025) <https://arxiv.org/abs/2506.03456>`_.
@@ -48,14 +76,12 @@ Gates/couplers
 * `Cao, X. et al. Parametrically controlled chiral interface for superconducting quantum devices. (2024) <https://arxiv.org/abs/2405.15086>`_.
 * `Ye, Y. et al. Near-ultrastrong nonlinear light-matter coupling in superconducting circuits. (2024) <https://arxiv.org/abs/2404.19199>`_.
 * `Zhang, H. et al. Tunable inductive coupler for high fidelity gates between fluxonium qubits. (2023) <https://arxiv.org/abs/2309.05720>`_.
+* `Xia, M. et al. Fast superconducting qubit control with subharmonic drives. (2023) <https://arxiv.org/abs/2306.10162>`_.
 * `Johnson, H. et al. Exploration of Optimizing FPGA-based Qubit Controller for Experiments on Superconducting Quantum Computing Hardware. (2023) <https://arxiv.org/abs/2305.06976>`_.
-
-Quantum simulation
-""""""""""""""""""
-* `Martinez, J.G.C. et al. Flat-band localization and interaction-induced delocalization of photons. (2023) <https://arxiv.org/abs/2303.02170>`_.
 
 Coherence
 """""""""
+* `Olszewski, M. et al. Krypton-sputtered tantalum films for scalable high-performance quantum devices. (2026) <https://arxiv.org/abs/2601.20091>`_.
 * `Wang, Q. et al. Spectroscopy and Coherent Control of Two-Level System Defect Ensembles Using a Broadband 3D Waveguide. (2025) <https://arxiv.org/abs/2512.05934>`_.
 * `Huang, S. et al. Towards a hybrid 3D transmon qubit with topological insulator-based Josephson junctions. (2025) <https://arxiv.org/abs/2506.18232>`_.
 * `Wang, Q. et al. Evidence of Memory Effects in the Dynamics of Two-Level System Defect Ensembles Using Broadband, Cryogenic Transient Dielectric Spectroscopy. (2025) <https://arxiv.org/abs/2505.18263>`_.
@@ -76,9 +102,9 @@ Radiative loss
 
 Readout
 """""""
+* `Dixit, A. et al. Millimeter Wave Readout of a Superconducting Qubit. (2026) <https://arxiv.org/html/2603.13837v1>`_.
 * `Gibson, J. et al. A scanning resonator for probing quantum coherent devices. (2025) <https://arxiv.org/abs/2506.22620>`_.
 * `Smitham, B. et al. Sub-resonant wideband superconducting Purcell filters. (2025) <https://arxiv.org/abs/2503.10750>`_.
-* `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 * `Johnson, H. et al. Demonstrating the Potential of Adaptive LMS Filtering on FPGA-Based Qubit Control Platforms for Improved Qubit Readout in 2D and 3D Quantum Processing Units. (2024) <https://arxiv.org/abs/2408.00904>`_.
 * `Yen, A. et al. Interferometric Purcell suppression of spontaneous emission in a superconducting qubit. (2024) <https://arxiv.org/abs/2405.10107>`_.
 * `Yen, A. et al. Directional emission of a readout resonator for qubit measurement. (2024) <https://arxiv.org/abs/2403.01375>`_.
@@ -112,8 +138,15 @@ Neutral atoms
 ^^^^^^^^^^^^^
 * `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
 
+Ultracold molecules
+^^^^^^^^^^^^^^^^^^^
+* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
+
 Spin defects
 ^^^^^^^^^^^^
+* `Marcenac, V. et al. Sub-nanosecond control for spin-defect quantum memories with a low-cost, compact FPGA platform. (2026) <https://arxiv.org/abs/2604.11743>`_.
+* `Katsumi, R. et al. Chiral microwave metasurface for controlling spins in diamond. (2026) <https://www.researchsquare.com/article/rs-9035542/v1>`_.
+* `Elmslie, T. et al. Homogeneous Microwave Delivery for Quantum Sensing with Nitrogen-Vacancy Centers at High Pressures. (2026) <https://arxiv.org/abs/2601.11725>`_.
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
 * `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
@@ -122,12 +155,14 @@ Spin defects
 
 Quantum dots
 ^^^^^^^^^^^^
+* `El Hajj, D. et al. Preliminary Demonstration of Spin Qubit Control Using the Quantum Instrumentation Control Kit (QICK). (2026) <https://link.springer.com/chapter/10.1007/978-3-032-13852-1_2>`_.
 * `Shinozaki, M. et al. Perfect impedance matching unlocks sensitive radio-frequency reflectometry in 2D material quantum dots. (2025) <https://arxiv.org/abs/2512.02225>`_.
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
-MKIDs
-^^^^^
+Quantum sensors and MKIDs
+^^^^^^^^^^^^^^^^^^^^^^^^^
+* `Magoon, H. et al. A First Demonstration of the SQUAT Detector Architecture: Direct Measurement of Resonator-Free Charge-Sensitive Transmons. (2026) <https://arxiv.org/abs/2601.16261>`_.
 * `Stifter, K. et al. Cryogenic optical beam steering for superconducting device calibration. (2024) <https://arxiv.org/abs/2405.02258>`_.
 
 Dark matter detection
