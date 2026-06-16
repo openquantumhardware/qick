@@ -895,7 +895,7 @@ module qick_dut #(
    wire [31:0]       axis_ro_avg_tdata;
 
    wire              axis_ro_mrbuf_tvalid;
-   wire [8*2*16-1:0] axis_ro_mrbuf_tdata;
+   wire [N_DDS_RO*2*16-1:0] axis_ro_mrbuf_tdata;
 
    axis_dyn_readout_v1 /*#(
       .N_DDS            (N_DDS_RO)
@@ -928,7 +928,7 @@ module qick_dut #(
 
    // For Waveform Debug
    logic signed [15:0] axis_ro_avg_tdata_dbg [0:1];
-   logic signed [15:0] axis_ro_mrbuf_tdata_dbg [0:7][0:1];
+   logic signed [15:0] axis_ro_mrbuf_tdata_dbg [0:N_DDS_RO-1][0:1];
    always @* begin
       for (int i=0; i<2; i=i+1) begin
          axis_ro_avg_tdata_dbg[i] = axis_ro_avg_tdata[16*i +: 16];
