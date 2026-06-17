@@ -107,7 +107,7 @@ class AveragerProgram(AcquireProgram):
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
-        raw = [d.reshape((-1,2)) for d in buf]
+        raw = [d.reshape((-1,2)) for d in acc_buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
@@ -314,7 +314,7 @@ class RAveragerProgram(AcquireProgram):
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
-        raw = [d.reshape((-1,2)) for d in buf]
+        raw = [d.reshape((-1,2)) for d in acc_buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
@@ -617,7 +617,7 @@ class NDAveragerProgram(QickRegisterManagerMixin, AcquireProgram):
 
     def _process_accumulated(self, acc_buf):
         buf = super()._process_accumulated(acc_buf)
-        raw = [d.reshape((-1,2)) for d in buf]
+        raw = [d.reshape((-1,2)) for d in acc_buf]
         # reformat the data into separate I and Q arrays
         # save results to class in case you want to look at it later or for analysis
         self.di_buf = [d[:,0] for d in raw]
