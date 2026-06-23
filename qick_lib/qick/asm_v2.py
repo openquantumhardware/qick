@@ -2753,7 +2753,8 @@ class AveragerProgramV2(AcquireProgramV2):
         super().compile()
 
         # use the loop list to set up the data shape
-        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=0)
+        avg_level = len(self.loops)-1 if self.reps_innermost else 0
+        self.setup_acquire(counter_addr=self.COUNTER_ADDR, loop_dims=[x[1] for x in self.loops], avg_level=avg_level)
 
     def add_loop(self, name, count, exec_before=None, exec_after=None):
         """Add a loop level to the program.
