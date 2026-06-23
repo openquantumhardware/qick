@@ -185,8 +185,9 @@ module fine_tuning_sweep #(
         .d_out (averager_value_ro)
     );
 
-    // trig_0_o is generated in the tProc TIMING domain (t_clk = RFDAC2_CLK,
-    // 491.52 MHz) -- ASYNCHRONOUS to this clk (clk_core, 204.75 MHz). It MUST be
+    // trig_0_o is generated in the tProc TIMING domain (t_clk = clk_dac2 =
+    // RFDAC2_CLK, 614.4 MHz; 491.52 MHz is only the RFdc PLL reference, not this
+    // clock) -- ASYNCHRONOUS to this clk (clk_core, 204.75 MHz). It MUST be
     // 2-FF synchronized into clk BEFORE the rising-edge detect: a single FF on an
     // async input (and ANDing the raw async signal) is the CDC-1 Critical the
     // timing report flagged, and can metastable-glitch the trigger edge -> drop
