@@ -10,9 +10,11 @@
 //   bursts, emitting ONE averaged power (amp_valid) per point. peak_finder
 //   compares that averaged power, keeps the running argmax, then advances.
 //
-//   Termination is whichever comes first:
-//       point_idx + 1 >= n_points          (point-count budget)
-//       cur_freq + step >= stop_freq        (end-frequency clamp)
+//   Termination is a pure point counter (point_idx + 1 >= n_points), matching
+//   the fixed number of averaged triggers the host fires per pass. (An end-
+//   frequency clamp `cur_freq + step >= stop_freq` was removed: the pinc words
+//   wrap mod 2^32 across the band, so the UNSIGNED compare misfired and ended
+//   the pass early -> wrong freq_at_max. A counter is wrap-immune.)
 //   On termination it parks freq_word = freq_at_max and pulses `finish`.
 //
 //   Two-pass (coarse then fine) is orchestrated by the host: run a pass, read
@@ -59,14 +61,14 @@ module peak_finder #(
 
     (* mark_debug = "true" *) reg [1:0]  state;
     (* mark_debug = "true" *) reg [31:0] cur_freq;
-    reg [31:0] cur_stop;
     reg [31:0] cur_step;
     reg [31:0] n_pts;
     (* mark_debug = "true" *) reg [31:0] point_idx;
 
-    // last-point test, evaluated on the cycle amp_valid lands
-    wire last_point = (point_idx + 32'd1 >= n_pts) ||
-                      (cur_freq + cur_step >= cur_stop);
+    // last-point test, evaluated on the cycle amp_valid lands.
+    // Pure point counter -- wrap-immune and in lockstep with the host's fixed
+    // per-pass trigger count. (Replaces the old wrap-unsafe end-frequency clamp.)
+    wire last_point = (point_idx + 32'd1 >= n_pts);
 
     always @(posedge clk) begin
         if (!rstn) begin
@@ -77,7 +79,6 @@ module peak_finder #(
             max_amplitude <= {ACCUM_WIDTH{1'b0}};
             freq_at_max   <= 32'd0;
             cur_freq      <= 32'd0;
-            cur_stop      <= 32'd0;
             cur_step      <= 32'd0;
             n_pts         <= 32'd0;
             point_idx     <= 32'd0;
@@ -95,8 +96,7 @@ module peak_finder #(
             IDLE: begin
                 if (start) begin
                     cur_freq      <= start_freq;
-                    cur_stop      <= stop_freq;
-                    cur_step      <= step;
+                    cur_step      <= step;   // stop_freq input now unused (counter terminates the pass)
                     n_pts         <= n_points;
                     point_idx     <= 32'd0;
                     max_amplitude <= {ACCUM_WIDTH{1'b0}};

@@ -2,32 +2,22 @@
 
 //------------------------------------------------------------------------------
 // amplitude_calculator -- integrates |IQ|^2 over one measurement window and
-// emits the accumulated power once per trigger.
+// emits the accumulated power once per `averager_value` triggers.
 //
-// Robustness contract (so the IP can never wedge on hardware):
-//   * A trigger (re)arms a FRESH window in ANY state. A burst that under-
-//     delivered samples is therefore abandoned on the next trigger instead of
-//     sticking in RUN forever.
-//   * A watchdog force-completes the window if the sample stream ends before
-//     `nsamp` valid beats arrive (e.g. nsamp set larger than the readout
-//     delivers). It emits whatever was accumulated -- consistent across points
-//     since every shot streams the same sample count -- so the downstream
-//     argmax stays correct. This removes the hard dependency on nsamp exactly
-//     matching the per-shot decimated-sample count.
+// Completion is COUNT-based -- the same fixed-count model QICK's avg_buffer uses
+// (it captures a programmed `length` of decimated samples). The host sets
+// `nsamp` to the readout's decimated window length, so the count is always
+// reached. There is NO watchdog: a hard-coded timeout is the wrong primitive --
+// it can't fire before the next host trigger re-arms (the inter-trigger time is
+// far shorter than any safe timeout), and it isn't flexible. A trigger (re)arms
+// a FRESH window in ANY state, so each measurement starts clean.
 //
-// Completion therefore happens on whichever fires first:
-//   (a) sample_cnt reaches nsamp  (clean, exact integral; nsamp <= delivered)
-//   (b) WDOG_LIMIT cycles elapse with no new sample (stream ended / starved)
+//   completion: sample_cnt reaches nsamp   (host sets nsamp <= delivered beats)
 //------------------------------------------------------------------------------
 
 module amplitude_calculator #(
     parameter MAX_AVG     = 64,
-    parameter ACCUM_WIDTH = 52,
-    // RUN cycles with no newly-accepted sample before the window is force-
-    // completed. Must be >> the largest inter-sample gap on s_axis (so it never
-    // fires mid-stream) and << the host inter-trigger time. 65536 @ 552.96 MHz
-    // ~= 118 us: far above any decimated-readout gap, far below a host round-trip.
-    parameter WDOG_LIMIT  = 32'd65536
+    parameter ACCUM_WIDTH = 52
 )(
     input                            clk,
     input                            rst_n,
@@ -118,7 +108,6 @@ module amplitude_calculator #(
     (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0]       sum_reg;
     (* mark_debug = "true" *) reg                         finish_delay;
     (* mark_debug = "true" *) reg [31:0]                  nsamp_latched;
-    (* mark_debug = "true" *) reg [31:0]                  wdog;          // cycles in RUN with no accepted sample
 
     (* mark_debug = "true" *) reg run_d0, run_d1, run_d2;
 
@@ -137,15 +126,11 @@ module amplitude_calculator #(
     end
 
     (* mark_debug = "true" *) wire acc_en   = run_d2 & v_s2;
-    // Complete as soon as the sample count is reached -- do NOT wait for
-    // s_axis_tvalid to drop. The real readout can hold tvalid high for the
-    // whole window; the old `&& !acc_en` wait (plus the watchdog, which resets
-    // on every accepted sample) would then never fire. finish_delay is set the
-    // cycle after the nsamp-th sample is accumulated, so `accumulator` already
-    // holds the full nsamp-sample sum here. The watchdog still covers a stream
-    // that STARVES before nsamp samples arrive.
-    (* mark_debug = "true" *) wire emit_now = finish_delay ||
-                    (state == RUN && wdog >= WDOG_LIMIT);
+    // Complete on the sample COUNT only. finish_delay is set the cycle after the
+    // nsamp-th sample is accumulated, so `accumulator` already holds the full
+    // nsamp-sample sum here. nsamp is set by the host to the readout's decimated
+    // window length, so the count is always reached -- no timeout fallback.
+    (* mark_debug = "true" *) wire emit_now = finish_delay;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -158,7 +143,6 @@ module amplitude_calculator #(
             m_axis_tdata   <= 0;
             finish_delay   <= 0;
             nsamp_latched  <= 0;
-            wdog           <= 0;
         end else begin
             m_axis_tvalid  <= 0;
 
@@ -171,7 +155,6 @@ module amplitude_calculator #(
                 accumulator   <= 0;
                 finish_delay  <= 0;
                 nsamp_latched <= nsamp;
-                wdog          <= 0;
             end else begin
                 case (state)
                     IDLE: ; // wait for trigger
@@ -180,11 +163,8 @@ module amplitude_calculator #(
                         if (acc_en) begin
                             accumulator <= accumulator + power_s2;
                             sample_cnt  <= sample_cnt + 1;
-                            wdog        <= 0;                  // progress -> reset watchdog
                             if (sample_cnt == nsamp_latched - 1)
                                 finish_delay <= 1;
-                        end else begin
-                            wdog <= wdog + 1'b1;               // idle cycle -> age watchdog
                         end
 
                         if (emit_now) begin
@@ -201,7 +181,6 @@ module amplitude_calculator #(
                             accumulator  <= 0;
                             sample_cnt   <= 0;
                             finish_delay <= 0;
-                            wdog         <= 0;
                             state        <= IDLE;
                         end
                     end

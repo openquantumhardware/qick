@@ -185,16 +185,27 @@ module fine_tuning_sweep #(
         .d_out (averager_value_ro)
     );
 
-    // trig_0_o from the tProc is held high for ~10 tProc cycles, but
-    // synchronizer_pulse expects a single-cycle pulse. Rising-edge-detect on
-    // clk so the CDC -- and the amplitude_calculator re-arm -- see exactly one
-    // pulse per trigger.
+    // trig_0_o is generated in the tProc TIMING domain (t_clk = RFDAC2_CLK,
+    // 491.52 MHz) -- ASYNCHRONOUS to this clk (clk_core, 204.75 MHz). It MUST be
+    // 2-FF synchronized into clk BEFORE the rising-edge detect: a single FF on an
+    // async input (and ANDing the raw async signal) is the CDC-1 Critical the
+    // timing report flagged, and can metastable-glitch the trigger edge -> drop
+    // or double a burst -> desync the per-point averager/point count.
+    // trig_0_o is held high for ~10 timing-clk cycles (~4 clk_core cycles), so a
+    // synchronized rising-edge detect still yields exactly one clean pulse.
+    wire trig_sync;
+    synchronizer #(.WIDTH(1)) u_trig_sync (
+        .clk   (clk),
+        .rst_n (rst_n),
+        .d_in  (trigger),
+        .d_out (trig_sync)
+    );
     reg trig_d;
     always @(posedge clk) begin
         if (!rst_n) trig_d <= 1'b0;
-        else        trig_d <= trigger;
+        else        trig_d <= trig_sync;
     end
-    wire trigger_pulse = trigger & ~trig_d;
+    wire trigger_pulse = trig_sync & ~trig_d;   // clean 1-clk rising edge of the SYNCED trigger
 
     synchronizer_pulse u_trig_cdc (
         .clk_src  (clk),
