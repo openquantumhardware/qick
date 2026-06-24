@@ -1,18 +1,27 @@
 `timescale 1ns / 1ps
 //------------------------------------------------------------------------------
 // synchronizer.v -- Clock-domain-crossing primitives for the fine_tuning_sweep
-// IP. Three modules:
+// IP, matching how QICK's axis_avg_buffer handles CDC. Two modules:
 //
-//   synchronizer            -- 2-FF synchronizer for slow-changing multi-bit
-//                              signals (e.g. nsamp, averager_value held stable
-//                              for many destination cycles).
-//   synchronizer_pulse      -- toggle-based pulse CDC (single 1-cycle source
-//                              pulse -> single 1-cycle dest pulse).
-//   synchronizer_handshake  -- req/ack handshake for wide data + valid
-//                              (one transfer per nsamp*averager_value burst).
+//   synchronizer            -- 2-FF level synchronizer (ASYNC_REG), the SAME
+//                              primitive as avg_buffer's synchronizer_n #(.N(2)).
+//                              Used for the TRIGGER (crossed straight into the
+//                              s_axis/ADC clock, then edge-detected by the
+//                              consumer -- exactly like avg_buffer) and for
+//                              quasi-static config (nsamp, averager_value, held
+//                              stable for many destination cycles).
+//   synchronizer_handshake  -- req/ack handshake carrying the single averaged
+//                              |IQ|^2 result + valid from s_axis back to c_clk.
+//                              (avg_buffer instead parks its capture ARRAY in a
+//                              dual-clock BRAM; we push ONE scalar per point, so
+//                              a handshake is the right equivalent.)
 //
 // All blocks use synchronous reset (`always @(posedge clk)` with `if (!rst_n)`)
 // so they stay friendly to Vivado's synthesis. Reset values are zero.
+//
+// NOTE: the old toggle-based `synchronizer_pulse` was removed -- with the
+// avg_buffer-style level sync the trigger no longer makes a c_clk hop, so a
+// pulse CDC is no longer needed (avg_buffer has none either).
 //------------------------------------------------------------------------------
 
 
@@ -43,47 +52,6 @@ module synchronizer #(parameter WIDTH = 1) (
     end
 
     assign d_out = s1;
-endmodule
-
-
-//------------------------------------------------------------------------------
-// Pulse CDC: toggle on each input pulse on src side, 2-FF sync on dst side,
-// edge-detect to recover a one-cycle pulse.
-//
-// Assumes p_in is a single-src-cycle pulse (true for tProc trig_X_o and for
-// amplitude_calculator's one_burst_done). Total latency: ~3 dst cycles.
-//------------------------------------------------------------------------------
-module synchronizer_pulse (
-    input  wire clk_src,
-    input  wire rst_n_src,
-    input  wire clk_dst,
-    input  wire rst_n_dst,
-    input  wire p_in,
-    output reg  p_out
-);
-    reg tog_src;
-    always @(posedge clk_src) begin
-        if (!rst_n_src) tog_src <= 1'b0;
-        else if (p_in)  tog_src <= ~tog_src;
-    end
-
-    (* ASYNC_REG = "TRUE" *) reg tog_s0;
-    (* ASYNC_REG = "TRUE" *) reg tog_s1;
-    reg                       tog_s2;
-
-    always @(posedge clk_dst) begin
-        if (!rst_n_dst) begin
-            tog_s0 <= 1'b0;
-            tog_s1 <= 1'b0;
-            tog_s2 <= 1'b0;
-            p_out  <= 1'b0;
-        end else begin
-            tog_s0 <= tog_src;
-            tog_s1 <= tog_s0;
-            tog_s2 <= tog_s1;
-            p_out  <= tog_s1 ^ tog_s2;
-        end
-    end
 endmodule
 
 

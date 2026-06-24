@@ -165,7 +165,9 @@ module fine_tuning_sweep #(
     end
 
     // =========================================================
-    // CDC: c_clk -> s_axis_aclk  (nsamp, averager_value, trigger)
+    // CDC into the s_axis_aclk (ADC) domain:
+    //   nsamp / averager_value : c_clk -> s_axis  (quasi-static, 2-FF)
+    //   trigger (trig_0_o)     : async -> s_axis  (avg_buffer-style level sync)
     // =========================================================
     wire [31:0]          nsamp_ro;
     wire [AVG_BITS-1:0]  averager_value_ro;
@@ -185,37 +187,30 @@ module fine_tuning_sweep #(
         .d_out (averager_value_ro)
     );
 
-    // trig_0_o is generated in the tProc TIMING domain (t_clk = clk_dac2 =
-    // RFDAC2_CLK, 614.4 MHz; 491.52 MHz is only the RFdc PLL reference, not this
-    // clock) -- ASYNCHRONOUS to this clk (clk_core, 204.75 MHz). It MUST be
-    // 2-FF synchronized into clk BEFORE the rising-edge detect: a single FF on an
-    // async input (and ANDing the raw async signal) is the CDC-1 Critical the
-    // timing report flagged, and can metastable-glitch the trigger edge -> drop
-    // or double a burst -> desync the per-point averager/point count.
-    // trig_0_o is held high for ~10 timing-clk cycles (~4 clk_core cycles), so a
-    // synchronized rising-edge detect still yields exactly one clean pulse.
-    wire trig_sync;
+    // ---- trigger CDC -- IDENTICAL scheme to QICK's axis_avg_buffer -----------
+    // avg_buffer (avg_buffer.v) crosses trig_0_o with a single 2-FF level
+    // synchronizer (synchronizer_n #(.N(2))) STRAIGHT into its capture clock
+    // (s_axis_aclk / the ADC clock), then the consuming FSM edge-detects locally.
+    // We do exactly the same: amplitude_calculator runs in s_axis_aclk, so the
+    // trigger crosses ONCE, async -> s_axis_aclk -- it never enters clk_core.
+    // trig_0_o is born in the tProc timing domain (t_clk = clk_dac2, 614.4 MHz)
+    // and is async to BOTH our clocks; it is held high ~20 ns (~11 s_axis
+    // cycles), so a 2-FF level sync + rising-edge detect yields exactly one clean
+    // s_axis pulse per burst. (Replaces the old t_clk->c_clk->s_axis double
+    // crossing + toggle pulse-sync, which was the non-idiomatic outlier.)
+    wire trig_resync;
     synchronizer #(.WIDTH(1)) u_trig_sync (
-        .clk   (clk),
-        .rst_n (rst_n),
+        .clk   (s_axis_aclk),
+        .rst_n (s_axis_aresetn),
         .d_in  (trigger),
-        .d_out (trig_sync)
+        .d_out (trig_resync)
     );
-    reg trig_d;
-    always @(posedge clk) begin
-        if (!rst_n) trig_d <= 1'b0;
-        else        trig_d <= trig_sync;
+    reg trig_resync_d;
+    always @(posedge s_axis_aclk) begin
+        if (!s_axis_aresetn) trig_resync_d <= 1'b0;
+        else                 trig_resync_d <= trig_resync;
     end
-    wire trigger_pulse = trig_sync & ~trig_d;   // clean 1-clk rising edge of the SYNCED trigger
-
-    synchronizer_pulse u_trig_cdc (
-        .clk_src  (clk),
-        .rst_n_src(rst_n),
-        .clk_dst  (s_axis_aclk),
-        .rst_n_dst(s_axis_aresetn),
-        .p_in     (trigger_pulse),
-        .p_out    (trigger_ro)
-    );
+    assign trigger_ro = trig_resync & ~trig_resync_d;   // one clean s_axis pulse
 
     // =========================================================
     // s_axis_aclk: amplitude_calculator

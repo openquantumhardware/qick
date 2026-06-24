@@ -8,7 +8,7 @@
 //   The two clocks are asynchronous (ratio ~2.25), so this exercises every CDC
 //   the single-clock tb could not:
 //       synchronizer            nsamp / averager_value   (c -> ro)
-//       synchronizer_pulse      trigger                  (c -> ro)
+//       synchronizer (2-FF)     trigger  (async trig_0_o -> ro, avg_buffer-style)
 //       synchronizer_handshake  averaged power + valid   (ro -> c)
 //   Separate resets per domain. Self-checks the argmax lands on the synthetic
 //   peak -- a wrong/missing CDC transfer shows up as a wrong freq_at_max or a
@@ -116,13 +116,17 @@ module tb_fine_tuning_sweep_cdc();
         end
     endtask
 
-    // Fire one burst: a 1-cycle c_clk trigger, then wait long enough for the
-    // trigger to cross to ro, integrate NSAMP samples, complete, and (on the
-    // AVG-th burst) cross the averaged result back to c.
+    // Fire one burst: a WIDE (~20 ns) c_clk trigger -- modelling the real
+    // trig_0_o level, which the avg_buffer-style level sync requires. (A
+    // 1-cycle pulse can be missed crossing into the faster ro clock; the real
+    // trig_0_o is a ~20 ns level, so the s_axis edge-detect still gives exactly
+    // one burst.) Then wait long enough for the trigger to cross to ro,
+    // integrate NSAMP samples, complete, and (on the AVG-th burst) cross the
+    // averaged result back to c.
     task fire_burst;
         begin
             @(posedge c_clk); #0.1; trigger = 1'b1;
-            @(posedge c_clk); #0.1; trigger = 1'b0;
+            repeat (5) @(posedge c_clk); #0.1; trigger = 1'b0;  // ~20 ns level
             repeat (40) @(posedge c_clk);   // >> NSAMP ro-cycles + CDC latency
         end
     endtask
