@@ -2,14 +2,20 @@
 //------------------------------------------------------------------------------
 // fine_tuning_sweep -- dual-clock top wrapper (autonomous sweep controller).
 //
-//   amplitude_calculator runs in the s_axis_aclk (ADC/readout-clock) domain.
-//   peak_finder (sweep FSM + argmax) + QP2 opcode FSM run in the clk (c_clk)
-//   domain.
+//   peak_finder (sweep FSM + argmax) + the QP2 opcode FSM run on `clk` (the
+//   fpga/tProc clock, c_clk).  amplitude_calculator runs on `s_axis_aclk` (the
+//   ADC/readout clock) where the IQ stream lives.
 //
-//   The IP owns the frequency grid. It announces each point to the tProc; the
-//   tProc retunes the generator + readout DDC and fires `averager_value`
-//   triggers per point. One averaged power comes back per point and feeds the
-//   argmax. See peak_finder.v for the FSM.
+//   CDC -- each crossing uses the RIGHT primitive for its kind (see
+//   synchronizer.v):
+//     trigger              fpga_clk -> adc_clk : synchronizer_n (2-FF) + edge
+//                          (1-bit; the IQ data is NOT synchronized -- it is born
+//                           in adc_clk and consumed there by amplitude_calculator)
+//     nsamp/averager_value fpga_clk -> adc_clk : synchronizer (quasi-static bus)
+//     accumulated |IQ|^2   adc_clk -> fpga_clk : synchronizer_handshake (req/ack)
+//                          -- the MULTI-BIT result crossing back: only the 1-bit
+//                           req crosses through FFs; the data is captured while
+//                           held, so there is no bit-skew. peak_finder consumes it.
 //
 // QP2 opcode map:
 //   OP 0: dt1=start_freq dt2=stop_freq dt3=step dt4=nsamp   -- sweep config
@@ -20,10 +26,6 @@
 //
 //   OP2.dt2 bit0 = finish (sweep complete; dt1 = freq_at_max)
 //   OP2.dt2 bit1 = freq_valid (a new point is ready; dt1 = its freq_word)
-//
-//   tProc loop:  poll OP2 -> if finish: done (read dt1)
-//                          -> if freq_valid: retune gen+DDC to dt1,
-//                             fire averager_value triggers, poll again
 //------------------------------------------------------------------------------
 
 module fine_tuning_sweep #(
@@ -45,7 +47,7 @@ module fine_tuning_sweep #(
     (* mark_debug = "true" *) output reg  [31:0] qtag_dt2_o,
     (* mark_debug = "true" *) output reg         qtag_vld_o,
 
-    // tProc trigger pulse (c_clk) -- one per burst, averager_value per point
+    // tProc trigger pulse (generated in the tProc t_clk domain -- async here)
     (* mark_debug = "true" *) input  wire        trigger,
 
     // ---- s_axis_aclk (ro_clk) domain ----
@@ -68,7 +70,6 @@ module fine_tuning_sweep #(
         else        en_d <= qtag_en_i;
     end
 
-    // Named strobes -- testbench accesses these via hierarchical reference
     wire start_now     = en_rise & (qtag_op_i == 5'd1);
     wire reset_max_now = en_rise & (qtag_op_i == 5'd3);
     wire op2_read      = en_rise & (qtag_op_i == 5'd2);
@@ -87,7 +88,7 @@ module fine_tuning_sweep #(
     (* mark_debug = "true" *) wire [31:0] pf_freq_word;
     (* mark_debug = "true" *) wire        pf_freq_valid;
     (* mark_debug = "true" *) wire        pf_finish;
-    (* mark_debug = "true" *) wire [51:0] max_amplitude;   // running max -- argmax state, kept observable
+    (* mark_debug = "true" *) wire [51:0] max_amplitude;   // running max (argmax state, observable)
     (* mark_debug = "true" *) wire [31:0] freq_at_max;
 
     // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
@@ -133,8 +134,7 @@ module fine_tuning_sweep #(
     end
 
     // sticky_freq_valid: set when peak_finder presents a new point; cleared when
-    // the tProc consumes it via an OP2 read. Set wins on a (rare) coincidence so
-    // a point is never dropped.
+    // the tProc consumes it via an OP2 read. Set wins on a coincidence.
     always @(posedge clk) begin
         if (!rst_n)              sticky_freq_valid <= 1'b0;
         else if (pf_freq_valid)  sticky_freq_valid <= 1'b1;
@@ -149,15 +149,8 @@ module fine_tuning_sweep #(
         else if (start_now)    sticky_finish <= 1'b0;
     end
 
-    // qtag_rdy_o: the "answer ready" signal the tProc waits on before launching
-    // the next sweep. Surfaced to the core as s_status bit_qpb_rdy (#h0400) via
-    // qp2_rdy_i -> qp2_rdy_r (qick_processor.sv). It drops LOW the moment a sweep
-    // starts (OP1) and rises HIGH when peak_finder asserts finish (freq_word now
-    // parked at freq_at_max, ready to read). Reset = 1 (idle, ready for the first
-    // command). This block is the SOLE driver of qtag_rdy_o (Verilog single-
-    // driver rule), which is why the old reset-only assignment moved here. PB
-    // issue does NOT gate on rdy, so holding it low through a sweep never blocks
-    // the per-point OP2 ops.
+    // qtag_rdy_o: "answer ready" the tProc waits on before the next sweep.
+    // s_status bit_qpb_rdy (#h0400). reset=1 (idle), low on OP1, high on finish.
     always @(posedge clk) begin
         if (!rst_n)          qtag_rdy_o <= 1'b1;   // idle: ready for a command
         else if (start_now)  qtag_rdy_o <= 1'b0;   // sweep running: busy
@@ -165,13 +158,15 @@ module fine_tuning_sweep #(
     end
 
     // =========================================================
-    // CDC into the s_axis_aclk (ADC) domain:
-    //   nsamp / averager_value : c_clk -> s_axis  (quasi-static, 2-FF)
-    //   trigger (trig_0_o)     : async -> s_axis  (avg_buffer-style level sync)
+    // CDC fpga_clk -> adc_clk
+    //   nsamp / averager_value : quasi-static buses -> synchronizer
+    //   trigger (trig_0_o)     : 1-bit async -> synchronizer_n (2-FF) + edge,
+    //                            EXACTLY like avg_buffer crosses its trigger
+    //                            into the ADC clock. The IQ stream itself is
+    //                            native to adc_clk and is NOT synchronized.
     // =========================================================
     wire [31:0]          nsamp_ro;
     wire [AVG_BITS-1:0]  averager_value_ro;
-    wire                 trigger_ro;
 
     synchronizer #(.WIDTH(32)) u_sync_nsamp (
         .clk   (s_axis_aclk),
@@ -187,34 +182,23 @@ module fine_tuning_sweep #(
         .d_out (averager_value_ro)
     );
 
-    // ---- trigger CDC -- IDENTICAL scheme to QICK's axis_avg_buffer -----------
-    // avg_buffer (avg_buffer.v) crosses trig_0_o with a single 2-FF level
-    // synchronizer (synchronizer_n #(.N(2))) STRAIGHT into its capture clock
-    // (s_axis_aclk / the ADC clock), then the consuming FSM edge-detects locally.
-    // We do exactly the same: amplitude_calculator runs in s_axis_aclk, so the
-    // trigger crosses ONCE, async -> s_axis_aclk -- it never enters clk_core.
-    // trig_0_o is born in the tProc timing domain (t_clk = clk_dac2, 614.4 MHz)
-    // and is async to BOTH our clocks; it is held high ~20 ns (~11 s_axis
-    // cycles), so a 2-FF level sync + rising-edge detect yields exactly one clean
-    // s_axis pulse per burst. (Replaces the old t_clk->c_clk->s_axis double
-    // crossing + toggle pulse-sync, which was the non-idiomatic outlier.)
     wire trig_resync;
-    synchronizer #(.WIDTH(1)) u_trig_sync (
-        .clk   (s_axis_aclk),
-        .rst_n (s_axis_aresetn),
-        .d_in  (trigger),
-        .d_out (trig_resync)
+    synchronizer_n #(.N(2)) u_trig_sync (
+        .clk      (s_axis_aclk),
+        .rstn     (s_axis_aresetn),
+        .data_in  (trigger),
+        .data_out (trig_resync)
     );
     reg trig_resync_d;
     always @(posedge s_axis_aclk) begin
         if (!s_axis_aresetn) trig_resync_d <= 1'b0;
         else                 trig_resync_d <= trig_resync;
     end
-    assign trigger_ro = trig_resync & ~trig_resync_d;   // one clean s_axis pulse
+    wire trigger_ro = trig_resync & ~trig_resync_d;   // one clean adc-clk pulse
 
     // =========================================================
-    // s_axis_aclk: amplitude_calculator
-    //   averages `averager_value` bursts per point -> one m_axis beat per point.
+    // adc_clk: amplitude_calculator
+    //   averages `averager_value` bursts per point -> one accumulated |IQ|^2.
     // =========================================================
     wire [51:0] amp_data_ro;
     wire        amp_valid_ro;
@@ -225,20 +209,21 @@ module fine_tuning_sweep #(
     ) u_amplitude_calculator (
         .clk            (s_axis_aclk),
         .rst_n          (s_axis_aresetn),
-
         .s_axis_tvalid  (s_axis_tvalid),
         .s_axis_tdata   (s_axis_tdata),
-
         .trigger        (trigger_ro),
         .nsamp          (nsamp_ro),
         .averager_value (averager_value_ro),
-
         .m_axis_tdata   (amp_data_ro),
         .m_axis_tvalid  (amp_valid_ro)
     );
 
     // =========================================================
-    // CDC: s_axis_aclk -> c_clk  (averaged amplitude data + valid)
+    // CDC adc_clk -> fpga_clk: the ACCUMULATED |IQ|^2 + valid (req/ack handshake)
+    //   This is the multi-bit result going back to the fpga clock. The handshake
+    //   crosses only the 1-bit req/ack through FFs and captures the 52-bit data
+    //   while it is held stable -> no bit-skew (a synchronizer would be WRONG
+    //   here). avg_buffer uses a dual-clock BRAM for the same purpose.
     // =========================================================
     (* mark_debug = "true" *) wire [51:0] amp_data_c;
     (* mark_debug = "true" *) wire        amp_valid_c;
@@ -255,29 +240,24 @@ module fine_tuning_sweep #(
     );
 
     // =========================================================
-    // c_clk: peak_finder (autonomous sweep FSM + argmax)
+    // c_clk: peak_finder (sweep FSM + argmax) -- consumes the handshaked result
     // =========================================================
     peak_finder #(
         .ACCUM_WIDTH (52)
     ) u_peak_finder_v2 (
         .clk           (clk),
         .rstn          (rst_n),
-
         .start         (start_now),
         .start_freq    (reg_start),
         .stop_freq     (reg_stop),
         .step          (reg_step),
         .n_points      (reg_npoints),
-
         .reset_max     (reset_max_now),
-
         .amp_valid     (amp_valid_c),
         .amp_data      (amp_data_c),
-
         .freq_word     (pf_freq_word),
         .freq_valid    (pf_freq_valid),
         .finish        (pf_finish),
-
         .max_amplitude (max_amplitude),
         .freq_at_max   (freq_at_max)
     );

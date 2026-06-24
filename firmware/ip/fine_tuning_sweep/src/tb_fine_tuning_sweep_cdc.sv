@@ -7,9 +7,9 @@
 //
 //   The two clocks are asynchronous (ratio ~2.25), so this exercises every CDC
 //   the single-clock tb could not:
-//       synchronizer            nsamp / averager_value   (c -> ro)
-//       synchronizer (2-FF)     trigger  (async trig_0_o -> ro, avg_buffer-style)
-//       synchronizer_handshake  averaged power + valid   (ro -> c)
+//       synchronizer_n          trigger                  (fpga -> ro, 1-bit)
+//       synchronizer            nsamp / averager_value   (fpga -> ro, quasi-static)
+//       synchronizer_handshake  accumulated |IQ|^2 + vld (ro -> fpga, req/ack)
 //   Separate resets per domain. Self-checks the argmax lands on the synthetic
 //   peak -- a wrong/missing CDC transfer shows up as a wrong freq_at_max or a
 //   hang (caught by the global timeout).

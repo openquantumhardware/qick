@@ -1,36 +1,57 @@
 `timescale 1ns / 1ps
 //------------------------------------------------------------------------------
 // synchronizer.v -- Clock-domain-crossing primitives for the fine_tuning_sweep
-// IP, matching how QICK's axis_avg_buffer handles CDC. Two modules:
+// IP. Three modules, each for ONE class of crossing:
 //
-//   synchronizer            -- 2-FF level synchronizer (ASYNC_REG), the SAME
-//                              primitive as avg_buffer's synchronizer_n #(.N(2)).
-//                              Used for the TRIGGER (crossed straight into the
-//                              s_axis/ADC clock, then edge-detected by the
-//                              consumer -- exactly like avg_buffer) and for
-//                              quasi-static config (nsamp, averager_value, held
-//                              stable for many destination cycles).
-//   synchronizer_handshake  -- req/ack handshake carrying the single averaged
-//                              |IQ|^2 result + valid from s_axis back to c_clk.
-//                              (avg_buffer instead parks its capture ARRAY in a
-//                              dual-clock BRAM; we push ONE scalar per point, so
-//                              a handshake is the right equivalent.)
+//   synchronizer_n         -- avg_buffer's EXACT primitive (avg_buffer.v uses
+//                             `synchronizer_n #(.N(2))`): N-deep 1-bit shift-reg
+//                             level sync. Used for the TRIGGER (fpga clk -> adc
+//                             clk): cross the 1-bit trigger into s_axis_aclk,
+//                             edge-detect locally. 1-bit ONLY.
 //
-// All blocks use synchronous reset (`always @(posedge clk)` with `if (!rst_n)`)
-// so they stay friendly to Vivado's synthesis. Reset values are zero.
+//   synchronizer           -- WIDTH-bit 2-FF level sync for QUASI-STATIC buses
+//                             (nsamp / averager_value: written once via QP2 and
+//                             held). Safe ONLY because the bus is stable when
+//                             sampled (no bit-skew). NOT for live-changing data.
 //
-// NOTE: the old toggle-based `synchronizer_pulse` was removed -- with the
-// avg_buffer-style level sync the trigger no longer makes a c_clk hop, so a
-// pulse CDC is no longer needed (avg_buffer has none either).
+//   synchronizer_handshake -- req/ack handshake for the ACCUMULATED |IQ|^2 + its
+//                             valid going adc clk -> fpga clk. This is the
+//                             CORRECT way to move a MULTI-BIT value across clocks:
+//                             only the 1-bit `req` toggle crosses through FFs;
+//                             the wide data is latched on the source side and
+//                             captured on the destination only after `req` has
+//                             crossed, by which time the data has long settled --
+//                             so there is no multi-bit bit-skew. (avg_buffer does
+//                             the same job with a dual-clock BRAM; for one scalar
+//                             per point a handshake is the lighter equivalent.)
+//
+// All blocks use synchronous reset and zero reset values.
 //------------------------------------------------------------------------------
 
 
 //------------------------------------------------------------------------------
-// 2-FF synchronizer for slow-changing multi-bit signals.
-//
-// Caller MUST hold d_in stable across enough clk cycles for the 2 FFs to
-// settle (true for nsamp / averager_value which are written once via QP2 and
-// held). Do not feed pulses through this -- use synchronizer_pulse instead.
+// synchronizer_n -- avg_buffer's 1-bit N-deep shift-register level sync.
+//------------------------------------------------------------------------------
+module synchronizer_n #(parameter N = 2) (
+    input  wire rstn,
+    input  wire clk,
+    input  wire data_in,
+    output wire data_out
+);
+    (* ASYNC_REG = "TRUE" *) reg [N-1:0] data_int_reg;
+
+    always @(posedge clk) begin
+        if (!rstn) data_int_reg <= {N{1'b0}};
+        else       data_int_reg <= {data_int_reg[N-2:0], data_in};
+    end
+
+    assign data_out = data_int_reg[N-1];
+endmodule
+
+
+//------------------------------------------------------------------------------
+// synchronizer -- WIDTH-bit 2-FF level sync for QUASI-STATIC buses only.
+// Caller MUST hold d_in stable across enough clk cycles for the FFs to settle.
 //------------------------------------------------------------------------------
 module synchronizer #(parameter WIDTH = 1) (
     input  wire             clk,
@@ -56,17 +77,16 @@ endmodule
 
 
 //------------------------------------------------------------------------------
-// Handshake CDC: transfers a wide data word + valid pulse across clock
-// domains.
+// synchronizer_handshake -- transfers a wide data word + valid across clocks.
 //
 // src latches data + toggles req on valid_in (only when idle). dst 2-FF-syncs
 // req, captures data on the req-toggle edge, emits a 1-cycle valid_out, and
-// toggles ack back. src reads ack via its own 2-FF sync and returns to idle
-// when ack matches req.
+// toggles ack back. src reads ack via its own 2-FF sync and returns to idle when
+// ack matches req. Only the 1-bit req/ack cross through FFs; the data is sampled
+// on the dst side ONLY when it is already stable (MCP handshake) -> no bit-skew.
 //
-// Throughput limited to ~1 sample per 6-8 cycles total, which is fine: the
-// amplitude pulse this carries is emitted once per (nsamp*averager_value) ADC
-// samples. Total latency: ~5-6 dst cycles.
+// Throughput ~1 transfer per 6-8 cycles, which is fine: this carries one
+// averaged |IQ|^2 per (nsamp*averager_value) ADC samples.
 //------------------------------------------------------------------------------
 module synchronizer_handshake #(parameter WIDTH = 64) (
     input  wire             clk_src,
@@ -78,8 +98,8 @@ module synchronizer_handshake #(parameter WIDTH = 64) (
     output reg              valid_out,
     output reg  [WIDTH-1:0] data_out
 );
-    // ack_dst is driven on the dst side below but read on the src side; declare
-    // it up here so strict analyzers (xsim/xvlog) don't flag a forward use.
+    // ack_dst is driven on the dst side but read on the src side; declare it up
+    // here so strict analyzers (xsim/xvlog) don't flag a forward use.
     reg ack_dst;
 
     // ---- src side ----
