@@ -60,7 +60,9 @@ module peak_finder #(
     (* mark_debug = "true" *) output wire [1:0]  dbg_state,
     (* mark_debug = "true" *) output wire [31:0] dbg_point_idx,
     (* mark_debug = "true" *) output wire [31:0] dbg_n_pts,
-    (* mark_debug = "true" *) output wire [31:0] dbg_cur_step
+    (* mark_debug = "true" *) output wire [31:0] dbg_cur_step,
+    // counts EVERY amp_valid this block's input sees, regardless of FSM state
+    (* mark_debug = "true" *) output wire [31:0] dbg_amp_seen
 );
 
     localparam IDLE      = 2'd0;
@@ -151,5 +153,18 @@ module peak_finder #(
     assign dbg_point_idx = point_idx;
     assign dbg_n_pts     = n_pts;
     assign dbg_cur_step  = cur_step;
+
+    // DECISIVE PROBE: count EVERY amp_valid this block's input sees, regardless
+    // of FSM state. Compare against the wrapper's amp_valid_c count (OP5 sel 4):
+    //   amp_seen ~= amp_valid_c, point_idx==0 -> input DOES pulse, advance never
+    //               fires (logic/synthesis-build discrepancy);
+    //   amp_seen == 0          -> peak_finder's amp_valid input is DEAD despite
+    //               the wrapper seeing amp_valid_c (net/connection / stale IP).
+    reg [31:0] amp_seen_cnt;
+    always @(posedge clk) begin
+        if (!rstn)          amp_seen_cnt <= 32'd0;
+        else if (amp_valid) amp_seen_cnt <= amp_seen_cnt + 32'd1;
+    end
+    assign dbg_amp_seen = amp_seen_cnt;
 
 endmodule
