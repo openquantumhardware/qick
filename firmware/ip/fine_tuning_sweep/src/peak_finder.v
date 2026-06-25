@@ -52,7 +52,15 @@ module peak_finder #(
 
     // result (read back on OP2 via freq_word; max kept for the comparison)
     output reg  [ACCUM_WIDTH-1:0] max_amplitude,
-    (* mark_debug = "true" *) output reg  [31:0] freq_at_max
+    (* mark_debug = "true" *) output reg  [31:0] freq_at_max,
+
+    // ---- diagnostic taps (clk domain; surfaced via wrapper QP2 OP5). Tells
+    //      whether the FSM is in WAIT_MEAS, whether point_idx advances, and
+    //      whether the latched config (n_pts, step) is sane. ----
+    (* mark_debug = "true" *) output wire [1:0]  dbg_state,
+    (* mark_debug = "true" *) output wire [31:0] dbg_point_idx,
+    (* mark_debug = "true" *) output wire [31:0] dbg_n_pts,
+    (* mark_debug = "true" *) output wire [31:0] dbg_cur_step
 );
 
     localparam IDLE      = 2'd0;
@@ -137,5 +145,11 @@ module peak_finder #(
             endcase
         end
     end
+
+    // diagnostic taps (combinational views of the FSM state/counters)
+    assign dbg_state     = state;
+    assign dbg_point_idx = point_idx;
+    assign dbg_n_pts     = n_pts;
+    assign dbg_cur_step  = cur_step;
 
 endmodule

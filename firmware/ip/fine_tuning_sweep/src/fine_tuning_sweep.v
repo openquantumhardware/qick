@@ -101,6 +101,14 @@ module fine_tuning_sweep #(
     (* mark_debug = "true" *) wire [31:0] dbg_emit_cnt_c;
     (* mark_debug = "true" *) reg  [31:0] dbg_ampc_cnt;
 
+    // peak_finder internal taps (clk domain) + averager_value crossed BACK to
+    // clk_core (quasi-static -> 2-FF exact) to confirm the c->adc avg crossing.
+    (* mark_debug = "true" *) wire [1:0]  pf_dbg_state;
+    (* mark_debug = "true" *) wire [31:0] pf_dbg_point_idx;
+    (* mark_debug = "true" *) wire [31:0] pf_dbg_n_pts;
+    (* mark_debug = "true" *) wire [31:0] pf_dbg_cur_step;
+    (* mark_debug = "true" *) wire [AVG_BITS-1:0] avg_ro_c;
+
     // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
     (* mark_debug = "true" *) reg sticky_freq_valid;
     (* mark_debug = "true" *) reg sticky_finish;
@@ -138,14 +146,22 @@ module fine_tuning_sweep #(
                     end
                     5'd3: ; // reset_max_now pulse drives peak_finder directly
                     5'd5: begin
-                        // diagnostic counter read (no side effects). dt1 selects:
-                        //  0 trig_cnt 1 tvalid_cnt 2 acc_cnt 3 emit_cnt(adc) 4 amp_valid_c(fpga)
-                        case (qtag_dt1_i[2:0])
-                            3'd0: qtag_dt1_o <= dbg_trig_cnt_c;
-                            3'd1: qtag_dt1_o <= dbg_tvalid_cnt_c;
-                            3'd2: qtag_dt1_o <= dbg_acc_cnt_c;
-                            3'd3: qtag_dt1_o <= dbg_emit_cnt_c;
-                            3'd4: qtag_dt1_o <= dbg_ampc_cnt;
+                        // diagnostic read (no side effects). dt1 selects:
+                        //  data path : 0 trig_cnt 1 tvalid_cnt 2 acc_cnt 3 emit_cnt(adc) 4 amp_valid_c(fpga)
+                        //  peak_finder: 5 state 6 point_idx 7 n_pts 8 cur_step
+                        //  averager   : 9 averager_value(adc, crossed back) 10 reg_avg(clk, OP4)
+                        case (qtag_dt1_i[3:0])
+                            4'd0:  qtag_dt1_o <= dbg_trig_cnt_c;
+                            4'd1:  qtag_dt1_o <= dbg_tvalid_cnt_c;
+                            4'd2:  qtag_dt1_o <= dbg_acc_cnt_c;
+                            4'd3:  qtag_dt1_o <= dbg_emit_cnt_c;
+                            4'd4:  qtag_dt1_o <= dbg_ampc_cnt;
+                            4'd5:  qtag_dt1_o <= {30'd0, pf_dbg_state};
+                            4'd6:  qtag_dt1_o <= pf_dbg_point_idx;
+                            4'd7:  qtag_dt1_o <= pf_dbg_n_pts;
+                            4'd8:  qtag_dt1_o <= pf_dbg_cur_step;
+                            4'd9:  qtag_dt1_o <= {{(32-AVG_BITS){1'b0}}, avg_ro_c};
+                            4'd10: qtag_dt1_o <= reg_avg;
                             default: qtag_dt1_o <= 32'd0;
                         endcase
                         qtag_dt2_o <= 32'd0;
@@ -312,7 +328,17 @@ module fine_tuning_sweep #(
         .freq_valid    (pf_freq_valid),
         .finish        (pf_finish),
         .max_amplitude (max_amplitude),
-        .freq_at_max   (freq_at_max)
+        .freq_at_max   (freq_at_max),
+        .dbg_state     (pf_dbg_state),
+        .dbg_point_idx (pf_dbg_point_idx),
+        .dbg_n_pts     (pf_dbg_n_pts),
+        .dbg_cur_step  (pf_dbg_cur_step)
     );
+
+    // averager_value (adc clk) crossed BACK to clk_core for OP5 sel 9 -- lets
+    // SW compare the adc-side value against reg_avg (sel 10) to confirm the
+    // c->adc averager crossing (quasi-static -> 2-FF is bit-exact).
+    synchronizer #(.WIDTH(AVG_BITS)) u_dbg_avg (
+        .clk(clk), .rst_n(rst_n), .d_in(averager_value_ro), .d_out(avg_ro_c));
 
 endmodule
