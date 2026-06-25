@@ -30,7 +30,16 @@ module amplitude_calculator #(
     input  [$clog2(MAX_AVG)-1:0]     averager_value,
 
     output reg [ACCUM_WIDTH-1:0]     m_axis_tdata,
-    output reg                       m_axis_tvalid
+    output reg                       m_axis_tvalid,
+
+    // ---- diagnostic counters (adc clk; cumulative since rst_n). Surfaced via
+    //      QP2 OP5 and mark_debug'd so SW -- or an ILA on the clk_core-crossed
+    //      copies -- can split the data-path failure: trigger? stream? counted
+    //      in-window? emitted? ----
+    (* mark_debug = "true" *) output reg [31:0] dbg_trig_cnt,
+    (* mark_debug = "true" *) output reg [31:0] dbg_tvalid_cnt,
+    (* mark_debug = "true" *) output reg [31:0] dbg_acc_cnt,
+    (* mark_debug = "true" *) output reg [31:0] dbg_emit_cnt
 );
 
     // ------------------------------------------------------------------
@@ -186,6 +195,31 @@ module amplitude_calculator #(
                     end
                 endcase
             end
+        end
+    end
+
+    // ------------------------------------------------------------------
+    //  Diagnostic counters (adc clk). Cumulative since rst_n; read at
+    //  quiescence (after the sweep loop stops firing triggers) via QP2 OP5.
+    //  They split the data-path failure cleanly:
+    //    dbg_trig_cnt   : trigger pulses seen        (0 -> trigger never crosses)
+    //    dbg_tvalid_cnt : s_axis_tvalid beats        (0 -> stream never reaches us)
+    //    dbg_acc_cnt    : samples accumulated in RUN  (0 -> stream/trigger misaligned)
+    //    dbg_emit_cnt   : bursts emitted (m_axis_tvalid)
+    //  (the wrapper counts amp_valid AFTER the back-handshake: emit>0 but that
+    //   one 0 -> the CDC handshake is wedging.)
+    // ------------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            dbg_trig_cnt   <= 0;
+            dbg_tvalid_cnt <= 0;
+            dbg_acc_cnt    <= 0;
+            dbg_emit_cnt   <= 0;
+        end else begin
+            if (trigger)       dbg_trig_cnt   <= dbg_trig_cnt   + 1;
+            if (s_axis_tvalid) dbg_tvalid_cnt <= dbg_tvalid_cnt + 1;
+            if (acc_en)        dbg_acc_cnt    <= dbg_acc_cnt    + 1;
+            if (m_axis_tvalid) dbg_emit_cnt   <= dbg_emit_cnt   + 1;
         end
     end
 

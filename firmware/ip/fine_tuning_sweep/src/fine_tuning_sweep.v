@@ -91,6 +91,16 @@ module fine_tuning_sweep #(
     (* mark_debug = "true" *) wire [51:0] max_amplitude;   // running max (argmax state, observable)
     (* mark_debug = "true" *) wire [31:0] freq_at_max;
 
+    // diagnostic counters (declared here so the QP2 FSM / OP5 can read them;
+    // driven further below). *_ro = adc clk (from amplitude_calculator),
+    // *_c = crossed to clk_core for QP2 + ILA. See the diagnostic block below.
+    wire [31:0] dbg_trig_cnt_ro, dbg_tvalid_cnt_ro, dbg_acc_cnt_ro, dbg_emit_cnt_ro;
+    (* mark_debug = "true" *) wire [31:0] dbg_trig_cnt_c;
+    (* mark_debug = "true" *) wire [31:0] dbg_tvalid_cnt_c;
+    (* mark_debug = "true" *) wire [31:0] dbg_acc_cnt_c;
+    (* mark_debug = "true" *) wire [31:0] dbg_emit_cnt_c;
+    (* mark_debug = "true" *) reg  [31:0] dbg_ampc_cnt;
+
     // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
     (* mark_debug = "true" *) reg sticky_freq_valid;
     (* mark_debug = "true" *) reg sticky_finish;
@@ -127,6 +137,20 @@ module fine_tuning_sweep #(
                         qtag_vld_o <= 1'b1;
                     end
                     5'd3: ; // reset_max_now pulse drives peak_finder directly
+                    5'd5: begin
+                        // diagnostic counter read (no side effects). dt1 selects:
+                        //  0 trig_cnt 1 tvalid_cnt 2 acc_cnt 3 emit_cnt(adc) 4 amp_valid_c(fpga)
+                        case (qtag_dt1_i[2:0])
+                            3'd0: qtag_dt1_o <= dbg_trig_cnt_c;
+                            3'd1: qtag_dt1_o <= dbg_tvalid_cnt_c;
+                            3'd2: qtag_dt1_o <= dbg_acc_cnt_c;
+                            3'd3: qtag_dt1_o <= dbg_emit_cnt_c;
+                            3'd4: qtag_dt1_o <= dbg_ampc_cnt;
+                            default: qtag_dt1_o <= 32'd0;
+                        endcase
+                        qtag_dt2_o <= 32'd0;
+                        qtag_vld_o <= 1'b1;
+                    end
                     default: ;
                 endcase
             end
@@ -215,7 +239,11 @@ module fine_tuning_sweep #(
         .nsamp          (nsamp_ro),
         .averager_value (averager_value_ro),
         .m_axis_tdata   (amp_data_ro),
-        .m_axis_tvalid  (amp_valid_ro)
+        .m_axis_tvalid  (amp_valid_ro),
+        .dbg_trig_cnt   (dbg_trig_cnt_ro),
+        .dbg_tvalid_cnt (dbg_tvalid_cnt_ro),
+        .dbg_acc_cnt    (dbg_acc_cnt_ro),
+        .dbg_emit_cnt   (dbg_emit_cnt_ro)
     );
 
     // =========================================================
@@ -238,6 +266,31 @@ module fine_tuning_sweep #(
         .valid_out(amp_valid_c),
         .data_out (amp_data_c)
     );
+
+    // =========================================================
+    // Diagnostics: cross the adc-clk counters to clk_core for QP2 OP5.
+    //   2-FF per 32-bit counter. A 2-FF sync is bit-exact ONLY when the source
+    //   is STATIC -- which trig/acc/emit are at the read point: the host polls
+    //   OP5 after the sweep loop, when triggers have stopped, so they are
+    //   frozen. (tvalid_cnt free-runs if the readout streams continuously --
+    //   read it only as zero-vs-nonzero, "is the stream alive".) Use the
+    //   counters for the zero/nonzero SPLIT, not cycle-exact totals. The crossed
+    //   copies live in clk_core (slow) -> mark_debug here is ILA-safe (an ILA
+    //   would sample at clk_core, never the 552 MHz domain). Cumulative since
+    //   rst_n (reload the bitstream for a clean absolute count; the split is
+    //   valid regardless).
+    // =========================================================
+    synchronizer #(.WIDTH(32)) u_dbg_trig   (.clk(clk), .rst_n(rst_n), .d_in(dbg_trig_cnt_ro),   .d_out(dbg_trig_cnt_c));
+    synchronizer #(.WIDTH(32)) u_dbg_tvalid (.clk(clk), .rst_n(rst_n), .d_in(dbg_tvalid_cnt_ro), .d_out(dbg_tvalid_cnt_c));
+    synchronizer #(.WIDTH(32)) u_dbg_acc    (.clk(clk), .rst_n(rst_n), .d_in(dbg_acc_cnt_ro),    .d_out(dbg_acc_cnt_c));
+    synchronizer #(.WIDTH(32)) u_dbg_emit   (.clk(clk), .rst_n(rst_n), .d_in(dbg_emit_cnt_ro),   .d_out(dbg_emit_cnt_c));
+
+    // amp_valid AFTER the back-handshake, counted natively in clk_core. If
+    // dbg_emit_cnt(adc) > 0 but THIS stays 0, the handshake is dropping/wedging.
+    always @(posedge clk) begin
+        if (!rst_n)           dbg_ampc_cnt <= 32'd0;
+        else if (amp_valid_c) dbg_ampc_cnt <= dbg_ampc_cnt + 32'd1;
+    end
 
     // =========================================================
     // c_clk: peak_finder (sweep FSM + argmax) -- consumes the handshaked result
