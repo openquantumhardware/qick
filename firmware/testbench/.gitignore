@@ -1,0 +1,4 @@
+qick_testbench/*
+!qick_testbench/qick_testbench.xpr
+qickemu_testbench/*
+!qickemu_testbench/qickemu_testbench.xpr
