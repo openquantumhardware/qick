@@ -13,8 +13,7 @@ module dds_behavioral_model # (
     // Reserve for Parameters
     parameter int       LUT_SIZE        = 256, // Lookup Table size
     parameter int       PHASE_WIDTH     = 32, // phase width
-    parameter string    INIT_FILE       = "sine_cos_full32.hex", // ROM for LUT
-    parameter int       DDS_LATENCY     = 10   // MUST MATCH DDS Compiler GUI Latency
+    parameter int       DDS_LATENCY     = 8   // MUST MATCH DDS Compiler GUI Latency
 ) (
     input   logic        aclk, // clock at @ ??? MHz
     input   logic        s_axis_phase_tvalid,
@@ -22,6 +21,12 @@ module dds_behavioral_model # (
     output  logic        m_axis_data_tvalid,
     output  logic [31:0] m_axis_data_tdata
 );
+
+initial begin
+    if (DDS_LATENCY < 2 || DDS_LATENCY > 21) begin
+        $fatal(1, "DDS_LATENCY must be between 2 and 21 (inclusive) to match valid latency settings in Xilinx DDS Compiler GUI. Current value: %0d", DDS_LATENCY);
+    end
+end
 
 logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
 logic [PHASE_WIDTH-1:0] phase_acc = 0;     // phase accumulator result
@@ -45,7 +50,6 @@ assign phase_inc    = s_axis_phase_tdata[31:0];
 assign phase_seed   = s_axis_phase_tdata[63:32];
 assign sync         = s_axis_phase_tdata[64];
 
-assign m_axis_data_tvalid = 1;
 
 // --------- PHASE ACCUMULATOR -------------------
 always_ff @(posedge aclk) begin
@@ -66,26 +70,62 @@ assign lut_addr = phase_acc[PHASE_WIDTH-1 -:LUT_ADDR_BITS]; // address = top LUT
 // ROM (synchronous read -> 1-cycle latency)
 localparam int DEPTH = (1 << LUT_ADDR_BITS);
 (* rom_style = "block", ram_style = "block" *)
-logic signed [31:0] rom [0:DEPTH-1];
+logic [31:0] rom [0:DEPTH-1];
+
+localparam real TWO_PI = 6.28318530717958647692;
+
+function automatic logic signed [15:0] real_to_q15(input real value);
+    real clamped_value;
+    int rounded_value;
+begin
+    if (value >= 1.0) begin
+        clamped_value = 0.999969482421875;
+    end else if (value < -1.0) begin
+        clamped_value = -1.0;
+    end else begin
+        clamped_value = value;
+    end
+
+    if (clamped_value >= 0.0) begin
+        rounded_value = $rtoi(clamped_value * 32767.0 + 0.5);
+    end else begin
+        rounded_value = $rtoi(clamped_value * 32767.0 - 0.5);
+    end
+
+    real_to_q15 = rounded_value;
+end
+endfunction
+
+function automatic logic [31:0] make_rom_word(input int unsigned index);
+    real theta;
+    logic signed [15:0] sine_q15;
+    logic signed [15:0] cosine_q15;
+begin
+    theta = (TWO_PI * real'(index)) / real'(DEPTH);
+    sine_q15 = real_to_q15($sin(theta));
+    cosine_q15 = real_to_q15($cos(theta));
+    make_rom_word = {sine_q15, cosine_q15};
+end
+endfunction
 
 initial begin : init_rom
-        integer i;
-        for (i = 0; i < DEPTH; i++) rom[i] = '0;
-        $readmemh(INIT_FILE, rom);
-        $display("ROM init from %s: DEPTH=%0d, WIDTH=32", INIT_FILE, DEPTH);
+    integer i;
+    for (i = 0; i < DEPTH; i++) begin
+        rom[i] = make_rom_word(i);
     end
+end
 
  // --------- DATA PIPELINE TO MATCH DDS_LATENCY -----------------
     // data_pipe[0] gets ROM output for current lut_addr (1st stage)
     // data_pipe[DDS_LATENCY-1] drives AXIS tdata (total latency = DDS_LATENCY)
-    logic signed [31:0] data_pipe [0:DDS_LATENCY-1];
+    logic [31:0] data_pipe [0:DDS_LATENCY-1];
+
+    // Stage 0: ROM read
+    assign data_pipe[0] = rom[lut_addr];
 
     integer k;
     always_ff @(posedge aclk) begin
-        // Stage 0: ROM read
-        data_pipe[0] <= rom[lut_addr];
-
-        // Remaining stages
+        // Remaining pipeline stages
         for (k = 1; k < DDS_LATENCY; k++) begin
             data_pipe[k] <= data_pipe[k-1];
         end
@@ -93,30 +133,21 @@ initial begin : init_rom
 
     assign m_axis_data_tdata = data_pipe[DDS_LATENCY-1];
 
+    wire [15:0] tdata_real = m_axis_data_tdata[15:0];
+    wire [15:0] tdata_imag = m_axis_data_tdata[31:16];
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
-    logic                   started    = 1'b0;
+    // logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
-        if (!started) begin
-            valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], s_axis_phase_tvalid};
-
-            // When the delayed valid finally goes high once, we've completed
-            // the initial DDS_LATENCY cycles of "startup".
-            if (valid_pipe[DDS_LATENCY-1]) begin
-                started <= 1'b1;
-            end
+        if (!s_axis_phase_tvalid) begin
+            valid_pipe <= '0; // reset the valid pipeline when input is not valid
         end
-        // else begin
-        //     valid_pipe <= valid_pipe;
-        // end
+        else begin
+            valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], 1'b1}; // shift in 1's when input is valid
+        end
     end
 
-    // Before startup: tvalid is the delayed version (first high after DDS_LATENCY cycles).
-    // After startup: tvalid = s_axis_phase_tvalid (no extra latency, and still 0 when input is 0).
-    assign m_axis_data_tvalid = started ? s_axis_phase_tvalid
-                                        : valid_pipe[DDS_LATENCY-1];
-
-
+    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1];
 
 endmodule

@@ -940,6 +940,25 @@ class Assembler():
                                 raise RuntimeError("COMMAND_RECOGNITION: Dividend Parameter Error in line " + str(line_number))
                             command_info['NUM'] = CMD_DEST_SOURCE[1]
                             command_info['DEN'] = command_info['LIT']
+                        # elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
+                        #     if CMD_DEST_SOURCE[1]  in label_dict:
+                        #         if (CMD_DEST_SOURCE[1]  == 's15'):
+                        #             logger.info("COMMAND_RECOGNITION: BRANCH to r_addr  > line " + str(line_number))
+                        #         else:
+                        #             logger.info("COMMAND_RECOGNITION: BRANCH to label : " + CMD_DEST_SOURCE[1] + " is done to address " + label_dict[CMD_DEST_SOURCE[1]] + "  > line " + str(line_number))
+                        #         command_info['ADDR'] = label_dict[CMD_DEST_SOURCE[1]]
+                        #         command_info['LABEL'] = CMD_DEST_SOURCE[1]
+                        #     else:
+                        #         if (CMD_DEST_SOURCE[1] == 'PREV'):
+                        #             command_info['ADDR'] = '&'+str(mem_addr-1)
+                        #         elif  (CMD_DEST_SOURCE[1] == 'HERE'):
+                        #             command_info['ADDR'] = '&'+str(mem_addr)
+                        #         elif (CMD_DEST_SOURCE[1] == 'NEXT'):
+                        #             command_info['ADDR'] = '&'+str(mem_addr+1)
+                        #         elif (CMD_DEST_SOURCE[1] == 'SKIP'):
+                        #             command_info['ADDR'] = '&'+str(mem_addr+2)
+                        #         else:
+                        #             raise RuntimeError("COMMAND_RECOGNITION: Branch Address ERROR (Should be a label) in line " + str(line_number))
                         elif CMD_DEST_SOURCE[0] in ['JUMP', 'CALL']:
                             if CMD_DEST_SOURCE[1] == 's15':
                                 logger.info("COMMAND_RECOGNITION: BRANCH to s_addr  > line " + str(line_number))

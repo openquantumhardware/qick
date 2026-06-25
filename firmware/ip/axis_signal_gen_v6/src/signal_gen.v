@@ -183,7 +183,7 @@ genvar i;
          if (!EMULATOR) begin : gen_dds_compiler
             // DDS.
             // Latency: 10.
-            dds_compiler_0 dds_i (
+            sg_v6_dds_compiler_0 dds_i (
                .aclk                   (clk                          ),
                .s_axis_phase_tvalid    (dds_tvalid_r                 ),
                .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72]   ),
@@ -192,7 +192,10 @@ genvar i;
             );
          end
          else begin : gen_dds_model
-            dds_behavioral_model dds_i (
+            dds_behavioral_model #(
+               .DDS_LATENCY (10)
+            )
+            dds_i (
                .aclk                   (clk                          ),
                .s_axis_phase_tvalid    (dds_tvalid_r                 ),
                .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72]   ),
@@ -489,6 +492,43 @@ end
 // Outputs.
 assign mem_addr_o          = mem_addr_int_r;
 assign m_axis_tvalid_o     = en_la_r;
+
+
+   // // Plot full-speed DDS waveform
+   // reg clk_fast;
+   // real t1, t2, t_clk, t_clk_ovN;
+   // initial begin
+   //    clk_fast = 0;
+   //    @(posedge clk);
+   //    t1 = $realtime;
+   //    @(posedge clk);
+   //    t2 = $realtime;
+   //    t_clk = t2-t1;
+   //    $display("Clock period is %0t ns", t_clk);
+   //    t_clk_ovN = t_clk/N_DDS;
+   //    forever begin
+   //       clk_fast = ~clk_fast;
+   //       repeat (N_DDS*2-1) begin
+   //          #(t_clk_ovN/2);
+   //          clk_fast = ~clk_fast;
+   //       end
+   //       @(posedge clk);
+   //    end
+   // end
+
+   // reg signed [15:0] dout_re_dbg, dout_im_dbg;
+   // reg [$clog2(N_DDS)-1:0] dout_cnt;
+   // initial begin
+   //    dout_cnt = 0;
+   //    forever begin
+   //       @(negedge clk_fast);
+   //       if (m_axis_tvalid_o) begin
+   //          dout_re_dbg = dds_dout[dout_cnt][0 +: 16];
+   //          dout_im_dbg = dds_dout[dout_cnt][16 +: 16];
+   //          dout_cnt = dout_cnt + 1;
+   //       end
+   //    end
+   // end
 
 endmodule
 

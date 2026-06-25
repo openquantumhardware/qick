@@ -69,6 +69,8 @@ class QickConfig():
             label = "%d_%d on JHC%d, or QICK box DAC port %d" % (block, tile + 228, jhc_connector, box_port)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'DAC_B', '20': 'DAC_A'}[dacname]
+        elif self['board']=='QICKEmu':
+            label = "QICKEmu DAC port %0d" % (block)
         return "DAC tile %d, blk %d is %s" % (tile, block, label)
 
     def _describe_adc(self, adcname):
@@ -87,6 +89,8 @@ class QickConfig():
                 label = "%d_%d on JHC%d" % (block, tile + 224, jhc_connector)
         elif self['board']=='RFSoC4x2':
             label = {'00': 'ADC_D', '02': 'ADC_C', '20': 'ADC_B', '22': 'ADC_A'}[adcname]
+        elif self['board']=='QICKEmu':
+            label = "QICKEmu ADC port %0d" % (block)
         return "ADC tile %d, blk %d is %s" % (tile, block, label)
 
     def description(self):
@@ -1797,6 +1801,106 @@ class AcquireMixin:
             for i, ro in enumerate(self.ro_chs.values()):
                 ro['trigs'] = reads_per_shot[i]
 
+    @staticmethod
+    def _is_emu_soc(soc):
+        """Return True when ``soc`` is the emulator or a compatible emulator-like object."""
+        if soc.__class__.__name__ == 'QickEmu':
+            return True
+        if hasattr(soc, 'soccfg'):
+            try:
+                if soc.soccfg['board'] == 'QICKEmu':
+                    return True
+            except Exception:
+                pass
+        return all(hasattr(soc, attr) for attr in ('prepare', 'run_verilator_tb', 'load_iq_decimated', 'load_iq_averaged')) and hasattr(soc, 'memdir')
+
+    def _run_emu_acquire(
+        self,
+        soc,
+        load_envelopes=True,
+        *,
+        decimated=True,
+        rounds=1,
+        threshold=None,
+        angle=None,
+        remove_offset=True,
+    ):
+        """Run the emulator end-to-end and load back the generated CSV outputs."""
+        emu_dir = getattr(soc, 'memdir', None)
+        if emu_dir is None and hasattr(soc, 'soc'):
+            emu_dir = getattr(soc.soc, 'memdir', None)
+        if emu_dir is None:
+            raise RuntimeError("QickEmu acquire path needs soc.memdir (set via prepare_emu(memdir=...)).")
+
+        sim_verbose = getattr(soc, '_sim_verbose', None)
+        if sim_verbose is None and hasattr(soc, 'soc'):
+            sim_verbose = getattr(soc.soc, '_sim_verbose', False)
+        sim_verbose = bool(sim_verbose)
+
+        build = getattr(soc, '_default_build', None)
+        if build is None and hasattr(soc, 'soc'):
+            build = getattr(soc.soc, '_default_build', None)
+        if build is None:
+            build = True
+        build = bool(build)
+
+        test_run_ns = getattr(soc, '_default_test_run_ns', None)
+        if test_run_ns is None and hasattr(soc, 'soc'):
+            test_run_ns = getattr(soc.soc, '_default_test_run_ns', None)
+
+        trace = getattr(soc, '_default_trace', None)
+        if trace is None and hasattr(soc, 'soc'):
+            trace = getattr(soc.soc, '_default_trace', None)
+        if trace is None:
+            trace = False
+        trace = bool(trace)
+
+        mr_len = getattr(soc, '_default_mr_len', None)
+        if mr_len is None and hasattr(soc, 'soc'):
+            mr_len = getattr(soc.soc, '_default_mr_len', None)
+        if mr_len is None:
+            mr_len = 0
+
+        round_results = []
+        for _ in range(rounds):
+            soc.prepare(self, soc=soc, memdir=emu_dir)
+            soc.export_vivado_files(memdir=emu_dir)
+            soc.run_verilator_tb(
+                emu_dir,
+                prog=self,
+                build=build,
+                test_run_ns=test_run_ns,
+                mr_len=mr_len,
+                trace=trace,
+                verbose=sim_verbose,
+                quiet=not sim_verbose,
+            )
+
+            if decimated:
+                round_results.append(soc.load_iq_decimated(emu_dir, self))
+            else:
+                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True))
+
+        if decimated:
+            if rounds == 1:
+                return round_results[0]
+            return [np.mean([round_d[i] for round_d in round_results], axis=0) for i in range(len(round_results[0]))]
+
+        if rounds == 1:
+            iq_list = round_results[0]
+        else:
+            iq_list = [np.mean([round_d[i] for round_d in round_results], axis=0) for i in range(len(round_results[0]))]
+
+        if threshold is None:
+            return iq_list
+
+        raw_like = [d * ro['length'] for d, ro in zip(iq_list, self.ro_chs.values())]
+        shots = self._apply_threshold(raw_like, threshold, angle, remove_offset)
+        result = [np.zeros_like(d) for d in iq_list]
+        for i, ch_shot in enumerate(shots):
+            result[i][..., 0] = ch_shot
+        return result
+
     def get_rounds(self):
         """Get the results from each round, before averaging over rounds.
         This can be called after acquire() or acquire_decimated().
@@ -1947,6 +2051,17 @@ class AcquireMixin:
 
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire()")
+
+        if self._is_emu_soc(soc):
+            return self._run_emu_acquire(
+                soc,
+                load_envelopes=load_envelopes,
+                decimated=False,
+                rounds=rounds,
+                threshold=threshold,
+                angle=angle,
+                remove_offset=remove_offset,
+            )
 
         total_count = functools.reduce(operator.mul, self.loop_dims)
         reads_per_shot = [ro['trigs'] for ro in self.ro_chs.values()]
@@ -2197,6 +2312,15 @@ class AcquireMixin:
         if any([x is None for x in [self.counter_addr, self.loop_dims, self.avg_level]]):
             raise RuntimeError("data dimensions need to be defined with setup_acquire() before calling acquire_decimated()")
 
+        if self._is_emu_soc(soc):
+            return self._run_emu_acquire(
+                soc,
+                load_envelopes=load_envelopes,
+                decimated=True,
+                rounds=rounds,
+                remove_offset=remove_offset,
+            )
+
         total_count = functools.reduce(operator.mul, self.loop_dims)
 
         # check that the data will fit in the buffers
@@ -2206,6 +2330,8 @@ class AcquireMixin:
                 raise RuntimeError("Warning: requested readout length (%d x %d trigs x %d reps) exceeds buffer size (%d)"%(ro['length'], ro['trigs'], total_count, maxlen))
 
         self.rounds_buf = []
+
+        # Execute on Board
 
         # load the program - don't load data memory now, we'll do that later
         self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)

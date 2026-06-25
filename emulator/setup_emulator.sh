@@ -6,7 +6,7 @@
 #     cd emulator && ./setup_emulator.sh  # from emulator/
 #
 # It will:
-#   1. (optional, y/N) build & install Verilator 5.038 from source.
+#   1. (optional, y/N) build & install Verilator 5.042 from source.
 #   2. (optional, y/N) install GTKWave via your package manager.
 #   3. create .venv at the repo root and install Python deps + qick (editable).
 #   4. register a Jupyter kernel named "qick-venv" (display: "Python (qick)").
@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-REQUIRED_VERILATOR_VERSION="5.038"
+REQUIRED_VERILATOR_VERSION="5.042"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # <repo>/emulator
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VENV_DIR="$REPO_ROOT/.venv"

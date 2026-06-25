@@ -1,30 +1,35 @@
-task WRITE_AXI(integer PORT_AXI, DATA_AXI);
-   $display("Running WRITE_AXI() Task");
+//--------------------------------------
+// TEST TASKS
+//--------------------------------------
+
+task tproc_write_axi(integer PORT_AXI, DATA_AXI);
+   $display("Running tproc_write_axi() Task");
    //$display("PORT %d",  PORT_AXI);
    //$display("DATA %d",  DATA_AXI);
    @(posedge s_ps_dma_aclk); #0.1;
    axi_mst_tproc_agent.AXI4LITE_WRITE_BURST(PORT_AXI, prot, DATA_AXI, resp);
 endtask
 
-task READ_AXI(integer ADDR_AXI);
+
+task tproc_read_axi(integer ADDR_AXI);
    integer DATA_RD;
-   $display("Running READ_AXI() Task");
+   $display("Running tproc_read_axi() Task");
    @(posedge s_ps_dma_aclk); #0.1;
    axi_mst_tproc_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
    $display("READ AXI_DATA %d",  DATA_RD);
 endtask
 
 
-task tproc_load_mem(string test_name);
+task tproc_load_mem(string test_name, string dir);
    string pmem_file, wmem_file, dmem_file;
    int fd;
    
    $display("### Task tproc_load_mem() start ###");
    $display("Loading Test: %s", test_name);
 
-   pmem_file = {"../../../../src/tb/",test_name,"/pmem.mem"};
-   wmem_file = {"../../../../src/tb/",test_name,"/wmem.mem"};
-   dmem_file = {"../../../../src/tb/",test_name,"/dmem.mem"};
+   pmem_file = {dir, "/", test_name, "/pmem.mem"};
+   wmem_file = {dir, "/", test_name, "/wmem.mem"};
+   dmem_file = {dir, "/", test_name, "/dmem.mem"};
 
    // Check the files exist before trying to read them.
    fd = $fopen(pmem_file,"r");
@@ -56,17 +61,26 @@ endtask
 
 
 // Load pulse data into memory.
-task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_load_mem_done)*/;
-   string sg_file;
+task sg_load_mem(string test_name, int channel, string dir);
+   string sg_file, channel_str;
    int fd,vali,valq;
    bit signed [15:0] ii,qq;
    
-   $display("### %t - Task sg_load_mem() start ###", $realtime());
+   $display("### %t - Task sg_load_mem() channel %0d start ###", $realtime(), channel);
 
-   sg_s0_axis_tvalid = 0;
-   sg_s0_axis_tdata  = 0;
+   if (channel >= 2) begin
+      $display("ERROR: Invalid channel number %0d for sg_load_mem() task", channel);
+      $finish;
+   end
 
-   
+   if (channel == 0) begin
+      sg0_s0_axis_tvalid = 0;
+      sg0_s0_axis_tdata  = 0;
+   end else if (channel == 1) begin
+      sg1_s0_axis_tvalid = 0;
+      sg1_s0_axis_tdata  = 0;
+   end
+
    $display("################################");
    $display("### Load envelope into Table ###");
    $display("################################");
@@ -86,33 +100,54 @@ task sg_load_mem(string test_name) /*, input logic tb_load_mem, output logic tb_
    tb_load_mem    = 1;
 
    // File must be relative to where the simulation is run from (i.e.: xxx.sim/sim_x/behav/xsim)
-   sg_file = {"../../../../src/tb/",test_name,"/sg_0.mem"};
+   channel_str = $sformatf("%0d", channel);
+   sg_file = {dir, "/",test_name,"/sg_",channel_str,".mem"};
    fd = $fopen(sg_file,"r");
-   if (fd == 0) begin
-      $fatal(1, "sg_load_mem(): failed to open sg memory file '%s' for test '%s'", sg_file, test_name);
-   end
 
-   wait (sg_s0_axis_tready);
+   if (channel == 0) begin
+      wait (sg0_s0_axis_tready);
+   end else if (channel == 1) begin
+      wait (sg1_s0_axis_tready);
+   end
 
    while($fscanf(fd,"%d,%d", vali,valq) == 2) begin
       // $display("I,Q: %d, %d", vali,valq);
       ii = vali;
       qq = valq;
-      @(posedge sg_s0_axis_aclk);
-      sg_s0_axis_tvalid    = 1;
-      sg_s0_axis_tdata     = {qq,ii};
+      if (channel == 0) begin
+         @(posedge sg0_s0_axis_aclk);
+         sg0_s0_axis_tvalid    = 1;
+         sg0_s0_axis_tdata     = {qq,ii};
+      end else if (channel == 1) begin
+         @(posedge sg1_s0_axis_aclk);
+         sg1_s0_axis_tvalid    = 1;
+         sg1_s0_axis_tdata     = {qq,ii};
+      end
    end
    $fclose(fd);
 
-   @(posedge sg_s0_axis_aclk);
-   sg_s0_axis_tvalid    = 0;
-
-   tb_load_mem_done = 1;
+   if (channel == 0) begin
+      @(posedge sg0_s0_axis_aclk);
+      sg0_s0_axis_tvalid    = 0;
+   end else if (channel == 1) begin
+      @(posedge sg1_s0_axis_aclk);
+      sg1_s0_axis_tvalid    = 0;
+   end
 
    $display("### %t - Task sg_load_mem() end ###", $realtime());
 endtask
 
-task config_decimated_readout(integer channel, integer length);
+task readout_buffer_config_decimated(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_config_decimated() task", channel);
+      $finish;
+   end
 
    // Stop Decimated Buffer Capture
    data_wr = 0;
@@ -136,7 +171,17 @@ task config_decimated_readout(integer channel, integer length);
 
 endtask
 
-task config_average_readout(integer channel, integer length);
+task readout_buffer_config_average(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_config_average() task", channel);
+      $finish;
+   end
 
    // Stop Average Buffer Capture
    data_wr = 0;
@@ -155,7 +200,17 @@ task config_average_readout(integer channel, integer length);
 
 endtask
 
-task read_decimated_readout(integer channel, integer length);
+task readout_buffer_read_decimated(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_read_decimated() task", channel);
+      $finish;
+   end
 
    // Set Decimated Buffer Read Length
    data_wr = length;
@@ -174,7 +229,17 @@ task read_decimated_readout(integer channel, integer length);
 
 endtask
 
-task read_average_readout(integer channel, integer length);
+task readout_buffer_read_average(integer channel, integer length);
+
+   axi_mst_0_mst_t axi_mst_avg_agent;
+   if (channel == 0) begin
+      axi_mst_avg_agent = axi_mst_avg0_agent;
+   end else if (channel == 1) begin
+      axi_mst_avg_agent = axi_mst_avg1_agent;
+   end else begin
+      $display("ERROR: Invalid channel number %0d for readout_buffer_read_average() task", channel);
+      $finish;
+   end
 
    // Set Average Buffer Capture Length
    data_wr = length;
@@ -193,7 +258,56 @@ task read_average_readout(integer channel, integer length);
 
 endtask
 
+task config_readout_v2( input logic [31:0] frequency,
+                        input logic [31:0] phase,
+                        input logic [15:0] nsamp,
+                        input logic [1:0]  outsel,
+                        input logic        mode,
+                        input logic        we);
 
+   // AXI VIP master address.
+   xil_axi_ulong   RO_V2_FREQ_REG      = 4 * 0;
+   xil_axi_ulong   RO_V2_PHASE_REG     = 4 * 1;
+   xil_axi_ulong   RO_V2_NSAMP_REG     = 4 * 2;
+   xil_axi_ulong   RO_V2_OUTSEL_REG    = 4 * 3;
+   xil_axi_ulong   RO_V2_MODE_REG      = 4 * 4;
+   xil_axi_ulong   RO_V2_WE_REG        = 4 * 5;
+
+   $display("### %t - Task config_readout_v2() start ###", $realtime());
+
+   // Set the Readout DDS Frequency
+   data_wr = frequency;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_FREQ_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set the Readout DDS Phase
+   data_wr = phase;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_PHASE_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set the number of samples for Decimated Buffer Capture
+   data_wr = nsamp;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_NSAMP_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Output Select
+   data_wr = outsel;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_OUTSEL_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Mode
+   data_wr = mode;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_MODE_REG, prot, data_wr, resp);
+   #100ns;
+
+   // Set Decimated Buffer Capture Write Enable
+   data_wr = we;
+   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_WE_REG, prot, data_wr, resp);
+   #100ns;
+
+   $display("### Task config_readout_v2() end ###");
+
+endtask
 
 task qubit_emulator_config();
 

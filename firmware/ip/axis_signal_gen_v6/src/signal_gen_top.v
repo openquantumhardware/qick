@@ -237,7 +237,6 @@ generate
       /* Block instantiation */
       /***********************/
       // Memory for Real Part.
-
       bram_dp_xpm
       #(
          .OUT_REG_ENA   (1),

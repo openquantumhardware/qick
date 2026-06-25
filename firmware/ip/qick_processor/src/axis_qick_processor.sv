@@ -393,7 +393,7 @@ assign proc_start_t01   = proc_start_r & ~proc_start_r2 ;
 assign proc_stop_t01    = proc_stop_r  & ~proc_stop_r2 ;
 
 
-qick_processor# (
+qick_processor #(
    .DEBUG          ( DEBUG          ),
    .DUAL_CORE      ( DUAL_CORE      ),
    .LFSR           ( LFSR           ),
@@ -410,7 +410,7 @@ qick_processor# (
    .OUT_DPORT_QTY  ( OUT_DPORT_QTY  ),
    .OUT_DPORT_DW   ( OUT_DPORT_DW   ),
    .OUT_WPORT_QTY  ( OUT_WPORT_QTY  ),
-   .EMULATOR       (EMULATOR        )
+   .EMULATOR       ( EMULATOR       )
 ) QPROC (
    .t_clk_i             ( t_clk_i               ) ,
    .t_rst_ni            ( t_resetn              ) ,

@@ -7,3 +7,6 @@
 [submodule "emulator/submodules/pulp_platform/common_cells"]
 	path = emulator/submodules/pulp_platform/common_cells
 	url = https://github.com/pulp-platform/common_cells.git
+[submodule "emulator/submodules/verilator"]
+	path = emulator/submodules/verilator
+	url = https://github.com/verilator/verilator.git

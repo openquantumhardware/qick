@@ -117,21 +117,20 @@ generate
             .RST        ( time_cnt_rst      )  // 1-bit active high synchronous reset
          );
       
-   
-  end else begin: addsub_custom
+   end else begin: addsub_custom
   
-         // Time Operation
-         // NOTE: code to infer the DSP, although not sure if it does exactly the same
-         always @ (posedge t_clk_i) begin
+      // Time Operation
+      // NOTE: code to infer the DSP, although not sure if it does exactly the same
+      always @ (posedge t_clk_i) begin
          if (time_cnt_rst) begin
             time_abs    <= 'd0;
          end
          else if (time_cnt_en) begin
             time_abs    <= $signed({1'b0,time_abs}) + $signed(time_inc);
          end
-         end
-end
-   endgenerate
+      end
+   end
+endgenerate
 
 assign time_abs_o = time_abs;
 

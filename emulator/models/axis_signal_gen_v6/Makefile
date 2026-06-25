@@ -121,7 +121,6 @@ verilate:
 
 sim: 
 	cp -f $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/tb/gauss.txt . 2>/dev/null || true
-	cp -f $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/tb/sine_full32.hex . 2>/dev/null || true
 	./$(OBJ_DIR)/V$(TOP_MODULE) +AXI_REPLAY=./axi_replay.dat
 
 wave:
@@ -129,7 +128,7 @@ wave:
 
 clean:
 	rm -rf $(OBJ_DIR)
-	rm -f *.o *.vcd *.csv *.hex gauss.txt sine_full32.hex
+	rm -f *.o *.vcd *.csv *.hex gauss.txt
 
 help:
 	@echo "axis_signal_gen_v6 emulator Makefile"

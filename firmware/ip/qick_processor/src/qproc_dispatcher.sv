@@ -132,14 +132,27 @@ always_comb begin
    c_fifo_wave_push    = 0;
    c_fifo_data_push    = 0;
    c_fifo_trig_push    = 0;
-   if (port_we)
-      if (out_port_data.p_type)
-         if ( out_port_data.p_addr[5] == 1'b1 ) //TRIGGER Selection Bit
-            c_fifo_trig_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
-         else // DATA
-            c_fifo_data_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
-      else
-         c_fifo_wave_push [out_port_data.p_addr] = 1'b1 ;
+   if (port_we) begin
+      if (out_port_data.p_type) begin
+         if ( out_port_data.p_addr[5] == 1'b1 ) begin 
+            // TRIGGER
+            if (out_port_data.p_addr[4:0] < OUT_TRIG_QTY) begin // TRIGGER ports quantity check
+               c_fifo_trig_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
+            end
+         end
+         else begin
+            // DATA
+            if (out_port_data.p_addr[4:0] < OUT_DPORT_QTY) begin //DATA ports quantity check
+               c_fifo_data_push [out_port_data.p_addr[4:0] ] = 1'b1 ; //32 Possible Port Address
+            end
+         end
+      end
+      else begin
+         if (out_port_data.p_addr < OUT_WPORT_QTY) begin //WAVE ports quantity check
+            c_fifo_wave_push [out_port_data.p_addr] = 1'b1 ;
+         end
+      end
+   end
    if (core_en) begin 
       c_fifo_trig_push_s = c_fifo_trig_push_r;
       c_fifo_data_push_s = c_fifo_data_push_r;
