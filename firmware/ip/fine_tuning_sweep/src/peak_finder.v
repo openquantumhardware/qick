@@ -11,26 +11,31 @@
 //   compares that averaged power, keeps the running argmax, then advances.
 //
 //   Termination is a pure point counter (point_idx + 1 >= n_points), matching
-//   the fixed number of averaged triggers the host fires per pass. (An end-
-//   frequency clamp `cur_freq + step >= stop_freq` was removed: the pinc words
-//   wrap mod 2^32 across the band, so the UNSIGNED compare misfired and ended
-//   the pass early -> wrong freq_at_max. A counter is wrap-immune.)
+//   the fixed number of averaged triggers the host fires per pass.
 //   On termination it parks freq_word = freq_at_max and pulses `finish`.
 //
-//   Two-pass (coarse then fine) is orchestrated by the host: run a pass, read
-//   freq_at_max, reload start/stop/step/n_points for the fine window, run again.
 //   This block does ONE pass per OP1 -- no internal coarse->fine transition.
-//
-//   freq_valid / finish are 1-cycle pulses; the wrapper makes them sticky so a
-//   polling tProc can catch them over QP2.
+//   freq_valid / finish are 1-cycle pulses; the wrapper makes them sticky.
 //
 //   Coding style -- classic three-process academic FSM:
 //     (1) STATE REGISTER  : state <= next_state          (synchronous reset)
-//     (2) NEXT-STATE LOGIC : next_state = f(state, inputs) (combinational)
-//     (3) DATAPATH/OUTPUT  : registers updated from the CURRENT state
-//                            (synchronous reset, registered outputs)
-//   Cycle-for-cycle identical to the prior single-process version (proven
-//   correct by post-synth netlist sim); only the structure changed.
+//     (2) NEXT-STATE LOGIC : next_state = f(state, regs)  (combinational)
+//     (3) DATAPATH/OUTPUT  : registers from the CURRENT state (sync reset)
+//
+//   HARDWARE-HARDENED ADVANCE (2026-06-26). On board the WAIT_MEAS advance never
+//   fired even though a counter on the SAME amp_valid net (amp_seen) caught every
+//   pulse -- a hardware-only capture/timing failure invisible to sim. Two defences:
+//     * PULSE -> LEVEL: the 1-cycle amp_valid is latched into a STICKY level
+//       (meas_pending) + its data held (amp_data_held). The FSM advances on the
+//       stable LEVEL, never on a 1-cycle pulse, so it cannot "miss" it. The level
+//       persists until consumed, so a pulse that arrived at any cycle is honoured.
+//     * REGISTERED last_point: the advance ENABLE is now purely flop outputs
+//       (meas_pending, state, last_point_r) -- no 32-bit add/compare in the
+//       advance cone. The point-count compare is moved to its own flop-to-flop
+//       path (last_point_r), so point_idx/state can't lose timing either.
+//   The 52-bit argmax compare stays independent: it only feeds max_amplitude /
+//   freq_at_max and NEVER gates the advance, so its (longest) path can't freeze
+//   the sweep regardless of its timing.
 //------------------------------------------------------------------------------
 
 module peak_finder #(
@@ -62,15 +67,19 @@ module peak_finder #(
     output reg  [ACCUM_WIDTH-1:0] max_amplitude,
     (* mark_debug = "true" *) output reg  [31:0] freq_at_max,
 
-    // ---- diagnostic taps (clk domain; surfaced via wrapper QP2 OP5). Tells
-    //      whether the FSM is in WAIT_MEAS, whether point_idx advances, and
-    //      whether the latched config (n_pts, step) is sane. ----
+    // ---- diagnostic taps (clk domain; surfaced via wrapper QP2 OP5) ----
     (* mark_debug = "true" *) output wire [1:0]  dbg_state,
     (* mark_debug = "true" *) output wire [31:0] dbg_point_idx,
     (* mark_debug = "true" *) output wire [31:0] dbg_n_pts,
     (* mark_debug = "true" *) output wire [31:0] dbg_cur_step,
     // counts EVERY amp_valid this block's input sees, regardless of FSM state
-    (* mark_debug = "true" *) output wire [31:0] dbg_amp_seen
+    (* mark_debug = "true" *) output wire [31:0] dbg_amp_seen,
+    // sticky "measurement pending" LEVEL the FSM advances on (1 = a captured
+    // measurement is waiting; if this is 1 while point_idx stays 0 the advance
+    // LOGIC itself is the fault, not the pulse capture)
+    (* mark_debug = "true" *) output wire        dbg_meas_pending,
+    // registered last-point flag (the advance/finish selector)
+    (* mark_debug = "true" *) output wire        dbg_last_point
 );
 
     localparam [1:0] IDLE      = 2'd0;
@@ -85,10 +94,40 @@ module peak_finder #(
     reg [31:0] n_pts;
     (* mark_debug = "true" *) reg [31:0] point_idx;
 
-    // last-point test, evaluated on the cycle amp_valid lands.
-    // Pure point counter -- wrap-immune and in lockstep with the host's fixed
-    // per-pass trigger count. (Replaces the old wrap-unsafe end-frequency clamp.)
-    wire last_point = (point_idx + 32'd1 >= n_pts);
+    // ---- pulse -> level capture (hardware-hardened, see header) ----
+    // Latch the 1-cycle amp_valid into a STICKY level + hold its data, so the
+    // FSM advances on a stable level (the same trivial flop class as amp_seen,
+    // which catches every pulse on board) rather than catching a 1-cycle pulse.
+    (* mark_debug = "true" *) reg                    meas_pending;
+    reg [ACCUM_WIDTH-1:0]                            amp_data_held;
+
+    // ---- REGISTERED last-point flag ----
+    // last_point_r holds (point_idx + 1 >= n_pts) for the CURRENT point_idx, so
+    // the advance enable uses only flop outputs (no add/compare in the advance
+    // cone). It is re-evaluated for the NEXT point each time point_idx advances.
+    (* mark_debug = "true" *) reg                    last_point_r;
+
+    // the FSM consumes the pending measurement the cycle it acts on it in WAIT_MEAS
+    wire meas_consumed = (state == WAIT_MEAS) & meas_pending;
+
+    // ------------------------------------------------------------------
+    // pulse -> level capture + data hold (trivial path == amp_seen's):
+    //   set on amp_valid, hold amp_data, clear when the FSM consumes it;
+    //   a new sweep (start) discards any stale pending measurement.
+    // ------------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!rstn) begin
+            meas_pending  <= 1'b0;
+            amp_data_held <= {ACCUM_WIDTH{1'b0}};
+        end else if (start) begin
+            meas_pending  <= 1'b0;            // discard stale measurement on new sweep
+        end else if (amp_valid) begin
+            meas_pending  <= 1'b1;            // sticky set (set wins over consume)
+            amp_data_held <= amp_data;
+        end else if (meas_consumed) begin
+            meas_pending  <= 1'b0;
+        end
+    end
 
     // ------------------------------------------------------------------
     // (1) STATE REGISTER -- synchronous reset
@@ -99,21 +138,21 @@ module peak_finder #(
     end
 
     // ------------------------------------------------------------------
-    // (2) NEXT-STATE LOGIC -- combinational
+    // (2) NEXT-STATE LOGIC -- combinational, gated ONLY by flop outputs
+    //     (meas_pending, last_point_r) -- no add/compare in this cone.
     // ------------------------------------------------------------------
     always @(*) begin
         next_state = state;
         case (state)
-            IDLE:      if (start)     next_state = SEND_FREQ;
-            SEND_FREQ:                next_state = WAIT_MEAS;
-            WAIT_MEAS: if (amp_valid) next_state = last_point ? IDLE : SEND_FREQ;
-            default:                  next_state = IDLE;
+            IDLE:      if (start)        next_state = SEND_FREQ;
+            SEND_FREQ:                   next_state = WAIT_MEAS;
+            WAIT_MEAS: if (meas_pending) next_state = last_point_r ? IDLE : SEND_FREQ;
+            default:                     next_state = IDLE;
         endcase
     end
 
     // ------------------------------------------------------------------
-    // (3) DATAPATH + REGISTERED OUTPUTS -- synchronous reset,
-    //     updated from the CURRENT state
+    // (3) DATAPATH + REGISTERED OUTPUTS -- synchronous reset, CURRENT state.
     // ------------------------------------------------------------------
     always @(posedge clk) begin
         if (!rstn) begin
@@ -126,6 +165,7 @@ module peak_finder #(
             cur_step      <= 32'd0;
             n_pts         <= 32'd0;
             point_idx     <= 32'd0;
+            last_point_r  <= 1'b0;
         end else begin
             // defaults: freq_valid / finish are 1-cycle pulses
             freq_valid <= 1'b0;
@@ -141,9 +181,10 @@ module peak_finder #(
             IDLE: begin
                 if (start) begin
                     cur_freq      <= start_freq;
-                    cur_step      <= step;   // stop_freq unused (counter terminates the pass)
+                    cur_step      <= step;          // stop_freq unused (counter terminates)
                     n_pts         <= n_points;
                     point_idx     <= 32'd0;
+                    last_point_r  <= (32'd1 >= n_points);  // last-point flag for point 0
                     max_amplitude <= {ACCUM_WIDTH{1'b0}};
                     freq_at_max   <= 32'd0;
                 end
@@ -155,23 +196,29 @@ module peak_finder #(
                 freq_valid <= 1'b1;
             end
 
-            // wait for the averaged power, compare, then advance or finish
+            // act on the STABLE pending level: argmax, then advance or finish.
+            // Advance updates (point_idx/cur_freq/state) are gated on flop
+            // outputs only; the 52-bit argmax compare is independent and never
+            // gates the advance.
             WAIT_MEAS: begin
-                if (amp_valid) begin
-                    if (amp_data > max_amplitude) begin
-                        max_amplitude <= amp_data;
+                if (meas_pending) begin
+                    // --- argmax (independent; longest path, advance-irrelevant) ---
+                    if (amp_data_held > max_amplitude) begin
+                        max_amplitude <= amp_data_held;
                         freq_at_max   <= cur_freq;
                     end
 
-                    if (last_point) begin
+                    if (last_point_r) begin
                         // park the winning freq for the OP2 read (account for a
                         // last-point win, since freq_at_max updates this cycle)
-                        freq_word <= (amp_data > max_amplitude) ? cur_freq
-                                                               : freq_at_max;
+                        freq_word <= (amp_data_held > max_amplitude) ? cur_freq
+                                                                    : freq_at_max;
                         finish    <= 1'b1;
                     end else begin
-                        cur_freq  <= cur_freq + cur_step;
-                        point_idx <= point_idx + 32'd1;
+                        cur_freq     <= cur_freq + cur_step;
+                        point_idx    <= point_idx + 32'd1;
+                        // re-evaluate the last-point flag for the NEXT point_idx
+                        last_point_r <= (point_idx + 32'd2 >= n_pts);
                     end
                 end
             end
@@ -181,18 +228,16 @@ module peak_finder #(
         end
     end
 
-    // diagnostic taps (combinational views of the FSM state/counters)
-    assign dbg_state     = state;
-    assign dbg_point_idx = point_idx;
-    assign dbg_n_pts     = n_pts;
-    assign dbg_cur_step  = cur_step;
+    // diagnostic taps
+    assign dbg_state        = state;
+    assign dbg_point_idx    = point_idx;
+    assign dbg_n_pts        = n_pts;
+    assign dbg_cur_step     = cur_step;
+    assign dbg_meas_pending = meas_pending;
+    assign dbg_last_point   = last_point_r;
 
     // DECISIVE PROBE: count EVERY amp_valid this block's input sees, regardless
-    // of FSM state. Compare against the wrapper's amp_valid_c count (OP5 sel 4):
-    //   amp_seen ~= amp_valid_c, point_idx==0 -> input DOES pulse, advance never
-    //               fires (logic/synthesis-build discrepancy);
-    //   amp_seen == 0          -> peak_finder's amp_valid input is DEAD despite
-    //               the wrapper seeing amp_valid_c (net/connection / stale IP).
+    // of FSM state (the cross-check that proved the pulse arrives on board).
     reg [31:0] amp_seen_cnt;
     always @(posedge clk) begin
         if (!rstn)          amp_seen_cnt <= 32'd0;

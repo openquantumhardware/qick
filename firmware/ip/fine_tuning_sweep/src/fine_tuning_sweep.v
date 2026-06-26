@@ -108,6 +108,8 @@ module fine_tuning_sweep #(
     (* mark_debug = "true" *) wire [31:0] pf_dbg_n_pts;
     (* mark_debug = "true" *) wire [31:0] pf_dbg_cur_step;
     (* mark_debug = "true" *) wire [31:0] pf_dbg_amp_seen;
+    (* mark_debug = "true" *) wire        pf_dbg_meas_pending;
+    (* mark_debug = "true" *) wire        pf_dbg_last_point;
     (* mark_debug = "true" *) wire [AVG_BITS-1:0] avg_ro_c;
 
     // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
@@ -152,6 +154,8 @@ module fine_tuning_sweep #(
                         //  peak_finder: 5 state 6 point_idx 7 n_pts 8 cur_step
                         //  averager   : 9 averager_value(adc, crossed back) 10 reg_avg(clk, OP4)
                         //  decisive   : 11 amp_seen (every amp_valid peak_finder's input saw)
+                        //  hardened   : 12 meas_pending (sticky level FSM advances on)
+                        //               13 last_point  (registered finish selector)
                         case (qtag_dt1_i[3:0])
                             4'd0:  qtag_dt1_o <= dbg_trig_cnt_c;
                             4'd1:  qtag_dt1_o <= dbg_tvalid_cnt_c;
@@ -165,6 +169,8 @@ module fine_tuning_sweep #(
                             4'd9:  qtag_dt1_o <= {{(32-AVG_BITS){1'b0}}, avg_ro_c};
                             4'd10: qtag_dt1_o <= reg_avg;
                             4'd11: qtag_dt1_o <= pf_dbg_amp_seen;
+                            4'd12: qtag_dt1_o <= {31'd0, pf_dbg_meas_pending};
+                            4'd13: qtag_dt1_o <= {31'd0, pf_dbg_last_point};
                             default: qtag_dt1_o <= 32'd0;
                         endcase
                         qtag_dt2_o <= 32'd0;
@@ -332,11 +338,13 @@ module fine_tuning_sweep #(
         .finish        (pf_finish),
         .max_amplitude (max_amplitude),
         .freq_at_max   (freq_at_max),
-        .dbg_state     (pf_dbg_state),
-        .dbg_point_idx (pf_dbg_point_idx),
-        .dbg_n_pts     (pf_dbg_n_pts),
-        .dbg_cur_step  (pf_dbg_cur_step),
-        .dbg_amp_seen  (pf_dbg_amp_seen)
+        .dbg_state        (pf_dbg_state),
+        .dbg_point_idx    (pf_dbg_point_idx),
+        .dbg_n_pts        (pf_dbg_n_pts),
+        .dbg_cur_step     (pf_dbg_cur_step),
+        .dbg_amp_seen     (pf_dbg_amp_seen),
+        .dbg_meas_pending (pf_dbg_meas_pending),
+        .dbg_last_point   (pf_dbg_last_point)
     );
 
     // averager_value (adc clk) crossed BACK to clk_core for OP5 sel 9 -- lets
