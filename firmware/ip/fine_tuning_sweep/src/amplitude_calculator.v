@@ -13,6 +13,15 @@
 // a FRESH window in ANY state, so each measurement starts clean.
 //
 //   completion: sample_cnt reaches nsamp   (host sets nsamp <= delivered beats)
+//
+// Coding style -- classic three-process academic FSM for the IDLE/RUN control:
+//     (1) STATE REGISTER  : state <= next_state           (synchronous reset)
+//     (2) NEXT-STATE LOGIC : next_state = f(state, inputs)  (combinational)
+//     (3) DATAPATH/OUTPUT  : accumulator/counters/m_axis updated from the
+//                            CURRENT state (synchronous reset)
+// The IQ->square->sum pipeline (stages 0-2) is left intact: it is DATAPATH, not
+// a state machine, and its exact register placement is what lets Vivado pack the
+// squares into the DSP MREG and close 552 MHz (see the warning at stage 1).
 //------------------------------------------------------------------------------
 
 module amplitude_calculator #(
@@ -71,7 +80,7 @@ module amplitude_calculator #(
     //  the power output (power_s2) keep their probes; the intermediate
     //  squares are internal to the DSP and need no debug net.
     // ------------------------------------------------------------------
-    (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1;   // -> DSP MREG (do NOT mark_debug)
+    (* use_dsp = "yes" *) reg [31:0] ii_s1, qq_s1; 
     (* mark_debug = "true" *) reg    v_s1;
 
     always @(posedge clk) begin
@@ -85,7 +94,7 @@ module amplitude_calculator #(
     end
 
     // ------------------------------------------------------------------
-    //  Stage 2 – i*i + q*q  (32-bit add, one CARRY8 chain)
+    //  Stage 2 i*i + q*q  (32-bit add, one CARRY8 chain)
     // ------------------------------------------------------------------
     (* mark_debug = "true" *) reg [32:0] power_s2;
     (* mark_debug = "true" *) reg        v_s2;
@@ -110,6 +119,7 @@ module amplitude_calculator #(
     localparam IDLE = 1'b0;
     localparam RUN  = 1'b1;
     (* mark_debug = "true" *) reg state;
+    reg next_state;
 
     (* mark_debug = "true" *) reg [31:0]                  sample_cnt;
     (* mark_debug = "true" *) reg [$clog2(MAX_AVG)-1:0]   burst_cnt;
@@ -141,9 +151,35 @@ module amplitude_calculator #(
     // window length, so the count is always reached -- no timeout fallback.
     (* mark_debug = "true" *) wire emit_now = finish_delay;
 
+    // ------------------------------------------------------------------
+    //  (1) STATE REGISTER -- synchronous reset
+    // ------------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!rst_n) state <= IDLE;
+        else        state <= next_state;
+    end
+
+    // ------------------------------------------------------------------
+    //  (2) NEXT-STATE LOGIC -- combinational. A trigger (re)arms RUN from ANY
+    //  state; absent a trigger, RUN returns to IDLE once the burst emits.
+    // ------------------------------------------------------------------
+    always @(*) begin
+        next_state = state;
+        if (trigger) next_state = RUN;
+        else case (state)
+            IDLE:                next_state = IDLE;
+            RUN: if (emit_now)   next_state = IDLE;
+            default:             next_state = IDLE;
+        endcase
+    end
+
+    // ------------------------------------------------------------------
+    //  (3) DATAPATH + REGISTERED OUTPUT -- synchronous reset, driven by the
+    //  CURRENT state. A trigger (re)arms a fresh window (highest priority);
+    //  otherwise the RUN state accumulates and emits.
+    // ------------------------------------------------------------------
     always @(posedge clk) begin
         if (!rst_n) begin
-            state          <= IDLE;
             sample_cnt     <= 0;
             burst_cnt      <= 0;
             accumulator    <= 0;
@@ -153,13 +189,12 @@ module amplitude_calculator #(
             finish_delay   <= 0;
             nsamp_latched  <= 0;
         end else begin
-            m_axis_tvalid  <= 0;
+            m_axis_tvalid  <= 0;   // default: 1-cycle emit pulse
 
             if (trigger) begin
                 // (Re)arm a fresh window on ANY trigger -- never wedges. A burst
                 // still in flight from a previous (under-delivered) shot is
                 // simply abandoned here.
-                state         <= RUN;
                 sample_cnt    <= 0;
                 accumulator   <= 0;
                 finish_delay  <= 0;
@@ -190,9 +225,10 @@ module amplitude_calculator #(
                             accumulator  <= 0;
                             sample_cnt   <= 0;
                             finish_delay <= 0;
-                            state        <= IDLE;
                         end
                     end
+
+                    default: ;
                 endcase
             end
         end

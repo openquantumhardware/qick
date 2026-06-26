@@ -23,6 +23,14 @@
 //
 //   freq_valid / finish are 1-cycle pulses; the wrapper makes them sticky so a
 //   polling tProc can catch them over QP2.
+//
+//   Coding style -- classic three-process academic FSM:
+//     (1) STATE REGISTER  : state <= next_state          (synchronous reset)
+//     (2) NEXT-STATE LOGIC : next_state = f(state, inputs) (combinational)
+//     (3) DATAPATH/OUTPUT  : registers updated from the CURRENT state
+//                            (synchronous reset, registered outputs)
+//   Cycle-for-cycle identical to the prior single-process version (proven
+//   correct by post-synth netlist sim); only the structure changed.
 //------------------------------------------------------------------------------
 
 module peak_finder #(
@@ -34,7 +42,7 @@ module peak_finder #(
     // OP1: latch config + begin the sweep
     input  wire                   start,
     input  wire [31:0]            start_freq,   // freq_word (pinc) of point 0
-    input  wire [31:0]            stop_freq,    // end-frequency clamp
+    input  wire [31:0]            stop_freq,    // end-frequency clamp (now unused)
     input  wire [31:0]            step,         // per-point increment
     input  wire [31:0]            n_points,     // point-count budget
 
@@ -65,11 +73,13 @@ module peak_finder #(
     (* mark_debug = "true" *) output wire [31:0] dbg_amp_seen
 );
 
-    localparam IDLE      = 2'd0;
-    localparam SEND_FREQ = 2'd1;
-    localparam WAIT_MEAS = 2'd2;
+    localparam [1:0] IDLE      = 2'd0;
+    localparam [1:0] SEND_FREQ = 2'd1;
+    localparam [1:0] WAIT_MEAS = 2'd2;
 
     (* mark_debug = "true" *) reg [1:0]  state;
+    reg [1:0]  next_state;
+
     (* mark_debug = "true" *) reg [31:0] cur_freq;
     reg [31:0] cur_step;
     reg [31:0] n_pts;
@@ -80,9 +90,33 @@ module peak_finder #(
     // per-pass trigger count. (Replaces the old wrap-unsafe end-frequency clamp.)
     wire last_point = (point_idx + 32'd1 >= n_pts);
 
+    // ------------------------------------------------------------------
+    // (1) STATE REGISTER -- synchronous reset
+    // ------------------------------------------------------------------
+    always @(posedge clk) begin
+        if (!rstn) state <= IDLE;
+        else       state <= next_state;
+    end
+
+    // ------------------------------------------------------------------
+    // (2) NEXT-STATE LOGIC -- combinational
+    // ------------------------------------------------------------------
+    always @(*) begin
+        next_state = state;
+        case (state)
+            IDLE:      if (start)     next_state = SEND_FREQ;
+            SEND_FREQ:                next_state = WAIT_MEAS;
+            WAIT_MEAS: if (amp_valid) next_state = last_point ? IDLE : SEND_FREQ;
+            default:                  next_state = IDLE;
+        endcase
+    end
+
+    // ------------------------------------------------------------------
+    // (3) DATAPATH + REGISTERED OUTPUTS -- synchronous reset,
+    //     updated from the CURRENT state
+    // ------------------------------------------------------------------
     always @(posedge clk) begin
         if (!rstn) begin
-            state         <= IDLE;
             freq_word     <= 32'd0;
             freq_valid    <= 1'b0;
             finish        <= 1'b0;
@@ -93,7 +127,8 @@ module peak_finder #(
             n_pts         <= 32'd0;
             point_idx     <= 32'd0;
         end else begin
-            freq_valid <= 1'b0;   // default: pulses are 1 cycle
+            // defaults: freq_valid / finish are 1-cycle pulses
+            freq_valid <= 1'b0;
             finish     <= 1'b0;
 
             // standalone max clear -- only meaningful between passes (IDLE)
@@ -106,12 +141,11 @@ module peak_finder #(
             IDLE: begin
                 if (start) begin
                     cur_freq      <= start_freq;
-                    cur_step      <= step;   // stop_freq input now unused (counter terminates the pass)
+                    cur_step      <= step;   // stop_freq unused (counter terminates the pass)
                     n_pts         <= n_points;
                     point_idx     <= 32'd0;
                     max_amplitude <= {ACCUM_WIDTH{1'b0}};
                     freq_at_max   <= 32'd0;
-                    state         <= SEND_FREQ;
                 end
             end
 
@@ -119,7 +153,6 @@ module peak_finder #(
             SEND_FREQ: begin
                 freq_word  <= cur_freq;
                 freq_valid <= 1'b1;
-                state      <= WAIT_MEAS;
             end
 
             // wait for the averaged power, compare, then advance or finish
@@ -136,14 +169,14 @@ module peak_finder #(
                         freq_word <= (amp_data > max_amplitude) ? cur_freq
                                                                : freq_at_max;
                         finish    <= 1'b1;
-                        state     <= IDLE;
                     end else begin
                         cur_freq  <= cur_freq + cur_step;
                         point_idx <= point_idx + 32'd1;
-                        state     <= SEND_FREQ;
                     end
                 end
             end
+
+            default: ;
             endcase
         end
     end
