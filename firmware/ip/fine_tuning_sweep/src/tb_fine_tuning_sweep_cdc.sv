@@ -59,9 +59,8 @@ module tb_fine_tuning_sweep_cdc();
 
     // ---- sweep config (Hz used as opaque freq_word) ----
     localparam [31:0] START_FREQ = 32'd6000000;
-    localparam [31:0] STOP_FREQ  = 32'd30000000;
     localparam [31:0] STEP       = 32'd1000000;
-    localparam [31:0] NPOINTS    = 32'd100;        // large -> stop clamp governs
+    localparam [31:0] NPOINTS    = 32'd100;        // point-count governs the sweep length
     localparam [31:0] AVG        = 32'd3;          // bursts averaged per point
     localparam [31:0] NSAMP      = 32'd8;          // samples integrated per burst
     localparam [31:0] PEAK_FREQ  = 32'd18000000;
@@ -149,7 +148,7 @@ module tb_fine_tuning_sweep_cdc();
         #100;
         $display("[%0t] RESET DONE  (c_clk 245.76 MHz, ro_clk 552.96 MHz, async)", $time);
 
-        qp2_send(5'd0, START_FREQ, STOP_FREQ, STEP, NSAMP);   // OP0
+        qp2_send(5'd0, START_FREQ, 32'd0, STEP, NSAMP);       // OP0
         qp2_send(5'd4, NPOINTS, AVG, 32'd0, 32'd0);           // OP4
         qp2_send(5'd3, 0, 0, 0, 0);                           // OP3 reset_max
         qp2_send(5'd1, 0, 0, 0, 0);                           // OP1 start

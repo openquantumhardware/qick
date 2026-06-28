@@ -3,7 +3,7 @@
 // tb_fine_tuning_sweep -- self-checking sim for the autonomous sweep FSM.
 //
 //   Models the tProc + DUT loop:
-//     * OP0/OP4 load the sweep config (start/stop/step/nsamp/n_points/avg)
+//     * OP0/OP4 load the sweep config (start/step/nsamp/n_points/avg)
 //     * OP1 starts the sweep
 //     * poll OP2: on freq_valid -> "retune" the synthetic ADC to freq_word and
 //       fire `AVG` triggers (one averaged point); on finish -> read freq_at_max
@@ -62,9 +62,8 @@ module tb_fine_tuning_sweep();
     // sweep parameters (all in opaque "freq_word" units = Hz here)
     // ==========================================
     localparam [31:0] START_FREQ = 32'd6000000;    // 6 MHz
-    localparam [31:0] STOP_FREQ  = 32'd30000000;   // 30 MHz (end clamp)
     localparam [31:0] STEP       = 32'd1000000;    // 1 MHz
-    localparam [31:0] NPOINTS    = 32'd100;        // large -> stop clamp governs
+    localparam [31:0] NPOINTS    = 32'd100;        // point-count governs the sweep length
     localparam [31:0] AVG        = 32'd3;          // 3 bursts averaged / point
     localparam [31:0] NSAMP      = 32'd8;          // samples integrated / burst
 
@@ -158,11 +157,11 @@ module tb_fine_tuning_sweep();
         $display("[%0t] RESET DONE", $time);
 
         // ---- config ----
-        qp2_send(5'd0, START_FREQ, STOP_FREQ, STEP, NSAMP);     // OP0
+        qp2_send(5'd0, START_FREQ, 32'd0, STEP, NSAMP);         // OP0
         qp2_send(5'd4, NPOINTS, AVG, 32'd0, 32'd0);             // OP4
         qp2_send(5'd3, 0, 0, 0, 0);                             // OP3 reset_max
-        $display("[%0t] CONFIG: start=%0d stop=%0d step=%0d N=%0d avg=%0d nsamp=%0d",
-                 $time, START_FREQ, STOP_FREQ, STEP, NPOINTS, AVG, NSAMP);
+        $display("[%0t] CONFIG: start=%0d step=%0d N=%0d avg=%0d nsamp=%0d",
+                 $time, START_FREQ, STEP, NPOINTS, AVG, NSAMP);
 
         // ---- start ----
         qp2_send(5'd1, 0, 0, 0, 0);                             // OP1 start

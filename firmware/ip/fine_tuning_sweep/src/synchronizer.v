@@ -33,19 +33,21 @@
 // synchronizer_n -- avg_buffer's 1-bit N-deep shift-register level sync.
 //------------------------------------------------------------------------------
 module synchronizer_n #(parameter N = 2) (
-    input  wire rstn,
-    input  wire clk,
-    input  wire data_in,
-    output wire data_out
+  input wire rstn,
+  input wire clk,
+  input wire data_in,
+  output wire data_out
 );
-    (* ASYNC_REG = "TRUE" *) reg [N-1:0] data_int_reg;
+  (* ASYNC_REG = "TRUE" *) reg [N-1:0] data_int_reg;
 
-    always @(posedge clk) begin
-        if (!rstn) data_int_reg <= {N{1'b0}};
-        else       data_int_reg <= {data_int_reg[N-2:0], data_in};
-    end
+  always @(posedge clk) begin
+    if (!rstn)
+      data_int_reg <= {N{1'b0}};
+    else
+      data_int_reg <= {data_int_reg[N-2:0], data_in};
+  end
 
-    assign data_out = data_int_reg[N-1];
+  assign data_out = data_int_reg[N-1];
 endmodule
 
 
@@ -54,25 +56,25 @@ endmodule
 // Caller MUST hold d_in stable across enough clk cycles for the FFs to settle.
 //------------------------------------------------------------------------------
 module synchronizer #(parameter WIDTH = 1) (
-    input  wire             clk,
-    input  wire             rst_n,
-    input  wire [WIDTH-1:0] d_in,
-    output wire [WIDTH-1:0] d_out
+  input wire clk,
+  input wire rst_n,
+  input wire [WIDTH-1:0] d_in,
+  output wire [WIDTH-1:0] d_out
 );
-    (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s0;
-    (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s1;
+  (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s0;
+  (* ASYNC_REG = "TRUE" *) reg [WIDTH-1:0] s1;
 
-    always @(posedge clk) begin
-        if (!rst_n) begin
-            s0 <= {WIDTH{1'b0}};
-            s1 <= {WIDTH{1'b0}};
-        end else begin
-            s0 <= d_in;
-            s1 <= s0;
-        end
+  always @(posedge clk) begin
+    if (!rst_n) begin
+      s0 <= {WIDTH{1'b0}};
+      s1 <= {WIDTH{1'b0}};
+    end else begin
+      s0 <= d_in;
+      s1 <= s0;
     end
+  end
 
-    assign d_out = s1;
+  assign d_out = s1;
 endmodule
 
 
@@ -89,66 +91,72 @@ endmodule
 // averaged |IQ|^2 per (nsamp*averager_value) ADC samples.
 //------------------------------------------------------------------------------
 module synchronizer_handshake #(parameter WIDTH = 64) (
-    input  wire             clk_src,
-    input  wire             rst_n_src,
-    input  wire             clk_dst,
-    input  wire             rst_n_dst,
-    input  wire             valid_in,
-    input  wire [WIDTH-1:0] data_in,
-    output reg              valid_out,
-    output reg  [WIDTH-1:0] data_out
+  input wire clk_src,
+  input wire rst_n_src,
+  input wire clk_dst,
+  input wire rst_n_dst,
+  input wire valid_in,
+  input wire [WIDTH-1:0] data_in,
+  output reg valid_out,
+  output reg [WIDTH-1:0] data_out
 );
-    // ack_dst is driven on the dst side but read on the src side; declare it up
-    // here so strict analyzers (xsim/xvlog) don't flag a forward use.
-    reg ack_dst;
+  // ack_dst is driven on the dst side but read on the src side; declare it up
+  // here so strict analyzers (xsim/xvlog) don't flag a forward use.
+  reg ack_dst;
 
-    // ---- src side ----
-    reg              req_src;
-    reg  [WIDTH-1:0] data_latch;
-    (* ASYNC_REG = "TRUE" *) reg ack_s0;
-    (* ASYNC_REG = "TRUE" *) reg ack_s1;
-    wire src_idle = (req_src == ack_s1);
+  // ---- src side ----
+  reg              req_src;
+  reg  [WIDTH-1:0] data_latch;
+  (* ASYNC_REG = "TRUE" *) reg ack_s0;
+  (* ASYNC_REG = "TRUE" *) reg ack_s1;
+  wire src_idle = (req_src == ack_s1);
 
-    always @(posedge clk_src) begin
-        if (!rst_n_src) begin
-            req_src    <= 1'b0;
-            data_latch <= {WIDTH{1'b0}};
-            ack_s0     <= 1'b0;
-            ack_s1     <= 1'b0;
-        end else begin
-            ack_s0 <= ack_dst;
-            ack_s1 <= ack_s0;
-            if (valid_in && src_idle) begin
-                req_src    <= ~req_src;
-                data_latch <= data_in;
-            end
-        end
+  always @(posedge clk_src) begin
+    if (!rst_n_src) begin
+      req_src <= 1'b0;
+      data_latch <= {WIDTH{1'b0}};
+      ack_s0 <= 1'b0;
+      ack_s1 <= 1'b0;
+    end else begin
+      ack_s0 <= ack_dst;
+      ack_s1 <= ack_s0;
+      if (valid_in && src_idle) begin
+        req_src <= ~req_src;
+        data_latch <= data_in;
+      end else begin
+        req_src <= req_src;
+        data_latch <= data_latch;
+      end
     end
+  end
 
-    // ---- dst side ----  (ack_dst declared above)
-    (* ASYNC_REG = "TRUE" *) reg req_s0;
-    (* ASYNC_REG = "TRUE" *) reg req_s1;
-    reg                       req_s2;
+  // ---- dst side ----  (ack_dst declared above)
+  (* ASYNC_REG = "TRUE" *) reg req_s0;
+  (* ASYNC_REG = "TRUE" *) reg req_s1;
+  reg                       req_s2;
 
-    wire req_edge = (req_s1 ^ req_s2);
+  wire req_edge = (req_s1 ^ req_s2);
 
-    always @(posedge clk_dst) begin
-        if (!rst_n_dst) begin
-            req_s0    <= 1'b0;
-            req_s1    <= 1'b0;
-            req_s2    <= 1'b0;
-            ack_dst   <= 1'b0;
-            valid_out <= 1'b0;
-            data_out  <= {WIDTH{1'b0}};
-        end else begin
-            req_s0    <= req_src;
-            req_s1    <= req_s0;
-            req_s2    <= req_s1;
-            valid_out <= req_edge;
-            if (req_edge) begin
-                data_out <= data_latch;
-                ack_dst  <= req_s1;
-            end
-        end
+  always @(posedge clk_dst) begin
+    if (!rst_n_dst) begin
+      req_s0 <= 1'b0;
+      req_s1 <= 1'b0;
+      req_s2 <= 1'b0;
+      ack_dst <= 1'b0;
+      valid_out <= 1'b0;
+      data_out <= {WIDTH{1'b0}};
+    end else begin
+      req_s0 <= req_src;
+      req_s1 <= req_s0;
+      req_s2 <= req_s1;
+      valid_out <= req_edge;
+      if (req_edge) begin
+        data_out <= data_latch;
+        ack_dst <= req_s1;
+      end else begin
+        data_out <= data_out;
+        ack_dst <= ack_dst;
+      end
     end
+  end
 endmodule
