@@ -4,7 +4,7 @@ module peak_finder #(
   parameter ACCUM_WIDTH = 52
 )(
   input wire clk,
-  (* mark_debug = "true" *) input wire rstn,
+  input wire rstn,
 
   // OP1: latch config + begin the sweep
   input wire start,
@@ -16,7 +16,7 @@ module peak_finder #(
   input wire reset_max,
 
   // averaged power for the current point (from amplitude_calculator via CDC)
-  (* mark_debug = "true" *) input wire amp_valid,
+  input wire amp_valid,
   input wire [ACCUM_WIDTH-1:0] amp_data,
 
   // handshake to the tProc (wrapper latches these into sticky flags)
@@ -181,6 +181,22 @@ module peak_finder #(
         last_point_r <= last_point_r;
       end
       endcase
+    end
+  end
+
+  // ============================== DEBUG PROBES ==============================
+  // ILA taps for signals that are NOT already registers (rstn and amp_valid are
+  // input nets) -- sampled into a flop so the debug hub only connects to a
+  // register output. (state is already a register, mark_debug'd in place.)
+  (* mark_debug = "true" *) reg rstn_dbg;
+  (* mark_debug = "true" *) reg amp_valid_dbg;
+  always @(posedge clk) begin
+    if (!rstn) begin
+      rstn_dbg <= 1'b0;
+      amp_valid_dbg <= 1'b0;
+    end else begin
+      rstn_dbg <= rstn;
+      amp_valid_dbg <= amp_valid;
     end
   end
 

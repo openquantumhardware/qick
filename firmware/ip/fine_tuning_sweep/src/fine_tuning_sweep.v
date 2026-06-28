@@ -46,9 +46,9 @@ module fine_tuning_sweep #(
 
   // ---- s_axis_aclk (ro_clk) domain ----
   input wire s_axis_aclk,
-  (* mark_debug = "true" *) input wire s_axis_aresetn,
-  (* mark_debug = "true" *) input wire s_axis_tvalid,
-  (* mark_debug = "true" *) input wire [31:0] s_axis_tdata
+  input wire s_axis_aresetn,
+  input wire s_axis_tvalid,
+  input wire [31:0] s_axis_tdata
 );
 
   localparam AVG_BITS = $clog2(MAX_AVG);
@@ -261,7 +261,7 @@ module fine_tuning_sweep #(
     else
       trig_resync_d <= trig_resync;
   end
-  (* mark_debug = "true" *) wire trigger_ro = trig_resync & ~trig_resync_d;   // one clean adc-clk pulse
+  wire trigger_ro = trig_resync & ~trig_resync_d;   // one clean adc-clk pulse
 
   // =========================================================
   // adc_clk: amplitude_calculator
@@ -283,22 +283,6 @@ module fine_tuning_sweep #(
     .m_axis_tdata   (amp_data_ro),
     .m_axis_tvalid  (amp_valid_ro)
   );
-
-  // DEBUG (s_axis_aclk): registered copies of the amplitude_calculator outputs
-  // so an ADC-domain ILA can see whether the emit fires BEFORE the CDC. If
-  // amp_valid_ro_dbg pulses but peak_finder.amp_valid (post-CDC) stays 0, the
-  // fault is the handshake; if it never pulses, the emit itself never happens.
-  (* mark_debug = "true" *) reg amp_valid_ro_dbg;
-  (* mark_debug = "true" *) reg [51:0] amp_data_ro_dbg;
-  always @(posedge s_axis_aclk) begin
-    if (!s_axis_aresetn) begin
-      amp_valid_ro_dbg <= 1'b0;
-      amp_data_ro_dbg <= 52'd0;
-    end else begin
-      amp_valid_ro_dbg <= amp_valid_ro;
-      amp_data_ro_dbg <= amp_data_ro;
-    end
-  end
 
   // =========================================================
   // CDC adc_clk -> fpga_clk: accumulated |IQ|^2 + valid (req/ack handshake)
@@ -338,5 +322,39 @@ module fine_tuning_sweep #(
     .max_amplitude (max_amplitude),
     .freq_at_max   (freq_at_max)
   );
+
+  // ============================== DEBUG PROBES ==============================
+  // ILA taps (s_axis_aclk / ADC domain) for signals that are NOT already
+  // registers -- input ports, the trigger_ro combinational pulse, and the sync /
+  // sub-module output wires nsamp_ro/amp_valid_ro/amp_data_ro -- each sampled
+  // into a flop so the debug hub only connects to a register output. Full width
+  // is registered; trim bit-selection in Vivado Set Up Debug if the 552 MHz
+  // domain is timing-tight (s_axis_tdata_dbg / nsamp_ro_dbg / amp_data_ro_dbg).
+  (* mark_debug = "true" *) reg        s_axis_aresetn_dbg;
+  (* mark_debug = "true" *) reg        s_axis_tvalid_dbg;
+  (* mark_debug = "true" *) reg [31:0] s_axis_tdata_dbg;
+  (* mark_debug = "true" *) reg        trigger_ro_dbg;
+  (* mark_debug = "true" *) reg [31:0] nsamp_ro_dbg;
+  (* mark_debug = "true" *) reg        amp_valid_ro_dbg;
+  (* mark_debug = "true" *) reg [51:0] amp_data_ro_dbg;
+  always @(posedge s_axis_aclk) begin
+    if (!s_axis_aresetn) begin
+      s_axis_aresetn_dbg <= 1'b0;
+      s_axis_tvalid_dbg <= 1'b0;
+      s_axis_tdata_dbg <= 32'd0;
+      trigger_ro_dbg <= 1'b0;
+      nsamp_ro_dbg <= 32'd0;
+      amp_valid_ro_dbg <= 1'b0;
+      amp_data_ro_dbg <= 52'd0;
+    end else begin
+      s_axis_aresetn_dbg <= s_axis_aresetn;
+      s_axis_tvalid_dbg <= s_axis_tvalid;
+      s_axis_tdata_dbg <= s_axis_tdata;
+      trigger_ro_dbg <= trigger_ro;
+      nsamp_ro_dbg <= nsamp_ro;
+      amp_valid_ro_dbg <= amp_valid_ro;
+      amp_data_ro_dbg <= amp_data_ro;
+    end
+  end
 
 endmodule

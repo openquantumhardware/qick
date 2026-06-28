@@ -95,7 +95,7 @@ module amplitude_calculator #(
   (* mark_debug = "true" *) reg state;
   reg next_state;
 
-  reg [31:0] sample_cnt;
+  (* mark_debug = "true" *) reg [31:0] sample_cnt;
   reg [$clog2(MAX_AVG)-1:0] burst_cnt;
   reg [ACCUM_WIDTH-1:0] accumulator;
   reg [ACCUM_WIDTH-1:0] sum_reg;
