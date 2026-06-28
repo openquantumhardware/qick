@@ -46,9 +46,9 @@ module fine_tuning_sweep #(
 
   // ---- s_axis_aclk (ro_clk) domain ----
   input wire s_axis_aclk,
-  input wire s_axis_aresetn,
-  input wire s_axis_tvalid,
-  input wire [31:0] s_axis_tdata
+  (* mark_debug = "true" *) input wire s_axis_aresetn,
+  (* mark_debug = "true" *) input wire s_axis_tvalid,
+  (* mark_debug = "true" *) input wire [31:0] s_axis_tdata
 );
 
   localparam AVG_BITS = $clog2(MAX_AVG);
@@ -283,6 +283,22 @@ module fine_tuning_sweep #(
     .m_axis_tdata   (amp_data_ro),
     .m_axis_tvalid  (amp_valid_ro)
   );
+
+  // DEBUG (s_axis_aclk): registered copies of the amplitude_calculator outputs
+  // so an ADC-domain ILA can see whether the emit fires BEFORE the CDC. If
+  // amp_valid_ro_dbg pulses but peak_finder.amp_valid (post-CDC) stays 0, the
+  // fault is the handshake; if it never pulses, the emit itself never happens.
+  (* mark_debug = "true" *) reg amp_valid_ro_dbg;
+  (* mark_debug = "true" *) reg [51:0] amp_data_ro_dbg;
+  always @(posedge s_axis_aclk) begin
+    if (!s_axis_aresetn) begin
+      amp_valid_ro_dbg <= 1'b0;
+      amp_data_ro_dbg <= 52'd0;
+    end else begin
+      amp_valid_ro_dbg <= amp_valid_ro;
+      amp_data_ro_dbg <= amp_data_ro;
+    end
+  end
 
   // =========================================================
   // CDC adc_clk -> fpga_clk: accumulated |IQ|^2 + valid (req/ack handshake)
