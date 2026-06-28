@@ -92,7 +92,7 @@ module amplitude_calculator #(
   //  mask is flushed on every (re)trigger. (3 = i_s0 -> ii_s1 -> power_s2.)
   // ------------------------------------------------------------------
   localparam IDLE = 1'b0, RUN = 1'b1;
-  reg state;
+  (* mark_debug = "true" *) reg state;
   reg next_state;
 
   reg [31:0] sample_cnt;

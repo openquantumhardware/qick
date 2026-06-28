@@ -261,7 +261,7 @@ module fine_tuning_sweep #(
     else
       trig_resync_d <= trig_resync;
   end
-  wire trigger_ro = trig_resync & ~trig_resync_d;   // one clean adc-clk pulse
+  (* mark_debug = "true" *) wire trigger_ro = trig_resync & ~trig_resync_d;   // one clean adc-clk pulse
 
   // =========================================================
   // adc_clk: amplitude_calculator
