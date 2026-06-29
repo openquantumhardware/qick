@@ -73,9 +73,9 @@ module fine_tuning_sweep #(
   // =========================================================
   // c_clk: config registers + QP2 opcode FSM
   // =========================================================
-  reg [31:0] reg_start;
-  reg [31:0] reg_step;
-  reg [31:0] reg_nsamp;
+  (* mark_debug = "true" *) reg [31:0] reg_start;
+  (* mark_debug = "true" *) reg [31:0] reg_step;
+  (* mark_debug = "true" *) reg [31:0] reg_nsamp;
   reg [31:0] reg_npoints;
   reg [31:0] reg_avg;
 
