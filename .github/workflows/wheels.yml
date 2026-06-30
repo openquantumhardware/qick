@@ -42,6 +42,7 @@ jobs:
           path: dist/
 
   publish-to-pypi:
+    if: github.repository == 'openquantumhardware/qick' && github.ref == 'refs/heads/main'
     needs:
     - build
     runs-on: ubuntu-latest
