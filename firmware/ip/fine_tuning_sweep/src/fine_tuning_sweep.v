@@ -96,10 +96,10 @@ module fine_tuning_sweep #(
       qtag_dt1_o <= 32'd0;
       qtag_dt2_o <= 32'd0;
       reg_start <= 32'd0;
-      reg_step <= 32'd1;
-      reg_nsamp <= 32'd256;
-      reg_npoints <= 32'd1;
-      reg_avg <= 32'd1;
+      reg_step <= 32'd0;
+      reg_nsamp <= 32'd0;
+      reg_npoints <= 32'd0;
+      reg_avg <= 32'd0;
     end else begin
       if (en_rise) begin
         case (qtag_op_i)
@@ -107,7 +107,7 @@ module fine_tuning_sweep #(
             // sweep config: start/step/nsamp
             reg_start <= qtag_dt1_i;
             reg_step <= qtag_dt3_i;
-            reg_nsamp <= qtag_dt4_i;
+            reg_nsamp <= qtag_dt2_i;
             reg_npoints <= reg_npoints;
             reg_avg <= reg_avg;
             qtag_dt1_o <= qtag_dt1_o;

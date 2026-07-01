@@ -238,7 +238,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>08fb1ae0</spirit:value>
+            <spirit:value>b0b272d0</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -254,7 +254,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>08fb1ae0</spirit:value>
+            <spirit:value>b0b272d0</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -583,7 +583,7 @@
       <spirit:file>
         <spirit:name>src/fine_tuning_sweep.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_fef62d2c</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_aa9b902c</spirit:userFileType>
         <spirit:userFileType>IMPORTED_FILE</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -659,13 +659,13 @@
       </xilinx:taxonomies>
       <xilinx:displayName>fine_tuning_sweep_v1_0</xilinx:displayName>
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
-      <xilinx:coreRevision>27</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2026-06-29T08:27:55Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>28</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2026-07-01T10:15:54Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="b246a325"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="1079c73f"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="5b564f60"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="58b21840"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="7502e531"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="6a569d5e"/>
