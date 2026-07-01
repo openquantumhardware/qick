@@ -289,17 +289,10 @@ module qick_dut #(
       );
    `else
       // <<<<<<<<<<<< PULP PLATFORM AXI VIP
-      AXI_LITE #(
-         .AXI_ADDR_WIDTH ( 8      ),
-         .AXI_DATA_WIDTH ( 32     )
-      ) axi_mst_tproc_IF ();
       AXI_LITE_DV #(
          .AXI_ADDR_WIDTH ( 8       ),
          .AXI_DATA_WIDTH ( 32      )
-      ) axi_mst_tproc_dv_IF (ps_clk);
-      `ifdef VERILATOR
-      `AXI_LITE_ASSIGN(axi_mst_tproc_IF, axi_mst_tproc_dv_IF)
-      `endif
+      ) axi_mst_tproc_IF (ps_clk);
 
       assign s_axi_tproc_araddr        = axi_mst_tproc_IF.ar_addr  ; /* TPROC  input */
       assign s_axi_tproc_arprot        = axi_mst_tproc_IF.ar_prot  ; /* TPROC  input */
@@ -620,17 +613,11 @@ module qick_dut #(
          );
       `else
          // <<<<<<<<<<<< PULP PLATFORM AXI VIP
-         AXI_LITE #(
-            .AXI_ADDR_WIDTH ( 6      ),
-            .AXI_DATA_WIDTH ( 32     )
-         ) axi_mst_sg_IF ();
          AXI_LITE_DV #(
             .AXI_ADDR_WIDTH ( 6       ),
             .AXI_DATA_WIDTH ( 32      )
-         ) axi_mst_sg_dv_IF (ps_clk);
-         `ifdef VERILATOR
-         `AXI_LITE_ASSIGN(axi_mst_sg_IF, axi_mst_sg_dv_IF)
-         `endif
+         ) axi_mst_sg_IF (ps_clk);
+
          assign s_axi_sg_araddr        = axi_mst_sg_IF.ar_addr  ; /* SG  input */
          assign s_axi_sg_arprot        = axi_mst_sg_IF.ar_prot  ; /* SG  input */
          assign s_axi_sg_arvalid       = axi_mst_sg_IF.ar_valid ; /* SG  input */
@@ -1219,17 +1206,11 @@ module qick_dut #(
          );
       `else
          // PULP PLATFORM AXI VIP
-         AXI_LITE #(
-            .AXI_ADDR_WIDTH ( 6      ),
-            .AXI_DATA_WIDTH ( 32     )
-         ) axi_mst_avg0_IF ();
          AXI_LITE_DV #(
             .AXI_ADDR_WIDTH ( 6       ),
             .AXI_DATA_WIDTH ( 32      )
-         ) axi_mst_avg0_dv_IF (ps_clk);
-         `ifdef VERILATOR
-         `AXI_LITE_ASSIGN(axi_mst_avg0_IF, axi_mst_avg0_dv_IF)
-         `endif
+         ) axi_mst_avg0_IF (ps_clk);
+
          assign s_axi_avg0_araddr        = axi_mst_avg0_IF.ar_addr  ; /* AVG  input */
          assign s_axi_avg0_arprot        = axi_mst_avg0_IF.ar_prot  ; /* AVG  input */
          assign s_axi_avg0_arvalid       = axi_mst_avg0_IF.ar_valid ; /* AVG  input */
@@ -1407,17 +1388,11 @@ module qick_dut #(
          );
       `else
          // PULP PLATFORM AXI VIP
-         AXI_LITE #(
-            .AXI_ADDR_WIDTH ( 6      ),
-            .AXI_DATA_WIDTH ( 32     )
-         ) axi_mst_rov2_IF ();
          AXI_LITE_DV #(
             .AXI_ADDR_WIDTH ( 6       ),
             .AXI_DATA_WIDTH ( 32      )
-         ) axi_mst_rov2_dv_IF (ps_clk);
-         `ifdef VERILATOR
-         `AXI_LITE_ASSIGN(axi_mst_rov2_IF, axi_mst_rov2_dv_IF)
-         `endif
+         ) axi_mst_rov2_IF (ps_clk);
+
          assign s_axi_rov2_araddr        = axi_mst_rov2_IF.ar_addr  ; /* ROV2  input */
          assign s_axi_rov2_arprot        = axi_mst_rov2_IF.ar_prot  ; /* ROV2  input */
          assign s_axi_rov2_arvalid       = axi_mst_rov2_IF.ar_valid ; /* ROV2  input */
@@ -1539,17 +1514,11 @@ module qick_dut #(
          );
       `else
          // PULP PLATFORM AXI VIP
-         AXI_LITE #(
-            .AXI_ADDR_WIDTH ( 6      ),
-            .AXI_DATA_WIDTH ( 32     )
-         ) axi_mst_avg1_IF ();
          AXI_LITE_DV #(
             .AXI_ADDR_WIDTH ( 6       ),
             .AXI_DATA_WIDTH ( 32      )
-         ) axi_mst_avg1_dv_IF (ps_clk);
-         `ifdef VERILATOR
-         `AXI_LITE_ASSIGN(axi_mst_avg1_IF, axi_mst_avg1_dv_IF)
-         `endif
+         ) axi_mst_avg1_IF (ps_clk);
+         
          assign s_axi_avg1_araddr        = axi_mst_avg1_IF.ar_addr  ; /* AVG  input */
          assign s_axi_avg1_arprot        = axi_mst_avg1_IF.ar_prot  ; /* AVG  input */
          assign s_axi_avg1_arvalid       = axi_mst_avg1_IF.ar_valid ; /* AVG  input */

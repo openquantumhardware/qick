@@ -1094,11 +1094,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_dv_IF,    "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_dv_IF,       "axi_mst_sg VIP Agent"    );
-      axi_mst_avg0_agent   = new(qick_dut.axi_mst_avg0_dv_IF,     "axi_mst_avg0 VIP Agent"  );
-      axi_mst_avg1_agent   = new(qick_dut.axi_mst_avg1_dv_IF,     "axi_mst_avg1 VIP Agent"  );
-      // axi_mst_rov2_agent   = new(qick_dut.axi_mst_rov2_dv_IF,    "axi_mst_rov2 VIP Agent"  );
+      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_IF,    "axi_mst_tproc VIP Agent" );
+      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_IF,       "axi_mst_sg VIP Agent"    );
+      axi_mst_avg0_agent   = new(qick_dut.axi_mst_avg0_IF,     "axi_mst_avg0 VIP Agent"  );
+      axi_mst_avg1_agent   = new(qick_dut.axi_mst_avg1_IF,     "axi_mst_avg1 VIP Agent"  );
+      // axi_mst_rov2_agent   = new(qick_dut.axi_mst_rov2_IF,    "axi_mst_rov2 VIP Agent"  );
 
       // initialize agent signals to '0.
       axi_mst_tproc_agent.reset();
