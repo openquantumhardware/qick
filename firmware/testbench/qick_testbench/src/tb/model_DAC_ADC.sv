@@ -7,7 +7,7 @@
 
 `timescale 1ns/1fs
 
-module model_DAC #(
+module automatic model_DAC #(
    parameter integer DAC_W = 16
 )(
    input wire clk_DAC,
@@ -31,7 +31,7 @@ endmodule
 // Description: 
 // ADC RF frontend model
 ///////////////////////////////////////////////////////////////////////////
-module model_ADC #(
+module automatic model_ADC #(
    parameter integer ADC_W = 16,
    parameter integer BUFFER_SIZE = 16
 )(

@@ -1,3 +1,6 @@
+`ifndef FIFO_SV_SV
+`define FIFO_SV_SV
+
 module fifo_sv #(
   parameter int B = 16,
   parameter int N = 4
@@ -63,3 +66,5 @@ module fifo_sv #(
   assign empty = empty_i;
 
 endmodule
+
+`endif // FIFO_SV_SV

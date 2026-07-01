@@ -1264,6 +1264,7 @@ module qick_dut #(
    // Readout0 Buffer Register Data AXIS
    logic                     m2_axis_buf0_reg_tvalid;
    logic [63:0]              m2_axis_buf0_reg_tdata;
+   wire                      m2_axis_buf0_reg_tready;
 
 
    axis_avg_buffer #(
@@ -1583,6 +1584,7 @@ module qick_dut #(
    // Readout0 Buffer Register Data AXIS
    logic                     m2_axis_buf1_reg_tvalid;
    logic [63:0]              m2_axis_buf1_reg_tdata;
+   wire                      m2_axis_buf1_reg_tready;
 
    axis_avg_buffer #(
       .N_AVG                  (13               ),

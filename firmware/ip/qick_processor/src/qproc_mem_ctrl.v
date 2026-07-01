@@ -100,7 +100,7 @@ assign mem_sel     = MEM_CTRL[3:2] ; // 01-Pmem , 10-Dmem , 11-Wmem
 assign mem_source  = MEM_CTRL[ 4 ] ; // 0-AXIS, 1-REGISTERS (Single)
 assign core_sel    = MEM_CTRL[6:5] ; // Core Selection 
 
-wire start_single;
+wire start_single, start_axis, dmem_we_single, busy_o, end_single_o;
 assign start_axis   = mem_start & ~mem_source ;
 assign start_single = mem_start & mem_source ;
 

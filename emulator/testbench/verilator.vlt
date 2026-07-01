@@ -3,3 +3,15 @@
 // Only the AXI-Lite rand_master class is used; full AXI VIP virtual
 // interfaces are unused but Verilator 5.x errors on them regardless.
 lint_off -rule UNSUPPORTED -file "*/axi_test.sv"
+
+// Suppress MODDUP warnings for duplicate submodule modules
+// These are intentionally duplicated across IP blocks
+lint_off -rule MODDUP -file "*/fifo_sv.sv"
+lint_off -rule MODDUP -file "*/rd2axi_sv.sv"
+
+// Suppress GENUNNAMED warnings for unnamed generate blocks
+// These are minor style issues that don't affect functionality
+lint_off -rule GENUNNAMED -file "*/axis_qick_processor.sv"
+lint_off -rule GENUNNAMED -file "*/signal_gen_top.v"
+lint_off -rule GENUNNAMED -file "*/qick_processor.sv"
+lint_off -rule GENUNNAMED -file "*/down_conversion.v"

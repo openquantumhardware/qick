@@ -1,3 +1,6 @@
+`ifndef RD2AXI_SV_SV
+`define RD2AXI_SV_SV
+
 module rd2axi_sv #(parameter B = 16)
 (
     input  logic         rstn, clk,
@@ -90,3 +93,5 @@ module rd2axi_sv #(parameter B = 16)
     assign empty      = empty_i;
 
 endmodule
+
+`endif // RD2AXI_SV_SV

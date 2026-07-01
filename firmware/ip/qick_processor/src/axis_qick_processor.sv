@@ -389,6 +389,7 @@ always_ff @(posedge c_clk_i)
    end
 
 // The C_TPROC_CTRL is only ONE clock.
+wire proc_start_t01, proc_stop_t01;
 assign proc_start_t01   = proc_start_r & ~proc_start_r2 ;
 assign proc_stop_t01    = proc_stop_r  & ~proc_stop_r2 ;
 

@@ -341,6 +341,8 @@ always_ff @ (posedge c_clk) begin
    qp1_b_dt_r   <= qp1_b_dt_o;
 end
   
+wire qp1_rdy_i, qp1_vld_i, qp1_op_o;
+
 assign qp1_rdy_i     = ~qp1_en_r;
 assign qp1_dt_i[0]   = qp1_a_dt_r;
 assign qp1_dt_i[1]   = qp1_b_dt_r;

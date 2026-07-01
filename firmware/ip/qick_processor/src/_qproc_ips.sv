@@ -137,6 +137,7 @@ module LIFO # (
 wire [2:0]        ptr_p1, ptr_m1 ;
 reg  [2:0]        ptr            ;
 reg  [WIDTH-1:0]  stack [DEPTH]  ;
+wire              empty_o        ;
 
 assign ptr_p1 = ptr + 1'b1;
 assign ptr_m1 = ptr - 1'b1;
@@ -1181,6 +1182,7 @@ reg [2*DW-1 :0] sub_temp  ;
 reg [DW-1   :0] r_temp_nxt  ;
 
 wire [31:0] ind_bit_m1;
+wire div_start, div_end;
 
 
 assign ind_bit_m1 = ind_bit - 1'b1;
@@ -1322,6 +1324,9 @@ reg a_pulse_req;
 (* ASYNC_REG = "TRUE" *) reg b_pulse_req ;
 reg pulse_b_req_r;
 reg b_pulse_ack;
+
+// Pulse output signals
+wire pulse_a, pulse_b;
 
 /// REQ Time from C to T
 ///////////////////////////////////////////////////////////////////////////////

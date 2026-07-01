@@ -48,6 +48,9 @@ wire [23:0] conf ;
 wire [1:0] outsel ;
 wire mode, stdysel, phrst;
 
+// Enable signals for different output types
+wire gen_v6_en, int4_en, mux4_en, readout_en;
+
 assign conf    = s_axis_tdata[167:152] ;
 assign nsamp   = s_axis_tdata[151:120] ;
 assign gain	   = s_axis_tdata[119: 88] ;
