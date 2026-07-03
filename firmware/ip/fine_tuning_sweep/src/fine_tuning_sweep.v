@@ -76,8 +76,8 @@ module fine_tuning_sweep #(
   (* mark_debug = "true" *) reg [31:0] reg_start;
   (* mark_debug = "true" *) reg [31:0] reg_step;
   (* mark_debug = "true" *) reg [31:0] reg_nsamp;
-  reg [31:0] reg_npoints;
-  reg [31:0] reg_avg;
+  (* mark_debug = "true" *) reg [31:0] reg_npoints;
+  (* mark_debug = "true" *) reg [31:0] reg_avg;
 
   // from peak_finder (c_clk)
   wire [31:0] pf_freq_word;
@@ -87,8 +87,8 @@ module fine_tuning_sweep #(
   wire [31:0] freq_at_max;
 
   // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
-  reg sticky_freq_valid;
-  reg sticky_finish;
+  (* mark_debug = "true" *) reg sticky_freq_valid;
+  (* mark_debug = "true" *) reg sticky_finish;
 
   always @(posedge clk) begin
     if (!rst_n) begin
@@ -324,17 +324,48 @@ module fine_tuning_sweep #(
   );
 
   // ============================== DEBUG PROBES ==============================
-  // ILA taps (s_axis_aclk / ADC domain) for signals that are NOT already
-  // registers -- input ports, the trigger_ro combinational pulse, and the sync /
-  // sub-module output wires nsamp_ro/amp_valid_ro/amp_data_ro -- each sampled
-  // into a flop so the debug hub only connects to a register output. Full width
-  // is registered; trim bit-selection in Vivado Set Up Debug if the 552 MHz
-  // domain is timing-tight (s_axis_tdata_dbg / nsamp_ro_dbg / amp_data_ro_dbg).
+  // ILA taps grouped by clock domain (one debug core per clock). Registers that
+  // already exist are mark_debug'd in place above; the two blocks below sample
+  // the signals that are NOT registers (input ports, the trigger_ro pulse, and
+  // the sync/handshake output wires) into a flop so the debug hub only connects
+  // to a register output.
+  //
+  // synchronizer.v is left untouched (no mark_debug inside the CDC primitive),
+  // but BOTH sides of every crossing are probed here so the ILA can confirm the
+  // synchronizer carried the value faithfully:
+  //   nsamp : reg_nsamp (c_clk, in place)  <-> nsamp_ro_dbg          (adc)
+  //   avg   : reg_avg    (c_clk, in place)  <-> averager_value_ro_dbg (adc)
+  //   trig  : trigger_dbg (c_clk)           <-> trigger_ro_dbg        (adc)
+  //   amp   : amp_valid_c_dbg/amp_data_c_dbg (c_clk) <-> amp_valid_ro_dbg/amp_data_ro_dbg (adc)
+  //
+  // Wide buses (s_axis_tdata / nsamp_ro / amp_data_*) register full width; trim
+  // bit-selection in Vivado Set Up Debug if the 552 MHz adc domain is routing/
+  // timing-tight.
+
+  // ---- c_clk domain: destination side of the adc->fpga amp handshake +
+  //      fabric-side view of the trigger before it crosses into s_axis_aclk ----
+  (* mark_debug = "true" *) reg        trigger_dbg;
+  (* mark_debug = "true" *) reg        amp_valid_c_dbg;
+  (* mark_debug = "true" *) reg [51:0] amp_data_c_dbg;
+  always @(posedge clk) begin
+    if (!rst_n) begin
+      trigger_dbg <= 1'b0;
+      amp_valid_c_dbg <= 1'b0;
+      amp_data_c_dbg <= 52'd0;
+    end else begin
+      trigger_dbg <= trigger;
+      amp_valid_c_dbg <= amp_valid_c;
+      amp_data_c_dbg <= amp_data_c;
+    end
+  end
+
+  // ---- s_axis_aclk (adc) domain ----
   (* mark_debug = "true" *) reg        s_axis_aresetn_dbg;
   (* mark_debug = "true" *) reg        s_axis_tvalid_dbg;
   (* mark_debug = "true" *) reg [31:0] s_axis_tdata_dbg;
   (* mark_debug = "true" *) reg        trigger_ro_dbg;
   (* mark_debug = "true" *) reg [31:0] nsamp_ro_dbg;
+  (* mark_debug = "true" *) reg [AVG_BITS-1:0] averager_value_ro_dbg;
   (* mark_debug = "true" *) reg        amp_valid_ro_dbg;
   (* mark_debug = "true" *) reg [51:0] amp_data_ro_dbg;
   always @(posedge s_axis_aclk) begin
@@ -344,6 +375,7 @@ module fine_tuning_sweep #(
       s_axis_tdata_dbg <= 32'd0;
       trigger_ro_dbg <= 1'b0;
       nsamp_ro_dbg <= 32'd0;
+      averager_value_ro_dbg <= {AVG_BITS{1'b0}};
       amp_valid_ro_dbg <= 1'b0;
       amp_data_ro_dbg <= 52'd0;
     end else begin
@@ -352,6 +384,7 @@ module fine_tuning_sweep #(
       s_axis_tdata_dbg <= s_axis_tdata;
       trigger_ro_dbg <= trigger_ro;
       nsamp_ro_dbg <= nsamp_ro;
+      averager_value_ro_dbg <= averager_value_ro;
       amp_valid_ro_dbg <= amp_valid_ro;
       amp_data_ro_dbg <= amp_data_ro;
     end

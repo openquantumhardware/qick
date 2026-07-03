@@ -20,23 +20,23 @@ module peak_finder #(
   input wire [ACCUM_WIDTH-1:0] amp_data,
 
   // handshake to the tProc (wrapper latches these into sticky flags)
-  output reg [31:0] freq_word,
-  output reg freq_valid,
-  output reg finish,
+  (* mark_debug = "true" *) output reg [31:0] freq_word,
+  (* mark_debug = "true" *) output reg freq_valid,
+  (* mark_debug = "true" *) output reg finish,
 
   // result (read back on OP2 via freq_word; max kept for the comparison)
-  output reg [ACCUM_WIDTH-1:0] max_amplitude,
-  output reg [31:0] freq_at_max
+  (* mark_debug = "true" *) output reg [ACCUM_WIDTH-1:0] max_amplitude,
+  (* mark_debug = "true" *) output reg [31:0] freq_at_max
 );
 
   localparam [1:0] IDLE = 2'd0, SEND_FREQ = 2'd1, WAIT_MEAS = 2'd2;
 
   (* mark_debug = "true" *) reg [1:0] state;
   reg [1:0] next_state;
-  reg [31:0] cur_freq, cur_step, n_pts, point_idx;
+  (* mark_debug = "true" *) reg [31:0] cur_freq, cur_step, n_pts, point_idx;
 
   // registered last-point flag -- keeps the advance enable to flop outputs only
-  reg last_point_r;
+  (* mark_debug = "true" *) reg last_point_r;
 
   // (1) STATE REGISTER -- synchronous reset
   always @(posedge clk) begin
@@ -185,18 +185,31 @@ module peak_finder #(
   end
 
   // ============================== DEBUG PROBES ==============================
-  // ILA taps for signals that are NOT already registers (rstn and amp_valid are
-  // input nets) -- sampled into a flop so the debug hub only connects to a
-  // register output. (state is already a register, mark_debug'd in place.)
+  // ILA taps for signals that are NOT already registers (rstn/amp_valid/start/
+  // reset_max/amp_data are input nets) -- sampled into a flop so the debug hub
+  // only connects to a register output. Every state/decision/result register
+  // (state, cur_freq, cur_step, n_pts, point_idx, last_point_r, freq_word,
+  // freq_valid, finish, max_amplitude, freq_at_max) is mark_debug'd in place
+  // above. amp_data_dbg is the destination-domain view of the amp handshake
+  // (compare against amp_data_ro_dbg in the wrapper to confirm the CDC).
   (* mark_debug = "true" *) reg rstn_dbg;
   (* mark_debug = "true" *) reg amp_valid_dbg;
+  (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0] amp_data_dbg;
+  (* mark_debug = "true" *) reg start_dbg;
+  (* mark_debug = "true" *) reg reset_max_dbg;
   always @(posedge clk) begin
     if (!rstn) begin
       rstn_dbg <= 1'b0;
       amp_valid_dbg <= 1'b0;
+      amp_data_dbg <= {ACCUM_WIDTH{1'b0}};
+      start_dbg <= 1'b0;
+      reset_max_dbg <= 1'b0;
     end else begin
       rstn_dbg <= rstn;
       amp_valid_dbg <= amp_valid;
+      amp_data_dbg <= amp_data;
+      start_dbg <= start;
+      reset_max_dbg <= reset_max;
     end
   end
 

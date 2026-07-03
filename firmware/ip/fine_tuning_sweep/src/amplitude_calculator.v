@@ -27,8 +27,8 @@ module amplitude_calculator #(
   input wire [31:0] nsamp,
   input wire [$clog2(MAX_AVG)-1:0] averager_value,
 
-  output reg [ACCUM_WIDTH-1:0] m_axis_tdata,
-  output reg m_axis_tvalid
+  (* mark_debug = "true" *) output reg [ACCUM_WIDTH-1:0] m_axis_tdata,
+  (* mark_debug = "true" *) output reg m_axis_tvalid
 );
 
   // ------------------------------------------------------------------
@@ -96,13 +96,13 @@ module amplitude_calculator #(
   reg next_state;
 
   (* mark_debug = "true" *) reg [31:0] sample_cnt;
-  reg [$clog2(MAX_AVG)-1:0] burst_cnt;
-  reg [ACCUM_WIDTH-1:0] accumulator;
-  reg [ACCUM_WIDTH-1:0] sum_reg;
-  reg finish_delay;
-  reg [31:0] nsamp_latched;
+  (* mark_debug = "true" *) reg [$clog2(MAX_AVG)-1:0] burst_cnt;
+  (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0] accumulator;
+  (* mark_debug = "true" *) reg [ACCUM_WIDTH-1:0] sum_reg;
+  (* mark_debug = "true" *) reg finish_delay;
+  (* mark_debug = "true" *) reg [31:0] nsamp_latched;
 
-  reg run_d0, run_d1, run_d2;
+  (* mark_debug = "true" *) reg run_d0, run_d1, run_d2;
 
   always @(posedge clk) begin
     if (!rst_n) begin
@@ -247,6 +247,22 @@ module amplitude_calculator #(
         endcase
       end
     end
+  end
+
+  // ============================== DEBUG PROBES ==============================
+  // ILA taps for the control/decision signals. All state/decision/result
+  // REGISTERS (state, sample_cnt, burst_cnt, accumulator, sum_reg, finish_delay,
+  // nsamp_latched, run_d0/1/2, m_axis_tdata, m_axis_tvalid) are mark_debug'd in
+  // place above. acc_en is combinational (run_d2 & v_s2), so it gets a flop here.
+  // The IQ->square->sum pipeline (i_s0/q_s0/ii_s1/qq_s1/power_s2) is DELIBERATELY
+  // NOT probed: mark_debug pins those in fabric and forbids DSP MREG absorption,
+  // which breaks the 552 MHz clk_adc0_x2 timing (see the stage-1 comment above).
+  (* mark_debug = "true" *) reg acc_en_dbg;
+  always @(posedge clk) begin
+    if (!rst_n)
+      acc_en_dbg <= 1'b0;
+    else
+      acc_en_dbg <= acc_en;
   end
 
 endmodule
