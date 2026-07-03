@@ -19,15 +19,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="22.000001 us"></ZoomEndTime>
-      <Cursor1Time time="31.950000 us"></Cursor1Time>
+      <ZoomStartTime time="0.000000000 us"></ZoomStartTime>
+      <ZoomEndTime time="80.105500001 us"></ZoomEndTime>
+      <Cursor1Time time="80.105500000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="126"></ValueColumnWidth>
+      <ValueColumnWidth column_width="106"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="19" />
+   <WVObjectSize size="13" />
    <wvobject type="group" fp_name="group490">
       <obj_property name="label">RST_CLK</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -107,7 +107,6 @@
    <wvobject type="group" fp_name="group500">
       <obj_property name="label">TPROC_V2</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/AXIS_QPROC/proc_start_i">
          <obj_property name="ElementShortName">proc_start_i</obj_property>
          <obj_property name="ObjectShortName">proc_start_i</obj_property>
@@ -139,7 +138,6 @@
       <wvobject type="group" fp_name="group1522">
          <obj_property name="label">REGS</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="isExpanded"></obj_property>
          <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt">
             <obj_property name="ElementShortName">sreg_32_dt[0:15][31:0]</obj_property>
             <obj_property name="ObjectShortName">sreg_32_dt[0:15][31:0]</obj_property>
@@ -151,32 +149,6 @@
          <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt">
             <obj_property name="ElementShortName">wreg_32_dt[0:5][31:0]</obj_property>
             <obj_property name="ObjectShortName">wreg_32_dt[0:5][31:0]</obj_property>
-            <obj_property name="isExpanded"></obj_property>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[0]">
-               <obj_property name="ElementShortName">[0][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[0][31:0]</obj_property>
-            </wvobject>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[1]">
-               <obj_property name="ElementShortName">[1][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[1][31:0]</obj_property>
-               <obj_property name="Radix">HEXRADIX</obj_property>
-            </wvobject>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[2]">
-               <obj_property name="ElementShortName">[2][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[2][31:0]</obj_property>
-            </wvobject>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[3]">
-               <obj_property name="ElementShortName">[3][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[3][31:0]</obj_property>
-            </wvobject>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[4]">
-               <obj_property name="ElementShortName">[4][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[4][31:0]</obj_property>
-            </wvobject>
-            <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/wreg_32_dt[5]">
-               <obj_property name="ElementShortName">[5][31:0]</obj_property>
-               <obj_property name="ObjectShortName">[5][31:0]</obj_property>
-            </wvobject>
          </wvobject>
          <wvobject type="array" fp_name="/tb_qick/qick_dut/AXIS_QPROC/QPROC/CORE_0/CORE_CPU/reg_bank/sreg_32_dt[1]">
             <obj_property name="DisplayName">label</obj_property>
@@ -1246,18 +1218,6 @@
          </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tvalid">
-      <obj_property name="ElementShortName">s_axis_phase_tvalid</obj_property>
-      <obj_property name="ObjectShortName">s_axis_phase_tvalid</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tdata[64]">
-      <obj_property name="ElementShortName">[64]</obj_property>
-      <obj_property name="ObjectShortName">[64]</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/GEN_dds[0].gen_dds_block.gen_dds_compiler.dds_i/s_axis_phase_tdata">
-      <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
-      <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
-   </wvobject>
    <wvobject type="group" fp_name="group2401">
       <obj_property name="label">SIGNAL_GEN_1</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -1644,7 +1604,6 @@
    <wvobject type="group" fp_name="group1417">
       <obj_property name="label">AVG_BUFFER_0</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_avg_buffer_0/s_axis_aresetn">
          <obj_property name="ElementShortName">s_axis_aresetn</obj_property>
          <obj_property name="ObjectShortName">s_axis_aresetn</obj_property>
@@ -3117,19 +3076,5 @@
          <obj_property name="AnalogOffscale">ANALOG_OFFSCALE_HIDE</obj_property>
          <obj_property name="AnalogHorizLine">0.000000</obj_property>
       </wvobject>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/ctrl_i/cnt_n">
-      <obj_property name="ElementShortName">cnt_n[31:0]</obj_property>
-      <obj_property name="ObjectShortName">cnt_n[31:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="array" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/ctrl_i/cnt_n_reg">
-      <obj_property name="ElementShortName">cnt_n_reg[31:0]</obj_property>
-      <obj_property name="ObjectShortName">cnt_n_reg[31:0]</obj_property>
-      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
-   </wvobject>
-   <wvobject type="logic" fp_name="/tb_qick/qick_dut/u_axis_signal_gen_v6_0/signal_gen_top_i/signal_gen_i/ctrl_i/phrst_int">
-      <obj_property name="ElementShortName">phrst_int</obj_property>
-      <obj_property name="ObjectShortName">phrst_int</obj_property>
    </wvobject>
 </wave_config>

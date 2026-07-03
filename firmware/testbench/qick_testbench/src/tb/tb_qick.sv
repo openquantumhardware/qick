@@ -15,25 +15,6 @@ import axi_mst_0_pkg::*;
 localparam N_DDS_SG = 16;
 localparam N_DDS_RO = 8;
 
-// AXI VIP master address.
-xil_axi_ulong     SG_ADDR_START_ADDR   = 32'h40000000; // 0
-xil_axi_ulong     SG_ADDR_WE           = 32'h40000004; // 1
-
-// AXI VIP master address.
-xil_axi_ulong   AVG_START_REG       = 4 * 0;
-xil_axi_ulong   AVG_ADDR_REG        = 4 * 1;
-xil_axi_ulong   AVG_LEN_REG         = 4 * 2;
-xil_axi_ulong   AVG_DR_START_REG    = 4 * 3;
-xil_axi_ulong   AVG_DR_ADDR_REG     = 4 * 4;
-xil_axi_ulong   AVG_DR_LEN_REG      = 4 * 5;
-xil_axi_ulong   BUF_START_REG       = 4 * 6;
-xil_axi_ulong   BUF_ADDR_REG        = 4 * 7;
-xil_axi_ulong   BUF_LEN_REG         = 4 * 8;
-xil_axi_ulong   BUF_DR_START_REG    = 4 * 9;
-xil_axi_ulong   BUF_DR_ADDR_REG     = 4 * 10;
-xil_axi_ulong   BUF_DR_LEN_REG      = 4 * 11;
-
-
 // CLOCK PERIODS
 real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
 real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)

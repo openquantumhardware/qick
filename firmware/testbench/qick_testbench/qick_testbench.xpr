@@ -4,7 +4,7 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/hrl-labs-clinic/qick_fork_mmdiego_qickemu/firmware/testbench/qick_testbench/qick_testbench.xpr">
+<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/hrl-labs-clinic/qick_hrl_clinic/firmware/testbench/qick_testbench/qick_testbench.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="ee4101ae9cb9409f8084103e6f2383a5"/>
@@ -61,20 +61,20 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="983"/>
+    <Option Name="WTXSimLaunchSim" Val="1026"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="28"/>
-    <Option Name="WTModelSimExportSim" Val="28"/>
-    <Option Name="WTQuestaExportSim" Val="28"/>
+    <Option Name="WTXSimExportSim" Val="35"/>
+    <Option Name="WTModelSimExportSim" Val="35"/>
+    <Option Name="WTQuestaExportSim" Val="35"/>
     <Option Name="WTIesExportSim" Val="0"/>
-    <Option Name="WTVcsExportSim" Val="28"/>
-    <Option Name="WTRivieraExportSim" Val="28"/>
-    <Option Name="WTActivehdlExportSim" Val="28"/>
+    <Option Name="WTVcsExportSim" Val="35"/>
+    <Option Name="WTRivieraExportSim" Val="35"/>
+    <Option Name="WTActivehdlExportSim" Val="35"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -832,6 +832,13 @@
       </File>
       <File Path="$PPRDIR/src/tb/model_DAC_ADC.sv">
         <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../emulator/testbench/axi_router_lite.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>

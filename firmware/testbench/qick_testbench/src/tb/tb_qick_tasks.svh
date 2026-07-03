@@ -2,20 +2,20 @@
 // TEST TASKS
 //--------------------------------------
 
-task tproc_write_axi(integer PORT_AXI, DATA_AXI);
-   $display("Running tproc_write_axi() Task");
-   //$display("PORT %d",  PORT_AXI);
-   //$display("DATA %d",  DATA_AXI);
+task tproc_write_axi(integer ADDR_AXI, DATA_WR);
+   $display("### %t - Running tproc_write_axi() Task", $realtime());
+   //$display("PORT %d",  ADDR_AXI);
+   //$display("DATA %d",  DATA_WR);
    @(posedge s_ps_dma_aclk); #0.1;
-   axi_mst_tproc_agent.AXI4LITE_WRITE_BURST(PORT_AXI, prot, DATA_AXI, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(TPROC_BASE + ADDR_AXI, prot, DATA_WR, resp);
 endtask
 
 
 task tproc_read_axi(integer ADDR_AXI);
    integer DATA_RD;
-   $display("Running tproc_read_axi() Task");
+   $display("### %t - Running tproc_read_axi() Task", $realtime());
    @(posedge s_ps_dma_aclk); #0.1;
-   axi_mst_tproc_agent.AXI4LITE_READ_BURST(ADDR_AXI, 0, DATA_RD, resp);
+   axi_mst_agent.AXI4LITE_READ_BURST(TPROC_BASE + ADDR_AXI, 0, DATA_RD, resp);
    $display("READ AXI_DATA %d",  DATA_RD);
 endtask
 
@@ -65,7 +65,8 @@ task sg_load_mem(string test_name, int channel, string dir);
    string sg_file, channel_str;
    int fd,vali,valq;
    bit signed [15:0] ii,qq;
-   
+   xil_axi_ulong  SG_BASE = 0;
+
    $display("### %t - Task sg_load_mem() channel %0d start ###", $realtime(), channel);
 
    if (channel >= 2) begin
@@ -76,9 +77,11 @@ task sg_load_mem(string test_name, int channel, string dir);
    if (channel == 0) begin
       sg0_s0_axis_tvalid = 0;
       sg0_s0_axis_tdata  = 0;
+      SG_BASE = SG0_BASE_ADDR;
    end else if (channel == 1) begin
       sg1_s0_axis_tvalid = 0;
       sg1_s0_axis_tdata  = 0;
+      SG_BASE = SG1_BASE_ADDR;
    end
 
    $display("################################");
@@ -88,12 +91,12 @@ task sg_load_mem(string test_name, int channel, string dir);
 
    // start_addr.
    data_wr = 0;
-   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_START_ADDR, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(SG_BASE + SG_ADDR_START_ADDR, prot, data_wr, resp);
    #100ns;
    
    // we.
    data_wr = 1;
-   axi_mst_sg_agent.AXI4LITE_WRITE_BURST(SG_ADDR_WE, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(SG_BASE + SG_ADDR_WE, prot, data_wr, resp);
    #100ns;
    
    // Load Envelope Table Memory.
@@ -138,12 +141,14 @@ task sg_load_mem(string test_name, int channel, string dir);
 endtask
 
 task readout_buffer_config_decimated(integer channel, integer length);
-
-   axi_mst_0_mst_t axi_mst_avg_agent;
+   xil_axi_ulong  RO_BASE = 0;
+   // axi_mst_0_mst_t axi_mst_avg_agent;
    if (channel == 0) begin
-      axi_mst_avg_agent = axi_mst_avg0_agent;
+      // axi_mst_avg_agent = axi_mst_avg0_agent;
+      RO_BASE = AVG0_BASE_ADDR;
    end else if (channel == 1) begin
-      axi_mst_avg_agent = axi_mst_avg1_agent;
+      // axi_mst_avg_agent = axi_mst_avg1_agent;
+      RO_BASE = AVG1_BASE_ADDR;
    end else begin
       $display("ERROR: Invalid channel number %0d for readout_buffer_config_decimated() task", channel);
       $finish;
@@ -151,17 +156,17 @@ task readout_buffer_config_decimated(integer channel, integer length);
 
    // Stop Decimated Buffer Capture
    data_wr = 0;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_START_REG, prot, data_wr, resp);
    #100ns;
 
    // Set Decimated Buffer Capture Length
    data_wr = length;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_LEN_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_LEN_REG, prot, data_wr, resp);
    #100ns;
 
    // Start Decimated Buffer Capture
    data_wr = 1;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_START_REG, prot, data_wr, resp);
    #100ns;
 
    // // Readout Decimated Buffer Data
@@ -172,12 +177,12 @@ task readout_buffer_config_decimated(integer channel, integer length);
 endtask
 
 task readout_buffer_config_average(integer channel, integer length);
-
-   axi_mst_0_mst_t axi_mst_avg_agent;
+   xil_axi_ulong  RO_BASE = 0;
+   // axi_mst_0_mst_t axi_mst_avg_agent;
    if (channel == 0) begin
-      axi_mst_avg_agent = axi_mst_avg0_agent;
+      RO_BASE = AVG0_BASE_ADDR;
    end else if (channel == 1) begin
-      axi_mst_avg_agent = axi_mst_avg1_agent;
+      RO_BASE = AVG1_BASE_ADDR;
    end else begin
       $display("ERROR: Invalid channel number %0d for readout_buffer_config_average() task", channel);
       $finish;
@@ -185,28 +190,28 @@ task readout_buffer_config_average(integer channel, integer length);
 
    // Stop Average Buffer Capture
    data_wr = 0;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_START_REG, prot, data_wr, resp);
    #100ns;
 
    // Set Average Buffer Capture Length
    data_wr = length;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_LEN_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_LEN_REG, prot, data_wr, resp);
    #100ns;
 
    // Start Average Buffer Capture
    data_wr = 1;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_START_REG, prot, data_wr, resp);
    #100ns;
 
 endtask
 
 task readout_buffer_read_decimated(integer channel, integer length);
-
-   axi_mst_0_mst_t axi_mst_avg_agent;
+   xil_axi_ulong  RO_BASE = 0;
+   // axi_mst_0_mst_t axi_mst_avg_agent;
    if (channel == 0) begin
-      axi_mst_avg_agent = axi_mst_avg0_agent;
+      RO_BASE = AVG0_BASE_ADDR;
    end else if (channel == 1) begin
-      axi_mst_avg_agent = axi_mst_avg1_agent;
+      RO_BASE = AVG1_BASE_ADDR;
    end else begin
       $display("ERROR: Invalid channel number %0d for readout_buffer_read_decimated() task", channel);
       $finish;
@@ -214,28 +219,28 @@ task readout_buffer_read_decimated(integer channel, integer length);
 
    // Set Decimated Buffer Read Length
    data_wr = length;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_LEN_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_DR_LEN_REG, prot, data_wr, resp);
    #100ns;
 
    // Readout Decimated Buffer Data
    data_wr = 1;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_DR_START_REG, prot, data_wr, resp);
    #100ns;
 
    // Stop Readout Decimated Buffer Data
    data_wr = 0;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(BUF_DR_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + BUF_DR_START_REG, prot, data_wr, resp);
    #100ns;
 
 endtask
 
 task readout_buffer_read_average(integer channel, integer length);
-
-   axi_mst_0_mst_t axi_mst_avg_agent;
+   xil_axi_ulong  RO_BASE = 0;
+   // axi_mst_0_mst_t axi_mst_avg_agent;
    if (channel == 0) begin
-      axi_mst_avg_agent = axi_mst_avg0_agent;
+      RO_BASE = AVG0_BASE_ADDR;
    end else if (channel == 1) begin
-      axi_mst_avg_agent = axi_mst_avg1_agent;
+      RO_BASE = AVG1_BASE_ADDR;
    end else begin
       $display("ERROR: Invalid channel number %0d for readout_buffer_read_average() task", channel);
       $finish;
@@ -243,17 +248,17 @@ task readout_buffer_read_average(integer channel, integer length);
 
    // Set Average Buffer Capture Length
    data_wr = length;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_LEN_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_DR_LEN_REG, prot, data_wr, resp);
    #100ns;
 
    // Start Average Buffer Read
    data_wr = 1;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_DR_START_REG, prot, data_wr, resp);
    #100ns;
 
    // Stop Average Buffer Read
    data_wr = 0;
-   axi_mst_avg_agent.AXI4LITE_WRITE_BURST(AVG_DR_START_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_BASE + AVG_DR_START_REG, prot, data_wr, resp);
    #100ns;
 
 endtask
@@ -266,6 +271,8 @@ task config_readout_v2( input logic [31:0] frequency,
                         input logic        we);
 
    // AXI VIP master address.
+   xil_axi_ulong   RO_V2_BASE          = 40'h04_0020_0000;
+
    xil_axi_ulong   RO_V2_FREQ_REG      = 4 * 0;
    xil_axi_ulong   RO_V2_PHASE_REG     = 4 * 1;
    xil_axi_ulong   RO_V2_NSAMP_REG     = 4 * 2;
@@ -277,32 +284,32 @@ task config_readout_v2( input logic [31:0] frequency,
 
    // Set the Readout DDS Frequency
    data_wr = frequency;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_FREQ_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_FREQ_REG, prot, data_wr, resp);
    #100ns;
 
    // Set the Readout DDS Phase
    data_wr = phase;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_PHASE_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_PHASE_REG, prot, data_wr, resp);
    #100ns;
 
    // Set the number of samples for Decimated Buffer Capture
    data_wr = nsamp;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_NSAMP_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_NSAMP_REG, prot, data_wr, resp);
    #100ns;
 
    // Set Decimated Buffer Capture Output Select
    data_wr = outsel;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_OUTSEL_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_OUTSEL_REG, prot, data_wr, resp);
    #100ns;
 
    // Set Decimated Buffer Capture Mode
    data_wr = mode;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_MODE_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_MODE_REG, prot, data_wr, resp);
    #100ns;
 
    // Set Decimated Buffer Capture Write Enable
    data_wr = we;
-   axi_mst_rov2_agent.AXI4LITE_WRITE_BURST(RO_V2_WE_REG, prot, data_wr, resp);
+   axi_mst_agent.AXI4LITE_WRITE_BURST(RO_V2_BASE + RO_V2_WE_REG, prot, data_wr, resp);
    #100ns;
 
    $display("### Task config_readout_v2() end ###");
