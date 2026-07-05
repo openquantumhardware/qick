@@ -9,7 +9,7 @@
 //   CDC -- each crossing uses the right primitive for its kind (synchronizer.v):
 //     trigger              fpga_clk -> adc_clk : synchronizer_n (2-FF) + edge
 //     nsamp/averager_value fpga_clk -> adc_clk : synchronizer (quasi-static bus)
-//     accumulated |IQ|^2   adc_clk -> fpga_clk : synchronizer_handshake (req/ack)
+//     coherent (SumI)^2+(SumQ)^2 adc_clk -> fpga_clk : synchronizer_handshake (req/ack)
 //
 // QP2 opcode map:
 //   OP 0: dt1=start_freq dt2=(unused) dt3=step dt4=nsamp   -- sweep config
@@ -83,7 +83,7 @@ module fine_tuning_sweep #(
   wire [31:0] pf_freq_word;
   wire pf_freq_valid;
   wire pf_finish;
-  wire [51:0] max_amplitude;
+  wire [79:0] max_amplitude;
   wire [31:0] freq_at_max;
 
   // sticky handshake flags (so a polling tProc never misses a 1-cycle pulse)
@@ -266,12 +266,12 @@ module fine_tuning_sweep #(
   // =========================================================
   // adc_clk: amplitude_calculator
   // =========================================================
-  wire [51:0] amp_data_ro;
+  wire [79:0] amp_data_ro;
   wire amp_valid_ro;
 
   amplitude_calculator #(
     .MAX_AVG     (MAX_AVG),
-    .ACCUM_WIDTH (52)
+    .ACCUM_WIDTH (80)
   ) u_amplitude_calculator (
     .clk            (s_axis_aclk),
     .rst_n          (s_axis_aresetn),
@@ -285,12 +285,12 @@ module fine_tuning_sweep #(
   );
 
   // =========================================================
-  // CDC adc_clk -> fpga_clk: accumulated |IQ|^2 + valid (req/ack handshake)
+  // CDC adc_clk -> fpga_clk: coherent (SumI)^2+(SumQ)^2 + valid (req/ack handshake)
   // =========================================================
-  wire [51:0] amp_data_c;
+  wire [79:0] amp_data_c;
   wire amp_valid_c;
 
-  synchronizer_handshake #(.WIDTH(52)) u_amp_cdc (
+  synchronizer_handshake #(.WIDTH(80)) u_amp_cdc (
     .clk_src  (s_axis_aclk),
     .rst_n_src(s_axis_aresetn),
     .clk_dst  (clk),
@@ -305,7 +305,7 @@ module fine_tuning_sweep #(
   // c_clk: peak_finder (sweep FSM + argmax) -- consumes the handshaked result
   // =========================================================
   peak_finder #(
-    .ACCUM_WIDTH (52)
+    .ACCUM_WIDTH (80)
   ) u_peak_finder_v2 (
     .clk           (clk),
     .rstn          (rst_n),
@@ -346,12 +346,12 @@ module fine_tuning_sweep #(
   //      fabric-side view of the trigger before it crosses into s_axis_aclk ----
   (* mark_debug = "true" *) reg        trigger_dbg;
   (* mark_debug = "true" *) reg        amp_valid_c_dbg;
-  (* mark_debug = "true" *) reg [51:0] amp_data_c_dbg;
+  (* mark_debug = "true" *) reg [79:0] amp_data_c_dbg;
   always @(posedge clk) begin
     if (!rst_n) begin
       trigger_dbg <= 1'b0;
       amp_valid_c_dbg <= 1'b0;
-      amp_data_c_dbg <= 52'd0;
+      amp_data_c_dbg <= 80'd0;
     end else begin
       trigger_dbg <= trigger;
       amp_valid_c_dbg <= amp_valid_c;
@@ -367,7 +367,7 @@ module fine_tuning_sweep #(
   (* mark_debug = "true" *) reg [31:0] nsamp_ro_dbg;
   (* mark_debug = "true" *) reg [AVG_BITS-1:0] averager_value_ro_dbg;
   (* mark_debug = "true" *) reg        amp_valid_ro_dbg;
-  (* mark_debug = "true" *) reg [51:0] amp_data_ro_dbg;
+  (* mark_debug = "true" *) reg [79:0] amp_data_ro_dbg;
   always @(posedge s_axis_aclk) begin
     if (!s_axis_aresetn) begin
       s_axis_aresetn_dbg <= 1'b0;
@@ -377,7 +377,7 @@ module fine_tuning_sweep #(
       nsamp_ro_dbg <= 32'd0;
       averager_value_ro_dbg <= {AVG_BITS{1'b0}};
       amp_valid_ro_dbg <= 1'b0;
-      amp_data_ro_dbg <= 52'd0;
+      amp_data_ro_dbg <= 80'd0;
     end else begin
       s_axis_aresetn_dbg <= s_axis_aresetn;
       s_axis_tvalid_dbg <= s_axis_tvalid;
