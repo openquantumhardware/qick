@@ -246,18 +246,25 @@ module amplitude_calculator #(
   //      length per stage.
   //  (2) the SQUARING itself (i_total_r*i_total_r, 40x40 signed) is ALSO too
   //      deep for one cycle once Vivado cascades 2 DSP48E2 tiles for it
-  //      (1.9-2.2ns, still -0.2ns WNS after fixing (1)). Fixed the same way,
-  //      one level deeper, via "long multiplication": split each 40-bit
-  //      magnitude into a HALF-bit (20-bit) HIGH half and LOW half --
-  //        x = hi*2^HALF + lo   =>   x^2 = hi^2<<(2*HALF) + (2*hi*lo)<<HALF + lo^2
+  //      (1.9-2.2ns, still -0.2ns WNS after fixing (1)). Tried splitting the
+  //      40-bit magnitude evenly into 20+20 first (2026-07-05): STILL too
+  //      slow (2.14ns) -- DSP48E2's multiplier is 27x18, and 20 exceeds the
+  //      18-bit narrow port on BOTH sides, so Vivado cascaded DSP internals
+  //      for every partial product anyway. Fixed for real by first dropping
+  //      the bottom DROP_BITS of the magnitude (a fixed, uniform right-shift
+  //      -- doesn't change which point is the max; only costs precision on
+  //      near-zero values that never compete for the max anyway), THEN
+  //      splitting the remaining 32 bits evenly into HALF2=16+16 (comfortably
+  //      native, no cascade) and squaring via "long multiplication":
+  //        x = hi*2^HALF2 + lo   =>   x^2 = hi^2<<(2*HALF2) + (2*hi*lo)<<HALF2 + lo^2
   //      exactly like squaring 37 by hand: 37=30+7, 37^2 = 30^2 + 2*30*7 + 7^2
   //      = 900+420+49 = 1369. Each of the three products (hi*hi, hi*lo,
-  //      lo*lo) is only HALFxHALF (20x20) -- half the width, comfortably one
-  //      DSP48E2, one cycle. Reassembling the three shifted pieces is
-  //      another wide add, so it reuses the SAME low/high split-add
-  //      technique as (1) -- see F3/F4. Squaring only cares about magnitude
-  //      (x^2 == (-x)^2), so everything from F1 on runs on
-  //      |i_total_r|/|q_total_r| -- no sign handling needed anywhere below.
+  //      lo*lo) is only HALF2xHALF2 (16x16) -- comfortably one DSP48E2, one
+  //      cycle. Reassembling the three shifted pieces is another wide add,
+  //      so it reuses the SAME low/high split-add technique as (1) -- see
+  //      F3/F4. Squaring only cares about magnitude (x^2 == (-x)^2), so
+  //      everything from F1 on runs on |i_total_r|/|q_total_r| -- no sign
+  //      handling needed anywhere below.
   //
   //  None of this costs anything: the whole FINALIZE pipe only advances once
   //  per point (thousands of idle cycles between bursts), so going from 4
@@ -266,7 +273,17 @@ module amplitude_calculator #(
   wire signed [SUM_WIDTH-1:0] i_total = i_sum_reg + i_accum;
   wire signed [SUM_WIDTH-1:0] q_total = q_sum_reg + q_accum;
 
-  localparam HALF = SUM_WIDTH / 2;
+  // HALF2 must be <=18: DSP48E2's multiplier is 27x18 (one operand can be up
+  // to 27 bits, but the NARROW port caps at 18) -- a straight 20x20 split
+  // (SUM_WIDTH/2) still exceeds that on both sides, so Vivado cascaded DSP
+  // internals for every partial product (2026-07-05: 2.140ns vs 1.809ns,
+  // still violating). Instead, drop the bottom DROP_BITS of the magnitude
+  // before squaring (a fixed, uniform right-shift -- doesn't change which
+  // point is the max, and only costs precision on near-zero values that
+  // never compete for the max anyway), then split the remaining 32 bits
+  // evenly into HALF2=16+16 -- comfortably native, no cascade, one cycle.
+  localparam HALF2 = 16;
+  localparam DROP_BITS = SUM_WIDTH - 2 * HALF2;
   localparam LOW_WIDTH = ACCUM_WIDTH / 2;
   localparam HIGH_WIDTH = ACCUM_WIDTH - LOW_WIDTH;
 
@@ -277,17 +294,19 @@ module amplitude_calculator #(
   reg [SUM_WIDTH-1:0] i_mag_r, q_mag_r;
 
   // F2: the three "long multiplication" partial products -- each is
-  // HALFxHALF (20x20), half the width of the original 40x40, so it fits one
-  // DSP48E2 in one cycle instead of needing a slow multi-tile cascade.
-  reg [2*HALF-1:0] i_hi_sq_r, i_lo_sq_r, i_cross_r;
-  reg [2*HALF-1:0] q_hi_sq_r, q_lo_sq_r, q_cross_r;
+  // HALF2xHALF2 (16x16), comfortably native (<=18-bit DSP48E2 port), so it
+  // fits one DSP48E2 in one cycle instead of needing a slow multi-tile
+  // cascade. hi/lo are the TOP 32 bits of the magnitude (i.e. the bottom
+  // DROP_BITS are discarded before squaring -- see the note above).
+  reg [2*HALF2-1:0] i_hi_sq_r, i_lo_sq_r, i_cross_r;
+  reg [2*HALF2-1:0] q_hi_sq_r, q_lo_sq_r, q_cross_r;
 
   // combinational: the cross term positioned where it belongs (shifted left
-  // by HALF+1, per the "2*hi*lo" term above) -- pure wiring, no logic delay.
-  wire [ACCUM_WIDTH-1:0] i_cross_wide = ({{(ACCUM_WIDTH-2*HALF){1'b0}}, i_cross_r}) << (HALF + 1);
-  wire [ACCUM_WIDTH-1:0] q_cross_wide = ({{(ACCUM_WIDTH-2*HALF){1'b0}}, q_cross_r}) << (HALF + 1);
+  // by HALF2+1, per the "2*hi*lo" term above) -- pure wiring, no logic delay.
+  wire [ACCUM_WIDTH-1:0] i_cross_wide = ({{(ACCUM_WIDTH-2*HALF2){1'b0}}, i_cross_r}) << (HALF2 + 1);
+  wire [ACCUM_WIDTH-1:0] q_cross_wide = ({{(ACCUM_WIDTH-2*HALF2){1'b0}}, q_cross_r}) << (HALF2 + 1);
 
-  // F3/F4: reassemble x^2 = hi^2<<(2*HALF) + cross<<(HALF+1) + lo^2 via the
+  // F3/F4: reassemble x^2 = hi^2<<(2*HALF2) + cross<<(HALF2+1) + lo^2 via the
   // same low/high split-add as F5/F6 use for the final sum. hi^2 and lo^2
   // land in disjoint bit ranges (free concatenation); the cross term is the
   // only piece that needs a real carry-propagating add.
@@ -358,15 +377,16 @@ module amplitude_calculator #(
       i_mag_r <= i_total_r[SUM_WIDTH-1] ? (~i_total_r + 1'b1) : i_total_r;
       q_mag_r <= q_total_r[SUM_WIDTH-1] ? (~q_total_r + 1'b1) : q_total_r;
 
-      // F2: long-multiplication partial products (hi*hi, hi*lo, lo*lo),
-      // each HALFxHALF -- comfortably one DSP48E2, one cycle.
+      // F2: long-multiplication partial products (hi*hi, hi*lo, lo*lo), each
+      // HALF2xHALF2 -- comfortably one DSP48E2, one cycle. hi/lo skip the
+      // bottom DROP_BITS of the magnitude (dropped, not used anywhere below).
       fin_v2 <= fin_v1;
-      i_hi_sq_r <= i_mag_r[SUM_WIDTH-1:HALF] * i_mag_r[SUM_WIDTH-1:HALF];
-      i_lo_sq_r <= i_mag_r[HALF-1:0] * i_mag_r[HALF-1:0];
-      i_cross_r <= i_mag_r[SUM_WIDTH-1:HALF] * i_mag_r[HALF-1:0];
-      q_hi_sq_r <= q_mag_r[SUM_WIDTH-1:HALF] * q_mag_r[SUM_WIDTH-1:HALF];
-      q_lo_sq_r <= q_mag_r[HALF-1:0] * q_mag_r[HALF-1:0];
-      q_cross_r <= q_mag_r[SUM_WIDTH-1:HALF] * q_mag_r[HALF-1:0];
+      i_hi_sq_r <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
+      i_lo_sq_r <= i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      i_cross_r <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      q_hi_sq_r <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
+      q_lo_sq_r <= q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      q_cross_r <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
 
       // F3: fold the cross term's LOW half into lo^2 (short carry chain),
       // capture the carry-out; forward hi^2 and the cross term's HIGH half
