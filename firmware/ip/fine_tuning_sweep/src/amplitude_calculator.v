@@ -231,27 +231,49 @@ module amplitude_calculator #(
   //  FINALIZE -- burst-complete squaring, once per POINT (not per sample):
   //  (i_sum_reg + i_accum)^2 + (q_sum_reg + q_accum)^2. burst_done fires far
   //  slower than the per-sample path (once every nsamp*averager_value
-  //  cycles), so this gets its own 3-stage pipeline instead of forcing a wide
-  //  multiply into the RUN datapath's single cycle. i_total/q_total read the
-  //  PRE-reset values of i_sum_reg/i_accum in the SAME cycle burst_done is
-  //  asserted, so the last shot's contribution is included correctly even
-  //  though the datapath above resets i_sum_reg/q_sum_reg on that same edge.
+  //  cycles), so this gets its own multi-stage pipeline instead of forcing a
+  //  wide multiply/add into the RUN datapath's single cycle. i_total/q_total
+  //  read the PRE-reset values of i_sum_reg/i_accum in the SAME cycle
+  //  burst_done is asserted, so the last shot's contribution is included
+  //  correctly even though the datapath above resets i_sum_reg/q_sum_reg on
+  //  that same edge.
+  //
+  //  F2's straight 80-bit `i_sq_r + q_sq_r` add (timed 2026-07-05: 2.159ns
+  //  data path vs 1.809ns period, -0.406ns WNS, 5588 failing endpoints, all
+  //  in this one clk_adc0_x2 domain) was too deep for one cycle. Fixed by
+  //  splitting it into two ~ACCUM_WIDTH/2-bit adds a cycle apart -- LOW_WIDTH
+  //  bits + carry-out at F2, HIGH_WIDTH bits + carry-in at F3 -- which halves
+  //  the CARRY8 chain length per stage. Still only once-per-point, so the
+  //  extra cycle of latency costs nothing.
   // ------------------------------------------------------------------
   wire signed [SUM_WIDTH-1:0] i_total = i_sum_reg + i_accum;
   wire signed [SUM_WIDTH-1:0] q_total = q_sum_reg + q_accum;
 
-  (* mark_debug = "true" *) reg fin_v0, fin_v1;
+  localparam LOW_WIDTH = ACCUM_WIDTH / 2;
+  localparam HIGH_WIDTH = ACCUM_WIDTH - LOW_WIDTH;
+
+  (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2;
   reg signed [SUM_WIDTH-1:0] i_total_r, q_total_r;
   reg [ACCUM_WIDTH-1:0] i_sq_r, q_sq_r;
+  reg [HIGH_WIDTH-1:0] i_sq_hi_r, q_sq_hi_r;
+  reg [LOW_WIDTH-1:0] sum_lo_r;
+  reg carry_r;
+
+  wire [HIGH_WIDTH-1:0] sum_hi = i_sq_hi_r + q_sq_hi_r + carry_r;
 
   always @(posedge clk) begin
     if (!rst_n) begin
       fin_v0 <= 1'b0;
       fin_v1 <= 1'b0;
+      fin_v2 <= 1'b0;
       i_total_r <= 0;
       q_total_r <= 0;
       i_sq_r <= 0;
       q_sq_r <= 0;
+      i_sq_hi_r <= 0;
+      q_sq_hi_r <= 0;
+      sum_lo_r <= 0;
+      carry_r <= 1'b0;
       m_axis_tdata <= 0;
       m_axis_tvalid <= 1'b0;
     end else begin
@@ -266,9 +288,17 @@ module amplitude_calculator #(
       i_sq_r <= i_total_r * i_total_r;
       q_sq_r <= q_total_r * q_total_r;
 
-      // F2: sum the squares, present the result
-      m_axis_tvalid <= fin_v1;
-      m_axis_tdata <= i_sq_r + q_sq_r;
+      // F2: add the LOW halves (short carry chain) and capture the carry
+      // out; forward the HIGH halves untouched for F3.
+      fin_v2 <= fin_v1;
+      {carry_r, sum_lo_r} <= i_sq_r[LOW_WIDTH-1:0] + q_sq_r[LOW_WIDTH-1:0];
+      i_sq_hi_r <= i_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
+      q_sq_hi_r <= q_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
+
+      // F3: add the HIGH halves + carry-in (short chain, `sum_hi` above) and
+      // join with the already-computed LOW half -- present the result.
+      m_axis_tvalid <= fin_v2;
+      m_axis_tdata <= {sum_hi, sum_lo_r};
     end
   end
 
@@ -277,9 +307,9 @@ module amplitude_calculator #(
   // s_axis_tdata/trigger are input nets) -- sampled into a flop so the debug
   // hub only connects to a register output. All state/decision/result
   // registers (state, sample_cnt, burst_cnt, i_accum/q_accum, i_sum_reg/
-  // q_sum_reg, finish_delay, nsamp_latched, run_d0, fin_v0/fin_v1, m_axis_tdata,
-  // m_axis_tvalid) are mark_debug'd in place above. acc_en/burst_done are
-  // combinational, so they get a flop here too.
+  // q_sum_reg, finish_delay, nsamp_latched, run_d0, fin_v0/fin_v1/fin_v2,
+  // m_axis_tdata, m_axis_tvalid) are mark_debug'd in place above. acc_en/
+  // burst_done are combinational, so they get a flop here too.
   (* mark_debug = "true" *) reg acc_en_dbg;
   (* mark_debug = "true" *) reg burst_done_dbg;
   always @(posedge clk) begin
