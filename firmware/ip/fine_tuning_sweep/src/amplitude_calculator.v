@@ -238,23 +238,74 @@ module amplitude_calculator #(
   //  correctly even though the datapath above resets i_sum_reg/q_sum_reg on
   //  that same edge.
   //
-  //  F2's straight 80-bit `i_sq_r + q_sq_r` add (timed 2026-07-05: 2.159ns
-  //  data path vs 1.809ns period, -0.406ns WNS, 5588 failing endpoints, all
-  //  in this one clk_adc0_x2 domain) was too deep for one cycle. Fixed by
-  //  splitting it into two ~ACCUM_WIDTH/2-bit adds a cycle apart -- LOW_WIDTH
-  //  bits + carry-out at F2, HIGH_WIDTH bits + carry-in at F3 -- which halves
-  //  the CARRY8 chain length per stage. Still only once-per-point, so the
-  //  extra cycle of latency costs nothing.
+  //  Two real timing problems found on hardware (2026-07-05), fixed in order:
+  //  (1) the F2 "sum the squares" add (i_sq_r + q_sq_r, 80 bits) was too deep
+  //      for one cycle (2.159ns vs 1.809ns, -0.406ns WNS). Fixed by splitting
+  //      it into a low-half add (+carry-out) then a high-half add (+carry-in)
+  //      a cycle apart -- see F5/F6 below. This halves the CARRY8 chain
+  //      length per stage.
+  //  (2) the SQUARING itself (i_total_r*i_total_r, 40x40 signed) is ALSO too
+  //      deep for one cycle once Vivado cascades 2 DSP48E2 tiles for it
+  //      (1.9-2.2ns, still -0.2ns WNS after fixing (1)). Fixed the same way,
+  //      one level deeper, via "long multiplication": split each 40-bit
+  //      magnitude into a HALF-bit (20-bit) HIGH half and LOW half --
+  //        x = hi*2^HALF + lo   =>   x^2 = hi^2<<(2*HALF) + (2*hi*lo)<<HALF + lo^2
+  //      exactly like squaring 37 by hand: 37=30+7, 37^2 = 30^2 + 2*30*7 + 7^2
+  //      = 900+420+49 = 1369. Each of the three products (hi*hi, hi*lo,
+  //      lo*lo) is only HALFxHALF (20x20) -- half the width, comfortably one
+  //      DSP48E2, one cycle. Reassembling the three shifted pieces is
+  //      another wide add, so it reuses the SAME low/high split-add
+  //      technique as (1) -- see F3/F4. Squaring only cares about magnitude
+  //      (x^2 == (-x)^2), so everything from F1 on runs on
+  //      |i_total_r|/|q_total_r| -- no sign handling needed anywhere below.
+  //
+  //  None of this costs anything: the whole FINALIZE pipe only advances once
+  //  per point (thousands of idle cycles between bursts), so going from 4
+  //  stages (F0..F3) to 7 (F0..F6) is pure extra latency, spent for free.
   // ------------------------------------------------------------------
   wire signed [SUM_WIDTH-1:0] i_total = i_sum_reg + i_accum;
   wire signed [SUM_WIDTH-1:0] q_total = q_sum_reg + q_accum;
 
+  localparam HALF = SUM_WIDTH / 2;
   localparam LOW_WIDTH = ACCUM_WIDTH / 2;
   localparam HIGH_WIDTH = ACCUM_WIDTH - LOW_WIDTH;
 
-  (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2;
+  (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2, fin_v3, fin_v4, fin_v5, fin_v6;
   reg signed [SUM_WIDTH-1:0] i_total_r, q_total_r;
+
+  // F1: magnitude only -- squaring doesn't need the sign
+  reg [SUM_WIDTH-1:0] i_mag_r, q_mag_r;
+
+  // F2: the three "long multiplication" partial products -- each is
+  // HALFxHALF (20x20), half the width of the original 40x40, so it fits one
+  // DSP48E2 in one cycle instead of needing a slow multi-tile cascade.
+  reg [2*HALF-1:0] i_hi_sq_r, i_lo_sq_r, i_cross_r;
+  reg [2*HALF-1:0] q_hi_sq_r, q_lo_sq_r, q_cross_r;
+
+  // combinational: the cross term positioned where it belongs (shifted left
+  // by HALF+1, per the "2*hi*lo" term above) -- pure wiring, no logic delay.
+  wire [ACCUM_WIDTH-1:0] i_cross_wide = ({{(ACCUM_WIDTH-2*HALF){1'b0}}, i_cross_r}) << (HALF + 1);
+  wire [ACCUM_WIDTH-1:0] q_cross_wide = ({{(ACCUM_WIDTH-2*HALF){1'b0}}, q_cross_r}) << (HALF + 1);
+
+  // F3/F4: reassemble x^2 = hi^2<<(2*HALF) + cross<<(HALF+1) + lo^2 via the
+  // same low/high split-add as F5/F6 use for the final sum. hi^2 and lo^2
+  // land in disjoint bit ranges (free concatenation); the cross term is the
+  // only piece that needs a real carry-propagating add.
+  reg [LOW_WIDTH-1:0] i_sq_lo_r, q_sq_lo_r;
+  reg i_sq_carry_r, q_sq_carry_r;
+  reg [HIGH_WIDTH-1:0] i_hi_sq_fwd_r, q_hi_sq_fwd_r;
+  reg [HIGH_WIDTH-1:0] i_cross_hi_fwd_r, q_cross_hi_fwd_r;
   reg [ACCUM_WIDTH-1:0] i_sq_r, q_sq_r;
+
+  // combinational: F4's high-half sum, computed at an explicitly-declared
+  // width (not embedded raw inside a concatenation, where Verilog would
+  // size it self-determined off the operands instead of the target -- same
+  // safe pattern as `sum_hi` below).
+  wire [HIGH_WIDTH-1:0] i_sq_hi_sum = i_hi_sq_fwd_r + i_cross_hi_fwd_r + i_sq_carry_r;
+  wire [HIGH_WIDTH-1:0] q_sq_hi_sum = q_hi_sq_fwd_r + q_cross_hi_fwd_r + q_sq_carry_r;
+
+  // F5/F6: the final i^2 + q^2, split the same way (unchanged from the
+  // earlier fix).
   reg [HIGH_WIDTH-1:0] i_sq_hi_r, q_sq_hi_r;
   reg [LOW_WIDTH-1:0] sum_lo_r;
   reg carry_r;
@@ -266,8 +317,28 @@ module amplitude_calculator #(
       fin_v0 <= 1'b0;
       fin_v1 <= 1'b0;
       fin_v2 <= 1'b0;
+      fin_v3 <= 1'b0;
+      fin_v4 <= 1'b0;
+      fin_v5 <= 1'b0;
+      fin_v6 <= 1'b0;
       i_total_r <= 0;
       q_total_r <= 0;
+      i_mag_r <= 0;
+      q_mag_r <= 0;
+      i_hi_sq_r <= 0;
+      i_lo_sq_r <= 0;
+      i_cross_r <= 0;
+      q_hi_sq_r <= 0;
+      q_lo_sq_r <= 0;
+      q_cross_r <= 0;
+      i_sq_lo_r <= 0;
+      q_sq_lo_r <= 0;
+      i_sq_carry_r <= 1'b0;
+      q_sq_carry_r <= 1'b0;
+      i_hi_sq_fwd_r <= 0;
+      q_hi_sq_fwd_r <= 0;
+      i_cross_hi_fwd_r <= 0;
+      q_cross_hi_fwd_r <= 0;
       i_sq_r <= 0;
       q_sq_r <= 0;
       i_sq_hi_r <= 0;
@@ -282,22 +353,48 @@ module amplitude_calculator #(
       i_total_r <= i_total;
       q_total_r <= q_total;
 
-      // F1: square each total (separate multiplies, DSP-inferred, one cycle
-      // of slack per stage -- there is no throughput pressure here)
+      // F1: magnitude (squaring doesn't need the sign: x^2 == (-x)^2)
       fin_v1 <= fin_v0;
-      i_sq_r <= i_total_r * i_total_r;
-      q_sq_r <= q_total_r * q_total_r;
+      i_mag_r <= i_total_r[SUM_WIDTH-1] ? (~i_total_r + 1'b1) : i_total_r;
+      q_mag_r <= q_total_r[SUM_WIDTH-1] ? (~q_total_r + 1'b1) : q_total_r;
 
-      // F2: add the LOW halves (short carry chain) and capture the carry
-      // out; forward the HIGH halves untouched for F3.
+      // F2: long-multiplication partial products (hi*hi, hi*lo, lo*lo),
+      // each HALFxHALF -- comfortably one DSP48E2, one cycle.
       fin_v2 <= fin_v1;
+      i_hi_sq_r <= i_mag_r[SUM_WIDTH-1:HALF] * i_mag_r[SUM_WIDTH-1:HALF];
+      i_lo_sq_r <= i_mag_r[HALF-1:0] * i_mag_r[HALF-1:0];
+      i_cross_r <= i_mag_r[SUM_WIDTH-1:HALF] * i_mag_r[HALF-1:0];
+      q_hi_sq_r <= q_mag_r[SUM_WIDTH-1:HALF] * q_mag_r[SUM_WIDTH-1:HALF];
+      q_lo_sq_r <= q_mag_r[HALF-1:0] * q_mag_r[HALF-1:0];
+      q_cross_r <= q_mag_r[SUM_WIDTH-1:HALF] * q_mag_r[HALF-1:0];
+
+      // F3: fold the cross term's LOW half into lo^2 (short carry chain),
+      // capture the carry-out; forward hi^2 and the cross term's HIGH half
+      // untouched for F4.
+      fin_v3 <= fin_v2;
+      {i_sq_carry_r, i_sq_lo_r} <= i_lo_sq_r + i_cross_wide[LOW_WIDTH-1:0];
+      {q_sq_carry_r, q_sq_lo_r} <= q_lo_sq_r + q_cross_wide[LOW_WIDTH-1:0];
+      i_hi_sq_fwd_r <= i_hi_sq_r;
+      q_hi_sq_fwd_r <= q_hi_sq_r;
+      i_cross_hi_fwd_r <= i_cross_wide[ACCUM_WIDTH-1:LOW_WIDTH];
+      q_cross_hi_fwd_r <= q_cross_wide[ACCUM_WIDTH-1:LOW_WIDTH];
+
+      // F4: add hi^2 + cross-HIGH + carry-in (short chain, `i_sq_hi_sum`/
+      // `q_sq_hi_sum` above) -- present the exact i^2/q^2.
+      fin_v4 <= fin_v3;
+      i_sq_r <= {i_sq_hi_sum, i_sq_lo_r};
+      q_sq_r <= {q_sq_hi_sum, q_sq_lo_r};
+
+      // F5: add the LOW halves of i^2 + q^2 (short carry chain) and capture
+      // the carry out; forward the HIGH halves untouched for F6.
+      fin_v5 <= fin_v4;
       {carry_r, sum_lo_r} <= i_sq_r[LOW_WIDTH-1:0] + q_sq_r[LOW_WIDTH-1:0];
       i_sq_hi_r <= i_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
       q_sq_hi_r <= q_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
 
-      // F3: add the HIGH halves + carry-in (short chain, `sum_hi` above) and
+      // F6: add the HIGH halves + carry-in (short chain, `sum_hi` above) and
       // join with the already-computed LOW half -- present the result.
-      m_axis_tvalid <= fin_v2;
+      m_axis_tvalid <= fin_v5;
       m_axis_tdata <= {sum_hi, sum_lo_r};
     end
   end
@@ -307,8 +404,10 @@ module amplitude_calculator #(
   // s_axis_tdata/trigger are input nets) -- sampled into a flop so the debug
   // hub only connects to a register output. All state/decision/result
   // registers (state, sample_cnt, burst_cnt, i_accum/q_accum, i_sum_reg/
-  // q_sum_reg, finish_delay, nsamp_latched, run_d0, fin_v0/fin_v1/fin_v2,
-  // m_axis_tdata, m_axis_tvalid) are mark_debug'd in place above. acc_en/
+  // q_sum_reg, finish_delay, nsamp_latched, run_d0, fin_v0..fin_v6,
+  // m_axis_tdata, m_axis_tvalid) are mark_debug'd in place above -- the
+  // FINALIZE arithmetic intermediates (i_mag_r, i_hi_sq_r, i_sq_r, etc.) are
+  // deliberately left unprobed to keep debug-hub fanout down. acc_en/
   // burst_done are combinational, so they get a flop here too.
   (* mark_debug = "true" *) reg acc_en_dbg;
   (* mark_debug = "true" *) reg burst_done_dbg;
