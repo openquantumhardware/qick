@@ -83,7 +83,15 @@ module amplitude_calculator #(
   (* mark_debug = "true" *) reg signed [SUM_WIDTH-1:0] i_accum, q_accum;     // this shot's window sum
   (* mark_debug = "true" *) reg signed [SUM_WIDTH-1:0] i_sum_reg, q_sum_reg; // cross-shot running sum (no squaring)
   (* mark_debug = "true" *) reg finish_delay;
-  (* mark_debug = "true" *) reg [31:0] nsamp_latched;
+  // nsamp-1, latched at trigger: keeps the 32-bit decrement out of the
+  // per-sample compare cone (the compare below is == against a flop).
+  (* mark_debug = "true" *) reg [31:0] nsamp_m1_latched;
+  // registered look-ahead of "this shot completes the burst" (same pattern as
+  // peak_finder's last_point_r): the 6-bit add+compare against averager_value
+  // is precomputed one event early, so burst_done and the fold-adder select
+  // are flop-only -- the fold add q_sum_reg+q_accum had become the design's
+  // worst path (-0.035 ns) with the compare sitting in its enable cone.
+  (* mark_debug = "true" *) reg burst_last_r;
 
   (* mark_debug = "true" *) reg run_d0;
 
@@ -98,7 +106,7 @@ module amplitude_calculator #(
 
   wire acc_en = run_d0 & v_s0;
   wire emit_now = finish_delay;
-  wire burst_done = (state == RUN) && emit_now && (burst_cnt + 1 >= averager_value);
+  wire burst_done = (state == RUN) && emit_now && burst_last_r;
 
   // (1) STATE REGISTER -- synchronous reset
   always @(posedge clk) begin
@@ -141,18 +149,24 @@ module amplitude_calculator #(
       i_sum_reg <= 0;
       q_sum_reg <= 0;
       finish_delay <= 0;
-      nsamp_latched <= 0;
+      nsamp_m1_latched <= 0;
+      burst_last_r <= 0;
     end else begin
       if (trigger) begin
-        // (re)arm a fresh window; cross-shot sum + output hold
+        // (re)arm a fresh window. If this trigger lands on the exact cycle the
+        // burst completes (trigger && burst_done), FINALIZE still latches the
+        // correct pre-reset totals below -- but the burst state must reset
+        // here exactly as the emit arm would have, or the next point starts
+        // with a stale burst_cnt/sum (latent collision found 2026-07-05).
         sample_cnt <= 0;
         i_accum <= 0;
         q_accum <= 0;
         finish_delay <= 0;
-        nsamp_latched <= nsamp;
-        burst_cnt <= burst_cnt;
-        i_sum_reg <= i_sum_reg;
-        q_sum_reg <= q_sum_reg;
+        nsamp_m1_latched <= nsamp - 32'd1;
+        burst_cnt <= burst_done ? 0 : burst_cnt;
+        i_sum_reg <= burst_done ? 0 : i_sum_reg;
+        q_sum_reg <= burst_done ? 0 : q_sum_reg;
+        burst_last_r <= burst_done ? (1 >= averager_value) : (burst_cnt + 1 >= averager_value);
       end else begin
         case (state)
           RUN: begin
@@ -163,39 +177,43 @@ module amplitude_calculator #(
               i_accum <= 0;
               q_accum <= 0;
               finish_delay <= 0;
-              nsamp_latched <= nsamp_latched;
-              if (burst_cnt + 1 >= averager_value) begin
+              nsamp_m1_latched <= nsamp_m1_latched;
+              if (burst_last_r) begin
                 // last shot of the burst: FINALIZE (below) reads i_sum_reg +
                 // i_accum combinationally THIS cycle, so no fold is needed
                 // here -- just reset for the next burst.
                 burst_cnt <= 0;
                 i_sum_reg <= 0;
                 q_sum_reg <= 0;
+                burst_last_r <= (1 >= averager_value);
               end else begin
                 burst_cnt <= burst_cnt + 1;
                 i_sum_reg <= i_sum_reg + i_accum;
                 q_sum_reg <= q_sum_reg + q_accum;
+                burst_last_r <= (burst_cnt + 2 >= averager_value);
               end
             end else if (acc_en) begin
               // integrate one raw sample into this shot's window sum
               i_accum <= i_accum + i_s0;
               q_accum <= q_accum + q_s0;
               sample_cnt <= sample_cnt + 1;
-              finish_delay <= (sample_cnt == nsamp_latched - 1) ? 1'b1 : finish_delay;
-              nsamp_latched <= nsamp_latched;
+              finish_delay <= (sample_cnt == nsamp_m1_latched) ? 1'b1 : finish_delay;
+              nsamp_m1_latched <= nsamp_m1_latched;
               burst_cnt <= burst_cnt;
               i_sum_reg <= i_sum_reg;
               q_sum_reg <= q_sum_reg;
+              burst_last_r <= burst_last_r;
             end else begin
               // idle within the window: hold everything, pulse low
               i_accum <= i_accum;
               q_accum <= q_accum;
               sample_cnt <= sample_cnt;
               finish_delay <= finish_delay;
-              nsamp_latched <= nsamp_latched;
+              nsamp_m1_latched <= nsamp_m1_latched;
               burst_cnt <= burst_cnt;
               i_sum_reg <= i_sum_reg;
               q_sum_reg <= q_sum_reg;
+              burst_last_r <= burst_last_r;
             end
           end
 
@@ -205,10 +223,11 @@ module amplitude_calculator #(
             i_accum <= i_accum;
             q_accum <= q_accum;
             finish_delay <= finish_delay;
-            nsamp_latched <= nsamp_latched;
+            nsamp_m1_latched <= nsamp_m1_latched;
             burst_cnt <= burst_cnt;
             i_sum_reg <= i_sum_reg;
             q_sum_reg <= q_sum_reg;
+            burst_last_r <= burst_last_r;
           end
 
           default: begin
@@ -217,10 +236,11 @@ module amplitude_calculator #(
             i_accum <= i_accum;
             q_accum <= q_accum;
             finish_delay <= finish_delay;
-            nsamp_latched <= nsamp_latched;
+            nsamp_m1_latched <= nsamp_m1_latched;
             burst_cnt <= burst_cnt;
             i_sum_reg <= i_sum_reg;
             q_sum_reg <= q_sum_reg;
+            burst_last_r <= burst_last_r;
           end
         endcase
       end
@@ -266,9 +286,22 @@ module amplitude_calculator #(
   //      everything from F1 on runs on |i_total_r|/|q_total_r| -- no sign
   //      handling needed anywhere below.
   //
+  //  (3) 2026-07-06: one register across the multiply still let synthesis
+  //      time the DSP48E2 fully combinationally when it appended a fabric
+  //      CARRY8 after P (MREG and PREG both bypassed; -0.296 ns on one build,
+  //      luck-of-the-run on the next). F2 is now split into F2a (*_m = MREG)
+  //      and F2b (*_r = PREG): two register stages across every multiply,
+  //      guaranteed, build after build. Same pass: burst_last_r look-ahead +
+  //      nsamp_m1_latched moved the avg compare and the nsamp decrement out
+  //      of the per-sample fold/compare cones (the 40-bit fold add
+  //      q_sum_reg+q_accum had become the new worst path at -0.035 ns).
+  //
   //  None of this costs anything: the whole FINALIZE pipe only advances once
   //  per point (thousands of idle cycles between bursts), so going from 4
-  //  stages (F0..F3) to 7 (F0..F6) is pure extra latency, spent for free.
+  //  stages (F0..F3) to 8 (F0..F6 with the F2a/F2b split) is pure extra
+  //  latency, spent for free -- amp_valid arrives one adc cycle later into a
+  //  handshake that already takes several, invisible to peak_finder and to
+  //  software.
   // ------------------------------------------------------------------
   wire signed [SUM_WIDTH-1:0] i_total = i_sum_reg + i_accum;
   wire signed [SUM_WIDTH-1:0] q_total = q_sum_reg + q_accum;
@@ -298,6 +331,13 @@ module amplitude_calculator #(
   // fits one DSP48E2 in one cycle instead of needing a slow multi-tile
   // cascade. hi/lo are the TOP 32 bits of the magnitude (i.e. the bottom
   // DROP_BITS are discarded before squaring -- see the note above).
+  // F2a lands each product in a dedicated *_m register (packs as the DSP48E2
+  // MREG); F2b copies it -- no logic between -- into *_r (packs as PREG).
+  // Verify after synth with report_property on the six DSPs: MREG==1 and
+  // PREG==1. If a fabric CARRY8 ever reappears between P and *_r, de-share
+  // the i_mag_r/q_mag_r operand slices (one dedicated operand copy per DSP).
+  reg [2*HALF2-1:0] i_hi_sq_m, i_lo_sq_m, i_cross_m;
+  reg [2*HALF2-1:0] q_hi_sq_m, q_lo_sq_m, q_cross_m;
   reg [2*HALF2-1:0] i_hi_sq_r, i_lo_sq_r, i_cross_r;
   reg [2*HALF2-1:0] q_hi_sq_r, q_lo_sq_r, q_cross_r;
 
@@ -344,6 +384,12 @@ module amplitude_calculator #(
       q_total_r <= 0;
       i_mag_r <= 0;
       q_mag_r <= 0;
+      i_hi_sq_m <= 0;
+      i_lo_sq_m <= 0;
+      i_cross_m <= 0;
+      q_hi_sq_m <= 0;
+      q_lo_sq_m <= 0;
+      q_cross_m <= 0;
       i_hi_sq_r <= 0;
       i_lo_sq_r <= 0;
       i_cross_r <= 0;
@@ -377,21 +423,33 @@ module amplitude_calculator #(
       i_mag_r <= i_total_r[SUM_WIDTH-1] ? (~i_total_r + 1'b1) : i_total_r;
       q_mag_r <= q_total_r[SUM_WIDTH-1] ? (~q_total_r + 1'b1) : q_total_r;
 
-      // F2: long-multiplication partial products (hi*hi, hi*lo, lo*lo), each
+      // F2a: long-multiplication partial products (hi*hi, hi*lo, lo*lo), each
       // HALF2xHALF2 -- comfortably one DSP48E2, one cycle. hi/lo skip the
       // bottom DROP_BITS of the magnitude (dropped, not used anywhere below).
+      // The *_m register packs as the DSP's MREG.
       fin_v2 <= fin_v1;
-      i_hi_sq_r <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
-      i_lo_sq_r <= i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      i_cross_r <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      q_hi_sq_r <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
-      q_lo_sq_r <= q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      q_cross_r <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      i_hi_sq_m <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
+      i_lo_sq_m <= i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      i_cross_m <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      q_hi_sq_m <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
+      q_lo_sq_m <= q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      q_cross_m <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+
+      // F2b: plain copy *_m -> *_r, no logic between -- packs as the DSP's
+      // PREG, so the multiply always gets two register stages and can never
+      // fall back to covering a full 1.809 ns period combinationally.
+      fin_v3 <= fin_v2;
+      i_hi_sq_r <= i_hi_sq_m;
+      i_lo_sq_r <= i_lo_sq_m;
+      i_cross_r <= i_cross_m;
+      q_hi_sq_r <= q_hi_sq_m;
+      q_lo_sq_r <= q_lo_sq_m;
+      q_cross_r <= q_cross_m;
 
       // F3: fold the cross term's LOW half into lo^2 (short carry chain),
       // capture the carry-out; forward hi^2 and the cross term's HIGH half
       // untouched for F4.
-      fin_v3 <= fin_v2;
+      fin_v4 <= fin_v3;
       {i_sq_carry_r, i_sq_lo_r} <= i_lo_sq_r + i_cross_wide[LOW_WIDTH-1:0];
       {q_sq_carry_r, q_sq_lo_r} <= q_lo_sq_r + q_cross_wide[LOW_WIDTH-1:0];
       i_hi_sq_fwd_r <= i_hi_sq_r;
@@ -401,20 +459,20 @@ module amplitude_calculator #(
 
       // F4: add hi^2 + cross-HIGH + carry-in (short chain, `i_sq_hi_sum`/
       // `q_sq_hi_sum` above) -- present the exact i^2/q^2.
-      fin_v4 <= fin_v3;
+      fin_v5 <= fin_v4;
       i_sq_r <= {i_sq_hi_sum, i_sq_lo_r};
       q_sq_r <= {q_sq_hi_sum, q_sq_lo_r};
 
       // F5: add the LOW halves of i^2 + q^2 (short carry chain) and capture
       // the carry out; forward the HIGH halves untouched for F6.
-      fin_v5 <= fin_v4;
+      fin_v6 <= fin_v5;
       {carry_r, sum_lo_r} <= i_sq_r[LOW_WIDTH-1:0] + q_sq_r[LOW_WIDTH-1:0];
       i_sq_hi_r <= i_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
       q_sq_hi_r <= q_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
 
       // F6: add the HIGH halves + carry-in (short chain, `sum_hi` above) and
       // join with the already-computed LOW half -- present the result.
-      m_axis_tvalid <= fin_v5;
+      m_axis_tvalid <= fin_v6;
       m_axis_tdata <= {sum_hi, sum_lo_r};
     end
   end
@@ -424,8 +482,10 @@ module amplitude_calculator #(
   // s_axis_tdata/trigger are input nets) -- sampled into a flop so the debug
   // hub only connects to a register output. All state/decision/result
   // registers (state, sample_cnt, burst_cnt, i_accum/q_accum, i_sum_reg/
-  // q_sum_reg, finish_delay, nsamp_latched, run_d0, fin_v0..fin_v6,
-  // m_axis_tdata, m_axis_tvalid) are mark_debug'd in place above -- the
+  // q_sum_reg, finish_delay, nsamp_m1_latched, burst_last_r, run_d0,
+  // fin_v0..fin_v6, m_axis_tdata, m_axis_tvalid) are mark_debug'd in place
+  // above (NOTE for ILA reuse: nsamp_latched was replaced by nsamp_m1_latched,
+  // expected value NSAMP-1, e.g. 189 for NSAMP=190) -- the
   // FINALIZE arithmetic intermediates (i_mag_r, i_hi_sq_r, i_sq_r, etc.) are
   // deliberately left unprobed to keep debug-hub fanout down. acc_en/
   // burst_done are combinational, so they get a flop here too.

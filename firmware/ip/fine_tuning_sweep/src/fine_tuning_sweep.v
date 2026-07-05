@@ -12,7 +12,7 @@
 //     coherent (SumI)^2+(SumQ)^2 adc_clk -> fpga_clk : synchronizer_handshake (req/ack)
 //
 // QP2 opcode map:
-//   OP 0: dt1=start_freq dt2=(unused) dt3=step dt4=nsamp   -- sweep config
+//   OP 0: dt1=start_freq dt2=nsamp dt3=step dt4=(unused)   -- sweep config
 //   OP 4: dt1=n_points   dt2=averager_value                 -- sweep config
 //   OP 1: (no data)                                         -- start the sweep
 //   OP 2: IP-> dt1=freq_word dt2={30'd0,freq_valid,finish}  -- poll handshake
@@ -343,7 +343,18 @@ module fine_tuning_sweep #(
   // timing-tight.
 
   // ---- c_clk domain: destination side of the adc->fpga amp handshake +
-  //      fabric-side view of the trigger before it crosses into s_axis_aclk ----
+  //      fabric-side view of the trigger before it crosses into s_axis_aclk.
+  //      The trigger originates in the tProc t_clk domain, so even this
+  //      debug-only view goes through a 2-FF synchronizer first: sampling the
+  //      raw async net into trigger_dbg was the one genuine CDC Critical in
+  //      the design (CDC-1). ----
+  wire trigger_c_dbg;
+  synchronizer_n #(.N(2)) u_trig_dbg_sync (
+    .clk      (clk),
+    .rstn     (rst_n),
+    .data_in  (trigger),
+    .data_out (trigger_c_dbg)
+  );
   (* mark_debug = "true" *) reg        trigger_dbg;
   (* mark_debug = "true" *) reg        amp_valid_c_dbg;
   (* mark_debug = "true" *) reg [79:0] amp_data_c_dbg;
@@ -353,7 +364,7 @@ module fine_tuning_sweep #(
       amp_valid_c_dbg <= 1'b0;
       amp_data_c_dbg <= 80'd0;
     end else begin
-      trigger_dbg <= trigger;
+      trigger_dbg <= trigger_c_dbg;
       amp_valid_c_dbg <= amp_valid_c;
       amp_data_c_dbg <= amp_data_c;
     end

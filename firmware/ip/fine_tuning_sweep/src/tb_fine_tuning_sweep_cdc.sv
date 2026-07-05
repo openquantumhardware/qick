@@ -148,7 +148,7 @@ module tb_fine_tuning_sweep_cdc();
         #100;
         $display("[%0t] RESET DONE  (c_clk 245.76 MHz, ro_clk 552.96 MHz, async)", $time);
 
-        qp2_send(5'd0, START_FREQ, 32'd0, STEP, NSAMP);       // OP0
+        qp2_send(5'd0, START_FREQ, NSAMP, STEP, 32'd0);       // OP0: dt1=start dt2=nsamp dt3=step (dt4 unused -- code truth, matches the asm's PB 0)
         qp2_send(5'd4, NPOINTS, AVG, 32'd0, 32'd0);           // OP4
         qp2_send(5'd3, 0, 0, 0, 0);                           // OP3 reset_max
         qp2_send(5'd1, 0, 0, 0, 0);                           // OP1 start
