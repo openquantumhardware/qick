@@ -59,7 +59,7 @@ VERILOG_SOURCES = \
     \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
+    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
     \
     $(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
@@ -77,6 +77,7 @@ VERILOG_SOURCES = \
     \
     $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
     $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
+    $(EMU_DIR)/testbench/axi_router_lite.sv \
     $(EMU_DIR)/testbench/QICKEmu_harness.sv
 
 
@@ -98,7 +99,7 @@ VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace-vcd --Wno-fatal --er
     -y $(SIG_GEN_DDS_DIR) \
     -y $(SIG_GEN_DDS_DIR)/src \
     -y $(FIRMWARE_DIR)/ip/common \
-    -y $(FIRMWARE_DIR)/ip/qick_common 
+    -y $(FIRMWARE_DIR)/ip/qick_common
 
 
 OBJ_DIR = obj_dir

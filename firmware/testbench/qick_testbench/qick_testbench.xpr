@@ -44,7 +44,6 @@
     <Option Name="SimulatorGccVersionRiviera" Val="9.3.0"/>
     <Option Name="SimulatorGccVersionActiveHdl" Val="9.3.0"/>
     <Option Name="BoardPart" Val="xilinx.com:zcu216:part0:2.0"/>
-    <Option Name="SourceMgmtMode" Val="DisplayOnly"/>
     <Option Name="ActiveSimSet" Val="sim_1"/>
     <Option Name="DefaultLib" Val="xil_defaultlib"/>
     <Option Name="ProjectType" Val="Default"/>
@@ -61,20 +60,20 @@
     <Option Name="UseIPStaticLibs" Val="0"/>
     <Option Name="EnableBDX" Val="FALSE"/>
     <Option Name="DSABoardId" Val="zcu216"/>
-    <Option Name="WTXSimLaunchSim" Val="1026"/>
+    <Option Name="WTXSimLaunchSim" Val="1052"/>
     <Option Name="WTModelSimLaunchSim" Val="0"/>
     <Option Name="WTQuestaLaunchSim" Val="0"/>
     <Option Name="WTIesLaunchSim" Val="0"/>
     <Option Name="WTVcsLaunchSim" Val="0"/>
     <Option Name="WTRivieraLaunchSim" Val="0"/>
     <Option Name="WTActivehdlLaunchSim" Val="0"/>
-    <Option Name="WTXSimExportSim" Val="35"/>
-    <Option Name="WTModelSimExportSim" Val="35"/>
-    <Option Name="WTQuestaExportSim" Val="35"/>
+    <Option Name="WTXSimExportSim" Val="42"/>
+    <Option Name="WTModelSimExportSim" Val="42"/>
+    <Option Name="WTQuestaExportSim" Val="42"/>
     <Option Name="WTIesExportSim" Val="0"/>
-    <Option Name="WTVcsExportSim" Val="35"/>
-    <Option Name="WTRivieraExportSim" Val="35"/>
-    <Option Name="WTActivehdlExportSim" Val="35"/>
+    <Option Name="WTVcsExportSim" Val="42"/>
+    <Option Name="WTRivieraExportSim" Val="42"/>
+    <Option Name="WTActivehdlExportSim" Val="42"/>
     <Option Name="GenerateIPUpgradeLog" Val="TRUE"/>
     <Option Name="XSimRadix" Val="hex"/>
     <Option Name="XSimTimeUnit" Val="ns"/>
@@ -92,7 +91,55 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/cdcsync.sv">
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg_buffer.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg_top.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/buffer_top.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/bin2gray_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/buffer.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../hdl/fifo_dc_axi_xpm.sv">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -100,15 +147,59 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/axis_cdcsync_v1.sv">
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/fifo_dc_sv.sv">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/gray2bin_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/synchronizer_vect_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/axi_slv_avg_buf.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_simple_dp.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/data_reader.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_avg_buffer"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -129,223 +220,10 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/bram_simple_dp.vhd">
+      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/synchronizer_n.vhd">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_avg_buffer"/>
           <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/fifo/fifo.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/axis_dyn_readout_v1.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/down_conversion.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/readout_top.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/down_conversion_fir.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/ctrl_dyn_ro_v1.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_sg_translator/src/sg_translator.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_sg_translator"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_dispatcher.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/_qproc_ips.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_ctrl_hazard.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_axi_reg.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_inport_reg.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qick_processor.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/mem_rw.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/_qproc_defines.svh">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-          <Attr Name="IsVisible" Val="1"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_reg_bank.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_mem_ctrl.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/data_mem_ctrl.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_cpu.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/axi_slv_qproc.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_mem.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_time_ctrl.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_write.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_read.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_core.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_ctrl.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_qick_processor.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_qick_processor"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -357,100 +235,60 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/synchronizer_n.vhd">
+      <File Path="$PPRDIR/../../ip/qick_processor/src/dsp_macro_0/dsp_macro_0.xci">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/buffer.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/axi_slv_avg_buf.vhd">
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fir_compiler_0/fir_compiler_0.xci">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg_buffer.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/data_reader.vhd">
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/ro_v1_dds_compiler_0/ro_v1_dds_compiler_0.xci">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/buffer_top.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg_top.v">
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/sg_v6_dds_compiler_0/sg_v6_dds_compiler_0.xci">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_avg_buffer/src/avg.sv">
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/axis_dyn_readout_v1.v">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_avg_buffer"/>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/data_writer.vhd">
+      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_read.v">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/latency_reg.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/signal_gen.v">
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/axis_readout_v2.v">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/axi_slv_sg_v6.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/signal_gen_top.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -459,37 +297,458 @@
       <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/axis_signal_gen_v6.v">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/synchronizer_n.vhd">
+      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_write.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/data_mem_ctrl.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/down_conversion.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/down_conversion.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/down_conversion_fir.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/down_conversion_fir.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/fir_compiler_0.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/latency_reg.v">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/mem_rw.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_mem.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_mem_ctrl.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/readout_top.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_sg_translator/src/sg_translator.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_sg_translator"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/signal_gen.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/signal_gen_top.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/std_readout_top.v">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/_qproc_defines.svh">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+          <Attr Name="IsVisible" Val="1"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/_qproc_ips.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/axi_slv_sg_v6_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/axis_cdcsync_v1.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/axis_qick_processor.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../emulator/models/bram_dp/bram_dp_behav.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../hdl/bram_dp_xpm.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../emulator/models/bram_dp/bram_simple_dp_behav.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_cdcsync_v1/src/cdcsync.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/ctrl.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/ctrl_dyn_ro_v1.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/ctrl_sg_v6.sv">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/qick_processor/src/dsp_macro_0/dsp_macro_0.xci">
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/data_writer_sv.sv">
         <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fir_compiler_0/fir_compiler_0.xci">
+      <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/src/dds_behavioral_model.sv">
         <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/fifo_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../hdl/fifo_xpm.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../emulator/models/fir/fir.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_cpu.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_ctrl_hazard.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qcore_reg_bank.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qick_processor.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_axi_reg.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_core.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_ctrl.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_dispatcher.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_inport_reg.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/qproc_time_ctrl.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/rd2axi_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/synchronizer_n_sv.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/qick_processor/src/axi_slv_qproc.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_qick_processor"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/axi_slv_sg_v6.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/axi_slv_std_ro_v2.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/data_writer.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/synchronizer_n.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_readout_v2"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/synchronizer_n.vhd">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -499,210 +758,10 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../hdl/fifo_dc_axi_xpm.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_cdcsync_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../hdl/bram_dp_xpm.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../hdl/fifo_xpm.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/rd2axi_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/down_conversion_fir.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/gray2bin_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/fir_compiler_0.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/bin2gray_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/ctrl.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/synchronizer_vect_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/std_readout_top.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/fifo_dc_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/axis_readout_v2.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/synchronizer_n_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/down_conversion.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/axi_slv_sg_v6_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/verilog/data_writer_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_signal_gen_v6"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../emulator/models/bram_dp/bram_simple_dp_behav.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../emulator/models/bram_dp/bram_dp_behav.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/ro_v1_dds_compiler_0/ro_v1_dds_compiler_0.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../../emulator/models/fir/fir_coe.txt"/>
-      <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/src/dds_behavioral_model.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_signal_gen_v6/src/sg_v6_dds_compiler_0/sg_v6_dds_compiler_0.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../../emulator/models/fir/fir.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_dyn_readout_v1/src/fifo/verilog/fifo_sv.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_dyn_readout_v1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/synchronizer_n.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_readout_v2/src/axi_slv_std_ro_v2.vhd">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_readout_v2"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
+        <Option Name="TopModule" Val="axis_avg_buffer"/>
         <Option Name="TopAutoSet" Val="TRUE"/>
       </Config>
     </FileSet>
@@ -714,69 +773,6 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/src/tb/axi_mst_0/axi_mst_0.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/src/tb/tb_qick.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/src/tb/tb_qick_behav.wcfg">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/axis_kidsim_v3.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/kidsim.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/punct.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/kidsim_top.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/axi_slv.v">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/prod.sv">
-        <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/dds/dds_0/dds_0.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -784,15 +780,12 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/iir/iir.sv">
+      <File Path="$PPRDIR/src/tb/axi_mst_0/axi_mst_0.xci">
         <FileInfo>
-          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/iir/iir_iq.sv">
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/axi_slv.v">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -816,6 +809,53 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../../../emulator/testbench/axi_router_lite.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/axis_kidsim_v3.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/iir/iir.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/iir/iir_iq.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/kidsim.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/kidsim_top.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/dds/mod_ctrl.sv">
         <FileInfo>
           <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
@@ -824,24 +864,43 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../emulator/models/fir/fir_coe.txt"/>
-      <File Path="$PPRDIR/src/tb/qick_dut.sv">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
       <File Path="$PPRDIR/src/tb/model_DAC_ADC.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../emulator/testbench/axi_router_lite.sv">
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/prod.sv">
         <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/../../ip/axis_kidsim_v3/src/punct.sv">
+        <FileInfo>
+          <Attr Name="Library" Val="lib_axis_kidsim_v3"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/src/tb/qick_dut.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/src/tb/tb_qick.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/src/tb/tb_qick_behav.wcfg">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../emulator/models/fir/fir_coe.txt"/>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
         <Option Name="TopModule" Val="tb_qick"/>
@@ -891,7 +950,9 @@
   <Runs Version="1" Minor="20">
     <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xczu49dr-ffvf1760-2-e" ConstrsSet="constrs_1" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="true" WriteIncrSynthDcp="false" State="current" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/synth_1">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2023"/>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2023">
+          <Desc>Vivado Synthesis Defaults</Desc>
+        </StratHandle>
         <Step Id="synth_design"/>
       </Strategy>
       <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2023"/>
@@ -900,7 +961,9 @@
     </Run>
     <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xczu49dr-ffvf1760-2-e" ConstrsSet="constrs_1" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/impl_1">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2023"/>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2023">
+          <Desc>Default settings for Implementation.</Desc>
+        </StratHandle>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>

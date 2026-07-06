@@ -262,26 +262,6 @@ module qick_dut #(
    logic           s_axi_mst_rvalid;
    logic           s_axi_mst_rready;
 
-   logic  [39:0]   s_axi_test_awaddr;
-   logic  [2:0]    s_axi_test_awprot;
-   logic           s_axi_test_awvalid;
-   logic           s_axi_test_awready;
-   logic  [31:0]   s_axi_test_wdata;
-   logic  [3:0]    s_axi_test_wstrb;
-   logic           s_axi_test_wvalid;
-   logic           s_axi_test_wready;
-   logic  [1:0]    s_axi_test_bresp;
-   logic           s_axi_test_bvalid;
-   logic           s_axi_test_bready;
-   logic  [39:0]   s_axi_test_araddr;
-   logic  [2:0]    s_axi_test_arprot;
-   logic           s_axi_test_arvalid;
-   logic           s_axi_test_arready;
-   logic  [31:0]   s_axi_test_rdata;
-   logic  [1:0]    s_axi_test_rresp;
-   logic           s_axi_test_rvalid;
-   logic           s_axi_test_rready;
-
    // AXI router outputs (decoded to each slave)
    logic  [7:0]    s_axi_tproc_awaddr;
    logic  [2:0]    s_axi_tproc_awprot;
@@ -495,53 +475,62 @@ module qick_dut #(
          .AXI_DATA_WIDTH ( 32      )
       ) axi_mst_IF (ps_clk);
 
-      // assign s_axi_mst_araddr        = axi_mst_IF.ar_addr  ; /* MASTER  input */
-      // assign s_axi_mst_arprot        = axi_mst_IF.ar_prot  ; /* MASTER  input */
-      // assign s_axi_mst_arvalid       = axi_mst_IF.ar_valid ; /* MASTER  input */
-      // assign axi_mst_IF.ar_ready     = s_axi_mst_arready   ; /* MASTER output */
+      // Register DUT->VIP return channels to avoid zero-delay combinational
+      // feedback through the virtual interface under Verilator.
+      logic        axi_ar_ready_q;
+      logic        axi_aw_ready_q;
+      logic        axi_w_ready_q;
+      logic [1:0]  axi_b_resp_q;
+      logic        axi_b_valid_q;
+      logic [1:0]  axi_r_resp_q;
+      logic        axi_r_valid_q;
+      logic [31:0] axi_r_data_q;
 
-      // assign s_axi_mst_awaddr        = axi_mst_IF.aw_addr  ; /* MASTER  input */
-      // assign s_axi_mst_awprot        = axi_mst_IF.aw_prot  ; /* MASTER  input */
-      // assign s_axi_mst_awvalid       = axi_mst_IF.aw_valid ; /* MASTER  input */
-      // assign axi_mst_IF.aw_ready     = s_axi_mst_awready   ; /* MASTER output */
+      always_ff @(posedge ps_clk or negedge ps_resetn) begin
+         if (!ps_resetn) begin
+            axi_ar_ready_q <= 1'b0;
+            axi_aw_ready_q <= 1'b0;
+            axi_w_ready_q  <= 1'b0;
+            axi_b_resp_q   <= '0;
+            axi_b_valid_q  <= 1'b0;
+            axi_r_resp_q   <= '0;
+            axi_r_valid_q  <= 1'b0;
+            axi_r_data_q   <= '0;
+         end else begin
+            axi_ar_ready_q <= s_axi_mst_arready;
+            axi_aw_ready_q <= s_axi_mst_awready;
+            axi_w_ready_q  <= s_axi_mst_wready;
+            axi_b_resp_q   <= s_axi_mst_bresp;
+            axi_b_valid_q  <= s_axi_mst_bvalid;
+            axi_r_resp_q   <= s_axi_mst_rresp;
+            axi_r_valid_q  <= s_axi_mst_rvalid;
+            axi_r_data_q   <= s_axi_mst_rdata;
+         end
+      end
 
-      // assign axi_mst_IF.b_resp       = s_axi_mst_bresp     ; /* MASTER output */
-      // assign axi_mst_IF.b_valid      = s_axi_mst_bvalid    ; /* MASTER output */
-      // assign s_axi_mst_bready        = axi_mst_IF.b_ready  ; /* MASTER  input */
+      assign s_axi_mst_araddr        = axi_mst_IF.ar_addr  ; /* MASTER  input */
+      assign s_axi_mst_arprot        = axi_mst_IF.ar_prot  ; /* MASTER  input */
+      assign s_axi_mst_arvalid       = axi_mst_IF.ar_valid ; /* MASTER  input */
+      assign axi_mst_IF.ar_ready     = axi_ar_ready_q      ; /* MASTER output */
 
-      // assign axi_mst_IF.r_resp       = s_axi_mst_rresp     ; /* MASTER output */
-      // assign axi_mst_IF.r_valid      = s_axi_mst_rvalid    ; /* MASTER output */
-      // assign axi_mst_IF.r_data       = s_axi_mst_rdata     ; /* MASTER output */
-      // assign s_axi_mst_rready        = axi_mst_IF.r_ready  ; /* MASTER  input */
+      assign s_axi_mst_awaddr        = axi_mst_IF.aw_addr  ; /* MASTER  input */
+      assign s_axi_mst_awprot        = axi_mst_IF.aw_prot  ; /* MASTER  input */
+      assign s_axi_mst_awvalid       = axi_mst_IF.aw_valid ; /* MASTER  input */
+      assign axi_mst_IF.aw_ready     = axi_aw_ready_q      ; /* MASTER output */
 
-      // assign s_axi_mst_wdata         = axi_mst_IF.w_data   ; /* MASTER  input */
-      // assign s_axi_mst_wstrb         = axi_mst_IF.w_strb   ; /* MASTER  input */
-      // assign s_axi_mst_wvalid        = axi_mst_IF.w_valid  ; /* MASTER  input */
-      // assign axi_mst_IF.w_ready      = s_axi_mst_wready    ; /* MASTER output */
+      assign axi_mst_IF.b_resp       = axi_b_resp_q        ; /* MASTER output */
+      assign axi_mst_IF.b_valid      = axi_b_valid_q       ; /* MASTER output */
+      assign s_axi_mst_bready        = axi_mst_IF.b_ready  ; /* MASTER  input */
 
-      assign s_axi_test_araddr        = axi_mst_IF.ar_addr  ; /* MASTER  input */
-      assign s_axi_test_arprot        = axi_mst_IF.ar_prot  ; /* MASTER  input */
-      assign s_axi_test_arvalid       = axi_mst_IF.ar_valid ; /* MASTER  input */
-      assign axi_mst_IF.ar_ready     = s_axi_test_arready   ; /* MASTER output */
+      assign axi_mst_IF.r_resp       = axi_r_resp_q        ; /* MASTER output */
+      assign axi_mst_IF.r_valid      = axi_r_valid_q       ; /* MASTER output */
+      assign axi_mst_IF.r_data       = axi_r_data_q        ; /* MASTER output */
+      assign s_axi_mst_rready        = axi_mst_IF.r_ready  ; /* MASTER  input */
 
-      assign s_axi_test_awaddr        = axi_mst_IF.aw_addr  ; /* MASTER  input */
-      assign s_axi_test_awprot        = axi_mst_IF.aw_prot  ; /* MASTER  input */
-      assign s_axi_test_awvalid       = axi_mst_IF.aw_valid ; /* MASTER  input */
-      assign axi_mst_IF.aw_ready     = s_axi_test_awready   ; /* MASTER output */
-
-      assign axi_mst_IF.b_resp       = s_axi_test_bresp     ; /* MASTER output */
-      assign axi_mst_IF.b_valid      = s_axi_test_bvalid    ; /* MASTER output */
-      assign s_axi_test_bready        = axi_mst_IF.b_ready  ; /* MASTER  input */
-
-      assign axi_mst_IF.r_resp       = s_axi_test_rresp     ; /* MASTER output */
-      assign axi_mst_IF.r_valid      = s_axi_test_rvalid    ; /* MASTER output */
-      assign axi_mst_IF.r_data       = s_axi_test_rdata     ; /* MASTER output */
-      assign s_axi_test_rready        = axi_mst_IF.r_ready  ; /* MASTER  input */
-
-      assign s_axi_test_wdata         = axi_mst_IF.w_data   ; /* MASTER  input */
-      assign s_axi_test_wstrb         = axi_mst_IF.w_strb   ; /* MASTER  input */
-      assign s_axi_test_wvalid        = axi_mst_IF.w_valid  ; /* MASTER  input */
-      assign axi_mst_IF.w_ready      = s_axi_test_wready    ; /* MASTER output */
+      assign s_axi_mst_wdata         = axi_mst_IF.w_data   ; /* MASTER  input */
+      assign s_axi_mst_wstrb         = axi_mst_IF.w_strb   ; /* MASTER  input */
+      assign s_axi_mst_wvalid        = axi_mst_IF.w_valid  ; /* MASTER  input */
+      assign axi_mst_IF.w_ready      = axi_w_ready_q       ; /* MASTER output */
 
    `endif
 
@@ -992,26 +981,6 @@ module qick_dut #(
       .s_axi_wstrb         (s_axi_sg_wstrb   ),
       .s_axi_wvalid        (s_axi_sg_wvalid  ),
 
-      // .s_axi_araddr        (s_axi_test_araddr  ),
-      // .s_axi_arprot        (s_axi_test_arprot  ),
-      // .s_axi_arready       (s_axi_test_arready ),
-      // .s_axi_arvalid       (s_axi_test_arvalid ),
-      // .s_axi_awaddr        (s_axi_test_awaddr  ),
-      // .s_axi_awprot        (s_axi_test_awprot  ),
-      // .s_axi_awready       (s_axi_test_awready ),
-      // .s_axi_awvalid       (s_axi_test_awvalid ),
-      // .s_axi_bready        (s_axi_test_bready  ),
-      // .s_axi_bresp         (s_axi_test_bresp   ),
-      // .s_axi_bvalid        (s_axi_test_bvalid  ),
-      // .s_axi_rdata         (s_axi_test_rdata   ),
-      // .s_axi_rready        (s_axi_test_rready  ),
-      // .s_axi_rresp         (s_axi_test_rresp   ),
-      // .s_axi_rvalid        (s_axi_test_rvalid  ),
-      // .s_axi_wdata         (s_axi_test_wdata   ),
-      // .s_axi_wready        (s_axi_test_wready  ),
-      // .s_axi_wstrb         (s_axi_test_wstrb   ),
-      // .s_axi_wvalid        (s_axi_test_wvalid  ),
-
       // AXIS Slave to load data into memory.
       .s0_axis_aclk        (sg0_s0_axis_aclk        ),
       .s0_axis_aresetn     (sg0_s0_axis_aresetn     ),
@@ -1043,7 +1012,7 @@ module qick_dut #(
       end
    end
 
-// `define SG_1   // Comment to disable SG_1
+`define SG_1   // Comment to disable SG_1
 `ifndef SG_1
    assign sg1cdc_sgt1_axis_tready = 1'b1;
 `else

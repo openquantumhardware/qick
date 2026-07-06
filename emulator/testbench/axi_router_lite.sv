@@ -189,11 +189,12 @@ module axi_router_lite #(
     // Internal signals for write path
     logic [ADDR_WIDTH-1:0]    write_addr;
     logic [4:0]               write_slave_sel;
-    logic [4:0]               write_slave_ready;
+    logic [4:0]               write_awready;
+    logic [4:0]               write_wready;
     logic [4:0]               write_slave_valid;
     logic [4:0]               write_resp_valid;
-    logic [4:0]               write_resp_ready;
     logic [1:0]               write_resp_resp;
+    logic [4:0]               write_data_sel;
     
     // Internal signals for read path
     logic [ADDR_WIDTH-1:0]    read_addr;
@@ -201,7 +202,6 @@ module axi_router_lite #(
     logic [4:0]               read_slave_ready;
     logic [4:0]               read_slave_valid;
     logic [4:0]               read_resp_valid;
-    logic [4:0]               read_resp_ready;
     logic [DATA_WIDTH-1:0]    read_resp_data;
     logic [1:0]               read_resp_resp;
 
@@ -213,41 +213,41 @@ module axi_router_lite #(
     always_comb begin
         write_addr = m_axi_awaddr;
         write_slave_sel = '0;
-        write_slave_ready = '0;
+        write_awready = '0;
         write_slave_valid = '0;
         
         // tProc (base 0x0000_0000, 8-bit addr)
         if ((m_axi_awaddr & MASK_TPROC) == BASE_TPROC) begin
             write_slave_sel[0] = 1'b1;
-            write_slave_ready[0] = s_tproc_awready;
+            write_awready[0] = s_tproc_awready;
             write_slave_valid[0] = m_axi_awvalid & 1'b1;  // Always valid for tProc
         end
         
         // Signal Generator (base 0x4000_0000, 6-bit addr)
         if ((m_axi_awaddr & MASK_SG) == BASE_SG) begin
             write_slave_sel[1] = 1'b1;
-            write_slave_ready[1] = s_sg_awready;
+            write_awready[1] = s_sg_awready;
             write_slave_valid[1] = m_axi_awvalid & 1'b1;
         end
         
         // Average Buffer 0 (base 0x4001_0000, 6-bit addr)
         if ((m_axi_awaddr & MASK_AVG0) == BASE_AVG0) begin
             write_slave_sel[2] = 1'b1;
-            write_slave_ready[2] = s_avg0_awready;
+            write_awready[2] = s_avg0_awready;
             write_slave_valid[2] = m_axi_awvalid & 1'b1;
         end
         
         // Readout (base 0x4002_0000, 6-bit addr)
         if ((m_axi_awaddr & MASK_ROV2) == BASE_ROV2) begin
             write_slave_sel[3] = 1'b1;
-            write_slave_ready[3] = s_rov2_awready;
+            write_awready[3] = s_rov2_awready;
             write_slave_valid[3] = m_axi_awvalid & 1'b1;
         end
         
         // Average Buffer 1 (base 0x4003_0000, 6-bit addr)
         if ((m_axi_awaddr & MASK_AVG1) == BASE_AVG1) begin
             write_slave_sel[4] = 1'b1;
-            write_slave_ready[4] = s_avg1_awready;
+            write_awready[4] = s_avg1_awready;
             write_slave_valid[4] = m_axi_awvalid & 1'b1;
         end
     end
@@ -285,9 +285,32 @@ module axi_router_lite #(
         m_axi_awready = 1'b0;
         for (int i = 0; i < 5; i++) begin
             if (write_slave_sel[i]) begin
-                m_axi_awready = write_slave_ready[i];
+                m_axi_awready = write_awready[i];
             end
         end
+    end
+
+    // Keep write target stable between AW and W phases for single-beat AXI-Lite writes.
+    logic [4:0] write_sel_q;
+    logic       write_sel_valid_q;
+    always_ff @(posedge aclk or negedge aresetn) begin
+        if (!aresetn) begin
+            write_sel_q       <= '0;
+            write_sel_valid_q <= 1'b0;
+        end else begin
+            // Clear on any accepted W beat. This handles both split AW/W and
+            // same-cycle AW+W handshakes without leaving stale selection.
+            if (m_axi_wvalid && m_axi_wready) begin
+                write_sel_valid_q <= 1'b0;
+            end else if (!write_sel_valid_q && m_axi_awvalid && m_axi_awready) begin
+                write_sel_q       <= write_slave_sel;
+                write_sel_valid_q <= 1'b1;
+            end
+        end
+    end
+
+    always_comb begin
+        write_data_sel = write_sel_valid_q ? write_sel_q : write_slave_sel;
     end
     
     // ============================================================================
@@ -299,35 +322,41 @@ module axi_router_lite #(
         // tProc
         s_tproc_wdata = m_axi_wdata;
         s_tproc_wstrb = m_axi_wstrb;
-        s_tproc_wvalid = m_axi_wvalid & write_slave_sel[0];
+        s_tproc_wvalid = m_axi_wvalid & write_data_sel[0];
         
         // Signal Generator
         s_sg_wdata = m_axi_wdata;
         s_sg_wstrb = m_axi_wstrb;
-        s_sg_wvalid = m_axi_wvalid & write_slave_sel[1];
+        s_sg_wvalid = m_axi_wvalid & write_data_sel[1];
         
         // Average Buffer 0
         s_avg0_wdata = m_axi_wdata;
         s_avg0_wstrb = m_axi_wstrb;
-        s_avg0_wvalid = m_axi_wvalid & write_slave_sel[2];
+        s_avg0_wvalid = m_axi_wvalid & write_data_sel[2];
         
         // Readout
         s_rov2_wdata = m_axi_wdata;
         s_rov2_wstrb = m_axi_wstrb;
-        s_rov2_wvalid = m_axi_wvalid & write_slave_sel[3];
+        s_rov2_wvalid = m_axi_wvalid & write_data_sel[3];
         
         // Average Buffer 1
         s_avg1_wdata = m_axi_wdata;
         s_avg1_wstrb = m_axi_wstrb;
-        s_avg1_wvalid = m_axi_wvalid & write_slave_sel[4];
+        s_avg1_wvalid = m_axi_wvalid & write_data_sel[4];
     end
     
     // Collect write ready from selected slave
     always_comb begin
+        write_wready[0] = s_tproc_wready;
+        write_wready[1] = s_sg_wready;
+        write_wready[2] = s_avg0_wready;
+        write_wready[3] = s_rov2_wready;
+        write_wready[4] = s_avg1_wready;
+
         m_axi_wready = 1'b0;
         for (int i = 0; i < 5; i++) begin
-            if (write_slave_sel[i]) begin
-                m_axi_wready = write_slave_ready[i];
+            if (write_data_sel[i]) begin
+                m_axi_wready = write_wready[i];
             end
         end
     end
@@ -339,7 +368,6 @@ module axi_router_lite #(
     // Collect write responses from all slaves
     always_comb begin
         write_resp_valid = '0;
-        write_resp_ready = '1;  // Always ready to accept responses
         write_resp_resp = '0;
         for (int i = 0; i < 5; i++) begin
             case (i)
@@ -358,11 +386,11 @@ module axi_router_lite #(
         if (!aresetn) begin
             write_resp_pending <= '0;
         end else begin
-            // Mark which slave is pending response
+            // Mark which slave is pending write response after W beat is accepted.
             for (int i = 0; i < 5; i++) begin
-                if (write_slave_sel[i] && m_axi_awvalid && m_axi_awready) begin
+                if (write_data_sel[i] && m_axi_wvalid && m_axi_wready) begin
                     write_resp_pending[i] <= 1'b1;
-                end else if (write_resp_valid[i] && write_resp_ready[i]) begin
+                end else if (write_resp_pending[i] && write_resp_valid[i] && m_axi_bready) begin
                     write_resp_pending[i] <= 1'b0;
                 end
             end
@@ -497,7 +525,6 @@ module axi_router_lite #(
     // Collect read responses from all slaves
     always_comb begin
         read_resp_valid = '0;
-        read_resp_ready = '1;  // Always ready to accept responses
         read_resp_data = '0;
         read_resp_resp = '0;
         for (int i = 0; i < 5; i++) begin
@@ -521,7 +548,7 @@ module axi_router_lite #(
             for (int i = 0; i < 5; i++) begin
                 if (read_slave_sel[i] && m_axi_arvalid && m_axi_arready) begin
                     read_resp_pending[i] <= 1'b1;
-                end else if (read_resp_valid[i] && read_resp_ready[i]) begin
+                end else if (read_resp_pending[i] && read_resp_valid[i] && m_axi_rready) begin
                     read_resp_pending[i] <= 1'b0;
                 end
             end

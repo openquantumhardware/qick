@@ -23,13 +23,13 @@ localparam time         TestTime          =  0ns;
 
 typedef axi_test::axi_lite_rand_master #(
    // AXI interface parameters
-   .AW ( 32'd8               ), // Axi Address Width
+   .AW ( 32'd40              ), // Axi Address Width
    .DW ( 32'd32              ), // Axi Data Width
    // Stimuli application and test time
    .TA ( ApplTime            ),
    .TT ( TestTime            ),
-   .MIN_ADDR ( 32'h0000_0000 ),
-   .MAX_ADDR ( 32'hffff_ffff ),
+   .MIN_ADDR ( 40'h0_0000_0000 ),
+   .MAX_ADDR ( 40'hf_ffff_ffff ),
    .MAX_READ_TXNS  ( 1 ),
    .MAX_WRITE_TXNS ( 1 ),
    .AX_MIN_WAIT_CYCLES   ( 0   ),
@@ -38,26 +38,7 @@ typedef axi_test::axi_lite_rand_master #(
    .W_MAX_WAIT_CYCLES    ( 0   ),
    .RESP_MIN_WAIT_CYCLES ( 0   ),
    .RESP_MAX_WAIT_CYCLES ( 0   )
-) rand_lite_master_addr8_data32_t;
-
-typedef axi_test::axi_lite_rand_master #(
-   // AXI interface parameters
-   .AW ( 32'd6               ), // Axi Address Width
-   .DW ( 32'd32              ), // Axi Data Width
-   // Stimuli application and test time
-   .TA ( ApplTime            ),
-   .TT ( TestTime            ),
-   .MIN_ADDR ( 32'h0000_0000 ),
-   .MAX_ADDR ( 32'hffff_ffff ),
-   .MAX_READ_TXNS  ( 1 ),
-   .MAX_WRITE_TXNS ( 1 ),
-   .AX_MIN_WAIT_CYCLES   ( 0   ),
-   .AX_MAX_WAIT_CYCLES   ( 0   ),
-   .W_MIN_WAIT_CYCLES    ( 0   ),
-   .W_MAX_WAIT_CYCLES    ( 0   ),
-   .RESP_MIN_WAIT_CYCLES ( 0   ),
-   .RESP_MAX_WAIT_CYCLES ( 0   )
-) rand_lite_master_addr6_data32_t;
+) rand_lite_master_addr40_data32_t;
 
 // +++++++++++++
 
@@ -142,25 +123,23 @@ int    pre_run_delay_ns = -1;
 // localparam integer AVG_BASE_HI = 40'h400070000;
 
 // QICKEMU_DUT Address Map
-localparam integer TPROC_BASE  = 40'h400260000;
-localparam integer SG_BASE_LO  = 40'h4001C0000;  // 2 gen IP(s)
-localparam integer SG_BASE_HI  = 40'h4001E0000;
-localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
-localparam integer AVG_BASE_HI = 40'h400070000;
+localparam logic [39:0] SG_BASE_LO  = 40'h04_001C_0000;  // 2 gen IP(s)
+localparam logic [39:0] SG_BASE_HI  = 40'h04_001E_0000;
+localparam logic [39:0] AVG_BASE_LO = 40'h04_0006_0000;  // 1 avgbuf IP(s)
+localparam logic [39:0] AVG_BASE_HI = 40'h04_0007_0000;
+
+localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;
+localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;
+localparam logic [39:0] SG1_BASE    = 40'h04_001E_0000;
+localparam logic [39:0] RO0_BASE    = 40'h04_0006_0000;
 
 
 // VIP Agents
 
 // <<<<<<<<<<<< XILINX AXI VIP
-// axi_mst_0_mst_t     axi_mst_tproc_agent;
-// axi_mst_0_mst_t     axi_mst_sg_agent;
-// axi_mst_0_mst_t     axi_mst_avg_agent;
+// axi_mst_0_mst_t     axi_mst_agent;
 // ============
-rand_lite_master_addr8_data32_t axi_mst_tproc_agent;
-rand_lite_master_addr6_data32_t axi_mst_sg_agent;
-rand_lite_master_addr6_data32_t axi_mst_avg0_agent;
-rand_lite_master_addr6_data32_t axi_mst_avg1_agent;
-rand_lite_master_addr6_data32_t axi_mst_rov2_agent;
+rand_lite_master_addr40_data32_t axi_mst_agent;
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
 
@@ -645,7 +624,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC1_W = 16;
    logic signed [DAC1_W-1:0] dac1_data;
-   localparam ADC1_W = 16;
+    localparam ADC1_W = 16;
    logic signed [ADC1_W-1:0] adc1_sample;
    logic signed [15:0] adc1_data;
    real dac1_signal_rf;
@@ -1094,18 +1073,31 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_IF,    "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_IF,       "axi_mst_sg VIP Agent"    );
-      axi_mst_avg0_agent   = new(qick_dut.axi_mst_avg0_IF,     "axi_mst_avg0 VIP Agent"  );
-      axi_mst_avg1_agent   = new(qick_dut.axi_mst_avg1_IF,     "axi_mst_avg1 VIP Agent"  );
-      // axi_mst_rov2_agent   = new(qick_dut.axi_mst_rov2_IF,    "axi_mst_rov2 VIP Agent"  );
+      axi_mst_agent  = new(qick_dut.axi_mst_IF,    "axi_mst VIP Agent" );
 
       // initialize agent signals to '0.
-      axi_mst_tproc_agent.reset();
-      axi_mst_sg_agent.reset();
-      axi_mst_avg0_agent.reset();
-      axi_mst_avg1_agent.reset();
-      // axi_mst_rov2_agent.reset();
+      axi_mst_agent.reset();
+
+      // Workaround to fix tracing of AXI interface in Verilator
+      qick_dut.axi_mst_IF.ar_addr  = 0;
+      qick_dut.axi_mst_IF.ar_prot   = 0;
+      qick_dut.axi_mst_IF.ar_valid = 0;
+      // qick_dut.axi_mst_IF.ar_ready = 0;
+      qick_dut.axi_mst_IF.aw_addr  = 0;
+      qick_dut.axi_mst_IF.aw_prot   = 0;
+      qick_dut.axi_mst_IF.aw_valid = 0;
+      // qick_dut.axi_mst_IF.aw_ready = 0;
+      qick_dut.axi_mst_IF.b_resp   = 0;
+      qick_dut.axi_mst_IF.b_valid  = 0;
+      // qick_dut.axi_mst_IF.b_ready = 0;
+      // qick_dut.axi_mst_IF.r_resp   = 0;
+      // qick_dut.axi_mst_IF.r_valid  = 0;
+      // qick_dut.axi_mst_IF.r_data   = 0;
+      qick_dut.axi_mst_IF.r_ready = 0;
+      qick_dut.axi_mst_IF.w_data   = 0;
+      qick_dut.axi_mst_IF.w_strb   = 0;
+      qick_dut.axi_mst_IF.w_valid = 0;
+      // qick_dut.axi_mst_IF.w_ready = 0;
 
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
@@ -1176,24 +1168,25 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       // READ CAPTURED DATA FROM AVG BUFFER.
       $display("### %0t - Reading avg/dec buffers ###", $realtime);
 
+      // Use single agent with router - addresses are automatically routed
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
       #1us;
 
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+      axi_mst_agent.write(RO0_BASE + BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
 
       #50us;
 
@@ -1242,8 +1235,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       integer           valq;
       bit signed [15:0] ii;
       bit signed [15:0] qq;
+      logic [39:0]      sg_base;
 
       $display("### %t - Task sg_load_mem() channel %0d start ###", $realtime(), sg_ch);
+      $fflush();
 
       if (sg_ch >= 2) begin
          $display("ERROR: Invalid channel number %0d for sg_load_mem() task", sg_ch);
@@ -1253,9 +1248,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       if (sg_ch == 0) begin
          sg0_s0_axis_tvalid = 0;
          sg0_s0_axis_tdata  = 0;
+         sg_base = SG0_BASE;
       end else if (sg_ch == 1) begin
          sg1_s0_axis_tvalid = 0;
          sg1_s0_axis_tdata  = 0;
+         sg_base = SG1_BASE;
       end
 
       sg_file = $sformatf("%s/sgmem_ch%0d.mem", emu_dir, sg_ch);
@@ -1267,10 +1264,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       $display("### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
 
+      // Use single agent with router - addresses are automatically routed
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_sg_agent.write(SG_ADDR_START_ADDR, prot, 0, 8'hFF, resp);
+      axi_mst_agent.write(sg_base + SG_ADDR_START_ADDR, prot, 0, 8'hFF, resp);
       #100ns;
-      axi_mst_sg_agent.write(SG_ADDR_WE,         prot, 1, 8'hFF, resp);
+      axi_mst_agent.write(sg_base + SG_ADDR_WE,         prot, 1, 8'hFF, resp);
       #100ns;
 
       // Load Envelope Table Memory.
@@ -1313,8 +1311,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    task replay_axi_writes(string replay_file);
       integer fd;
       string  line;
-      integer addr_val;
-      integer data_val;
+      logic [39:0] addr_val;
+      logic [31:0] data_val;
       integer n_routed = 0;
 
       fd = $fopen(replay_file, "r");
@@ -1341,29 +1339,18 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fflush();
    endtask
 
-   // Dispatch an absolute AXI address to the right VIP agent by address range.
-   // Order matters: TPROC exact-range first, then SG range, then AVG range.
-   task route_and_write(integer addr, integer data);
-      logic [31:0] offset;
+   // Dispatch an absolute AXI address to the router.
+   // The router automatically routes transactions based on the address.
+   task route_and_write(logic [39:0] addr, logic [31:0] data);
+      logic [39:0] offset;
 
       @(posedge s_ps_dma_aclk); #0.1;
       $display("### %0t - Routing AXI write: addr=0x%08X data=0x%08X ###", $realtime, addr, data);
-      if (addr >= TPROC_BASE && addr < TPROC_BASE + 32'h10000) begin
-         offset = addr - TPROC_BASE;
-         axi_mst_tproc_agent.write(offset[7:0], prot, data, 8'hFF, resp);
-      end
-      else if (addr >= SG_BASE_LO && addr < SG_BASE_HI) begin
-         offset = addr & 32'h0000FFFF;
-         axi_mst_sg_agent.write(offset[5:0], prot, data, 8'hFF, resp);
-      end
-      else if (addr >= AVG_BASE_LO && addr < AVG_BASE_HI) begin
-         offset = addr & 32'h0000FFFF;
-         axi_mst_avg0_agent.write(offset[5:0], prot, data, 8'hFF, resp);
-      end
-      else begin
-         $fatal(1, "ERROR: Unrouted AXI write addr=0x%08X data=0x%08X", addr, data);
-         $fflush();
-      end
+      
+      // Use single agent with router - addresses are automatically routed
+      // The router will route transactions to the correct slave based on the address
+      offset = addr;
+      axi_mst_agent.write(offset, prot, data, 8'hFF, resp);
    endtask
 
 endmodule
