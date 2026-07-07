@@ -170,28 +170,6 @@ module qick_dut #(
    output logic [63:0]              m2_axis_buf1_reg_tdata */
 );
 
-   // AXI VIP master address.
-   wire  [5:0]       s_axi_sg_araddr;
-   wire  [2:0]       s_axi_sg_arprot;
-   wire              s_axi_sg_arready;
-   wire              s_axi_sg_arvalid;
-   wire  [5:0]       s_axi_sg_awaddr;
-   wire  [2:0]       s_axi_sg_awprot;
-   wire              s_axi_sg_awready;
-   wire              s_axi_sg_awvalid;
-   wire              s_axi_sg_bready;
-   wire  [1:0]       s_axi_sg_bresp;
-   wire              s_axi_sg_bvalid;
-   wire  [31:0]      s_axi_sg_rdata;
-   wire              s_axi_sg_rready;
-   wire  [1:0]       s_axi_sg_rresp;
-   wire              s_axi_sg_rvalid;
-   wire  [31:0]      s_axi_sg_wdata;
-   wire              s_axi_sg_wready;
-   wire  [3:0]       s_axi_sg_wstrb;
-   wire              s_axi_sg_wvalid;
-
-
    // Signal Generator 0 Path signals
    wire [167:0]       tproc_sg0cdc_axis_tdata ;
    wire               tproc_sg0cdc_axis_tvalid;
@@ -283,12 +261,53 @@ module qick_dut #(
    logic           s_axi_tproc_rvalid;
    logic           s_axi_tproc_rready;
 
+   logic [5:0]       s_axi_sg0_araddr;
+   logic [2:0]       s_axi_sg0_arprot;
+   logic             s_axi_sg0_arready;
+   logic             s_axi_sg0_arvalid;
+   logic [5:0]       s_axi_sg0_awaddr;
+   logic [2:0]       s_axi_sg0_awprot;
+   logic             s_axi_sg0_awready;
+   logic             s_axi_sg0_awvalid;
+   logic             s_axi_sg0_bready;
+   logic [1:0]       s_axi_sg0_bresp;
+   logic             s_axi_sg0_bvalid;
+   logic [31:0]      s_axi_sg0_rdata;
+   logic             s_axi_sg0_rready;
+   logic [1:0]       s_axi_sg0_rresp;
+   logic             s_axi_sg0_rvalid;
+   logic [31:0]      s_axi_sg0_wdata;
+   logic             s_axi_sg0_wready;
+   logic [3:0]       s_axi_sg0_wstrb;
+   logic             s_axi_sg0_wvalid;
+
+   logic  [5:0]       s_axi_sg1_araddr;
+   logic  [2:0]       s_axi_sg1_arprot;
+   logic              s_axi_sg1_arready;
+   logic              s_axi_sg1_arvalid;
+   logic  [5:0]       s_axi_sg1_awaddr;
+   logic  [2:0]       s_axi_sg1_awprot;
+   logic              s_axi_sg1_awready;
+   logic              s_axi_sg1_awvalid;
+   logic              s_axi_sg1_bready;
+   logic  [1:0]       s_axi_sg1_bresp;
+   logic              s_axi_sg1_bvalid;
+   logic  [31:0]      s_axi_sg1_rdata;
+   logic              s_axi_sg1_rready;
+   logic  [1:0]       s_axi_sg1_rresp;
+   logic              s_axi_sg1_rvalid;
+   logic  [31:0]      s_axi_sg1_wdata;
+   logic              s_axi_sg1_wready;
+   logic  [3:0]       s_axi_sg1_wstrb;
+   logic              s_axi_sg1_wvalid;
+
    // Router output enables (one-hot)
    logic           tproc_sel;
-   logic           sg_sel;
+   logic           sg0_sel;
+   logic           sg1_sel;
    logic           avg0_sel;
-   logic           rov2_sel;
    logic           avg1_sel;
+   logic           rov2_sel;
 
    // AXI router output signals for Readout2 (ROV2)
    logic  [7:0]    s_axi_rov2_awaddr;
@@ -311,136 +330,156 @@ module qick_dut #(
    logic           s_axi_rov2_rvalid;
    logic           s_axi_rov2_rready;
 
-    // Instantiate AXI Router
-    axi_router_lite #(
-       .ADDR_WIDTH ( 40 ),
-       .DATA_WIDTH ( 32 )
-    ) u_axi_router (
-       .aclk          (ps_clk              ),
-       .aresetn       (ps_resetn           ),
-       // Master input
-       .m_axi_awaddr  (s_axi_mst_awaddr    ),
-       .m_axi_awprot  (s_axi_mst_awprot    ),
-       .m_axi_awvalid (s_axi_mst_awvalid   ),
-       .m_axi_awready (s_axi_mst_awready   ),
-       .m_axi_wdata   (s_axi_mst_wdata     ),
-       .m_axi_wstrb   (s_axi_mst_wstrb     ),
-       .m_axi_wvalid  (s_axi_mst_wvalid    ),
-       .m_axi_wready  (s_axi_mst_wready    ),
-       .m_axi_bresp   (s_axi_mst_bresp     ),
-       .m_axi_bvalid  (s_axi_mst_bvalid    ),
-       .m_axi_bready  (s_axi_mst_bready    ),
-       .m_axi_araddr  (s_axi_mst_araddr    ),
-       .m_axi_arprot  (s_axi_mst_arprot    ),
-       .m_axi_arvalid (s_axi_mst_arvalid   ),
-       .m_axi_arready (s_axi_mst_arready   ),
-       .m_axi_rdata   (s_axi_mst_rdata     ),
-       .m_axi_rresp   (s_axi_mst_rresp     ),
-       .m_axi_rvalid  (s_axi_mst_rvalid    ),
-       .m_axi_rready  (s_axi_mst_rready    ),
-       // Slave outputs (decoded)
-       .s_tproc_awaddr  (s_axi_tproc_awaddr  ),
-       .s_tproc_awprot  (s_axi_tproc_awprot  ),
-       .s_tproc_awvalid (s_axi_tproc_awvalid ),
-       .s_tproc_awready (s_axi_tproc_awready ),
-       .s_tproc_wdata   (s_axi_tproc_wdata   ),
-       .s_tproc_wstrb   (s_axi_tproc_wstrb   ),
-       .s_tproc_wvalid  (s_axi_tproc_wvalid  ),
-       .s_tproc_wready  (s_axi_tproc_wready  ),
-       .s_tproc_bresp   (s_axi_tproc_bresp   ),
-       .s_tproc_bvalid  (s_axi_tproc_bvalid  ),
-       .s_tproc_bready  (s_axi_tproc_bready  ),
-       .s_tproc_araddr  (s_axi_tproc_araddr  ),
-       .s_tproc_arprot  (s_axi_tproc_arprot  ),
-       .s_tproc_arvalid (s_axi_tproc_arvalid ),
-       .s_tproc_arready (s_axi_tproc_arready ),
-       .s_tproc_rdata   (s_axi_tproc_rdata   ),
-       .s_tproc_rresp   (s_axi_tproc_rresp   ),
-       .s_tproc_rvalid  (s_axi_tproc_rvalid  ),
-       .s_tproc_rready  (s_axi_tproc_rready  ),
-       .s_sg_awaddr     (s_axi_sg_awaddr     ),
-       .s_sg_awprot     (s_axi_sg_awprot     ),
-       .s_sg_awvalid    (s_axi_sg_awvalid    ),
-       .s_sg_awready    (s_axi_sg_awready    ),
-       .s_sg_wdata      (s_axi_sg_wdata      ),
-       .s_sg_wstrb      (s_axi_sg_wstrb      ),
-       .s_sg_wvalid     (s_axi_sg_wvalid     ),
-       .s_sg_wready     (s_axi_sg_wready     ),
-       .s_sg_bresp      (s_axi_sg_bresp      ),
-       .s_sg_bvalid     (s_axi_sg_bvalid     ),
-       .s_sg_bready     (s_axi_sg_bready     ),
-       .s_sg_araddr     (s_axi_sg_araddr     ),
-       .s_sg_arprot     (s_axi_sg_arprot     ),
-       .s_sg_arvalid    (s_axi_sg_arvalid    ),
-       .s_sg_arready    (s_axi_sg_arready    ),
-       .s_sg_rdata      (s_axi_sg_rdata      ),
-       .s_sg_rresp      (s_axi_sg_rresp      ),
-       .s_sg_rvalid     (s_axi_sg_rvalid     ),
-       .s_sg_rready     (s_axi_sg_rready     ),
-       .s_avg0_awaddr   (s_axi_avg0_awaddr   ),
-       .s_avg0_awprot   (s_axi_avg0_awprot   ),
-       .s_avg0_awvalid  (s_axi_avg0_awvalid  ),
-       .s_avg0_awready  (s_axi_avg0_awready  ),
-       .s_avg0_wdata    (s_axi_avg0_wdata    ),
-       .s_avg0_wstrb    (s_axi_avg0_wstrb    ),
-       .s_avg0_wvalid   (s_axi_avg0_wvalid   ),
-       .s_avg0_wready   (s_axi_avg0_wready   ),
-       .s_avg0_bresp    (s_axi_avg0_bresp    ),
-       .s_avg0_bvalid   (s_axi_avg0_bvalid   ),
-       .s_avg0_bready   (s_axi_avg0_bready   ),
-       .s_avg0_araddr   (s_axi_avg0_araddr   ),
-       .s_avg0_arprot   (s_axi_avg0_arprot   ),
-       .s_avg0_arvalid  (s_axi_avg0_arvalid  ),
-       .s_avg0_arready  (s_axi_avg0_arready  ),
-       .s_avg0_rdata    (s_axi_avg0_rdata    ),
-       .s_avg0_rresp    (s_axi_avg0_rresp    ),
-       .s_avg0_rvalid   (s_axi_avg0_rvalid   ),
-       .s_avg0_rready   (s_axi_avg0_rready   ),
-       .s_rov2_awaddr   (s_axi_rov2_awaddr   ),
-       .s_rov2_awprot   (s_axi_rov2_awprot   ),
-       .s_rov2_awvalid  (s_axi_rov2_awvalid  ),
-       .s_rov2_awready  (s_axi_rov2_awready  ),
-       .s_rov2_wdata    (s_axi_rov2_wdata    ),
-       .s_rov2_wstrb    (s_axi_rov2_wstrb    ),
-       .s_rov2_wvalid   (s_axi_rov2_wvalid   ),
-       .s_rov2_wready   (s_axi_rov2_wready   ),
-       .s_rov2_bresp    (s_axi_rov2_bresp    ),
-       .s_rov2_bvalid   (s_axi_rov2_bvalid   ),
-       .s_rov2_bready   (s_axi_rov2_bready   ),
-       .s_rov2_araddr   (s_axi_rov2_araddr   ),
-       .s_rov2_arprot   (s_axi_rov2_arprot   ),
-       .s_rov2_arvalid  (s_axi_rov2_arvalid  ),
-       .s_rov2_arready  (s_axi_rov2_arready  ),
-       .s_rov2_rdata    (s_axi_rov2_rdata    ),
-       .s_rov2_rresp    (s_axi_rov2_rresp    ),
-       .s_rov2_rvalid   (s_axi_rov2_rvalid   ),
-       .s_rov2_rready   (s_axi_rov2_rready   ),
-       .s_avg1_awaddr   (s_axi_avg1_awaddr   ),
-       .s_avg1_awprot   (s_axi_avg1_awprot   ),
-       .s_avg1_awvalid  (s_axi_avg1_awvalid  ),
-       .s_avg1_awready  (s_axi_avg1_awready  ),
-       .s_avg1_wdata    (s_axi_avg1_wdata    ),
-       .s_avg1_wstrb    (s_axi_avg1_wstrb    ),
-       .s_avg1_wvalid   (s_axi_avg1_wvalid   ),
-       .s_avg1_wready   (s_axi_avg1_wready   ),
-       .s_avg1_bresp    (s_axi_avg1_bresp    ),
-       .s_avg1_bvalid   (s_axi_avg1_bvalid   ),
-       .s_avg1_bready   (s_axi_avg1_bready   ),
-       .s_avg1_araddr   (s_axi_avg1_araddr   ),
-       .s_avg1_arprot   (s_axi_avg1_arprot   ),
-       .s_avg1_arvalid  (s_axi_avg1_arvalid  ),
-       .s_avg1_arready  (s_axi_avg1_arready  ),
-       .s_avg1_rdata    (s_axi_avg1_rdata    ),
-       .s_avg1_rresp    (s_axi_avg1_rresp    ),
-       .s_avg1_rvalid   (s_axi_avg1_rvalid   ),
-       .s_avg1_rready   (s_axi_avg1_rready   ),
-       // Output select signals
-       .tproc_sel       (tproc_sel           ),
-       .sg_sel          (sg_sel              ),
-       .avg0_sel        (avg0_sel            ),
-       .rov2_sel        (rov2_sel            ),
-       .avg1_sel        (avg1_sel            )
-    );
+   // Instantiate AXI Router
+   axi_router_lite #(
+      .ADDR_WIDTH ( 40 ),
+      .DATA_WIDTH ( 32 )
+   ) u_axi_router (
+      .aclk          (ps_clk              ),
+      .aresetn       (ps_resetn           ),
+      // Master input
+      .m_axi_awaddr  (s_axi_mst_awaddr    ),
+      .m_axi_awprot  (s_axi_mst_awprot    ),
+      .m_axi_awvalid (s_axi_mst_awvalid   ),
+      .m_axi_awready (s_axi_mst_awready   ),
+      .m_axi_wdata   (s_axi_mst_wdata     ),
+      .m_axi_wstrb   (s_axi_mst_wstrb     ),
+      .m_axi_wvalid  (s_axi_mst_wvalid    ),
+      .m_axi_wready  (s_axi_mst_wready    ),
+      .m_axi_bresp   (s_axi_mst_bresp     ),
+      .m_axi_bvalid  (s_axi_mst_bvalid    ),
+      .m_axi_bready  (s_axi_mst_bready    ),
+      .m_axi_araddr  (s_axi_mst_araddr    ),
+      .m_axi_arprot  (s_axi_mst_arprot    ),
+      .m_axi_arvalid (s_axi_mst_arvalid   ),
+      .m_axi_arready (s_axi_mst_arready   ),
+      .m_axi_rdata   (s_axi_mst_rdata     ),
+      .m_axi_rresp   (s_axi_mst_rresp     ),
+      .m_axi_rvalid  (s_axi_mst_rvalid    ),
+      .m_axi_rready  (s_axi_mst_rready    ),
+      // Slave outputs (decoded)
+      .s_tproc_awaddr  (s_axi_tproc_awaddr  ),
+      .s_tproc_awprot  (s_axi_tproc_awprot  ),
+      .s_tproc_awvalid (s_axi_tproc_awvalid ),
+      .s_tproc_awready (s_axi_tproc_awready ),
+      .s_tproc_wdata   (s_axi_tproc_wdata   ),
+      .s_tproc_wstrb   (s_axi_tproc_wstrb   ),
+      .s_tproc_wvalid  (s_axi_tproc_wvalid  ),
+      .s_tproc_wready  (s_axi_tproc_wready  ),
+      .s_tproc_bresp   (s_axi_tproc_bresp   ),
+      .s_tproc_bvalid  (s_axi_tproc_bvalid  ),
+      .s_tproc_bready  (s_axi_tproc_bready  ),
+      .s_tproc_araddr  (s_axi_tproc_araddr  ),
+      .s_tproc_arprot  (s_axi_tproc_arprot  ),
+      .s_tproc_arvalid (s_axi_tproc_arvalid ),
+      .s_tproc_arready (s_axi_tproc_arready ),
+      .s_tproc_rdata   (s_axi_tproc_rdata   ),
+      .s_tproc_rresp   (s_axi_tproc_rresp   ),
+      .s_tproc_rvalid  (s_axi_tproc_rvalid  ),
+      .s_tproc_rready  (s_axi_tproc_rready  ),
+      .s_sg0_awaddr    (s_axi_sg0_awaddr    ),
+      .s_sg0_awprot    (s_axi_sg0_awprot    ),
+      .s_sg0_awvalid   (s_axi_sg0_awvalid   ),
+      .s_sg0_awready   (s_axi_sg0_awready   ),
+      .s_sg0_wdata     (s_axi_sg0_wdata     ),
+      .s_sg0_wstrb     (s_axi_sg0_wstrb     ),
+      .s_sg0_wvalid    (s_axi_sg0_wvalid    ),
+      .s_sg0_wready    (s_axi_sg0_wready    ),
+      .s_sg0_bresp     (s_axi_sg0_bresp     ),
+      .s_sg0_bvalid    (s_axi_sg0_bvalid    ),
+      .s_sg0_bready    (s_axi_sg0_bready    ),
+      .s_sg0_araddr    (s_axi_sg0_araddr    ),
+      .s_sg0_arprot    (s_axi_sg0_arprot    ),
+      .s_sg0_arvalid   (s_axi_sg0_arvalid   ),
+      .s_sg0_arready   (s_axi_sg0_arready   ),
+      .s_sg0_rdata     (s_axi_sg0_rdata     ),
+      .s_sg0_rresp     (s_axi_sg0_rresp     ),
+      .s_sg0_rvalid    (s_axi_sg0_rvalid    ),
+      .s_sg0_rready    (s_axi_sg0_rready    ),
+      .s_sg1_awaddr    (s_axi_sg1_awaddr    ),
+      .s_sg1_awprot    (s_axi_sg1_awprot    ),
+      .s_sg1_awvalid   (s_axi_sg1_awvalid   ),
+      .s_sg1_awready   (s_axi_sg1_awready   ),
+      .s_sg1_wdata     (s_axi_sg1_wdata     ),
+      .s_sg1_wstrb     (s_axi_sg1_wstrb     ),
+      .s_sg1_wvalid    (s_axi_sg1_wvalid    ),
+      .s_sg1_wready    (s_axi_sg1_wready    ),
+      .s_sg1_bresp     (s_axi_sg1_bresp     ),
+      .s_sg1_bvalid    (s_axi_sg1_bvalid    ),
+      .s_sg1_bready    (s_axi_sg1_bready    ),
+      .s_sg1_araddr    (s_axi_sg1_araddr    ),
+      .s_sg1_arprot    (s_axi_sg1_arprot    ),
+      .s_sg1_arvalid   (s_axi_sg1_arvalid   ),
+      .s_sg1_arready   (s_axi_sg1_arready   ),
+      .s_sg1_rdata     (s_axi_sg1_rdata     ),
+      .s_sg1_rresp     (s_axi_sg1_rresp     ),
+      .s_sg1_rvalid    (s_axi_sg1_rvalid    ),
+      .s_sg1_rready    (s_axi_sg1_rready    ),
+      .s_avg0_awaddr   (s_axi_avg0_awaddr   ),
+      .s_avg0_awprot   (s_axi_avg0_awprot   ),
+      .s_avg0_awvalid  (s_axi_avg0_awvalid  ),
+      .s_avg0_awready  (s_axi_avg0_awready  ),
+      .s_avg0_wdata    (s_axi_avg0_wdata    ),
+      .s_avg0_wstrb    (s_axi_avg0_wstrb    ),
+      .s_avg0_wvalid   (s_axi_avg0_wvalid   ),
+      .s_avg0_wready   (s_axi_avg0_wready   ),
+      .s_avg0_bresp    (s_axi_avg0_bresp    ),
+      .s_avg0_bvalid   (s_axi_avg0_bvalid   ),
+      .s_avg0_bready   (s_axi_avg0_bready   ),
+      .s_avg0_araddr   (s_axi_avg0_araddr   ),
+      .s_avg0_arprot   (s_axi_avg0_arprot   ),
+      .s_avg0_arvalid  (s_axi_avg0_arvalid  ),
+      .s_avg0_arready  (s_axi_avg0_arready  ),
+      .s_avg0_rdata    (s_axi_avg0_rdata    ),
+      .s_avg0_rresp    (s_axi_avg0_rresp    ),
+      .s_avg0_rvalid   (s_axi_avg0_rvalid   ),
+      .s_avg0_rready   (s_axi_avg0_rready   ),
+      .s_rov2_awaddr   (s_axi_rov2_awaddr   ),
+      .s_rov2_awprot   (s_axi_rov2_awprot   ),
+      .s_rov2_awvalid  (s_axi_rov2_awvalid  ),
+      .s_rov2_awready  (s_axi_rov2_awready  ),
+      .s_rov2_wdata    (s_axi_rov2_wdata    ),
+      .s_rov2_wstrb    (s_axi_rov2_wstrb    ),
+      .s_rov2_wvalid   (s_axi_rov2_wvalid   ),
+      .s_rov2_wready   (s_axi_rov2_wready   ),
+      .s_rov2_bresp    (s_axi_rov2_bresp    ),
+      .s_rov2_bvalid   (s_axi_rov2_bvalid   ),
+      .s_rov2_bready   (s_axi_rov2_bready   ),
+      .s_rov2_araddr   (s_axi_rov2_araddr   ),
+      .s_rov2_arprot   (s_axi_rov2_arprot   ),
+      .s_rov2_arvalid  (s_axi_rov2_arvalid  ),
+      .s_rov2_arready  (s_axi_rov2_arready  ),
+      .s_rov2_rdata    (s_axi_rov2_rdata    ),
+      .s_rov2_rresp    (s_axi_rov2_rresp    ),
+      .s_rov2_rvalid   (s_axi_rov2_rvalid   ),
+      .s_rov2_rready   (s_axi_rov2_rready   ),
+      .s_avg1_awaddr   (s_axi_avg1_awaddr   ),
+      .s_avg1_awprot   (s_axi_avg1_awprot   ),
+      .s_avg1_awvalid  (s_axi_avg1_awvalid  ),
+      .s_avg1_awready  (s_axi_avg1_awready  ),
+      .s_avg1_wdata    (s_axi_avg1_wdata    ),
+      .s_avg1_wstrb    (s_axi_avg1_wstrb    ),
+      .s_avg1_wvalid   (s_axi_avg1_wvalid   ),
+      .s_avg1_wready   (s_axi_avg1_wready   ),
+      .s_avg1_bresp    (s_axi_avg1_bresp    ),
+      .s_avg1_bvalid   (s_axi_avg1_bvalid   ),
+      .s_avg1_bready   (s_axi_avg1_bready   ),
+      .s_avg1_araddr   (s_axi_avg1_araddr   ),
+      .s_avg1_arprot   (s_axi_avg1_arprot   ),
+      .s_avg1_arvalid  (s_axi_avg1_arvalid  ),
+      .s_avg1_arready  (s_axi_avg1_arready  ),
+      .s_avg1_rdata    (s_axi_avg1_rdata    ),
+      .s_avg1_rresp    (s_axi_avg1_rresp    ),
+      .s_avg1_rvalid   (s_axi_avg1_rvalid   ),
+      .s_avg1_rready   (s_axi_avg1_rready   ),
+      // Output select signals
+      .tproc_sel       (tproc_sel           ),
+      .sg0_sel         (sg0_sel             ),
+      .sg1_sel         (sg1_sel             ),
+      .avg0_sel        (avg0_sel            ),
+      .rov2_sel        (rov2_sel            ),
+      .avg1_sel        (avg1_sel            )
+   );
 
    // Instantiate AXI Master (connected to router)
    `ifndef VERILATOR
@@ -958,28 +997,28 @@ module qick_dut #(
    )
    u_axis_signal_gen_v6_0 ( 
       // AXI Slave I/F for configuration.
-      .s_axi_aclk          (ps_clk    ),
-      .s_axi_aresetn       (ps_resetn   ),
+      .s_axi_aclk          (ps_clk            ),
+      .s_axi_aresetn       (ps_resetn         ),
 
-      .s_axi_araddr        (s_axi_sg_araddr  ),
-      .s_axi_arprot        (s_axi_sg_arprot  ),
-      .s_axi_arready       (s_axi_sg_arready ),
-      .s_axi_arvalid       (s_axi_sg_arvalid ),
-      .s_axi_awaddr        (s_axi_sg_awaddr  ),
-      .s_axi_awprot        (s_axi_sg_awprot  ),
-      .s_axi_awready       (s_axi_sg_awready ),
-      .s_axi_awvalid       (s_axi_sg_awvalid ),
-      .s_axi_bready        (s_axi_sg_bready  ),
-      .s_axi_bresp         (s_axi_sg_bresp   ),
-      .s_axi_bvalid        (s_axi_sg_bvalid  ),
-      .s_axi_rdata         (s_axi_sg_rdata   ),
-      .s_axi_rready        (s_axi_sg_rready  ),
-      .s_axi_rresp         (s_axi_sg_rresp   ),
-      .s_axi_rvalid        (s_axi_sg_rvalid  ),
-      .s_axi_wdata         (s_axi_sg_wdata   ),
-      .s_axi_wready        (s_axi_sg_wready  ),
-      .s_axi_wstrb         (s_axi_sg_wstrb   ),
-      .s_axi_wvalid        (s_axi_sg_wvalid  ),
+      .s_axi_araddr        (s_axi_sg0_araddr  ),
+      .s_axi_arprot        (s_axi_sg0_arprot  ),
+      .s_axi_arready       (s_axi_sg0_arready ),
+      .s_axi_arvalid       (s_axi_sg0_arvalid ),
+      .s_axi_awaddr        (s_axi_sg0_awaddr  ),
+      .s_axi_awprot        (s_axi_sg0_awprot  ),
+      .s_axi_awready       (s_axi_sg0_awready ),
+      .s_axi_awvalid       (s_axi_sg0_awvalid ),
+      .s_axi_bready        (s_axi_sg0_bready  ),
+      .s_axi_bresp         (s_axi_sg0_bresp   ),
+      .s_axi_bvalid        (s_axi_sg0_bvalid  ),
+      .s_axi_rdata         (s_axi_sg0_rdata   ),
+      .s_axi_rready        (s_axi_sg0_rready  ),
+      .s_axi_rresp         (s_axi_sg0_rresp   ),
+      .s_axi_rvalid        (s_axi_sg0_rvalid  ),
+      .s_axi_wdata         (s_axi_sg0_wdata   ),
+      .s_axi_wready        (s_axi_sg0_wready  ),
+      .s_axi_wstrb         (s_axi_sg0_wstrb   ),
+      .s_axi_wvalid        (s_axi_sg0_wvalid  ),
 
       // AXIS Slave to load data into memory.
       .s0_axis_aclk        (sg0_s0_axis_aclk        ),
@@ -1059,27 +1098,27 @@ module qick_dut #(
    )
    u_axis_signal_gen_v6_1 ( 
       // AXI Slave I/F for configuration.
-      .s_axi_aclk          (ps_clk    ),
-      .s_axi_aresetn       (ps_resetn   ),
-      .s_axi_araddr        (s_axi_sg_araddr  ),
-      .s_axi_arprot        (s_axi_sg_arprot  ),
-      .s_axi_arready       (s_axi_sg_arready ),
-      .s_axi_arvalid       (s_axi_sg_arvalid ),
-      .s_axi_awaddr        (s_axi_sg_awaddr  ),
-      .s_axi_awprot        (s_axi_sg_awprot  ),
-      .s_axi_awready       (s_axi_sg_awready ),
-      .s_axi_awvalid       (s_axi_sg_awvalid ),
-      .s_axi_bready        (s_axi_sg_bready  ),
-      .s_axi_bresp         (s_axi_sg_bresp   ),
-      .s_axi_bvalid        (s_axi_sg_bvalid  ),
-      .s_axi_rdata         (s_axi_sg_rdata   ),
-      .s_axi_rready        (s_axi_sg_rready  ),
-      .s_axi_rresp         (s_axi_sg_rresp   ),
-      .s_axi_rvalid        (s_axi_sg_rvalid  ),
-      .s_axi_wdata         (s_axi_sg_wdata   ),
-      .s_axi_wready        (s_axi_sg_wready  ),
-      .s_axi_wstrb         (s_axi_sg_wstrb   ),
-      .s_axi_wvalid        (s_axi_sg_wvalid  ),
+      .s_axi_aclk          (ps_clk            ),
+      .s_axi_aresetn       (ps_resetn         ),
+      .s_axi_araddr        (s_axi_sg1_araddr  ),
+      .s_axi_arprot        (s_axi_sg1_arprot  ),
+      .s_axi_arready       (s_axi_sg1_arready ),
+      .s_axi_arvalid       (s_axi_sg1_arvalid ),
+      .s_axi_awaddr        (s_axi_sg1_awaddr  ),
+      .s_axi_awprot        (s_axi_sg1_awprot  ),
+      .s_axi_awready       (s_axi_sg1_awready ),
+      .s_axi_awvalid       (s_axi_sg1_awvalid ),
+      .s_axi_bready        (s_axi_sg1_bready  ),
+      .s_axi_bresp         (s_axi_sg1_bresp   ),
+      .s_axi_bvalid        (s_axi_sg1_bvalid  ),
+      .s_axi_rdata         (s_axi_sg1_rdata   ),
+      .s_axi_rready        (s_axi_sg1_rready  ),
+      .s_axi_rresp         (s_axi_sg1_rresp   ),
+      .s_axi_rvalid        (s_axi_sg1_rvalid  ),
+      .s_axi_wdata         (s_axi_sg1_wdata   ),
+      .s_axi_wready        (s_axi_sg1_wready  ),
+      .s_axi_wstrb         (s_axi_sg1_wstrb   ),
+      .s_axi_wvalid        (s_axi_sg1_wvalid  ),
 
       // AXIS Slave to load data into memory.
       .s0_axis_aclk        (sg1_s0_axis_aclk        ),
