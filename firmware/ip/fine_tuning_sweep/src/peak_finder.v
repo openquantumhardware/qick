@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 module peak_finder #(
-  parameter ACCUM_WIDTH = 80   // must match amplitude_calculator's ACCUM_WIDTH (coherent boxcar rework)
+  parameter ACCUM_WIDTH = 128   // must match amplitude_calculator's 2*ACC_WIDTH (I^2+Q^2 amp width)
 )(
   input wire clk,
   input wire rstn,

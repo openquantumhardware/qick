@@ -1,27 +1,24 @@
 `timescale 1ns / 1ps
 //------------------------------------------------------------------------------
-// tb_fine_tuning_sweep -- self-checking sim for the autonomous sweep FSM.
+// tb_fine_tuning_sweep -- self-checking sim for the single-clock sweep FSM.
 //
-//   Models the tProc + DUT loop:
-//     * OP0/OP4 load the sweep config (start/step/nsamp/n_points/avg)
+//   Models the tProc + DUT loop against the new avg_buffer-m2 front end:
+//     * OP0/OP4 load the sweep config (start/step/n_points/avg)
 //     * OP1 starts the sweep
-//     * poll OP2: on freq_valid -> "retune" the synthetic ADC to freq_word and
-//       fire `AVG` triggers (one averaged point); on finish -> read freq_at_max
-//   The synthetic ADC presents a triangular peak centred on PEAK_FREQ, so the
-//   FSM's freq_at_max must land on the grid point nearest PEAK_FREQ.
-//
-//   c_clk and s_axis_aclk are tied together here (single 100 MHz clock); the
-//   real BD ties s_axis_aclk = ro_clk and the synchronizer.v CDC handles it.
+//     * poll OP2: on freq_valid -> "retune" the synthetic readout to freq_word
+//       and present AVG accumulated m2 words (one 64-bit {Q,I} per shot); on
+//       finish -> read freq_at_max
+//   The synthetic readout presents a triangular peak centred on PEAK_FREQ, so
+//   freq_at_max must land on the grid point nearest PEAK_FREQ. Single clock: the
+//   real BD ties s_axis_aclk to the core clock via axis_clock_converter.
 //------------------------------------------------------------------------------
 
 module tb_fine_tuning_sweep();
 
-    // ---- clock / reset ----
     reg clk;
     reg rst_n;
-    always #5 clk = ~clk;        // 100 MHz
+    always #5 clk = ~clk;
 
-    // ---- QP2 / control ----
     reg        qtag_en_i;
     reg  [4:0] qtag_op_i;
     reg [31:0] qtag_dt1_i, qtag_dt2_i, qtag_dt3_i, qtag_dt4_i;
@@ -31,14 +28,10 @@ module tb_fine_tuning_sweep();
 
     reg        trigger;
 
-    // ---- s_axis (synthetic ADC stream) ----
-    reg  [31:0] s_axis_tdata;
-    reg         s_axis_tvalid;
+    reg [63:0] s_axis_tdata;
+    reg        s_axis_tvalid;
 
-    // ==========================================
-    // DUT
-    // ==========================================
-    fine_tuning_sweep #(.MAX_AVG(64)) uut (
+    fine_tuning_sweep #(.ACC_WIDTH(64)) uut (
         .clk           (clk),
         .rst_n         (rst_n),
         .qtag_en_i     (qtag_en_i),
@@ -58,24 +51,16 @@ module tb_fine_tuning_sweep();
         .s_axis_tdata  (s_axis_tdata)
     );
 
-    // ==========================================
-    // sweep parameters (all in opaque "freq_word" units = Hz here)
-    // ==========================================
-    localparam [31:0] START_FREQ = 32'd6000000;    // 6 MHz
-    localparam [31:0] STEP       = 32'd1000000;    // 1 MHz
-    localparam [31:0] NPOINTS    = 32'd100;        // point-count governs the sweep length
-    localparam [31:0] AVG        = 32'd3;          // 3 bursts averaged / point
-    localparam [31:0] NSAMP      = 32'd8;          // samples integrated / burst
+    localparam [31:0] START_FREQ = 32'd6000000;
+    localparam [31:0] STEP       = 32'd1000000;
+    localparam [31:0] NPOINTS    = 32'd100;
+    localparam [31:0] AVG        = 32'd3;
 
-    localparam [31:0] PEAK_FREQ  = 32'd18000000;   // synthetic resonance
-    localparam [31:0] PEAK_WIDTH = 32'd4000000;    // +/- slope half-width
+    localparam [31:0] PEAK_FREQ  = 32'd18000000;
+    localparam [31:0] PEAK_WIDTH = 32'd4000000;
 
-    // ==========================================
-    // synthetic ADC: triangular peak vs the "tuned" frequency
-    // ==========================================
-    reg [31:0] tuned_freq;       // what the "tProc" last retuned the ADC to
+    reg [31:0] tuned_freq;
     reg [15:0] adc_amp;
-    reg        toggle_sign;
 
     always @(*) begin : amp_model
         integer diff;
@@ -84,21 +69,9 @@ module tb_fine_tuning_sweep();
         if (diff < PEAK_WIDTH)
             adc_amp = 16'd30000 - ((diff * 29000) / PEAK_WIDTH);
         else
-            adc_amp = 16'd1000;  // noise floor
+            adc_amp = 16'd1000;
     end
 
-    always @(posedge clk) begin
-        if (!rst_n) toggle_sign <= 1'b0;
-        else        toggle_sign <= ~toggle_sign;
-    end
-
-    wire signed [15:0] i_samp = toggle_sign ?  $signed(adc_amp) : -$signed(adc_amp);
-    wire signed [15:0] q_samp = toggle_sign ? -$signed(adc_amp) :  $signed(adc_amp);
-    always @(*) s_axis_tdata = {i_samp, q_samp};
-
-    // ==========================================
-    // QP2 bus helpers
-    // ==========================================
     task qp2_send(input [4:0] op,
                   input [31:0] d1, input [31:0] d2,
                   input [31:0] d3, input [31:0] d4);
@@ -107,8 +80,8 @@ module tb_fine_tuning_sweep();
             qtag_en_i  = 1'b1; qtag_op_i = op;
             qtag_dt1_i = d1; qtag_dt2_i = d2; qtag_dt3_i = d3; qtag_dt4_i = d4;
             @(posedge clk); #1;
-            qtag_en_i = 1'b0;               // falling edge so the next op re-triggers
-            @(posedge clk);                 // (acts like the mandatory inter-PB gap)
+            qtag_en_i = 1'b0;
+            @(posedge clk);
         end
     endtask
 
@@ -127,20 +100,20 @@ module tb_fine_tuning_sweep();
         end
     endtask
 
-    // fire one burst: nsamp valid samples are streaming continuously, so a
-    // single trigger + a wait long enough to accumulate nsamp samples completes
-    // one burst.
-    task fire_burst;
+    // present one avg_buffer m2 word: {Q,I} accumulated for this shot. The
+    // magnitude tracks adc_amp so bigger amplitude -> bigger (sum I)^2+(sum Q)^2.
+    task fire_shot;
         begin
-            @(posedge clk); #1; trigger = 1'b1;
-            @(posedge clk); #1; trigger = 1'b0;
-            repeat (NSAMP + 12) @(posedge clk);   // let the burst integrate + emit
+            @(posedge clk); #1;
+            s_axis_tvalid = 1'b1;
+            s_axis_tdata  = {{16'd0, adc_amp}, {16'd0, adc_amp}};
+            @(posedge clk); #1;
+            s_axis_tvalid = 1'b0;
+            s_axis_tdata  = 64'd0;
+            @(posedge clk);
         end
     endtask
 
-    // ==========================================
-    // main test sequence
-    // ==========================================
     reg [31:0] rd_freq;
     reg        rd_fvalid, rd_fin;
     integer    step_i, a;
@@ -151,23 +124,20 @@ module tb_fine_tuning_sweep();
         qtag_en_i = 0; qtag_op_i = 0;
         qtag_dt1_i = 0; qtag_dt2_i = 0; qtag_dt3_i = 0; qtag_dt4_i = 0;
         trigger = 0; tuned_freq = 0;
-        s_axis_tvalid = 1'b1;
+        s_axis_tvalid = 1'b0; s_axis_tdata = 64'd0;
 
         #100; rst_n = 1; #100;
         $display("[%0t] RESET DONE", $time);
 
-        // ---- config ----
-        qp2_send(5'd0, START_FREQ, 32'd0, STEP, NSAMP);         // OP0
-        qp2_send(5'd4, NPOINTS, AVG, 32'd0, 32'd0);             // OP4
-        qp2_send(5'd3, 0, 0, 0, 0);                             // OP3 reset_max
-        $display("[%0t] CONFIG: start=%0d step=%0d N=%0d avg=%0d nsamp=%0d",
-                 $time, START_FREQ, STEP, NPOINTS, AVG, NSAMP);
+        qp2_send(5'd0, START_FREQ, 32'd0, STEP, 32'd0);
+        qp2_send(5'd4, NPOINTS, AVG, 32'd0, 32'd0);
+        qp2_send(5'd3, 0, 0, 0, 0);
+        $display("[%0t] CONFIG: start=%0d step=%0d N=%0d avg=%0d",
+                 $time, START_FREQ, STEP, NPOINTS, AVG);
 
-        // ---- start ----
-        qp2_send(5'd1, 0, 0, 0, 0);                             // OP1 start
+        qp2_send(5'd1, 0, 0, 0, 0);
         $display("[%0t] SWEEP STARTED (target peak @ %0d)", $time, PEAK_FREQ);
 
-        // ---- handshake loop ----
         step_i = 0;
         rd_fin = 1'b0;
         while (!rd_fin) begin
@@ -177,17 +147,15 @@ module tb_fine_tuning_sweep();
                 $display("[%0t] FINISH. freq_at_max = %0d Hz", $time, rd_freq);
             end else if (rd_fvalid) begin
                 step_i = step_i + 1;
-                tuned_freq = rd_freq;             // "retune the generator"
-                #1;                               // let amp_model settle
+                tuned_freq = rd_freq;
+                #1;
                 $display("[%0t] pt %0d | freq=%0d | adc_amp=%0d",
                          $time, step_i, rd_freq, adc_amp);
-                for (a = 0; a < AVG; a = a + 1) fire_burst;  // averager_value bursts
+                for (a = 0; a < AVG; a = a + 1) fire_shot;
             end
-            // else: IP hasn't advanced yet -> keep polling
         end
 
-        // ---- check ----
-        expected_peak = PEAK_FREQ;   // grid hits 18 MHz exactly (6 MHz + 12*1 MHz)
+        expected_peak = PEAK_FREQ;
         if (rd_freq == expected_peak)
             $display("[%0t] PASS: freq_at_max (%0d) == expected (%0d)",
                      $time, rd_freq, expected_peak);
@@ -200,7 +168,6 @@ module tb_fine_tuning_sweep();
         $finish;
     end
 
-    // global watchdog so a wiring bug can't hang the sim forever
     initial begin
         #5000000;
         $display("[%0t] TIMEOUT -- sweep never finished", $time);

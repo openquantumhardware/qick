@@ -1,375 +1,137 @@
 `timescale 1ns / 1ps
 //------------------------------------------------------------------------------
-// amplitude_calculator -- COHERENT boxcar: sums raw I and raw Q over the window
-// AND across the averaging burst, squaring ONCE at burst completion --
-// (sum I)^2 + (sum Q)^2. This matches acquire()'s |mean I + j*mean Q|^2 exactly
-// (average first, square last) and is what classical S21/resonator spectroscopy
-// uses. Replaces the earlier per-sample I^2+Q^2 scheme (square first, average
-// last), which is phase-INsensitive and does not match acquire() or the
-// classical resonator sweep -- see fine_tuning_sweep_ip memory / session notes
-// for the derivation of why the two metrics can pick different peaks.
+// amplitude_calculator -- cross-shot coherent accumulator + Karatsuba I^2+Q^2.
 //
-// Completion is COUNT-based (avg_buffer model): the host sets `nsamp` to the
-// readout's decimated window length, so the count is always reached. A trigger
-// (re)arms a fresh window in ANY state, so each measurement starts clean.
-//
-// Coding style -- three-process FSM for the IDLE/RUN control (state register /
-// next-state comb / datapath), all synchronous reset. The per-sample datapath
-// is now pure ADDERS (no multiply): squaring happens ONCE per point, at the
-// far-lower burst-complete rate (once per nsamp*averager_value samples), so it
-// gets its own small FINALIZE pipeline instead of needing DSP absorption in the
-// 552 MHz per-sample path -- this also REMOVES the per-sample DSP-square that
-// was the amplitude_calculator timing bottleneck at full rate.
+//   Input s_axis carries one avg_buffer m2 word per shot: {Q[31:0], I[31:0]},
+//   each a 32-bit signed accumulated (over-window) value. This block sums
+//   averager_value shots into ACC_WIDTH accumulators, then squares once per
+//   point via a 16x16-leaf Karatsuba pipeline: (sum I)^2 + (sum Q)^2, 2*ACC_WIDTH
+//   wide. Single clock (core), arm/reset from the per-point boundary.
 //------------------------------------------------------------------------------
 
 module amplitude_calculator #(
-  parameter MAX_AVG = 64,
-  parameter ACCUM_WIDTH = 80
+  parameter ACC_WIDTH = 64
 )(
   input wire clk,
   input wire rst_n,
 
   input wire s_axis_tvalid,
-  input wire [31:0] s_axis_tdata,
+  input wire [63:0] s_axis_tdata,
 
-  input wire trigger,
-  input wire [31:0] nsamp,
-  input wire [$clog2(MAX_AVG)-1:0] averager_value,
+  input wire arm,
+  input wire [31:0] averager_value,
 
-  (* mark_debug = "true" *) output reg [ACCUM_WIDTH-1:0] m_axis_tdata,
+  (* mark_debug = "true" *) output reg [2*ACC_WIDTH-1:0] m_axis_tdata,
   (* mark_debug = "true" *) output reg m_axis_tvalid
 );
 
-  // Running I/Q sum width: SUM_WIDTH = ACCUM_WIDTH/2 so the final sum-of-two-
-  // squares always fits ACCUM_WIDTH bits (a SUM_WIDTH-bit signed value squared
-  // is at most 2*(SUM_WIDTH-1) bits; two such squares summed stay under
-  // 2*SUM_WIDTH). With ACCUM_WIDTH=80 -> SUM_WIDTH=40 signed, the running sum
-  // covers NSAMP*averager_value up to ~16.7M 16-bit samples (e.g. NSAMP up to
-  // 16384 samples/shot at averager_value up to 1024) with comfortable margin --
-  // sized for the planned MAX_AVG=1024 rebuild, not just today's MAX_AVG=64.
-  localparam SUM_WIDTH = ACCUM_WIDTH / 2;
+  localparam AMP_WIDTH = 2 * ACC_WIDTH;
 
-  // ------------------------------------------------------------------
-  //  Stage 0 -- latch IQ into a clean synchronous element before the
-  //  accumulator. No squaring anywhere in this path: the coherent scheme
-  //  sums raw samples, so there is no per-sample multiply at all.
-  // ------------------------------------------------------------------
-  reg signed [15:0] i_s0, q_s0;
-  reg v_s0;
+  (* mark_debug = "true" *) reg signed [31:0] i_in, q_in;
+  (* mark_debug = "true" *) reg v_in;
 
   always @(posedge clk) begin
     if (!rst_n) begin
-      i_s0 <= 0;
-      q_s0 <= 0;
-      v_s0 <= 0;
+      i_in <= 0;
+      q_in <= 0;
+      v_in <= 0;
     end else begin
-      i_s0 <= s_axis_tdata[31:16];
-      q_s0 <= s_axis_tdata[15:0];
-      v_s0 <= s_axis_tvalid;
+      i_in <= s_axis_tdata[31:0];
+      q_in <= s_axis_tdata[63:32];
+      v_in <= s_axis_tvalid;
     end
   end
 
-  // ------------------------------------------------------------------
-  //  Control FSM + accumulators. run_d0 masks the 1-cycle stage-0 latency so
-  //  the accumulator only counts samples that originated in RUN; the mask is
-  //  flushed on every (re)trigger.
-  // ------------------------------------------------------------------
-  localparam IDLE = 1'b0, RUN = 1'b1;
-  (* mark_debug = "true" *) reg state;
-  reg next_state;
+  (* mark_debug = "true" *) reg armed;
+  (* mark_debug = "true" *) reg [31:0] shot_cnt;
+  (* mark_debug = "true" *) reg [31:0] avg_m1;
+  (* mark_debug = "true" *) reg signed [ACC_WIDTH-1:0] i_acc, q_acc;
 
-  (* mark_debug = "true" *) reg [31:0] sample_cnt;
-  (* mark_debug = "true" *) reg [$clog2(MAX_AVG)-1:0] burst_cnt;
-  (* mark_debug = "true" *) reg signed [SUM_WIDTH-1:0] i_accum, q_accum;     // this shot's window sum
-  (* mark_debug = "true" *) reg signed [SUM_WIDTH-1:0] i_sum_reg, q_sum_reg; // cross-shot running sum (no squaring)
-  (* mark_debug = "true" *) reg finish_delay;
-  // nsamp-1, latched at trigger: keeps the 32-bit decrement out of the
-  // per-sample compare cone (the compare below is == against a flop).
-  (* mark_debug = "true" *) reg [31:0] nsamp_m1_latched;
-  // registered look-ahead of "this shot completes the burst" (same pattern as
-  // peak_finder's last_point_r): the 6-bit add+compare against averager_value
-  // is precomputed one event early, so burst_done and the fold-adder select
-  // are flop-only -- the fold add q_sum_reg+q_accum had become the design's
-  // worst path (-0.035 ns) with the compare sitting in its enable cone.
-  (* mark_debug = "true" *) reg burst_last_r;
+  wire signed [ACC_WIDTH-1:0] i_acc_next = i_acc + {{(ACC_WIDTH-32){i_in[31]}}, i_in};
+  wire signed [ACC_WIDTH-1:0] q_acc_next = q_acc + {{(ACC_WIDTH-32){q_in[31]}}, q_in};
 
-  (* mark_debug = "true" *) reg run_d0;
+  wire acc_en = armed & v_in;
+  wire is_last = (shot_cnt == avg_m1);
+  wire emit_now = acc_en & is_last;
 
-  always @(posedge clk) begin
-    if (!rst_n)
-      run_d0 <= 0;
-    else if (trigger)
-      run_d0 <= 0;
-    else
-      run_d0 <= (state == RUN);
-  end
+  (* mark_debug = "true" *) reg signed [ACC_WIDTH-1:0] sq_in_i, sq_in_q;
 
-  wire acc_en = run_d0 & v_s0;
-  wire emit_now = finish_delay;
-  wire burst_done = (state == RUN) && emit_now && burst_last_r;
-
-  // (1) STATE REGISTER -- synchronous reset
-  always @(posedge clk) begin
-    if (!rst_n)
-      state <= IDLE;
-    else
-      state <= next_state;
-  end
-
-  // (2) NEXT-STATE LOGIC -- a trigger (re)arms RUN from ANY state; absent a
-  //     trigger, RUN returns to IDLE once the shot's window closes. Every
-  //     branch fully specified (else for every if).
-  always @(*) begin
-    if (trigger) begin
-      next_state = RUN;
-    end else begin
-      case (state)
-        IDLE:
-          next_state = IDLE;
-
-        RUN:
-          next_state = emit_now ? IDLE : RUN;
-
-        default:
-          next_state = IDLE;
-      endcase
-    end
-  end
-
-  // (3) DATAPATH -- synchronous reset, driven by the CURRENT state. Fully
-  //     explicit: every register is rewired (reg <= reg) on the paths that
-  //     hold it, and every if has an else. emit_now takes priority over
-  //     acc_en for the shared counters, matching the original design.
   always @(posedge clk) begin
     if (!rst_n) begin
-      sample_cnt <= 0;
-      burst_cnt <= 0;
-      i_accum <= 0;
-      q_accum <= 0;
-      i_sum_reg <= 0;
-      q_sum_reg <= 0;
-      finish_delay <= 0;
-      nsamp_m1_latched <= 0;
-      burst_last_r <= 0;
+      armed <= 1'b0;
+      shot_cnt <= 32'd0;
+      avg_m1 <= 32'd0;
+      i_acc <= 0;
+      q_acc <= 0;
+      sq_in_i <= 0;
+      sq_in_q <= 0;
     end else begin
-      if (trigger) begin
-        // (re)arm a fresh window. If this trigger lands on the exact cycle the
-        // burst completes (trigger && burst_done), FINALIZE still latches the
-        // correct pre-reset totals below -- but the burst state must reset
-        // here exactly as the emit arm would have, or the next point starts
-        // with a stale burst_cnt/sum (latent collision found 2026-07-05).
-        sample_cnt <= 0;
-        i_accum <= 0;
-        q_accum <= 0;
-        finish_delay <= 0;
-        nsamp_m1_latched <= nsamp - 32'd1;
-        burst_cnt <= burst_done ? 0 : burst_cnt;
-        i_sum_reg <= burst_done ? 0 : i_sum_reg;
-        q_sum_reg <= burst_done ? 0 : q_sum_reg;
-        burst_last_r <= burst_done ? (1 >= averager_value) : (burst_cnt + 1 >= averager_value);
+      if (arm) begin
+        armed <= 1'b1;
+        shot_cnt <= 32'd0;
+        avg_m1 <= averager_value - 32'd1;
+        i_acc <= 0;
+        q_acc <= 0;
+        sq_in_i <= sq_in_i;
+        sq_in_q <= sq_in_q;
+      end else if (acc_en) begin
+        avg_m1 <= avg_m1;
+        if (is_last) begin
+          armed <= 1'b0;
+          shot_cnt <= 32'd0;
+          i_acc <= 0;
+          q_acc <= 0;
+          sq_in_i <= i_acc_next;
+          sq_in_q <= q_acc_next;
+        end else begin
+          armed <= 1'b1;
+          shot_cnt <= shot_cnt + 32'd1;
+          i_acc <= i_acc_next;
+          q_acc <= q_acc_next;
+          sq_in_i <= sq_in_i;
+          sq_in_q <= sq_in_q;
+        end
       end else begin
-        case (state)
-          RUN: begin
-            if (emit_now) begin
-              // shot's window done: fold this shot's raw I/Q sum into the
-              // cross-shot running sum -- NO squaring here (coherent).
-              sample_cnt <= 0;
-              i_accum <= 0;
-              q_accum <= 0;
-              finish_delay <= 0;
-              nsamp_m1_latched <= nsamp_m1_latched;
-              if (burst_last_r) begin
-                // last shot of the burst: FINALIZE (below) reads i_sum_reg +
-                // i_accum combinationally THIS cycle, so no fold is needed
-                // here -- just reset for the next burst.
-                burst_cnt <= 0;
-                i_sum_reg <= 0;
-                q_sum_reg <= 0;
-                burst_last_r <= (1 >= averager_value);
-              end else begin
-                burst_cnt <= burst_cnt + 1;
-                i_sum_reg <= i_sum_reg + i_accum;
-                q_sum_reg <= q_sum_reg + q_accum;
-                burst_last_r <= (burst_cnt + 2 >= averager_value);
-              end
-            end else if (acc_en) begin
-              // integrate one raw sample into this shot's window sum
-              i_accum <= i_accum + i_s0;
-              q_accum <= q_accum + q_s0;
-              sample_cnt <= sample_cnt + 1;
-              finish_delay <= (sample_cnt == nsamp_m1_latched) ? 1'b1 : finish_delay;
-              nsamp_m1_latched <= nsamp_m1_latched;
-              burst_cnt <= burst_cnt;
-              i_sum_reg <= i_sum_reg;
-              q_sum_reg <= q_sum_reg;
-              burst_last_r <= burst_last_r;
-            end else begin
-              // idle within the window: hold everything, pulse low
-              i_accum <= i_accum;
-              q_accum <= q_accum;
-              sample_cnt <= sample_cnt;
-              finish_delay <= finish_delay;
-              nsamp_m1_latched <= nsamp_m1_latched;
-              burst_cnt <= burst_cnt;
-              i_sum_reg <= i_sum_reg;
-              q_sum_reg <= q_sum_reg;
-              burst_last_r <= burst_last_r;
-            end
-          end
-
-          IDLE: begin
-            // hold everything, pulse low
-            sample_cnt <= sample_cnt;
-            i_accum <= i_accum;
-            q_accum <= q_accum;
-            finish_delay <= finish_delay;
-            nsamp_m1_latched <= nsamp_m1_latched;
-            burst_cnt <= burst_cnt;
-            i_sum_reg <= i_sum_reg;
-            q_sum_reg <= q_sum_reg;
-            burst_last_r <= burst_last_r;
-          end
-
-          default: begin
-            // spurious state: hold everything, pulse low
-            sample_cnt <= sample_cnt;
-            i_accum <= i_accum;
-            q_accum <= q_accum;
-            finish_delay <= finish_delay;
-            nsamp_m1_latched <= nsamp_m1_latched;
-            burst_cnt <= burst_cnt;
-            i_sum_reg <= i_sum_reg;
-            q_sum_reg <= q_sum_reg;
-            burst_last_r <= burst_last_r;
-          end
-        endcase
+        armed <= armed;
+        shot_cnt <= shot_cnt;
+        avg_m1 <= avg_m1;
+        i_acc <= i_acc;
+        q_acc <= q_acc;
+        sq_in_i <= sq_in_i;
+        sq_in_q <= sq_in_q;
       end
     end
   end
 
-  // ------------------------------------------------------------------
-  //  FINALIZE -- burst-complete squaring, once per POINT (not per sample):
-  //  (i_sum_reg + i_accum)^2 + (q_sum_reg + q_accum)^2. burst_done fires far
-  //  slower than the per-sample path (once every nsamp*averager_value
-  //  cycles), so this gets its own multi-stage pipeline instead of forcing a
-  //  wide multiply/add into the RUN datapath's single cycle. i_total/q_total
-  //  read the PRE-reset values of i_sum_reg/i_accum in the SAME cycle
-  //  burst_done is asserted, so the last shot's contribution is included
-  //  correctly even though the datapath above resets i_sum_reg/q_sum_reg on
-  //  that same edge.
-  //
-  //  Two real timing problems found on hardware (2026-07-05), fixed in order:
-  //  (1) the F2 "sum the squares" add (i_sq_r + q_sq_r, 80 bits) was too deep
-  //      for one cycle (2.159ns vs 1.809ns, -0.406ns WNS). Fixed by splitting
-  //      it into a low-half add (+carry-out) then a high-half add (+carry-in)
-  //      a cycle apart -- see F5/F6 below. This halves the CARRY8 chain
-  //      length per stage.
-  //  (2) the SQUARING itself (i_total_r*i_total_r, 40x40 signed) is ALSO too
-  //      deep for one cycle once Vivado cascades 2 DSP48E2 tiles for it
-  //      (1.9-2.2ns, still -0.2ns WNS after fixing (1)). Tried splitting the
-  //      40-bit magnitude evenly into 20+20 first (2026-07-05): STILL too
-  //      slow (2.14ns) -- DSP48E2's multiplier is 27x18, and 20 exceeds the
-  //      18-bit narrow port on BOTH sides, so Vivado cascaded DSP internals
-  //      for every partial product anyway. Fixed for real by first dropping
-  //      the bottom DROP_BITS of the magnitude (a fixed, uniform right-shift
-  //      -- doesn't change which point is the max; only costs precision on
-  //      near-zero values that never compete for the max anyway), THEN
-  //      splitting the remaining 32 bits evenly into HALF2=16+16 (comfortably
-  //      native, no cascade) and squaring via "long multiplication":
-  //        x = hi*2^HALF2 + lo   =>   x^2 = hi^2<<(2*HALF2) + (2*hi*lo)<<HALF2 + lo^2
-  //      exactly like squaring 37 by hand: 37=30+7, 37^2 = 30^2 + 2*30*7 + 7^2
-  //      = 900+420+49 = 1369. Each of the three products (hi*hi, hi*lo,
-  //      lo*lo) is only HALF2xHALF2 (16x16) -- comfortably one DSP48E2, one
-  //      cycle. Reassembling the three shifted pieces is another wide add,
-  //      so it reuses the SAME low/high split-add technique as (1) -- see
-  //      F3/F4. Squaring only cares about magnitude (x^2 == (-x)^2), so
-  //      everything from F1 on runs on |i_total_r|/|q_total_r| -- no sign
-  //      handling needed anywhere below.
-  //
-  //  (3) 2026-07-06: one register across the multiply still let synthesis
-  //      time the DSP48E2 fully combinationally when it appended a fabric
-  //      CARRY8 after P (MREG and PREG both bypassed; -0.296 ns on one build,
-  //      luck-of-the-run on the next). F2 is now split into F2a (*_m = MREG)
-  //      and F2b (*_r = PREG): two register stages across every multiply,
-  //      guaranteed, build after build. Same pass: burst_last_r look-ahead +
-  //      nsamp_m1_latched moved the avg compare and the nsamp decrement out
-  //      of the per-sample fold/compare cones (the 40-bit fold add
-  //      q_sum_reg+q_accum had become the new worst path at -0.035 ns).
-  //
-  //  None of this costs anything: the whole FINALIZE pipe only advances once
-  //  per point (thousands of idle cycles between bursts), so going from 4
-  //  stages (F0..F3) to 8 (F0..F6 with the F2a/F2b split) is pure extra
-  //  latency, spent for free -- amp_valid arrives one adc cycle later into a
-  //  handshake that already takes several, invisible to peak_finder and to
-  //  software.
-  // ------------------------------------------------------------------
-  wire signed [SUM_WIDTH-1:0] i_total = i_sum_reg + i_accum;
-  wire signed [SUM_WIDTH-1:0] q_total = q_sum_reg + q_accum;
+  (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2, fin_v3, fin_v4;
 
-  // HALF2 must be <=18: DSP48E2's multiplier is 27x18 (one operand can be up
-  // to 27 bits, but the NARROW port caps at 18) -- a straight 20x20 split
-  // (SUM_WIDTH/2) still exceeds that on both sides, so Vivado cascaded DSP
-  // internals for every partial product (2026-07-05: 2.140ns vs 1.809ns,
-  // still violating). Instead, drop the bottom DROP_BITS of the magnitude
-  // before squaring (a fixed, uniform right-shift -- doesn't change which
-  // point is the max, and only costs precision on near-zero values that
-  // never compete for the max anyway), then split the remaining 32 bits
-  // evenly into HALF2=16+16 -- comfortably native, no cascade, one cycle.
-  localparam HALF2 = 16;
-  localparam DROP_BITS = SUM_WIDTH - 2 * HALF2;
-  localparam LOW_WIDTH = ACCUM_WIDTH / 2;
-  localparam HIGH_WIDTH = ACCUM_WIDTH - LOW_WIDTH;
+  (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] i_mag, q_mag;
 
-  (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2, fin_v3, fin_v4, fin_v5, fin_v6;
-  reg signed [SUM_WIDTH-1:0] i_total_r, q_total_r;
+  reg [31:0] i_sq0, i_sq1, i_sq2, i_sq3;
+  reg [31:0] i_c01, i_c02, i_c03, i_c12, i_c13, i_c23;
+  reg [31:0] q_sq0, q_sq1, q_sq2, q_sq3;
+  reg [31:0] q_c01, q_c02, q_c03, q_c12, q_c13, q_c23;
 
-  // F1: magnitude only -- squaring doesn't need the sign
-  reg [SUM_WIDTH-1:0] i_mag_r, q_mag_r;
+  reg [AMP_WIDTH-1:0] i_squares_r, q_squares_r;
+  reg [AMP_WIDTH-1:0] i_cross_r, q_cross_r;
 
-  // F2: the three "long multiplication" partial products -- each is
-  // HALF2xHALF2 (16x16), comfortably native (<=18-bit DSP48E2 port), so it
-  // fits one DSP48E2 in one cycle instead of needing a slow multi-tile
-  // cascade. hi/lo are the TOP 32 bits of the magnitude (i.e. the bottom
-  // DROP_BITS are discarded before squaring -- see the note above).
-  // F2a lands each product in a dedicated *_m register (packs as the DSP48E2
-  // MREG); F2b copies it -- no logic between -- into *_r (packs as PREG).
-  // Verify after synth with report_property on the six DSPs: MREG==1 and
-  // PREG==1. If a fabric CARRY8 ever reappears between P and *_r, de-share
-  // the i_mag_r/q_mag_r operand slices (one dedicated operand copy per DSP).
-  reg [2*HALF2-1:0] i_hi_sq_m, i_lo_sq_m, i_cross_m;
-  reg [2*HALF2-1:0] q_hi_sq_m, q_lo_sq_m, q_cross_m;
-  reg [2*HALF2-1:0] i_hi_sq_r, i_lo_sq_r, i_cross_r;
-  reg [2*HALF2-1:0] q_hi_sq_r, q_lo_sq_r, q_cross_r;
+  (* mark_debug = "true" *) reg [AMP_WIDTH-1:0] i_sq, q_sq;
 
-  // combinational: the cross term positioned where it belongs (shifted left
-  // by HALF2+1, per the "2*hi*lo" term above) -- pure wiring, no logic delay.
-  wire [ACCUM_WIDTH-1:0] i_cross_wide = ({{(ACCUM_WIDTH-2*HALF2){1'b0}}, i_cross_r}) << (HALF2 + 1);
-  wire [ACCUM_WIDTH-1:0] q_cross_wide = ({{(ACCUM_WIDTH-2*HALF2){1'b0}}, q_cross_r}) << (HALF2 + 1);
+  wire [AMP_WIDTH-1:0] i_squares_w = {i_sq3, i_sq2, i_sq1, i_sq0};
+  wire [AMP_WIDTH-1:0] q_squares_w = {q_sq3, q_sq2, q_sq1, q_sq0};
 
-  // F3/F4: reassemble x^2 = hi^2<<(2*HALF2) + cross<<(HALF2+1) + lo^2 via the
-  // same low/high split-add as F5/F6 use for the final sum. hi^2 and lo^2
-  // land in disjoint bit ranges (free concatenation); the cross term is the
-  // only piece that needs a real carry-propagating add.
-  reg [LOW_WIDTH-1:0] i_sq_lo_r, q_sq_lo_r;
-  reg i_sq_carry_r, q_sq_carry_r;
-  reg [HIGH_WIDTH-1:0] i_hi_sq_fwd_r, q_hi_sq_fwd_r;
-  reg [HIGH_WIDTH-1:0] i_cross_hi_fwd_r, q_cross_hi_fwd_r;
-  reg [ACCUM_WIDTH-1:0] i_sq_r, q_sq_r;
-
-  // combinational: F4's high-half sum, computed at an explicitly-declared
-  // width (not embedded raw inside a concatenation, where Verilog would
-  // size it self-determined off the operands instead of the target -- same
-  // safe pattern as `sum_hi` below).
-  wire [HIGH_WIDTH-1:0] i_sq_hi_sum = i_hi_sq_fwd_r + i_cross_hi_fwd_r + i_sq_carry_r;
-  wire [HIGH_WIDTH-1:0] q_sq_hi_sum = q_hi_sq_fwd_r + q_cross_hi_fwd_r + q_sq_carry_r;
-
-  // F5/F6: the final i^2 + q^2, split the same way (unchanged from the
-  // earlier fix).
-  reg [HIGH_WIDTH-1:0] i_sq_hi_r, q_sq_hi_r;
-  reg [LOW_WIDTH-1:0] sum_lo_r;
-  reg carry_r;
-
-  wire [HIGH_WIDTH-1:0] sum_hi = i_sq_hi_r + q_sq_hi_r + carry_r;
+  wire [AMP_WIDTH-1:0] i_cross_w = ({{(AMP_WIDTH-32){1'b0}}, i_c01} << 17)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, i_c02} << 33)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, i_c03} << 49)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, i_c12} << 49)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, i_c13} << 65)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, i_c23} << 81);
+  wire [AMP_WIDTH-1:0] q_cross_w = ({{(AMP_WIDTH-32){1'b0}}, q_c01} << 17)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, q_c02} << 33)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, q_c03} << 49)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, q_c12} << 49)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, q_c13} << 65)
+                                 + ({{(AMP_WIDTH-32){1'b0}}, q_c23} << 81);
 
   always @(posedge clk) begin
     if (!rst_n) begin
@@ -378,126 +140,97 @@ module amplitude_calculator #(
       fin_v2 <= 1'b0;
       fin_v3 <= 1'b0;
       fin_v4 <= 1'b0;
-      fin_v5 <= 1'b0;
-      fin_v6 <= 1'b0;
-      i_total_r <= 0;
-      q_total_r <= 0;
-      i_mag_r <= 0;
-      q_mag_r <= 0;
-      i_hi_sq_m <= 0;
-      i_lo_sq_m <= 0;
-      i_cross_m <= 0;
-      q_hi_sq_m <= 0;
-      q_lo_sq_m <= 0;
-      q_cross_m <= 0;
-      i_hi_sq_r <= 0;
-      i_lo_sq_r <= 0;
+      i_mag <= 0;
+      q_mag <= 0;
+      i_sq0 <= 0;
+      i_sq1 <= 0;
+      i_sq2 <= 0;
+      i_sq3 <= 0;
+      i_c01 <= 0;
+      i_c02 <= 0;
+      i_c03 <= 0;
+      i_c12 <= 0;
+      i_c13 <= 0;
+      i_c23 <= 0;
+      q_sq0 <= 0;
+      q_sq1 <= 0;
+      q_sq2 <= 0;
+      q_sq3 <= 0;
+      q_c01 <= 0;
+      q_c02 <= 0;
+      q_c03 <= 0;
+      q_c12 <= 0;
+      q_c13 <= 0;
+      q_c23 <= 0;
+      i_squares_r <= 0;
+      q_squares_r <= 0;
       i_cross_r <= 0;
-      q_hi_sq_r <= 0;
-      q_lo_sq_r <= 0;
       q_cross_r <= 0;
-      i_sq_lo_r <= 0;
-      q_sq_lo_r <= 0;
-      i_sq_carry_r <= 1'b0;
-      q_sq_carry_r <= 1'b0;
-      i_hi_sq_fwd_r <= 0;
-      q_hi_sq_fwd_r <= 0;
-      i_cross_hi_fwd_r <= 0;
-      q_cross_hi_fwd_r <= 0;
-      i_sq_r <= 0;
-      q_sq_r <= 0;
-      i_sq_hi_r <= 0;
-      q_sq_hi_r <= 0;
-      sum_lo_r <= 0;
-      carry_r <= 1'b0;
+      i_sq <= 0;
+      q_sq <= 0;
       m_axis_tdata <= 0;
       m_axis_tvalid <= 1'b0;
     end else begin
-      // F0: latch the completed burst's coherent totals
-      fin_v0 <= burst_done;
-      i_total_r <= i_total;
-      q_total_r <= q_total;
+      fin_v0 <= emit_now;
+      i_mag <= sq_in_i[ACC_WIDTH-1] ? (~sq_in_i + 1'b1) : sq_in_i;
+      q_mag <= sq_in_q[ACC_WIDTH-1] ? (~sq_in_q + 1'b1) : sq_in_q;
 
-      // F1: magnitude (squaring doesn't need the sign: x^2 == (-x)^2)
       fin_v1 <= fin_v0;
-      i_mag_r <= i_total_r[SUM_WIDTH-1] ? (~i_total_r + 1'b1) : i_total_r;
-      q_mag_r <= q_total_r[SUM_WIDTH-1] ? (~q_total_r + 1'b1) : q_total_r;
+      i_sq0 <= i_mag[15:0]  * i_mag[15:0];
+      i_sq1 <= i_mag[31:16] * i_mag[31:16];
+      i_sq2 <= i_mag[47:32] * i_mag[47:32];
+      i_sq3 <= i_mag[63:48] * i_mag[63:48];
+      i_c01 <= i_mag[15:0]  * i_mag[31:16];
+      i_c02 <= i_mag[15:0]  * i_mag[47:32];
+      i_c03 <= i_mag[15:0]  * i_mag[63:48];
+      i_c12 <= i_mag[31:16] * i_mag[47:32];
+      i_c13 <= i_mag[31:16] * i_mag[63:48];
+      i_c23 <= i_mag[47:32] * i_mag[63:48];
+      q_sq0 <= q_mag[15:0]  * q_mag[15:0];
+      q_sq1 <= q_mag[31:16] * q_mag[31:16];
+      q_sq2 <= q_mag[47:32] * q_mag[47:32];
+      q_sq3 <= q_mag[63:48] * q_mag[63:48];
+      q_c01 <= q_mag[15:0]  * q_mag[31:16];
+      q_c02 <= q_mag[15:0]  * q_mag[47:32];
+      q_c03 <= q_mag[15:0]  * q_mag[63:48];
+      q_c12 <= q_mag[31:16] * q_mag[47:32];
+      q_c13 <= q_mag[31:16] * q_mag[63:48];
+      q_c23 <= q_mag[47:32] * q_mag[63:48];
 
-      // F2a: long-multiplication partial products (hi*hi, hi*lo, lo*lo), each
-      // HALF2xHALF2 -- comfortably one DSP48E2, one cycle. hi/lo skip the
-      // bottom DROP_BITS of the magnitude (dropped, not used anywhere below).
-      // The *_m register packs as the DSP's MREG.
       fin_v2 <= fin_v1;
-      i_hi_sq_m <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
-      i_lo_sq_m <= i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      i_cross_m <= i_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * i_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      q_hi_sq_m <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2];
-      q_lo_sq_m <= q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
-      q_cross_m <= q_mag_r[SUM_WIDTH-1:SUM_WIDTH-HALF2] * q_mag_r[SUM_WIDTH-HALF2-1:DROP_BITS];
+      i_squares_r <= i_squares_w;
+      q_squares_r <= q_squares_w;
+      i_cross_r <= i_cross_w;
+      q_cross_r <= q_cross_w;
 
-      // F2b: plain copy *_m -> *_r, no logic between -- packs as the DSP's
-      // PREG, so the multiply always gets two register stages and can never
-      // fall back to covering a full 1.809 ns period combinationally.
       fin_v3 <= fin_v2;
-      i_hi_sq_r <= i_hi_sq_m;
-      i_lo_sq_r <= i_lo_sq_m;
-      i_cross_r <= i_cross_m;
-      q_hi_sq_r <= q_hi_sq_m;
-      q_lo_sq_r <= q_lo_sq_m;
-      q_cross_r <= q_cross_m;
+      i_sq <= i_squares_r + i_cross_r;
+      q_sq <= q_squares_r + q_cross_r;
 
-      // F3: fold the cross term's LOW half into lo^2 (short carry chain),
-      // capture the carry-out; forward hi^2 and the cross term's HIGH half
-      // untouched for F4.
       fin_v4 <= fin_v3;
-      {i_sq_carry_r, i_sq_lo_r} <= i_lo_sq_r + i_cross_wide[LOW_WIDTH-1:0];
-      {q_sq_carry_r, q_sq_lo_r} <= q_lo_sq_r + q_cross_wide[LOW_WIDTH-1:0];
-      i_hi_sq_fwd_r <= i_hi_sq_r;
-      q_hi_sq_fwd_r <= q_hi_sq_r;
-      i_cross_hi_fwd_r <= i_cross_wide[ACCUM_WIDTH-1:LOW_WIDTH];
-      q_cross_hi_fwd_r <= q_cross_wide[ACCUM_WIDTH-1:LOW_WIDTH];
-
-      // F4: add hi^2 + cross-HIGH + carry-in (short chain, `i_sq_hi_sum`/
-      // `q_sq_hi_sum` above) -- present the exact i^2/q^2.
-      fin_v5 <= fin_v4;
-      i_sq_r <= {i_sq_hi_sum, i_sq_lo_r};
-      q_sq_r <= {q_sq_hi_sum, q_sq_lo_r};
-
-      // F5: add the LOW halves of i^2 + q^2 (short carry chain) and capture
-      // the carry out; forward the HIGH halves untouched for F6.
-      fin_v6 <= fin_v5;
-      {carry_r, sum_lo_r} <= i_sq_r[LOW_WIDTH-1:0] + q_sq_r[LOW_WIDTH-1:0];
-      i_sq_hi_r <= i_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
-      q_sq_hi_r <= q_sq_r[ACCUM_WIDTH-1:LOW_WIDTH];
-
-      // F6: add the HIGH halves + carry-in (short chain, `sum_hi` above) and
-      // join with the already-computed LOW half -- present the result.
-      m_axis_tvalid <= fin_v6;
-      m_axis_tdata <= {sum_hi, sum_lo_r};
+      m_axis_tvalid <= fin_v4;
+      m_axis_tdata <= i_sq + q_sq;
     end
   end
 
-  // ============================== DEBUG PROBES ==============================
-  // ILA taps for signals that are NOT already registers (rst_n/s_axis_tvalid/
-  // s_axis_tdata/trigger are input nets) -- sampled into a flop so the debug
-  // hub only connects to a register output. All state/decision/result
-  // registers (state, sample_cnt, burst_cnt, i_accum/q_accum, i_sum_reg/
-  // q_sum_reg, finish_delay, nsamp_m1_latched, burst_last_r, run_d0,
-  // fin_v0..fin_v6, m_axis_tdata, m_axis_tvalid) are mark_debug'd in place
-  // above (NOTE for ILA reuse: nsamp_latched was replaced by nsamp_m1_latched,
-  // expected value NSAMP-1, e.g. 189 for NSAMP=190) -- the
-  // FINALIZE arithmetic intermediates (i_mag_r, i_hi_sq_r, i_sq_r, etc.) are
-  // deliberately left unprobed to keep debug-hub fanout down. acc_en/
-  // burst_done are combinational, so they get a flop here too.
+  (* mark_debug = "true" *) reg s_axis_tvalid_dbg;
+  (* mark_debug = "true" *) reg [63:0] s_axis_tdata_dbg;
+  (* mark_debug = "true" *) reg arm_dbg;
   (* mark_debug = "true" *) reg acc_en_dbg;
-  (* mark_debug = "true" *) reg burst_done_dbg;
+  (* mark_debug = "true" *) reg emit_now_dbg;
   always @(posedge clk) begin
     if (!rst_n) begin
+      s_axis_tvalid_dbg <= 1'b0;
+      s_axis_tdata_dbg <= 64'd0;
+      arm_dbg <= 1'b0;
       acc_en_dbg <= 1'b0;
-      burst_done_dbg <= 1'b0;
+      emit_now_dbg <= 1'b0;
     end else begin
+      s_axis_tvalid_dbg <= s_axis_tvalid;
+      s_axis_tdata_dbg <= s_axis_tdata;
+      arm_dbg <= arm;
       acc_en_dbg <= acc_en;
-      burst_done_dbg <= burst_done;
+      emit_now_dbg <= emit_now;
     end
   end
 
