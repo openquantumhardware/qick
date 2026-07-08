@@ -29,7 +29,7 @@ initial begin
 end
 
 logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
-logic [PHASE_WIDTH-1:0] phase_acc = 0;     // phase accumulator result
+logic [PHASE_WIDTH-1:0] phase_acc;     // phase accumulator result
 logic [PHASE_WIDTH-1:0] phase_seed;    // initial phase
 logic        sync;          // strobe bit
 // logic [31:0] m_axis_data_tdata_temp = '0;

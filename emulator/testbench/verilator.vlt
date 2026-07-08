@@ -1,4 +1,11 @@
 `verilator_config
+
+// Suppress all warnings from Pulp Platform submodules
+lint_off -file "*/pulp_platform/*"
+
+lint_off -rule UNUSEDSIGNAL
+lint_off -rule UNUSEDPARAM
+
 // Suppress UNSUPPORTED for virtual interfaces in PULP AXI test VIP
 // Only the AXI-Lite rand_master class is used; full AXI VIP virtual
 // interfaces are unused but Verilator 5.x errors on them regardless.

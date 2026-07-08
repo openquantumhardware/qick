@@ -108,41 +108,41 @@ assign wreg_32_we    = we_i & wreg_32_en;
 // DATA, WAVE and SFR REGISTER BANK
 always_ff @ (posedge clk_i, negedge rst_ni) begin
    if (!rst_ni) begin 
-      dreg_32_dt                 = '{default:'0};
-      wreg_32_dt                 = '{default:'0};
-      sreg_dt                    = '{default:'0};
-      sreg_cfg_dt                = 0;
-      sreg_ctrl_dt               = 0;
+      dreg_32_dt                 <= '{default:'0};
+      wreg_32_dt                 <= '{default:'0};
+      sreg_dt                    <= '{default:'0};
+      sreg_cfg_dt                <= 0;
+      sreg_ctrl_dt               <= 0;
    end else if (clear_i) begin
-      dreg_32_dt                 = '{default:'0};
-      wreg_32_dt                 = '{default:'0};
-      sreg_dt                    = '{default:'0};
-      sreg_cfg_dt                = 0;
-      sreg_ctrl_dt               = 0;
+      dreg_32_dt                 <= '{default:'0};
+      wreg_32_dt                 <= '{default:'0};
+      sreg_dt                    <= '{default:'0};
+      sreg_cfg_dt                <= 0;
+      sreg_ctrl_dt               <= 0;
    end else begin
       if (~halt_i) begin
          if (dreg_32_we)   
-            dreg_32_dt [dreg_32_addr]  = w_dt_i;
+            dreg_32_dt [dreg_32_addr]  <= w_dt_i;
          if (wreg_32_we)
-            wreg_32_dt [wreg_32_addr]  = w_dt_i;
+            wreg_32_dt [wreg_32_addr]  <= w_dt_i;
          else if (wave_we_i) begin
-            wreg_32_dt [5]  = wave_dt_i[167:152];
-            wreg_32_dt [4]  = wave_dt_i[151:120];
-            wreg_32_dt [3]  = wave_dt_i[119: 88];
-            wreg_32_dt [2]  = wave_dt_i[ 87: 64];
-            wreg_32_dt [1]  = wave_dt_i[ 63: 32];
-            wreg_32_dt [0]  = wave_dt_i[ 31:  0];
+            wreg_32_dt [5]  <= wave_dt_i[167:152];
+            wreg_32_dt [4]  <= wave_dt_i[151:120];
+            wreg_32_dt [3]  <= wave_dt_i[119: 88];
+            wreg_32_dt [2]  <= wave_dt_i[ 87: 64];
+            wreg_32_dt [1]  <= wave_dt_i[ 63: 32];
+            wreg_32_dt [0]  <= wave_dt_i[ 31:  0];
          end
          if (sreg_we)   
-           sreg_dt [w_addr_i[1:0]]  = w_dt_i;
+           sreg_dt [w_addr_i[1:0]]  <= w_dt_i;
          if (sreg_cfg_we) begin   
-           sreg_cfg_dt                  = w_dt_i[7:0];
-           sreg_ctrl_dt                 = w_dt_i[23:16];
+           sreg_cfg_dt                  <= w_dt_i[7:0];
+           sreg_ctrl_dt                 <= w_dt_i[23:16];
          end else if (|sreg_ctrl_dt)
-           sreg_ctrl_dt                 = 8'd0;
+           sreg_ctrl_dt                 <= 8'd0;
          
        // Not Used Register to GND
-           sreg_dt [3][31:16] = '{default:'0};
+           sreg_dt [3][31:16] <= '{default:'0};
       end
    end
 end

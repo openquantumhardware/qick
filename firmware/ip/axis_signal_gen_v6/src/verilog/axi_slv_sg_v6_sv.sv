@@ -384,8 +384,6 @@ module axi_slv_sg_v6_sv #(parameter DATA_WIDTH = 32, parameter ADDR_WIDTH = 6)(
     assign slv_reg_rden = axi_arready && arvalid && (~axi_rvalid);
 
     always_comb begin : decoding_regs_no_aclk
-        logic [OPT_MEM_ADDR_BITS:ADDR_LSB] loc_addr;
-
         case (loc_addr)
             'b0000: reg_data_out = slv_reg0;
             'b0001: reg_data_out = slv_reg1;

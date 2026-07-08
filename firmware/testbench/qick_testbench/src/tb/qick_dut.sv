@@ -1466,7 +1466,7 @@ module qick_dut #(
    logic [64:0] buf_avg_abs_dbg;
    always @(posedge ps_clk) begin
       if (m0_axis_buf0_avg_tvalid) begin
-         buf_avg_abs_dbg = $signed(m0_axis_buf0_avg_tdata[31:0]) * $signed(m0_axis_buf0_avg_tdata[31:0]) + 
+         buf_avg_abs_dbg <= $signed(m0_axis_buf0_avg_tdata[31:0]) * $signed(m0_axis_buf0_avg_tdata[31:0]) + 
                               $signed(m0_axis_buf0_avg_tdata[63:32]) * $signed(m0_axis_buf0_avg_tdata[63:32]);
       end
    end
@@ -1475,7 +1475,7 @@ module qick_dut #(
    logic [32:0] buf_dec_abs_dbg;
    always @(posedge ps_clk) begin
       if (m1_axis_buf0_dec_tvalid) begin
-         buf_dec_abs_dbg = $signed(m1_axis_buf0_dec_tdata[15:0]) * $signed(m1_axis_buf0_dec_tdata[15:0]) + 
+         buf_dec_abs_dbg <= $signed(m1_axis_buf0_dec_tdata[15:0]) * $signed(m1_axis_buf0_dec_tdata[15:0]) + 
                               $signed(m1_axis_buf0_dec_tdata[31:16]) * $signed(m1_axis_buf0_dec_tdata[31:16]);
       end
    end
@@ -1528,6 +1528,15 @@ module qick_dut #(
       .m1_axis_tvalid    (axis_ro1_avg1_tvalid  ),
       .m1_axis_tdata     (axis_ro1_avg1_tdata   )
    );
+   `else
+      assign s_axi_rov2_awready = 0;
+      assign s_axi_rov2_wready = 0;
+      assign s_axi_rov2_bresp = 0;
+      assign s_axi_rov2_bvalid = 0;
+      assign s_axi_rov2_arready = 0;
+      assign s_axi_rov2_rdata = 0;
+      assign s_axi_rov2_rresp = 0;
+      assign s_axi_rov2_rvalid = 0;
    `endif
 
    wire              axis_ro1_avg1_tready;

@@ -17,7 +17,7 @@ module automatic model_DAC #(
 
    // DAC processing
    always @(posedge clk_DAC) begin
-      dac_signal_rf = $signed(dac_sample) / 2.0**(DAC_W-1);
+      dac_signal_rf <= $signed(dac_sample) / 2.0**(DAC_W-1);
 
       // $display("[%0t ns] DAC sample: %f", $time, dac_signal_rf);
    end
@@ -58,12 +58,12 @@ module automatic model_ADC #(
    end
 
    // DAC processing
-   always @(posedge clk_DAC) begin
-      real t_dac = $realtime /* * 1e-9*/;
-
+   always_comb begin
       buffer_samples[wr_ptr] = dac_signal_rf;
-      buffer_times[wr_ptr] = t_dac;
-      wr_ptr = (wr_ptr + 1) % BUFFER_SIZE;
+      buffer_times[wr_ptr] = $realtime /* * 1e-9*/;
+   end
+   always @(posedge clk_DAC) begin
+      wr_ptr <= (wr_ptr + 1) % BUFFER_SIZE;
    end
 
    // // To see buffer in Verilator
@@ -73,36 +73,46 @@ module automatic model_ADC #(
    // real buf_time_3 = buffer_times[3];
 
    // ADC processing
-   always @(posedge clk_ADC) begin
-      real t_adc = $realtime /* * 1e-9*/;
-      real val;
+   real t_adc;
+   real val;
+   int idx_last;
+   int idx_curr;
+   int idx_prev;
+   real t1;
+   real t2;
+   real y1;
+   real y2;
+
+   always_comb begin
+      t_adc = $realtime /* * 1e-9*/;
       case (mode)
          0: begin
-               // ZOH: last value
-               int idx_last = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
-               val = buffer_samples[idx_last];
+            // ZOH: last value
+            idx_last = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
+            val = buffer_samples[idx_last];
          end
          1: begin
-               // Linear: use last 2 samples to interpolate
-               int idx_curr = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
-               int idx_prev = (wr_ptr + BUFFER_SIZE - 2) % BUFFER_SIZE;
-               real t1 = buffer_times[idx_prev];
-               real t2 = buffer_times[idx_curr];
-               real y1 = buffer_samples[idx_prev];
-               real y2 = buffer_samples[idx_curr];
-               if (t2 != t1)
-                  val = y1 + (t_adc - t1) * (y2 - y1)/(t2 - t1);
-               else
-                  val = y2;
+            // Linear: use last 2 samples to interpolate
+            idx_curr = (wr_ptr + BUFFER_SIZE - 1) % BUFFER_SIZE;
+            idx_prev = (wr_ptr + BUFFER_SIZE - 2) % BUFFER_SIZE;
+            t1 = buffer_times[idx_prev];
+            t2 = buffer_times[idx_curr];
+            y1 = buffer_samples[idx_prev];
+            y2 = buffer_samples[idx_curr];
+            if (t2 != t1)
+               val = y1 + (t_adc - t1) * (y2 - y1)/(t2 - t1);
+            else
+               val = y2;
          end
          default: val = 0.0;
       endcase
-
       if (val > 1.0)          sampled_ADC = 1.0;
       else if (val < -1.0)    sampled_ADC = -1.0;
       else                    sampled_ADC = val;
-      adc_sample = sampled_ADC * $signed(2**(ADC_W-1)-1);
+   end
 
+   always @(posedge clk_ADC) begin
+      adc_sample <= sampled_ADC * $signed(2**(ADC_W-1)-1);
       // $display("[%0t ns] ADC sample (mode %0d): %f", $time, mode, sampled_ADC);
    end
 

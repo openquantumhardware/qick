@@ -447,20 +447,20 @@ always_ff @ (posedge ps_clk_i, negedge ps_rst_ni) begin
    if (!ps_rst_ni) begin
       xreg_TPROC_R_DT       <= '{default:'0} ;
    end else begin
-       case (tproc_src_dt)
-          4'd0 : xreg_TPROC_R_DT = xreg_TPROC_W_DT ; 
-          4'd1 : xreg_TPROC_R_DT = core0_w_dt ;
-          4'd2 : xreg_TPROC_R_DT = core1_w_dt ;
-          4'd3 : xreg_TPROC_R_DT = {div_quotient  ,div_remainder };
-          4'd4 : xreg_TPROC_R_DT = '{arith_result[31:0], arith_result[63:32]};
-          4'd5 : xreg_TPROC_R_DT = qnet_dt_r ;
-          4'd6 : xreg_TPROC_R_DT = qcom_dt_r;
-          4'd7 : xreg_TPROC_R_DT = qp1_dt_r;
-          4'd8 : xreg_TPROC_R_DT = qp2_dt_r;
-          4'd9 : xreg_TPROC_R_DT = '{in_port_dt_r[0][31:0], in_port_dt_r[0][63:32]};
-          4'd10: xreg_TPROC_R_DT = '{core0_lfsr, core1_lfsr}; 
-          default: xreg_TPROC_R_DT = '{default:'0} ;
-       endcase
+      case (tproc_src_dt)
+         4'd0 : xreg_TPROC_R_DT <= xreg_TPROC_W_DT ; 
+         4'd1 : xreg_TPROC_R_DT <= core0_w_dt ;
+         4'd2 : xreg_TPROC_R_DT <= core1_w_dt ;
+         4'd3 : xreg_TPROC_R_DT <= {div_quotient  ,div_remainder };
+         4'd4 : xreg_TPROC_R_DT <= '{arith_result[31:0], arith_result[63:32]};
+         4'd5 : xreg_TPROC_R_DT <= qnet_dt_r ;
+         4'd6 : xreg_TPROC_R_DT <= qcom_dt_r;
+         4'd7 : xreg_TPROC_R_DT <= qp1_dt_r;
+         4'd8 : xreg_TPROC_R_DT <= qp2_dt_r;
+         4'd9 : xreg_TPROC_R_DT <= '{in_port_dt_r[0][31:0], in_port_dt_r[0][63:32]};
+         4'd10: xreg_TPROC_R_DT <= '{core0_lfsr, core1_lfsr}; 
+         default: xreg_TPROC_R_DT <= '{default:'0} ;
+      endcase
    end
 end
 
