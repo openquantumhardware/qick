@@ -1,20 +1,4 @@
 `timescale 1ns / 1ps
-//------------------------------------------------------------------------------
-// fine_tuning_sweep -- single-clock autonomous sweep controller.
-//
-//   s_axis carries the avg_buffer m2 accumulated stream (one 64-bit {Q,I} word
-//   per shot), brought into the core clock by an external axis_clock_converter,
-//   so there is no internal CDC. amplitude_calculator sums averager_value shots
-//   and squares (Karatsuba I^2+Q^2); peak_finder runs the sweep FSM + argmax.
-//   Everything runs on clk.
-//
-// QP2 opcode map:
-//   OP 0: dt1=start_freq dt3=step                  -- sweep config
-//   OP 4: dt1=n_points   dt2=averager_value        -- sweep config (shots/point)
-//   OP 1: (no data)                                -- start the sweep
-//   OP 2: IP-> dt1=freq_word dt2={30'd0,freq_valid,finish}
-//   OP 3: (no data)                                -- reset_max pulse
-//------------------------------------------------------------------------------
 
 module fine_tuning_sweep #(
   parameter ACC_WIDTH = 64
@@ -28,20 +12,19 @@ module fine_tuning_sweep #(
   input wire [31:0] qtag_dt2_i,
   input wire [31:0] qtag_dt3_i,
   input wire [31:0] qtag_dt4_i,
-  output reg qtag_rdy_o,
-  output reg [31:0] qtag_dt1_o,
+  (* mark_debug = "true" *) output reg qtag_rdy_o,
+  (* mark_debug = "true" *) output reg [31:0] qtag_dt1_o,
   output reg [31:0] qtag_dt2_o,
-  output reg qtag_vld_o,
+  (* mark_debug = "true" *) output reg qtag_vld_o,
 
-  input wire trigger,
-
-  input wire s_axis_aclk,
-  input wire s_axis_aresetn,
   input wire s_axis_tvalid,
+  output wire s_axis_tready,
   input wire [63:0] s_axis_tdata
 );
 
   localparam AMP_WIDTH = 2 * ACC_WIDTH;
+
+  assign s_axis_tready = 1'b1;
 
   reg en_d;
   wire en_rise = qtag_en_i & ~en_d;
@@ -54,8 +37,6 @@ module fine_tuning_sweep #(
   end
 
   wire start_now = en_rise & (qtag_op_i == 5'd1);
-  wire reset_max_now = en_rise & (qtag_op_i == 5'd3);
-  wire op2_read = en_rise & (qtag_op_i == 5'd2);
 
   (* mark_debug = "true" *) reg [31:0] reg_start;
   (* mark_debug = "true" *) reg [31:0] reg_step;
@@ -68,113 +49,43 @@ module fine_tuning_sweep #(
   wire [AMP_WIDTH-1:0] max_amplitude;
   wire [31:0] freq_at_max;
 
-  (* mark_debug = "true" *) reg sticky_freq_valid;
-  (* mark_debug = "true" *) reg sticky_finish;
-
   always @(posedge clk) begin
     if (!rst_n) begin
-      qtag_vld_o <= 1'b0;
-      qtag_dt1_o <= 32'd0;
-      qtag_dt2_o <= 32'd0;
       reg_start <= 32'd0;
       reg_step <= 32'd0;
       reg_npoints <= 32'd0;
       reg_avg <= 32'd0;
+    end else if (en_rise & (qtag_op_i == 5'd0)) begin
+      reg_start <= qtag_dt1_i;
+      reg_step <= qtag_dt2_i;
+      reg_npoints <= qtag_dt3_i;
+      reg_avg <= qtag_dt4_i;
     end else begin
-      if (en_rise) begin
-        case (qtag_op_i)
-          5'd0: begin
-            reg_start <= qtag_dt1_i;
-            reg_step <= qtag_dt3_i;
-            reg_npoints <= reg_npoints;
-            reg_avg <= reg_avg;
-            qtag_dt1_o <= qtag_dt1_o;
-            qtag_dt2_o <= qtag_dt2_o;
-            qtag_vld_o <= 1'b0;
-          end
-
-          5'd4: begin
-            reg_start <= reg_start;
-            reg_step <= reg_step;
-            reg_npoints <= qtag_dt1_i;
-            reg_avg <= qtag_dt2_i;
-            qtag_dt1_o <= qtag_dt1_o;
-            qtag_dt2_o <= qtag_dt2_o;
-            qtag_vld_o <= 1'b0;
-          end
-
-          5'd1: begin
-            reg_start <= reg_start;
-            reg_step <= reg_step;
-            reg_npoints <= reg_npoints;
-            reg_avg <= reg_avg;
-            qtag_dt1_o <= qtag_dt1_o;
-            qtag_dt2_o <= qtag_dt2_o;
-            qtag_vld_o <= 1'b0;
-          end
-
-          5'd2: begin
-            reg_start <= reg_start;
-            reg_step <= reg_step;
-            reg_npoints <= reg_npoints;
-            reg_avg <= reg_avg;
-            qtag_dt1_o <= pf_freq_word;
-            qtag_dt2_o <= {30'd0, sticky_freq_valid, sticky_finish};
-            qtag_vld_o <= 1'b1;
-          end
-
-          5'd3: begin
-            reg_start <= reg_start;
-            reg_step <= reg_step;
-            reg_npoints <= reg_npoints;
-            reg_avg <= reg_avg;
-            qtag_dt1_o <= qtag_dt1_o;
-            qtag_dt2_o <= qtag_dt2_o;
-            qtag_vld_o <= 1'b0;
-          end
-
-          default: begin
-            reg_start <= reg_start;
-            reg_step <= reg_step;
-            reg_npoints <= reg_npoints;
-            reg_avg <= reg_avg;
-            qtag_dt1_o <= qtag_dt1_o;
-            qtag_dt2_o <= qtag_dt2_o;
-            qtag_vld_o <= 1'b0;
-          end
-        endcase
-      end else begin
-        reg_start <= reg_start;
-        reg_step <= reg_step;
-        reg_npoints <= reg_npoints;
-        reg_avg <= reg_avg;
-        qtag_dt1_o <= qtag_dt1_o;
-        qtag_dt2_o <= qtag_dt2_o;
-        qtag_vld_o <= 1'b0;
-      end
+      reg_start <= reg_start;
+      reg_step <= reg_step;
+      reg_npoints <= reg_npoints;
+      reg_avg <= reg_avg;
     end
   end
 
   always @(posedge clk) begin
-    if (!rst_n)
-      sticky_freq_valid <= 1'b0;
-    else if (pf_freq_valid)
-      sticky_freq_valid <= 1'b1;
-    else if (op2_read)
-      sticky_freq_valid <= 1'b0;
-    else
-      sticky_freq_valid <= sticky_freq_valid;
-  end
-
-  always @(posedge clk) begin
-    if (!rst_n)
-      sticky_finish <= 1'b0;
-    else if (pf_finish)
-      sticky_finish <= 1'b1;
-    else if (start_now)
-      sticky_finish <= 1'b0;
-    else
-      sticky_finish <= sticky_finish;
+    if (!rst_n) begin
+      qtag_dt1_o <= 32'd0;
+      qtag_dt2_o <= 32'd0;
+      qtag_vld_o <= 1'b0;
+    end else if (start_now) begin
+      qtag_dt1_o <= 32'd0;
+      qtag_dt2_o <= 32'd0;
+      qtag_vld_o <= 1'b0;
+    end else if (pf_finish) begin
+      qtag_dt1_o <= pf_freq_word;
+      qtag_dt2_o <= 32'd0;
+      qtag_vld_o <= 1'b1;
+    end else begin
+      qtag_dt1_o <= qtag_dt1_o;
+      qtag_dt2_o <= qtag_dt2_o;
+      qtag_vld_o <= qtag_vld_o;
+    end
   end
 
   always @(posedge clk) begin
@@ -199,6 +110,7 @@ module fine_tuning_sweep #(
     .clk            (clk),
     .rst_n          (rst_n),
     .s_axis_tvalid  (s_axis_tvalid),
+    .s_axis_tready  (s_axis_tready),
     .s_axis_tdata   (s_axis_tdata),
     .arm            (point_arm),
     .averager_value (reg_avg),
@@ -215,7 +127,6 @@ module fine_tuning_sweep #(
     .start_freq    (reg_start),
     .step          (reg_step),
     .n_points      (reg_npoints),
-    .reset_max     (reset_max_now),
     .amp_valid     (amp_valid_c),
     .amp_data      (amp_data_c),
     .freq_word     (pf_freq_word),
@@ -226,23 +137,29 @@ module fine_tuning_sweep #(
   );
 
   (* mark_debug = "true" *) reg s_axis_tvalid_dbg;
+  (* mark_debug = "true" *) reg s_axis_tready_dbg;
   (* mark_debug = "true" *) reg [63:0] s_axis_tdata_dbg;
-  (* mark_debug = "true" *) reg trigger_dbg;
   (* mark_debug = "true" *) reg amp_valid_c_dbg;
   (* mark_debug = "true" *) reg [AMP_WIDTH-1:0] amp_data_c_dbg;
+  (* mark_debug = "true" *) reg qtag_en_dbg;
+  (* mark_debug = "true" *) reg [4:0] qtag_op_dbg;
   always @(posedge clk) begin
     if (!rst_n) begin
       s_axis_tvalid_dbg <= 1'b0;
+      s_axis_tready_dbg <= 1'b0;
       s_axis_tdata_dbg <= 64'd0;
-      trigger_dbg <= 1'b0;
       amp_valid_c_dbg <= 1'b0;
       amp_data_c_dbg <= {AMP_WIDTH{1'b0}};
+      qtag_en_dbg <= 1'b0;
+      qtag_op_dbg <= 5'd0;
     end else begin
       s_axis_tvalid_dbg <= s_axis_tvalid;
+      s_axis_tready_dbg <= s_axis_tready;
       s_axis_tdata_dbg <= s_axis_tdata;
-      trigger_dbg <= trigger;
       amp_valid_c_dbg <= amp_valid_c;
       amp_data_c_dbg <= amp_data_c;
+      qtag_en_dbg <= qtag_en_i;
+      qtag_op_dbg <= qtag_op_i;
     end
   end
 
