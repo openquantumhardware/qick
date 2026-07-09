@@ -26,7 +26,6 @@ vivado_pid*.str
 __pycache__/
 *.py[cod]
 *$py.class
-*.pyc
 
 # pip
 *.egg-info/
@@ -66,32 +65,9 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-# Verilator work directories
-**/obj_dir/
-**/expected_out/
-**/artifacts/
-/CLAUDE.md
-/handoff.md
-/emulator/models/sig_gen_dds/src/dds_behavioral_model copy.sv
 ### Linux template
 *~
 .*.swp
 
-# Virtual environments and build artifacts
-.venv/
-sim_build/
-obj_dir/
-build_tb/
-build_tb_mem/
-emulator_output/
-emulator/build_tb_mem/
-
-
-# Verilator outputs
-*.fst
-*.vcd
-top_dac*.csv
-
 !/.gitignore
 !/README.md
-

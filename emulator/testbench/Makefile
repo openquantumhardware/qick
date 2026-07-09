@@ -28,6 +28,10 @@ TOP_MODULE_PARAMS =
 # Uses VERILATOR_ROOT environment variable if set, otherwise falls back to 'verilator' in PATH
 VERILATOR_BIN = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator,verilator)
 
+# Verilator profcfunc executable path
+# Uses VERILATOR_ROOT environment variable if set, otherwise falls back to 'verilator_profcfunc' in PATH
+VERILATOR_PROFCFUNC = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator_profcfunc,verilator_profcfunc)
+
 VERILOG_SOURCES = \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
@@ -84,7 +88,7 @@ VERILOG_SOURCES = \
 # Flags
 # -I resolves `include "file.svh"` 
 # -y resolves missing modules dynamically
-VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace-vcd --Wno-fatal --error-limit 1 \
+VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --Wno-fatal --error-limit 1 \
     --timing \
     -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
     -Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
@@ -112,9 +116,16 @@ SIM_ARGS =
 # Pass TRACE=1 to enable VCD waveform dump (warning: very large files)
 # Example: make sim SIM_EMU_DIR=artifacts/00_intro/multi_pulse
 
+# Default SIM_EMU_DIR for test_sim target
+SIM_EMU_DIR ?= $(EMU_DIR)/artifacts/test_sim
+
 sim:
 	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
 	./$(OBJ_DIR)/V$(TOP_MODULE) $(if $(SIM_EMU_DIR),+EMU_DIR=$(SIM_EMU_DIR)) $(if $(TRACE),+TRACE) $(SIM_ARGS)
+
+test_sim: verilate
+	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
+	./$(OBJ_DIR)/V$(TOP_MODULE) +EMU_DIR=$(EMU_DIR)/artifacts/test_sim $(SIM_ARGS)
 
 verilate:
 	$(VERILATOR_BIN) $(VERILATOR_FLAGS) verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
@@ -125,6 +136,21 @@ clean:
 	rm -f *.o
 	rm -f *.hex
 	rm -f fir_coe.txt
+	rm -f profcfunc.log
+	rm -f gmon.out
+	rm -f gprof.log
+
+profile: clean verilate_profile test_sim_profile
+	gprof $(OBJ_DIR)/V$(TOP_MODULE) gmon.out > gprof.log
+	$(VERILATOR_PROFCFUNC) gprof.log > profcfunc.log
+	@echo "Profiling complete. Check gprof.log and profcfunc.log for results."
+
+verilate_profile: clean
+	$(VERILATOR_BIN) $(VERILATOR_FLAGS) --prof-cfuncs verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
+
+test_sim_profile: verilate_profile
+	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
+	./$(OBJ_DIR)/V$(TOP_MODULE) +EMU_DIR=$(EMU_DIR)/artifacts/test_sim $(SIM_ARGS)
 
 help:
 	@echo "QICKEmu_harness Testbench Simulator"
@@ -136,13 +162,16 @@ help:
 	@echo "  verilate    - Compile Verilog/SystemVerilog sources using Verilator"
 	@echo "  sim         - Run the compiled simulation (copies HEX files automatically)"
 	@echo "  wave        - Open the simulation waveform (VCD) file in GTKWave"
-	@echo "  clean       - Remove build artifacts and generated files"
+	@echo "  clean       - Remove build artifacts and profiling logs"
 	@echo "  help        - Display this help message (default when no target given)"
 	@echo ""
 	@echo "Simulation Options:"
 	@echo "  SIM_EMU_DIR=<path> - Override emulator input directory (default: src/tb/emulator)"
 	@echo "  TRACE=1            - Enable VCD waveform dump (large files!)"
 	@echo "  SIM_ARGS=<args>    - Pass extra plusargs to simulation binary"
+	@echo ""
+	@echo "Profiling:"
+	@echo "  make profile       - Clean, build with profiling, run test_sim, generate gmon.out, gprof.log, profcfunc.log"
 	@echo ""
 	@echo "Typical Workflow:"
 	@echo "  1. make verilate  - Compile the simulation"
