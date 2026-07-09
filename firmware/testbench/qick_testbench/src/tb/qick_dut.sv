@@ -301,13 +301,26 @@ module qick_dut #(
    logic  [3:0]       s_axi_sg1_wstrb;
    logic              s_axi_sg1_wvalid;
 
-   // Router output enables (one-hot)
-   logic           tproc_sel;
-   logic           sg0_sel;
-   logic           sg1_sel;
-   logic           avg0_sel;
-   logic           avg1_sel;
-   logic           rov2_sel;
+   // Router output wires for avg1
+   wire  [5:0]       s_axi_avg1_araddr;
+   wire  [2:0]       s_axi_avg1_arprot;
+   wire              s_axi_avg1_arready;
+   wire              s_axi_avg1_arvalid;
+   wire  [5:0]       s_axi_avg1_awaddr;
+   wire  [2:0]       s_axi_avg1_awprot;
+   wire              s_axi_avg1_awready;
+   wire              s_axi_avg1_awvalid;
+   wire              s_axi_avg1_bready;
+   wire  [1:0]       s_axi_avg1_bresp;
+   wire              s_axi_avg1_bvalid;
+   wire  [31:0]      s_axi_avg1_rdata;
+   wire              s_axi_avg1_rready;
+   wire  [1:0]       s_axi_avg1_rresp;
+   wire              s_axi_avg1_rvalid;
+   wire  [31:0]      s_axi_avg1_wdata;
+   wire              s_axi_avg1_wready;
+   wire  [3:0]       s_axi_avg1_wstrb;
+   wire              s_axi_avg1_wvalid;
 
    // AXI router output signals for Readout2 (ROV2)
    logic  [7:0]    s_axi_rov2_awaddr;
@@ -329,6 +342,14 @@ module qick_dut #(
    logic  [1:0]    s_axi_rov2_rresp;
    logic           s_axi_rov2_rvalid;
    logic           s_axi_rov2_rready;
+
+   // Router output enables (one-hot)
+   logic           tproc_sel;
+   logic           sg0_sel;
+   logic           sg1_sel;
+   logic           avg0_sel;
+   logic           avg1_sel;
+   logic           rov2_sel;
 
    // Instantiate AXI Router
    axi_router_lite #(
@@ -1483,10 +1504,11 @@ module qick_dut #(
 
 
 
+`ifndef VERILATOR
 
-   // AXI VIP master address - Connected to router
-   // Removed old AXI master instantiation - now using axi_router_lite
-   `ifndef VERILATOR
+   wire              axis_ro1_avg1_tready;
+   wire              axis_ro1_avg1_tvalid;
+   wire [31:0]       axis_ro1_avg1_tdata;
 
    // Readout_v2 PYNQ configured
    axis_readout_v2 u_axis_readout_v2 (
@@ -1528,41 +1550,6 @@ module qick_dut #(
       .m1_axis_tvalid    (axis_ro1_avg1_tvalid  ),
       .m1_axis_tdata     (axis_ro1_avg1_tdata   )
    );
-   `else
-      assign s_axi_rov2_awready = 0;
-      assign s_axi_rov2_wready = 0;
-      assign s_axi_rov2_bresp = 0;
-      assign s_axi_rov2_bvalid = 0;
-      assign s_axi_rov2_arready = 0;
-      assign s_axi_rov2_rdata = 0;
-      assign s_axi_rov2_rresp = 0;
-      assign s_axi_rov2_rvalid = 0;
-   `endif
-
-   wire              axis_ro1_avg1_tready;
-   wire              axis_ro1_avg1_tvalid;
-   wire [31:0]       axis_ro1_avg1_tdata;
-
-   // Router output wires for avg1
-   wire  [5:0]       s_axi_avg1_araddr;
-   wire  [2:0]       s_axi_avg1_arprot;
-   wire              s_axi_avg1_arready;
-   wire              s_axi_avg1_arvalid;
-   wire  [5:0]       s_axi_avg1_awaddr;
-   wire  [2:0]       s_axi_avg1_awprot;
-   wire              s_axi_avg1_awready;
-   wire              s_axi_avg1_awvalid;
-   wire              s_axi_avg1_bready;
-   wire  [1:0]       s_axi_avg1_bresp;
-   wire              s_axi_avg1_bvalid;
-   wire  [31:0]      s_axi_avg1_rdata;
-   wire              s_axi_avg1_rready;
-   wire  [1:0]       s_axi_avg1_rresp;
-   wire              s_axi_avg1_rvalid;
-   wire  [31:0]      s_axi_avg1_wdata;
-   wire              s_axi_avg1_wready;
-   wire  [3:0]       s_axi_avg1_wstrb;
-   wire              s_axi_avg1_wvalid;
 
    // Readout0 Buffer Averaged Data AXIS
    logic                     m0_axis_buf1_avg_tvalid;
@@ -1643,5 +1630,32 @@ module qick_dut #(
    assign s1_axis_tdata             = m2_axis_buf1_reg_tdata;
    assign s1_axis_tvalid            = m2_axis_buf1_reg_tvalid;
    assign m2_axis_buf1_reg_tready   = s1_axis_tready;
+
+`else
+
+   assign s_axi_rov2_awready = 0;
+   assign s_axi_rov2_wready = 0;
+   assign s_axi_rov2_bresp = 0;
+   assign s_axi_rov2_bvalid = 0;
+   assign s_axi_rov2_arready = 0;
+   assign s_axi_rov2_rdata = 0;
+   assign s_axi_rov2_rresp = 0;
+   assign s_axi_rov2_rvalid = 0;
+
+   assign s_axi_avg1_awready = 0;
+   assign s_axi_avg1_wready = 0;
+   assign s_axi_avg1_bresp = 0;
+   assign s_axi_avg1_bvalid = 0;
+   assign s_axi_avg1_arready = 0;
+   assign s_axi_avg1_rdata = 0;
+   assign s_axi_avg1_rresp = 0;
+   assign s_axi_avg1_rvalid = 0;
+
+   assign axis_adc1_ro1_tready = 0;
+
+   assign s1_axis_tdata = 0;
+   assign s1_axis_tvalid = 0;
+
+`endif
 
  endmodule

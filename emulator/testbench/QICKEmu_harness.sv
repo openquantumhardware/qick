@@ -259,24 +259,24 @@ wire               trigger_1;
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
 
-// QNET Peripheral
-wire                qnet_en_o   ;
-wire  [4 :0]        qnet_op_o   ;
-wire  [31:0]        qnet_a_dt_o ;
-wire  [31:0]        qnet_b_dt_o ;
-wire  [31:0]        qnet_c_dt_o ;
-wire  [31:0]        qnet_d_dt_o ;
-reg                 qnet_rdy_i      ;
-reg  [31 :0]        qnet_dt_i [2]   ;
+// // QNET Peripheral
+// wire                qnet_en_o   ;
+// wire  [4 :0]        qnet_op_o   ;
+// wire  [31:0]        qnet_a_dt_o ;
+// wire  [31:0]        qnet_b_dt_o ;
+// wire  [31:0]        qnet_c_dt_o ;
+// wire  [31:0]        qnet_d_dt_o ;
+// reg                 qnet_rdy_i      ;
+// reg  [31 :0]        qnet_dt_i [2]   ;
 
-// QCOM Peripheral
-wire                qcom_en_o   ;
-wire  [4 :0]        qcom_op_o   ;
-wire  [31:0]        qcom_dt_o   ;
-reg                 qcom_rdy_i      ;
-reg  [31 :0]        qcom_dt_i [2]   ;
-reg                 qcom_vld_i      ;
-reg                 qcom_flag_i     ;
+// // QCOM Peripheral
+// wire                qcom_en_o   ;
+// wire  [4 :0]        qcom_op_o   ;
+// wire  [31:0]        qcom_dt_o   ;
+// reg                 qcom_rdy_i      ;
+// reg  [31 :0]        qcom_dt_i [2]   ;
+// reg                 qcom_vld_i      ;
+// reg                 qcom_flag_i     ;
 
 reg  [31 :0]        qp1_dt_i [2]   ;
 reg  [31 :0]        qp2_dt_i [2]   ;
@@ -460,25 +460,25 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .time_dt_i           ( offset_dt_i        ) ,
       .t_time_abs_o        ( t_time_abs_o       ) ,
       //QNET
-      .qnet_en_o           ( qnet_en_o          ) ,
-      .qnet_op_o           ( qnet_op_o          ) ,
-      .qnet_a_dt_o         ( qnet_a_dt_o        ) ,
-      .qnet_b_dt_o         ( qnet_b_dt_o        ) ,
-      .qnet_c_dt_o         ( qnet_c_dt_o        ) ,
-      .qnet_rdy_i          ( qnet_rdy_i         ) ,
-      .qnet_dt1_i          ( qnet_dt_i[0]       ) ,
-      .qnet_dt2_i          ( qnet_dt_i[1]       ) ,
-      .qnet_vld_i          ( qnet_vld_i         ) ,
-      .qnet_flag_i         ( qnet_flag_i        ) ,
+      .qnet_en_o           ( /*qnet_en_o*/      ) ,
+      .qnet_op_o           ( /*qnet_op_o*/      ) ,
+      .qnet_a_dt_o         ( /*qnet_a_dt_o*/    ) ,
+      .qnet_b_dt_o         ( /*qnet_b_dt_o*/    ) ,
+      .qnet_c_dt_o         ( /*qnet_c_dt_o*/    ) ,
+      .qnet_rdy_i          ( 0 /*qnet_rdy_i   */ ) ,
+      .qnet_dt1_i          ( 0 /*qnet_dt_i[0] */ ) ,
+      .qnet_dt2_i          ( 0 /*qnet_dt_i[1] */ ) ,
+      .qnet_vld_i          ( 0 /*qnet_vld_i   */ ) ,
+      .qnet_flag_i         ( 0 /*qnet_flag_i  */ ) ,
       //QCOM
-      .qcom_en_o           ( qcom_en_o          ) ,
-      .qcom_op_o           ( qcom_op_o          ) ,
-      .qcom_dt_o           ( qcom_dt_o          ) ,
-      .qcom_rdy_i          ( qcom_rdy_i         ) ,
-      .qcom_dt1_i          ( qcom_dt_i[0]       ) ,
-      .qcom_dt2_i          ( qcom_dt_i[1]       ) ,
-      .qcom_vld_i          ( qcom_vld_i         ) ,
-      .qcom_flag_i         ( qcom_flag_i        ) ,
+      .qcom_en_o           ( /*qcom_en_o*/      ) ,
+      .qcom_op_o           ( /*qcom_op_o*/      ) ,
+      .qcom_dt_o           ( /*qcom_dt_o*/      ) ,
+      .qcom_rdy_i          ( 0 /*qcom_rdy_i   */) ,
+      .qcom_dt1_i          ( 0 /*qcom_dt_i[0] */) ,
+      .qcom_dt2_i          ( 0 /*qcom_dt_i[1] */) ,
+      .qcom_vld_i          ( 0 /*qcom_vld_i   */) ,
+      .qcom_flag_i         ( 0 /*qcom_flag_i  */) ,
       // QP1
       .qp1_en_o           ( qp1_en_o          ) ,
       .qp1_op_o           ( qp1_op_o          ) ,
@@ -707,10 +707,18 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    always @(posedge adc_fs) begin
       delay_buffer[write_ptr] <= {rf_signal_valid, rf_signal_data};
-      write_ptr <= (write_ptr + 1) % RF_DELAY_CYCLES;
+        if (write_ptr == RF_DELAY_CYCLES - 1) begin
+           write_ptr <= 0;
+        end else begin
+           write_ptr <= write_ptr + 1;
+        end
       rf_signal_valid_dly <= delay_buffer[read_ptr][N_DDS_RO*16];
       rf_signal_data_dly  <= delay_buffer[read_ptr][N_DDS_RO*16-1:0];
-      read_ptr <= (read_ptr + 1) % RF_DELAY_CYCLES;
+        if (read_ptr == RF_DELAY_CYCLES - 1) begin
+           read_ptr <= 0;
+        end else begin
+           read_ptr <= read_ptr + 1;
+        end
    end
 // >>>>>>>>>>>> VERILATOR COMPATIBLE CONTINUOUS DELAY
 
@@ -860,6 +868,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
+   // TODO: connect ADC1
+   assign axis_adc1_ro1_tvalid = 1'b0;
+   assign axis_adc1_ro1_tdata  = {N_DDS_RO*16{1'b0}};
 
    // -----------------------------------------------------------------------------
    // EMU_DIR plusarg.
@@ -1104,15 +1115,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $display("*** Start Test ***");
 
       // INITIAL VALUES
-      qnet_dt_i                = '{default:'0} ;
       rst_ni                   = 1'b0;
-      s1_axis_tvalid           = 1'b0 ;
+
+      s1_axis_tvalid           = 1'b0;
+
       port_1_dt_i              = 0;
-      qcom_rdy_i               = 0 ;
       periph_dt_i              = '{default:'0} ;
-      qnet_rdy_i               = 0 ;
-      qcom_vld_i               = 0 ;
-      qcom_flag_i              = 0 ;
+
       proc_start_i             = 1'b0;
       proc_stop_i              = 1'b0;
       core_start_i             = 1'b0;

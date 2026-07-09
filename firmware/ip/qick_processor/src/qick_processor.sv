@@ -855,6 +855,7 @@ generate
       assign core_r_d0 = core0_w_dt ;
       assign core_r_d1 = '{ in_port_dt_r[0], {15'd0, port_trig_o[0], 12'd0,dport_di} } ;
       assign core_r_d2 = '{c_time_ref_dt[31:0], 32'd0} ;
+      assign core_r_d3 = '{default:'0} ;
    end else begin
       // NO DEBUG CORE_R_DT
       assign core_r_d0 = '{default:'0} ;
