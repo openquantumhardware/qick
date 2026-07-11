@@ -17,6 +17,48 @@ QICK and AMD
 * `AMD quantum computing partnership with QICK <https://www.amd.com/en/solutions/quantum-computing.html#partners>`_
 * `AMD blog post about hybrid quantum-supercomputing <https://www.amd.com/en/blogs/2025/amd-accelerates-hybrid-quantum-supercomputing-innovation.html>`_
 
+At a glance
+-----------
+**80 papers**: 3 on the QICK system itself, and 77 across 9 platforms and applications.
+
+*System & software*
+
+.. list-table::
+   :widths: 40 8
+
+   * - `QICK system`_
+     - 3
+
+*Qubit & computing platforms*
+
+.. list-table::
+   :widths: 40 8
+
+   * - `Superconducting circuits`_
+     - 54
+   * - `Spin defects`_
+     - 7
+   * - `Quantum dots`_
+     - 4
+   * - `Biological qubits`_ (new)
+     - 2
+   * - `Neutral atoms`_
+     - 1
+   * - `Ultracold molecules`_
+     - 1
+
+*Quantum sensing & detection*
+
+.. list-table::
+   :widths: 40 8
+
+   * - `Dark matter detection`_
+     - 3
+   * - `Single-photon detection`_
+     - 3
+   * - `Quantum sensors and MKIDs`_
+     - 2
+
 Paper counts
 ------------
 These stats were computed from the next section's list of QICK papers as of May 2, 2026.
@@ -32,7 +74,7 @@ These stats were computed from the next section's list of QICK papers as of May 
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated May 2, 2026.
+This list of academic papers that used the QICK was last updated July 10, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -59,6 +101,7 @@ Scaling
 
 Quantum error correction hardware
 """""""""""""""""""""""""""""""""
+* `Huang, J. et al. Universal Jaynes-Cummings Control of an Oscillator. (2026) <https://arxiv.org/abs/2605.18658>`_.
 * `Cochran, J. et al. Experimental signatures of a sigma-z sigma-x beam-splitter interaction between a Kerr-cat and transmon qubit. (2025) <https://arxiv.org/abs/2511.21972>`_.
 * `Li, Z. et al. A Cascaded Random Access Quantum Memory. (2025) <https://arxiv.org/abs/2503.13953>`_.
 * `Huang, J. et al. Fast Sideband Control of a Weakly Coupled Multimode Bosonic Memory. (2025) <https://arxiv.org/abs/2503.10623>`_.
@@ -118,6 +161,7 @@ Parametric amplifiers
 
 Transduction
 """"""""""""
+* `Baptista, A.E. et al. Parametrically induced strong coupling between a superconducting quantum circuit and a solid-state spin ensemble. (2026) <https://arxiv.org/abs/2606.03897>`_.
 * `Warner, H.K. et al. Coherent control of a superconducting qubit using light. (2023) <https://arxiv.org/abs/2310.16155>`_.
 
 Quantum acoustic systems
@@ -134,14 +178,6 @@ Open source control with the Qibo/QICK stack (Qibolab/Qibosoq)
 * `Efthymiou, S. et al. Qibolab: an open-source hybrid quantum operating system. (2023) <https://arxiv.org/abs/2308.06313>`_.
 * `Cruz-Martinez, J.M. et al. Multi-variable integration with a variational quantum circuit. (2023) <https://arxiv.org/abs/2308.05657>`_.
 
-Neutral atoms
-^^^^^^^^^^^^^
-* `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
-
-Ultracold molecules
-^^^^^^^^^^^^^^^^^^^
-* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
-
 Spin defects
 ^^^^^^^^^^^^
 * `Marcenac, V. et al. Sub-nanosecond control for spin-defect quantum memories with a low-cost, compact FPGA platform. (2026) <https://arxiv.org/abs/2604.11743>`_.
@@ -150,7 +186,6 @@ Spin defects
 * `Sadi, M. et al. Landau Zener Interaction Enhanced Quantum Sensing in Spin Defects of Hexagonal Boron Nitride. (2026) <https://arxiv.org/abs/2601.05013>`_.
 * `Sadi, M. et al. Spin-State Selective Excitation in Spin Defects of Hexagonal Boron Nitride. (2025) <https://arxiv.org/abs/2506.04448>`_.
 * `Ivory, M. et al. QCaMP: A 4-Week Summer Camp Introducing High School Students to Quantum Information Science and Technology. (2025) <https://arxiv.org/abs/2504.15977>`_.
-* `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
 * `Riendeau, E.G. et al. Quantum Instrumentation Control Kit -- Defect Arbitrary Waveform Generator (QICK-DAWG): A Quantum Sensing Control Framework for Quantum Defects. (2023) <https://arxiv.org/abs/2311.18253>`_.
 
 Quantum dots
@@ -160,10 +195,18 @@ Quantum dots
 * `Koong, Z. et al. Coherent Control of Quantum-Dot Spins with Cyclic Optical Transitions. (2025) <https://arxiv.org/abs/2509.14445>`_.
 * `Shinozaki, M. et al. RFSoC-based radio-frequency reflectometry in gate-defined bilayer graphene quantum devices. (2025) <https://arxiv.org/abs/2502.15239>`_.
 
-Quantum sensors and MKIDs
-^^^^^^^^^^^^^^^^^^^^^^^^^
-* `Magoon, H. et al. A First Demonstration of the SQUAT Detector Architecture: Direct Measurement of Resonator-Free Charge-Sensitive Transmons. (2026) <https://arxiv.org/abs/2601.16261>`_.
-* `Stifter, K. et al. Cryogenic optical beam steering for superconducting device calibration. (2024) <https://arxiv.org/abs/2405.02258>`_.
+Biological qubits
+^^^^^^^^^^^^^^^^^
+* `Ramos-Silva, J.N. et al. A Pulsed Live-Cell Quantum Microscope for Entangled Solid State and Biological Qubits. (2026) <https://arxiv.org/abs/2607.03552>`_.
+* `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
+
+Neutral atoms
+^^^^^^^^^^^^^
+* `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
+
+Ultracold molecules
+^^^^^^^^^^^^^^^^^^^
+* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
 
 Dark matter detection
 ^^^^^^^^^^^^^^^^^^^^^
@@ -177,3 +220,7 @@ Single-photon detection
 * `Linne, K. et al. SQuaD: Smart Quantum Detection for Photon Recognition and Dark Count Elimination. (2025) <https://arxiv.org/abs/2509.24383>`_.
 * `Xie, S. et al. Entangled Photon Pair Source Demonstrator using the Quantum Instrumentation Control Kit System. (2023) <https://arxiv.org/abs/2304.01190>`_.
 
+Quantum sensors and MKIDs
+^^^^^^^^^^^^^^^^^^^^^^^^^
+* `Magoon, H. et al. A First Demonstration of the SQUAT Detector Architecture: Direct Measurement of Resonator-Free Charge-Sensitive Transmons. (2026) <https://arxiv.org/abs/2601.16261>`_.
+* `Stifter, K. et al. Cryogenic optical beam steering for superconducting device calibration. (2024) <https://arxiv.org/abs/2405.02258>`_.
