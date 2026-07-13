@@ -1063,7 +1063,7 @@ module qick_dut #(
       .m_axis_tdata        (axis_sg0_dac0_tdata      )
    );
 
-
+`ifdef SIM_DEBUG
    // For Waveform Debug
    logic signed [15:0] axis_sg0_dac0_tdata_dbg [0:N_DDS_SG-1];
    always @* begin
@@ -1071,6 +1071,7 @@ module qick_dut #(
          axis_sg0_dac0_tdata_dbg[i] = axis_sg0_dac0_tdata[16*i +: 16];
       end
    end
+`endif
 
 `define SG_1   // Comment to disable SG_1
 `ifndef SG_1
@@ -1168,6 +1169,7 @@ module qick_dut #(
    // READOUT
    //-----------------------------------------
 
+`ifdef SIM_DEBUG
    // For Waveform Debug
    logic signed [15:0] axis_adc0_ro0_tdata_dbg [0:N_DDS_RO-1];
    always @* begin
@@ -1175,7 +1177,7 @@ module qick_dut #(
          axis_adc0_ro0_tdata_dbg[i] = axis_adc0_ro0_tdata[16*i +: 16];
       end
    end
-
+`endif
 
    // CDC for readout
    axis_cdcsync_v1 #(
@@ -1358,6 +1360,7 @@ module qick_dut #(
       .m1_axis_tdata    (axis_ro0_avg0_tdata)
   );
 
+`ifdef SIM_DEBUG
    // For Waveform Debug
    logic signed [15:0] axis_ro0_avg0_tdata_dbg [0:1];
    logic signed [15:0] axis_ro0_mrbuf_tdata_dbg [0:N_DDS_RO-1][0:1];
@@ -1376,7 +1379,7 @@ module qick_dut #(
    logic signed [32:0] m1_ro0_avg0_abs_dbg;
    assign m1_ro0_avg0_abs_dbg = $signed(axis_ro0_avg0_tdata[15:0])*$signed(axis_ro0_avg0_tdata[15:0]) + 
                                  $signed(axis_ro0_avg0_tdata[31:16])*$signed(axis_ro0_avg0_tdata[31:16]);
-
+`endif
 
     // AXI VIP master address - Connected to router
     // Removed old AXI master instantiation - now using axi_router_lite
@@ -1482,7 +1485,7 @@ module qick_dut #(
    assign s0_axis_tvalid            = m2_axis_buf0_reg_tvalid;
    assign m2_axis_buf0_reg_tready   = s0_axis_tready;
 
-
+`ifdef SIM_DEBUG
    // For Waveform Debug
    logic [64:0] buf_avg_abs_dbg;
    always @(posedge ps_clk) begin
@@ -1500,7 +1503,7 @@ module qick_dut #(
                               $signed(m1_axis_buf0_dec_tdata[31:16]) * $signed(m1_axis_buf0_dec_tdata[31:16]);
       end
    end
-
+`endif
 
 
 

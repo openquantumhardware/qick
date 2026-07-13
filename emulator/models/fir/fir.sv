@@ -28,8 +28,6 @@ module fir #(
     
     logic m_tvalid_next;
 
-    // logic signed [31:0] mult_dbg = '0;
-
     // Delay lines for each path
     logic signed [DATA_WIDTH-1:0] taps0 [0:TAP_COUNT-1] /*= '{default: '0}*/; // Qs
     logic signed [DATA_WIDTH-1:0] taps1 [0:TAP_COUNT-1] /*= '{default: '0}*/; // Is

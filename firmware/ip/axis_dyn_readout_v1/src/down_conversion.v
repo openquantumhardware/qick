@@ -243,42 +243,43 @@ end
 assign s_axis_tready_o		= 1'b1;
 assign m_axis_tvalid_o 		= 1'b1;
 
+`ifdef SIM_DEBUG
+   	// Plot full-speed DDS waveform
+    reg clk_fast;
+    real t1, t2, t_clk, t_clk_ovN;
+    initial begin
+        clk_fast = 0;
+        @(posedge clk);
+        t1 = $realtime;
+        @(posedge clk);
+        t2 = $realtime;
+        t_clk = t2-t1;
+        $display("Clock period is %0t ns", t_clk);
+        t_clk_ovN = t_clk/N_DDS;
+        forever begin
+			clk_fast = ~clk_fast;
+            repeat (N_DDS*2-1) begin
+                #(t_clk_ovN/2);
+                clk_fast = ~clk_fast;
+            end
+            @(posedge clk);
+        end
+    end
 
-   	// // Plot full-speed DDS waveform
-    // reg clk_fast;
-    // real t1, t2, t_clk, t_clk_ovN;
-    // initial begin
-    //     clk_fast = 0;
-    //     @(posedge clk);
-    //     t1 = $realtime;
-    //     @(posedge clk);
-    //     t2 = $realtime;
-    //     t_clk = t2-t1;
-    //     $display("Clock period is %0t ns", t_clk);
-    //     t_clk_ovN = t_clk/N_DDS;
-    //     forever begin
-	// 		clk_fast = ~clk_fast;
-    //         repeat (N_DDS*2-1) begin
-    //             #(t_clk_ovN/2);
-    //             clk_fast = ~clk_fast;
-    //         end
-    //         @(posedge clk);
-    //     end
-    // end
-
-    // reg signed [15:0] dout_re_dbg, dout_im_dbg;
-    // reg [$clog2(N_DDS)-1:0] dout_cnt;
-    // initial begin
-    //     dout_cnt = 0;
-    //     forever begin
-    //         @(negedge clk_fast);
-    //         if (m_axis_tvalid_o) begin
-    //             dout_re_dbg = dds_dout[dout_cnt][0 +: 16];
-    //             dout_im_dbg = dds_dout[dout_cnt][16 +: 16];
-    //             dout_cnt = dout_cnt + 1;
-    //         end
-    //     end
-    // end
+    reg signed [15:0] dout_re_dbg, dout_im_dbg;
+    reg [$clog2(N_DDS)-1:0] dout_cnt;
+    initial begin
+        dout_cnt = 0;
+        forever begin
+            @(negedge clk_fast);
+            if (m_axis_tvalid_o) begin
+                dout_re_dbg = dds_dout[dout_cnt][0 +: 16];
+                dout_im_dbg = dds_dout[dout_cnt][16 +: 16];
+                dout_cnt = dout_cnt + 1;
+            end
+        end
+    end
+`endif
 
 endmodule
 

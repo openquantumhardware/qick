@@ -42,13 +42,14 @@ typedef axi_test::axi_lite_rand_master #(
 
 // +++++++++++++
 
-localparam real T_TCLK_HALF          =  1.162;      // Half Clock Period for tProc Dispatcher (430 MHz)
-localparam real T_CCLK_HALF          =    2.5;      // Half Clock Period for tProc Core (200 MHz)
-localparam real T_SCLK_HALF          =    5.0;      // Half Clock Period for PS & AXI (100 MHz)
+`define T_TCLK_HALF_PERIOD       1.162ns      // Half Clock Period for tProc Dispatcher (430 MHz)
+`define T_CCLK_HALF_PERIOD         2.5ns      // Half Clock Period for tProc Core (200 MHz)
+`define T_SCLK_HALF_PERIOD         5.0ns      // Half Clock Period for PS & AXI (100 MHz)
 
-localparam real T_SG_CLK_HALF        =  0.834669;      // Half Clock Period for Signal Gens (599.04 MHz)
+`define T_SG_CLK_HALF_PERIOD     0.834669ns      // Half Clock Period for Signal Gens (599.04 MHz)
 
-localparam real T_RO_CLK_HALF        =  1.627604;      // Half Clock Period for Readout (307.2 MHz)
+`define T_RO_CLK_HALF_PERIOD     1.627604ns      // Half Clock Period for Readout (307.2 MHz)
+
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -104,34 +105,32 @@ int    pre_run_delay_ns = -1;
 
 
 //----------------------------------------------------
-// Address Routing (ZCU216 default AddrMap; override via export_vivado_files())
+// Address Routing
 //----------------------------------------------------
-// AVG_BASE_HI == TPROC_BASE is intentional — AVG_BASE_HI is an exclusive upper
-// bound, so the last avgbuf slot ends at 0x4025FFFF and tproc starts at
-// 0x40260000 with no overlap.
-// DEFAULT ZCU216 ADDR MAP (see zcu216_addr_map.csv):
-// localparam integer TPROC_BASE  = 40'h40260000;
-// localparam integer SG_BASE_LO  = 40'h40020000;
-// localparam integer SG_BASE_HI  = 40'h40120000;
-// localparam integer AVG_BASE_LO = 40'h40130000;
-// localparam integer AVG_BASE_HI = 40'h40260000;
-// // QICKEMU_DUT Address Map
-// localparam integer TPROC_BASE  = 40'h400260000;
-// localparam integer SG_BASE_LO  = 40'h4001C0000;  // 1 gen IP(s)
-// localparam integer SG_BASE_HI  = 40'h4001D0000;
-// localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
-// localparam integer AVG_BASE_HI = 40'h400070000;
 
 // QICKEMU_DUT Address Map
-localparam logic [39:0] SG_BASE_LO  = 40'h04_001C_0000;  // 2 gen IP(s)
-localparam logic [39:0] SG_BASE_HI  = 40'h04_001E_0000;
-localparam logic [39:0] AVG_BASE_LO = 40'h04_0006_0000;  // 1 avgbuf IP(s)
-localparam logic [39:0] AVG_BASE_HI = 40'h04_0007_0000;
-
 localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;
 localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;
 localparam logic [39:0] SG1_BASE    = 40'h04_001E_0000;
 localparam logic [39:0] RO0_BASE    = 40'h04_0006_0000;
+
+// AVG_BUFFER Memory Mapped Registers
+logic [5:0] AVG_START_REG       = 4 * 0;
+logic [5:0] AVG_ADDR_REG        = 4 * 1;
+logic [5:0] AVG_LEN_REG         = 4 * 2;
+logic [5:0] AVG_DR_START_REG    = 4 * 3;
+logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
+logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
+logic [5:0] BUF_START_REG       = 4 * 6;
+logic [5:0] BUF_ADDR_REG        = 4 * 7;
+logic [5:0] BUF_LEN_REG         = 4 * 8;
+logic [5:0] BUF_DR_START_REG    = 4 * 9;
+logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
+logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
+
+// Signal Generator Memory Mapped Registers
+logic [5:0] SG_ADDR_START_ADDR   = 4 * 0;
+logic [5:0] SG_ADDR_WE           = 4 * 1;
 
 
 // VIP Agents
@@ -169,39 +168,23 @@ end
 //  CLK Generation
 logic          c_clk, t_clk, s_ps_dma_aclk;
 
-logic [4:0]    dac_fs_gen;
+logic [4:0]    dac_fs_gen=0;
 logic          dac_fs, sg_clk;
 
-logic [4:0]    adc_fs_gen;
+logic [4:0]    adc_fs_gen=0;
 logic          adc_fs, ro_clk;
 
-initial begin
-  t_clk = 1'b0;
-  forever # (T_TCLK_HALF*1.0ns) t_clk = ~t_clk;
-end
+always #(`T_TCLK_HALF_PERIOD) t_clk = ~t_clk;
 
-initial begin
-  c_clk = 1'b0;
-  forever # (T_CCLK_HALF*1.0ns) c_clk = ~c_clk;
-end
+always #(`T_CCLK_HALF_PERIOD) c_clk = ~c_clk;
 
-initial begin
-  s_ps_dma_aclk = 1'b0;
-  #0.5ns
-  forever # (T_SCLK_HALF*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
-end
+always #(`T_SCLK_HALF_PERIOD) s_ps_dma_aclk = ~s_ps_dma_aclk;
 
-initial begin
-   dac_fs_gen = 'd0;
-   forever # (T_SG_CLK_HALF*1.0ns/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
-end
+always #(`T_SG_CLK_HALF_PERIOD/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
 assign dac_fs  = dac_fs_gen[0];
 assign sg_clk  = dac_fs_gen[4];
 
-initial begin
-   adc_fs_gen = 'd0;
-   forever # (T_RO_CLK_HALF*1.0ns/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
-end
+always #(`T_RO_CLK_HALF_PERIOD/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
 assign adc_fs  = adc_fs_gen[0];
 assign ro_clk  = adc_fs_gen[3];
 
@@ -330,36 +313,6 @@ assign qp1_vld_i     = qp1_en_r;
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
 
 
-// // -----------------------------------------------------------------------------
-// // Readout → tProc feedback path.
-// //
-// // The real ZCU216 SoC wires `axis_avg_buffer_0.m2_axis` (one-shot handshake on
-// // each completed average) into `qick_processor.s0_axis`, so that `DPORT_RD 0`
-// // (emitted by `read_input(ro_ch=0)` / `read_and_jump`) can sample the
-// // per-shot I/Q accumulator in a tProc register. The emu TB reproduces that
-// // link: m2_axis fires once per shot, we latch {acc_q[31:0], acc_i[31:0]}
-// // and hold it until the next shot replaces it. That way the tProc can read
-// // the result at any time after the buffer has drained. PORT_L = I, PORT_H = Q.
-// // -----------------------------------------------------------------------------
-// wire        avg0_m2_tvalid;
-// wire [63:0] avg0_m2_tdata;
-// reg  [63:0] readout_ch0_dt;
-// reg         readout_ch0_vld;
-
-// always_ff @(posedge s_ps_dma_aclk) begin
-//    if (!s_ps_dma_aresetn) begin
-//       readout_ch0_dt  <= 64'd0;
-//       readout_ch0_vld <= 1'b0;
-//    end
-//    else if (avg0_m2_tvalid) begin
-//       readout_ch0_dt  <= avg0_m2_tdata;
-//       readout_ch0_vld <= 1'b1;
-//    end
-// end
-
-// assign port_0_dt_i     = readout_ch0_dt;
-// assign port_0_vld      = readout_ch0_vld;
-
 assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
 assign periph_flag_i     = ~t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -373,9 +326,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                      axis_sg1_dac1_tready;
    logic                      axis_sg1_dac1_tvalid;
    logic [N_DDS_SG*16-1:0]    axis_sg1_dac1_tdata;
-
-   logic                      rf_signal_valid;
-   logic [N_DDS_RO*16-1:0]    rf_signal_data;
 
    logic                      axis_adc0_ro0_tready;
    logic                      axis_adc0_ro0_tvalid;
@@ -577,69 +527,77 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // DAC-ADC RF frontend model
    //--------------------------------------
 
+   // SG0 to DAC0 RF processes 16 samples per clock
+
    localparam DAC0_W = 16;
-   logic signed [DAC0_W-1:0] dac0_data;
    localparam ADC0_W = 16;
    logic signed [ADC0_W-1:0] adc0_sample;
-   logic signed [15:0] adc0_data;
    real dac0_signal_rf;
+   real dac0_signal_rf_dly;
+   real dac0_delay_buffer [0:RF_DELAY_CYCLES-1];
+   int  dac0_write_ptr = 0;
+   int  dac0_read_ptr  = 0;
+
+   initial begin
+      dac0_signal_rf_dly = 0.0;
+      for (int i = 0; i < RF_DELAY_CYCLES; i++) begin
+         dac0_delay_buffer[i] = 0.0;
+      end
+   end
 
    model_DAC #(
-      .DAC_W               (DAC0_W)
+      .DAC_W               (DAC0_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC0 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac0_data),
+      .axis_tvalid         (axis_sg0_dac0_tvalid),
+      .axis_tdata          (axis_sg0_dac0_tdata),
+      .axis_tready         (axis_sg0_dac0_tready),
       .dac_signal_rf       (dac0_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC0_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC0 (
       .clk_DAC             (dac_fs),
-      .dac_signal_rf       (dac0_signal_rf),
+      .dac_signal_rf       (dac0_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
       .adc_sample          (adc0_sample),
 
+      .axis_tready         (axis_adc0_ro0_tready),
+      .axis_tvalid         (axis_adc0_ro0_tvalid),
+      .axis_tdata          (axis_adc0_ro0_tdata),
+
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
-   // SG0 to DAC0 RF processes 16 samples per clock
-
-   assign axis_sg0_dac0_tready        = 1'b1;  // DAC always ready to receive samples
-
-   logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg0_dac0_tvalid) begin
-         dac0_data       <= axis_sg0_dac0_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
-         dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
-      end
-      else begin
-         dac0_data       <= 'd0;
-         dac0_samp_cnt   <= 'd0;
-      end
-   end
-
 
    localparam DAC1_W = 16;
-   logic signed [DAC1_W-1:0] dac1_data;
-    localparam ADC1_W = 16;
+   localparam ADC1_W = 16;
    logic signed [ADC1_W-1:0] adc1_sample;
-   logic signed [15:0] adc1_data;
    real dac1_signal_rf;
+   logic                     axis_adc1_model_tready;
+   logic                     axis_adc1_model_tvalid;
+   logic [N_DDS_RO*16-1:0]   axis_adc1_model_tdata;
 
    model_DAC #(
-      .DAC_W               (DAC1_W)
+      .DAC_W               (DAC1_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC1 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac1_data),
+      .axis_tvalid         (axis_sg1_dac1_tvalid),
+      .axis_tdata          (axis_sg1_dac1_tdata),
+      .axis_tready         (axis_sg1_dac1_tready),
       .dac_signal_rf       (dac1_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC1_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC1 (
       .clk_DAC             (dac_fs),
       .dac_signal_rf       (dac1_signal_rf),
@@ -647,80 +605,34 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .clk_ADC             (adc_fs),
       .adc_sample          (adc1_sample),
 
+      .axis_tready         (axis_adc1_model_tready),
+      .axis_tvalid         (axis_adc1_model_tvalid),
+      .axis_tdata          (axis_adc1_model_tdata),
+
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
    // SG1 to DAC1 RF processes 16 samples per clock
 
-   assign axis_sg1_dac1_tready        = 1'b1;  // DAC always ready to receive samples
 
-   logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg1_dac1_tvalid) begin
-         dac1_data       <= axis_sg1_dac1_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
-         dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
-      end
-      else begin
-         dac1_data       <= 'd0;
-         dac1_samp_cnt   <= 'd0;
-      end
-   end
-
-
-   // ADC RF to RO processes 8 samples per clock
-
-   assign adc0_data = $signed(adc0_sample);
-
-   logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
-   always @(posedge adc_fs) begin
-      if (adc_samp_cnt < N_DDS_RO-1) begin
-         adc_samp_cnt      <= adc_samp_cnt + 1;
-         rf_signal_valid   <= 0;
-      end
-      else begin
-         adc_samp_cnt      <= 0;
-         rf_signal_valid   <= 1;
-      end
-      rf_signal_data[16*adc_samp_cnt +: 16] <= adc0_data;
-   end
-
-
-   // Model Transport delay
-
-// <<<<<<<<<<<< VERILATOR INCOMPATIBLE DELAY 
-   // NOTE: THESE MUST BE REG TO WORK!!!
-   // reg                    rf_signal_valid_dly;
-   // reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   // always @(*) begin
-   //    rf_signal_valid_dly <= #250ns rf_signal_valid;
-   //    rf_signal_data_dly  <= #250ns rf_signal_data;
-   // end
-// ============
-   // Fast buffer-based approach
+   // Model transport delay between DAC0 and ADC0.
    localparam RF_DELAY_TIME_NS = 100;
-   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK_HALF/N_DDS_RO));
-   logic                    rf_signal_valid_dly;
-   logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   logic [N_DDS_RO*16:0]    delay_buffer [0:RF_DELAY_CYCLES-1];
-   int                      write_ptr = 0;
-   int                      read_ptr  = 0;
+   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*`T_SG_CLK_HALF_PERIOD/N_DDS_SG));
 
-   always @(posedge adc_fs) begin
-      delay_buffer[write_ptr] <= {rf_signal_valid, rf_signal_data};
-        if (write_ptr == RF_DELAY_CYCLES - 1) begin
-           write_ptr <= 0;
-        end else begin
-           write_ptr <= write_ptr + 1;
-        end
-      rf_signal_valid_dly <= delay_buffer[read_ptr][N_DDS_RO*16];
-      rf_signal_data_dly  <= delay_buffer[read_ptr][N_DDS_RO*16-1:0];
-        if (read_ptr == RF_DELAY_CYCLES - 1) begin
-           read_ptr <= 0;
-        end else begin
-           read_ptr <= read_ptr + 1;
-        end
+   always @(posedge dac_fs) begin
+      dac0_delay_buffer[dac0_write_ptr] <= dac0_signal_rf;
+      if (dac0_write_ptr == RF_DELAY_CYCLES - 1) begin
+         dac0_write_ptr <= 0;
+      end else begin
+         dac0_write_ptr <= dac0_write_ptr + 1;
+      end
+      dac0_signal_rf_dly <= dac0_delay_buffer[dac0_read_ptr];
+      if (dac0_read_ptr == RF_DELAY_CYCLES - 1) begin
+         dac0_read_ptr <= 0;
+      end else begin
+         dac0_read_ptr <= dac0_read_ptr + 1;
+      end
    end
-// >>>>>>>>>>>> VERILATOR COMPATIBLE CONTINUOUS DELAY
 
 
    // //--------------------------------------
@@ -837,40 +749,16 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
 
    // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
-   // always_ff @(posedge ro_clk) begin
-   //    if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-   //       axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-   //       axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-   //    end
-   //    else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
-   //       axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
-   //       for (int i=0; i<N_DDS_RO; i=i+1) begin
-   //          axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
-   //       end
-   //    end
-   // end
 
-   logic [2:0] rf_signal_cnt;
-   always_ff @(posedge adc_fs) begin
-      if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-         if (rf_signal_cnt == 0) begin
-            axis_adc0_ro0_tvalid                  <= rf_signal_valid_dly;
-            axis_adc0_ro0_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-         end
-         else begin
-         end
-         if (rf_signal_valid_dly || axis_adc0_ro0_tvalid) begin
-            rf_signal_cnt  <= rf_signal_cnt + 1;
-         end
-         else begin
-            rf_signal_cnt  <= 0;
-         end
-      end
-   end
+   // ADC0 AXI stream is now driven directly by u_model_ADC0.
 
    // TODO: connect ADC1
+   assign axis_adc1_ro1_tready = 1'b0;
    assign axis_adc1_ro1_tvalid = 1'b0;
    assign axis_adc1_ro1_tdata  = {N_DDS_RO*16{1'b0}};
+
+   // TODO: connect ADC1
+   // axis_adc1_ro1_* now driven by u_model_ADC1.
 
    // -----------------------------------------------------------------------------
    // EMU_DIR plusarg.
@@ -1043,22 +931,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    //----------------------------------------------------
    // TEST STIMULI — QickEmu replay.
    //----------------------------------------------------
-
-   logic [5:0] AVG_START_REG       = 4 * 0;
-   logic [5:0] AVG_ADDR_REG        = 4 * 1;
-   logic [5:0] AVG_LEN_REG         = 4 * 2;
-   logic [5:0] AVG_DR_START_REG    = 4 * 3;
-   logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
-   logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
-   logic [5:0] BUF_START_REG       = 4 * 6;
-   logic [5:0] BUF_ADDR_REG        = 4 * 7;
-   logic [5:0] BUF_LEN_REG         = 4 * 8;
-   logic [5:0] BUF_DR_START_REG    = 4 * 9;
-   logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
-   logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
-
-   logic [5:0] SG_ADDR_START_ADDR = 6'h00;
-   logic [5:0] SG_ADDR_WE         = 6'h04;
 
    logic         tb_load_mem, tb_load_mem_done;
 
