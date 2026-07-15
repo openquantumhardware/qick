@@ -1,8 +1,6 @@
 `timescale 1ns / 1ps
 
-module amplitude_calculator #(
-  parameter ACC_WIDTH = 64
-)(
+module amplitude_calculator (
   input wire clk,
   input wire rst_n,
 
@@ -12,17 +10,23 @@ module amplitude_calculator #(
 
   input wire arm,
   input wire [31:0] averager_value,
+  input wire [31:0] nsamp,
 
-  (* mark_debug = "true" *) output reg [2*ACC_WIDTH-1:0] m_axis_tdata,
+  (* mark_debug = "true" *) output reg [35:0] m_axis_tdata,
   (* mark_debug = "true" *) output reg m_axis_tvalid
 );
 
-  localparam AMP_WIDTH = 2 * ACC_WIDTH;
-  localparam NLIMB = (ACC_WIDTH + 15) / 16;
-  localparam MAG_WIDTH = 16 * NLIMB;
-
-  integer pj, pk;
-  integer sj, sk;
+  function [4:0] flog2;
+    input [31:0] v;
+    integer k;
+    begin
+      flog2 = 5'd0;
+      for (k = 1; k <= 31; k = k + 1) begin
+        if (v[k])
+          flog2 = k[4:0];
+      end
+    end
+  endfunction
 
   (* mark_debug = "true" *) reg signed [31:0] i_in, q_in;
   (* mark_debug = "true" *) reg v_in, r_in;
@@ -44,131 +48,120 @@ module amplitude_calculator #(
   (* mark_debug = "true" *) reg armed;
   (* mark_debug = "true" *) reg [31:0] shot_cnt;
   (* mark_debug = "true" *) reg [31:0] avg_m1;
-  (* mark_debug = "true" *) reg signed [ACC_WIDTH-1:0] i_acc, q_acc;
+  (* mark_debug = "true" *) reg [4:0] s1_r, s2_r;
+  (* mark_debug = "true" *) reg signed [45:0] i_acc, q_acc;
+  (* mark_debug = "true" *) reg signed [17:0] point_mean_i, point_mean_q;
 
-  wire signed [ACC_WIDTH-1:0] i_acc_next = i_acc + {{(ACC_WIDTH-32){i_in[31]}}, i_in};
-  wire signed [ACC_WIDTH-1:0] q_acc_next = q_acc + {{(ACC_WIDTH-32){q_in[31]}}, q_in};
+  wire signed [32:0] i_in_ext = {{1{i_in[31]}}, i_in};
+  wire signed [32:0] q_in_ext = {{1{q_in[31]}}, q_in};
+  wire signed [32:0] round1 = (s1_r == 5'd0) ? {33{1'b0}} : ({{32{1'b0}}, 1'b1} <<< (s1_r - 5'd1));
+  wire signed [32:0] i_shifted1 = (i_in_ext + round1) >>> s1_r;
+  wire signed [32:0] q_shifted1 = (q_in_ext + round1) >>> s1_r;
+  wire signed [16:0] shot_mean_i = i_shifted1[16:0];
+  wire signed [16:0] shot_mean_q = q_shifted1[16:0];
+
+  wire signed [45:0] i_acc_next = i_acc + {{29{shot_mean_i[16]}}, shot_mean_i};
+  wire signed [45:0] q_acc_next = q_acc + {{29{shot_mean_q[16]}}, shot_mean_q};
 
   wire acc_en = armed & v_in & r_in;
   wire is_last = (shot_cnt == avg_m1);
   wire emit_now = acc_en & is_last;
 
-  (* mark_debug = "true" *) reg [ACC_WIDTH-1:0] sq_in_i, sq_in_q;
+  wire signed [45:0] round2 = (s2_r == 5'd0) ? {46{1'b0}} : ({{45{1'b0}}, 1'b1} <<< (s2_r - 5'd1));
+  wire signed [45:0] i_acc_round = i_acc_next + round2;
+  wire signed [45:0] q_acc_round = q_acc_next + round2;
+  wire signed [45:0] i_acc_shifted = i_acc_round >>> s2_r;
+  wire signed [45:0] q_acc_shifted = q_acc_round >>> s2_r;
+  wire signed [17:0] point_mean_i_next = i_acc_shifted[17:0];
+  wire signed [17:0] point_mean_q_next = q_acc_shifted[17:0];
 
   always @(posedge clk) begin
     if (!rst_n) begin
       armed <= 1'b0;
       shot_cnt <= 32'd0;
       avg_m1 <= 32'd0;
-      i_acc <= 0;
-      q_acc <= 0;
-      sq_in_i <= 0;
-      sq_in_q <= 0;
+      s1_r <= 5'd0;
+      s2_r <= 5'd0;
+      i_acc <= {46{1'b0}};
+      q_acc <= {46{1'b0}};
+      point_mean_i <= {18{1'b0}};
+      point_mean_q <= {18{1'b0}};
     end else begin
       if (arm) begin
         armed <= 1'b1;
         shot_cnt <= 32'd0;
         avg_m1 <= (averager_value == 32'd0) ? 32'd0 : averager_value - 32'd1;
-        i_acc <= 0;
-        q_acc <= 0;
-        sq_in_i <= sq_in_i;
-        sq_in_q <= sq_in_q;
+        s1_r <= flog2(nsamp);
+        s2_r <= flog2(averager_value);
+        i_acc <= {46{1'b0}};
+        q_acc <= {46{1'b0}};
+        point_mean_i <= point_mean_i;
+        point_mean_q <= point_mean_q;
       end else if (acc_en) begin
         avg_m1 <= avg_m1;
+        s1_r <= s1_r;
+        s2_r <= s2_r;
         if (is_last) begin
           armed <= 1'b0;
           shot_cnt <= 32'd0;
-          i_acc <= 0;
-          q_acc <= 0;
-          sq_in_i <= i_acc_next[ACC_WIDTH-1] ? (~i_acc_next + 1'b1) : i_acc_next;
-          sq_in_q <= q_acc_next[ACC_WIDTH-1] ? (~q_acc_next + 1'b1) : q_acc_next;
+          i_acc <= {46{1'b0}};
+          q_acc <= {46{1'b0}};
+          point_mean_i <= point_mean_i_next;
+          point_mean_q <= point_mean_q_next;
         end else begin
           armed <= 1'b1;
           shot_cnt <= shot_cnt + 32'd1;
           i_acc <= i_acc_next;
           q_acc <= q_acc_next;
-          sq_in_i <= sq_in_i;
-          sq_in_q <= sq_in_q;
+          point_mean_i <= point_mean_i;
+          point_mean_q <= point_mean_q;
         end
       end else begin
         armed <= armed;
         shot_cnt <= shot_cnt;
         avg_m1 <= avg_m1;
+        s1_r <= s1_r;
+        s2_r <= s2_r;
         i_acc <= i_acc;
         q_acc <= q_acc;
-        sq_in_i <= sq_in_i;
-        sq_in_q <= sq_in_q;
+        point_mean_i <= point_mean_i;
+        point_mean_q <= point_mean_q;
       end
     end
   end
 
   (* mark_debug = "true" *) reg fin_v0, fin_v1, fin_v2;
+  reg signed [17:0] sq_operand;
+  (* mark_debug = "true" *) reg [35:0] power_acc;
 
-  wire [MAG_WIDTH-1:0] i_mag_ext = sq_in_i;
-  wire [MAG_WIDTH-1:0] q_mag_ext = sq_in_q;
-
-  reg [31:0] i_diag [0:NLIMB-1];
-  reg [31:0] q_diag [0:NLIMB-1];
-  reg [31:0] i_prod [0:NLIMB-1][0:NLIMB-1];
-  reg [31:0] q_prod [0:NLIMB-1][0:NLIMB-1];
-
-  (* mark_debug = "true" *) reg [AMP_WIDTH-1:0] i_sq, q_sq;
-
-  reg [AMP_WIDTH-1:0] i_sq_c, q_sq_c;
-
-  always @(*) begin
-    i_sq_c = {AMP_WIDTH{1'b0}};
-    q_sq_c = {AMP_WIDTH{1'b0}};
-    for (sj = 0; sj < NLIMB; sj = sj + 1) begin
-      i_sq_c = i_sq_c + ({{(AMP_WIDTH-32){1'b0}}, i_diag[sj]} << (32*sj));
-      q_sq_c = q_sq_c + ({{(AMP_WIDTH-32){1'b0}}, q_diag[sj]} << (32*sj));
-      for (sk = sj + 1; sk < NLIMB; sk = sk + 1) begin
-        i_sq_c = i_sq_c + ({{(AMP_WIDTH-32){1'b0}}, i_prod[sj][sk]} << (16*(sj+sk)+1));
-        q_sq_c = q_sq_c + ({{(AMP_WIDTH-32){1'b0}}, q_prod[sj][sk]} << (16*(sj+sk)+1));
-      end
-    end
-  end
+  wire signed [35:0] point_mean_i_sq = point_mean_i * point_mean_i;
+  wire signed [35:0] sq_operand_sq = sq_operand * sq_operand;
 
   always @(posedge clk) begin
     if (!rst_n) begin
       fin_v0 <= 1'b0;
       fin_v1 <= 1'b0;
       fin_v2 <= 1'b0;
-      for (pj = 0; pj < NLIMB; pj = pj + 1) begin
-        i_diag[pj] <= 32'd0;
-        q_diag[pj] <= 32'd0;
-        for (pk = 0; pk < NLIMB; pk = pk + 1) begin
-          i_prod[pj][pk] <= 32'd0;
-          q_prod[pj][pk] <= 32'd0;
-        end
-      end
-      i_sq <= 0;
-      q_sq <= 0;
-      m_axis_tdata <= 0;
+      sq_operand <= {18{1'b0}};
+      power_acc <= {36{1'b0}};
+      m_axis_tdata <= {36{1'b0}};
       m_axis_tvalid <= 1'b0;
     end else begin
       fin_v0 <= emit_now;
-      for (pj = 0; pj < NLIMB; pj = pj + 1) begin
-        i_diag[pj] <= i_mag_ext[16*pj +: 16] * i_mag_ext[16*pj +: 16];
-        q_diag[pj] <= q_mag_ext[16*pj +: 16] * q_mag_ext[16*pj +: 16];
-        for (pk = 0; pk < NLIMB; pk = pk + 1) begin
-          if (pk > pj) begin
-            i_prod[pj][pk] <= i_mag_ext[16*pj +: 16] * i_mag_ext[16*pk +: 16];
-            q_prod[pj][pk] <= q_mag_ext[16*pj +: 16] * q_mag_ext[16*pk +: 16];
-          end else begin
-            i_prod[pj][pk] <= i_prod[pj][pk];
-            q_prod[pj][pk] <= q_prod[pj][pk];
-          end
-        end
+      if (fin_v0) begin
+        power_acc <= point_mean_i_sq;
+        sq_operand <= point_mean_q;
+      end else if (fin_v1) begin
+        power_acc <= power_acc + sq_operand_sq;
+        sq_operand <= sq_operand;
+      end else begin
+        power_acc <= power_acc;
+        sq_operand <= sq_operand;
       end
-
       fin_v1 <= fin_v0;
-      i_sq <= i_sq_c;
-      q_sq <= q_sq_c;
-
       fin_v2 <= fin_v1;
       m_axis_tvalid <= fin_v2;
-      m_axis_tdata <= i_sq + q_sq;
+      m_axis_tdata <= power_acc;
     end
   end
 

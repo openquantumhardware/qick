@@ -1,24 +1,23 @@
 `timescale 1ns / 1ps
 
-module peak_finder #(
-  parameter ACCUM_WIDTH = 128   
-)(
+module peak_finder (
   input wire clk,
   input wire rstn,
 
   input wire start,
-  input wire [31:0] start_freq,   
-  input wire [31:0] step,         
-  input wire [31:0] n_points,     
+  input wire [31:0] start_freq,
+  input wire [31:0] step,
+  input wire [31:0] n_points,
+  input wire mode,
 
   input wire amp_valid,
-  input wire [ACCUM_WIDTH-1:0] amp_data,
+  input wire [35:0] amp_data,
 
   (* mark_debug = "true" *) output reg [31:0] freq_word,
   (* mark_debug = "true" *) output reg freq_valid,
   (* mark_debug = "true" *) output reg finish,
 
-  (* mark_debug = "true" *) output reg [ACCUM_WIDTH-1:0] max_amplitude,
+  (* mark_debug = "true" *) output reg [35:0] max_amplitude,
   (* mark_debug = "true" *) output reg [31:0] freq_at_max
 );
 
@@ -29,6 +28,9 @@ module peak_finder #(
   (* mark_debug = "true" *) reg [31:0] cur_freq, cur_step, n_pts, point_idx;
 
   (* mark_debug = "true" *) reg last_point_r;
+  (* mark_debug = "true" *) reg mode_r;
+
+  wire is_better = mode_r ? (amp_data < max_amplitude) : (amp_data > max_amplitude);
 
 
   always @(posedge clk) begin
@@ -63,13 +65,14 @@ module peak_finder #(
       freq_word <= 32'd0;
       freq_valid <= 1'b0;
       finish <= 1'b0;
-      max_amplitude <= {ACCUM_WIDTH{1'b0}};
+      max_amplitude <= {36{1'b0}};
       freq_at_max <= 32'd0;
       cur_freq <= 32'd0;
       cur_step <= 32'd0;
       n_pts <= 32'd0;
       point_idx <= 32'd0;
       last_point_r <= 1'b0;
+      mode_r <= 1'b0;
     end else begin
       case (state)
       IDLE: begin
@@ -82,7 +85,8 @@ module peak_finder #(
           n_pts <= n_points;
           point_idx <= 32'd0;
           last_point_r <= (32'd1 >= n_points);
-          max_amplitude <= {ACCUM_WIDTH{1'b0}};
+          mode_r <= mode;
+          max_amplitude <= mode ? {36{1'b1}} : {36{1'b0}};
           freq_at_max <= 32'd0;
         end else begin
           cur_freq <= cur_freq;
@@ -90,6 +94,7 @@ module peak_finder #(
           n_pts <= n_pts;
           point_idx <= point_idx;
           last_point_r <= last_point_r;
+          mode_r <= mode_r;
           max_amplitude <= max_amplitude;
           freq_at_max <= freq_at_max;
         end
@@ -106,14 +111,16 @@ module peak_finder #(
         n_pts <= n_pts;
         point_idx <= point_idx;
         last_point_r <= last_point_r;
+        mode_r <= mode_r;
       end
 
       WAIT_MEAS: begin
         freq_valid <= 1'b0;
         cur_step <= cur_step;
         n_pts <= n_pts;
+        mode_r <= mode_r;
         if (amp_valid) begin
-          if (amp_data > max_amplitude) begin
+          if (is_better) begin
             max_amplitude <= amp_data;
             freq_at_max <= cur_freq;
           end else begin
@@ -122,7 +129,7 @@ module peak_finder #(
           end
 
           if (last_point_r) begin
-            freq_word <= (amp_data > max_amplitude) ? cur_freq : freq_at_max;
+            freq_word <= is_better ? cur_freq : freq_at_max;
             finish <= 1'b1;
             cur_freq <= cur_freq;
             point_idx <= point_idx;
@@ -156,6 +163,7 @@ module peak_finder #(
         n_pts <= n_pts;
         point_idx <= point_idx;
         last_point_r <= last_point_r;
+        mode_r <= mode_r;
       end
       endcase
     end
