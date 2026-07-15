@@ -435,8 +435,24 @@ def default_addrmap_skeleton() -> AddrMap:
         "NQZ": RegDef(0x10), "MIXER_FREQ": RegDef(0x14), "PHASE": RegDef(0x18),
         "GAIN": RegDef(0x1C), "ENABLE": RegDef(0x20),
     }
+    am.reg_defs_by_type["axis_sg_mux8_v1"] = {
+        "PINC0_REG": RegDef(0x00), "PINC1_REG": RegDef(0x04), "PINC2_REG": RegDef(0x08), "PINC3_REG": RegDef(0x0C),
+        "PINC4_REG": RegDef(0x10), "PINC5_REG": RegDef(0x14), "PINC6_REG": RegDef(0x18), "PINC7_REG": RegDef(0x1C),
+        "POFF0_REG": RegDef(0x20), "POFF1_REG": RegDef(0x24), "POFF2_REG": RegDef(0x28), "POFF3_REG": RegDef(0x2C),
+        "POFF4_REG": RegDef(0x30), "POFF5_REG": RegDef(0x34), "POFF6_REG": RegDef(0x38), "POFF7_REG": RegDef(0x3C),
+        "GAIN0_REG": RegDef(0x40), "GAIN1_REG": RegDef(0x44), "GAIN2_REG": RegDef(0x48), "GAIN3_REG": RegDef(0x4C),
+        "GAIN4_REG": RegDef(0x50), "GAIN5_REG": RegDef(0x54), "GAIN6_REG": RegDef(0x58), "GAIN7_REG": RegDef(0x5C),
+        "WE_REG": RegDef(0x60),
+    }
+    # mixmux8 uses the same per-tone register layout as mux8 (PINC/POFF/GAIN/WE).
     am.reg_defs_by_type["axis_sg_mixmux8_v1"] = {
-        "NQZ": RegDef(0x10), "MIXER_FREQ": RegDef(0x14), "ENABLE": RegDef(0x18),
+        "PINC0_REG": RegDef(0x00), "PINC1_REG": RegDef(0x04), "PINC2_REG": RegDef(0x08), "PINC3_REG": RegDef(0x0C),
+        "PINC4_REG": RegDef(0x10), "PINC5_REG": RegDef(0x14), "PINC6_REG": RegDef(0x18), "PINC7_REG": RegDef(0x1C),
+        "POFF0_REG": RegDef(0x20), "POFF1_REG": RegDef(0x24), "POFF2_REG": RegDef(0x28), "POFF3_REG": RegDef(0x2C),
+        "POFF4_REG": RegDef(0x30), "POFF5_REG": RegDef(0x34), "POFF6_REG": RegDef(0x38), "POFF7_REG": RegDef(0x3C),
+        "GAIN0_REG": RegDef(0x40), "GAIN1_REG": RegDef(0x44), "GAIN2_REG": RegDef(0x48), "GAIN3_REG": RegDef(0x4C),
+        "GAIN4_REG": RegDef(0x50), "GAIN5_REG": RegDef(0x54), "GAIN6_REG": RegDef(0x58), "GAIN7_REG": RegDef(0x5C),
+        "WE_REG": RegDef(0x60),
     }
 
     am.reg_defs_by_type["axis_tproc_v2"] = {
@@ -764,17 +780,29 @@ class QickEmu:
         self.reg_write(gen.fullpath, "MIXER_FREQ", int(f))
 
     def config_mux_gen(self, ch, tones):
-        """Program per-tone frequency registers for a mux signal generator."""
+        """Program per-tone mux-generator registers (freq/gain/phase + WE strobe)."""
         gen = self.gens[ch]
-        BASE_TONE_REG = 0x40
-        for i, tone in enumerate(tones):
-            reg_offset = BASE_TONE_REG + (i * 16)
-            try:
-                base = self.addrmap.base_addrs[gen.fullpath]
-                addr = base + reg_offset
-                self.axi.write(addr, tone['freq_int'], comment=f"Gen{ch} Tone{i} Freq")
-            except KeyError:
-                self.axi.write(0xFFFFFFFF, tone['freq_int'], comment=f"UNRESOLVED Gen{ch} Tone{i}")
+        gencfg = self.soccfg['gens'][ch]
+        n_tones = int(gencfg.get('n_tones', len(tones)))
+        has_gain = bool(gencfg.get('has_gain', False))
+        has_phase = bool(gencfg.get('has_phase', False))
+
+        # Match the hardware driver's set_tones_int() behavior:
+        # write provided tones; zero gains for any remaining tones.
+        for i in range(n_tones):
+            if i < len(tones):
+                tone = tones[i]
+                self.reg_write(gen.fullpath, f"PINC{i}_REG", int(tone['freq_int']), comment=f"Gen{ch} Tone{i} Freq")
+                if has_gain and 'gain_int' in tone:
+                    self.reg_write(gen.fullpath, f"GAIN{i}_REG", int(tone['gain_int']), comment=f"Gen{ch} Tone{i} Gain")
+                if has_phase and 'phase_int' in tone:
+                    self.reg_write(gen.fullpath, f"POFF{i}_REG", int(tone['phase_int']), comment=f"Gen{ch} Tone{i} Phase")
+            elif has_gain:
+                self.reg_write(gen.fullpath, f"GAIN{i}_REG", 0, comment=f"Gen{ch} Tone{i} Gain=0 (unused)")
+
+        # Commit shadow registers in mux IP.
+        self.reg_write(gen.fullpath, "WE_REG", 1, comment=f"Gen{ch} WE strobe hi")
+        self.reg_write(gen.fullpath, "WE_REG", 0, comment=f"Gen{ch} WE strobe lo")
 
     def configure_readout(self, ch, ro_regs):
         """Mirror :meth:`QickSoc.configure_readout`: push generated readout register values."""
@@ -842,7 +870,8 @@ class QickEmu:
             addr = self.addrmap.resolve(fullpath, regname)
             self.axi.write(addr, int(value), comment=comment)
         except KeyError:
-            self.axi.write(0xFFFFFFFF, int(value), comment=f"UNRESOLVED: {fullpath}.{regname}")
+            # self.axi.write(0xFFFFFFFF, int(value), comment=f"UNRESOLVED: {fullpath}.{regname}")
+            pass
 
     def reg_read(self, fullpath: str, regname: str, comment: str = ""):
         """No-op: the emulator doesn't model return values."""
@@ -1907,7 +1936,7 @@ class QickEmu:
 
         out_path = memdir / replay_filename
         with jsonl_path.open() as fin, out_path.open("w") as fout:
-            fout.write("# AXI-Lite replay for tb_qick_emu.sv\n")
+            fout.write("# AXI-Lite replay for QICKEmu_harness.sv\n")
             fout.write("# Generated by QickEmu.export_vivado_files()\n")
             fout.write("# Format: hex_addr hex_data  [# comment]\n")
             fout.write("#\n")
@@ -1921,34 +1950,36 @@ class QickEmu:
                 comment = txn.get("comment", "")
                 fout.write(f"{addr:08X} {data:08X}  # {comment}\n")
 
-        verbose = bool(getattr(self, "_sim_verbose", False))
+        ## I think this is not needed anymore
 
-        if verbose:
-            print(f"[ok] Wrote {out_path}  ({sum(1 for _ in out_path.open()) - 4} transactions)")
+        # verbose = bool(getattr(self, "_sim_verbose", False))
 
-            print("\n--- tb_qick_emu.sv address routing parameters ---")
-            print("# Paste these localparam values into tb_qick_emu.sv if defaults differ:")
-        ba = self.addrmap.base_addrs
-        tf = self.addrmap.type_by_fullpath
+        # if verbose:
+        #     print(f"[ok] Wrote {out_path}  ({sum(1 for _ in out_path.open()) - 4} transactions)")
 
-        tproc_bases = [v for k, v in ba.items() if 'tproc' in tf.get(k, '') or 'processor' in tf.get(k, '')]
-        sg_bases    = [v for k, v in ba.items() if 'signal_gen' in tf.get(k, '') or 'sg_int4' in tf.get(k, '') or 'sg_mix' in tf.get(k, '')]
-        avg_bases   = [v for k, v in ba.items() if 'avg_buffer' in tf.get(k, '')]
+        #     print("\n--- QICKEmu_harness.sv address routing parameters ---")
+        #     print("# Paste these localparam values into tb_qick_emu.sv if defaults differ:")
+        # ba = self.addrmap.base_addrs
+        # tf = self.addrmap.type_by_fullpath
 
-        if verbose:
-            if tproc_bases:
-                print(f"localparam integer TPROC_BASE  = 40'h{tproc_bases[0]:09X};")
-            if sg_bases:
-                lo = min(sg_bases)
-                hi = max(sg_bases) + 0x10000
-                print(f"localparam integer SG_BASE_LO  = 40'h{lo:09X};  // {len(sg_bases)} gen IP(s)")
-                print(f"localparam integer SG_BASE_HI  = 40'h{hi:09X};")
-            if avg_bases:
-                lo = min(avg_bases)
-                hi = max(avg_bases) + 0x10000
-                print(f"localparam integer AVG_BASE_LO = 40'h{lo:09X};  // {len(avg_bases)} avgbuf IP(s)")
-                print(f"localparam integer AVG_BASE_HI = 40'h{hi:09X};")
-            print("-------------------------------------------------\n")
+        # tproc_bases = [v for k, v in ba.items() if 'tproc' in tf.get(k, '') or 'processor' in tf.get(k, '')]
+        # sg_bases    = [v for k, v in ba.items() if 'signal_gen' in tf.get(k, '') or 'sg_int4' in tf.get(k, '') or 'sg_mix' in tf.get(k, '') or 'sg_mux' in tf.get(k, '')]
+        # avg_bases   = [v for k, v in ba.items() if 'avg_buffer' in tf.get(k, '')]
+
+        # if verbose:
+        #     if tproc_bases:
+        #         print(f"localparam integer TPROC_BASE  = 40'h{tproc_bases[0]:09X};")
+        #     if sg_bases:
+        #         lo = min(sg_bases)
+        #         hi = max(sg_bases) + 0x10000
+        #         print(f"localparam integer SG_BASE_LO  = 40'h{lo:09X};  // {len(sg_bases)} gen IP(s)")
+        #         print(f"localparam integer SG_BASE_HI  = 40'h{hi:09X};")
+        #     if avg_bases:
+        #         lo = min(avg_bases)
+        #         hi = max(avg_bases) + 0x10000
+        #         print(f"localparam integer AVG_BASE_LO = 40'h{lo:09X};  // {len(avg_bases)} avgbuf IP(s)")
+        #         print(f"localparam integer AVG_BASE_HI = 40'h{hi:09X};")
+        #     print("-------------------------------------------------\n")
 
         return out_path
 

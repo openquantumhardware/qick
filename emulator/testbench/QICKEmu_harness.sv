@@ -96,7 +96,7 @@ localparam N_DDS_RO = 8;
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
 string EMU_DIR       = "../artifacts";
-time   TEST_RUN_TIME = 1us;
+time   TEST_RUN_TIME = 1000ns;
 time   PRE_RUN_DELAY_TIME = 0ns;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
@@ -151,18 +151,6 @@ axi_pkg::prot_t prot = 0;
 axi_pkg::resp_t resp;
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
-// ++++++++++++ TELL VERILATOR TO LOG SIGNALS IN VCD FILE (opt-in via +TRACE)
-initial begin
-   #1;
-   if ($test$plusargs("TRACE")) begin
-      string vcd_file;
-      vcd_file = {EMU_DIR, "/waveform.vcd"};
-      $dumpfile(vcd_file);
-      $dumpvars(0, tb_qick_emu_verilator);
-      $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
-   end
-end
-// ++++++++++++
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
@@ -326,6 +314,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                      axis_sg1_dac1_tready;
    logic                      axis_sg1_dac1_tvalid;
    logic [N_DDS_SG*16-1:0]    axis_sg1_dac1_tdata;
+
+   // ++++++++++++ Signal Generator 2 (mux8) --> DAC 2 interface
+   logic                      axis_sg2_dac2_tready;
+   logic                      axis_sg2_dac2_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg2_dac2_tdata;
+   // ++++++++++++
+
 
    logic                      axis_adc0_ro0_tready;
    logic                      axis_adc0_ro0_tvalid;
@@ -503,7 +498,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .axis_sg1_dac1_tvalid        (axis_sg1_dac1_tvalid     ),
       .axis_sg1_dac1_tdata         (axis_sg1_dac1_tdata      ),
 
+      // ++++++++++++ Signal Generator 2 (mux8) --> DAC 2 interface
+      .axis_sg2_dac2_tready        (axis_sg2_dac2_tready     ),
+      .axis_sg2_dac2_tvalid        (axis_sg2_dac2_tvalid     ),
+      .axis_sg2_dac2_tdata         (axis_sg2_dac2_tdata      ),
+      // ++++++++++++
+
       // ADC 0 --> Readout 0 Interface
+
       .axis_adc0_ro0_tready       (axis_adc0_ro0_tready     ),
       .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
       .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
@@ -615,7 +617,25 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // SG1 to DAC1 RF processes 16 samples per clock
 
 
+   // ++++++++++++ SG2 (mux8) to DAC2 model — capture-only, no ADC loopback path.
+   localparam DAC2_W = 16;
+   real dac2_signal_rf;
+
+   model_DAC #(
+      .DAC_W               (DAC2_W),
+      .N_DDS               (N_DDS_SG)
+   ) u_model_DAC2 (
+      .clk_DAC             (dac_fs),
+      .axis_tvalid         (axis_sg2_dac2_tvalid),
+      .axis_tdata          (axis_sg2_dac2_tdata),
+      .axis_tready         (axis_sg2_dac2_tready),
+      .dac_signal_rf       (dac2_signal_rf)
+   );
+   // ++++++++++++
+
+
    // Model transport delay between DAC0 and ADC0.
+
    localparam RF_DELAY_TIME_NS = 100;
    localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*`T_SG_CLK_HALF_PERIOD/N_DDS_SG));
 
@@ -760,6 +780,30 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // TODO: connect ADC1
    // axis_adc1_ro1_* now driven by u_model_ADC1.
 
+
+   // WATCHDOG
+   initial begin
+      #1;
+      $display("### WATCHDOG Enabled: Simulation will terminate after %0d ns", TEST_RUN_TIME+20);
+      #(TEST_RUN_TIME+20000ns);
+      $display("### WATCHDOG: Simulation time limit reached. Terminating.");
+      $finish;
+   end
+
+
+   // ++++++++++++ TELL VERILATOR TO LOG SIGNALS IN VCD FILE (opt-in via +TRACE)
+   initial begin
+      #1;
+      if ($test$plusargs("TRACE")) begin
+         string vcd_file;
+         vcd_file = {EMU_DIR, "/waveform.vcd"};
+         $dumpfile(vcd_file);
+         $dumpvars(0, tb_qick_emu_verilator);
+         $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
+      end
+   end
+   // ++++++++++++
+
    // -----------------------------------------------------------------------------
    // EMU_DIR plusarg.
    //
@@ -816,7 +860,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // -----------------------------------------------------------------------------
    integer dac_csv_fd;
    integer dac1_csv_fd;
+   integer dac2_csv_fd;   // ++++++++++++ mux8 SG2 -> DAC2 capture
    integer avg_csv_fd;
+
    integer dec_csv_fd;
    integer mr_csv_fd;
    int     mr_rows_logged = 0;
@@ -824,6 +870,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    initial begin
       string dac_csv_path;
       string dac1_csv_path;
+      string dac2_csv_path;
       string avg_csv_path;
       string dec_csv_path;
       string mr_csv_path;
@@ -835,14 +882,17 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       dac_csv_path = {EMU_DIR, "/dac_out.csv"};
       dac1_csv_path = {EMU_DIR, "/dac_out_ch1.csv"};
+      dac2_csv_path = {EMU_DIR, "/dac_out_ch2.csv"};   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg_csv_path = {EMU_DIR, "/avg_out.csv"};
+
       dec_csv_path = {EMU_DIR, "/dec_out.csv"};
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
-      $display("### Opening CSV: %s ###", dac_csv_path);
       dac_csv_fd = $fopen(dac_csv_path, "w");
       dac1_csv_fd = $fopen(dac1_csv_path, "w");
+      dac2_csv_fd = $fopen(dac2_csv_path, "w");   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg_csv_fd = $fopen(avg_csv_path, "w");
+
       dec_csv_fd = $fopen(dec_csv_path, "w");
       mr_csv_fd  = $fopen(mr_csv_path, "w");
 
@@ -852,7 +902,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fwrite(dac1_csv_fd, "time_ps");
       for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac1_csv_fd, ",s%0d", i);
       $fwrite(dac1_csv_fd, "\n");
+      $fwrite(dac2_csv_fd, "time_ps");   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac2_csv_fd, ",s%0d", i);   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      $fwrite(dac2_csv_fd, "\n");   // ++++++++++++ mux8 SG2 -> DAC2 capture
       $fwrite(avg_csv_fd, "time_ps,I,Q\n");
+
       $fwrite(dec_csv_fd, "time_ps,I,Q\n");
       $fwrite(mr_csv_fd, "time_ps");
       for (int i = 0; i < 8; i++) $fwrite(mr_csv_fd, ",I%0d,Q%0d", i, i);
@@ -876,6 +930,17 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          $fwrite(dac1_csv_fd, "\n");
       end
    end
+
+   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
+   always @(posedge sg_clk) begin
+      if (axis_sg2_dac2_tvalid) begin
+         $fwrite(dac2_csv_fd, "%0t", $realtime);
+         for (int i = 0; i < N_DDS_SG; i++)
+            $fwrite(dac2_csv_fd, ",%0d", $signed(axis_sg2_dac2_tdata[16*i +: 16]));
+         $fwrite(dac2_csv_fd, "\n");
+      end
+   end
+   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
 
    always @(posedge s_ps_dma_aclk) begin
       if (m0_axis_buf0_avg_tvalid)
@@ -984,7 +1049,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
-      $display("*** Start Test ***");
+      $display("%0t - *** Start Test ***", $realtime);
 
       // INITIAL VALUES
       rst_ni                   = 1'b0;
@@ -1026,11 +1091,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       #100ns;
 
       // Load tProc Memories (pmem, wmem, dmem) from EMU_DIR.
+      $display("%0t - *** Load tProc Memories ***", $realtime);
       tproc_load_mem_emu(EMU_DIR);
 
       #1us;
 
       // Load Signal Generator Envelope Table Memory (sgmem_ch0).
+      $display("%0t - *** Load SG0 Envelope Table Memory ***", $realtime);
       sg_load_mem_emu(EMU_DIR, 0);
 
       #1us;
@@ -1039,7 +1106,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       #(PRE_RUN_DELAY_TIME);
 
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
+      $display("%0t - *** Replaying AXI Writes from axi_replay.txt ***", $realtime);
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
+
+
 
       $display("### %0t - Start tProc execution ###", $realtime);
       #(TEST_RUN_TIME);
@@ -1049,7 +1119,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       // READ CAPTURED DATA FROM AVG BUFFER.
       $display("### %0t - Reading avg/dec buffers ###", $realtime);
 
-      // Use single agent with router - addresses are automatically routed
       @(posedge s_ps_dma_aclk); #0.1;
       axi_mst_agent.write(RO0_BASE + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
       #100ns;
@@ -1074,6 +1143,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $display("### %0t - Closing CSV files ###", $realtime);
       $fclose(dac_csv_fd);
       $fclose(dac1_csv_fd);
+      $fclose(dac2_csv_fd);   // ++++++++++++ mux8 SG2 -> DAC2 capture
       $fclose(avg_csv_fd);
       $fclose(dec_csv_fd);
       $fclose(mr_csv_fd);

@@ -138,6 +138,7 @@ module qick_dut #(
    output logic                  sg1_s0_axis_tready,
 
    // AXIS DAC Signal Generator
+
    input logic                      axis_sg0_dac0_tready,
    output logic                     axis_sg0_dac0_tvalid,
    output logic [N_DDS_SG*16-1:0]   axis_sg0_dac0_tdata,
@@ -145,6 +146,12 @@ module qick_dut #(
    input logic                      axis_sg1_dac1_tready,
    output logic                     axis_sg1_dac1_tvalid,
    output logic [N_DDS_SG*16-1:0]   axis_sg1_dac1_tdata,
+
+   // ++++++++++++ ADD MUX8 SG2 DAC OUTPUT
+   input logic                      axis_sg2_dac2_tready,
+   output logic                     axis_sg2_dac2_tvalid,
+   output logic [N_DDS_SG*16-1:0]   axis_sg2_dac2_tdata,
+   // ++++++++++++
    
    // AXIS ADC0 Readout
    output logic                     axis_adc0_ro0_tready,
@@ -196,6 +203,16 @@ module qick_dut #(
    wire               sgt1_sg1_axis_tvalid;
    logic              sgt1_sg1_axis_tready;
 
+   // ++++++++++++ Signal Generator 2 (mux8) Path signals
+   // tproc wave port m2 -> sg_translator
+   wire [167:0]       tproc_sgt2_axis_tdata ;
+   wire               tproc_sgt2_axis_tvalid;
+   logic              tproc_sgt2_axis_tready;
+   // sg_translator m_mux4 (40-bit) -> axis_sg_mux8_v1
+   wire [39:0]        sgt2_sg2_axis_tdata ;
+   wire               sgt2_sg2_axis_tvalid;
+   logic              sgt2_sg2_axis_tready;
+   // ++++++++++++
 
    // Readout Path signals
    wire [167:0]       tproc_ro0cdc_axis_tdata ;
@@ -301,7 +318,30 @@ module qick_dut #(
    logic  [3:0]       s_axi_sg1_wstrb;
    logic              s_axi_sg1_wvalid;
 
+   // ++++++++++++ Internal AXI-Lite wires for mux8 SG2 config (kept inside qick_dut)
+   logic  [7:0]       s_axi_sg2_awaddr;
+   logic  [2:0]       s_axi_sg2_awprot;
+   logic              s_axi_sg2_awvalid;
+   logic              s_axi_sg2_awready;
+   logic  [31:0]      s_axi_sg2_wdata;
+   logic  [3:0]       s_axi_sg2_wstrb;
+   logic              s_axi_sg2_wvalid;
+   logic              s_axi_sg2_wready;
+   logic  [1:0]       s_axi_sg2_bresp;
+   logic              s_axi_sg2_bvalid;
+   logic              s_axi_sg2_bready;
+   logic  [7:0]       s_axi_sg2_araddr;
+   logic  [2:0]       s_axi_sg2_arprot;
+   logic              s_axi_sg2_arvalid;
+   logic              s_axi_sg2_arready;
+   logic  [31:0]      s_axi_sg2_rdata;
+   logic  [1:0]       s_axi_sg2_rresp;
+   logic              s_axi_sg2_rvalid;
+   logic              s_axi_sg2_rready;
+   // ++++++++++++
+
    // Router output wires for avg1
+
    wire  [5:0]       s_axi_avg1_araddr;
    wire  [2:0]       s_axi_avg1_arprot;
    wire              s_axi_avg1_arready;
@@ -347,9 +387,11 @@ module qick_dut #(
    logic           tproc_sel;
    logic           sg0_sel;
    logic           sg1_sel;
+   logic           sg2_sel;   // ++++++++++++ mux8 SG2 config select
    logic           avg0_sel;
    logic           avg1_sel;
    logic           rov2_sel;
+
 
    // Instantiate AXI Router
    axi_router_lite #(
@@ -436,7 +478,29 @@ module qick_dut #(
       .s_sg1_rresp     (s_axi_sg1_rresp     ),
       .s_sg1_rvalid    (s_axi_sg1_rvalid    ),
       .s_sg1_rready    (s_axi_sg1_rready    ),
+      // ++++++++++++ mux8 SG2 config slave
+      .s_sg2_awaddr    (s_axi_sg2_awaddr    ),
+      .s_sg2_awprot    (s_axi_sg2_awprot    ),
+      .s_sg2_awvalid   (s_axi_sg2_awvalid   ),
+      .s_sg2_awready   (s_axi_sg2_awready   ),
+      .s_sg2_wdata     (s_axi_sg2_wdata     ),
+      .s_sg2_wstrb     (s_axi_sg2_wstrb     ),
+      .s_sg2_wvalid    (s_axi_sg2_wvalid    ),
+      .s_sg2_wready    (s_axi_sg2_wready    ),
+      .s_sg2_bresp     (s_axi_sg2_bresp     ),
+      .s_sg2_bvalid    (s_axi_sg2_bvalid    ),
+      .s_sg2_bready    (s_axi_sg2_bready    ),
+      .s_sg2_araddr    (s_axi_sg2_araddr    ),
+      .s_sg2_arprot    (s_axi_sg2_arprot    ),
+      .s_sg2_arvalid   (s_axi_sg2_arvalid   ),
+      .s_sg2_arready   (s_axi_sg2_arready   ),
+      .s_sg2_rdata     (s_axi_sg2_rdata     ),
+      .s_sg2_rresp     (s_axi_sg2_rresp     ),
+      .s_sg2_rvalid    (s_axi_sg2_rvalid    ),
+      .s_sg2_rready    (s_axi_sg2_rready    ),
+      // ++++++++++++
       .s_avg0_awaddr   (s_axi_avg0_awaddr   ),
+
       .s_avg0_awprot   (s_axi_avg0_awprot   ),
       .s_avg0_awvalid  (s_axi_avg0_awvalid  ),
       .s_avg0_awready  (s_axi_avg0_awready  ),
@@ -497,7 +561,9 @@ module qick_dut #(
       .tproc_sel       (tproc_sel           ),
       .sg0_sel         (sg0_sel             ),
       .sg1_sel         (sg1_sel             ),
+      .sg2_sel         (sg2_sel             ),
       .avg0_sel        (avg0_sel            ),
+
       .rov2_sel        (rov2_sel            ),
       .avg1_sel        (avg1_sel            )
    );
@@ -767,9 +833,9 @@ module qick_dut #(
       .m1_axis_tdata        ( tproc_sg1cdc_axis_tdata        ),
       .m1_axis_tvalid       ( tproc_sg1cdc_axis_tvalid       ),
       .m1_axis_tready       ( tproc_sg1cdc_axis_tready       ),
-      .m2_axis_tdata        ( /*m2_axis_tdata*/        ),
-      .m2_axis_tvalid       ( /*m2_axis_tvalid*/       ),
-      .m2_axis_tready       ( 1'b0 /*m2_axis_tready*/       ),
+      .m2_axis_tdata        ( tproc_sgt2_axis_tdata         ),
+      .m2_axis_tvalid       ( tproc_sgt2_axis_tvalid        ),
+      .m2_axis_tready       ( tproc_sgt2_axis_tready        ),
       .m3_axis_tdata        ( /*m3_axis_tdata*/        ),
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/       ),
       .m3_axis_tready       ( 1'b0 /*m3_axis_tready*/       ),
@@ -1164,6 +1230,84 @@ module qick_dut #(
       .m_axis_tdata        (axis_sg1_dac1_tdata      )
    );
 `endif
+
+   //-----------------------------------------
+   // ++++++++++++ SIGNAL GENERATOR 2 (axis_sg_mux8_v1)
+   //-----------------------------------------
+   // SG CDC m2 output -> sg_translator (OUT_TYPE=2, mux4 40-bit word) -> axis_sg_mux8_v1 -> DAC2
+   sg_translator # (
+      .OUT_TYPE               (2) // (0:gen_v6, 1:int4_v1, 2:mux4_v1, 3:readout)
+   )
+   u_sg_translator_2 (
+      // Reset and clock.
+      .aresetn                (1'bx),  // not used
+      .aclk                   (1'bx),  // not used
+      // IN WAVE PORT
+      .s_axis_tdata           (tproc_sgt2_axis_tdata),
+      .s_axis_tvalid          (tproc_sgt2_axis_tvalid),
+      .s_axis_tready          (tproc_sgt2_axis_tready),
+      // OUT DATA gen_v6 (SEL:0)
+      .m_gen_v6_axis_tdata    (),
+      .m_gen_v6_axis_tvalid   (),
+      .m_gen_v6_axis_tready   (),
+      // OUT DATA int4_v1 (SEL:1)
+      .m_int4_axis_tdata      (),
+      .m_int4_axis_tvalid     (),
+      .m_int4_axis_tready     (),
+      // OUT DATA mux4_v1 (SEL:2)
+      .m_mux4_axis_tdata      (sgt2_sg2_axis_tdata),
+      .m_mux4_axis_tvalid     (sgt2_sg2_axis_tvalid),
+      .m_mux4_axis_tready     (sgt2_sg2_axis_tready),
+      // OUT DATA readout_v3 (SEL:3)
+      .m_readout_axis_tdata   (),
+      .m_readout_axis_tvalid  (),
+      .m_readout_axis_tready  ()
+   );
+
+   axis_sg_mux8_v1 #(
+      .N_DDS               (N_DDS_SG         ),
+      // +++++++++++++ ADD EMULATOR PARAM
+      .EMULATOR            (EMULATOR)
+   )
+   u_axis_sg_mux8_v1_0 (
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk          (ps_clk           ),
+      .s_axi_aresetn       (ps_resetn        ),
+      .s_axi_awaddr        (s_axi_sg2_awaddr ),
+      .s_axi_awprot        (s_axi_sg2_awprot ),
+      .s_axi_awvalid       (s_axi_sg2_awvalid),
+      .s_axi_awready       (s_axi_sg2_awready),
+      .s_axi_wdata         (s_axi_sg2_wdata  ),
+      .s_axi_wstrb         (s_axi_sg2_wstrb  ),
+      .s_axi_wvalid        (s_axi_sg2_wvalid ),
+      .s_axi_wready        (s_axi_sg2_wready ),
+      .s_axi_bresp         (s_axi_sg2_bresp  ),
+      .s_axi_bvalid        (s_axi_sg2_bvalid ),
+      .s_axi_bready        (s_axi_sg2_bready ),
+      .s_axi_araddr        (s_axi_sg2_araddr ),
+      .s_axi_arprot        (s_axi_sg2_arprot ),
+      .s_axi_arvalid       (s_axi_sg2_arvalid),
+      .s_axi_arready       (s_axi_sg2_arready),
+      .s_axi_rdata         (s_axi_sg2_rdata  ),
+      .s_axi_rresp         (s_axi_sg2_rresp  ),
+      .s_axi_rvalid        (s_axi_sg2_rvalid ),
+      .s_axi_rready        (s_axi_sg2_rready ),
+
+      // s_* and m_* reset/clock.
+      .aresetn             (sg_resetn        ),
+      .aclk                (sg_clk           ),
+
+      // S_AXIS to queue waveforms (mux4 40-bit word from translator).
+      .s_axis_tready       (sgt2_sg2_axis_tready ),
+      .s_axis_tvalid       (sgt2_sg2_axis_tvalid ),
+      .s_axis_tdata        (sgt2_sg2_axis_tdata  ),
+
+      // AXIS Master for output data -> DAC2.
+      .m_axis_tready       (axis_sg2_dac2_tready ),
+      .m_axis_tvalid       (axis_sg2_dac2_tvalid ),
+      .m_axis_tdata        (axis_sg2_dac2_tdata  )
+   );
+   // ++++++++++++
 
    //-----------------------------------------
    // READOUT

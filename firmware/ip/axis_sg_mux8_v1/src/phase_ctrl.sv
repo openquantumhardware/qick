@@ -14,6 +14,10 @@ module phase_ctrl (
 // Number of parallel dds blocks.
 parameter [31:0] N_DDS = 2;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+parameter EMULATOR = 0;
+
 // Ports.
 input					rstn;
 input					clk;
@@ -53,13 +57,26 @@ reg		[31:0]	POFF_REG_r = 0;
 reg				WE_REG_resync;
 
 // WE_REG_resync.
-synchronizer_n WE_REG_resync_i
-	(
-		.rstn	    (rstn			),
-		.clk 		(clk			),
-		.data_in	(WE_REG			),
-		.data_out	(WE_REG_resync	)
-	);
+generate
+if (!EMULATOR) begin : gen_sync_synth
+	synchronizer_n WE_REG_resync_i
+		(
+			.rstn	    (rstn			),
+			.clk 		(clk			),
+			.data_in	(WE_REG			),
+			.data_out	(WE_REG_resync	)
+		);
+end
+else begin : gen_sync_emu
+	synchronizer_n_sv #(.N(2)) WE_REG_resync_i
+		(
+			.rstn	    (rstn			),
+			.clk 		(clk			),
+			.data_in	(WE_REG			),
+			.data_out	(WE_REG_resync	)
+		);
+end
+endgenerate
 
 // PINC x N_DDS: 32x32 product, optimized for full-speed.
 (* keep_hierarchy = "true" *) mult_32x32 mult0_i

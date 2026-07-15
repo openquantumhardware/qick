@@ -56,6 +56,9 @@ VERILOG_SOURCES = \
     $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.sv) \
     \
+    $(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.v) \
+    $(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.sv) \
+    \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
     $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
@@ -88,7 +91,7 @@ VERILOG_SOURCES = \
 # Flags
 # -I resolves `include "file.svh"` 
 # -y resolves missing modules dynamically
-VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --Wno-fatal --error-limit 1 \
+VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace --Wno-fatal --error-limit 1 \
     --timing \
     -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
     -Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
@@ -109,7 +112,7 @@ VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --Wno-fatal --error-limit 1 
 OBJ_DIR = obj_dir
 
 wave:
-	gtkwave $(OBJ_DIR)/waveform.vcd
+	gtkwave $(SIM_EMU_DIR)/waveform.vcd
 
 SIM_ARGS =
 # Pass SIM_EMU_DIR=path to override the default emulator input directory
@@ -161,7 +164,7 @@ help:
 	@echo "Available Targets:"
 	@echo "  verilate    - Compile Verilog/SystemVerilog sources using Verilator"
 	@echo "  sim         - Run the compiled simulation (copies HEX files automatically)"
-	@echo "  wave        - Open the simulation waveform (VCD) file in GTKWave"
+	@echo "  wave        - Open the simulation waveform (VCD) from SIM_EMU_DIR in GTKWave"
 	@echo "  clean       - Remove build artifacts and profiling logs"
 	@echo "  help        - Display this help message (default when no target given)"
 	@echo ""

@@ -49,6 +49,10 @@ module axis_sg_mux8_v1
 // Number of parallel dds blocks.
 parameter [31:0] N_DDS = 2;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/
@@ -188,7 +192,8 @@ axi_slv axi_slv_i
 
 sg_mux8
 	#(
-		.N_DDS	(N_DDS	)
+		.N_DDS		(N_DDS		),
+		.EMULATOR	(EMULATOR	)
 	)
 	sg_mux8_i
 	(
