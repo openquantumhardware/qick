@@ -23,6 +23,10 @@ parameter N = 32;
 // Number of Lanes (Input).
 parameter L = 4;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 for synthesis (default), non-zero for emulation.
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/

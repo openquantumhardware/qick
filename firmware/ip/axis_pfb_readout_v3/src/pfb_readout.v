@@ -10,7 +10,11 @@ module pfb_readout
 		parameter N = 32,
 		
 		// Number of Lanes (Input).
-		parameter L = 4
+		parameter L = 4,
+
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
 	)
 	(
 		// Reset and clock.
@@ -63,7 +67,10 @@ pfb_top
 		.N(N),
 		
 		// Number of Lanes (Input).
-		.L(L)
+		.L(L),
+
+		// Emulator flag.
+		.EMULATOR(EMULATOR)
 	)
 	pfb_top_i
 	(
@@ -90,7 +97,12 @@ pfb_top
 	);
 
 // DDS.
-ddsprod_v ddsprod_v_i
+ddsprod_v 
+	#(
+		// Emulator flag.
+		.EMULATOR(EMULATOR)
+	)
+	ddsprod_v_i
 	(
 		// Clock.
 		.aclk			(aclk			),

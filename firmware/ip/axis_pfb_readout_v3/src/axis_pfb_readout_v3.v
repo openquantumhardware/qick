@@ -1,7 +1,11 @@
 module axis_pfb_readout_v3
 	#(
 		// Number of channels.
-		parameter N = 64
+		parameter N = 64,
+
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
 	)
 	( 
 		// AXI Slave I/F for configuration.
@@ -81,6 +85,9 @@ wire				valid_int		;
 /* Begin Architecture */
 /**********************/
 // AXI Slave.
+generate
+if (!EMULATOR) begin : gen_axi_slv_synth
+
 axi_slv axi_slv_i
 	(
 		.aclk			(s_axi_aclk	 	),
@@ -130,6 +137,60 @@ axi_slv axi_slv_i
 		.POFF3_REG		(POFF3_REG		)
 	);
 
+end else begin : gen_axi_slv_emu
+
+axi_slv_pfb_ro_v3 axi_slv_i
+	(
+		.aclk			(s_axi_aclk	 	),
+		.aresetn		(s_axi_aresetn	),
+
+		// Write Address Channel.
+		.awaddr			(s_axi_awaddr 	),
+		.awprot			(s_axi_awprot 	),
+		.awvalid		(s_axi_awvalid	),
+		.awready		(s_axi_awready	),
+
+		// Write Data Channel.
+		.wdata			(s_axi_wdata	),
+		.wstrb			(s_axi_wstrb	),
+		.wvalid			(s_axi_wvalid   ),
+		.wready			(s_axi_wready	),
+
+		// Write Response Channel.
+		.bresp			(s_axi_bresp	),
+		.bvalid			(s_axi_bvalid	),
+		.bready			(s_axi_bready	),
+
+		// Read Address Channel.
+		.araddr			(s_axi_araddr 	),
+		.arprot			(s_axi_arprot 	),
+		.arvalid		(s_axi_arvalid	),
+		.arready		(s_axi_arready	),
+
+		// Read Data Channel.
+		.rdata			(s_axi_rdata	),
+		.rresp			(s_axi_rresp	),
+		.rvalid			(s_axi_rvalid	),
+		.rready			(s_axi_rready	),
+
+		// Registers.
+		.ID0_REG		(ID0_REG		),
+		.ID1_REG		(ID1_REG		),
+		.ID2_REG		(ID2_REG		),
+		.ID3_REG		(ID3_REG		),
+		.PINC0_REG		(PINC0_REG		),
+		.POFF0_REG		(POFF0_REG		),
+		.PINC1_REG		(PINC1_REG		),
+		.POFF1_REG		(POFF1_REG		),
+		.PINC2_REG		(PINC2_REG		),
+		.POFF2_REG		(POFF2_REG		),
+		.PINC3_REG		(PINC3_REG		),
+		.POFF3_REG		(POFF3_REG		)
+	);
+
+end
+endgenerate
+
 // PFB with DDS product.
 pfb_readout
 	#(
@@ -137,7 +198,10 @@ pfb_readout
 		.N(N),
 		
 		// Number of Lanes (Input).
-		.L(4)
+		.L(4),
+
+		// Emulator flag.
+		.EMULATOR(EMULATOR)
 	)
 	pfb_readout_i
 	(
