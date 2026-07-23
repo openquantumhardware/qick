@@ -33,80 +33,85 @@ VERILATOR_BIN = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator,verilator
 VERILATOR_PROFCFUNC = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator_profcfunc,verilator_profcfunc)
 
 VERILOG_SOURCES = \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
-    \
-    $(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
-    $(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
-    $(wildcard $(MODELS_DIR)/dac_adc/*.sv) \
-    $(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
-    $(wildcard $(MODELS_DIR)/fifo/*.sv) \
-    $(wildcard $(MODELS_DIR)/fir/*.sv) \
-    $(wildcard $(MODELS_DIR)/sig_gen_dds/*.sv) \
-    \
-    $(COM_VERIF_DIR)/src/rand_id_queue.sv \
-    $(AXI_DIR)/src/axi_intf.sv \
-    $(AXI_DIR)/src/axi_pkg.sv \
-    $(AXI_DIR)/src/axi_test.sv \
-    \
-    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
-    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
-    $(EMU_DIR)/testbench/axi_router_lite.sv \
-    $(EMU_DIR)/testbench/QICKEmu_harness.sv
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
+	\
+	$(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
+	$(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
+	$(wildcard $(MODELS_DIR)/dac_adc/*.sv) \
+	$(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
+	$(wildcard $(MODELS_DIR)/fifo/*.sv) \
+	$(wildcard $(MODELS_DIR)/fir/*.sv) \
+	$(wildcard $(MODELS_DIR)/sig_gen_dds/*.sv) \
+	\
+	$(COM_VERIF_DIR)/src/rand_id_queue.sv \
+	$(AXI_DIR)/src/axi_intf.sv \
+	$(AXI_DIR)/src/axi_pkg.sv \
+	$(AXI_DIR)/src/axi_test.sv \
+	\
+	$(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
+	$(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
+	$(EMU_DIR)/testbench/axi_router_lite.sv \
+	$(EMU_DIR)/testbench/QICKEmu_harness.sv
 
 
 # Flags
 # -I resolves `include "file.svh"` 
 # -y resolves missing modules dynamically
 VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace --Wno-fatal --error-limit 1 \
-    --timing \
-    -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
-    -Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
-    -Wno-PINMISSING -Wno-BADVLTPRAGMA -Wno-CONSTRAINTIGN \
-    -I$(AXI_DIR)/include \
-    -I$(COM_VERIF_DIR)/include \
-    -I$(COMMON_CELLS_DIR)/include \
-    -I$(FIRMWARE_DIR)/ip/qick_processor/src \
-    -y $(BRAM_DP_DIR) \
-    -y $(FIFO_DIR) \
-    -y $(DAC_MODEL_DIR) \
-    -y $(SIG_GEN_DDS_DIR) \
-    -y $(SIG_GEN_DDS_DIR)/src \
-    -y $(FIRMWARE_DIR)/ip/common \
-    -y $(FIRMWARE_DIR)/ip/qick_common
+	--timing \
+	-Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
+	-Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
+	-Wno-PINMISSING -Wno-BADVLTPRAGMA -Wno-CONSTRAINTIGN \
+	-I$(AXI_DIR)/include \
+	-I$(COM_VERIF_DIR)/include \
+	-I$(COMMON_CELLS_DIR)/include \
+	-I$(FIRMWARE_DIR)/ip/qick_processor/src \
+	-y $(BRAM_DP_DIR) \
+	-y $(FIFO_DIR) \
+	-y $(DAC_MODEL_DIR) \
+	-y $(SIG_GEN_DDS_DIR) \
+	-y $(SIG_GEN_DDS_DIR)/src \
+	-y $(FIRMWARE_DIR)/ip/common \
+	-y $(FIRMWARE_DIR)/ip/qick_common
 
 
 OBJ_DIR = obj_dir

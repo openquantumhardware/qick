@@ -1821,6 +1821,7 @@ class AcquireMixin:
         *,
         decimated=True,
         rounds=1,
+        start_src="internal",
         threshold=None,
         angle=None,
         remove_offset=True,
@@ -1861,8 +1862,38 @@ class AcquireMixin:
         if mr_len is None:
             mr_len = 0
 
+        if start_src != "internal":
+            raise RuntimeError(
+                "QickEmu acquire path currently supports only start_src='internal'. "
+                "External-trigger start is not implemented in the emulator testbench flow."
+            )
+
+        # Preserve user-staged writes (e.g. soc.tproc.set_lfsr_cfg(...)) so
+        # each emulation round replays them alongside program-owned setup.
+        preserved_txns = []
+        if hasattr(soc, 'axi') and hasattr(soc.axi, 'txns'):
+            preserved_txns = list(soc.axi.txns)
+
         round_results = []
         for _ in range(rounds):
+            # Each TB invocation is a fresh simulation process; build a fresh
+            # recorder for this round to avoid cross-round transaction buildup.
+            recorder = None
+            if preserved_txns:
+                recorder = soc.axi.__class__()
+                recorder.txns = list(preserved_txns)
+
+            soc._reset_soc_state(memdir=emu_dir, recorder=recorder)
+            self.config_all(soc, load_envelopes=load_envelopes, load_mem=False)
+
+            if decimated:
+                self.config_bufs(soc, enable_avg=True, enable_buf=True)
+            else:
+                self.config_bufs(soc, enable_avg=True, enable_buf=False)
+
+            soc.start_src(start_src)
+            soc.start_tproc()
+
             soc.prepare(self, soc=soc, memdir=emu_dir)
             soc.export_vivado_files(memdir=emu_dir)
             soc.run_verilator_tb(
@@ -2058,6 +2089,7 @@ class AcquireMixin:
                 load_envelopes=load_envelopes,
                 decimated=False,
                 rounds=rounds,
+                start_src=start_src,
                 threshold=threshold,
                 angle=angle,
                 remove_offset=remove_offset,
@@ -2318,6 +2350,7 @@ class AcquireMixin:
                 load_envelopes=load_envelopes,
                 decimated=True,
                 rounds=rounds,
+                start_src=start_src,
                 remove_offset=remove_offset,
             )
 
