@@ -52,8 +52,8 @@ module tb_amplitude_calculator();
         int k;
         begin
             r = 0;
-            for (k = 31; k >= 1; k = k - 1) begin
-                if (v[k] && r == 0)
+            for (k = 1; k <= 31; k = k + 1) begin
+                if (v[k])
                     r = k;
             end
             flog2_g = r;
