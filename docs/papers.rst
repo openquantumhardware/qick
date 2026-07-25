@@ -7,6 +7,7 @@ In the news
 
 Commercial products based on QICK
 ---------------------------------
+* `Qblox QICK box <https://qblox.com/products/qick>`_
 * `RealDigital QICK box <https://www.realdigital.org/hardware/qick>`_
 * `Safran QICK box <https://safran-navigation-timing.com/product/quantum-instrumentation-control-kit/>`_
 * `iWave RFSoC SoM <https://iwave-global.com/articles/real-time-quantum-control-using-qick-on-iwave-zynq-ultrascale-rfsoc-system-on-module/>`_
@@ -19,7 +20,7 @@ QICK and AMD
 
 At a glance
 -----------
-**80 papers**: 3 on the QICK system itself, and 77 across 9 platforms and applications.
+**82 papers**: 3 on the QICK system itself, and 79 across 9 platforms and applications.
 
 *System & software*
 
@@ -35,16 +36,16 @@ At a glance
    :widths: 40 8
 
    * - `Superconducting circuits`_
-     - 54
+     - 55
    * - `Spin defects`_
      - 7
    * - `Quantum dots`_
      - 4
    * - `Biological qubits`_ (new)
      - 2
-   * - `Neutral atoms`_
-     - 1
    * - `Ultracold molecules`_
+     - 2
+   * - `Neutral atoms`_
      - 1
 
 *Quantum sensing & detection*
@@ -74,7 +75,7 @@ These stats were computed from the next section's list of QICK papers as of May 
 
 Papers using QICK
 -----------------
-This list of academic papers that used the QICK was last updated July 10, 2026.
+This list of academic papers that used the QICK was last updated July 23, 2026.
 
 QICK system
 ^^^^^^^^^^^
@@ -91,6 +92,7 @@ Autonomous control with QICK
 
 Neural network + QICK
 """""""""""""""""""""
+* `Gaytan-Villarreal, D. et al. Real-Time Detection of Charge Jumps in Superconducting Qubits with a Convolutional Neural Network. (2026) <https://arxiv.org/abs/2607.14293>`_.
 * `Guglielmo, G. et al. End-to-end workflow for machine learning-based qubit readout with QICK and hls4ml. (2025) <https://arxiv.org/abs/2501.14663>`_.
 
 Scaling
@@ -200,13 +202,14 @@ Biological qubits
 * `Ramos-Silva, J.N. et al. A Pulsed Live-Cell Quantum Microscope for Entangled Solid State and Biological Qubits. (2026) <https://arxiv.org/abs/2607.03552>`_.
 * `Feder, J. et al. A fluorescent-protein spin qubit. (2024) <https://arxiv.org/abs/2411.16835>`_.
 
+Ultracold molecules
+^^^^^^^^^^^^^^^^^^^
+* `Ruttley, D.K. et al. Harnessing resonant dipolar interactions in a hybrid atom-molecule quantum system. (2026) <https://arxiv.org/abs/2607.15976>`_.
+* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
+
 Neutral atoms
 ^^^^^^^^^^^^^
 * `Zhang, B. et al. Leveraging erasure errors in logical qubits with metastable 171Yb atoms. (2025) <https://arxiv.org/abs/2506.13724>`_.
-
-Ultracold molecules
-^^^^^^^^^^^^^^^^^^^
-* `Raghuram, A.P. et al. Probing topological edge states in a molecular synthetic dimension. (2026) <https://arxiv.org/abs/2604.00745>`_.
 
 Dark matter detection
 ^^^^^^^^^^^^^^^^^^^^^
