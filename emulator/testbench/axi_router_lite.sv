@@ -226,8 +226,8 @@ module axi_router_lite #(
 
     // Base addresses for each slave
     localparam logic [ADDR_WIDTH-1:0] BASE_TPROC  = 40'h04_0026_0000;
-    localparam logic [ADDR_WIDTH-1:0] BASE_AVG0   = 40'h04_0006_0000;
-    localparam logic [ADDR_WIDTH-1:0] BASE_AVG1   = 40'h04_0007_0000;
+    localparam logic [ADDR_WIDTH-1:0] BASE_BUF0   = 40'h04_0006_0000;
+    localparam logic [ADDR_WIDTH-1:0] BASE_BUF1   = 40'h04_0007_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_ROV2   = 40'h04_0008_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG0    = 40'h04_001C_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG1    = 40'h04_001D_0000;
@@ -235,14 +235,14 @@ module axi_router_lite #(
 
 
 
-    // Address masks for each slave (mask out the address bits that are used for selection)
-    localparam logic [ADDR_WIDTH-1:0] MASK_TPROC  = 40'hFF_FFFF_0000;  // 8-bit addr: mask bits 39:8
-    localparam logic [ADDR_WIDTH-1:0] MASK_AVG0   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
-    localparam logic [ADDR_WIDTH-1:0] MASK_AVG1   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
-    localparam logic [ADDR_WIDTH-1:0] MASK_ROV2   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
-    localparam logic [ADDR_WIDTH-1:0] MASK_SG0    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
-    localparam logic [ADDR_WIDTH-1:0] MASK_SG1    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
-    localparam logic [ADDR_WIDTH-1:0] MASK_SG2    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // // Address masks for each slave (mask out the address bits that are used for selection)
+    // localparam logic [ADDR_WIDTH-1:0] MASK_TPROC  = 40'hFF_FFFF_0000;  // 8-bit addr: mask bits 39:8
+    // localparam logic [ADDR_WIDTH-1:0] MASK_BUF0   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // localparam logic [ADDR_WIDTH-1:0] MASK_BUF1   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // localparam logic [ADDR_WIDTH-1:0] MASK_ROV2   = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // localparam logic [ADDR_WIDTH-1:0] MASK_SG0    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // localparam logic [ADDR_WIDTH-1:0] MASK_SG1    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
+    // localparam logic [ADDR_WIDTH-1:0] MASK_SG2    = 40'hFF_FFFF_0000;  // 6-bit addr: mask bits 39:14
 
     // Internal signals for write path
     logic [ADDR_WIDTH-1:0]    write_addr;
@@ -275,8 +275,8 @@ module axi_router_lite #(
                 BASE_SG1[39:16]:   sel[5] = 1'b1;
                 BASE_SG2[39:16]:   sel[6] = 1'b1;
 
-                BASE_AVG0[39:16]:  sel[2] = 1'b1;
-                BASE_AVG1[39:16]:  sel[4] = 1'b1;
+                BASE_BUF0[39:16]:  sel[2] = 1'b1;
+                BASE_BUF1[39:16]:  sel[4] = 1'b1;
                 BASE_ROV2[39:16]:  sel[3] = 1'b1;
                 default: sel = '0;
             endcase

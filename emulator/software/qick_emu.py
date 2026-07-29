@@ -511,11 +511,13 @@ class MockAvgBuffer(MockIpDriver):
     def config_avg(self, address=0, length=1, edge_counting=False, high_threshold=1000, low_threshold=0):
         """Configure the accumulated-sample buffer ("avg"). Mirrors :meth:`AxisAvgBuffer.config_avg`."""
         self.soc.reg_write(self.fullpath, "AVG_START", 0, comment="stop avg")
+        self.soc.reg_write(self.fullpath, "AVG_ADDR", address, comment="avg start addr")
         self.soc.reg_write(self.fullpath, "AVG_LEN", length, comment="avg buf len")
 
     def config_buf(self, address=0, length=1):
         """Configure the decimated-sample buffer ("buf"). Mirrors :meth:`AxisAvgBuffer.config_buf`."""
         self.soc.reg_write(self.fullpath, "BUF_START", 0, comment="stop decim")
+        self.soc.reg_write(self.fullpath, "BUF_ADDR", address, comment="decim start addr")
         self.soc.reg_write(self.fullpath, "BUF_LEN", length, comment="decim buf len")
 
     def enable(self, avg=True, buf=True):
@@ -596,6 +598,13 @@ class MockAxisReadoutV2(MockIpDriver):
     """
 
     HAS_OUTSEL = True
+    B_DDS = 32
+    B_PHASE = 32
+
+    def update(self):
+        """Mirror :meth:`AxisReadoutV2.update` by toggling the write-enable strobe."""
+        self.soc.reg_write(self.fullpath, "WE_REG", 1, comment="axis_readout_v2 WE strobe hi")
+        self.soc.reg_write(self.fullpath, "WE_REG", 0, comment="axis_readout_v2 WE strobe lo")
 
     def set_all_int(self, cfg):
         """Set all readout parameters using a dictionary computed by QickConfig.calc_ro_regs().
@@ -608,12 +617,11 @@ class MockAxisReadoutV2(MockIpDriver):
         """
         val = {"product": 0, "dds": 1, "input": 2}[cfg['sel']]
         self.soc.reg_write(self.fullpath, "OUTSEL_REG", val, comment=f"axis_readout_v2 outsel={cfg['sel']}")
-        self.soc.reg_write(self.fullpath, "FREQ_REG", int(cfg['f_int']), comment=f"axis_readout_v2 freq")
-        self.soc.reg_write(self.fullpath, "PHASE_REG", int(cfg['phase_int']), comment=f"axis_readout_v2 phase")
+        self.soc.reg_write(self.fullpath, "FREQ_REG", int(cfg['f_int']) % 2**self.B_DDS, comment=f"axis_readout_v2 freq")
+        self.soc.reg_write(self.fullpath, "PHASE_REG", int(cfg['phase_int']) % 2**self.B_PHASE, comment=f"axis_readout_v2 phase")
         self.soc.reg_write(self.fullpath, "NSAMP_REG", 10, comment="axis_readout_v2 nsamp")
         self.soc.reg_write(self.fullpath, "MODE_REG", 1, comment="axis_readout_v2 mode=periodic")
-        self.soc.reg_write(self.fullpath, "WE_REG", 1, comment="axis_readout_v2 WE strobe hi")
-        self.soc.reg_write(self.fullpath, "WE_REG", 0, comment="axis_readout_v2 WE strobe lo")
+        self.update()
 
     def set_all(self, f, sel='product', gen_ch=None, phase=0):
         """Set up the readout directly.
@@ -733,7 +741,18 @@ class QickEmu:
             MockAvgBuffer(self, ro['avgbuf_fullpath'], ro['avgbuf_type'])
             for ro in self.soccfg['readouts']
         ]
-        self.readouts = [MockIpDriver(self, r['ro_fullpath'], r['ro_type']) for r in self.soccfg['readouts']]
+        self.readouts = []
+        for ro in self.soccfg['readouts']:
+            if 'pfb_readout' in ro['ro_type']:
+                driver = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
+            elif ro['ro_type'] == 'axis_readout_v2':
+                driver = MockAxisReadoutV2(self, ro['ro_fullpath'], ro['ro_type'])
+            else:
+                driver = MockIpDriver(self, ro['ro_fullpath'], ro['ro_type'])
+            self.readouts.append(driver)
+
+        for avg_buf, readout in zip(self.avg_bufs, self.readouts):
+            avg_buf.readout = readout
 
         if 'ddr4_buf' in self.raw_cfg:
             self.ddr4_buf = MockDDR4Buffer(self, self.raw_cfg['ddr4_buf']['fullpath'], self.raw_cfg['ddr4_buf']['type'])
@@ -749,15 +768,12 @@ class QickEmu:
         tproc_path = tproc_cfg.get('fullpath', 'qick_processor_0')
         self.tproc = MockTProc(self, tproc_path, tproc_cfg['type'])
 
-        self._pfb_readouts: Dict[str, MockPFBReadout] = {}
-        self._axis_readout_v2: Dict[str, MockAxisReadoutV2] = {}
-        for ro in self.soccfg['readouts']:
-            if 'pfb_readout' in ro['ro_type']:
-                pfb = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
-                self._pfb_readouts[ro['ro_fullpath']] = pfb
-            if ro['ro_type'] == 'axis_readout_v2':
-                ro_v2 = MockAxisReadoutV2(self, ro['ro_fullpath'], ro['ro_type'])
-                self._axis_readout_v2[ro['ro_fullpath']] = ro_v2
+        self._pfb_readouts: Dict[str, MockPFBReadout] = {
+            ro.fullpath: ro for ro in self.readouts if isinstance(ro, MockPFBReadout)
+        }
+        self._axis_readout_v2: Dict[str, MockAxisReadoutV2] = {
+            ro.fullpath: ro for ro in self.readouts if isinstance(ro, MockAxisReadoutV2)
+        }
 
         # Existing notebooks/scripts expect `emu.soc` after prepare_emu().
         self.soc = self
@@ -867,9 +883,8 @@ class QickEmu:
 
     def configure_readout(self, ch, ro_regs):
         """Mirror :meth:`QickSoc.configure_readout`: push generated readout register values."""
-        ro = self.readouts[ch]
-        if 'ro_len' in ro_regs:
-            self.reg_write(ro.fullpath, "RO_LEN", ro_regs['ro_len'])
+        buf = self.avg_bufs[ch]
+        buf.readout.set_all_int(ro_regs)
 
     def config_mux_readout(self, pfbpath, cfgs, sel=None):
         """Configure a PFB readout: set OUTSEL (if supported) and one NCO per tone."""
@@ -1382,7 +1397,10 @@ class QickEmu:
         if build:
             if verbose:
                 print(f"[verilate] Building QICKEmu_harness ...")
-            result = _run(_make("verilate"))
+            verilate_cmd = _make("verilate")
+            if trace:
+                verilate_cmd.append("TRACE=1")
+            result = _run(verilate_cmd)
             if result.returncode != 0:
                 err_text = result.stdout or result.stderr or ""
                 raise RuntimeError(

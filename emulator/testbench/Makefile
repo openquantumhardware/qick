@@ -93,10 +93,12 @@ VERILOG_SOURCES = \
 	$(EMU_DIR)/testbench/QICKEmu_harness.sv
 
 
+VERILATOR_TRACE_FLAG = $(if $(TRACE),--trace)
+
 # Flags
 # -I resolves `include "file.svh"` 
 # -y resolves missing modules dynamically
-VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace --Wno-fatal --error-limit 1 \
+VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall $(VERILATOR_TRACE_FLAG) --Wno-fatal --error-limit 1 \
 	--timing \
 	-Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
 	-Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \

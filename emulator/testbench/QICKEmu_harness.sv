@@ -68,8 +68,8 @@ typedef axi_test::axi_lite_rand_master #(
 `define DMEM_AW          14 
 `define WMEM_AW          11
 `define REG_AW           4 
-`define IN_PORT_QTY      1
-`define OUT_TRIG_QTY     1
+`define IN_PORT_QTY      2
+`define OUT_TRIG_QTY     2
 `define OUT_DPORT_QTY    1
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
@@ -109,12 +109,13 @@ int    pre_run_delay_ns = -1;
 //----------------------------------------------------
 
 // QICKEMU_DUT Address Map
-localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;
-localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;
-localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;
-localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;
-localparam logic [39:0] RO0_BASE    = 40'h04_0006_0000;
-localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;
+localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;  // qick_processor
+localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer
+localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer
+localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
+localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
+localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
+localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -345,16 +346,20 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    wire    [63:0]    buf0_m0_axis_avg_tdata  = qick_dut.buf0_m0_axis_avg_tdata;
    wire              buf0_m0_axis_avg_tvalid = qick_dut.buf0_m0_axis_avg_tvalid;
+   wire              buf0_m0_axis_avg_tlast  = qick_dut.buf0_m0_axis_avg_tlast;
 
    wire    [31:0]    buf0_m1_axis_dec_tdata  = qick_dut.buf0_m1_axis_dec_tdata;
    wire              buf0_m1_axis_dec_tvalid = qick_dut.buf0_m1_axis_dec_tvalid;
+   wire              buf0_m1_axis_dec_tlast  = qick_dut.buf0_m1_axis_dec_tlast;
 
    // ++++++++++++ axis_readout_v2 buffer 1 signals
    wire    [63:0]    buf1_m0_axis_avg_tdata  = qick_dut.buf1_m0_axis_avg_tdata;
    wire              buf1_m0_axis_avg_tvalid = qick_dut.buf1_m0_axis_avg_tvalid;
+   wire              buf1_m0_axis_avg_tlast  = qick_dut.buf1_m0_axis_avg_tlast;
 
    wire    [31:0]    buf1_m1_axis_dec_tdata  = qick_dut.buf1_m1_axis_dec_tdata;
    wire              buf1_m1_axis_dec_tvalid = qick_dut.buf1_m1_axis_dec_tvalid;
+   wire              buf1_m1_axis_dec_tlast  = qick_dut.buf1_m1_axis_dec_tlast;
    // ++++++++++++
 
 
@@ -591,6 +596,19 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    localparam ADC1_W = 16;
    logic signed [ADC1_W-1:0] adc1_sample;
    real dac1_signal_rf;
+   real dac1_signal_rf_dly;
+
+   real dac1_delay_buffer [0:RF_DELAY_CYCLES-1];
+   int  dac1_write_ptr = 0;
+   int  dac1_read_ptr  = 0;
+
+   initial begin
+      dac1_signal_rf_dly = 0.0;
+      for (int i = 0; i < RF_DELAY_CYCLES; i++) begin
+         dac1_delay_buffer[i] = 0.0;
+      end
+   end
+
 
    model_DAC #(
       .DAC_W               (DAC1_W),
@@ -609,7 +627,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .N_DDS               (N_DDS_RO)
    ) u_model_ADC1 (
       .clk_DAC             (dac_fs),
-      .dac_signal_rf       (dac1_signal_rf),
+      .dac_signal_rf       (dac1_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
       .adc_sample          (adc1_sample),
@@ -661,6 +679,22 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
+   // Model transport delay between DAC1 and ADC1.
+
+   always @(posedge dac_fs) begin
+      dac1_delay_buffer[dac1_write_ptr] <= dac1_signal_rf;
+      if (dac1_write_ptr == RF_DELAY_CYCLES - 1) begin
+         dac1_write_ptr <= 0;
+      end else begin
+         dac1_write_ptr <= dac1_write_ptr + 1;
+      end
+      dac1_signal_rf_dly <= dac1_delay_buffer[dac1_read_ptr];
+      if (dac1_read_ptr == RF_DELAY_CYCLES - 1) begin
+         dac1_read_ptr <= 0;
+      end else begin
+         dac1_read_ptr <= dac1_read_ptr + 1;
+      end
+   end
 
    // //--------------------------------------
    // // WIP: Qubit Emulator
@@ -858,7 +892,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    integer dac2_csv_fd;   // ++++++++++++ mux8 SG2 -> DAC2 capture
    integer avg0_csv_fd;
    integer avg1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
-
    integer dec0_csv_fd;
    integer dec1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
    integer mr_csv_fd;
@@ -884,7 +917,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       dac2_csv_path = {EMU_DIR, "/dac_out_ch2.csv"};   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_path = {EMU_DIR, "/avg_out_ch0.csv"};
       avg1_csv_path = {EMU_DIR, "/avg_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
-
       dec0_csv_path = {EMU_DIR, "/dec_out_ch0.csv"};
       dec1_csv_path = {EMU_DIR, "/dec_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
@@ -894,7 +926,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       dac2_csv_fd = $fopen(dac2_csv_path, "w");   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_fd = $fopen(avg0_csv_path, "w");
       avg1_csv_fd = $fopen(avg1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
-
       dec0_csv_fd = $fopen(dec0_csv_path, "w");
       dec1_csv_fd = $fopen(dec1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
       mr_csv_fd  = $fopen(mr_csv_path, "w");
@@ -913,6 +944,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       // Readouts
       $fwrite(avg0_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec0_csv_fd, "time_ps,I,Q\n");
+      $fwrite(avg1_csv_fd, "time_ps,I,Q\n");
+      $fwrite(dec1_csv_fd, "time_ps,I,Q\n");
 
       // MR Buffer
       $fwrite(mr_csv_fd, "time_ps");
@@ -1022,6 +1055,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    //----------------------------------------------------
 
    logic         tb_sg_load_mem, tb_sg_load_mem_done;
+   logic         tb_buf_read_mem, tb_buf_read_mem_done;
 
 
    initial begin
@@ -1095,6 +1129,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       tb_sg_load_mem           = 1'b0;
       tb_sg_load_mem_done      = 1'b0;
 
+      tb_buf_read_mem          = 1'b0;
+      tb_buf_read_mem_done     = 1'b0;
+
       sg0_s0_axis_tvalid       = 0;
       sg0_s0_axis_tdata        = 0;
       sg1_s0_axis_tvalid       = 0;
@@ -1140,14 +1177,33 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
 
       $display("### %0t - Start tProc execution ###", $realtime);
-      #(TEST_RUN_TIME);
+      $fflush();
+      fork
+         begin
+            forever begin
+               #10us;
+               $display("### %0t - tProc execution in progress ###", $realtime);
+               $fflush();
+            end
+         end
+
+         begin
+            #(TEST_RUN_TIME);
+         end
+      join_any
+      disable fork;
       $display("### %0t - End tProc execution ###", $realtime);
 
 
-      read_readout_buffers(0);
-      // read_readout_buffers(1);
+      tb_buf_read_mem = 1'b1;
+
+      $display("%0t - *** Read Average and Decimation Buffers ***", $realtime);
+      read_avg_dec_buffers(0);
+      read_avg_dec_buffers(1);
 
       #50us;
+
+      tb_buf_read_mem_done = 1'b1;
 
       $display("### %0t - Closing CSV files ###", $realtime);
       $fclose(dac0_csv_fd);
@@ -1167,41 +1223,42 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // TASKS
    //----------------------------------------------------
 
-   task read_readout_buffers(int ro_ch = 0);
-      logic [39:0]      ro_base;
+   task read_avg_dec_buffers(int ro_ch = 0);
+      logic [39:0]      buf_base;
 
-      $display("### %t - Task read_readout_buffers() channel %0d start ###", $realtime(), ro_ch);
+      $display("### %t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
       $fflush();
 
       if (ro_ch >= 2) begin
-         $fatal(1, "ERROR: Invalid channel number %0d for read_readout_buffers() task", ro_ch);
+         $fatal(1, "ERROR: Invalid channel number %0d for read_avg_dec_buffers() task", ro_ch);
          $finish;
       end
 
       if (ro_ch == 0) begin
-         ro_base = RO0_BASE;
+         buf_base = BUF0_BASE;
       end else if (ro_ch == 1) begin
-         ro_base = RO1_BASE;
+         buf_base = BUF1_BASE;
       end
 
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
+      axi_mst_agent.write(buf_base + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      axi_mst_agent.write(buf_base + AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
-      #1us;
+      axi_mst_agent.write(buf_base + AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+
 
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
+      axi_mst_agent.write(buf_base + BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      axi_mst_agent.write(buf_base + BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
       #100ns;
       @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_agent.write(ro_base + BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+      axi_mst_agent.write(buf_base + BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+
    endtask
 
    // Load tProc program / waveform / data memories from QickEmu output files.
@@ -1241,11 +1298,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fflush();
 
       for (int sg_ch = 0; sg_ch < 2; sg_ch++) begin
-
-      // if (sg_ch >= 2) begin
-      //    $display("ERROR: Invalid channel number %0d for sg_load_mem() task", sg_ch);
-      //    $finish;
-      // end
 
          if (sg_ch == 0) begin
             sg0_s0_axis_tvalid = 0;

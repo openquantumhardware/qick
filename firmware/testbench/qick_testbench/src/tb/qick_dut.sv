@@ -226,9 +226,11 @@ module qick_dut #(
    // Readout0 Buffer Averaged Data AXIS
    logic                     buf0_m0_axis_avg_tvalid;
    logic [63:0]              buf0_m0_axis_avg_tdata;
+   logic                     buf0_m0_axis_avg_tlast;
    // Readout0 Buffer Decimated Data AXIS
    logic                     buf0_m1_axis_dec_tvalid;
    logic [31:0]              buf0_m1_axis_dec_tdata;
+   logic                     buf0_m1_axis_dec_tlast;
    // Readout0 Buffer Register Data AXIS
    logic                     buf0_m2_axis_reg_tvalid;
    logic [63:0]              buf0_m2_axis_reg_tdata;
@@ -237,9 +239,11 @@ module qick_dut #(
    // Readout1 Buffer Averaged Data AXIS
    logic                     buf1_m0_axis_avg_tvalid;
    logic [63:0]              buf1_m0_axis_avg_tdata;
+   logic                     buf1_m0_axis_avg_tlast;
    // Readout0 Buffer Decimated Data AXIS
    logic                     buf1_m1_axis_dec_tvalid;
    logic [31:0]              buf1_m1_axis_dec_tdata;
+   logic                     buf1_m1_axis_dec_tlast;
    // Readout0 Buffer Register Data AXIS
    logic                     buf1_m2_axis_reg_tvalid;
    logic [63:0]              buf1_m2_axis_reg_tdata;
@@ -791,9 +795,9 @@ module qick_dut #(
       .s0_axis_tdata        ( buf0_m2_axis_reg_tdata        ),
       .s0_axis_tvalid       ( buf0_m2_axis_reg_tvalid       ),
       .s0_axis_tready       ( buf0_m2_axis_reg_tready       ),
-      .s1_axis_tdata        ( s1_axis_tdata        ),
-      .s1_axis_tvalid       ( s1_axis_tvalid       ),
-      .s1_axis_tready       ( s1_axis_tready       ),
+      .s1_axis_tdata        ( buf1_m2_axis_reg_tdata        ),
+      .s1_axis_tvalid       ( buf1_m2_axis_reg_tvalid       ),
+      .s1_axis_tready       ( buf1_m2_axis_reg_tready       ),
       .s2_axis_tdata        ( 'd0 /*s2_axis_tdata*/        ),
       .s2_axis_tvalid       ( 1'b0/*s2_axis_tvalid*/       ),
       .s2_axis_tready       ( /*s2_axis_tready*/       ),
@@ -1606,13 +1610,13 @@ module qick_dut #(
       .m0_axis_tready         (1'b1 /*buf0_m0_axis_avg_tready*/),
       .m0_axis_tvalid         (buf0_m0_axis_avg_tvalid),
       .m0_axis_tdata          (buf0_m0_axis_avg_tdata ),
-      .m0_axis_tlast          (/*m0_axis_tlast*/      ),
+      .m0_axis_tlast          (buf0_m0_axis_avg_tlast),
 
       // AXIS Master for decimated output.
       .m1_axis_tready         (1'b1 /*buf0_m1_axis_dec_tready*/),
       .m1_axis_tvalid         (buf0_m1_axis_dec_tvalid),
       .m1_axis_tdata          (buf0_m1_axis_dec_tdata ),
-      .m1_axis_tlast          (/*m1_axis_tlast*/      ),
+      .m1_axis_tlast          (buf0_m1_axis_dec_tlast),
 
       // AXIS Master for register output to TPROC Data In Interface
       .m2_axis_tready         (buf0_m2_axis_reg_tready),
@@ -1746,13 +1750,13 @@ module qick_dut #(
       .m0_axis_tready         (1'b1 /*buf1_m0_axis_avg_tready*/),
       .m0_axis_tvalid         (buf1_m0_axis_avg_tvalid),
       .m0_axis_tdata          (buf1_m0_axis_avg_tdata ),
-      .m0_axis_tlast          (/*m0_axis_tlast*/     ),
+      .m0_axis_tlast          (buf1_m0_axis_avg_tlast),
 
       // AXIS Master for decimated output.
       .m1_axis_tready         (1'b1 /*buf1_m1_axis_dec_tready*/),
       .m1_axis_tvalid         (buf1_m1_axis_dec_tvalid),
       .m1_axis_tdata          (buf1_m1_axis_dec_tdata ),
-      .m1_axis_tlast          (/*m1_axis_tlast*/     ),
+      .m1_axis_tlast          (buf1_m1_axis_dec_tlast),
 
       // AXIS Master for register output to TPROC Data In Interface
       .m2_axis_tready         (buf1_m2_axis_reg_tready),
