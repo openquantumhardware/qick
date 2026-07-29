@@ -1742,7 +1742,7 @@ module qick_dut #(
       .s_axi_wvalid           (s_axi_avg1_wvalid    ),
 
       // Trigger input.
-      .trigger                (trig_1_o             ),
+      .trigger                (trig_11              ),
 
       // AXIS Slave for input data.
       .s_axis_aresetn         (ro_resetn             ),
