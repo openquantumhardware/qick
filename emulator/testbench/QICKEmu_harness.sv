@@ -69,7 +69,7 @@ typedef axi_test::axi_lite_rand_master #(
 `define WMEM_AW          11
 `define REG_AW           4 
 `define IN_PORT_QTY      2
-`define OUT_TRIG_QTY     2
+`define OUT_TRIG_QTY     17
 `define OUT_DPORT_QTY    1
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
@@ -97,6 +97,7 @@ localparam N_DDS_RO = 8;
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
 string EMU_DIR       = "../artifacts";
 time   TEST_RUN_TIME = 1000ns;
+time   WATCHDOG_TIME = TEST_RUN_TIME + 100us;   // margin for simulation to finish gracefully
 time   PRE_RUN_DELAY_TIME = 0ns;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
@@ -226,9 +227,6 @@ wire [167:0]       m6_axis_tdata        ;
 wire               m6_axis_tvalid       ;
 wire [167:0]       m7_axis_tdata        ;
 wire               m7_axis_tvalid       ;
-
-wire               trigger_0;
-wire               trigger_1;
 
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
@@ -472,8 +470,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .m_dma_axis_tvalid_o  ( m_dma_axis_tvalid_o ) ,
       .m_dma_axis_tready_i  ( m_dma_axis_tready_i ) ,
       // TRIGGERS
-      .trig_0_o             ( trigger_0               ),
-      .trig_1_o             ( trigger_1               ),
+      .trig_0_o             (                ),
+      .trig_1_o             (                ),
+      .trig_2_o             (                ),
+      .trig_3_o             (                ),
+      .trig_4_o             (                ),
+      .trig_5_o             (                ),
+      .trig_6_o             (                ),
+      .trig_7_o             (                ),
       // OUT DATA PORTS
       .port_0_dt_o          ( port_0_dt_o             ) ,
       .port_1_dt_o          ( port_1_dt_o             ) ,
@@ -813,9 +817,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // SIMULATION WATCHDOG
    initial begin
       #1;
-      $display("### WATCHDOG Enabled: Simulation will terminate after %0d ns", TEST_RUN_TIME+20);
-      #(TEST_RUN_TIME+100us);
-      $fatal(1, "### WATCHDOG: Simulation time limit reached. Terminating.");
+      $display("WATCHDOG Enabled: Simulation will terminate after %0d ns", WATCHDOG_TIME);
+      #(WATCHDOG_TIME);
+      $fatal(1, "WATCHDOG: Simulation time limit reached. Terminating.");
    end
 
 
@@ -1107,7 +1111,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
-      $display("%0t - *** Start Test ***", $realtime);
+      $display("%0t - Start Emulation", $realtime);
 
       // INITIAL VALUES
       rst_ni                   = 1'b0;
@@ -1152,37 +1156,36 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       #100ns;
 
       // Load tProc Memories (pmem, wmem, dmem) from EMU_DIR.
-      $display("%0t - *** Load tProc Memories ***", $realtime);
+      $display("%0t - Load tProc Memories", $realtime);
       tproc_load_mem_emu(EMU_DIR);
 
       #1us;
 
+      // Load Signal Generator Envelope Table Memories.
+      $display("%0t - Load SGs Envelope Table Memories", $realtime);
       tb_sg_load_mem = 1'b1;
 
-      // Load Signal Generator Envelope Table Memories.
-      $display("%0t - *** Load SGs Envelope Table Memories ***", $realtime);
       sg_load_mem(EMU_DIR);
 
       tb_sg_load_mem_done = 1'b1;
       
       #1us;
 
-      $display("### %0t - Applying pre-run startup delay of %0d ns ###", $realtime, pre_run_delay_ns);
+      $display("%0t - Applying pre-run startup delay of %0d ns", $realtime, pre_run_delay_ns);
       #(PRE_RUN_DELAY_TIME);
 
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
-      $display("%0t - *** Replaying AXI Writes from axi_replay.txt ***", $realtime);
+      $display("%0t - Replaying AXI Writes from axi_replay.txt", $realtime);
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
 
 
-
-      $display("### %0t - Start tProc execution ###", $realtime);
+      $display("%0t - Start tProc execution", $realtime);
       $fflush();
       fork
          begin
             forever begin
                #10us;
-               $display("### %0t - tProc execution in progress ###", $realtime);
+               $display("   %0t - tProc execution in progress", $realtime);
                $fflush();
             end
          end
@@ -1192,12 +1195,12 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          end
       join_any
       disable fork;
-      $display("### %0t - End tProc execution ###", $realtime);
+      $display("%0t - End tProc execution", $realtime);
 
 
+      $display("%0t - Read Average and Decimation Buffers", $realtime);
       tb_buf_read_mem = 1'b1;
 
-      $display("%0t - *** Read Average and Decimation Buffers ***", $realtime);
       read_avg_dec_buffers(0);
       read_avg_dec_buffers(1);
 
@@ -1205,7 +1208,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       tb_buf_read_mem_done = 1'b1;
 
-      $display("### %0t - Closing CSV files ###", $realtime);
+      $display("%0t - Closing CSV files", $realtime);
       $fclose(dac0_csv_fd);
       $fclose(dac1_csv_fd);
       $fclose(dac2_csv_fd);   // ++++++++++++ mux8 SG2 -> DAC2 capture
@@ -1215,7 +1218,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fclose(dec1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
       $fclose(mr_csv_fd);
 
-      $display("*** %0t - End Simulation ***", $realtime);
+      $display("%0t - End Emulation", $realtime);
       $finish();
    end
 
@@ -1226,7 +1229,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    task read_avg_dec_buffers(int ro_ch = 0);
       logic [39:0]      buf_base;
 
-      $display("### %t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
+      $display("### %0t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
       $fflush();
 
       if (ro_ch >= 2) begin
@@ -1259,6 +1262,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       @(posedge s_ps_dma_aclk); #0.1;
       axi_mst_agent.write(buf_base + BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
 
+      $display("### %0t - Task read_avg_dec_buffers() channel %0d end ###", $realtime(), ro_ch);
+      $fflush();
    endtask
 
    // Load tProc program / waveform / data memories from QickEmu output files.
@@ -1271,15 +1276,15 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       wmem_file = {emu_dir, "/wmem.mem"};
       dmem_file = {emu_dir, "/dmem.mem"};
 
-      $display("### Loading tproc memories from: %s ###", emu_dir);
+      $display("### %0t - Loading tproc memories from: %s ###", $realtime(), emu_dir);
       $fflush();
 
       $readmemh(pmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
       $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
       $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
-      $display("### VERIFY P_MEM[1] = %h ###", qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
-      $display("### tproc memories loaded ###");
+      $display("   ### VERIFY P_MEM[1] = %h ###", qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
+      $display("### %0t - tproc memories loaded ###", $realtime());
       $fflush();
    endtask
 
@@ -1294,7 +1299,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       bit signed [15:0] qq;
       logic [39:0]      sg_base;
 
-      $display("### %t - Task sg_load_mem() start ###", $realtime());
+      $display("### %0t - Task sg_load_mem() start ###", $realtime());
       $fflush();
 
       for (int sg_ch = 0; sg_ch < 2; sg_ch++) begin
@@ -1312,11 +1317,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          sg_file = $sformatf("%s/sgmem_ch%0d.mem", emu_dir, sg_ch);
          fd = $fopen(sg_file, "r");
          if (fd == 0) begin
-            $display("### %0t - SG ch%0d: no envelope file %s ###", $realtime, sg_ch, sg_file);
+            $display("   ### %0t - SG ch%0d: no envelope file %s ###", $realtime, sg_ch, sg_file);
             continue;
          end
 
-         $display("### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
+         $display("   ### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
 
          // Use single agent with router - addresses are automatically routed
          @(posedge s_ps_dma_aclk); #0.1;
@@ -1354,9 +1359,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
             sg1_s0_axis_tvalid    = 0;
          end
 
-         $display("### %0t - SG ch%0d envelope loaded ###", $realtime, sg_ch);
+         $display("   ### %0t - SG ch%0d envelope loaded ###", $realtime, sg_ch);
       end
-      $display("### %t - Task sg_load_mem() end ###", $realtime());
+      $display("### %0t - Task sg_load_mem() end ###", $realtime());
    endtask
 
    // Replay QickEmu AXI-Lite write log, one "addr data" hex pair per line.
@@ -1373,21 +1378,25 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          return;
       end
 
+      $display("### %0t - Task replay_axi_writes() start ###", $realtime());
+      $fflush();
+
       while ($fgets(line, fd)) begin
          if (line.len() < 2)        continue;
          if (line.substr(0,0) == "#") continue;
          if ($sscanf(line, "%h %h", addr_val, data_val) == 2) begin
-            $display("### replay line #%0d parsed: addr=0x%08X data=0x%08X ###", n_routed, addr_val, data_val);
+            $display("   ### replay line #%0d parsed: addr=0x%08X data=0x%08X ###", n_routed, addr_val, data_val);
             $fflush();
             route_and_write(addr_val, data_val);
             n_routed++;
          end else begin
-            $display("### replay line skipped (sscanf=0): \"%s\" ###", line);
+            $display("   ### replay line skipped (sscanf=0): \"%s\" ###", line);
+            $fflush();
          end
       end
       $fclose(fd);
 
-      $display("### AXI replay done: %0d transactions replayed ###", n_routed);
+      $display("### %0t - AXI replay done: %0d transactions replayed ###", $realtime(), n_routed);
       $fflush();
    endtask
 

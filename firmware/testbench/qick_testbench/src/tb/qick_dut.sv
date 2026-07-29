@@ -105,8 +105,14 @@ module qick_dut #(
    output logic                m_dma_axis_tvalid_o,
    input  logic                m_dma_axis_tready_i,
    // TRIGGERS
-   output logic                trig_0_o,
-   output logic                trig_1_o,
+   output logic                trig_0_o,  // to PMODS
+   output logic                trig_1_o,  // to PMODS
+   output logic                trig_2_o,  // to PMODS
+   output logic                trig_3_o,  // to PMODS
+   output logic                trig_4_o,  // to PMODS
+   output logic                trig_5_o,  // to PMODS
+   output logic                trig_6_o,  // to PMODS
+   output logic                trig_7_o,  // to PMODS
    // OUT DATA PORTS
    output logic       [3:0]    port_0_dt_o,
    output logic       [3:0]    port_1_dt_o,
@@ -248,6 +254,9 @@ module qick_dut #(
    logic                     buf1_m2_axis_reg_tvalid;
    logic [63:0]              buf1_m2_axis_reg_tdata;
    wire                      buf1_m2_axis_reg_tready;
+
+   wire                       trig_10;
+   wire                       trig_11;
 
    // Internal AXI-Lite wires (kept inside qick_dut)
    // Single AXI master with 40-bit address for router
@@ -890,18 +899,18 @@ module qick_dut #(
       .m15_axis_tvalid      ( /*m15_axis_tvalid*/      ),
       .m15_axis_tready      ( 1'b0 /*m15_axis_tready*/      ),
       ///// TRIGGERS
-      .trig_0_o             ( trig_0_o             ),
-      .trig_1_o             ( trig_1_o             ),
-      .trig_2_o             ( /*trig_2_o*/             ),
-      .trig_3_o             ( /*trig_3_o*/             ),
-      .trig_4_o             ( /*trig_4_o*/             ),
-      .trig_5_o             ( /*trig_5_o*/             ),
-      .trig_6_o             ( /*trig_6_o*/             ),
-      .trig_7_o             ( /*trig_7_o*/             ),
-      .trig_8_o             ( /*trig_8_o*/             ),
-      .trig_9_o             ( /*trig_9_o*/             ),
-      .trig_10_o            ( /*trig_10_o*/            ),
-      .trig_11_o            ( /*trig_11_o*/            ),
+      .trig_0_o             ( trig_0_o             ),       // to PMODS
+      .trig_1_o             ( trig_1_o             ),       // to PMODS
+      .trig_2_o             ( trig_2_o             ),       // to PMODS
+      .trig_3_o             ( trig_3_o             ),       // to PMODS
+      .trig_4_o             ( trig_4_o             ),       // to PMODS
+      .trig_5_o             ( trig_5_o             ),       // to PMODS
+      .trig_6_o             ( trig_6_o             ),       // to PMODS
+      .trig_7_o             ( trig_7_o             ),       // to PMODS
+      .trig_8_o             ( /*trig_8_o*/             ),   // TODO: to MR Buffer
+      .trig_9_o             ( /*trig_9_o*/             ),   // TODO: to DDR4
+      .trig_10_o            ( trig_10              ),       // to Readouts
+      .trig_11_o            ( trig_11              ),       // to Readouts
       .trig_12_o            ( /*trig_12_o*/            ),
       .trig_13_o            ( /*trig_13_o*/            ),
       .trig_14_o            ( /*trig_14_o*/            ),
@@ -1593,7 +1602,7 @@ module qick_dut #(
       .s_axi_wvalid           (s_axi_avg0_wvalid    ),
 
       // Trigger input.
-      .trigger                (trig_0_o           ),
+      .trigger                (trig_10              ),
 
       // AXIS Slave for input data.
       .s_axis_aresetn         (ro_resetn             ),

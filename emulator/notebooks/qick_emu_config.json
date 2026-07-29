@@ -153,7 +153,7 @@
       "tproc_ch": 0,
       "tproc_ctrl": 4,
       "trigger_bit": 0,
-      "trigger_port": 0,
+      "trigger_port": 10,
       "trigger_type": "tport",
       "avgbuf_phys_addr": 17180262400,
       "avgbuf_addr_range": 64
@@ -186,7 +186,7 @@
       "ro_version": "1.0",
       "tproc_ch": 1,
       "trigger_bit": 0,
-      "trigger_port": 1,
+      "trigger_port": 11,
       "trigger_type": "tport",
       "ro_phys_addr": 17180393472,
       "ro_addr_range": 64,
