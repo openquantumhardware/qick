@@ -1,5 +1,5 @@
 // (c) Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
-// (c) Copyright 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+// (c) Copyright 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
 // 
 // This file contains confidential and proprietary information
 // of AMD and is protected under U.S. and international copyright
@@ -57,7 +57,7 @@
 axi_mst_0 your_instance_name (
   .aclk(aclk),                    // input wire aclk
   .aresetn(aresetn),              // input wire aresetn
-  .m_axi_awaddr(m_axi_awaddr),    // output wire [31 : 0] m_axi_awaddr
+  .m_axi_awaddr(m_axi_awaddr),    // output wire [39 : 0] m_axi_awaddr
   .m_axi_awprot(m_axi_awprot),    // output wire [2 : 0] m_axi_awprot
   .m_axi_awvalid(m_axi_awvalid),  // output wire m_axi_awvalid
   .m_axi_awready(m_axi_awready),  // input wire m_axi_awready
@@ -68,7 +68,7 @@ axi_mst_0 your_instance_name (
   .m_axi_bresp(m_axi_bresp),      // input wire [1 : 0] m_axi_bresp
   .m_axi_bvalid(m_axi_bvalid),    // input wire m_axi_bvalid
   .m_axi_bready(m_axi_bready),    // output wire m_axi_bready
-  .m_axi_araddr(m_axi_araddr),    // output wire [31 : 0] m_axi_araddr
+  .m_axi_araddr(m_axi_araddr),    // output wire [39 : 0] m_axi_araddr
   .m_axi_arprot(m_axi_arprot),    // output wire [2 : 0] m_axi_arprot
   .m_axi_arvalid(m_axi_arvalid),  // output wire m_axi_arvalid
   .m_axi_arready(m_axi_arready),  // input wire m_axi_arready

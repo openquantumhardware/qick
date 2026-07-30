@@ -1,5 +1,5 @@
 -- (c) Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
--- (c) Copyright 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+-- (c) Copyright 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
 -- 
 -- This file contains confidential and proprietary information
 -- of AMD and is protected under U.S. and international copyright
@@ -55,7 +55,7 @@ COMPONENT axi_mst_0
   PORT (
     aclk : IN STD_LOGIC;
     aresetn : IN STD_LOGIC;
-    m_axi_awaddr : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+    m_axi_awaddr : OUT STD_LOGIC_VECTOR(39 DOWNTO 0);
     m_axi_awprot : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
     m_axi_awvalid : OUT STD_LOGIC;
     m_axi_awready : IN STD_LOGIC;
@@ -66,7 +66,7 @@ COMPONENT axi_mst_0
     m_axi_bresp : IN STD_LOGIC_VECTOR(1 DOWNTO 0);
     m_axi_bvalid : IN STD_LOGIC;
     m_axi_bready : OUT STD_LOGIC;
-    m_axi_araddr : OUT STD_LOGIC_VECTOR(31 DOWNTO 0);
+    m_axi_araddr : OUT STD_LOGIC_VECTOR(39 DOWNTO 0);
     m_axi_arprot : OUT STD_LOGIC_VECTOR(2 DOWNTO 0);
     m_axi_arvalid : OUT STD_LOGIC;
     m_axi_arready : IN STD_LOGIC;

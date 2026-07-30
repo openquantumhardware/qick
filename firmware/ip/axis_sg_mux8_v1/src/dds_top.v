@@ -19,6 +19,10 @@ module dds_top (
 // Number of parallel dds blocks.
 parameter [31:0] N_DDS = 2;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/
@@ -58,7 +62,8 @@ reg			[15:0]			prod_r1		[0:N_DDS-1];
 // Phase Control block.
 phase_ctrl 
 	#(
-		.N_DDS	(N_DDS	)
+		.N_DDS		(N_DDS		),
+		.EMULATOR	(EMULATOR	)
 	)
 	phase_ctrl_i
 	(
@@ -83,14 +88,36 @@ genvar i;
 		/***********************/
 		// DDS.
 		// Latency: 10.
-		dds_compiler_0 dds_i 
-			(
-		  		.aclk					(clk						),
-		  		.s_axis_phase_tvalid	(1'b1						),
-		  		.s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
-		  		.m_axis_data_tvalid		(							),
-		  		.m_axis_data_tdata		(dds_dout[i]				)
-			);
+		if (!EMULATOR) begin : gen_dds_compiler
+			dds_compiler_0 dds_i 
+				(
+			  		.aclk					(clk						),
+			  		.s_axis_phase_tvalid	(1'b1						),
+			  		.s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
+			  		.m_axis_data_tvalid		(							),
+			  		.m_axis_data_tdata		(dds_dout[i]				)
+				);
+		end
+		else begin : gen_dds_model
+			// Behavioral DDS model for Verilator/emulation builds.
+			// The synthesis dds_compiler_0 for this IP is configured for a
+			// single 16-bit SINE output (C_OUTPUTS_REQUIRED=0, C_OUTPUT_FORM=0,
+			// C_M_DATA_TDATA_WIDTH=16). The behavioral model packs its output as
+			// {sine[31:16], cosine[15:0]}, so select the sine field to match.
+			wire [31:0] dds_dout_cpx;
+			dds_behavioral_model #(
+				.DDS_LATENCY (10)
+			)
+			dds_i
+				(
+			  		.aclk					(clk						),
+			  		.s_axis_phase_tvalid	(1'b1						),
+			  		.s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
+			  		.m_axis_data_tvalid		(							),
+			  		.m_axis_data_tdata		(dds_dout_cpx				)
+				);
+			assign dds_dout[i] = dds_dout_cpx[31:16];
+		end
 
 		// Latency for dds_dout.
 		latency_reg

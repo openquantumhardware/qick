@@ -26,7 +26,7 @@ module bram_simple_dp_behav
     always_ff @(posedge clk) begin
         if (ena == 1'b1) begin
             if (wea == 1'b1) begin
-                RAM[addra] = dia;
+                RAM[addra] <= dia;
             end
         end
     end

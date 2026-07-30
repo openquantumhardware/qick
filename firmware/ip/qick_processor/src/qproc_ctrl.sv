@@ -91,7 +91,35 @@ assign xreg_TPROC_CFG   = tproc_cfg_sync;
 reg            t_core_rst_prev_net; // NET Request to RESET the Processor and go to previous state
 reg  [31:0]    time_updt_dt            ; // New incremental time value
 
-///////////////////////////////////////////////////////////////////////////////
+// Internal control signals
+wire proc_start_io, proc_stop_io;
+
+// Control signals (PYTHON domain)
+wire time_stop_p, time_run_p, time_rst_stop_p, time_rst_run_p, time_update_p, time_step_p;
+wire core_stop_p, core_run_p, core_rst_stop_p, core_rst_run_p, core_rst_prev_p, core_step_p;
+
+// Control signals (QPROC-CORE domain)
+wire time_rst_core, time_updt_core, time_ref_set, time_ref_inc;
+
+// Control signals (NET domain)
+wire time_rst_net, time_updt_net, core_start_net, core_stop_net;
+
+// Control signals (combined)
+wire c_time_rst_run, c_time_updt;
+
+// Control signals (core state machine)
+wire ctrl_c_rst_stop, ctrl_c_rst_run, ctrl_c_stop, ctrl_c_run, ctrl_c_step;
+
+// Control signals (time state machine)
+wire ctrl_t_rst_stop, ctrl_t_rst_run, ctrl_t_updt, ctrl_t_run, ctrl_t_stop, ctrl_t_step;
+
+// Internal sync signals
+wire core_rst_ack, t_time_rst_stop, t_time_rst_run, t_time_update, t_time_stop, t_time_run, t_time_step;
+
+// Time enable signals
+wire c_time_en, t_time_en;
+
+/////////////////////////////////////////////////////////////////////////////
 // CONTROL Signals
 ///////////////////////////////////////////////////////////////////////////////
 // wire fifo_ok;

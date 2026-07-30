@@ -23,13 +23,13 @@ localparam time         TestTime          =  0ns;
 
 typedef axi_test::axi_lite_rand_master #(
    // AXI interface parameters
-   .AW ( 32'd8               ), // Axi Address Width
+   .AW ( 32'd40              ), // Axi Address Width
    .DW ( 32'd32              ), // Axi Data Width
    // Stimuli application and test time
    .TA ( ApplTime            ),
    .TT ( TestTime            ),
-   .MIN_ADDR ( 32'h0000_0000 ),
-   .MAX_ADDR ( 32'hffff_ffff ),
+   .MIN_ADDR ( 40'h0_0000_0000 ),
+   .MAX_ADDR ( 40'hf_ffff_ffff ),
    .MAX_READ_TXNS  ( 1 ),
    .MAX_WRITE_TXNS ( 1 ),
    .AX_MIN_WAIT_CYCLES   ( 0   ),
@@ -38,36 +38,18 @@ typedef axi_test::axi_lite_rand_master #(
    .W_MAX_WAIT_CYCLES    ( 0   ),
    .RESP_MIN_WAIT_CYCLES ( 0   ),
    .RESP_MAX_WAIT_CYCLES ( 0   )
-) rand_lite_master_addr8_data32_t;
-
-typedef axi_test::axi_lite_rand_master #(
-   // AXI interface parameters
-   .AW ( 32'd6               ), // Axi Address Width
-   .DW ( 32'd32              ), // Axi Data Width
-   // Stimuli application and test time
-   .TA ( ApplTime            ),
-   .TT ( TestTime            ),
-   .MIN_ADDR ( 32'h0000_0000 ),
-   .MAX_ADDR ( 32'hffff_ffff ),
-   .MAX_READ_TXNS  ( 1 ),
-   .MAX_WRITE_TXNS ( 1 ),
-   .AX_MIN_WAIT_CYCLES   ( 0   ),
-   .AX_MAX_WAIT_CYCLES   ( 0   ),
-   .W_MIN_WAIT_CYCLES    ( 0   ),
-   .W_MAX_WAIT_CYCLES    ( 0   ),
-   .RESP_MIN_WAIT_CYCLES ( 0   ),
-   .RESP_MAX_WAIT_CYCLES ( 0   )
-) rand_lite_master_addr6_data32_t;
+) rand_lite_master_addr40_data32_t;
 
 // +++++++++++++
 
-localparam real T_TCLK_HALF          =  1.162;      // Half Clock Period for tProc Dispatcher (430 MHz)
-localparam real T_CCLK_HALF          =    2.5;      // Half Clock Period for tProc Core (200 MHz)
-localparam real T_SCLK_HALF          =    5.0;      // Half Clock Period for PS & AXI (100 MHz)
+`define T_TCLK_HALF_PERIOD       1.162ns      // Half Clock Period for tProc Dispatcher (430 MHz)
+`define T_CCLK_HALF_PERIOD         2.5ns      // Half Clock Period for tProc Core (200 MHz)
+`define T_SCLK_HALF_PERIOD         5.0ns      // Half Clock Period for PS & AXI (100 MHz)
 
-localparam real T_SG_CLK_HALF        =  0.834669;      // Half Clock Period for Signal Gens (599.04 MHz)
+`define T_SG_CLK_HALF_PERIOD     0.834669ns      // Half Clock Period for Signal Gens (599.04 MHz)
 
-localparam real T_RO_CLK_HALF        =  1.627604;      // Half Clock Period for Readout (307.2 MHz)
+`define T_RO_CLK_HALF_PERIOD     1.627604ns      // Half Clock Period for Readout (307.2 MHz)
+
 
 // TPROC PARAMETERS
 `define GEN_SYNC         1
@@ -86,8 +68,8 @@ localparam real T_RO_CLK_HALF        =  1.627604;      // Half Clock Period for 
 `define DMEM_AW          14 
 `define WMEM_AW          11
 `define REG_AW           4 
-`define IN_PORT_QTY      1
-`define OUT_TRIG_QTY     1
+`define IN_PORT_QTY      2
+`define OUT_TRIG_QTY     17
 `define OUT_DPORT_QTY    1
 `define OUT_DPORT_DW     8
 `define OUT_WPORT_QTY    5 
@@ -114,7 +96,8 @@ localparam N_DDS_RO = 8;
 //   +RO_DEC_LEN=<int>     — override decimated-readout drain length
 //   +TRACE                — enable VCD dump to obj_dir/waveform.vcd
 string EMU_DIR       = "../artifacts";
-time   TEST_RUN_TIME = 1us;
+time   TEST_RUN_TIME = 1000ns;
+time   WATCHDOG_TIME = TEST_RUN_TIME + 100us;   // margin for simulation to finish gracefully
 time   PRE_RUN_DELAY_TIME = 0ns;
 int    ro_avg_len    = 1;
 int    ro_dec_len    = 32'h039A;
@@ -123,44 +106,43 @@ int    pre_run_delay_ns = -1;
 
 
 //----------------------------------------------------
-// Address Routing (ZCU216 default AddrMap; override via export_vivado_files())
+// Address Routing
 //----------------------------------------------------
-// AVG_BASE_HI == TPROC_BASE is intentional — AVG_BASE_HI is an exclusive upper
-// bound, so the last avgbuf slot ends at 0x4025FFFF and tproc starts at
-// 0x40260000 with no overlap.
-// DEFAULT ZCU216 ADDR MAP (see zcu216_addr_map.csv):
-// localparam integer TPROC_BASE  = 40'h40260000;
-// localparam integer SG_BASE_LO  = 40'h40020000;
-// localparam integer SG_BASE_HI  = 40'h40120000;
-// localparam integer AVG_BASE_LO = 40'h40130000;
-// localparam integer AVG_BASE_HI = 40'h40260000;
-// // QICKEMU_DUT Address Map
-// localparam integer TPROC_BASE  = 40'h400260000;
-// localparam integer SG_BASE_LO  = 40'h4001C0000;  // 1 gen IP(s)
-// localparam integer SG_BASE_HI  = 40'h4001D0000;
-// localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
-// localparam integer AVG_BASE_HI = 40'h400070000;
 
 // QICKEMU_DUT Address Map
-localparam integer TPROC_BASE  = 40'h400260000;
-localparam integer SG_BASE_LO  = 40'h4001C0000;  // 2 gen IP(s)
-localparam integer SG_BASE_HI  = 40'h4001E0000;
-localparam integer AVG_BASE_LO = 40'h400060000;  // 1 avgbuf IP(s)
-localparam integer AVG_BASE_HI = 40'h400070000;
+localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;  // qick_processor
+localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer
+localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer
+localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
+localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
+localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
+localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
+
+// AVG_BUFFER Memory Mapped Registers
+logic [5:0] AVG_START_REG       = 4 * 0;
+logic [5:0] AVG_ADDR_REG        = 4 * 1;
+logic [5:0] AVG_LEN_REG         = 4 * 2;
+logic [5:0] AVG_DR_START_REG    = 4 * 3;
+logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
+logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
+logic [5:0] BUF_START_REG       = 4 * 6;
+logic [5:0] BUF_ADDR_REG        = 4 * 7;
+logic [5:0] BUF_LEN_REG         = 4 * 8;
+logic [5:0] BUF_DR_START_REG    = 4 * 9;
+logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
+logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
+
+// Signal Generator Memory Mapped Registers
+logic [5:0] SG_ADDR_START_ADDR   = 4 * 0;
+logic [5:0] SG_ADDR_WE           = 4 * 1;
 
 
 // VIP Agents
 
 // <<<<<<<<<<<< XILINX AXI VIP
-// axi_mst_0_mst_t     axi_mst_tproc_agent;
-// axi_mst_0_mst_t     axi_mst_sg_agent;
-// axi_mst_0_mst_t     axi_mst_avg_agent;
+// axi_mst_0_mst_t     axi_mst_agent;
 // ============
-rand_lite_master_addr8_data32_t axi_mst_tproc_agent;
-rand_lite_master_addr6_data32_t axi_mst_sg_agent;
-rand_lite_master_addr6_data32_t axi_mst_avg0_agent;
-rand_lite_master_addr6_data32_t axi_mst_avg1_agent;
-rand_lite_master_addr6_data32_t axi_mst_rov2_agent;
+rand_lite_master_addr40_data32_t axi_mst_agent;
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
 
@@ -173,56 +155,28 @@ axi_pkg::prot_t prot = 0;
 axi_pkg::resp_t resp;
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
-// ++++++++++++ TELL VERILATOR TO LOG SIGNALS IN VCD FILE (opt-in via +TRACE)
-initial begin
-   #1;
-   if ($test$plusargs("TRACE")) begin
-      string vcd_file;
-      vcd_file = {EMU_DIR, "/waveform.vcd"};
-      $dumpfile(vcd_file);
-      $dumpvars(0, tb_qick_emu_verilator);
-      $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
-   end
-end
-// ++++++++++++
 
 //////////////////////////////////////////////////////////////////////////
 //  CLK Generation
 logic          c_clk, t_clk, s_ps_dma_aclk;
 
-logic [4:0]    dac_fs_gen;
+logic [4:0]    dac_fs_gen=0;
 logic          dac_fs, sg_clk;
 
-logic [4:0]    adc_fs_gen;
+logic [4:0]    adc_fs_gen=0;
 logic          adc_fs, ro_clk;
 
-initial begin
-  t_clk = 1'b0;
-  forever # (T_TCLK_HALF*1.0ns) t_clk = ~t_clk;
-end
+always #(`T_TCLK_HALF_PERIOD) t_clk = ~t_clk;
 
-initial begin
-  c_clk = 1'b0;
-  forever # (T_CCLK_HALF*1.0ns) c_clk = ~c_clk;
-end
+always #(`T_CCLK_HALF_PERIOD) c_clk = ~c_clk;
 
-initial begin
-  s_ps_dma_aclk = 1'b0;
-  #0.5ns
-  forever # (T_SCLK_HALF*1.0ns) s_ps_dma_aclk = ~s_ps_dma_aclk;
-end
+always #(`T_SCLK_HALF_PERIOD) s_ps_dma_aclk = ~s_ps_dma_aclk;
 
-initial begin
-   dac_fs_gen = 'd0;
-   forever # (T_SG_CLK_HALF*1.0ns/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
-end
+always #(`T_SG_CLK_HALF_PERIOD/N_DDS_SG) dac_fs_gen = dac_fs_gen + 'd1;
 assign dac_fs  = dac_fs_gen[0];
 assign sg_clk  = dac_fs_gen[4];
 
-initial begin
-   adc_fs_gen = 'd0;
-   forever # (T_RO_CLK_HALF*1.0ns/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
-end
+always #(`T_RO_CLK_HALF_PERIOD/N_DDS_RO) adc_fs_gen = adc_fs_gen + 'd1;
 assign adc_fs  = adc_fs_gen[0];
 assign ro_clk  = adc_fs_gen[3];
 
@@ -274,30 +228,27 @@ wire               m6_axis_tvalid       ;
 wire [167:0]       m7_axis_tdata        ;
 wire               m7_axis_tvalid       ;
 
-wire               trigger_0;
-wire               trigger_1;
-
 wire [`OUT_DPORT_DW-1:0]         port_0_dt_o, port_1_dt_o, port_2_dt_o, port_3_dt_o;
 
 
-// QNET Peripheral
-wire                qnet_en_o   ;
-wire  [4 :0]        qnet_op_o   ;
-wire  [31:0]        qnet_a_dt_o ;
-wire  [31:0]        qnet_b_dt_o ;
-wire  [31:0]        qnet_c_dt_o ;
-wire  [31:0]        qnet_d_dt_o ;
-reg                 qnet_rdy_i      ;
-reg  [31 :0]        qnet_dt_i [2]   ;
+// // QNET Peripheral
+// wire                qnet_en_o   ;
+// wire  [4 :0]        qnet_op_o   ;
+// wire  [31:0]        qnet_a_dt_o ;
+// wire  [31:0]        qnet_b_dt_o ;
+// wire  [31:0]        qnet_c_dt_o ;
+// wire  [31:0]        qnet_d_dt_o ;
+// reg                 qnet_rdy_i      ;
+// reg  [31 :0]        qnet_dt_i [2]   ;
 
-// QCOM Peripheral
-wire                qcom_en_o   ;
-wire  [4 :0]        qcom_op_o   ;
-wire  [31:0]        qcom_dt_o   ;
-reg                 qcom_rdy_i      ;
-reg  [31 :0]        qcom_dt_i [2]   ;
-reg                 qcom_vld_i      ;
-reg                 qcom_flag_i     ;
+// // QCOM Peripheral
+// wire                qcom_en_o   ;
+// wire  [4 :0]        qcom_op_o   ;
+// wire  [31:0]        qcom_dt_o   ;
+// reg                 qcom_rdy_i      ;
+// reg  [31 :0]        qcom_dt_i [2]   ;
+// reg                 qcom_vld_i      ;
+// reg                 qcom_flag_i     ;
 
 reg  [31 :0]        qp1_dt_i [2]   ;
 reg  [31 :0]        qp2_dt_i [2]   ;
@@ -341,6 +292,8 @@ always_ff @ (posedge c_clk) begin
    qp1_b_dt_r   <= qp1_b_dt_o;
 end
   
+wire qp1_rdy_i, qp1_vld_i, qp1_op_o;
+
 assign qp1_rdy_i     = ~qp1_en_r;
 assign qp1_dt_i[0]   = qp1_a_dt_r;
 assign qp1_dt_i[1]   = qp1_b_dt_r;
@@ -348,36 +301,6 @@ assign qp1_vld_i     = qp1_en_r;
 
 wire port_0_vld, qnet_vld_i, qnet_flag_i, periph_flag_i, ext_flag_i;
 
-
-// // -----------------------------------------------------------------------------
-// // Readout → tProc feedback path.
-// //
-// // The real ZCU216 SoC wires `axis_avg_buffer_0.m2_axis` (one-shot handshake on
-// // each completed average) into `qick_processor.s0_axis`, so that `DPORT_RD 0`
-// // (emitted by `read_input(ro_ch=0)` / `read_and_jump`) can sample the
-// // per-shot I/Q accumulator in a tProc register. The emu TB reproduces that
-// // link: m2_axis fires once per shot, we latch {acc_q[31:0], acc_i[31:0]}
-// // and hold it until the next shot replaces it. That way the tProc can read
-// // the result at any time after the buffer has drained. PORT_L = I, PORT_H = Q.
-// // -----------------------------------------------------------------------------
-// wire        avg0_m2_tvalid;
-// wire [63:0] avg0_m2_tdata;
-// reg  [63:0] readout_ch0_dt;
-// reg         readout_ch0_vld;
-
-// always_ff @(posedge s_ps_dma_aclk) begin
-//    if (!s_ps_dma_aresetn) begin
-//       readout_ch0_dt  <= 64'd0;
-//       readout_ch0_vld <= 1'b0;
-//    end
-//    else if (avg0_m2_tvalid) begin
-//       readout_ch0_dt  <= avg0_m2_tdata;
-//       readout_ch0_vld <= 1'b1;
-//    end
-// end
-
-// assign port_0_dt_i     = readout_ch0_dt;
-// assign port_0_vld      = readout_ch0_vld;
 
 assign qnet_vld_i      = t_time_abs_o[3]&t_time_abs_o[2]&t_time_abs_o[1] ;
 assign qnet_flag_i       = ~t_time_abs_o[5] & ~t_time_abs_o[4] & t_time_abs_o[3] ;
@@ -393,8 +316,12 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                      axis_sg1_dac1_tvalid;
    logic [N_DDS_SG*16-1:0]    axis_sg1_dac1_tdata;
 
-   logic                      rf_signal_valid;
-   logic [N_DDS_RO*16-1:0]    rf_signal_data;
+   // ++++++++++++ Signal Generator 2 (mux8) --> DAC 2 interface
+   logic                      axis_sg2_dac2_tready;
+   logic                      axis_sg2_dac2_tvalid;
+   logic [N_DDS_SG*16-1:0]    axis_sg2_dac2_tdata;
+   // ++++++++++++
+
 
    logic                      axis_adc0_ro0_tready;
    logic                      axis_adc0_ro0_tvalid;
@@ -415,11 +342,23 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                   sg1_s0_axis_tready;
    logic                   sg1_s0_axis_tvalid;
 
-   wire    [63:0]    m0_axis_buf0_avg_tdata  = qick_dut.m0_axis_buf0_avg_tdata;
-   wire              m0_axis_buf0_avg_tvalid = qick_dut.m0_axis_buf0_avg_tvalid;
+   wire    [63:0]    buf0_m0_axis_avg_tdata  = qick_dut.buf0_m0_axis_avg_tdata;
+   wire              buf0_m0_axis_avg_tvalid = qick_dut.buf0_m0_axis_avg_tvalid;
+   wire              buf0_m0_axis_avg_tlast  = qick_dut.buf0_m0_axis_avg_tlast;
 
-   wire    [31:0]    m1_axis_buf0_dec_tdata  = qick_dut.m1_axis_buf0_dec_tdata;
-   wire              m1_axis_buf0_dec_tvalid = qick_dut.m1_axis_buf0_dec_tvalid;
+   wire    [31:0]    buf0_m1_axis_dec_tdata  = qick_dut.buf0_m1_axis_dec_tdata;
+   wire              buf0_m1_axis_dec_tvalid = qick_dut.buf0_m1_axis_dec_tvalid;
+   wire              buf0_m1_axis_dec_tlast  = qick_dut.buf0_m1_axis_dec_tlast;
+
+   // ++++++++++++ axis_readout_v2 buffer 1 signals
+   wire    [63:0]    buf1_m0_axis_avg_tdata  = qick_dut.buf1_m0_axis_avg_tdata;
+   wire              buf1_m0_axis_avg_tvalid = qick_dut.buf1_m0_axis_avg_tvalid;
+   wire              buf1_m0_axis_avg_tlast  = qick_dut.buf1_m0_axis_avg_tlast;
+
+   wire    [31:0]    buf1_m1_axis_dec_tdata  = qick_dut.buf1_m1_axis_dec_tdata;
+   wire              buf1_m1_axis_dec_tvalid = qick_dut.buf1_m1_axis_dec_tvalid;
+   wire              buf1_m1_axis_dec_tlast  = qick_dut.buf1_m1_axis_dec_tlast;
+   // ++++++++++++
 
 
    //--------------------------------------
@@ -479,25 +418,25 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .time_dt_i           ( offset_dt_i        ) ,
       .t_time_abs_o        ( t_time_abs_o       ) ,
       //QNET
-      .qnet_en_o           ( qnet_en_o          ) ,
-      .qnet_op_o           ( qnet_op_o          ) ,
-      .qnet_a_dt_o         ( qnet_a_dt_o        ) ,
-      .qnet_b_dt_o         ( qnet_b_dt_o        ) ,
-      .qnet_c_dt_o         ( qnet_c_dt_o        ) ,
-      .qnet_rdy_i          ( qnet_rdy_i         ) ,
-      .qnet_dt1_i          ( qnet_dt_i[0]       ) ,
-      .qnet_dt2_i          ( qnet_dt_i[1]       ) ,
-      .qnet_vld_i          ( qnet_vld_i         ) ,
-      .qnet_flag_i         ( qnet_flag_i        ) ,
+      .qnet_en_o           ( /*qnet_en_o*/      ) ,
+      .qnet_op_o           ( /*qnet_op_o*/      ) ,
+      .qnet_a_dt_o         ( /*qnet_a_dt_o*/    ) ,
+      .qnet_b_dt_o         ( /*qnet_b_dt_o*/    ) ,
+      .qnet_c_dt_o         ( /*qnet_c_dt_o*/    ) ,
+      .qnet_rdy_i          ( 0 /*qnet_rdy_i   */ ) ,
+      .qnet_dt1_i          ( 0 /*qnet_dt_i[0] */ ) ,
+      .qnet_dt2_i          ( 0 /*qnet_dt_i[1] */ ) ,
+      .qnet_vld_i          ( 0 /*qnet_vld_i   */ ) ,
+      .qnet_flag_i         ( 0 /*qnet_flag_i  */ ) ,
       //QCOM
-      .qcom_en_o           ( qcom_en_o          ) ,
-      .qcom_op_o           ( qcom_op_o          ) ,
-      .qcom_dt_o           ( qcom_dt_o          ) ,
-      .qcom_rdy_i          ( qcom_rdy_i         ) ,
-      .qcom_dt1_i          ( qcom_dt_i[0]       ) ,
-      .qcom_dt2_i          ( qcom_dt_i[1]       ) ,
-      .qcom_vld_i          ( qcom_vld_i         ) ,
-      .qcom_flag_i         ( qcom_flag_i        ) ,
+      .qcom_en_o           ( /*qcom_en_o*/      ) ,
+      .qcom_op_o           ( /*qcom_op_o*/      ) ,
+      .qcom_dt_o           ( /*qcom_dt_o*/      ) ,
+      .qcom_rdy_i          ( 0 /*qcom_rdy_i   */) ,
+      .qcom_dt1_i          ( 0 /*qcom_dt_i[0] */) ,
+      .qcom_dt2_i          ( 0 /*qcom_dt_i[1] */) ,
+      .qcom_vld_i          ( 0 /*qcom_vld_i   */) ,
+      .qcom_flag_i         ( 0 /*qcom_flag_i  */) ,
       // QP1
       .qp1_en_o           ( qp1_en_o          ) ,
       .qp1_op_o           ( qp1_op_o          ) ,
@@ -531,8 +470,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .m_dma_axis_tvalid_o  ( m_dma_axis_tvalid_o ) ,
       .m_dma_axis_tready_i  ( m_dma_axis_tready_i ) ,
       // TRIGGERS
-      .trig_0_o             ( trigger_0               ),
-      .trig_1_o             ( trigger_1               ),
+      .trig_0_o             (                ),
+      .trig_1_o             (                ),
+      .trig_2_o             (                ),
+      .trig_3_o             (                ),
+      .trig_4_o             (                ),
+      .trig_5_o             (                ),
+      .trig_6_o             (                ),
+      .trig_7_o             (                ),
       // OUT DATA PORTS
       .port_0_dt_o          ( port_0_dt_o             ) ,
       .port_1_dt_o          ( port_1_dt_o             ) ,
@@ -572,7 +517,14 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .axis_sg1_dac1_tvalid        (axis_sg1_dac1_tvalid     ),
       .axis_sg1_dac1_tdata         (axis_sg1_dac1_tdata      ),
 
+      // ++++++++++++ Signal Generator 2 (mux8) --> DAC 2 interface
+      .axis_sg2_dac2_tready        (axis_sg2_dac2_tready     ),
+      .axis_sg2_dac2_tvalid        (axis_sg2_dac2_tvalid     ),
+      .axis_sg2_dac2_tdata         (axis_sg2_dac2_tdata      ),
+      // ++++++++++++
+
       // ADC 0 --> Readout 0 Interface
+
       .axis_adc0_ro0_tready       (axis_adc0_ro0_tready     ),
       .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
       .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
@@ -596,143 +548,157 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // DAC-ADC RF frontend model
    //--------------------------------------
 
+   // SG0 to DAC0 RF processes 16 samples per clock
+
    localparam DAC0_W = 16;
-   logic signed [DAC0_W-1:0] dac0_data;
    localparam ADC0_W = 16;
    logic signed [ADC0_W-1:0] adc0_sample;
-   logic signed [15:0] adc0_data;
    real dac0_signal_rf;
+   real dac0_signal_rf_dly;
+   real dac0_delay_buffer [0:RF_DELAY_CYCLES-1];
+   int  dac0_write_ptr = 0;
+   int  dac0_read_ptr  = 0;
+
+   initial begin
+      dac0_signal_rf_dly = 0.0;
+      for (int i = 0; i < RF_DELAY_CYCLES; i++) begin
+         dac0_delay_buffer[i] = 0.0;
+      end
+   end
 
    model_DAC #(
-      .DAC_W               (DAC0_W)
+      .DAC_W               (DAC0_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC0 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac0_data),
+      .axis_tvalid         (axis_sg0_dac0_tvalid),
+      .axis_tdata          (axis_sg0_dac0_tdata),
+      .axis_tready         (axis_sg0_dac0_tready),
       .dac_signal_rf       (dac0_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC0_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC0 (
       .clk_DAC             (dac_fs),
-      .dac_signal_rf       (dac0_signal_rf),
+      .dac_signal_rf       (dac0_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
       .adc_sample          (adc0_sample),
 
+      .axis_tready         (axis_adc0_ro0_tready),
+      .axis_tvalid         (axis_adc0_ro0_tvalid),
+      .axis_tdata          (axis_adc0_ro0_tdata),
+
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
-   // SG0 to DAC0 RF processes 16 samples per clock
 
-   assign axis_sg0_dac0_tready        = 1'b1;  // DAC always ready to receive samples
+   localparam DAC1_W = 16;
+   localparam ADC1_W = 16;
+   logic signed [ADC1_W-1:0] adc1_sample;
+   real dac1_signal_rf;
+   real dac1_signal_rf_dly;
 
-   logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg0_dac0_tvalid) begin
-         dac0_data       <= axis_sg0_dac0_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
-         dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
-      end
-      else begin
-         dac0_data       <= 'd0;
-         dac0_samp_cnt   <= 'd0;
+   real dac1_delay_buffer [0:RF_DELAY_CYCLES-1];
+   int  dac1_write_ptr = 0;
+   int  dac1_read_ptr  = 0;
+
+   initial begin
+      dac1_signal_rf_dly = 0.0;
+      for (int i = 0; i < RF_DELAY_CYCLES; i++) begin
+         dac1_delay_buffer[i] = 0.0;
       end
    end
 
 
-   localparam DAC1_W = 16;
-   logic signed [DAC1_W-1:0] dac1_data;
-   localparam ADC1_W = 16;
-   logic signed [ADC1_W-1:0] adc1_sample;
-   logic signed [15:0] adc1_data;
-   real dac1_signal_rf;
-
    model_DAC #(
-      .DAC_W               (DAC1_W)
+      .DAC_W               (DAC1_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC1 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac1_data),
+      .axis_tvalid         (axis_sg1_dac1_tvalid),
+      .axis_tdata          (axis_sg1_dac1_tdata),
+      .axis_tready         (axis_sg1_dac1_tready),
       .dac_signal_rf       (dac1_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC1_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC1 (
       .clk_DAC             (dac_fs),
-      .dac_signal_rf       (dac1_signal_rf),
+      .dac_signal_rf       (dac1_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
       .adc_sample          (adc1_sample),
+
+      .axis_tready         (axis_adc1_ro1_tready),
+      .axis_tvalid         (axis_adc1_ro1_tvalid),
+      .axis_tdata          (axis_adc1_ro1_tdata),
 
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
    // SG1 to DAC1 RF processes 16 samples per clock
 
-   assign axis_sg1_dac1_tready        = 1'b1;  // DAC always ready to receive samples
 
-   logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg1_dac1_tvalid) begin
-         dac1_data       <= axis_sg1_dac1_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
-         dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
-      end
-      else begin
-         dac1_data       <= 'd0;
-         dac1_samp_cnt   <= 'd0;
-      end
-   end
+   // ++++++++++++ SG2 (mux8) to DAC2 model — capture-only, no ADC loopback path.
+   localparam DAC2_W = 16;
+   real dac2_signal_rf;
 
-
-   // ADC RF to RO processes 8 samples per clock
-
-   assign adc0_data = $signed(adc0_sample);
-
-   logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
-   always @(posedge adc_fs) begin
-      if (adc_samp_cnt < N_DDS_RO-1) begin
-         adc_samp_cnt      <= adc_samp_cnt + 1;
-         rf_signal_valid   <= 0;
-      end
-      else begin
-         adc_samp_cnt      <= 0;
-         rf_signal_valid   <= 1;
-      end
-      rf_signal_data[16*adc_samp_cnt +: 16] <= adc0_data;
-   end
+   model_DAC #(
+      .DAC_W               (DAC2_W),
+      .N_DDS               (N_DDS_SG)
+   ) u_model_DAC2 (
+      .clk_DAC             (dac_fs),
+      .axis_tvalid         (axis_sg2_dac2_tvalid),
+      .axis_tdata          (axis_sg2_dac2_tdata),
+      .axis_tready         (axis_sg2_dac2_tready),
+      .dac_signal_rf       (dac2_signal_rf)
+   );
+   // ++++++++++++
 
 
-   // Model Transport delay
+   // Model transport delay between DAC0 and ADC0.
 
-// <<<<<<<<<<<< VERILATOR INCOMPATIBLE DELAY 
-   // NOTE: THESE MUST BE REG TO WORK!!!
-   // reg                    rf_signal_valid_dly;
-   // reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   // always @(*) begin
-   //    rf_signal_valid_dly <= #250ns rf_signal_valid;
-   //    rf_signal_data_dly  <= #250ns rf_signal_data;
-   // end
-// ============
-   // Fast buffer-based approach
    localparam RF_DELAY_TIME_NS = 100;
-   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*T_RO_CLK_HALF/N_DDS_RO));
-   logic                    rf_signal_valid_dly;
-   logic [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   logic [N_DDS_RO*16:0]    delay_buffer [0:RF_DELAY_CYCLES-1];
-   int                      write_ptr = 0;
-   int                      read_ptr  = 0;
+   localparam int RF_DELAY_CYCLES = $ceil(RF_DELAY_TIME_NS / (2.0*`T_SG_CLK_HALF_PERIOD/N_DDS_SG));
 
-   always @(posedge adc_fs) begin
-      delay_buffer[write_ptr] <= {rf_signal_valid, rf_signal_data};
-      write_ptr <= (write_ptr + 1) % RF_DELAY_CYCLES;
-      rf_signal_valid_dly <= delay_buffer[read_ptr][N_DDS_RO*16];
-      rf_signal_data_dly  <= delay_buffer[read_ptr][N_DDS_RO*16-1:0];
-      read_ptr <= (read_ptr + 1) % RF_DELAY_CYCLES;
+   always @(posedge dac_fs) begin
+      dac0_delay_buffer[dac0_write_ptr] <= dac0_signal_rf;
+      if (dac0_write_ptr == RF_DELAY_CYCLES - 1) begin
+         dac0_write_ptr <= 0;
+      end else begin
+         dac0_write_ptr <= dac0_write_ptr + 1;
+      end
+      dac0_signal_rf_dly <= dac0_delay_buffer[dac0_read_ptr];
+      if (dac0_read_ptr == RF_DELAY_CYCLES - 1) begin
+         dac0_read_ptr <= 0;
+      end else begin
+         dac0_read_ptr <= dac0_read_ptr + 1;
+      end
    end
-// >>>>>>>>>>>> VERILATOR COMPATIBLE CONTINUOUS DELAY
 
+   // Model transport delay between DAC1 and ADC1.
+
+   always @(posedge dac_fs) begin
+      dac1_delay_buffer[dac1_write_ptr] <= dac1_signal_rf;
+      if (dac1_write_ptr == RF_DELAY_CYCLES - 1) begin
+         dac1_write_ptr <= 0;
+      end else begin
+         dac1_write_ptr <= dac1_write_ptr + 1;
+      end
+      dac1_signal_rf_dly <= dac1_delay_buffer[dac1_read_ptr];
+      if (dac1_read_ptr == RF_DELAY_CYCLES - 1) begin
+         dac1_read_ptr <= 0;
+      end else begin
+         dac1_read_ptr <= dac1_read_ptr + 1;
+      end
+   end
 
    // //--------------------------------------
    // // WIP: Qubit Emulator
@@ -847,38 +813,29 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // );
 
 
-   // Sample RF signal with ADC/RO clock - 8 real samples per RO clock
-   // always_ff @(posedge ro_clk) begin
-   //    if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-   //       axis_adc_ro_tvalid                  <= rf_signal_valid_dly;
-   //       axis_adc_ro_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-   //    end
-   //    else if (TEST_OUT_CONNECTION == "TEST_OUT_QEMU") begin
-   //       axis_adc_ro_tvalid                  <= axis_qemu_ro_tvalid;
-   //       for (int i=0; i<N_DDS_RO; i=i+1) begin
-   //          axis_adc_ro_tdata[i*16 +: 16]  <= axis_qemu_ro_tdata[15:0];
-   //       end
-   //    end
-   // end
 
-   logic [2:0] rf_signal_cnt;
-   always_ff @(posedge adc_fs) begin
-      if (TEST_OUT_CONNECTION == "TEST_OUT_LOOPBACK") begin
-         if (rf_signal_cnt == 0) begin
-            axis_adc0_ro0_tvalid                  <= rf_signal_valid_dly;
-            axis_adc0_ro0_tdata[N_DDS_RO*16-1:0]  <= rf_signal_data_dly;
-         end
-         else begin
-         end
-         if (rf_signal_valid_dly || axis_adc0_ro0_tvalid) begin
-            rf_signal_cnt  <= rf_signal_cnt + 1;
-         end
-         else begin
-            rf_signal_cnt  <= 0;
-         end
-      end
+   // SIMULATION WATCHDOG
+   initial begin
+      #1;
+      $display("WATCHDOG Enabled: Simulation will terminate after %0d ns", WATCHDOG_TIME);
+      #(WATCHDOG_TIME);
+      $fatal(1, "WATCHDOG: Simulation time limit reached. Terminating.");
    end
 
+
+   // ++++++++++++ TELL VERILATOR TO LOG SIGNALS IN VCD FILE (opt-in via +TRACE)
+   initial begin
+      #1;
+      if ($test$plusargs("TRACE")) begin
+         string vcd_file;
+         vcd_file = {EMU_DIR, "/waveform.vcd"};
+         $dumpfile(vcd_file);
+         // $dumpvars(0, tb_qick_emu_verilator);
+         $dumpvars(0, QICKEmu_harness);
+         $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
+      end
+   end
+   // ++++++++++++
 
    // -----------------------------------------------------------------------------
    // EMU_DIR plusarg.
@@ -928,24 +885,30 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // -----------------------------------------------------------------------------
    // CSV Output Logging.
    //
-   // dacN_out.csv — one row per sg_clk with axis_sg0_dac0_tvalid, N_DDS lanes.
-   // avg_out.csv — one row per averaged I/Q sample from avg_buffer m0.
-   // dec_out.csv — one row per decimated I/Q sample from avg_buffer m1.
+   // dacN_out.csv — one row per sg_clk with axis_sg0_dacN_tvalid, N_DDS lanes.
+   // avgN_out.csv — one row per averaged I/Q sample from avgN_buffer m0.
+   // decN_out.csv — one row per decimated I/Q sample from avgN_buffer m1.
    // mr_out.csv  — one row per ro_clk while axis_ro0_mrbuf_tvalid, 8 I/Q lanes
    //               (post-downconversion, pre-FIR). Capped by +MR_LEN plusarg.
    // -----------------------------------------------------------------------------
-   integer dac_csv_fd;
+   integer dac0_csv_fd;
    integer dac1_csv_fd;
-   integer avg_csv_fd;
-   integer dec_csv_fd;
+   integer dac2_csv_fd;   // ++++++++++++ mux8 SG2 -> DAC2 capture
+   integer avg0_csv_fd;
+   integer avg1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
+   integer dec0_csv_fd;
+   integer dec1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
    integer mr_csv_fd;
    int     mr_rows_logged = 0;
 
    initial begin
-      string dac_csv_path;
+      string dac0_csv_path;
       string dac1_csv_path;
-      string avg_csv_path;
-      string dec_csv_path;
+      string dac2_csv_path;
+      string avg0_csv_path;
+      string avg1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
+      string dec0_csv_path;
+      string dec1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
       string mr_csv_path;
 
       // Print times in ps
@@ -953,27 +916,42 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       #0;  // yield so the plusarg initial block runs first
 
-      dac_csv_path = {EMU_DIR, "/dac_out.csv"};
+      dac0_csv_path = {EMU_DIR, "/dac_out_ch0.csv"};
       dac1_csv_path = {EMU_DIR, "/dac_out_ch1.csv"};
-      avg_csv_path = {EMU_DIR, "/avg_out.csv"};
-      dec_csv_path = {EMU_DIR, "/dec_out.csv"};
+      dac2_csv_path = {EMU_DIR, "/dac_out_ch2.csv"};   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      avg0_csv_path = {EMU_DIR, "/avg_out_ch0.csv"};
+      avg1_csv_path = {EMU_DIR, "/avg_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
+      dec0_csv_path = {EMU_DIR, "/dec_out_ch0.csv"};
+      dec1_csv_path = {EMU_DIR, "/dec_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
-      $display("### Opening CSV: %s ###", dac_csv_path);
-      dac_csv_fd = $fopen(dac_csv_path, "w");
+      dac0_csv_fd = $fopen(dac0_csv_path, "w");
       dac1_csv_fd = $fopen(dac1_csv_path, "w");
-      avg_csv_fd = $fopen(avg_csv_path, "w");
-      dec_csv_fd = $fopen(dec_csv_path, "w");
+      dac2_csv_fd = $fopen(dac2_csv_path, "w");   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      avg0_csv_fd = $fopen(avg0_csv_path, "w");
+      avg1_csv_fd = $fopen(avg1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
+      dec0_csv_fd = $fopen(dec0_csv_path, "w");
+      dec1_csv_fd = $fopen(dec1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
       mr_csv_fd  = $fopen(mr_csv_path, "w");
 
-      $fwrite(dac_csv_fd, "time_ps");
-      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac_csv_fd, ",s%0d", i);
-      $fwrite(dac_csv_fd, "\n");
+      // Signal Generators
+      $fwrite(dac0_csv_fd, "time_ps");
+      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac0_csv_fd, ",s%0d", i);
+      $fwrite(dac0_csv_fd, "\n");
       $fwrite(dac1_csv_fd, "time_ps");
       for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac1_csv_fd, ",s%0d", i);
       $fwrite(dac1_csv_fd, "\n");
-      $fwrite(avg_csv_fd, "time_ps,I,Q\n");
-      $fwrite(dec_csv_fd, "time_ps,I,Q\n");
+      $fwrite(dac2_csv_fd, "time_ps");   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      for (int i = 0; i < N_DDS_SG; i++) $fwrite(dac2_csv_fd, ",s%0d", i);   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      $fwrite(dac2_csv_fd, "\n");   // ++++++++++++ mux8 SG2 -> DAC2 capture
+
+      // Readouts
+      $fwrite(avg0_csv_fd, "time_ps,I,Q\n");
+      $fwrite(dec0_csv_fd, "time_ps,I,Q\n");
+      $fwrite(avg1_csv_fd, "time_ps,I,Q\n");
+      $fwrite(dec1_csv_fd, "time_ps,I,Q\n");
+
+      // MR Buffer
       $fwrite(mr_csv_fd, "time_ps");
       for (int i = 0; i < 8; i++) $fwrite(mr_csv_fd, ",I%0d,Q%0d", i, i);
       $fwrite(mr_csv_fd, "\n");
@@ -981,10 +959,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    always @(posedge sg_clk) begin
       if (axis_sg0_dac0_tvalid) begin
-         $fwrite(dac_csv_fd, "%0t", $realtime);
+         $fwrite(dac0_csv_fd, "%0t", $realtime);
          for (int i = 0; i < N_DDS_SG; i++)
-            $fwrite(dac_csv_fd, ",%0d", $signed(axis_sg0_dac0_tdata[16*i +: 16]));
-         $fwrite(dac_csv_fd, "\n");
+            $fwrite(dac0_csv_fd, ",%0d", $signed(axis_sg0_dac0_tdata[16*i +: 16]));
+         $fwrite(dac0_csv_fd, "\n");
       end
    end
 
@@ -997,19 +975,46 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
+   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
+   always @(posedge sg_clk) begin
+      if (axis_sg2_dac2_tvalid) begin
+         $fwrite(dac2_csv_fd, "%0t", $realtime);
+         for (int i = 0; i < N_DDS_SG; i++)
+            $fwrite(dac2_csv_fd, ",%0d", $signed(axis_sg2_dac2_tdata[16*i +: 16]));
+         $fwrite(dac2_csv_fd, "\n");
+      end
+   end
+   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
+
    always @(posedge s_ps_dma_aclk) begin
-      if (m0_axis_buf0_avg_tvalid)
-         $fwrite(avg_csv_fd, "%0t,%0d,%0d\n", $realtime,
-                 $signed(m0_axis_buf0_avg_tdata[31:0]),
-                 $signed(m0_axis_buf0_avg_tdata[63:32]));
+      if (buf0_m0_axis_avg_tvalid)
+         $fwrite(avg0_csv_fd, "%0t,%0d,%0d\n", $realtime,
+                 $signed(buf0_m0_axis_avg_tdata[31:0]),
+                 $signed(buf0_m0_axis_avg_tdata[63:32]));
    end
 
    always @(posedge s_ps_dma_aclk) begin
-      if (m1_axis_buf0_dec_tvalid)
-         $fwrite(dec_csv_fd, "%0t,%0d,%0d\n", $realtime,
-                 $signed(m1_axis_buf0_dec_tdata[15:0]),
-                 $signed(m1_axis_buf0_dec_tdata[31:16]));
+      if (buf0_m1_axis_dec_tvalid)
+         $fwrite(dec0_csv_fd, "%0t,%0d,%0d\n", $realtime,
+                 $signed(buf0_m1_axis_dec_tdata[15:0]),
+                 $signed(buf0_m1_axis_dec_tdata[31:16]));
    end
+
+   // ++++++++++++ axis_readout_v2 buffer 1 CSV logging (ch1)
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf1_m0_axis_avg_tvalid)
+         $fwrite(avg1_csv_fd, "%0t,%0d,%0d\n", $realtime,
+                 $signed(buf1_m0_axis_avg_tdata[31:0]),
+                 $signed(buf1_m0_axis_avg_tdata[63:32]));
+   end
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf1_m1_axis_dec_tvalid)
+         $fwrite(dec1_csv_fd, "%0t,%0d,%0d\n", $realtime,
+                 $signed(buf1_m1_axis_dec_tdata[15:0]),
+                 $signed(buf1_m1_axis_dec_tdata[31:16]));
+   end
+   // ++++++++++++
 
    wire                     axis_ro0_mrbuf_tvalid   = qick_dut.axis_ro0_mrbuf_tvalid;
    wire [N_DDS_RO*2*16-1:0] axis_ro0_mrbuf_tdata    = qick_dut.axis_ro0_mrbuf_tdata;
@@ -1028,6 +1033,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
                       && (axis_ro0_mrbuf_tdata != '0);
    wire  mr_log     = (mr_armed || mr_arm_now) && axis_ro0_mrbuf_tvalid
                       && (mr_len > 0) && (mr_rows_logged < mr_len);
+
    always_ff @(posedge ro_clk) begin
       mr_dac_valid_sync0 <= axis_sg0_dac0_tvalid;
       mr_dac_valid_sync1 <= mr_dac_valid_sync0;
@@ -1052,23 +1058,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // TEST STIMULI — QickEmu replay.
    //----------------------------------------------------
 
-   logic [5:0] AVG_START_REG       = 4 * 0;
-   logic [5:0] AVG_ADDR_REG        = 4 * 1;
-   logic [5:0] AVG_LEN_REG         = 4 * 2;
-   logic [5:0] AVG_DR_START_REG    = 4 * 3;
-   logic [5:0] AVG_DR_ADDR_REG     = 4 * 4;
-   logic [5:0] AVG_DR_LEN_REG      = 4 * 5;
-   logic [5:0] BUF_START_REG       = 4 * 6;
-   logic [5:0] BUF_ADDR_REG        = 4 * 7;
-   logic [5:0] BUF_LEN_REG         = 4 * 8;
-   logic [5:0] BUF_DR_START_REG    = 4 * 9;
-   logic [5:0] BUF_DR_ADDR_REG     = 4 * 10;
-   logic [5:0] BUF_DR_LEN_REG      = 4 * 11;
-
-   logic [5:0] SG_ADDR_START_ADDR = 6'h00;
-   logic [5:0] SG_ADDR_WE         = 6'h04;
-
-   logic         tb_load_mem, tb_load_mem_done;
+   logic         tb_sg_load_mem, tb_sg_load_mem_done;
+   logic         tb_buf_read_mem, tb_buf_read_mem_done;
 
 
    initial begin
@@ -1092,33 +1083,44 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 // ============
 
       // create agents.
-      axi_mst_tproc_agent  = new(qick_dut.axi_mst_tproc_dv_IF,    "axi_mst_tproc VIP Agent" );
-      axi_mst_sg_agent     = new(qick_dut.axi_mst_sg_dv_IF,       "axi_mst_sg VIP Agent"    );
-      axi_mst_avg0_agent   = new(qick_dut.axi_mst_avg0_dv_IF,     "axi_mst_avg0 VIP Agent"  );
-      axi_mst_avg1_agent   = new(qick_dut.axi_mst_avg1_dv_IF,     "axi_mst_avg1 VIP Agent"  );
-      // axi_mst_rov2_agent   = new(qick_dut.axi_mst_rov2_dv_IF,    "axi_mst_rov2 VIP Agent"  );
+      axi_mst_agent  = new(qick_dut.axi_mst_IF,    "axi_mst VIP Agent" );
 
       // initialize agent signals to '0.
-      axi_mst_tproc_agent.reset();
-      axi_mst_sg_agent.reset();
-      axi_mst_avg0_agent.reset();
-      axi_mst_avg1_agent.reset();
-      // axi_mst_rov2_agent.reset();
+      axi_mst_agent.reset();
+
+      // Workaround to fix tracing of AXI interface in Verilator
+      qick_dut.axi_mst_IF.ar_addr  = 0;
+      qick_dut.axi_mst_IF.ar_prot   = 0;
+      qick_dut.axi_mst_IF.ar_valid = 0;
+      // qick_dut.axi_mst_IF.ar_ready = 0;
+      qick_dut.axi_mst_IF.aw_addr  = 0;
+      qick_dut.axi_mst_IF.aw_prot   = 0;
+      qick_dut.axi_mst_IF.aw_valid = 0;
+      // qick_dut.axi_mst_IF.aw_ready = 0;
+      qick_dut.axi_mst_IF.b_resp   = 0;
+      qick_dut.axi_mst_IF.b_valid  = 0;
+      // qick_dut.axi_mst_IF.b_ready = 0;
+      // qick_dut.axi_mst_IF.r_resp   = 0;
+      // qick_dut.axi_mst_IF.r_valid  = 0;
+      // qick_dut.axi_mst_IF.r_data   = 0;
+      qick_dut.axi_mst_IF.r_ready = 0;
+      qick_dut.axi_mst_IF.w_data   = 0;
+      qick_dut.axi_mst_IF.w_strb   = 0;
+      qick_dut.axi_mst_IF.w_valid = 0;
+      // qick_dut.axi_mst_IF.w_ready = 0;
 
 // >>>>>>>>>>>> PULP PLATFORM AXI VIP
 
-      $display("*** Start Test ***");
+      $display("%0t - Start Emulation", $realtime);
 
       // INITIAL VALUES
-      qnet_dt_i                = '{default:'0} ;
       rst_ni                   = 1'b0;
-      s1_axis_tvalid           = 1'b0 ;
+
+      s1_axis_tvalid           = 1'b0;
+
       port_1_dt_i              = 0;
-      qcom_rdy_i               = 0 ;
       periph_dt_i              = '{default:'0} ;
-      qnet_rdy_i               = 0 ;
-      qcom_vld_i               = 0 ;
-      qcom_flag_i              = 0 ;
+
       proc_start_i             = 1'b0;
       proc_stop_i              = 1'b0;
       core_start_i             = 1'b0;
@@ -1128,8 +1130,11 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       time_updt_i              = 1'b0;
       offset_dt_i              = 0 ;
 
-      tb_load_mem              = 1'b0;
-      tb_load_mem_done         = 1'b0;
+      tb_sg_load_mem           = 1'b0;
+      tb_sg_load_mem_done      = 1'b0;
+
+      tb_buf_read_mem          = 1'b0;
+      tb_buf_read_mem_done     = 1'b0;
 
       sg0_s0_axis_tvalid       = 0;
       sg0_s0_axis_tdata        = 0;
@@ -1151,64 +1156,115 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       #100ns;
 
       // Load tProc Memories (pmem, wmem, dmem) from EMU_DIR.
+      $display("%0t - Load tProc Memories", $realtime);
       tproc_load_mem_emu(EMU_DIR);
 
       #1us;
 
-      // Load Signal Generator Envelope Table Memory (sgmem_ch0).
-      sg_load_mem_emu(EMU_DIR, 0);
+      // Load Signal Generator Envelope Table Memories.
+      $display("%0t - Load SGs Envelope Table Memories", $realtime);
+      tb_sg_load_mem = 1'b1;
 
+      sg_load_mem(EMU_DIR);
+
+      tb_sg_load_mem_done = 1'b1;
+      
       #1us;
 
-      $display("### %0t - Applying pre-run startup delay of %0d ns ###", $realtime, pre_run_delay_ns);
+      $display("%0t - Applying pre-run startup delay of %0d ns", $realtime, pre_run_delay_ns);
       #(PRE_RUN_DELAY_TIME);
 
       // Replay captured AXI-Lite writes from QickEmu (axi_replay.txt).
+      $display("%0t - Replaying AXI Writes from axi_replay.txt", $realtime);
       replay_axi_writes({EMU_DIR, "/axi_replay.txt"});
 
-      $display("### %0t - Start tProc execution ###", $realtime);
-      #(TEST_RUN_TIME);
-      $display("### %0t - End tProc execution ###", $realtime);
+
+      $display("%0t - Start tProc execution", $realtime);
+      $fflush();
+      fork
+         begin
+            forever begin
+               #10us;
+               $display("   %0t - tProc execution in progress", $realtime);
+               $fflush();
+            end
+         end
+
+         begin
+            #(TEST_RUN_TIME);
+         end
+      join_any
+      disable fork;
+      $display("%0t - End tProc execution", $realtime);
 
 
-      // READ CAPTURED DATA FROM AVG BUFFER.
-      $display("### %0t - Reading avg/dec buffers ###", $realtime);
+      $display("%0t - Read Average and Decimation Buffers", $realtime);
+      tb_buf_read_mem = 1'b1;
 
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
-      #100ns;
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
-      #100ns;
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
-      #1us;
-
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
-      #100ns;
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
-      #100ns;
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_avg0_agent.write(BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+      read_avg_dec_buffers(0);
+      read_avg_dec_buffers(1);
 
       #50us;
 
-      $display("### %0t - Closing CSV files ###", $realtime);
-      $fclose(dac_csv_fd);
+      tb_buf_read_mem_done = 1'b1;
+
+      $display("%0t - Closing CSV files", $realtime);
+      $fclose(dac0_csv_fd);
       $fclose(dac1_csv_fd);
-      $fclose(avg_csv_fd);
-      $fclose(dec_csv_fd);
+      $fclose(dac2_csv_fd);   // ++++++++++++ mux8 SG2 -> DAC2 capture
+      $fclose(avg0_csv_fd);
+      $fclose(avg1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
+      $fclose(dec0_csv_fd);
+      $fclose(dec1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
       $fclose(mr_csv_fd);
 
-      $display("*** %0t - End Simulation ***", $realtime);
+      $display("%0t - End Emulation", $realtime);
       $finish();
    end
 
    //----------------------------------------------------
    // TASKS
    //----------------------------------------------------
+
+   task read_avg_dec_buffers(int ro_ch = 0);
+      logic [39:0]      buf_base;
+
+      $display("### %0t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
+      $fflush();
+
+      if (ro_ch >= 2) begin
+         $fatal(1, "ERROR: Invalid channel number %0d for read_avg_dec_buffers() task", ro_ch);
+         $finish;
+      end
+
+      if (ro_ch == 0) begin
+         buf_base = BUF0_BASE;
+      end else if (ro_ch == 1) begin
+         buf_base = BUF1_BASE;
+      end
+
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);
+      #100ns;
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + AVG_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      #100ns;
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + AVG_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+
+
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + BUF_DR_LEN_REG,   prot, ro_dec_len,    8'hFF, resp);
+      #100ns;
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + BUF_DR_START_REG, prot, 32'h00000001,  8'hFF, resp);
+      #100ns;
+      @(posedge s_ps_dma_aclk); #0.1;
+      axi_mst_agent.write(buf_base + BUF_DR_START_REG, prot, 32'h00000000,  8'hFF, resp);
+
+      $display("### %0t - Task read_avg_dec_buffers() channel %0d end ###", $realtime(), ro_ch);
+      $fflush();
+   endtask
 
    // Load tProc program / waveform / data memories from QickEmu output files.
    task tproc_load_mem_emu(string emu_dir);
@@ -1220,99 +1276,100 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       wmem_file = {emu_dir, "/wmem.mem"};
       dmem_file = {emu_dir, "/dmem.mem"};
 
-      $display("### Loading tproc memories from: %s ###", emu_dir);
+      $display("### %0t - Loading tproc memories from: %s ###", $realtime(), emu_dir);
       $fflush();
 
       $readmemh(pmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM);
       $readmemh(wmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.W_MEM.RAM);
       $readmemh(dmem_file, qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.D_MEM.RAM);
 
-      $display("### VERIFY P_MEM[1] = %h ###", qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
-      $display("### tproc memories loaded ###");
+      $display("   ### VERIFY P_MEM[1] = %h ###", qick_dut.AXIS_QPROC.QPROC.CORE_0.CORE_MEM.P_MEM.RAM[1]);
+      $display("### %0t - tproc memories loaded ###", $realtime());
       $fflush();
    endtask
 
    // Stream a signal generator envelope table into the SG BRAM via sg_s0_axis.
-   task sg_load_mem_emu(string emu_dir, int sg_ch);
+   // task sg_load_mem(string emu_dir, int sg_ch);
+   task sg_load_mem(string emu_dir);
       string            sg_file;
       integer           fd;
       integer           vali;
       integer           valq;
       bit signed [15:0] ii;
       bit signed [15:0] qq;
+      logic [39:0]      sg_base;
 
-      $display("### %t - Task sg_load_mem() channel %0d start ###", $realtime(), sg_ch);
+      $display("### %0t - Task sg_load_mem() start ###", $realtime());
+      $fflush();
 
-      if (sg_ch >= 2) begin
-         $display("ERROR: Invalid channel number %0d for sg_load_mem() task", sg_ch);
-         $finish;
-      end
+      for (int sg_ch = 0; sg_ch < 2; sg_ch++) begin
 
-      if (sg_ch == 0) begin
-         sg0_s0_axis_tvalid = 0;
-         sg0_s0_axis_tdata  = 0;
-      end else if (sg_ch == 1) begin
-         sg1_s0_axis_tvalid = 0;
-         sg1_s0_axis_tdata  = 0;
-      end
+         if (sg_ch == 0) begin
+            sg0_s0_axis_tvalid = 0;
+            sg0_s0_axis_tdata  = 0;
+            sg_base = SG0_BASE;
+         end else if (sg_ch == 1) begin
+            sg1_s0_axis_tvalid = 0;
+            sg1_s0_axis_tdata  = 0;
+            sg_base = SG1_BASE;
+         end
 
-      sg_file = $sformatf("%s/sgmem_ch%0d.mem", emu_dir, sg_ch);
-      fd = $fopen(sg_file, "r");
-      if (fd == 0) begin
-         $display("### %0t - SG ch%0d: no envelope file %s ###", $realtime, sg_ch, sg_file);
-         return;
-      end
+         sg_file = $sformatf("%s/sgmem_ch%0d.mem", emu_dir, sg_ch);
+         fd = $fopen(sg_file, "r");
+         if (fd == 0) begin
+            $display("   ### %0t - SG ch%0d: no envelope file %s ###", $realtime, sg_ch, sg_file);
+            continue;
+         end
 
-      $display("### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
+         $display("   ### %0t - Loading SG ch%0d envelope from %s ###", $realtime, sg_ch, sg_file);
 
-      @(posedge s_ps_dma_aclk); #0.1;
-      axi_mst_sg_agent.write(SG_ADDR_START_ADDR, prot, 0, 8'hFF, resp);
-      #100ns;
-      axi_mst_sg_agent.write(SG_ADDR_WE,         prot, 1, 8'hFF, resp);
-      #100ns;
+         // Use single agent with router - addresses are automatically routed
+         @(posedge s_ps_dma_aclk); #0.1;
+         axi_mst_agent.write(sg_base + SG_ADDR_START_ADDR, prot, 0, 8'hFF, resp);
+         #100ns;
+         axi_mst_agent.write(sg_base + SG_ADDR_WE,         prot, 1, 8'hFF, resp);
+         #100ns;
 
-      // Load Envelope Table Memory.
-      tb_load_mem    = 1;
+         if (sg_ch == 0) begin
+            wait (sg0_s0_axis_tready);
+         end else if (sg_ch == 1) begin
+            wait (sg1_s0_axis_tready);
+         end
 
-      if (sg_ch == 0) begin
-         wait (sg0_s0_axis_tready);
-      end else if (sg_ch == 1) begin
-         wait (sg1_s0_axis_tready);
-      end
+         while ($fscanf(fd, "%d,%d", vali, valq) == 2) begin
+            ii = vali;
+            qq = valq;
+            if (sg_ch == 0) begin
+               @(posedge sg0_s0_axis_aclk);
+               sg0_s0_axis_tvalid    = 1;
+               sg0_s0_axis_tdata     = {qq,ii};
+            end else if (sg_ch == 1) begin
+               @(posedge sg1_s0_axis_aclk);
+               sg1_s0_axis_tvalid    = 1;
+               sg1_s0_axis_tdata     = {qq,ii};
+            end
+         end
+         $fclose(fd);
 
-      while ($fscanf(fd, "%d,%d", vali, valq) == 2) begin
-         ii = vali;
-         qq = valq;
          if (sg_ch == 0) begin
             @(posedge sg0_s0_axis_aclk);
-            sg0_s0_axis_tvalid    = 1;
-            sg0_s0_axis_tdata     = {qq,ii};
+            sg0_s0_axis_tvalid    = 0;
          end else if (sg_ch == 1) begin
             @(posedge sg1_s0_axis_aclk);
-            sg1_s0_axis_tvalid    = 1;
-            sg1_s0_axis_tdata     = {qq,ii};
+            sg1_s0_axis_tvalid    = 0;
          end
-      end
-      $fclose(fd);
 
-      if (sg_ch == 0) begin
-         @(posedge sg0_s0_axis_aclk);
-         sg0_s0_axis_tvalid    = 0;
-      end else if (sg_ch == 1) begin
-         @(posedge sg1_s0_axis_aclk);
-         sg1_s0_axis_tvalid    = 0;
+         $display("   ### %0t - SG ch%0d envelope loaded ###", $realtime, sg_ch);
       end
-
-      $display("### %0t - SG ch%0d envelope loaded ###", $realtime, sg_ch);
-      $display("### %t - Task sg_load_mem() end ###", $realtime());
+      $display("### %0t - Task sg_load_mem() end ###", $realtime());
    endtask
 
    // Replay QickEmu AXI-Lite write log, one "addr data" hex pair per line.
    task replay_axi_writes(string replay_file);
       integer fd;
       string  line;
-      integer addr_val;
-      integer data_val;
+      logic [39:0] addr_val;
+      logic [31:0] data_val;
       integer n_routed = 0;
 
       fd = $fopen(replay_file, "r");
@@ -1321,47 +1378,40 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          return;
       end
 
+      $display("### %0t - Task replay_axi_writes() start ###", $realtime());
+      $fflush();
+
       while ($fgets(line, fd)) begin
          if (line.len() < 2)        continue;
          if (line.substr(0,0) == "#") continue;
          if ($sscanf(line, "%h %h", addr_val, data_val) == 2) begin
-            $display("### replay line #%0d parsed: addr=0x%08X data=0x%08X ###", n_routed, addr_val, data_val);
+            $display("   ### replay line #%0d parsed: addr=0x%08X data=0x%08X ###", n_routed, addr_val, data_val);
             $fflush();
             route_and_write(addr_val, data_val);
             n_routed++;
          end else begin
-            $display("### replay line skipped (sscanf=0): \"%s\" ###", line);
+            $display("   ### replay line skipped (sscanf=0): \"%s\" ###", line);
+            $fflush();
          end
       end
       $fclose(fd);
 
-      $display("### AXI replay done: %0d transactions replayed ###", n_routed);
+      $display("### %0t - AXI replay done: %0d transactions replayed ###", $realtime(), n_routed);
       $fflush();
    endtask
 
-   // Dispatch an absolute AXI address to the right VIP agent by address range.
-   // Order matters: TPROC exact-range first, then SG range, then AVG range.
-   task route_and_write(integer addr, integer data);
-      logic [31:0] offset;
+   // Dispatch an absolute AXI address to the router.
+   // The router automatically routes transactions based on the address.
+   task route_and_write(logic [39:0] addr, logic [31:0] data);
+      logic [39:0] offset;
 
       @(posedge s_ps_dma_aclk); #0.1;
       $display("### %0t - Routing AXI write: addr=0x%08X data=0x%08X ###", $realtime, addr, data);
-      if (addr >= TPROC_BASE && addr < TPROC_BASE + 32'h10000) begin
-         offset = addr - TPROC_BASE;
-         axi_mst_tproc_agent.write(offset[7:0], prot, data, 8'hFF, resp);
-      end
-      else if (addr >= SG_BASE_LO && addr < SG_BASE_HI) begin
-         offset = addr & 32'h0000FFFF;
-         axi_mst_sg_agent.write(offset[5:0], prot, data, 8'hFF, resp);
-      end
-      else if (addr >= AVG_BASE_LO && addr < AVG_BASE_HI) begin
-         offset = addr & 32'h0000FFFF;
-         axi_mst_avg0_agent.write(offset[5:0], prot, data, 8'hFF, resp);
-      end
-      else begin
-         $fatal(1, "ERROR: Unrouted AXI write addr=0x%08X data=0x%08X", addr, data);
-         $fflush();
-      end
+      
+      // Use single agent with router - addresses are automatically routed
+      // The router will route transactions to the correct slave based on the address
+      offset = addr;
+      axi_mst_agent.write(offset, prot, data, 8'hFF, resp);
    endtask
 
 endmodule

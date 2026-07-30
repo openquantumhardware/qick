@@ -15,25 +15,6 @@ import axi_mst_0_pkg::*;
 localparam N_DDS_SG = 16;
 localparam N_DDS_RO = 8;
 
-// AXI VIP master address.
-xil_axi_ulong     SG_ADDR_START_ADDR   = 32'h40000000; // 0
-xil_axi_ulong     SG_ADDR_WE           = 32'h40000004; // 1
-
-// AXI VIP master address.
-xil_axi_ulong   AVG_START_REG       = 4 * 0;
-xil_axi_ulong   AVG_ADDR_REG        = 4 * 1;
-xil_axi_ulong   AVG_LEN_REG         = 4 * 2;
-xil_axi_ulong   AVG_DR_START_REG    = 4 * 3;
-xil_axi_ulong   AVG_DR_ADDR_REG     = 4 * 4;
-xil_axi_ulong   AVG_DR_LEN_REG      = 4 * 5;
-xil_axi_ulong   BUF_START_REG       = 4 * 6;
-xil_axi_ulong   BUF_ADDR_REG        = 4 * 7;
-xil_axi_ulong   BUF_LEN_REG         = 4 * 8;
-xil_axi_ulong   BUF_DR_START_REG    = 4 * 9;
-xil_axi_ulong   BUF_DR_ADDR_REG     = 4 * 10;
-xil_axi_ulong   BUF_DR_LEN_REG      = 4 * 11;
-
-
 // CLOCK PERIODS
 real T_TCLK          =  1.162;      // Half Clock Period for tProc Dispatcher (430MHz)
 real T_CCLK          =    2.5;      // Half Clock Period for tProc Core (200MHz)
@@ -455,23 +436,26 @@ logic                   sg1_s0_axis_tvalid;
    //--------------------------------------
 
    localparam DAC0_W = 16;
-   logic signed [DAC0_W-1:0] dac0_data;
    localparam ADC0_W = 16;
    logic signed [ADC0_W-1:0] adc0_sample;
    logic signed [15:0] adc0_data;
    real dac0_signal_rf;
 
    model_DAC #(
-      .DAC_W               (DAC0_W)
+      .DAC_W               (DAC0_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC0 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac0_data),
+      .axis_tvalid         (axis_sg0_dac0_tvalid),
+      .axis_tdata          (axis_sg0_dac0_tdata),
+      .axis_tready         (axis_sg0_dac0_tready),
       .dac_signal_rf       (dac0_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC0_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC0 (
       .clk_DAC             (dac_fs),
       .dac_signal_rf       (dac0_signal_rf),
@@ -479,44 +463,37 @@ logic                   sg1_s0_axis_tvalid;
       .clk_ADC             (adc_fs),
       .adc_sample          (adc0_sample),
 
+      .axis_tready         (axis_adc0_ro0_tready),
+      .axis_tvalid         (axis_adc0_ro0_tvalid),
+      .axis_tdata          (axis_adc0_ro0_tdata),
+
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
    // SG0 to DAC0 RF processes 16 samples per clock
 
-   assign axis_sg0_dac0_tready        = 1'b1;  // DAC always ready to receive samples
-
-   logic [$clog2(N_DDS_SG)-1:0] dac0_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg0_dac0_tvalid) begin
-         dac0_data       <= axis_sg0_dac0_tdata[DAC0_W*dac0_samp_cnt +: DAC0_W];
-         dac0_samp_cnt   <= dac0_samp_cnt + 'd1;
-      end
-      else begin
-         dac0_data       <= 'd0;
-         dac0_samp_cnt   <= 'd0;
-      end
-   end
-
 
    localparam DAC1_W = 16;
-   logic signed [DAC1_W-1:0] dac1_data;
    localparam ADC1_W = 16;
    logic signed [ADC1_W-1:0] adc1_sample;
    logic signed [15:0] adc1_data;
    real dac1_signal_rf;
 
    model_DAC #(
-      .DAC_W               (DAC1_W)
+      .DAC_W               (DAC1_W),
+      .N_DDS               (N_DDS_SG)
    ) u_model_DAC1 (
       .clk_DAC             (dac_fs),
-      .dac_sample          (dac1_data),
+      .axis_tvalid         (axis_sg1_dac1_tvalid),
+      .axis_tdata          (axis_sg1_dac1_tdata),
+      .axis_tready         (axis_sg1_dac1_tready),
       .dac_signal_rf       (dac1_signal_rf)
    );
 
    model_ADC #(
       .ADC_W               (ADC1_W),
-      .BUFFER_SIZE         (16)
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO)
    ) u_model_ADC1 (
       .clk_DAC             (dac_fs),
       .dac_signal_rf       (dac1_signal_rf),
@@ -524,24 +501,14 @@ logic                   sg1_s0_axis_tvalid;
       .clk_ADC             (adc_fs),
       .adc_sample          (adc1_sample),
 
+      .axis_tready         (axis_adc1_ro1_tready),
+      .axis_tvalid         (axis_adc1_ro1_tvalid),
+      .axis_tdata          (axis_adc1_ro1_tdata),
+
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
 
    // SG1 to DAC1 RF processes 16 samples per clock
-
-   assign axis_sg1_dac1_tready        = 1'b1;  // DAC always ready to receive samples
-
-   logic [$clog2(N_DDS_SG)-1:0] dac1_samp_cnt;
-   always @(posedge dac_fs) begin
-      if (axis_sg1_dac1_tvalid) begin
-         dac1_data       <= axis_sg1_dac1_tdata[DAC1_W*dac1_samp_cnt +: DAC1_W];
-         dac1_samp_cnt   <= dac1_samp_cnt + 'd1;
-      end
-      else begin
-         dac1_data       <= 'd0;
-         dac1_samp_cnt   <= 'd0;
-      end
-   end
 
 
    // ADC RF to RO processes 8 samples per clock

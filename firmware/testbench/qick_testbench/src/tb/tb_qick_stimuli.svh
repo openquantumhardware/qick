@@ -25,12 +25,41 @@ string TEST_OUT_CONNECTION = "TEST_OUT_LOOPBACK";     // Connect DAC/ADC in Loop
 // string TEST_OUT_CONNECTION = "TEST_OUT_QEMU";         // Qubit Emulator
 //----------------------------------------------------
 
+xil_axi_ulong  TPROC_BASE = 40'h04_0026_0000;
+
+// AXI VIP master address.
+xil_axi_ulong     SG0_BASE_ADDR       = 40'h04_001C_0000;
+xil_axi_ulong     SG1_BASE_ADDR       = 40'h04_001D_0000;
+
+xil_axi_ulong     SG_ADDR_START_ADDR   = 8'h00; // 0
+xil_axi_ulong     SG_ADDR_WE           = 8'h04; // 1
+
+// AXI VIP master address.
+xil_axi_ulong     AVG0_BASE_ADDR       = 40'h04_0006_0000;
+xil_axi_ulong     AVG1_BASE_ADDR       = 40'h04_0007_0000;
+
+xil_axi_ulong   AVG_START_REG       = 4 * 0;
+xil_axi_ulong   AVG_ADDR_REG        = 4 * 1;
+xil_axi_ulong   AVG_LEN_REG         = 4 * 2;
+xil_axi_ulong   AVG_DR_START_REG    = 4 * 3;
+xil_axi_ulong   AVG_DR_ADDR_REG     = 4 * 4;
+xil_axi_ulong   AVG_DR_LEN_REG      = 4 * 5;
+xil_axi_ulong   BUF_START_REG       = 4 * 6;
+xil_axi_ulong   BUF_ADDR_REG        = 4 * 7;
+xil_axi_ulong   BUF_LEN_REG         = 4 * 8;
+xil_axi_ulong   BUF_DR_START_REG    = 4 * 9;
+xil_axi_ulong   BUF_DR_ADDR_REG     = 4 * 10;
+xil_axi_ulong   BUF_DR_LEN_REG      = 4 * 11;
+
+
+
 // VIP Agents
-axi_mst_0_mst_t     axi_mst_tproc_agent;
-axi_mst_0_mst_t     axi_mst_sg_agent;
-axi_mst_0_mst_t     axi_mst_avg0_agent;
-axi_mst_0_mst_t     axi_mst_avg1_agent;
-axi_mst_0_mst_t     axi_mst_rov2_agent;
+axi_mst_0_mst_t     axi_mst_agent;
+// axi_mst_0_mst_t     axi_mst_tproc_agent;
+// axi_mst_0_mst_t     axi_mst_sg_agent;
+// axi_mst_0_mst_t     axi_mst_avg0_agent;
+// axi_mst_0_mst_t     axi_mst_avg1_agent;
+// axi_mst_0_mst_t     axi_mst_rov2_agent;
 axi_mst_0_mst_t     axi_mst_qemu_agent;
 
 //--------------------------------------
@@ -62,42 +91,49 @@ end
 
 initial begin
 
-   // Create agents.
-   axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.u_axi_mst_tproc_0.inst.IF);
-   axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_sg_0.inst.IF);
-   axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
-   axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_1.inst.IF);
-   axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_rov2_0.inst.IF);
+   axi_mst_agent        = new("axi_mst VIP Agent",tb_qick.qick_dut.u_axi_mst_0.inst.IF);
+   // Set tag for agents.
+   axi_mst_agent.set_agent_tag("axi_mst VIP");
+   // Start agents.
+   axi_mst_agent.start_master();
+
+
+   // // Create agents.
+   // axi_mst_tproc_agent  = new("axi_mst_tproc VIP Agent",tb_qick.qick_dut.u_axi_mst_tproc_0.inst.IF);
+   // axi_mst_sg_agent     = new("axi_mst_sg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_sg_0.inst.IF);
+   // axi_mst_avg0_agent   = new("axi_mst_avg_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_0.inst.IF);
+   // axi_mst_avg1_agent   = new("axi_mst_avg_1 VIP Agent",tb_qick.qick_dut.u_axi_mst_avg_1.inst.IF);
+   // axi_mst_rov2_agent   = new("axi_mst_rov2_0 VIP Agent",tb_qick.qick_dut.u_axi_mst_rov2_0.inst.IF);
+
+   // // Set tag for agents.
+   // axi_mst_tproc_agent.set_agent_tag("axi_mst_tproc VIP");
+   // // Start agents.
+   // axi_mst_tproc_agent.start_master();
+
+   // // Set tag for agents.
+   // axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
+   // // Start agents.
+   // axi_mst_sg_agent.start_master();
+
+   // // Create agents.
+   // // Set tag for agents.
+   // axi_mst_avg0_agent.set_agent_tag("axi_mst_avg_0 VIP");
+   // // Start agents.
+   // axi_mst_avg0_agent.start_master();
+
+   // // Create agents.
+   // // Set tag for agents.
+   // axi_mst_avg1_agent.set_agent_tag("axi_mst_avg_1 VIP");
+   // // Start agents.
+   // axi_mst_avg1_agent.start_master();
+
+   // // Create agents.
+   // // Set tag for agents.
+   // axi_mst_rov2_agent.set_agent_tag("axi_mst_rov2_0 VIP");
+   // // Start agents.
+   // axi_mst_rov2_agent.start_master();
 
    axi_mst_qemu_agent   = new("axi_mst_qemu_0 VIP Agent",tb_qick.u_axi_mst_qemu_0.inst.IF);
-
-   // Set tag for agents.
-   axi_mst_tproc_agent.set_agent_tag("axi_mst_tproc VIP");
-   // Start agents.
-   axi_mst_tproc_agent.start_master();
-
-   // Set tag for agents.
-   axi_mst_sg_agent.set_agent_tag("axi_mst_sg_0 VIP");
-   // Start agents.
-   axi_mst_sg_agent.start_master();
-
-   // Create agents.
-   // Set tag for agents.
-   axi_mst_avg0_agent.set_agent_tag("axi_mst_avg_0 VIP");
-   // Start agents.
-   axi_mst_avg0_agent.start_master();
-
-   // Create agents.
-   // Set tag for agents.
-   axi_mst_avg1_agent.set_agent_tag("axi_mst_avg_1 VIP");
-   // Start agents.
-   axi_mst_avg1_agent.start_master();
-
-   // Create agents.
-   // Set tag for agents.
-   axi_mst_rov2_agent.set_agent_tag("axi_mst_rov2_0 VIP");
-   // Start agents.
-   axi_mst_rov2_agent.start_master();
 
    // Set tag for agents.
    axi_mst_qemu_agent.set_agent_tag("axi_mst_qemu_0 VIP");
@@ -178,7 +214,7 @@ initial begin
 
    // Load Signal Generator Envelope Table Memory.
    sg_load_mem(TEST_NAME, 0, TB_DIR);
-   sg_load_mem(TEST_NAME, 1, TB_DIR);
+   // sg_load_mem(TEST_NAME, 1, TB_DIR);
 
    tb_load_mem_done = 1;
 

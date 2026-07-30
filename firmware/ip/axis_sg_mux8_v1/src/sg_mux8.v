@@ -52,6 +52,10 @@ module sg_mux8 (
 // Number of parallel dds blocks.
 parameter N_DDS = 2;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/
@@ -202,31 +206,62 @@ assign GAIN_REG_v[6] = GAIN6_REG;
 assign GAIN_REG_v[7] = GAIN7_REG;
 
 // Fifo.
-fifo
-    #(
-        // Data width.
-        .B	(40),
-        
-        // Fifo depth.
-        .N	(16)
-    )
-    fifo_i
-	( 
-        .rstn	(aresetn	),
-        .clk 	(aclk		),
+generate
+if (!EMULATOR) begin : gen_fifo_synth
+    fifo
+        #(
+            // Data width.
+            .B	(40),
+            
+            // Fifo depth.
+            .N	(16)
+        )
+        fifo_i
+        ( 
+            .rstn	(aresetn	),
+            .clk 	(aclk		),
 
-        // Write I/F.
-        .wr_en 	(fifo_wr_en	),
-        .din    (fifo_din	),
-        
-        // Read I/F.
-        .rd_en 	(fifo_rd_en	),
-        .dout  	(fifo_dout	),
-        
-        // Flags.
-        .full   (fifo_full	),
-        .empty  (fifo_empty	)
-    );
+            // Write I/F.
+            .wr_en 	(fifo_wr_en	),
+            .din    (fifo_din	),
+            
+            // Read I/F.
+            .rd_en 	(fifo_rd_en	),
+            .dout  	(fifo_dout	),
+            
+            // Flags.
+            .full   (fifo_full	),
+            .empty  (fifo_empty	)
+        );
+end
+else begin : gen_fifo_emu
+    fifo_behav
+        #(
+            // Data width.
+            .B	(40),
+            
+            // Fifo depth.
+            .N	(16)
+        )
+        fifo_i
+        ( 
+            .rstn	(aresetn	),
+            .clk 	(aclk		),
+
+            // Write I/F.
+            .wr_en 	(fifo_wr_en	),
+            .din    (fifo_din	),
+            
+            // Read I/F.
+            .rd_en 	(fifo_rd_en	),
+            .dout  	(fifo_dout	),
+            
+            // Flags.
+            .full   (fifo_full	),
+            .empty  (fifo_empty	)
+        );
+end
+endgenerate
 
 assign fifo_wr_en	= s_axis_tvalid_i;
 assign fifo_din		= s_axis_tdata_i;
@@ -241,7 +276,8 @@ genvar i,j;
 		// DDS.
 		dds_top 
 			#(
-				.N_DDS(N_DDS)
+				.N_DDS		(N_DDS		),
+				.EMULATOR	(EMULATOR	)
 			)
 			dds_top_i
 			(

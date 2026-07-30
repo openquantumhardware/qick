@@ -101,6 +101,12 @@ assign flush   = id_pc_change | r_id_pc_change ;
 assign stall   = bubble_id | bubble_rd;
 assign fetch_en = ~stall & ~halt;
 
+// Pipeline stage control signals
+wire id_stage_keep, rd_stage_keep, rd_stage_zero, x1_stage_zero;
+
+// Additional control signals
+wire fetch_en;
+wire id_use_RD0, id_use_RD1, id_type_wr_dmem;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // IF    - 1  FIRST Stage IF_  ( Instruction FECTH )

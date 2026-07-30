@@ -28,92 +28,114 @@ TOP_MODULE_PARAMS =
 # Uses VERILATOR_ROOT environment variable if set, otherwise falls back to 'verilator' in PATH
 VERILATOR_BIN = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator,verilator)
 
-VERILOG_SOURCES = \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.sv) \
-    \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
-    $(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
-    \
-    $(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
-    $(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
-    $(wildcard $(MODELS_DIR)/dac_adc/*.sv) \
-    $(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
-    $(wildcard $(MODELS_DIR)/fifo/*.sv) \
-    $(wildcard $(MODELS_DIR)/fir/*.sv) \
-    $(wildcard $(MODELS_DIR)/sig_gen_dds/*.sv) \
-    \
-    $(COM_VERIF_DIR)/src/rand_id_queue.sv \
-    $(AXI_DIR)/src/axi_intf.sv \
-    $(AXI_DIR)/src/axi_pkg.sv \
-    $(AXI_DIR)/src/axi_test.sv \
-    \
-    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
-    $(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
-    $(EMU_DIR)/testbench/QICKEmu_harness.sv
+# Verilator profcfunc executable path
+# Uses VERILATOR_ROOT environment variable if set, otherwise falls back to 'verilator_profcfunc' in PATH
+VERILATOR_PROFCFUNC = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator_profcfunc,verilator_profcfunc)
 
+VERILOG_SOURCES = \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/fifo/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_processor/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_cdcsync_v1/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/qick_sg_translator/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_sg_mux8_v1/src/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.sv) \
+	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
+	\
+	$(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
+	$(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
+	$(wildcard $(MODELS_DIR)/dac_adc/*.sv) \
+	$(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
+	$(wildcard $(MODELS_DIR)/fifo/*.sv) \
+	$(wildcard $(MODELS_DIR)/fir/*.sv) \
+	$(wildcard $(MODELS_DIR)/sig_gen_dds/*.sv) \
+	\
+	$(COM_VERIF_DIR)/src/rand_id_queue.sv \
+	$(AXI_DIR)/src/axi_intf.sv \
+	$(AXI_DIR)/src/axi_pkg.sv \
+	$(AXI_DIR)/src/axi_test.sv \
+	\
+	$(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/qick_dut.sv \
+	$(FIRMWARE_DIR)/testbench/qick_testbench/src/tb/model_DAC_ADC.sv \
+	$(EMU_DIR)/testbench/axi_router_lite.sv \
+	$(EMU_DIR)/testbench/QICKEmu_harness.sv
+
+
+VERILATOR_TRACE_FLAG = $(if $(TRACE),--trace)
 
 # Flags
 # -I resolves `include "file.svh"` 
 # -y resolves missing modules dynamically
-VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall --trace-vcd --Wno-fatal --error-limit 1 \
-    --timing \
-    -Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
-    -Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
-    -Wno-PINMISSING -Wno-BADVLTPRAGMA -Wno-CONSTRAINTIGN \
-    -I$(AXI_DIR)/include \
-    -I$(COM_VERIF_DIR)/include \
-    -I$(COMMON_CELLS_DIR)/include \
-    -I$(FIRMWARE_DIR)/ip/qick_processor/src \
-    -y $(BRAM_DP_DIR) \
-    -y $(FIFO_DIR) \
-    -y $(DAC_MODEL_DIR) \
-    -y $(SIG_GEN_DDS_DIR) \
-    -y $(SIG_GEN_DDS_DIR)/src \
-    -y $(FIRMWARE_DIR)/ip/common \
-    -y $(FIRMWARE_DIR)/ip/qick_common 
+VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall $(VERILATOR_TRACE_FLAG) --Wno-fatal --error-limit 1 \
+	--timing \
+	-Wno-DECLFILENAME -Wno-PINCONNECTEMPTY -Wno-VARHIDDEN \
+	-Wno-TIMESCALEMOD -Wno-EOFNEWLINE -Wno-WIDTH \
+	-Wno-PINMISSING -Wno-BADVLTPRAGMA -Wno-CONSTRAINTIGN \
+	-I$(AXI_DIR)/include \
+	-I$(COM_VERIF_DIR)/include \
+	-I$(COMMON_CELLS_DIR)/include \
+	-I$(FIRMWARE_DIR)/ip/qick_processor/src \
+	-y $(BRAM_DP_DIR) \
+	-y $(FIFO_DIR) \
+	-y $(DAC_MODEL_DIR) \
+	-y $(SIG_GEN_DDS_DIR) \
+	-y $(SIG_GEN_DDS_DIR)/src \
+	-y $(FIRMWARE_DIR)/ip/common \
+	-y $(FIRMWARE_DIR)/ip/qick_common
 
 
 OBJ_DIR = obj_dir
 
 wave:
-	gtkwave $(OBJ_DIR)/waveform.vcd
+	gtkwave $(SIM_EMU_DIR)/waveform.vcd
 
 SIM_ARGS =
 # Pass SIM_EMU_DIR=path to override the default emulator input directory
 # Pass TRACE=1 to enable VCD waveform dump (warning: very large files)
 # Example: make sim SIM_EMU_DIR=artifacts/00_intro/multi_pulse
 
+# Default SIM_EMU_DIR for test_sim target
+SIM_EMU_DIR ?= $(EMU_DIR)/artifacts/test_sim
+
 sim:
 	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
 	./$(OBJ_DIR)/V$(TOP_MODULE) $(if $(SIM_EMU_DIR),+EMU_DIR=$(SIM_EMU_DIR)) $(if $(TRACE),+TRACE) $(SIM_ARGS)
+
+test_sim: verilate
+	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
+	./$(OBJ_DIR)/V$(TOP_MODULE) +EMU_DIR=$(EMU_DIR)/artifacts/test_sim $(SIM_ARGS)
 
 verilate:
 	$(VERILATOR_BIN) $(VERILATOR_FLAGS) verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
@@ -124,6 +146,21 @@ clean:
 	rm -f *.o
 	rm -f *.hex
 	rm -f fir_coe.txt
+	rm -f profcfunc.log
+	rm -f gmon.out
+	rm -f gprof.log
+
+profile: clean verilate_profile test_sim_profile
+	gprof $(OBJ_DIR)/V$(TOP_MODULE) gmon.out > gprof.log
+	$(VERILATOR_PROFCFUNC) gprof.log > profcfunc.log
+	@echo "Profiling complete. Check gprof.log and profcfunc.log for results."
+
+verilate_profile: clean
+	$(VERILATOR_BIN) $(VERILATOR_FLAGS) --prof-cfuncs verilator.vlt --top-module $(TOP_MODULE) $(VERILOG_SOURCES)
+
+test_sim_profile: verilate_profile
+	cp -f $(MODELS_DIR)/fir/fir_coe.txt .
+	./$(OBJ_DIR)/V$(TOP_MODULE) +EMU_DIR=$(EMU_DIR)/artifacts/test_sim $(SIM_ARGS)
 
 help:
 	@echo "QICKEmu_harness Testbench Simulator"
@@ -134,14 +171,17 @@ help:
 	@echo "Available Targets:"
 	@echo "  verilate    - Compile Verilog/SystemVerilog sources using Verilator"
 	@echo "  sim         - Run the compiled simulation (copies HEX files automatically)"
-	@echo "  wave        - Open the simulation waveform (VCD) file in GTKWave"
-	@echo "  clean       - Remove build artifacts and generated files"
+	@echo "  wave        - Open the simulation waveform (VCD) from SIM_EMU_DIR in GTKWave"
+	@echo "  clean       - Remove build artifacts and profiling logs"
 	@echo "  help        - Display this help message (default when no target given)"
 	@echo ""
 	@echo "Simulation Options:"
 	@echo "  SIM_EMU_DIR=<path> - Override emulator input directory (default: src/tb/emulator)"
 	@echo "  TRACE=1            - Enable VCD waveform dump (large files!)"
 	@echo "  SIM_ARGS=<args>    - Pass extra plusargs to simulation binary"
+	@echo ""
+	@echo "Profiling:"
+	@echo "  make profile       - Clean, build with profiling, run test_sim, generate gmon.out, gprof.log, profcfunc.log"
 	@echo ""
 	@echo "Typical Workflow:"
 	@echo "  1. make verilate  - Compile the simulation"

@@ -1,23 +1,27 @@
-module down_conversion (
-	// Reset and clock.
-	rstn			,
-	clk				,
+module down_conversion #(
+    // Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+    // Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+    parameter EMULATOR = 0
+)(
+    // Reset and clock.
+    rstn                ,
+    clk                 ,
 
-	// S_AXIS for input.
-	s_axis_tready_o	,
-	s_axis_tvalid_i	,
-	s_axis_tdata_i	,
+    // S_AXIS for input.
+    s_axis_tready_o     ,
+    s_axis_tvalid_i     ,
+    s_axis_tdata_i      ,
 
-	// M_AXIS for output.
-	m_axis_tready_i	,
-	m_axis_tvalid_o	,
-	m_axis_tdata_o	,
+    // M_AXIS for output.
+    m_axis_tready_i     ,
+    m_axis_tvalid_o     ,
+    m_axis_tdata_o      ,
 
-	// Fifo interface.
-	fifo_rd_en_o	,
-	fifo_empty_i	,
-	fifo_dout_i
-	);
+    // Fifo interface.
+    fifo_rd_en_o        ,
+    fifo_empty_i        ,
+    fifo_dout_i
+);
 
 /**************/
 /* Parameters */
@@ -116,19 +120,34 @@ ctrl
 
 generate
 genvar i;
-	for (i=0; i<N_DDS; i=i+1) begin : GEN_dds
-		/***********************/
-		/* Block instantiation */
-		/***********************/
-		// DDS.
-		dds_compiler_0 dds_i 
-			(
-		  		.aclk					(clk						),
-		  		.s_axis_phase_tvalid	(dds_tvalid_r				),
-		  		.s_axis_phase_tdata		(dds_ctrl_int_r[i*72 +: 72]	),
-		  		.m_axis_data_tvalid		(							),
-		  		.m_axis_data_tdata		(dds_dout[i]				)
-			);
+    for (i=0; i<N_DDS; i=i+1) begin : GEN_dds
+        /***********************/
+        /* Block instantiation */
+        /***********************/
+        if (!EMULATOR) begin : gen_dds_compiler
+            // DDS.
+            dds_compiler_0 dds_i 
+                (
+                   .aclk                   (clk                        ),
+                   .s_axis_phase_tvalid    (dds_tvalid_r               ),
+                   .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72] ),
+                   .m_axis_data_tvalid     (                           ),
+                   .m_axis_data_tdata      (dds_dout[i]                )
+                );
+        end else begin : gen_dds_behavioral
+            dds_behavioral_model
+                #(
+                    .DDS_LATENCY (8)
+                )
+                dds_i 
+                (
+                   .aclk                   (clk                        ),
+                   .s_axis_phase_tvalid    (dds_tvalid_r               ),
+                   .s_axis_phase_tdata     (dds_ctrl_int_r[i*72 +: 72] ),
+                   .m_axis_data_tvalid     (                           ),
+                   .m_axis_data_tdata      (dds_dout[i]                )
+                );
+        end
 
 		/*************/
 		/* Registers */

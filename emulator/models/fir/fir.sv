@@ -16,35 +16,39 @@ module fir #(
 );
 
     // Internal Signals
-    logic enable_fir = 0;
-    logic signed [47:0] temp_acc0 = 0;
-    logic signed [47:0] temp_acc1 = 0;
-    logic signed [31:0] t_data_next = 0;
-    logic signed [15:0] acc0 = 0;
-    logic signed [31:0] acc1 = 0;
+    logic enable_fir;
+    logic signed [47:0] temp_acc0;
+    logic signed [47:0] temp_acc1;
+    logic signed [31:0] t_data_next;
+    logic signed [15:0] acc0;
+    logic signed [31:0] acc1;
 
-    logic               s_tready_int = 0;
+    logic               s_tready_int;
     assign s_tready = s_tready_int;
     
     logic m_tvalid_next;
 
-    logic signed [31:0] mult_dbg = '0;
-
     // Delay lines for each path
-    logic signed [DATA_WIDTH-1:0] taps0 [0:TAP_COUNT-1] = '{default: '0}; // Qs
-    logic signed [DATA_WIDTH-1:0] taps1 [0:TAP_COUNT-1] = '{default: '0}; // Is
+    logic signed [DATA_WIDTH-1:0] taps0 [0:TAP_COUNT-1] /*= '{default: '0}*/; // Qs
+    logic signed [DATA_WIDTH-1:0] taps1 [0:TAP_COUNT-1] /*= '{default: '0}*/; // Is
 
     // Shared coefficient memory
     logic signed [COEF_WIDTH-1:0] coeffs [0:TAP_COUNT-1];
 
     // Extra shift register for latency purposes
-    logic signed [31:0] delay_tdata [0:65] = '{default: '0};
-    logic [65:0] delay_tvalid = 0;
+    logic signed [31:0] delay_tdata [0:65] /*= '{default: '0}*/;
+    logic [65:0] delay_tvalid;
     logic taps_have_x;
 
     // Load coefficients from file
+    integer fd;
     initial begin
-        $display("Loading FIR coefficients...");
+        fd = $fopen("fir_coe.txt", "r");
+        if (fd == 0) begin
+            $fatal("### FIR coefficients file not found ###");
+        end
+        $fclose(fd);
+        // $display("Loading FIR coefficients...");
         $readmemh("fir_coe.txt", coeffs);
     end
 

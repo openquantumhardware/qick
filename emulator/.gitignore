@@ -1,0 +1,24 @@
+# Verilator work directories
+**/obj_dir/
+**/expected_out/
+**/artifacts/
+
+### Linux template
+*~
+.*.swp
+
+# Virtual environments and build artifacts
+.venv/
+sim_build/
+obj_dir/
+build_tb/
+build_tb_mem/
+emulator_output/
+testbench/fir_coe.txt
+
+# Verilator outputs
+*.fst
+*.vcd
+*.csv
+*.out
+*.log

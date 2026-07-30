@@ -113,6 +113,10 @@ reg [31:0]  reg_A_nxt [2] ;
 
 reg [1:0] rfrom_rand_r, rfrom_core_r, rfrom_port_r, rfrom_status_r, rfrom_stime_r;  
 
+// Output signals for hazard detection
+wire rfrom_rand, rfrom_core_rdt, rfrom_port, rfrom_status, rfrom_stime;
+wire port_re;
+wire wto_r_wave, wto_wreg, wto_qp, wto_s_cfg, wto_s_addr, wto_s_rand;
 
 assign rfrom_rand       = |rfrom_rand_r    ; // READ FROM S_RAND (s1)
 assign rfrom_core_rdt   = |rfrom_core_r    ; // READ FROM CORE_R_DT(s6, s7)

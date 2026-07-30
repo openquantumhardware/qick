@@ -88,10 +88,12 @@ wire [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty , c_fifo_wave_full ;
 reg  [OUT_WPORT_QTY-1:0]   t_fifo_wave_empty_r;
 
 wire                       dfifo_full, wfifo_full;
+wire all_tfifo_empty, all_dfifo_empty, all_wfifo_empty;
+wire all_fifo_empty, all_tfifo_full, all_dfifo_full, all_wfifo_full, tfifo_full;
 
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 /// FIFO & DISPATCHER
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 assign all_tfifo_empty = &c_fifo_trig_empty ;
 assign all_dfifo_empty = &c_fifo_data_empty ;
 assign all_wfifo_empty = &c_fifo_wave_empty ;

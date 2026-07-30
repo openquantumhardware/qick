@@ -173,10 +173,23 @@ wire [31:0]    core_ds ;
 
 ///////////////////////////////////////////////////////////////////////////////
 // CONTROL Signals
-///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
 wire [2:0] time_st_ds, core_st_ds;
 wire [6:0] ctrl_t_ds, ctrl_c_ds;
+
+// Internal control signals
+wire int_time_pen, int_time_cmd, int_time_dt;
+wire all_fifo_full, some_fifo_full;
+wire core_rst, core_en;
+wire time_rst, time_en;
+wire [7:0] core0_cfg, core1_cfg;
+wire [7:0] core0_ctrl, core1_ctrl;
+
+// Flag signals
+wire ext_flag_r, axi_flag_set, axi_flag_clr, int_flag_pen, int_flag_set, int_flag_clr, int_flag_inv;
+wire usr_en, int_arith_pen, int_div_pen, ext_net_pen, ext_com_pen, ext_p1_pen, ext_p2_pen;
+wire port_we, time_ref_inc, time_ref_set;
 qproc_ctrl # (
    .TIME_READ ( TIME_READ ),
    .EMULATOR  (EMULATOR)
@@ -222,9 +235,6 @@ wire        arith_clr, div_clr, qnet_clr, qcom_clr, qp1_clr, qp2_clr, port_clr ;
 reg         arith_rdy_r , div_rdy_r , qnet_rdy_r , qcom_rdy_r , qp1_rdy_r , qp2_rdy_r;
 reg         arith_dt_new, div_dt_new, qnet_dt_new, qcom_dt_new, qp1_dt_new, qp2_dt_new ;
 reg  [31:0] qnet_dt_r [2], qcom_dt_r [2], qp1_dt_r[2], qp2_dt_r[2] ;
-
-wire [7:0] core0_cfg, core1_cfg;
-wire [7:0] core0_ctrl, core1_ctrl;
 
 assign core0_src_dt = core0_cfg[3:0];
 assign core1_src_dt = core1_cfg[3:0];
@@ -437,20 +447,20 @@ always_ff @ (posedge ps_clk_i, negedge ps_rst_ni) begin
    if (!ps_rst_ni) begin
       xreg_TPROC_R_DT       <= '{default:'0} ;
    end else begin
-       case (tproc_src_dt)
-          4'd0 : xreg_TPROC_R_DT = xreg_TPROC_W_DT ; 
-          4'd1 : xreg_TPROC_R_DT = core0_w_dt ;
-          4'd2 : xreg_TPROC_R_DT = core1_w_dt ;
-          4'd3 : xreg_TPROC_R_DT = {div_quotient  ,div_remainder };
-          4'd4 : xreg_TPROC_R_DT = '{arith_result[31:0], arith_result[63:32]};
-          4'd5 : xreg_TPROC_R_DT = qnet_dt_r ;
-          4'd6 : xreg_TPROC_R_DT = qcom_dt_r;
-          4'd7 : xreg_TPROC_R_DT = qp1_dt_r;
-          4'd8 : xreg_TPROC_R_DT = qp2_dt_r;
-          4'd9 : xreg_TPROC_R_DT = '{in_port_dt_r[0][31:0], in_port_dt_r[0][63:32]};
-          4'd10: xreg_TPROC_R_DT = '{core0_lfsr, core1_lfsr}; 
-          default: xreg_TPROC_R_DT = '{default:'0} ;
-       endcase
+      case (tproc_src_dt)
+         4'd0 : xreg_TPROC_R_DT <= xreg_TPROC_W_DT ; 
+         4'd1 : xreg_TPROC_R_DT <= core0_w_dt ;
+         4'd2 : xreg_TPROC_R_DT <= core1_w_dt ;
+         4'd3 : xreg_TPROC_R_DT <= {div_quotient  ,div_remainder };
+         4'd4 : xreg_TPROC_R_DT <= '{arith_result[31:0], arith_result[63:32]};
+         4'd5 : xreg_TPROC_R_DT <= qnet_dt_r ;
+         4'd6 : xreg_TPROC_R_DT <= qcom_dt_r;
+         4'd7 : xreg_TPROC_R_DT <= qp1_dt_r;
+         4'd8 : xreg_TPROC_R_DT <= qp2_dt_r;
+         4'd9 : xreg_TPROC_R_DT <= '{in_port_dt_r[0][31:0], in_port_dt_r[0][63:32]};
+         4'd10: xreg_TPROC_R_DT <= '{core0_lfsr, core1_lfsr}; 
+         default: xreg_TPROC_R_DT <= '{default:'0} ;
+      endcase
    end
 end
 
@@ -845,6 +855,7 @@ generate
       assign core_r_d0 = core0_w_dt ;
       assign core_r_d1 = '{ in_port_dt_r[0], {15'd0, port_trig_o[0], 12'd0,dport_di} } ;
       assign core_r_d2 = '{c_time_ref_dt[31:0], 32'd0} ;
+      assign core_r_d3 = '{default:'0} ;
    end else begin
       // NO DEBUG CORE_R_DT
       assign core_r_d0 = '{default:'0} ;
