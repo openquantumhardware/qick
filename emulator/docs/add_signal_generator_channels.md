@@ -12,7 +12,7 @@ This is therefore not a config-only change.
 
 ## Current State
 
-The baseline emulator notebook, `emulator/notebooks/00_intro_emu_2sg.ipynb`, currently initializes `QickEmu` with `emulator/notebooks/qick_emu_config.json`. That config exposes two SG entries:
+The baseline emulator notebook, `emulator/notebooks/00_intro_emu_2sg.ipynb`, currently initializes `QickEmu` with `emulator/config/qick_emu_config.json`. That config exposes two SG entries:
 
 - `axis_signal_gen_v6_0` on `tproc_ch = 0`, routed to DAC `00`
 - `axis_signal_gen_v6_1` on `tproc_ch = 1`, routed to DAC `01`
@@ -66,7 +66,7 @@ Examples:
 
 ## Step 2: Update the Emulator Config
 
-Edit `emulator/notebooks/qick_emu_config.json` and add one `gens` entry per new SG channel.
+Edit `emulator/config/qick_emu_config.json` and add one `gens` entry per new SG channel.
 
 For each new entry, make sure these fields are correct and unique where applicable:
 
@@ -261,7 +261,7 @@ Use this as the lowest-risk extension path.
 
 ### Emulator config side
 
-Add a third `gens` entry to `emulator/notebooks/qick_emu_config.json` with fields matching the new instance, for example:
+Add a third `gens` entry to `emulator/config/qick_emu_config.json` with fields matching the new instance, for example:
 
 - `fullpath: axis_signal_gen_v6_2`
 - `type: axis_signal_gen_v6`
@@ -312,7 +312,7 @@ That turns future SG expansion into a mostly config-driven change.
 
 ## Files You Will Usually Touch
 
-- `emulator/notebooks/qick_emu_config.json`
+- `emulator/config/qick_emu_config.json`
 - `emulator/software/source/qick_emu.py`
 - `emulator/testbench/QICKEmu_harness.sv`
 - the QICK DUT wrapper or generated top-level used by the testbench

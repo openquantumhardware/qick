@@ -423,6 +423,14 @@ def default_addrmap_skeleton() -> AddrMap:
         "RO_LEN": RegDef(0x10), "OUTSEL": RegDef(0x14),
         "NCO_FREQ": RegDef(0x18), "NCO_PHASE": RegDef(0x1C),
     }
+    am.reg_defs_by_type["axis_readout_v2"] = {
+        "FREQ_REG":   RegDef(0x00),
+        "PHASE_REG":  RegDef(0x04),
+        "NSAMP_REG":  RegDef(0x08),
+        "OUTSEL_REG": RegDef(0x0C),
+        "MODE_REG":   RegDef(0x10),
+        "WE_REG":     RegDef(0x14),
+    }
     am.reg_defs_by_type["axis_pfb_readout_v4"] = {
         "PFB_CH": RegDef(0x10), "OUTSEL": RegDef(0x14),
         "NCO_FREQ": RegDef(0x18), "NCO_PHASE": RegDef(0x1C),
@@ -503,11 +511,13 @@ class MockAvgBuffer(MockIpDriver):
     def config_avg(self, address=0, length=1, edge_counting=False, high_threshold=1000, low_threshold=0):
         """Configure the accumulated-sample buffer ("avg"). Mirrors :meth:`AxisAvgBuffer.config_avg`."""
         self.soc.reg_write(self.fullpath, "AVG_START", 0, comment="stop avg")
+        self.soc.reg_write(self.fullpath, "AVG_ADDR", address, comment="avg start addr")
         self.soc.reg_write(self.fullpath, "AVG_LEN", length, comment="avg buf len")
 
     def config_buf(self, address=0, length=1):
         """Configure the decimated-sample buffer ("buf"). Mirrors :meth:`AxisAvgBuffer.config_buf`."""
         self.soc.reg_write(self.fullpath, "BUF_START", 0, comment="stop decim")
+        self.soc.reg_write(self.fullpath, "BUF_ADDR", address, comment="decim start addr")
         self.soc.reg_write(self.fullpath, "BUF_LEN", length, comment="decim buf len")
 
     def enable(self, avg=True, buf=True):
@@ -578,6 +588,61 @@ class MockPFBReadout(MockIpDriver):
         f_int = cfg.get('f_int', 0)
         self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
         self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel")
+
+
+class MockAxisReadoutV2(MockIpDriver):
+    """Mock driver for :ref:`axis_readout_v2`.
+
+    axis_readout_v2 is a hardware readout block that performs digital down-conversion
+    and averaging/decimation. It has a fixed output routing (no programmable PFB).
+    """
+
+    HAS_OUTSEL = True
+    B_DDS = 32
+    B_PHASE = 32
+
+    def update(self):
+        """Mirror :meth:`AxisReadoutV2.update` by toggling the write-enable strobe."""
+        self.soc.reg_write(self.fullpath, "WE_REG", 1, comment="axis_readout_v2 WE strobe hi")
+        self.soc.reg_write(self.fullpath, "WE_REG", 0, comment="axis_readout_v2 WE strobe lo")
+
+    def set_all_int(self, cfg):
+        """Set all readout parameters using a dictionary computed by QickConfig.calc_ro_regs().
+
+        Parameters
+        ----------
+        cfg : dict
+            Must include keys like ``sel``, ``f_int``, ``phase_int`` as produced
+            by the QICK readout config helpers.
+        """
+        val = {"product": 0, "dds": 1, "input": 2}[cfg['sel']]
+        self.soc.reg_write(self.fullpath, "OUTSEL_REG", val, comment=f"axis_readout_v2 outsel={cfg['sel']}")
+        self.soc.reg_write(self.fullpath, "FREQ_REG", int(cfg['f_int']) % 2**self.B_DDS, comment=f"axis_readout_v2 freq")
+        self.soc.reg_write(self.fullpath, "PHASE_REG", int(cfg['phase_int']) % 2**self.B_PHASE, comment=f"axis_readout_v2 phase")
+        self.soc.reg_write(self.fullpath, "NSAMP_REG", 10, comment="axis_readout_v2 nsamp")
+        self.soc.reg_write(self.fullpath, "MODE_REG", 1, comment="axis_readout_v2 mode=periodic")
+        self.update()
+
+    def set_all(self, f, sel='product', gen_ch=None, phase=0):
+        """Set up the readout directly.
+
+        This method is not normally used, it's only for debugging and testing.
+        Normally the readout is configured based on parameters supplied in
+        QickProgram.declare_readout().
+
+        Parameters
+        ----------
+        f : float
+            Frequency in Hz (or MHz depending on config).
+        sel : {'product', 'dds', 'input'}
+            Output select: product (demodulated), dds (DDS output), or input (bypass).
+        gen_ch : int, optional
+            Generator channel for mixer frequency calculation.
+        phase : float
+            Phase offset.
+        """
+        cfg = {'sel': sel, 'f_int': int(f), 'phase_int': int(phase)}
+        self.set_all_int(cfg)
 
 
 class MockTProc(MockIpDriver):
@@ -676,7 +741,18 @@ class QickEmu:
             MockAvgBuffer(self, ro['avgbuf_fullpath'], ro['avgbuf_type'])
             for ro in self.soccfg['readouts']
         ]
-        self.readouts = [MockIpDriver(self, r['ro_fullpath'], r['ro_type']) for r in self.soccfg['readouts']]
+        self.readouts = []
+        for ro in self.soccfg['readouts']:
+            if 'pfb_readout' in ro['ro_type']:
+                driver = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
+            elif ro['ro_type'] == 'axis_readout_v2':
+                driver = MockAxisReadoutV2(self, ro['ro_fullpath'], ro['ro_type'])
+            else:
+                driver = MockIpDriver(self, ro['ro_fullpath'], ro['ro_type'])
+            self.readouts.append(driver)
+
+        for avg_buf, readout in zip(self.avg_bufs, self.readouts):
+            avg_buf.readout = readout
 
         if 'ddr4_buf' in self.raw_cfg:
             self.ddr4_buf = MockDDR4Buffer(self, self.raw_cfg['ddr4_buf']['fullpath'], self.raw_cfg['ddr4_buf']['type'])
@@ -692,11 +768,12 @@ class QickEmu:
         tproc_path = tproc_cfg.get('fullpath', 'qick_processor_0')
         self.tproc = MockTProc(self, tproc_path, tproc_cfg['type'])
 
-        self._pfb_readouts: Dict[str, MockPFBReadout] = {}
-        for ro in self.soccfg['readouts']:
-            if 'pfb_readout' in ro['ro_type']:
-                pfb = MockPFBReadout(self, ro['ro_fullpath'], ro['ro_type'])
-                self._pfb_readouts[ro['ro_fullpath']] = pfb
+        self._pfb_readouts: Dict[str, MockPFBReadout] = {
+            ro.fullpath: ro for ro in self.readouts if isinstance(ro, MockPFBReadout)
+        }
+        self._axis_readout_v2: Dict[str, MockAxisReadoutV2] = {
+            ro.fullpath: ro for ro in self.readouts if isinstance(ro, MockAxisReadoutV2)
+        }
 
         # Existing notebooks/scripts expect `emu.soc` after prepare_emu().
         self.soc = self
@@ -806,9 +883,8 @@ class QickEmu:
 
     def configure_readout(self, ch, ro_regs):
         """Mirror :meth:`QickSoc.configure_readout`: push generated readout register values."""
-        ro = self.readouts[ch]
-        if 'ro_len' in ro_regs:
-            self.reg_write(ro.fullpath, "RO_LEN", ro_regs['ro_len'])
+        buf = self.avg_bufs[ch]
+        buf.readout.set_all_int(ro_regs)
 
     def config_mux_readout(self, pfbpath, cfgs, sel=None):
         """Configure a PFB readout: set OUTSEL (if supported) and one NCO per tone."""
@@ -906,12 +982,14 @@ class QickEmu:
 
     def prepare(self, prog, soc: Optional["QickEmu"] = None, memdir: Union[str, pathlib.Path] = "tb_mem",
                 clean: bool = True) -> Dict[str, Any]:
-        """Run a QICK program against the emulated SoC and emit the testbench inputs.
+        """Export testbench artifacts from the current emulator/program state.
 
-        This drives the program through its usual ``config_all`` /
-        ``config_bufs`` / ``start_tproc`` sequence, but every register write
-        goes to the :class:`AxiRecorder` instead of real hardware. When the
-        method returns, ``memdir`` contains:
+        This method is intentionally artifact-only: it does **not** call
+        ``config_all``, ``config_bufs``, or ``start_tproc``. Runtime
+        configuration and execution must be orchestrated by the caller before
+        invoking :meth:`prepare`.
+
+        When the method returns, ``memdir`` contains:
 
         * ``pmem.mem`` — program binary (``print_pmem2hex``).
         * ``dmem.mem`` — data memory (zero-filled if the program doesn't use it).
@@ -926,8 +1004,7 @@ class QickEmu:
         prog : qick.QickProgramV2
             A compiled QICK program.
         soc : QickEmu, optional
-            Kept for compatibility with old call sites. If provided, it must
-            be ``self`` (the object returned by :meth:`prepare_emu`).
+            If provided, must be ``self``.
         memdir : str or pathlib.Path
             Destination directory for the artifacts listed above.
         clean : bool
@@ -943,15 +1020,11 @@ class QickEmu:
         if soc is None:
             soc = self
         if soc is not self:
-            raise ValueError("QickEmu.prepare now expects soc=self (returned by prepare_emu()).")
+            raise ValueError("QickEmu.prepare expects soc=self.")
 
-        # Always start from a fresh recorder/driver state for deterministic logs.
-        self._reset_soc_state(memdir=memdir)
-
-        prog.config_all(self, load_mem=False)
-        prog.config_bufs(self, enable_avg=True, enable_buf=True)
-
-        memdir = self.memdir
+        memdir = pathlib.Path(memdir)
+        memdir.mkdir(parents=True, exist_ok=True)
+        self.memdir = memdir
         if clean:
             self._clean_artifacts(memdir)
         
@@ -991,7 +1064,6 @@ class QickEmu:
                 if content.strip():
                     (memdir / f"sgmem_ch{ch}.mem").write_text(content)
 
-        self.start_tproc()
         axi_script = self.axi.save_jsonl(memdir / "axi_replay.jsonl")
         
         return {"memdir": str(memdir), "axi_script": str(axi_script)}
@@ -1031,140 +1103,140 @@ class QickEmu:
     # VERILATOR RUNNERS
     # =========================================================================
 
-    def run_verilated_mem_tb(
-        self,
-        mem_file,
-        ro_dec_len: int = 1000,
-        ro_avg_len: int = 1,
-        verilog_dir=None,
-        top_module="QICKEmu_harness",
-        sources=("QICKEmu_harness.sv",),
-        build_dir="build_tb_mem",
-        log_csv_name="dac_out.csv",
-        mem_filename_in_tb="wmem.mem",
-        enable_wave=False,
-        extra_verilator_args=None,
-        verbose=True,
-    ):
-        """Verilate and run a stand-alone testbench that reads a single memory file.
+    # def run_verilated_mem_tb(
+    #     self,
+    #     mem_file,
+    #     ro_dec_len: int = 1000,
+    #     ro_avg_len: int = 1,
+    #     verilog_dir=None,
+    #     top_module="QICKEmu_harness",
+    #     sources=("QICKEmu_harness.sv",),
+    #     build_dir="build_tb_mem",
+    #     log_csv_name="dac_out_ch0.csv",
+    #     mem_filename_in_tb="wmem.mem",
+    #     enable_wave=False,
+    #     extra_verilator_args=None,
+    #     verbose=True,
+    # ):
+    #     """Verilate and run a stand-alone testbench that reads a single memory file.
 
-        This is the "lightweight" path used by some of the smaller model
-        testbenches (e.g. dds / signal_gen). It links in the PULP AXI
-        sources, symlinks ``mem_file`` into the build directory as
-        ``mem_filename_in_tb``, runs the binary with ``+RO_DEC_LEN`` /
-        ``+RO_AVG_LEN`` plusargs, and returns the path to the resulting
-        CSV.
+    #     This is the "lightweight" path used by some of the smaller model
+    #     testbenches (e.g. dds / signal_gen). It links in the PULP AXI
+    #     sources, symlinks ``mem_file`` into the build directory as
+    #     ``mem_filename_in_tb``, runs the binary with ``+RO_DEC_LEN`` /
+    #     ``+RO_AVG_LEN`` plusargs, and returns the path to the resulting
+    #     CSV.
 
-        Parameters
-        ----------
-        mem_file : str or pathlib.Path
-            Path to the ``.mem`` file that the TB reads via ``$readmemh``.
-        ro_dec_len : int
-            Plusarg value passed as ``+RO_DEC_LEN``.
-        ro_avg_len : int
-            Plusarg value passed as ``+RO_AVG_LEN``.
-        verilog_dir : str or pathlib.Path, optional
-            Directory containing the TB sources listed in ``sources`` (default cwd).
-        top_module : str
-            Name of the top-level Verilog module.
-        sources : tuple of str
-            Verilog sources under ``verilog_dir`` to compile.
-        build_dir : str or pathlib.Path
-            Verilator ``-Mdir`` build directory.
-        log_csv_name : str
-            Filename of the CSV produced by the TB.
-        mem_filename_in_tb : str
-            Name the TB ``$readmemh`` expects inside ``build_dir``.
-        enable_wave : bool
-            If ``True``, compile with ``--trace-fst``.
-        extra_verilator_args : list of str, optional
-            Additional Verilator CLI flags.
-        verbose : bool
-            Print the Verilator / sim commands and output paths.
+    #     Parameters
+    #     ----------
+    #     mem_file : str or pathlib.Path
+    #         Path to the ``.mem`` file that the TB reads via ``$readmemh``.
+    #     ro_dec_len : int
+    #         Plusarg value passed as ``+RO_DEC_LEN``.
+    #     ro_avg_len : int
+    #         Plusarg value passed as ``+RO_AVG_LEN``.
+    #     verilog_dir : str or pathlib.Path, optional
+    #         Directory containing the TB sources listed in ``sources`` (default cwd).
+    #     top_module : str
+    #         Name of the top-level Verilog module.
+    #     sources : tuple of str
+    #         Verilog sources under ``verilog_dir`` to compile.
+    #     build_dir : str or pathlib.Path
+    #         Verilator ``-Mdir`` build directory.
+    #     log_csv_name : str
+    #         Filename of the CSV produced by the TB.
+    #     mem_filename_in_tb : str
+    #         Name the TB ``$readmemh`` expects inside ``build_dir``.
+    #     enable_wave : bool
+    #         If ``True``, compile with ``--trace-fst``.
+    #     extra_verilator_args : list of str, optional
+    #         Additional Verilator CLI flags.
+    #     verbose : bool
+    #         Print the Verilator / sim commands and output paths.
 
-        Returns
-        -------
-        pathlib.Path
-            Path to the generated CSV file.
-        """
-        import os, shutil, subprocess
-        from pathlib import Path
+    #     Returns
+    #     -------
+    #     pathlib.Path
+    #         Path to the generated CSV file.
+    #     """
+    #     import os, shutil, subprocess
+    #     from pathlib import Path
 
-        verilog_dir = Path(verilog_dir) if verilog_dir is not None else Path.cwd()
-        build_dir = Path(build_dir)
-        build_dir.mkdir(parents=True, exist_ok=True)
+    #     verilog_dir = Path(verilog_dir) if verilog_dir is not None else Path.cwd()
+    #     build_dir = Path(build_dir)
+    #     build_dir.mkdir(parents=True, exist_ok=True)
         
-        proj_root = self._find_proj_root()
-        # pulp_dir = proj_root / "firmware" / "pulp_platform"
-        pulp_dir = proj_root / "emulator" / "submodules" / "pulp_platform"
+    #     proj_root = self._find_proj_root()
+    #     # pulp_dir = proj_root / "firmware" / "pulp_platform"
+    #     pulp_dir = proj_root / "emulator" / "submodules" / "pulp_platform"
         
-        pulp_sources = [
-            pulp_dir / "common_verification/src/rand_id_queue.sv",
-            pulp_dir / "axi/src/axi_intf.sv",
-            pulp_dir / "axi/src/axi_pkg.sv",
-            pulp_dir / "axi/src/axi_test.sv"
-        ]
+    #     pulp_sources = [
+    #         pulp_dir / "common_verification/src/rand_id_queue.sv",
+    #         pulp_dir / "axi/src/axi_intf.sv",
+    #         pulp_dir / "axi/src/axi_pkg.sv",
+    #         pulp_dir / "axi/src/axi_test.sv"
+    #     ]
 
-        src_paths = [verilog_dir / s for s in sources] + pulp_sources
-        for sp in src_paths:
-            if not sp.exists():
-                print(f"[warn] Verilog source not found: {sp}")
+    #     src_paths = [verilog_dir / s for s in sources] + pulp_sources
+    #     for sp in src_paths:
+    #         if not sp.exists():
+    #             print(f"[warn] Verilog source not found: {sp}")
 
-        verilator_root = os.environ.get("VERILATOR_ROOT")
-        if verilator_root:
-            verilator = Path(verilator_root) / "bin" / "verilator"
-        else:
-            verilator = shutil.which("verilator")
-        if not verilator or not Path(verilator).exists():
-            raise FileNotFoundError("verilator not found. Set VERILATOR_ROOT or add verilator to PATH.")
+    #     verilator_root = os.environ.get("VERILATOR_ROOT")
+    #     if verilator_root:
+    #         verilator = Path(verilator_root) / "bin" / "verilator"
+    #     else:
+    #         verilator = shutil.which("verilator")
+    #     if not verilator or not Path(verilator).exists():
+    #         raise FileNotFoundError("verilator not found. Set VERILATOR_ROOT or add verilator to PATH.")
 
-        mem_file = Path(mem_file)
-        if not mem_file.exists():
-            raise FileNotFoundError(f"mem_file not found: {mem_file}")
+    #     mem_file = Path(mem_file)
+    #     if not mem_file.exists():
+    #         raise FileNotFoundError(f"mem_file not found: {mem_file}")
         
-        target_mem = build_dir / mem_filename_in_tb
-        try:
-            if target_mem.exists() or target_mem.is_symlink():
-                target_mem.unlink()
-            target_mem.symlink_to(mem_file.resolve())
-        except Exception:
-            shutil.copy2(mem_file, target_mem)
+    #     target_mem = build_dir / mem_filename_in_tb
+    #     try:
+    #         if target_mem.exists() or target_mem.is_symlink():
+    #             target_mem.unlink()
+    #         target_mem.symlink_to(mem_file.resolve())
+    #     except Exception:
+    #         shutil.copy2(mem_file, target_mem)
 
-        exe_name = f"V{top_module}"
-        cmd = [str(verilator), "--binary", "-sv", "-Wall", "-Mdir", str(build_dir), "--top-module", top_module]
-        if enable_wave: cmd += ["--trace-fst"]
+    #     exe_name = f"V{top_module}"
+    #     cmd = [str(verilator), "--binary", "-sv", "-Wall", "-Mdir", str(build_dir), "--top-module", top_module]
+    #     if enable_wave: cmd += ["--trace-fst"]
         
-        cmd += [
-            f"-I{pulp_dir}/axi/include",
-            f"-I{pulp_dir}/common_verification/include",
-            f"-I{pulp_dir}/common_cells/include"
-        ]
+    #     cmd += [
+    #         f"-I{pulp_dir}/axi/include",
+    #         f"-I{pulp_dir}/common_verification/include",
+    #         f"-I{pulp_dir}/common_cells/include"
+    #     ]
 
-        if extra_verilator_args: cmd += list(extra_verilator_args)
-        cmd += [str(p) for p in src_paths]
+    #     if extra_verilator_args: cmd += list(extra_verilator_args)
+    #     cmd += [str(p) for p in src_paths]
 
-        if verbose: print("$", " ".join(cmd))
-        subprocess.run(cmd, check=True, cwd=verilog_dir)
+    #     if verbose: print("$", " ".join(cmd))
+    #     subprocess.run(cmd, check=True, cwd=verilog_dir)
 
-        candidates = [build_dir / exe_name, build_dir / f"{exe_name}.exe"]
-        sim_path = next((p for p in candidates if p.exists()), None)
-        if sim_path is None:
-            for p in build_dir.rglob(f"V{top_module}*"):
-                if p.is_file() and os.access(p, os.X_OK):
-                    sim_path = p
-                    break
-        if sim_path is None:
-            raise FileNotFoundError(f"Verilator binary not found under {build_dir}")
+    #     candidates = [build_dir / exe_name, build_dir / f"{exe_name}.exe"]
+    #     sim_path = next((p for p in candidates if p.exists()), None)
+    #     if sim_path is None:
+    #         for p in build_dir.rglob(f"V{top_module}*"):
+    #             if p.is_file() and os.access(p, os.X_OK):
+    #                 sim_path = p
+    #                 break
+    #     if sim_path is None:
+    #         raise FileNotFoundError(f"Verilator binary not found under {build_dir}")
 
-        sim_cmd = [f"./{sim_path.name}", f"+RO_DEC_LEN={int(ro_dec_len)}", f"+RO_AVG_LEN={int(ro_avg_len)}"]
-        if verbose: print(f"$ (cd {build_dir} && {' '.join(sim_cmd)})")
-        subprocess.run(sim_cmd, check=True, cwd=build_dir)
+    #     sim_cmd = [f"./{sim_path.name}", f"+RO_DEC_LEN={int(ro_dec_len)}", f"+RO_AVG_LEN={int(ro_avg_len)}"]
+    #     if verbose: print(f"$ (cd {build_dir} && {' '.join(sim_cmd)})")
+    #     subprocess.run(sim_cmd, check=True, cwd=build_dir)
         
-        out_csv = build_dir / log_csv_name
-        if not out_csv.exists():
-            raise FileNotFoundError(f"Expected CSV not found: {out_csv}")
-        if verbose: print(f"[ok] Wrote {out_csv}")
-        return out_csv
+    #     out_csv = build_dir / log_csv_name
+    #     if not out_csv.exists():
+    #         raise FileNotFoundError(f"Expected CSV not found: {out_csv}")
+    #     if verbose: print(f"[ok] Wrote {out_csv}")
+    #     return out_csv
 
     def _find_tb_makefile(self) -> pathlib.Path:
         """Locate ``emulator/testbench/Makefile`` used by :meth:`run_verilator_tb`."""
@@ -1212,7 +1284,7 @@ class QickEmu:
 
         ``emu_dir`` is the directory written by :meth:`prepare` — the TB
         reads its ``pmem.mem`` / ``wmem.mem`` / ``sgmem_ch*.mem`` /
-        ``axi_replay.txt`` and writes ``dac_out.csv`` / ``avg_out.csv`` /
+        ``axi_replay.txt`` and writes ``dac_out_ch0.csv`` / ``avg_out.csv`` /
         ``dec_out.csv`` back into the same directory.
 
         Parameters
@@ -1234,7 +1306,7 @@ class QickEmu:
             Sets the ``+TEST_RUN_NS`` plusarg — additional simulation time
             (in ns) the TB runs after AXI replay completes, before draining
             the avg/dec buffers. Increase if pulses near the end of a
-            program get truncated in ``dac_out.csv``. If ``None`` (default),
+            program get truncated in ``dac_out_ch0.csv``. If ``None`` (default),
             the plusarg is omitted and the TB uses its built-in default.
         pre_run_delay_ns : int, optional
             Sets the ``+PRE_RUN_DELAY_NS`` plusarg used by the TB to wait
@@ -1325,7 +1397,10 @@ class QickEmu:
         if build:
             if verbose:
                 print(f"[verilate] Building QICKEmu_harness ...")
-            result = _run(_make("verilate"))
+            verilate_cmd = _make("verilate")
+            if trace:
+                verilate_cmd.append("TRACE=1")
+            result = _run(verilate_cmd)
             if result.returncode != 0:
                 err_text = result.stdout or result.stderr or ""
                 raise RuntimeError(
@@ -1333,7 +1408,16 @@ class QickEmu:
                     + (f"\n{err_text}" if err_text else "")
                 )
 
-        print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
+        sim_emu_display = rel_emu
+        if pathlib.Path(sim_emu_display).is_absolute():
+            try:
+                sim_emu_display = pathlib.Path(
+                    os.path.relpath(emu_dir, start=pathlib.Path.cwd())
+                )
+            except Exception:
+                sim_emu_display = rel_emu
+
+        print(f"[sim] Running simulation with EMU_DIR={sim_emu_display} ...")
 
         plusargs = [
             f"+RO_DEC_LEN={int(ro_dec_len)}",
@@ -1370,9 +1454,13 @@ class QickEmu:
 
         csvs = {}
         for key, name in [
-            ("dac", "dac_out.csv"),
-            ("avg", "avg_out.csv"),
-            ("dec", "dec_out.csv"),
+            ("dac0", "dac_out_ch0.csv"),
+            ("dac1", "dac_out_ch1.csv"),
+            ("dac2", "dac_out_ch2.csv"),
+            ("avg0", "avg_out_ch0.csv"),
+            ("avg1", "avg_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
+            ("dec0", "dec_out_ch0.csv"),
+            ("dec1", "dec_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
             ("mr",  "mr_out.csv"),
         ]:
             p = emu_dir / name
@@ -1395,7 +1483,7 @@ class QickEmu:
         ax=None,
         absolute_time: bool = False,
     ):
-        """Plot the sequential DAC stream from a ``dac_out.csv`` file.
+        """Plot the sequential DAC stream from a ``dac_out_ch0.csv`` file.
 
         The TB writes one row per sg_clk, with 16 parallel DDS samples
         (``s0`` through ``s15``) per row. This helper flattens them into a
@@ -1570,7 +1658,7 @@ class QickEmu:
         gen_ch : int, optional
             Generator channel for per-channel CSVs (``dac_out_ch{N}.csv``).
             Defaults to channel 0 (and falls back to the single-channel
-            ``dac_out.csv`` if no per-channel file exists).
+            ``dac_out_ch0.csv`` if no per-channel file exists).
         time_unit : {'fs', 'ps', 'ns', 'us', 'ms'}
             Unit for the returned time axis.
         absolute_time : bool

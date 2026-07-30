@@ -57,7 +57,7 @@ from qick_emu import QickEmu
 from qick.asm_v2 import AveragerProgramV2
 
 # Load board configuration
-CFG_PATH = pathlib.Path('notebooks/qick_emu_config.json')
+CFG_PATH = pathlib.Path('config/qick_emu_config.json')
 soc = QickEmu(str(CFG_PATH))
 
 # Prepare emulator with output directory

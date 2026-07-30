@@ -48,7 +48,7 @@ module fir #(
             $fatal("### FIR coefficients file not found ###");
         end
         $fclose(fd);
-        $display("Loading FIR coefficients...");
+        // $display("Loading FIR coefficients...");
         $readmemh("fir_coe.txt", coeffs);
     end
 

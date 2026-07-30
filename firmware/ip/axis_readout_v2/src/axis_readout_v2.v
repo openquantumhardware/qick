@@ -1,57 +1,59 @@
-module axis_readout_v2
-	( 
-		// AXI Slave I/F for configuration.
-		s_axi_aclk		,
-		s_axi_aresetn	,
+module axis_readout_v2 #(
+    // Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+    // Valid values: 0 = synthesis build (use VHDL/Xilinx IP), non-zero = emulation build (use behavioral models).
+    parameter EMULATOR = 0
+)(
+    // AXI Slave I/F for configuration.
+    s_axi_aclk        ,
+    s_axi_aresetn    ,
 
-		s_axi_awaddr	,
-		s_axi_awprot	,
-		s_axi_awvalid	,
-		s_axi_awready	,
+    s_axi_awaddr    ,
+    s_axi_awprot    ,
+    s_axi_awvalid    ,
+    s_axi_awready    ,
 
-		s_axi_wdata		,
-		s_axi_wstrb		,
-		s_axi_wvalid	,
-		s_axi_wready	,
+    s_axi_wdata        ,
+    s_axi_wstrb        ,
+    s_axi_wvalid    ,
+    s_axi_wready    ,
 
-		s_axi_bresp		,
-		s_axi_bvalid	,
-		s_axi_bready	,
+    s_axi_bresp        ,
+    s_axi_bvalid    ,
+    s_axi_bready    ,
 
-		s_axi_araddr	,
-		s_axi_arprot	,
-		s_axi_arvalid	,
-		s_axi_arready	,
+    s_axi_araddr    ,
+    s_axi_arprot    ,
+    s_axi_arvalid    ,
+    s_axi_arready    ,
 
-		s_axi_rdata		,
-		s_axi_rresp		,
-		s_axi_rvalid	,
-		s_axi_rready	,
+    s_axi_rdata        ,
+    s_axi_rresp        ,
+    s_axi_rvalid    ,
+    s_axi_rready    ,
 
-		// Reset and clock (s_axis, m0_axis, m1_axis).
-    	aresetn			,
-		aclk			,
+    // Reset and clock (s_axis, m0_axis, m1_axis).
+    aresetn            ,
+    aclk            ,
 
-    	// S_AXIS: for input data (8x samples per clock).
-		s_axis_tdata	,
-		s_axis_tvalid	,
-		s_axis_tready	,
+    // S_AXIS: for input data (8x samples per clock).
+    s_axis_tdata    ,
+    s_axis_tvalid    ,
+    s_axis_tready    ,
 
-		// M0_AXIS: for output data (before filter and decimation, 8x samples
-		// per clock).
-		m0_axis_tready	,
-		m0_axis_tvalid	,
-		m0_axis_tdata	,
+    // M0_AXIS: for output data (before filter and decimation, 8x samples
+    // per clock).
+    m0_axis_tready    ,
+    m0_axis_tvalid    ,
+    m0_axis_tdata    ,
 
-		// M1_AXIS: for output data.
-		m1_axis_tready	,
-		m1_axis_tvalid	,
-		m1_axis_tdata
-	);
-
-/**************/
-/* Parameters */
-/**************/
+    // M1_AXIS: for output data.
+    m1_axis_tready    ,
+    m1_axis_tvalid    ,
+    m1_axis_tdata
+);
+/********************/
+/* Internal signals */
+/********************/
 // Number of parallel dds blocks.
 localparam [15:0] N_DDS = 8;
 
@@ -115,9 +117,11 @@ wire			WE_REG;
 /**********************/
 /* Begin Architecture */
 /**********************/
-// AXI Slave.
-axi_slv_std_ro_v2 axi_slv_std_ro_v2_i
-	(
+    // AXI Slave.
+    generate
+    if (!EMULATOR) begin : gen_axi_slv_synth
+        axi_slv_std_ro_v2 axi_slv_std_ro_v2_i
+        (
 		.aclk			(s_axi_aclk	 	),
 		.aresetn		(s_axi_aresetn	),
 
@@ -157,11 +161,62 @@ axi_slv_std_ro_v2 axi_slv_std_ro_v2_i
 		.OUTSEL_REG		(OUTSEL_REG		),
 		.MODE_REG		(MODE_REG		),
 		.WE_REG			(WE_REG			)
-	);
+        );
+    end else begin : gen_axi_slv_emu
+        // SystemVerilog version for emulation
+        axi_slv_std_ro_v2 #(
+            .DATA_WIDTH(32),
+            .ADDR_WIDTH(6)
+        ) axi_slv_std_ro_v2_i
+        (
+            .aclk(s_axi_aclk),
+            .aresetn(s_axi_aresetn),
+            
+            // Write Address Channel.
+            .awaddr(s_axi_awaddr),
+            .awprot(s_axi_awprot),
+            .awvalid(s_axi_awvalid),
+            .awready(s_axi_awready),
+            
+            // Write Data Channel.
+            .wdata(s_axi_wdata),
+            .wstrb(s_axi_wstrb),
+            .wvalid(s_axi_wvalid),
+            .wready(s_axi_wready),
+            
+            // Write Response Channel.
+            .bresp(s_axi_bresp),
+            .bvalid(s_axi_bvalid),
+            .bready(s_axi_bready),
+            
+            // Read Address Channel.
+            .araddr(s_axi_araddr),
+            .arprot(s_axi_arprot),
+            .arvalid(s_axi_arvalid),
+            .arready(s_axi_arready),
+            
+            // Read Data Channel.
+            .rdata(s_axi_rdata),
+            .rresp(s_axi_rresp),
+            .rvalid(s_axi_rvalid),
+            .rready(s_axi_rready),
+            
+            // Registers.
+            .FREQ_REG(FREQ_REG),
+            .PHASE_REG(PHASE_REG),
+            .NSAMP_REG(NSAMP_REG),
+            .OUTSEL_REG(OUTSEL_REG),
+            .MODE_REG(MODE_REG),
+            .WE_REG(WE_REG)
+        );
+    end
+    endgenerate
 
-// Readout Top.
-std_readout_top std_readout_top_i
-	(
+    // Readout Top.
+    generate
+    if (!EMULATOR) begin : gen_readout_synth
+        std_readout_top std_readout_top_i
+        (
 		// Reset and clock (s0_axis, s1_axis, m0_axis, m1_axis).
     	.aresetn		(aresetn		),
 		.aclk			(aclk			),
@@ -189,7 +244,43 @@ std_readout_top std_readout_top_i
 		.OUTSEL_REG		(OUTSEL_REG		),
 		.MODE_REG		(MODE_REG		),
 		.WE_REG			(WE_REG			)
-	);
+        );
+    end else begin : gen_readout_emu
+        // SystemVerilog version with EMULATOR support
+        std_readout_top #(
+            .EMULATOR(EMULATOR)
+        ) std_readout_top_i
+        (
+            // Reset and clock (s0_axis, s1_axis, m0_axis, m1_axis).
+            .aresetn(aresetn),
+            .aclk(aclk),
+            
+            // S_AXIS: for input data (8x samples per clock).
+            .s_axis_tdata(s_axis_tdata),
+            .s_axis_tvalid(s_axis_tvalid),
+            .s_axis_tready(s_axis_tready),
+            
+            // M0_AXIS: for output data (before filter and decimation, 8x samples
+            // per clock).
+            .m0_axis_tready(m0_axis_tready),
+            .m0_axis_tvalid(m0_axis_tvalid),
+            .m0_axis_tdata(m0_axis_tdata),
+            
+            // M1_AXIS: for output data.
+            .m1_axis_tready(m1_axis_tready),
+            .m1_axis_tvalid(m1_axis_tvalid),
+            .m1_axis_tdata(m1_axis_tdata),
+            
+            // Registers.
+            .FREQ_REG(FREQ_REG),
+            .PHASE_REG(PHASE_REG),
+            .NSAMP_REG(NSAMP_REG),
+            .OUTSEL_REG(OUTSEL_REG),
+            .MODE_REG(MODE_REG),
+            .WE_REG(WE_REG)
+        );
+    end
+    endgenerate
 
 endmodule
 
