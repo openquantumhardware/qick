@@ -1408,7 +1408,16 @@ class QickEmu:
                     + (f"\n{err_text}" if err_text else "")
                 )
 
-        print(f"[sim] Running simulation with EMU_DIR={rel_emu} ...")
+        sim_emu_display = rel_emu
+        if pathlib.Path(sim_emu_display).is_absolute():
+            try:
+                sim_emu_display = pathlib.Path(
+                    os.path.relpath(emu_dir, start=pathlib.Path.cwd())
+                )
+            except Exception:
+                sim_emu_display = rel_emu
+
+        print(f"[sim] Running simulation with EMU_DIR={sim_emu_display} ...")
 
         plusargs = [
             f"+RO_DEC_LEN={int(ro_dec_len)}",
