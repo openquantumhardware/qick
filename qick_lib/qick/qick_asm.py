@@ -1910,7 +1910,9 @@ class AcquireMixin:
             if decimated:
                 round_results.append(soc.load_iq_decimated(emu_dir, self))
             else:
-                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True))
+                # When thresholding, we need raw data BEFORE averaging (to preserve reps dimension)
+                # Otherwise use the normal averaged data
+                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True, skip_average=(threshold is not None)))
 
         if decimated:
             if rounds == 1:
@@ -1925,11 +1927,36 @@ class AcquireMixin:
         if threshold is None:
             return iq_list
 
-        raw_like = [d * ro['length'] for d, ro in zip(iq_list, self.ro_chs.values())]
-        shots = self._apply_threshold(raw_like, threshold, angle, remove_offset)
-        result = [np.zeros_like(d) for d in iq_list]
-        for i, ch_shot in enumerate(shots):
-            result[i][..., 0] = ch_shot
+        # The emulator's CSV data has a different format than real hardware.
+        # The emulator returns data in (*loop_dims, trigs, 2) = (reps, steps, trigs, 2) format.
+        # But the _process_accumulated() and _apply_threshold() expect data in a different order.
+        # Transform to match the expected format by swapping steps and trigs dimensions.
+
+        # # iq_list has shape (*loop_dims, trigs, 2) = (reps, steps, trigs, 2)
+        # # We need to transform to (reps, trigs, steps, 2) for _process_accumulated
+        # # Then transform back after
+        # if iq_list[0].ndim == 4:
+        #     # Transform from (reps, steps, trigs, 2) to (reps, trigs, steps, 2)
+        #     iq_list_transformed = [np.moveaxis(d, 1, 2) for d in iq_list]
+        # else:
+        #     iq_list_transformed = iq_list
+        iq_list_transformed = iq_list
+
+        self.acquire_params = {
+            'type': 'accumulated',
+            'threshold': threshold,
+            'angle': angle,
+            'remove_offset': remove_offset,
+        }
+        result = self._process_accumulated(iq_list_transformed)
+
+        # # Transform result back from (trigs, reps, steps, 2) to (reps, trigs, steps, 2)
+        # # Then transform from (reps, trigs, steps, 2) to (reps, steps, trigs, 2)
+        # if result[0].ndim == 4:
+        #     # First move trigs to end: (trigs, reps, steps, 2) -> (reps, steps, trigs, 2)
+        #     result = [np.moveaxis(d, 0, -2) for d in result]
+        #     # Then move steps back: (reps, trigs, steps, 2) -> (reps, steps, trigs, 2)
+        #     result = [np.moveaxis(d, 1, 2) for d in result]
         return result
 
     def get_rounds(self):

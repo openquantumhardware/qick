@@ -580,7 +580,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    model_ADC #(
       .ADC_W               (ADC0_W),
       .BUFFER_SIZE         (16),
-      .N_DDS               (N_DDS_RO)
+      .N_DDS               (N_DDS_RO),
+      .ADC_NOISE_STD       (0.002)
    ) u_model_ADC0 (
       .clk_DAC             (dac_fs),
       .dac_signal_rf       (dac0_signal_rf_dly),

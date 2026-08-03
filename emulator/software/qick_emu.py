@@ -1930,6 +1930,7 @@ class QickEmu:
         prog,
         *,
         length_norm: bool = True,
+        skip_average: bool = False,
     ) -> List[np.ndarray]:
         """Load accumulated I/Q shots shaped like ``prog.acquire(soc)``.
 
@@ -1948,12 +1949,17 @@ class QickEmu:
             If True (default), divide accumulated sums by ``ro["length"]``
             to match ``acquire()``'s length normalization. Skipped for
             edge-counting readouts.
+        skip_average : bool, optional
+            If True, skip the averaging over reps (default False). This is
+            used when thresholding is needed, as threshold should be applied
+            to raw data before averaging.
 
         Returns
         -------
         list of numpy.ndarray
-            One entry per readout channel, shaped
-            ``(trigs, *remaining_loop_dims, 2)``.
+            One entry per readout channel. Shape is
+            ``(trigs, *remaining_loop_dims, 2)`` by default, or
+            ``(*loop_dims, trigs, 2)`` if ``skip_average=True``.
         """
         emu_dir = pathlib.Path(emu_dir)
 
@@ -1973,13 +1979,22 @@ class QickEmu:
             # Reshape flat (N, 2) into (*loop_dims, trigs, 2).
             shape = tuple(prog.loop_dims) + (ro["trigs"], 2)
             d = d.reshape(shape)
-            # Average over the reps/avg axis.
-            d = d.mean(axis=prog.avg_level)
-            if length_norm and not ro.get("edge_counting", False):
-                d = d / ro["length"]
-            # Move trigs axis to the front (acquire() convention).
-            d = np.moveaxis(d, -2, 0)
-            result.append(d)
+            # When skip_average=True, we want raw data before averaging (to preserve reps dimension)
+            # When skip_average=False, we average and normalize
+            if skip_average:
+                # Keep raw data with reps dimension: (*loop_dims, trigs, 2)
+                # But still apply length normalization
+                if length_norm and not ro.get("edge_counting", False):
+                    d = d / ro["length"]
+                result.append(d)  # (*loop_dims, trigs, 2) = (3, 10, 2, 2) - same as HW acc_buf
+            else:
+                # Average over the reps/avg axis.
+                d = d.mean(axis=prog.avg_level)
+                if length_norm and not ro.get("edge_counting", False):
+                    d = d / ro["length"]
+                # Normalize format (trigs, *loop_dims, 2)
+                d = np.moveaxis(d, -2, 0)
+                result.append(d)
         return result
 
     def export_vivado_files(

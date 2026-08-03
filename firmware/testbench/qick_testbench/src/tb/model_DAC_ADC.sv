@@ -55,7 +55,8 @@ endmodule
 module automatic model_ADC #(
    parameter integer ADC_W = 16,
    parameter integer BUFFER_SIZE = 16,
-   parameter integer N_DDS = 8
+   parameter integer N_DDS = 8,
+   parameter real ADC_NOISE_STD = 0.0
 )(
    input wire clk_DAC,
    input real dac_signal_rf,
@@ -110,10 +111,14 @@ module automatic model_ADC #(
    // real buf_time_2 = buffer_times[2];
    // real buf_time_3 = buffer_times[3];
 
+   real adc_noise;
+   int noise_seed = 1;
+
    // ADC processing
    always @(posedge clk_ADC) begin
       real t_adc = $realtime /* * 1e-9*/;
       real val;
+
       case (mode)
          0: begin
                // ZOH: last value
@@ -136,9 +141,13 @@ module automatic model_ADC #(
          default: val = 0.0;
       endcase
 
-      if (val > 1.0)          sampled_ADC = 1.0;
-      else if (val < -1.0)    sampled_ADC = -1.0;
-      else                    sampled_ADC = val;
+      noise_seed = noise_seed + 1;
+      adc_noise = ADC_NOISE_STD * $dist_normal(noise_seed, 0, 1000) / 1000.0;
+      // $display("[%0t ns] ADC noise: %f", $time, adc_noise);
+
+      if (val + adc_noise > 1.0)          sampled_ADC = 1.0;
+      else if (val + adc_noise < -1.0)    sampled_ADC = -1.0;
+      else                                sampled_ADC = val + adc_noise;
       adc_sample = sampled_ADC * $signed(2**(ADC_W-1)-1);
 
       if (axis_samp_cnt < N_DDS-1) begin
