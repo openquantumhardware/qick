@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_emu_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="axi_vip_pkg" />
+            <top_module name="complex_fixed_pkg" />
+            <top_module name="conv_pkg" />
+            <top_module name="glbl" />
+            <top_module name="pfb_ctrl_pkg" />
+            <top_module name="std" />
+            <top_module name="tb_emu" />
+            <top_module name="xil_common_vip_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="242.957828 us"></ZoomEndTime>
+      <Cursor1Time time="1.000000 us"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="265"></NameColumnWidth>
+      <ValueColumnWidth column_width="106"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="9" />
+   <wvobject type="group" fp_name="group198">
+      <obj_property name="label">AXI</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_aclk">
+         <obj_property name="ElementShortName">s_axi_aclk</obj_property>
+         <obj_property name="ObjectShortName">s_axi_aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_aresetn">
+         <obj_property name="ElementShortName">s_axi_aresetn</obj_property>
+         <obj_property name="ObjectShortName">s_axi_aresetn</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_awaddr">
+         <obj_property name="ElementShortName">s_axi_awaddr[5:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_awaddr[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_awprot">
+         <obj_property name="ElementShortName">s_axi_awprot[2:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_awprot[2:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_awvalid">
+         <obj_property name="ElementShortName">s_axi_awvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axi_awvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_awready">
+         <obj_property name="ElementShortName">s_axi_awready</obj_property>
+         <obj_property name="ObjectShortName">s_axi_awready</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_wdata">
+         <obj_property name="ElementShortName">s_axi_wdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_wdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_wstrb">
+         <obj_property name="ElementShortName">s_axi_wstrb[3:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_wstrb[3:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_wvalid">
+         <obj_property name="ElementShortName">s_axi_wvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axi_wvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_wready">
+         <obj_property name="ElementShortName">s_axi_wready</obj_property>
+         <obj_property name="ObjectShortName">s_axi_wready</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_bresp">
+         <obj_property name="ElementShortName">s_axi_bresp[1:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_bresp[1:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_bvalid">
+         <obj_property name="ElementShortName">s_axi_bvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axi_bvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_bready">
+         <obj_property name="ElementShortName">s_axi_bready</obj_property>
+         <obj_property name="ObjectShortName">s_axi_bready</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_araddr">
+         <obj_property name="ElementShortName">s_axi_araddr[5:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_araddr[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_arprot">
+         <obj_property name="ElementShortName">s_axi_arprot[2:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_arprot[2:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_arvalid">
+         <obj_property name="ElementShortName">s_axi_arvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axi_arvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_arready">
+         <obj_property name="ElementShortName">s_axi_arready</obj_property>
+         <obj_property name="ObjectShortName">s_axi_arready</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_rdata">
+         <obj_property name="ElementShortName">s_axi_rdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_rdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axi_rresp">
+         <obj_property name="ElementShortName">s_axi_rresp[1:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axi_rresp[1:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_rvalid">
+         <obj_property name="ElementShortName">s_axi_rvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axi_rvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axi_rready">
+         <obj_property name="ElementShortName">s_axi_rready</obj_property>
+         <obj_property name="ObjectShortName">s_axi_rready</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group1344">
+      <obj_property name="label">INPUT</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/aresetn">
+         <obj_property name="ElementShortName">aresetn</obj_property>
+         <obj_property name="ObjectShortName">aresetn</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/aclk">
+         <obj_property name="ElementShortName">aclk</obj_property>
+         <obj_property name="ObjectShortName">aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/s_axis_tvalid">
+         <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/s_axis_tdata">
+         <obj_property name="ElementShortName">s_axis_tdata[127:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tdata[127:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/din_ii">
+         <obj_property name="ElementShortName">din_ii[0:7][31:0]</obj_property>
+         <obj_property name="ObjectShortName">din_ii[0:7][31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group354">
+      <obj_property name="label">TOP</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/m0_axis_tvalid">
+         <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/m0_axis_tdata">
+         <obj_property name="ElementShortName">m0_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/m1_axis_tvalid">
+         <obj_property name="ElementShortName">m1_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/m1_axis_tdata">
+         <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/m2_axis_tvalid">
+         <obj_property name="ElementShortName">m2_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/m2_axis_tdata">
+         <obj_property name="ElementShortName">m2_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/m3_axis_tvalid">
+         <obj_property name="ElementShortName">m3_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/m3_axis_tdata">
+         <obj_property name="ElementShortName">m3_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1268">
+         <obj_property name="label">ANALOG_WAVES</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_emu/dout0_real">
+            <obj_property name="ElementShortName">dout0_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout0_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout0_imag">
+            <obj_property name="ElementShortName">dout0_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout0_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout1_real">
+            <obj_property name="ElementShortName">dout1_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout1_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout1_imag">
+            <obj_property name="ElementShortName">dout1_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout1_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout2_real">
+            <obj_property name="ElementShortName">dout2_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout2_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout2_imag">
+            <obj_property name="ElementShortName">dout2_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout2_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout3_real">
+            <obj_property name="ElementShortName">dout3_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout3_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/dout3_imag">
+            <obj_property name="ElementShortName">dout3_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">dout3_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group929">
+      <obj_property name="label">PFB</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_tvalid">
+         <obj_property name="ElementShortName">firs_tvalid</obj_property>
+         <obj_property name="ObjectShortName">firs_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_tlast">
+         <obj_property name="ElementShortName">firs_tlast</obj_property>
+         <obj_property name="ObjectShortName">firs_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_tdata">
+         <obj_property name="ElementShortName">firs_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">firs_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/switch_tvalid">
+         <obj_property name="ElementShortName">switch_tvalid</obj_property>
+         <obj_property name="ObjectShortName">switch_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/switch_tlast">
+         <obj_property name="ElementShortName">switch_tlast</obj_property>
+         <obj_property name="ObjectShortName">switch_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/switch_tdata">
+         <obj_property name="ElementShortName">switch_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">switch_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tvalid">
+         <obj_property name="ElementShortName">ssrfft_tvalid</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tlast">
+         <obj_property name="ElementShortName">ssrfft_tlast</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tdata">
+         <obj_property name="ElementShortName">ssrfft_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tvalid">
+         <obj_property name="ElementShortName">m_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tlast">
+         <obj_property name="ElementShortName">m_axis_tlast</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tdata">
+         <obj_property name="ElementShortName">m_axis_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tdata[255:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group1021">
+      <obj_property name="label">DDSPROD</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/s_axis_tvalid">
+         <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/m_axis_tvalid">
+         <obj_property name="ElementShortName">m_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/m0_axis_tdata">
+         <obj_property name="ElementShortName">m0_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/m1_axis_tdata">
+         <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/m2_axis_tdata">
+         <obj_property name="ElementShortName">m2_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/ddsprod_v_i/m3_axis_tdata">
+         <obj_property name="ElementShortName">m3_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject fp_name="divider646" type="divider">
+      <obj_property name="label">EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject type="group" fp_name="group639">
+      <obj_property name="label">TOP_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m0_axis_tvalid">
+         <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/m0_axis_tdata">
+         <obj_property name="ElementShortName">m0_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m1_axis_tvalid">
+         <obj_property name="ElementShortName">m1_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/m1_axis_tdata">
+         <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m2_axis_tvalid">
+         <obj_property name="ElementShortName">m2_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/m2_axis_tdata">
+         <obj_property name="ElementShortName">m2_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m3_axis_tvalid">
+         <obj_property name="ElementShortName">m3_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/m3_axis_tdata">
+         <obj_property name="ElementShortName">m3_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="group" fp_name="group1353">
+         <obj_property name="label">ANALOG_WAVES</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout0_real">
+            <obj_property name="ElementShortName">emu_dout0_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout0_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout0_imag">
+            <obj_property name="ElementShortName">emu_dout0_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout0_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout1_real">
+            <obj_property name="ElementShortName">emu_dout1_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout1_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout1_imag">
+            <obj_property name="ElementShortName">emu_dout1_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout1_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout2_real">
+            <obj_property name="ElementShortName">emu_dout2_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout2_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout2_imag">
+            <obj_property name="ElementShortName">emu_dout2_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout2_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout3_real">
+            <obj_property name="ElementShortName">emu_dout3_real[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout3_real[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+         <wvobject type="array" fp_name="/tb_emu/emu_dout3_imag">
+            <obj_property name="ElementShortName">emu_dout3_imag[15:0]</obj_property>
+            <obj_property name="ObjectShortName">emu_dout3_imag[15:0]</obj_property>
+            <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+            <obj_property name="CellHeight">100</obj_property>
+            <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         </wvobject>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group933">
+      <obj_property name="label">PFB_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_tvalid">
+         <obj_property name="ElementShortName">firs_tvalid</obj_property>
+         <obj_property name="ObjectShortName">firs_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_tlast">
+         <obj_property name="ElementShortName">firs_tlast</obj_property>
+         <obj_property name="ObjectShortName">firs_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_tdata">
+         <obj_property name="ElementShortName">firs_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">firs_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/switch_tvalid">
+         <obj_property name="ElementShortName">switch_tvalid</obj_property>
+         <obj_property name="ObjectShortName">switch_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/switch_tlast">
+         <obj_property name="ElementShortName">switch_tlast</obj_property>
+         <obj_property name="ObjectShortName">switch_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/switch_tdata">
+         <obj_property name="ElementShortName">switch_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">switch_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tvalid">
+         <obj_property name="ElementShortName">ssrfft_tvalid</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tlast">
+         <obj_property name="ElementShortName">ssrfft_tlast</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/ssrfft_tdata">
+         <obj_property name="ElementShortName">ssrfft_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">ssrfft_tdata[255:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tvalid">
+         <obj_property name="ElementShortName">m_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tlast">
+         <obj_property name="ElementShortName">m_axis_tlast</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/m_axis_tdata">
+         <obj_property name="ElementShortName">m_axis_tdata[255:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tdata[255:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group645">
+      <obj_property name="label">DDSPROD_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/s_axis_tvalid">
+         <obj_property name="ElementShortName">s_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m_axis_tvalid">
+         <obj_property name="ElementShortName">m_axis_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m0_axis_tdata">
+         <obj_property name="ElementShortName">m0_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m0_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m1_axis_tdata">
+         <obj_property name="ElementShortName">m1_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m1_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m2_axis_tdata">
+         <obj_property name="ElementShortName">m2_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m2_axis_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m3_axis_tdata">
+         <obj_property name="ElementShortName">m3_axis_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+</wave_config>

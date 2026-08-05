@@ -125,9 +125,11 @@ end
 
     integer k;
     always_ff @(posedge aclk) begin
-        // Remaining pipeline stages
-        for (k = 1; k < DDS_LATENCY; k++) begin
-            data_pipe[k] <= data_pipe[k-1];
+        if (s_axis_phase_tvalid) begin
+            // Remaining pipeline stages
+            for (k = 1; k < DDS_LATENCY; k++) begin
+                data_pipe[k] <= data_pipe[k-1];
+            end
         end
     end
 
@@ -140,14 +142,11 @@ end
     // logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
-        if (!s_axis_phase_tvalid) begin
-            valid_pipe <= '0; // reset the valid pipeline when input is not valid
-        end
-        else begin
+        if (s_axis_phase_tvalid) begin
             valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], 1'b1}; // shift in 1's when input is valid
         end
     end
 
-    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1];
+    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1] & s_axis_phase_tvalid; // output valid when last stage of pipeline is valid and input is valid
 
 endmodule

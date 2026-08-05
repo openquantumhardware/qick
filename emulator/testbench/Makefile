@@ -19,7 +19,7 @@ MODELS_DIR      = $(EMU_DIR)/models
 BRAM_DP_DIR     = $(MODELS_DIR)/bram_dp
 FIFO_DIR        = $(MODELS_DIR)/fifo
 DAC_MODEL_DIR   = $(MODELS_DIR)/dac_model
-SIG_GEN_DDS_DIR = $(MODELS_DIR)/sig_gen_dds
+DDS_MODEL_DIR = $(MODELS_DIR)/dds_model
 
 TOP_MODULE_PARAMS = 
 # -param EXAMPLE1=32 -param EXAMPLE2=16 
@@ -80,7 +80,7 @@ VERILOG_SOURCES = \
 	$(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
 	$(wildcard $(MODELS_DIR)/fifo/*.sv) \
 	$(wildcard $(MODELS_DIR)/fir/*.sv) \
-	$(wildcard $(MODELS_DIR)/sig_gen_dds/*.sv) \
+	$(wildcard $(MODELS_DIR)/dds_model/*.sv) \
 	\
 	$(COM_VERIF_DIR)/src/rand_id_queue.sv \
 	$(AXI_DIR)/src/axi_intf.sv \
@@ -110,8 +110,8 @@ VERILATOR_FLAGS = --binary --exe --build -j 0 -Wall $(VERILATOR_TRACE_FLAG) --Wn
 	-y $(BRAM_DP_DIR) \
 	-y $(FIFO_DIR) \
 	-y $(DAC_MODEL_DIR) \
-	-y $(SIG_GEN_DDS_DIR) \
-	-y $(SIG_GEN_DDS_DIR)/src \
+	-y $(DDS_MODEL_DIR) \
+	-y $(DDS_MODEL_DIR)/src \
 	-y $(FIRMWARE_DIR)/ip/common \
 	-y $(FIRMWARE_DIR)/ip/qick_common
 

@@ -96,7 +96,8 @@ pfb_switch
 
 // SSR FFT 8x64 Sync.
 generate
-if (!EMULATOR) begin : gen_ssrfft_synth
+// if (!EMULATOR) begin : gen_ssrfft_synth
+if (1) begin : gen_ssrfft_synth
 
 ssrfft_8x64_sync
 	#(

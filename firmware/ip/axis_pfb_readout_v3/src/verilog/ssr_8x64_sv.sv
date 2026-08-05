@@ -210,20 +210,20 @@ module ssr_8x64_sv #(
         end
     end
 
-    initial begin
-        in_cycle_idx      = 0;
-        out_cycle_idx     = 0;
-        latency_ctr       = 0;
-        out_stream_active = 1'b0;
-        frame_scale       = 6'd0;
+    // initial begin
+    //     in_cycle_idx      = 0;
+    //     out_cycle_idx     = 0;
+    //     latency_ctr       = 0;
+    //     out_stream_active = 1'b0;
+    //     frame_scale       = 6'd0;
 
-        o_re_0 = '0; o_re_1 = '0; o_re_2 = '0; o_re_3 = '0;
-        o_re_4 = '0; o_re_5 = '0; o_re_6 = '0; o_re_7 = '0;
-        o_im_0 = '0; o_im_1 = '0; o_im_2 = '0; o_im_3 = '0;
-        o_im_4 = '0; o_im_5 = '0; o_im_6 = '0; o_im_7 = '0;
+    //     o_re_0 = '0; o_re_1 = '0; o_re_2 = '0; o_re_3 = '0;
+    //     o_re_4 = '0; o_re_5 = '0; o_re_6 = '0; o_re_7 = '0;
+    //     o_im_0 = '0; o_im_1 = '0; o_im_2 = '0; o_im_3 = '0;
+    //     o_im_4 = '0; o_im_5 = '0; o_im_6 = '0; o_im_7 = '0;
 
-        o_valid = '0;
-        o_scale = '0;
-    end
+    //     o_valid = '0;
+    //     o_scale = '0;
+    // end
 
 endmodule
