@@ -418,7 +418,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>9bf5fb0e</spirit:value>
+            <spirit:value>a3471ca6</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -440,7 +440,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>9bf5fb0e</spirit:value>
+            <spirit:value>a3471ca6</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -469,6 +469,20 @@
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
             <spirit:value>5fe144f7</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+      <spirit:view>
+        <spirit:name>xilinx_testbench</spirit:name>
+        <spirit:displayName>Test Bench</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:simulation.testbench</spirit:envIdentifier>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_testbench_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>664ccc57</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1049,7 +1063,7 @@
       <spirit:file>
         <spirit:name>src/dds/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/dds_i</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/gen_dds_synth.dds_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/fir/fir_7/fir_7.xci</spirit:name>
@@ -1094,66 +1108,82 @@
       <spirit:file>
         <spirit:name>src/dds/cmult_16x16.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/cmult_sub.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/latency_reg.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/mult_32x32.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb_readout.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_switch.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/dds_ctrl.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/dds_top.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod_v.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/firs.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_chsel.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_reorder.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_swap.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_top.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axi_slv.vhd</spirit:name>
@@ -1250,7 +1280,8 @@
       <spirit:file>
         <spirit:name>src/axis_pfb_readout_v3.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_dbf48f9f</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_d68173f6</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -1310,7 +1341,7 @@
       <spirit:file>
         <spirit:name>src/dds/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/dds_i</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/gen_dds_synth.dds_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/fir/fir_7/fir_7.xci</spirit:name>
@@ -1355,66 +1386,82 @@
       <spirit:file>
         <spirit:name>src/dds/cmult_16x16.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/cmult_sub.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/latency_reg.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/mult_32x32.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb_readout.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_switch.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/dds_ctrl.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/dds/dds_top.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/ddsprod_v.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/firs.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_chsel.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_reorder.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_swap.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/pfb_top.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/axi_slv.vhd</spirit:name>
@@ -1511,6 +1558,7 @@
       <spirit:file>
         <spirit:name>src/axis_pfb_readout_v3.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -1546,7 +1594,22 @@
       <spirit:name>xilinx_utilityxitfiles_view_fileset</spirit:name>
       <spirit:file>
         <spirit:name>../../common_ip_files/ip_logos/logoQICK_128x128.png</spirit:name>
+        <spirit:userFileType>image</spirit:userFileType>
         <spirit:userFileType>LOGO</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_testbench_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>tb/axi_mst_0/axi_mst_0.xci</spirit:name>
+        <spirit:userFileType>xci</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>tb/tb.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+        <spirit:userFileType>USED_IN_simulation</spirit:userFileType>
+        <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
+        <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
@@ -1574,14 +1637,14 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
-      <xilinx:coreRevision>3</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2024-03-06T15:43:08Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>4</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2026-08-04T06:40:53Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
-      <xilinx:xilinxVersion>2022.1</xilinx:xilinxVersion>
+      <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="de7f6fea"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c930e363"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="c348152e"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="5358afef"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="d7721178"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="5a13634e"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="e9e31b05"/>
