@@ -86,6 +86,16 @@ module ssrfft_8x64_sync_sv #(
         end
     endgenerate
 
+    tlast_gen_sv #(
+        .NFFT (NFFT),
+        .SSR  (SSR)
+    ) tlast_gen_i (
+        .rstn    (aresetn),
+        .clk     (aclk),
+        .en      (fft_o_valid[0]),
+        .o_tlast (m_axis_tlast)
+    );
+
     ssr_8x64_sv #(
         .FFT_LATENCY (FFT_LATENCY)
     ) ssr_8x64_i (
@@ -109,16 +119,7 @@ module ssrfft_8x64_sync_sv #(
         .o_scale (fft_o_scale)
     );
 
-    tlast_gen_sv #(
-        .NFFT (NFFT),
-        .SSR  (SSR)
-    ) tlast_gen_i (
-        .rstn    (aresetn),
-        .clk     (aclk),
-        .en      (fft_o_valid[0]),
-        .o_tlast (m_axis_tlast)
-    );
-
+    // Assign outputs.
     assign m_axis_tvalid = fft_o_valid[0];
 
     generate

@@ -27,26 +27,26 @@ module ssr_8x64_sv #(
     input  logic signed [15:0]      i_im_6,
     input  logic signed [15:0]      i_im_7,
 
-    output logic signed [26:0]      o_re_0,
-    output logic signed [26:0]      o_re_1,
-    output logic signed [26:0]      o_re_2,
-    output logic signed [26:0]      o_re_3,
-    output logic signed [26:0]      o_re_4,
-    output logic signed [26:0]      o_re_5,
-    output logic signed [26:0]      o_re_6,
-    output logic signed [26:0]      o_re_7,
+    output logic signed [26:0]      o_re_0 = '0,
+    output logic signed [26:0]      o_re_1 = '0,
+    output logic signed [26:0]      o_re_2 = '0,
+    output logic signed [26:0]      o_re_3 = '0,
+    output logic signed [26:0]      o_re_4 = '0,
+    output logic signed [26:0]      o_re_5 = '0,
+    output logic signed [26:0]      o_re_6 = '0,
+    output logic signed [26:0]      o_re_7 = '0,
 
-    output logic signed [26:0]      o_im_0,
-    output logic signed [26:0]      o_im_1,
-    output logic signed [26:0]      o_im_2,
-    output logic signed [26:0]      o_im_3,
-    output logic signed [26:0]      o_im_4,
-    output logic signed [26:0]      o_im_5,
-    output logic signed [26:0]      o_im_6,
-    output logic signed [26:0]      o_im_7,
+    output logic signed [26:0]      o_im_0 = '0,
+    output logic signed [26:0]      o_im_1 = '0,
+    output logic signed [26:0]      o_im_2 = '0,
+    output logic signed [26:0]      o_im_3 = '0,
+    output logic signed [26:0]      o_im_4 = '0,
+    output logic signed [26:0]      o_im_5 = '0,
+    output logic signed [26:0]      o_im_6 = '0,
+    output logic signed [26:0]      o_im_7 = '0,
 
-    output logic [0:0]              o_valid,
-    output logic [5:0]              o_scale
+    output logic [0:0]              o_valid = '0,
+    output logic [5:0]              o_scale = '0
 );
 
     localparam int NFFT  = 64;
@@ -62,12 +62,12 @@ module ssr_8x64_sv #(
     logic signed [26:0] out_re_mem [0:NFFT-1];
     logic signed [26:0] out_im_mem [0:NFFT-1];
 
-    int in_cycle_idx;
-    int out_cycle_idx;
-    int latency_ctr;
+    int in_cycle_idx      = 0;
+    int out_cycle_idx     = 0;
+    int latency_ctr       = 0;
 
-    logic       out_stream_active;
-    logic [5:0] frame_scale;
+    logic       out_stream_active = 1'b0;
+    logic [5:0] frame_scale       = 6'd0;
 
     function automatic logic signed [26:0] sat27(input real x);
         real maxv;
@@ -157,15 +157,15 @@ module ssr_8x64_sv #(
 
         if (i_valid[0]) begin
             for (lane = 0; lane < LANES; lane = lane + 1) begin
-                frame_re[in_cycle_idx*LANES + lane] <= in_re_lanes[lane];
-                frame_im[in_cycle_idx*LANES + lane] <= in_im_lanes[lane];
+                frame_re[in_cycle_idx*LANES + lane] = in_re_lanes[lane];
+                frame_im[in_cycle_idx*LANES + lane] = in_im_lanes[lane];
             end
 
             if (in_cycle_idx == (NFFT/LANES - 1)) begin
                 in_cycle_idx <= 0;
                 frame_scale  <= i_scale;
                 compute_fft_and_store(i_scale);
-                latency_ctr <= FFT_LATENCY;
+                latency_ctr <= FFT_LATENCY - 1;
             end else begin
                 in_cycle_idx <= in_cycle_idx + 1;
             end
@@ -209,21 +209,5 @@ module ssr_8x64_sv #(
             end
         end
     end
-
-    // initial begin
-    //     in_cycle_idx      = 0;
-    //     out_cycle_idx     = 0;
-    //     latency_ctr       = 0;
-    //     out_stream_active = 1'b0;
-    //     frame_scale       = 6'd0;
-
-    //     o_re_0 = '0; o_re_1 = '0; o_re_2 = '0; o_re_3 = '0;
-    //     o_re_4 = '0; o_re_5 = '0; o_re_6 = '0; o_re_7 = '0;
-    //     o_im_0 = '0; o_im_1 = '0; o_im_2 = '0; o_im_3 = '0;
-    //     o_im_4 = '0; o_im_5 = '0; o_im_6 = '0; o_im_7 = '0;
-
-    //     o_valid = '0;
-    //     o_scale = '0;
-    // end
 
 endmodule
