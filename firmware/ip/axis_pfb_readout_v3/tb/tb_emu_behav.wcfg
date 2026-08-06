@@ -17,15 +17,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
-      <ZoomEndTime time="242.957828 us"></ZoomEndTime>
-      <Cursor1Time time="1.000000 us"></Cursor1Time>
+      <ZoomStartTime time="3,650.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="4,361.862 ns"></ZoomEndTime>
+      <Cursor1Time time="3,937.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
       <ValueColumnWidth column_width="106"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="9" />
+   <WVObjectSize size="11" />
    <wvobject type="group" fp_name="group198">
       <obj_property name="label">AXI</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -117,7 +117,6 @@
    <wvobject type="group" fp_name="group1344">
       <obj_property name="label">INPUT</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_emu/DUT/aresetn">
          <obj_property name="ElementShortName">aresetn</obj_property>
          <obj_property name="ObjectShortName">aresetn</obj_property>
@@ -142,7 +141,6 @@
    <wvobject type="group" fp_name="group354">
       <obj_property name="label">TOP</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_emu/DUT/m0_axis_tvalid">
          <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
          <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
@@ -323,7 +321,6 @@
    <wvobject type="group" fp_name="group639">
       <obj_property name="label">TOP_EMU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m0_axis_tvalid">
          <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
          <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
@@ -495,6 +492,94 @@
       <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/ddsprod_v_i/m3_axis_tdata">
          <obj_property name="ElementShortName">m3_axis_tdata[31:0]</obj_property>
          <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group1464">
+      <obj_property name="label">SSR_FFT</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_scale">
+         <obj_property name="ElementShortName">i_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_valid">
+         <obj_property name="ElementShortName">i_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">i_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_re_0">
+         <obj_property name="ElementShortName">i_re_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_re_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_im_0">
+         <obj_property name="ElementShortName">i_im_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_im_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_scale">
+         <obj_property name="ElementShortName">o_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">o_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_valid">
+         <obj_property name="ElementShortName">o_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">o_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_re_0">
+         <obj_property name="ElementShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_im_0">
+         <obj_property name="ElementShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group1470">
+      <obj_property name="label">SSR_FFT_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_valid">
+         <obj_property name="ElementShortName">i_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">i_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_scale">
+         <obj_property name="ElementShortName">i_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_re_0">
+         <obj_property name="ElementShortName">i_re_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_re_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_im_0">
+         <obj_property name="ElementShortName">i_im_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_im_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_scale">
+         <obj_property name="ElementShortName">o_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">o_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_valid">
+         <obj_property name="ElementShortName">o_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">o_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_re_0">
+         <obj_property name="ElementShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+         <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_im_0">
+         <obj_property name="ElementShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

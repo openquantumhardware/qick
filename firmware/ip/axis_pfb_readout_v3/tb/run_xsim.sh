@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TB_DIR="$SCRIPT_DIR"
 SRC_DIR="$(dirname "$TB_DIR")"
-SIM_DIR="$TB_DIR/sim_work_v2"
+SIM_DIR="$TB_DIR/sim_work"
 
 rm -rf "$SIM_DIR"
 mkdir -p "$SIM_DIR/xsim.dir/xil_defaultlib"

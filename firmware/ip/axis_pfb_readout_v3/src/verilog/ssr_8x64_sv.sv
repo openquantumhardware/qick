@@ -2,11 +2,17 @@
 
 // Behavioral 8-lane x 64-point complex FFT model.
 // Non-synthesizable model intended for simulation/emulation.
+//
+// Delay parameters are optimized externally to align I/O timing with a
+// golden reference model. The mathematical core remains a direct DFT
+// computation (simplified framework).
 module ssr_8x64_sv #(
-    parameter int FFT_LATENCY = 18
+    parameter int FFT_LATENCY    = 18,
+    parameter int INPUT_DELAY    = 4,
+    parameter int OUTPUT_DELAY   = 4
 )(
     input  logic                    clk,
-    input  logic [0:0]              i_valid,
+    input  logic                    i_valid,
     input  logic [5:0]              i_scale,
 
     input  logic signed [15:0]      i_re_0,
@@ -45,7 +51,7 @@ module ssr_8x64_sv #(
     output logic signed [26:0]      o_im_6 = '0,
     output logic signed [26:0]      o_im_7 = '0,
 
-    output logic [0:0]              o_valid = '0,
+    output logic                    o_valid = '0,
     output logic [5:0]              o_scale = '0
 );
 
@@ -68,6 +74,16 @@ module ssr_8x64_sv #(
 
     logic       out_stream_active = 1'b0;
     logic [5:0] frame_scale       = 6'd0;
+
+    logic        i_valid_d;
+    logic [5:0]  i_scale_d;
+
+    logic        o_valid_int;
+    logic [5:0]  o_scale_int;
+    logic signed [26:0] o_re_0_int, o_re_1_int, o_re_2_int, o_re_3_int;
+    logic signed [26:0] o_re_4_int, o_re_5_int, o_re_6_int, o_re_7_int;
+    logic signed [26:0] o_im_0_int, o_im_1_int, o_im_2_int, o_im_3_int;
+    logic signed [26:0] o_im_4_int, o_im_5_int, o_im_6_int, o_im_7_int;
 
     function automatic logic signed [26:0] sat27(input real x);
         real maxv;
@@ -150,12 +166,36 @@ module ssr_8x64_sv #(
         in_im_lanes[7] = i_im_7;
     end
 
+    // Input delay stage
+    generate
+        if (INPUT_DELAY > 0) begin : gen_in_delay
+            reg        id_valid  [0:INPUT_DELAY-1];
+            reg [5:0]  id_scale  [0:INPUT_DELAY-1];
+            integer i;
+
+            always_ff @(posedge clk) begin
+                id_valid[0] <= i_valid;
+                id_scale[0] <= i_scale;
+                for (i = 1; i < INPUT_DELAY; i = i + 1) begin
+                    id_valid[i] <= id_valid[i-1];
+                    id_scale[i] <= id_scale[i-1];
+                end
+            end
+
+            assign i_valid_d = id_valid[INPUT_DELAY-1];
+            assign i_scale_d = id_scale[INPUT_DELAY-1];
+        end else begin : gen_no_in_delay
+            assign i_valid_d = i_valid;
+            assign i_scale_d = i_scale;
+        end
+    endgenerate
+
     always_ff @(posedge clk) begin
         int lane;
 
-        o_valid <= 1'b0;
+        o_valid_int <= 1'b0;
 
-        if (i_valid[0]) begin
+        if (i_valid_d) begin
             for (lane = 0; lane < LANES; lane = lane + 1) begin
                 frame_re[in_cycle_idx*LANES + lane] = in_re_lanes[lane];
                 frame_im[in_cycle_idx*LANES + lane] = in_im_lanes[lane];
@@ -163,8 +203,8 @@ module ssr_8x64_sv #(
 
             if (in_cycle_idx == (NFFT/LANES - 1)) begin
                 in_cycle_idx <= 0;
-                frame_scale  <= i_scale;
-                compute_fft_and_store(i_scale);
+                frame_scale  <= i_scale_d;
+                compute_fft_and_store(i_scale_d);
                 latency_ctr <= FFT_LATENCY - 1;
             end else begin
                 in_cycle_idx <= in_cycle_idx + 1;
@@ -176,30 +216,30 @@ module ssr_8x64_sv #(
             if (latency_ctr == 1) begin
                 out_stream_active <= 1'b1;
                 out_cycle_idx     <= 0;
-                o_scale           <= frame_scale;
+                o_scale_int       <= frame_scale;
             end
         end
 
         if (out_stream_active) begin
-            o_valid <= 1'b1;
+            o_valid_int <= 1'b1;
 
-            o_re_0 <= out_re_mem[out_cycle_idx*LANES + 0];
-            o_re_1 <= out_re_mem[out_cycle_idx*LANES + 1];
-            o_re_2 <= out_re_mem[out_cycle_idx*LANES + 2];
-            o_re_3 <= out_re_mem[out_cycle_idx*LANES + 3];
-            o_re_4 <= out_re_mem[out_cycle_idx*LANES + 4];
-            o_re_5 <= out_re_mem[out_cycle_idx*LANES + 5];
-            o_re_6 <= out_re_mem[out_cycle_idx*LANES + 6];
-            o_re_7 <= out_re_mem[out_cycle_idx*LANES + 7];
+            o_re_0_int <= out_re_mem[out_cycle_idx*LANES + 0];
+            o_re_1_int <= out_re_mem[out_cycle_idx*LANES + 1];
+            o_re_2_int <= out_re_mem[out_cycle_idx*LANES + 2];
+            o_re_3_int <= out_re_mem[out_cycle_idx*LANES + 3];
+            o_re_4_int <= out_re_mem[out_cycle_idx*LANES + 4];
+            o_re_5_int <= out_re_mem[out_cycle_idx*LANES + 5];
+            o_re_6_int <= out_re_mem[out_cycle_idx*LANES + 6];
+            o_re_7_int <= out_re_mem[out_cycle_idx*LANES + 7];
 
-            o_im_0 <= out_im_mem[out_cycle_idx*LANES + 0];
-            o_im_1 <= out_im_mem[out_cycle_idx*LANES + 1];
-            o_im_2 <= out_im_mem[out_cycle_idx*LANES + 2];
-            o_im_3 <= out_im_mem[out_cycle_idx*LANES + 3];
-            o_im_4 <= out_im_mem[out_cycle_idx*LANES + 4];
-            o_im_5 <= out_im_mem[out_cycle_idx*LANES + 5];
-            o_im_6 <= out_im_mem[out_cycle_idx*LANES + 6];
-            o_im_7 <= out_im_mem[out_cycle_idx*LANES + 7];
+            o_im_0_int <= out_im_mem[out_cycle_idx*LANES + 0];
+            o_im_1_int <= out_im_mem[out_cycle_idx*LANES + 1];
+            o_im_2_int <= out_im_mem[out_cycle_idx*LANES + 2];
+            o_im_3_int <= out_im_mem[out_cycle_idx*LANES + 3];
+            o_im_4_int <= out_im_mem[out_cycle_idx*LANES + 4];
+            o_im_5_int <= out_im_mem[out_cycle_idx*LANES + 5];
+            o_im_6_int <= out_im_mem[out_cycle_idx*LANES + 6];
+            o_im_7_int <= out_im_mem[out_cycle_idx*LANES + 7];
 
             if (out_cycle_idx == (NFFT/LANES - 1)) begin
                 out_cycle_idx     <= 0;
@@ -209,5 +249,78 @@ module ssr_8x64_sv #(
             end
         end
     end
+
+    // Output delay stage
+    generate
+        if (OUTPUT_DELAY > 0) begin : gen_out_delay
+            localparam int MAX_DELAY = 16;
+            reg        od_valid  [0:MAX_DELAY-1];
+            reg [5:0]  od_scale  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_0  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_1  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_2  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_3  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_4  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_5  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_6  [0:MAX_DELAY-1];
+            reg signed [26:0] od_re_7  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_0  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_1  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_2  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_3  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_4  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_5  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_6  [0:MAX_DELAY-1];
+            reg signed [26:0] od_im_7  [0:MAX_DELAY-1];
+            integer i;
+
+            always_ff @(posedge clk) begin
+                od_valid[0] <= o_valid_int;
+                od_scale[0] <= o_scale_int;
+                od_re_0[0]  <= o_re_0_int;  od_im_0[0] <= o_im_0_int;
+                od_re_1[0]  <= o_re_1_int;  od_im_1[0] <= o_im_1_int;
+                od_re_2[0]  <= o_re_2_int;  od_im_2[0] <= o_im_2_int;
+                od_re_3[0]  <= o_re_3_int;  od_im_3[0] <= o_im_3_int;
+                od_re_4[0]  <= o_re_4_int;  od_im_4[0] <= o_im_4_int;
+                od_re_5[0]  <= o_re_5_int;  od_im_5[0] <= o_im_5_int;
+                od_re_6[0]  <= o_re_6_int;  od_im_6[0] <= o_im_6_int;
+                od_re_7[0]  <= o_re_7_int;  od_im_7[0] <= o_im_7_int;
+                for (i = 1; i < OUTPUT_DELAY; i = i + 1) begin
+                    od_valid[i] <= od_valid[i-1];
+                    od_scale[i] <= od_scale[i-1];
+                    od_re_0[i]  <= od_re_0[i-1];   od_im_0[i] <= od_im_0[i-1];
+                    od_re_1[i]  <= od_re_1[i-1];   od_im_1[i] <= od_im_1[i-1];
+                    od_re_2[i]  <= od_re_2[i-1];   od_im_2[i] <= od_im_2[i-1];
+                    od_re_3[i]  <= od_re_3[i-1];   od_im_3[i] <= od_im_3[i-1];
+                    od_re_4[i]  <= od_re_4[i-1];   od_im_4[i] <= od_im_4[i-1];
+                    od_re_5[i]  <= od_re_5[i-1];   od_im_5[i] <= od_im_5[i-1];
+                    od_re_6[i]  <= od_re_6[i-1];   od_im_6[i] <= od_im_6[i-1];
+                    od_re_7[i]  <= od_re_7[i-1];   od_im_7[i] <= od_im_7[i-1];
+                end
+            end
+
+            assign o_valid = od_valid[OUTPUT_DELAY-1];
+            assign o_scale = od_scale[OUTPUT_DELAY-1];
+            assign o_re_0  = od_re_0[OUTPUT_DELAY-1];   assign o_im_0 = od_im_0[OUTPUT_DELAY-1];
+            assign o_re_1  = od_re_1[OUTPUT_DELAY-1];   assign o_im_1 = od_im_1[OUTPUT_DELAY-1];
+            assign o_re_2  = od_re_2[OUTPUT_DELAY-1];   assign o_im_2 = od_im_2[OUTPUT_DELAY-1];
+            assign o_re_3  = od_re_3[OUTPUT_DELAY-1];   assign o_im_3 = od_im_3[OUTPUT_DELAY-1];
+            assign o_re_4  = od_re_4[OUTPUT_DELAY-1];   assign o_im_4 = od_im_4[OUTPUT_DELAY-1];
+            assign o_re_5  = od_re_5[OUTPUT_DELAY-1];   assign o_im_5 = od_im_5[OUTPUT_DELAY-1];
+            assign o_re_6  = od_re_6[OUTPUT_DELAY-1];   assign o_im_6 = od_im_6[OUTPUT_DELAY-1];
+            assign o_re_7  = od_re_7[OUTPUT_DELAY-1];   assign o_im_7 = od_im_7[OUTPUT_DELAY-1];
+        end else begin : gen_no_out_delay
+            assign o_valid = o_valid_int;
+            assign o_scale = o_scale_int;
+            assign o_re_0  = o_re_0_int;  assign o_im_0 = o_im_0_int;
+            assign o_re_1  = o_re_1_int;  assign o_im_1 = o_im_1_int;
+            assign o_re_2  = o_re_2_int;  assign o_im_2 = o_im_2_int;
+            assign o_re_3  = o_re_3_int;  assign o_im_3 = o_im_3_int;
+            assign o_re_4  = o_re_4_int;  assign o_im_4 = o_im_4_int;
+            assign o_re_5  = o_re_5_int;  assign o_im_5 = o_im_5_int;
+            assign o_re_6  = o_re_6_int;  assign o_im_6 = o_im_6_int;
+            assign o_re_7  = o_re_7_int;  assign o_im_7 = o_im_7_int;
+        end
+    endgenerate
 
 endmodule
