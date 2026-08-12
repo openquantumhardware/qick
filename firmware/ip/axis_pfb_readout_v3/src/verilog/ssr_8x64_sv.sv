@@ -63,35 +63,24 @@ module ssr_8x64_sv #(
     logic signed [15:0] in_re_lanes_d [0:LANES-1];
     logic signed [15:0] in_im_lanes_d [0:LANES-1];
 
-    // Pipeline buffers for continuous streaming
-    localparam int PIPELINE_FRAMES = 4;
-    logic signed [15:0] frame_re_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
-    logic signed [15:0] frame_im_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
-    logic [5:0]         frame_scale_buf [0:PIPELINE_FRAMES-1];
-    logic               frame_valid     [0:PIPELINE_FRAMES-1];
+    // Output frame queue for continuous streaming.
+    localparam int PIPELINE_FRAMES = 32;
+    logic signed [26:0] out_re_frame_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
+    logic signed [26:0] out_im_frame_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
+    logic [5:0]         out_scale_frame_buf [0:PIPELINE_FRAMES-1];
+    logic               frame_pending [0:PIPELINE_FRAMES-1];
+    int                 frame_latency_ctr [0:PIPELINE_FRAMES-1];
     int                 write_frame_ptr = 0;
     int                 read_frame_ptr  = 0;
-    int                 frames_ready    = 0;
-
-    // Shadow buffer for output streaming
-    logic signed [26:0] out_re_shadow [0:NFFT-1];
-    logic signed [26:0] out_im_shadow [0:NFFT-1];
-    logic [5:0]         out_scale_shadow = 6'd0;
-    logic               out_valid_shadow = 1'b0;
-    int                 out_shadow_idx  = 0;
+    int                 active_frame_ptr = 0;
 
     logic signed [15:0] frame_re [0:NFFT-1];
     logic signed [15:0] frame_im [0:NFFT-1];
 
-    logic signed [26:0] out_re_mem [0:NFFT-1];
-    logic signed [26:0] out_im_mem [0:NFFT-1];
-
     int in_cycle_idx      = 0;
     int out_cycle_idx     = 0;
-    int latency_ctr       = 0;
 
     logic       out_stream_active = 1'b0;
-    logic [5:0] frame_scale       = 6'd0;
 
     logic        i_valid_d;
     logic [5:0]  i_scale_d;
@@ -125,7 +114,10 @@ module ssr_8x64_sv #(
         end
     endfunction
 
-    task automatic compute_fft_and_store(input logic [5:0] scale_s);
+    task automatic compute_fft_and_store(
+        input logic [5:0] scale_s,
+        input int frame_slot
+    );
         real xr;
         real xi;
         real wr;
@@ -162,8 +154,8 @@ module ssr_8x64_sv #(
                 sum_r = sum_r / scale_div;
                 sum_i = sum_i / scale_div;
 
-                out_re_mem[k] = sat27(sum_r);
-                out_im_mem[k] = sat27(sum_i);
+                out_re_frame_buf[frame_slot][k] = sat27(sum_r);
+                out_im_frame_buf[frame_slot][k] = sat27(sum_i);
             end
         end
     endtask
@@ -238,6 +230,11 @@ module ssr_8x64_sv #(
 
     // Pipeline FFT processing - continuous streaming
     always_ff @(posedge clk) begin
+        bit emit_this_cycle;
+        int emit_frame_ptr;
+        int emit_beat_idx;
+        int next_frame_ptr;
+
         // Default low; assert only while a frame is actively being emitted.
         o_valid_int <= 1'b0;
 
@@ -250,49 +247,78 @@ module ssr_8x64_sv #(
 
             if (in_cycle_idx == (NFFT/LANES - 1)) begin
                 in_cycle_idx <= 0;
-                frame_scale  <= i_scale_d;
-                compute_fft_and_store(i_scale_d);
-                latency_ctr <= FFT_LATENCY - 1;
+
+                if (frame_pending[write_frame_ptr]) begin
+                    $error("ssr_8x64_sv frame queue overflow at slot %0d", write_frame_ptr);
+                end
+
+                compute_fft_and_store(i_scale_d, write_frame_ptr);
+                out_scale_frame_buf[write_frame_ptr] <= i_scale_d;
+                frame_pending[write_frame_ptr] <= 1'b1;
+                frame_latency_ctr[write_frame_ptr] <= FFT_LATENCY - 1;
+
+                if (write_frame_ptr == (PIPELINE_FRAMES - 1)) begin
+                    write_frame_ptr <= 0;
+                end else begin
+                    write_frame_ptr <= write_frame_ptr + 1;
+                end
             end else begin
                 in_cycle_idx <= in_cycle_idx + 1;
             end
         end
 
-        if (latency_ctr > 0) begin
-            latency_ctr <= latency_ctr - 1;
-            if (latency_ctr == 1) begin
-                out_stream_active <= 1'b1;
-                out_cycle_idx     <= 0;
-                o_scale_int       <= frame_scale;
+        for (int frame_idx = 0; frame_idx < PIPELINE_FRAMES; frame_idx = frame_idx + 1) begin
+            if (frame_pending[frame_idx] && (frame_latency_ctr[frame_idx] > 0)) begin
+                frame_latency_ctr[frame_idx] <= frame_latency_ctr[frame_idx] - 1;
             end
         end
 
-        if (out_stream_active) begin
+        emit_this_cycle = out_stream_active || (frame_pending[read_frame_ptr] && (frame_latency_ctr[read_frame_ptr] == 0));
+        emit_frame_ptr  = out_stream_active ? active_frame_ptr : read_frame_ptr;
+        emit_beat_idx   = out_stream_active ? out_cycle_idx : 0;
+        next_frame_ptr  = (emit_frame_ptr == (PIPELINE_FRAMES - 1)) ? 0 : (emit_frame_ptr + 1);
+
+        if (!emit_this_cycle) begin
+            out_stream_active <= 1'b0;
+        end
+
+        if (emit_this_cycle) begin
             o_valid_int <= 1'b1;
+            o_scale_int <= out_scale_frame_buf[emit_frame_ptr];
 
-            o_re_0_int <= out_re_mem[out_cycle_idx*LANES + 0];
-            o_re_1_int <= out_re_mem[out_cycle_idx*LANES + 1];
-            o_re_2_int <= out_re_mem[out_cycle_idx*LANES + 2];
-            o_re_3_int <= out_re_mem[out_cycle_idx*LANES + 3];
-            o_re_4_int <= out_re_mem[out_cycle_idx*LANES + 4];
-            o_re_5_int <= out_re_mem[out_cycle_idx*LANES + 5];
-            o_re_6_int <= out_re_mem[out_cycle_idx*LANES + 6];
-            o_re_7_int <= out_re_mem[out_cycle_idx*LANES + 7];
+            o_re_0_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 0];
+            o_re_1_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 1];
+            o_re_2_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 2];
+            o_re_3_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 3];
+            o_re_4_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 4];
+            o_re_5_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 5];
+            o_re_6_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 6];
+            o_re_7_int <= out_re_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 7];
 
-            o_im_0_int <= out_im_mem[out_cycle_idx*LANES + 0];
-            o_im_1_int <= out_im_mem[out_cycle_idx*LANES + 1];
-            o_im_2_int <= out_im_mem[out_cycle_idx*LANES + 2];
-            o_im_3_int <= out_im_mem[out_cycle_idx*LANES + 3];
-            o_im_4_int <= out_im_mem[out_cycle_idx*LANES + 4];
-            o_im_5_int <= out_im_mem[out_cycle_idx*LANES + 5];
-            o_im_6_int <= out_im_mem[out_cycle_idx*LANES + 6];
-            o_im_7_int <= out_im_mem[out_cycle_idx*LANES + 7];
+            o_im_0_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 0];
+            o_im_1_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 1];
+            o_im_2_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 2];
+            o_im_3_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 3];
+            o_im_4_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 4];
+            o_im_5_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 5];
+            o_im_6_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 6];
+            o_im_7_int <= out_im_frame_buf[emit_frame_ptr][emit_beat_idx*LANES + 7];
 
-            if (out_cycle_idx == (NFFT/LANES - 1)) begin
+            if (emit_beat_idx == (NFFT/LANES - 1)) begin
                 out_cycle_idx     <= 0;
-                out_stream_active <= 1'b0;
+                frame_pending[emit_frame_ptr] <= 1'b0;
+                read_frame_ptr <= next_frame_ptr;
+
+                if (frame_pending[next_frame_ptr] && (frame_latency_ctr[next_frame_ptr] == 0)) begin
+                    out_stream_active <= 1'b1;
+                    active_frame_ptr <= next_frame_ptr;
+                end else begin
+                    out_stream_active <= 1'b0;
+                end
             end else begin
-                out_cycle_idx <= out_cycle_idx + 1;
+                out_stream_active <= 1'b1;
+                active_frame_ptr <= emit_frame_ptr;
+                out_cycle_idx <= emit_beat_idx + 1;
             end
         end
     end

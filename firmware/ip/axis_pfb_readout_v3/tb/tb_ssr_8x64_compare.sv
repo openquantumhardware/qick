@@ -4,7 +4,10 @@ module tb_ssr_8x64_compare;
 
     localparam CLK_PERIOD = 10;
     localparam FRAME_CYCLES = 8;
-    localparam OUTPUT_IDLE_CYCLES = 16;
+    localparam int PATTERN_COUNT = 4;
+    localparam int FRAMES_PER_PATTERN = 4;
+    localparam int TOTAL_FRAMES = PATTERN_COUNT * FRAMES_PER_PATTERN;
+    localparam OUTPUT_IDLE_CYCLES = 32;
     localparam WATCHDOG_TIMEOUT = 100_000;
 
     localparam int ABS_TOLERANCE = 200;
@@ -211,6 +214,76 @@ module tb_ssr_8x64_compare;
         end
     endfunction
 
+    task automatic drive_pattern_beat(
+        input int pattern_id,
+        input int pattern_frame,
+        input int beat_idx
+    );
+        int amplitude;
+        begin
+            i_im_0 = 16'sd0; i_im_1 = 16'sd0; i_im_2 = 16'sd0; i_im_3 = 16'sd0;
+            i_im_4 = 16'sd0; i_im_5 = 16'sd0; i_im_6 = 16'sd0; i_im_7 = 16'sd0;
+
+            case (pattern_id)
+                0: begin
+                    i_re_0 = pattern_frame * 64 + beat_idx * 8 + 16'sd1;
+                    i_re_1 = pattern_frame * 64 + beat_idx * 8 + 16'sd2;
+                    i_re_2 = pattern_frame * 64 + beat_idx * 8 + 16'sd3;
+                    i_re_3 = pattern_frame * 64 + beat_idx * 8 + 16'sd4;
+                    i_re_4 = pattern_frame * 64 + beat_idx * 8 + 16'sd5;
+                    i_re_5 = pattern_frame * 64 + beat_idx * 8 + 16'sd6;
+                    i_re_6 = pattern_frame * 64 + beat_idx * 8 + 16'sd7;
+                    i_re_7 = pattern_frame * 64 + beat_idx * 8 + 16'sd8;
+                end
+
+                1: begin
+                    amplitude = 16'sd80 + pattern_frame * 16'sd12;
+                    i_re_0 = amplitude; i_re_1 = amplitude; i_re_2 = amplitude; i_re_3 = amplitude;
+                    i_re_4 = amplitude; i_re_5 = amplitude; i_re_6 = amplitude; i_re_7 = amplitude;
+                end
+
+                2: begin
+                    amplitude = 16'sd120 + pattern_frame * 16'sd10;
+                    i_re_0 = 16'sd0; i_re_1 = 16'sd0; i_re_2 = 16'sd0; i_re_3 = 16'sd0;
+                    i_re_4 = 16'sd0; i_re_5 = 16'sd0; i_re_6 = 16'sd0; i_re_7 = 16'sd0;
+
+                    if (beat_idx == 0) begin
+                        case (pattern_frame % 8)
+                            0: i_re_0 = amplitude;
+                            1: i_re_1 = amplitude;
+                            2: i_re_2 = amplitude;
+                            3: i_re_3 = amplitude;
+                            4: i_re_4 = amplitude;
+                            5: i_re_5 = amplitude;
+                            6: i_re_6 = amplitude;
+                            default: i_re_7 = amplitude;
+                        endcase
+                    end
+                end
+
+                default: begin
+                    i_re_0 = ((beat_idx + 0) % 2 == 0) ? (16'sd10 + pattern_frame) : -(16'sd10 + pattern_frame);
+                    i_re_1 = ((beat_idx + 1) % 2 == 0) ? (16'sd11 + pattern_frame) : -(16'sd11 + pattern_frame);
+                    i_re_2 = ((beat_idx + 2) % 2 == 0) ? (16'sd12 + pattern_frame) : -(16'sd12 + pattern_frame);
+                    i_re_3 = ((beat_idx + 3) % 2 == 0) ? (16'sd13 + pattern_frame) : -(16'sd13 + pattern_frame);
+                    i_re_4 = ((beat_idx + 4) % 2 == 0) ? (16'sd14 + pattern_frame) : -(16'sd14 + pattern_frame);
+                    i_re_5 = ((beat_idx + 5) % 2 == 0) ? (16'sd15 + pattern_frame) : -(16'sd15 + pattern_frame);
+                    i_re_6 = ((beat_idx + 6) % 2 == 0) ? (16'sd16 + pattern_frame) : -(16'sd16 + pattern_frame);
+                    i_re_7 = ((beat_idx + 7) % 2 == 0) ? (16'sd17 + pattern_frame) : -(16'sd17 + pattern_frame);
+
+                    i_im_0 = ((beat_idx + 0) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_1 = ((beat_idx + 1) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_2 = ((beat_idx + 2) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_3 = ((beat_idx + 3) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_4 = ((beat_idx + 4) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_5 = ((beat_idx + 5) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_6 = ((beat_idx + 6) % 2 == 0) ? pattern_frame : -pattern_frame;
+                    i_im_7 = ((beat_idx + 7) % 2 == 0) ? pattern_frame : -pattern_frame;
+                end
+            endcase
+        end
+    endtask
+
     always @(posedge clk) begin
         if (vhd_o_valid || sv_o_valid) begin
             $display("t=%0t cycle=%0d: VALID vhd=%0d sv=%0d",
@@ -280,8 +353,10 @@ module tb_ssr_8x64_compare;
     end
 
     initial begin
-        int sample_count;
-        bit   stream_done;
+        int frame_idx;
+        int pattern_id;
+        int pattern_frame;
+        int beat_idx;
 
         mismatch_count = 0;
         match_count    = 0;
@@ -292,15 +367,15 @@ module tb_ssr_8x64_compare;
         compared_output_beats = 0;
         output_idle_cycles = 0;
         valid_mismatch_count = 0;
-        sample_count   = 0;
-        stream_done    = 0;
+        frame_idx      = 0;
+        beat_idx       = 0;
 
         $display("========================================");
         $display("tb_ssr_8x64_compare starting");
-        $display("CLK_PERIOD=%0d ns, FRAME_CYCLES=%0d", CLK_PERIOD, FRAME_CYCLES);
+        $display("CLK_PERIOD=%0d ns, FRAME_CYCLES=%0d, TOTAL_FRAMES=%0d", CLK_PERIOD, FRAME_CYCLES, TOTAL_FRAMES);
         $display("ABS_TOLERANCE=%0d, REL_TOLERANCE=%.2f", ABS_TOLERANCE, REL_TOLERANCE);
         $display("SSR FFT: 8 lanes, 64-point, radix-8 systolic array");
-        $display("Input pattern: one 64-sample ramp frame across 8 lanes (ordering diagnostic)");
+        $display("Input patterns: ramp, DC, impulse, and checkerboard over longer back-to-back streams");
         $display("========================================");
 
         i_valid = 0;
@@ -316,34 +391,32 @@ module tb_ssr_8x64_compare;
         $display("t=%0t cycle=%0d: Reset deasserted, inputs cleared", $time, cycle_count);
         #(CLK_PERIOD * 2);
 
-        $display("t=%0t cycle=%0d: Starting one diagnostic frame of %0d beats",
-                 $time, cycle_count, FRAME_CYCLES);
+        $display("t=%0t cycle=%0d: Starting %0d back-to-back frames across %0d patterns",
+                 $time, cycle_count, TOTAL_FRAMES, PATTERN_COUNT);
 
-        while (!stream_done) begin
-            if (sample_count >= FRAME_CYCLES) begin
-                @(negedge clk);
-                i_valid = 0;
-                stream_done = 1;
-                $display("t=%0t cycle=%0d: Input stream complete, i_valid=0", $time, cycle_count);
-            end else begin
-                @(negedge clk);
-                i_valid = 1;
-                i_re_0 = sample_count * 8 + 16'sd1; i_im_0 = 16'sd0;
-                i_re_1 = sample_count * 8 + 16'sd2; i_im_1 = 16'sd0;
-                i_re_2 = sample_count * 8 + 16'sd3; i_im_2 = 16'sd0;
-                i_re_3 = sample_count * 8 + 16'sd4; i_im_3 = 16'sd0;
-                i_re_4 = sample_count * 8 + 16'sd5; i_im_4 = 16'sd0;
-                i_re_5 = sample_count * 8 + 16'sd6; i_im_5 = 16'sd0;
-                i_re_6 = sample_count * 8 + 16'sd7; i_im_6 = 16'sd0;
-                i_re_7 = sample_count * 8 + 16'sd8; i_im_7 = 16'sd0;
+        while (frame_idx < TOTAL_FRAMES) begin
+            pattern_id = frame_idx / FRAMES_PER_PATTERN;
+            pattern_frame = frame_idx % FRAMES_PER_PATTERN;
 
-                sample_count = sample_count + 1;
-                $display("t=%0t cycle=%0d: input beat=%0d re=[%0d %0d %0d %0d %0d %0d %0d %0d]",
-                         $time, cycle_count, sample_count,
-                         i_re_0, i_re_1, i_re_2, i_re_3,
-                         i_re_4, i_re_5, i_re_6, i_re_7);
+            @(negedge clk);
+            i_valid = 1;
+            drive_pattern_beat(pattern_id, pattern_frame, beat_idx);
+
+            if (beat_idx == 0) begin
+                $display("t=%0t cycle=%0d: frame=%0d pattern=%0d pattern_frame=%0d",
+                         $time, cycle_count, frame_idx, pattern_id, pattern_frame);
+            end
+
+            beat_idx = beat_idx + 1;
+            if (beat_idx == FRAME_CYCLES) begin
+                beat_idx = 0;
+                frame_idx = frame_idx + 1;
             end
         end
+
+        @(negedge clk);
+        i_valid = 0;
+        $display("t=%0t cycle=%0d: Input stream complete, i_valid=0", $time, cycle_count);
 
         i_re_0 = 0; i_im_0 = 0;
         i_re_1 = 0; i_im_1 = 0;
