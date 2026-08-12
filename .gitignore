@@ -71,3 +71,6 @@ Temporary Items
 
 !/.gitignore
 !/README.md
+
+# local conda env accidentally under repo
+.conda/
