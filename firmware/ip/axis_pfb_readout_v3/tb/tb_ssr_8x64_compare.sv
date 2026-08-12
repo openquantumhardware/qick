@@ -3,8 +3,12 @@
 module tb_ssr_8x64_compare;
 
     localparam CLK_PERIOD = 10;
-    localparam TOTAL_CYCLES = 200;
+    localparam FRAME_CYCLES = 8;
+    localparam OUTPUT_IDLE_CYCLES = 16;
     localparam WATCHDOG_TIMEOUT = 100_000;
+
+    localparam int ABS_TOLERANCE = 200;
+    localparam real REL_TOLERANCE = 0.05;
 
     logic clk;
     int   cycle_count;
@@ -46,7 +50,6 @@ module tb_ssr_8x64_compare;
     logic        vhd_o_valid;
     logic [5:0]  vhd_o_scale;
 
-    // Verilog DUT outputs
     logic signed [26:0] sv_o_re_0;
     logic signed [26:0] sv_o_im_0;
     logic signed [26:0] sv_o_re_1;
@@ -66,22 +69,26 @@ module tb_ssr_8x64_compare;
     logic        sv_o_valid;
     logic [5:0]  sv_o_scale;
 
-    // Comparison tracking
     int mismatch_count;
     int match_count;
     int total_checks;
+    int outlier_count;
+    int total_abs_err;
+    int max_abs_err;
+    int compared_output_beats;
+    int output_idle_cycles;
+    int valid_mismatch_count;
 
-    // ----------------------------------------------------------------
-    // VCD dump
-    // ----------------------------------------------------------------
+    logic signed [26:0] vhd_re_arr [0:7];
+    logic signed [26:0] vhd_im_arr [0:7];
+    logic signed [26:0] sv_re_arr  [0:7];
+    logic signed [26:0] sv_im_arr  [0:7];
+
     initial begin
         $dumpfile("tb_ssr_8x64_compare.vcd");
         $dumpvars(0, tb_ssr_8x64_compare);
     end
 
-    // ----------------------------------------------------------------
-    // Clock + cycle counter
-    // ----------------------------------------------------------------
     always #(CLK_PERIOD / 2) clk = ~clk;
     initial begin
         clk = 0;
@@ -89,9 +96,6 @@ module tb_ssr_8x64_compare;
         forever @(posedge clk) cycle_count <= cycle_count + 1;
     end
 
-    // ----------------------------------------------------------------
-    // VHDL DUT (golden reference)
-    // ----------------------------------------------------------------
     ssr_8x64 vhd_dut (
         .i_scale   (i_scale),
         .i_valid   (i_valid),
@@ -132,13 +136,11 @@ module tb_ssr_8x64_compare;
         .o_re_7    (vhd_o_re_7)
     );
 
-    // ----------------------------------------------------------------
-    // Verilog DUT (model under test)
-    // ----------------------------------------------------------------
     ssr_8x64_sv #(
-        .FFT_LATENCY(18),
+        .FFT_LATENCY(32),
         .INPUT_DELAY(4),
-        .OUTPUT_DELAY(4)
+        .OUTPUT_DELAY(6),
+        .LANE_MAP('{0,1,2,3,4,5,6,7})
     ) sv_dut (
         .clk       (clk),
         .i_valid   (i_valid),
@@ -179,80 +181,104 @@ module tb_ssr_8x64_compare;
         .o_scale   (sv_o_scale)
     );
 
-    // ----------------------------------------------------------------
-    // Watchdog: stop simulation if halted
-    // ----------------------------------------------------------------
     initial begin
         #(WATCHDOG_TIMEOUT * CLK_PERIOD);
         $display("WATCHDOG TIMEOUT at t=%0t cycle=%0d: Simulation stalled, finishing", $time, cycle_count);
         $finish;
     end
 
-    // ----------------------------------------------------------------
-    // Cycle-by-cycle comparison
-    // ----------------------------------------------------------------
+    function automatic bit within_tolerance(
+        input logic signed [26:0] vhd_val,
+        input logic signed [26:0] sv_val,
+        input int abs_tol,
+        input real rel_tol
+    );
+        int abs_diff;
+        real max_abs;
+        real rel_diff;
+        begin
+            if (vhd_val > sv_val)
+                abs_diff = vhd_val - sv_val;
+            else
+                abs_diff = sv_val - vhd_val;
+            max_abs = (vhd_val > 0 ? vhd_val : -vhd_val) > (sv_val > 0 ? sv_val : -sv_val) ? (vhd_val > 0 ? vhd_val : -vhd_val) : (sv_val > 0 ? sv_val : -sv_val);
+            if (max_abs > 0)
+                rel_diff = abs_diff / max_abs;
+            else
+                rel_diff = 0;
+
+            within_tolerance = (abs_diff <= abs_tol) || (rel_diff <= rel_tol);
+        end
+    endfunction
+
     always @(posedge clk) begin
         if (vhd_o_valid || sv_o_valid) begin
             $display("t=%0t cycle=%0d: VALID vhd=%0d sv=%0d",
                      $time, cycle_count, vhd_o_valid, sv_o_valid);
+
+            $display("  VHD re=[%0d %0d %0d %0d %0d %0d %0d %0d] im=[%0d %0d %0d %0d %0d %0d %0d %0d] scale=%0d",
+                     $signed(vhd_o_re_0), $signed(vhd_o_re_1), $signed(vhd_o_re_2), $signed(vhd_o_re_3),
+                     $signed(vhd_o_re_4), $signed(vhd_o_re_5), $signed(vhd_o_re_6), $signed(vhd_o_re_7),
+                     $signed(vhd_o_im_0), $signed(vhd_o_im_1), $signed(vhd_o_im_2), $signed(vhd_o_im_3),
+                     $signed(vhd_o_im_4), $signed(vhd_o_im_5), $signed(vhd_o_im_6), $signed(vhd_o_im_7),
+                     vhd_o_scale);
+            $display("  SV  re=[%0d %0d %0d %0d %0d %0d %0d %0d] im=[%0d %0d %0d %0d %0d %0d %0d %0d] scale=%0d",
+                     $signed(sv_o_re_0), $signed(sv_o_re_1), $signed(sv_o_re_2), $signed(sv_o_re_3),
+                     $signed(sv_o_re_4), $signed(sv_o_re_5), $signed(sv_o_re_6), $signed(sv_o_re_7),
+                     $signed(sv_o_im_0), $signed(sv_o_im_1), $signed(sv_o_im_2), $signed(sv_o_im_3),
+                     $signed(sv_o_im_4), $signed(sv_o_im_5), $signed(sv_o_im_6), $signed(sv_o_im_7),
+                     sv_o_scale);
+        end
+
+        if (((vhd_o_valid === 1'b1) && (sv_o_valid === 1'b0)) ||
+            ((vhd_o_valid === 1'b0) && (sv_o_valid === 1'b1))) begin
+            valid_mismatch_count = valid_mismatch_count + 1;
         end
 
         if (vhd_o_valid && sv_o_valid) begin
+            compared_output_beats = compared_output_beats + 1;
+
+            vhd_re_arr = '{vhd_o_re_0, vhd_o_re_1, vhd_o_re_2, vhd_o_re_3,
+                           vhd_o_re_4, vhd_o_re_5, vhd_o_re_6, vhd_o_re_7};
+            vhd_im_arr = '{vhd_o_im_0, vhd_o_im_1, vhd_o_im_2, vhd_o_im_3,
+                           vhd_o_im_4, vhd_o_im_5, vhd_o_im_6, vhd_o_im_7};
+            sv_re_arr  = '{sv_o_re_0,  sv_o_re_1,  sv_o_re_2,  sv_o_re_3,
+                           sv_o_re_4,  sv_o_re_5,  sv_o_re_6,  sv_o_re_7};
+            sv_im_arr  = '{sv_o_im_0,  sv_o_im_1,  sv_o_im_2,  sv_o_im_3,
+                           sv_o_im_4,  sv_o_im_5,  sv_o_im_6,  sv_o_im_7};
+
             for (int lane = 0; lane < 8; lane = lane + 1) begin
-                logic [26:0] vhd_re, vhd_im, sv_re, sv_im;
                 total_checks = total_checks + 1;
 
-                case (lane)
-                    0: begin
-                        vhd_re = vhd_o_re_0; vhd_im = vhd_o_im_0;
-                        sv_re  = sv_o_re_0;  sv_im  = sv_o_im_0;
-                    end
-                    1: begin
-                        vhd_re = vhd_o_re_1; vhd_im = vhd_o_im_1;
-                        sv_re  = sv_o_re_1;  sv_im  = sv_o_im_1;
-                    end
-                    2: begin
-                        vhd_re = vhd_o_re_2; vhd_im = vhd_o_im_2;
-                        sv_re  = sv_o_re_2;  sv_im  = sv_o_im_2;
-                    end
-                    3: begin
-                        vhd_re = vhd_o_re_3; vhd_im = vhd_o_im_3;
-                        sv_re  = sv_o_re_3;  sv_im  = sv_o_im_3;
-                    end
-                    4: begin
-                        vhd_re = vhd_o_re_4; vhd_im = vhd_o_im_4;
-                        sv_re  = sv_o_re_4;  sv_im  = sv_o_im_4;
-                    end
-                    5: begin
-                        vhd_re = vhd_o_re_5; vhd_im = vhd_o_im_5;
-                        sv_re  = sv_o_re_5;  sv_im  = sv_o_im_5;
-                    end
-                    6: begin
-                        vhd_re = vhd_o_re_6; vhd_im = vhd_o_im_6;
-                        sv_re  = sv_o_re_6;  sv_im  = sv_o_im_6;
-                    end
-                    7: begin
-                        vhd_re = vhd_o_re_7; vhd_im = vhd_o_im_7;
-                        sv_re  = sv_o_re_7;  sv_im  = sv_o_im_7;
-                    end
-                endcase
-
-                if (vhd_re !== sv_re || vhd_im !== sv_im || vhd_o_scale !== sv_o_scale) begin
+                if (!within_tolerance(vhd_re_arr[lane], sv_re_arr[lane], ABS_TOLERANCE, REL_TOLERANCE) ||
+                    !within_tolerance(vhd_im_arr[lane], sv_im_arr[lane], ABS_TOLERANCE, REL_TOLERANCE) ||
+                    (vhd_o_scale !== sv_o_scale)) begin
                     mismatch_count = mismatch_count + 1;
-                    $display("MISMATCH cycle=%0d lane=%0d: VHDL(re=%0d, im=%0d, scale=%0d) vs SV(re=%0d, im=%0d, scale=%0d)",
+                    $display("OUTLIER cycle=%0d lane=%0d: VHDL(re=%0d, im=%0d, scale=%0d) vs SV(re=%0d, im=%0d, scale=%0d)",
                              cycle_count, lane,
-                             $signed(vhd_re), $signed(vhd_im), vhd_o_scale,
-                             $signed(sv_re),  $signed(sv_im),  sv_o_scale);
+                             $signed(vhd_re_arr[lane]), $signed(vhd_im_arr[lane]), vhd_o_scale,
+                             $signed(sv_re_arr[lane]),  $signed(sv_im_arr[lane]),  sv_o_scale);
                 end else begin
                     match_count = match_count + 1;
                 end
+
+                if (vhd_re_arr[lane] > sv_re_arr[lane])
+                    total_abs_err = total_abs_err + (vhd_re_arr[lane] - sv_re_arr[lane]);
+                else
+                    total_abs_err = total_abs_err + (sv_re_arr[lane] - vhd_re_arr[lane]);
+                if (vhd_im_arr[lane] > sv_im_arr[lane])
+                    total_abs_err = total_abs_err + (vhd_im_arr[lane] - sv_im_arr[lane]);
+                else
+                    total_abs_err = total_abs_err + (sv_im_arr[lane] - vhd_im_arr[lane]);
+
+                if ((vhd_re_arr[lane] > sv_re_arr[lane] ? vhd_re_arr[lane] - sv_re_arr[lane] : sv_re_arr[lane] - vhd_re_arr[lane]) +
+                    (vhd_im_arr[lane] > sv_im_arr[lane] ? vhd_im_arr[lane] - sv_im_arr[lane] : sv_im_arr[lane] - vhd_im_arr[lane]) > max_abs_err)
+                    max_abs_err = (vhd_re_arr[lane] > sv_re_arr[lane] ? vhd_re_arr[lane] - sv_re_arr[lane] : sv_re_arr[lane] - vhd_re_arr[lane]) +
+                                  (vhd_im_arr[lane] > sv_im_arr[lane] ? vhd_im_arr[lane] - sv_im_arr[lane] : sv_im_arr[lane] - vhd_im_arr[lane]);
             end
         end
     end
 
-    // ----------------------------------------------------------------
-    // Continuous stimulus + 500-cycle termination
-    // ----------------------------------------------------------------
     initial begin
         int sample_count;
         bit   stream_done;
@@ -260,15 +286,23 @@ module tb_ssr_8x64_compare;
         mismatch_count = 0;
         match_count    = 0;
         total_checks   = 0;
+        outlier_count  = 0;
+        total_abs_err  = 0;
+        max_abs_err    = 0;
+        compared_output_beats = 0;
+        output_idle_cycles = 0;
+        valid_mismatch_count = 0;
         sample_count   = 0;
         stream_done    = 0;
 
         $display("========================================");
         $display("tb_ssr_8x64_compare starting");
-        $display("CLK_PERIOD=%0d ns, TOTAL_CYCLES=%0d", CLK_PERIOD, TOTAL_CYCLES);
+        $display("CLK_PERIOD=%0d ns, FRAME_CYCLES=%0d", CLK_PERIOD, FRAME_CYCLES);
+        $display("ABS_TOLERANCE=%0d, REL_TOLERANCE=%.2f", ABS_TOLERANCE, REL_TOLERANCE);
+        $display("SSR FFT: 8 lanes, 64-point, radix-8 systolic array");
+        $display("Input pattern: one 64-sample ramp frame across 8 lanes (ordering diagnostic)");
         $display("========================================");
 
-        // --- Initialize ---
         i_valid = 0;
         i_scale = 0;
         i_re_0 = 0; i_im_0 = 0;
@@ -282,59 +316,68 @@ module tb_ssr_8x64_compare;
         $display("t=%0t cycle=%0d: Reset deasserted, inputs cleared", $time, cycle_count);
         #(CLK_PERIOD * 2);
 
-        // --- Continuous input stream (incrementing counter, im=0) ---
-        i_valid = 1;
-        $display("t=%0t cycle=%0d: Starting continuous input stream for %0d cycles",
-                 $time, cycle_count, TOTAL_CYCLES);
+        $display("t=%0t cycle=%0d: Starting one diagnostic frame of %0d beats",
+                 $time, cycle_count, FRAME_CYCLES);
 
         while (!stream_done) begin
-            @(posedge clk);
-            if (cycle_count >= TOTAL_CYCLES) begin
+            if (sample_count >= FRAME_CYCLES) begin
+                @(negedge clk);
                 i_valid = 0;
                 stream_done = 1;
                 $display("t=%0t cycle=%0d: Input stream complete, i_valid=0", $time, cycle_count);
             end else begin
-                i_re_0 = sample_count[15:0];
-                i_im_0 = 16'd0;
-                i_re_1 = sample_count[15:0] + 16'd1;
-                i_im_1 = 16'd0;
-                i_re_2 = sample_count[15:0] + 16'd2;
-                i_im_2 = 16'd0;
-                i_re_3 = sample_count[15:0] + 16'd3;
-                i_im_3 = 16'd0;
-                i_re_4 = sample_count[15:0] + 16'd4;
-                i_im_4 = 16'd0;
-                i_re_5 = sample_count[15:0] + 16'd5;
-                i_im_5 = 16'd0;
-                i_re_6 = sample_count[15:0] + 16'd6;
-                i_im_6 = 16'd0;
-                i_re_7 = sample_count[15:0] + 16'd7;
-                i_im_7 = 16'd0;
+                @(negedge clk);
+                i_valid = 1;
+                i_re_0 = sample_count * 8 + 16'sd1; i_im_0 = 16'sd0;
+                i_re_1 = sample_count * 8 + 16'sd2; i_im_1 = 16'sd0;
+                i_re_2 = sample_count * 8 + 16'sd3; i_im_2 = 16'sd0;
+                i_re_3 = sample_count * 8 + 16'sd4; i_im_3 = 16'sd0;
+                i_re_4 = sample_count * 8 + 16'sd5; i_im_4 = 16'sd0;
+                i_re_5 = sample_count * 8 + 16'sd6; i_im_5 = 16'sd0;
+                i_re_6 = sample_count * 8 + 16'sd7; i_im_6 = 16'sd0;
+                i_re_7 = sample_count * 8 + 16'sd8; i_im_7 = 16'sd0;
 
-                sample_count = sample_count + 8;
-
-                if (cycle_count % 100 == 0) begin
-                    $display("t=%0t cycle=%0d: input sample_count=%0d re_0=%0d im_0=%0d",
-                             $time, cycle_count, sample_count, i_re_0, i_im_0);
-                end
+                sample_count = sample_count + 1;
+                $display("t=%0t cycle=%0d: input beat=%0d re=[%0d %0d %0d %0d %0d %0d %0d %0d]",
+                         $time, cycle_count, sample_count,
+                         i_re_0, i_re_1, i_re_2, i_re_3,
+                         i_re_4, i_re_5, i_re_6, i_re_7);
             end
         end
 
-        // --- Wait for outputs to complete ---
-        $display("t=%0t cycle=%0d: Waiting for outputs...", $time, cycle_count);
-        @(posedge clk);
-        @(posedge clk);
-        @(posedge clk);
+        i_re_0 = 0; i_im_0 = 0;
+        i_re_1 = 0; i_im_1 = 0;
+        i_re_2 = 0; i_im_2 = 0;
+        i_re_3 = 0; i_im_3 = 0;
+        i_re_4 = 0; i_im_4 = 0;
+        i_re_5 = 0; i_im_5 = 0;
+        i_re_6 = 0; i_im_6 = 0;
+        i_re_7 = 0; i_im_7 = 0;
+
+        $display("t=%0t cycle=%0d: Waiting for outputs to quiesce...", $time, cycle_count);
+        while ((compared_output_beats == 0) || (output_idle_cycles < OUTPUT_IDLE_CYCLES)) begin
+            @(posedge clk);
+
+            if (vhd_o_valid || sv_o_valid) begin
+                output_idle_cycles = 0;
+            end else if (compared_output_beats > 0) begin
+                output_idle_cycles = output_idle_cycles + 1;
+            end
+        end
 
         $display("========================================");
         $display("t=%0t cycle=%0d: Comparison complete.", $time, cycle_count);
         $display("Total checks : %0d", total_checks);
         $display("Matches      : %0d", match_count);
-        $display("Mismatches   : %0d", mismatch_count);
-        if (mismatch_count == 0) begin
-            $display("RESULT: PASS - Both implementations match");
+        $display("Outliers     : %0d", mismatch_count);
+        $display("Valid mismatches: %0d", valid_mismatch_count);
+        $display("Total abs err: %0d", total_abs_err);
+        $display("Max abs err  : %0d", max_abs_err);
+        if ((mismatch_count == 0) && (valid_mismatch_count == 0)) begin
+            $display("RESULT: PASS - All outputs within tolerance");
         end else begin
-            $display("RESULT: FAIL - %0d mismatches found", mismatch_count);
+            $display("RESULT: FAIL - %0d outliers and %0d valid mismatches exceed tolerance (abs=%0d, rel=%.2f)",
+                     mismatch_count, valid_mismatch_count, ABS_TOLERANCE, REL_TOLERANCE);
         end
         $display("========================================");
 

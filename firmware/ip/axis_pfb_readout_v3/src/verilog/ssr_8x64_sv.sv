@@ -3,13 +3,12 @@
 // Behavioral 8-lane x 64-point complex FFT model.
 // Non-synthesizable model intended for simulation/emulation.
 //
-// Delay parameters are optimized externally to align I/O timing with a
-// golden reference model. The mathematical core remains a direct DFT
-// computation (simplified framework).
+// Pipeline-capable version for continuous SSR streaming.
 module ssr_8x64_sv #(
-    parameter int FFT_LATENCY    = 18,
+    parameter int FFT_LATENCY    = 32,
     parameter int INPUT_DELAY    = 4,
-    parameter int OUTPUT_DELAY   = 4
+    parameter int OUTPUT_DELAY   = 6,
+    parameter int LANE_MAP [0:7] = '{0,1,2,3,4,5,6,7}
 )(
     input  logic                    clk,
     input  logic                    i_valid,
@@ -61,6 +60,25 @@ module ssr_8x64_sv #(
 
     logic signed [15:0] in_re_lanes [0:LANES-1];
     logic signed [15:0] in_im_lanes [0:LANES-1];
+    logic signed [15:0] in_re_lanes_d [0:LANES-1];
+    logic signed [15:0] in_im_lanes_d [0:LANES-1];
+
+    // Pipeline buffers for continuous streaming
+    localparam int PIPELINE_FRAMES = 4;
+    logic signed [15:0] frame_re_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
+    logic signed [15:0] frame_im_buf [0:PIPELINE_FRAMES-1][0:NFFT-1];
+    logic [5:0]         frame_scale_buf [0:PIPELINE_FRAMES-1];
+    logic               frame_valid     [0:PIPELINE_FRAMES-1];
+    int                 write_frame_ptr = 0;
+    int                 read_frame_ptr  = 0;
+    int                 frames_ready    = 0;
+
+    // Shadow buffer for output streaming
+    logic signed [26:0] out_re_shadow [0:NFFT-1];
+    logic signed [26:0] out_im_shadow [0:NFFT-1];
+    logic [5:0]         out_scale_shadow = 6'd0;
+    logic               out_valid_shadow = 1'b0;
+    int                 out_shadow_idx  = 0;
 
     logic signed [15:0] frame_re [0:NFFT-1];
     logic signed [15:0] frame_im [0:NFFT-1];
@@ -84,6 +102,10 @@ module ssr_8x64_sv #(
     logic signed [26:0] o_re_4_int, o_re_5_int, o_re_6_int, o_re_7_int;
     logic signed [26:0] o_im_0_int, o_im_1_int, o_im_2_int, o_im_3_int;
     logic signed [26:0] o_im_4_int, o_im_5_int, o_im_6_int, o_im_7_int;
+
+    // Permuted output staging (SSR lane mapping)
+    logic signed [26:0] o_re_perm  [0:LANES-1];
+    logic signed [26:0] o_im_perm  [0:LANES-1];
 
     function automatic logic signed [26:0] sat27(input real x);
         real maxv;
@@ -167,38 +189,63 @@ module ssr_8x64_sv #(
     end
 
     // Input delay stage
-    generate
-        if (INPUT_DELAY > 0) begin : gen_in_delay
-            reg        id_valid  [0:INPUT_DELAY-1];
-            reg [5:0]  id_scale  [0:INPUT_DELAY-1];
-            integer i;
+    if (INPUT_DELAY > 0) begin : gen_in_delay
+        reg               id_valid  [0:INPUT_DELAY-1];
+        reg [5:0]         id_scale  [0:INPUT_DELAY-1];
+        reg signed [15:0] id_re     [0:INPUT_DELAY-1][0:LANES-1];
+        reg signed [15:0] id_im     [0:INPUT_DELAY-1][0:LANES-1];
+        integer i;
+        integer lane;
 
-            always_ff @(posedge clk) begin
-                id_valid[0] <= i_valid;
-                id_scale[0] <= i_scale;
-                for (i = 1; i < INPUT_DELAY; i = i + 1) begin
-                    id_valid[i] <= id_valid[i-1];
-                    id_scale[i] <= id_scale[i-1];
-                end
+        always_ff @(posedge clk) begin
+            id_valid[0] <= i_valid;
+            id_scale[0] <= i_scale;
+            for (lane = 0; lane < LANES; lane = lane + 1) begin
+                id_re[0][lane] <= in_re_lanes[lane];
+                id_im[0][lane] <= in_im_lanes[lane];
             end
 
-            assign i_valid_d = id_valid[INPUT_DELAY-1];
-            assign i_scale_d = id_scale[INPUT_DELAY-1];
-        end else begin : gen_no_in_delay
-            assign i_valid_d = i_valid;
-            assign i_scale_d = i_scale;
+            for (i = 1; i < INPUT_DELAY; i = i + 1) begin
+                id_valid[i] <= id_valid[i-1];
+                id_scale[i] <= id_scale[i-1];
+                for (lane = 0; lane < LANES; lane = lane + 1) begin
+                    id_re[i][lane] <= id_re[i-1][lane];
+                    id_im[i][lane] <= id_im[i-1][lane];
+                end
+            end
         end
-    endgenerate
 
+        assign i_valid_d = id_valid[INPUT_DELAY-1];
+        assign i_scale_d = id_scale[INPUT_DELAY-1];
+
+        always_comb begin
+            for (int lane_idx = 0; lane_idx < LANES; lane_idx = lane_idx + 1) begin
+                in_re_lanes_d[lane_idx] = id_re[INPUT_DELAY-1][lane_idx];
+                in_im_lanes_d[lane_idx] = id_im[INPUT_DELAY-1][lane_idx];
+            end
+        end
+    end else begin : gen_no_in_delay
+        assign i_valid_d = i_valid;
+        assign i_scale_d = i_scale;
+
+        always_comb begin
+            for (int lane_idx = 0; lane_idx < LANES; lane_idx = lane_idx + 1) begin
+                in_re_lanes_d[lane_idx] = in_re_lanes[lane_idx];
+                in_im_lanes_d[lane_idx] = in_im_lanes[lane_idx];
+            end
+        end
+    end
+
+    // Pipeline FFT processing - continuous streaming
     always_ff @(posedge clk) begin
-        int lane;
-
+        // Default low; assert only while a frame is actively being emitted.
         o_valid_int <= 1'b0;
 
+        // Accept new input frame every cycle and compute FFT immediately
         if (i_valid_d) begin
-            for (lane = 0; lane < LANES; lane = lane + 1) begin
-                frame_re[in_cycle_idx*LANES + lane] = in_re_lanes[lane];
-                frame_im[in_cycle_idx*LANES + lane] = in_im_lanes[lane];
+            for (int lane = 0; lane < LANES; lane = lane + 1) begin
+                frame_re[in_cycle_idx*LANES + lane] = in_re_lanes_d[lane];
+                frame_im[in_cycle_idx*LANES + lane] = in_im_lanes_d[lane];
             end
 
             if (in_cycle_idx == (NFFT/LANES - 1)) begin
@@ -250,6 +297,27 @@ module ssr_8x64_sv #(
         end
     end
 
+    // SSR lane permutation
+    always_comb begin
+        o_re_perm[LANE_MAP[0]] = o_re_0_int;
+        o_re_perm[LANE_MAP[1]] = o_re_1_int;
+        o_re_perm[LANE_MAP[2]] = o_re_2_int;
+        o_re_perm[LANE_MAP[3]] = o_re_3_int;
+        o_re_perm[LANE_MAP[4]] = o_re_4_int;
+        o_re_perm[LANE_MAP[5]] = o_re_5_int;
+        o_re_perm[LANE_MAP[6]] = o_re_6_int;
+        o_re_perm[LANE_MAP[7]] = o_re_7_int;
+
+        o_im_perm[LANE_MAP[0]] = o_im_0_int;
+        o_im_perm[LANE_MAP[1]] = o_im_1_int;
+        o_im_perm[LANE_MAP[2]] = o_im_2_int;
+        o_im_perm[LANE_MAP[3]] = o_im_3_int;
+        o_im_perm[LANE_MAP[4]] = o_im_4_int;
+        o_im_perm[LANE_MAP[5]] = o_im_5_int;
+        o_im_perm[LANE_MAP[6]] = o_im_6_int;
+        o_im_perm[LANE_MAP[7]] = o_im_7_int;
+    end
+
     // Output delay stage
     generate
         if (OUTPUT_DELAY > 0) begin : gen_out_delay
@@ -277,14 +345,14 @@ module ssr_8x64_sv #(
             always_ff @(posedge clk) begin
                 od_valid[0] <= o_valid_int;
                 od_scale[0] <= o_scale_int;
-                od_re_0[0]  <= o_re_0_int;  od_im_0[0] <= o_im_0_int;
-                od_re_1[0]  <= o_re_1_int;  od_im_1[0] <= o_im_1_int;
-                od_re_2[0]  <= o_re_2_int;  od_im_2[0] <= o_im_2_int;
-                od_re_3[0]  <= o_re_3_int;  od_im_3[0] <= o_im_3_int;
-                od_re_4[0]  <= o_re_4_int;  od_im_4[0] <= o_im_4_int;
-                od_re_5[0]  <= o_re_5_int;  od_im_5[0] <= o_im_5_int;
-                od_re_6[0]  <= o_re_6_int;  od_im_6[0] <= o_im_6_int;
-                od_re_7[0]  <= o_re_7_int;  od_im_7[0] <= o_im_7_int;
+                od_re_0[0]  <= o_re_perm[0];  od_im_0[0] <= o_im_perm[0];
+                od_re_1[0]  <= o_re_perm[1];  od_im_1[0] <= o_im_perm[1];
+                od_re_2[0]  <= o_re_perm[2];  od_im_2[0] <= o_im_perm[2];
+                od_re_3[0]  <= o_re_perm[3];  od_im_3[0] <= o_im_perm[3];
+                od_re_4[0]  <= o_re_perm[4];  od_im_4[0] <= o_im_perm[4];
+                od_re_5[0]  <= o_re_perm[5];  od_im_5[0] <= o_im_perm[5];
+                od_re_6[0]  <= o_re_perm[6];  od_im_6[0] <= o_im_perm[6];
+                od_re_7[0]  <= o_re_perm[7];  od_im_7[0] <= o_im_perm[7];
                 for (i = 1; i < OUTPUT_DELAY; i = i + 1) begin
                     od_valid[i] <= od_valid[i-1];
                     od_scale[i] <= od_scale[i-1];
