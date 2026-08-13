@@ -955,6 +955,85 @@ class QickConfig():
         gencfg = self['gens'][gen_ch]
         return int(np.floor(gencfg['maxv']*gencfg['maxv_scale']))
 
+    def get_gen_cfg(self, gen_ch):
+        """Return a copy of the firmware config dict for a signal generator.
+
+        Useful keys include ``fs`` (DAC sample rate, Msps), ``f_fabric``
+        (fabric clock, MHz), ``samps_per_clk``, ``maxv``, and ``dac``
+        (RFSoC tile/block name). See also :meth:`get_maxv` and
+        :meth:`get_gen_fs`.
+
+        This is a supported interface for tools that need generator clocks or
+        amplitude scales (including schedule visualization / QCVT).
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+
+        Returns
+        -------
+        dict
+            generator firmware config
+        """
+        return dict(self['gens'][gen_ch])
+
+    def get_ro_cfg(self, ro_ch):
+        """Return a copy of the firmware config dict for a readout.
+
+        Useful keys include ``f_output`` (output/decimated sample rate, MHz),
+        ``fs`` (ADC sample rate, Msps), and ``adc`` (RFSoC tile/block name).
+        See also :meth:`get_ro_f_output`.
+
+        This is a supported interface for tools that need readout clocks
+        (including schedule visualization / QCVT).
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        dict
+            readout firmware config
+        """
+        return dict(self['readouts'][ro_ch])
+
+    def get_gen_fs(self, gen_ch):
+        """Look up a generator's DAC sample rate.
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+
+        Returns
+        -------
+        float
+            sample rate in Msps
+        """
+        gencfg = self['gens'][gen_ch]
+        fs = gencfg.get('fs')
+        if not fs:
+            fs = gencfg['f_fabric'] * gencfg.get('samps_per_clk', 1)
+        return float(fs)
+
+    def get_ro_f_output(self, ro_ch):
+        """Look up a readout's output (decimated) sample rate.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        float
+            sample rate in MHz
+        """
+        return float(self['readouts'][ro_ch]['f_output'])
+
 class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
     QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
@@ -981,7 +1060,9 @@ class AbsQickProgram(ABC):
                       'reg2freq', 'reg2freq_adc',
                       'cycles2us', 'us2cycles',
                       'deg2reg', 'reg2deg',
-                      'roundfreq', 'get_maxv']
+                      'roundfreq', 'get_maxv',
+                      'get_gen_cfg', 'get_ro_cfg',
+                      'get_gen_fs', 'get_ro_f_output']
 
     # if true, duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False
@@ -1013,9 +1094,12 @@ class AbsQickProgram(ABC):
         If a program is filled using a make_program() that is called during compilation, this should also be called before make_program().
         """
         logger.debug("init_declarations")
-        # Pulse envelopes.
+        # Pulse envelopes. Load-bearing for schedule visualization (QCVT);
+        # prefer get_envelopes() / get_envelope_data().
         self.envelopes = [{"next_addr": 0, "envs": {}} for ch in self.soccfg['gens']]
-        # readout channels to configure before running the program
+        # readout channels to configure before running the program.
+        # Load-bearing for schedule visualization (QCVT); prefer get_ro_chs()
+        # / get_ro_length_us().
         self.ro_chs = OrderedDict()
         # signal generator channels to configure before running the program
         self.gen_chs = OrderedDict()
@@ -1049,6 +1133,70 @@ class AbsQickProgram(ABC):
             return getattr(self.soccfg, a)
         else:
             return object.__getattribute__(self, a)
+
+    def get_ro_chs(self):
+        """Declared readout channels and their config.
+
+        Returns an OrderedDict mapping channel index to the dict written by
+        :meth:`declare_readout`. ``length`` is in readout clock cycles;
+        ``length_us`` is the same window in microseconds.
+
+        This is a supported interface for schedule visualization (QCVT).
+
+        Returns
+        -------
+        OrderedDict
+            channel index -> readout declaration
+        """
+        return self.ro_chs
+
+    def get_ro_length_us(self, ro_ch):
+        """ADC integration-window length for a declared readout, in microseconds.
+
+        Parameters
+        ----------
+        ro_ch : int
+            readout channel (index in 'readouts' list)
+
+        Returns
+        -------
+        float
+            integration length in microseconds
+        """
+        return float(self.ro_chs[ro_ch]['length_us'])
+
+    def get_envelopes(self):
+        """Envelope library for this program, one entry per generator channel.
+
+        Each entry is ``{"next_addr": int, "envs": {name: {"data", "addr"}}}``.
+        ``data`` is an (N, 2) int16 array of I/Q samples.
+        See also :meth:`get_envelope_data`.
+
+        This is a supported interface for schedule visualization (QCVT).
+
+        Returns
+        -------
+        list of dict
+            envelope library per generator
+        """
+        return self.envelopes
+
+    def get_envelope_data(self, gen_ch, name):
+        """I/Q sample array for a named envelope on a generator.
+
+        Parameters
+        ----------
+        gen_ch : int
+            generator channel (index in 'gens' list)
+        name : str
+            envelope name (as passed to add_gauss / add_envelope / ...)
+
+        Returns
+        -------
+        numpy.ndarray
+            shape (N, 2) int16, columns I and Q
+        """
+        return self.envelopes[gen_ch]['envs'][name]['data']
 
     @abstractmethod
     def compile(self):

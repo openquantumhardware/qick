@@ -75,7 +75,9 @@ def _gen_label(sched: Schedule, ch: int, gen_ch_labels, physical_port_labels) ->
     soccfg = sched.soccfg
     if soccfg is not None:
         try:
-            dac_id = soccfg["gens"][ch].get("dac")
+            getter = getattr(soccfg, "get_gen_cfg", None)
+            gencfg = getter(ch) if callable(getter) else soccfg["gens"][ch]
+            dac_id = gencfg.get("dac")
         except Exception:
             dac_id = None
         if dac_id is not None:
@@ -89,7 +91,9 @@ def _adc_label(sched: Schedule, ch: int, physical_port_labels) -> str:
     soccfg = sched.soccfg
     if soccfg is not None:
         try:
-            adc_id = soccfg["readouts"][ch].get("adc")
+            getter = getattr(soccfg, "get_ro_cfg", None)
+            rocfg = getter(ch) if callable(getter) else soccfg["readouts"][ch]
+            adc_id = rocfg.get("adc")
         except Exception:
             adc_id = None
         if adc_id is not None:

@@ -292,6 +292,14 @@ class Schedule:
 # --------------------------------------------------------------------------- #
 # Pulse parameter lookups
 # --------------------------------------------------------------------------- #
+def _call(obj: Any, name: str, *args, default: Any = None):
+    """Call ``obj.name(*args)`` if it exists; otherwise return ``default``."""
+    fn = getattr(obj, name, None)
+    if callable(fn):
+        return fn(*args)
+    return default
+
+
 def _macro_time_param(macro: Any, name: str):
     """Return the (rounded, sweep-aware) time QickParam for ``name`` in us."""
     getter = getattr(macro, "get_time_param", None)
@@ -325,7 +333,10 @@ def _pulse_param_range(prog: Any, name: str, param: str) -> Tuple[float, float, 
                     f"get_pulse_param({name!r}, {param!r}) failed"
                 ) from exc
     try:
-        p = getattr(prog, "pulses", {})[name].params.get(param)
+        pulses = _call(prog, "get_pulses", default=None) or getattr(prog, "pulses", {})
+        pulse = pulses[name]
+        params = _call(pulse, "get_params", default=None) or getattr(pulse, "params", {})
+        p = params.get(param)
     except Exception as exc:
         if is_strict():
             raise QCVTError(
@@ -340,10 +351,25 @@ def _pulse_param_range(prog: Any, name: str, param: str) -> Tuple[float, float, 
 
 def _ro_length_us(prog: Any, ro: int) -> Optional[float]:
     """ADC integration-window length (us) for readout channel ``ro``."""
+    getter = getattr(prog, "get_ro_length_us", None)
+    if callable(getter):
+        try:
+            return float(getter(ro))
+        except Exception as exc:
+            if is_strict():
+                raise QCVTError(
+                    f"could not resolve readout length for channel {ro}"
+                ) from exc
     try:
-        rc = prog.ro_chs[ro]
+        ro_chs = _call(prog, "get_ro_chs", default=None) or prog.ro_chs
+        rc = ro_chs[ro]
+        if "length_us" in rc:
+            return float(rc["length_us"])
         length = rc["length"]
-        f_output = prog.soccfg["readouts"][ro]["f_output"]
+        soccfg = getattr(prog, "soccfg", None)
+        f_output = _call(soccfg, "get_ro_f_output", ro, default=None)
+        if f_output is None:
+            f_output = soccfg["readouts"][ro]["f_output"]
         return float(length) / float(f_output)
     except Exception as exc:
         if is_strict():
@@ -390,12 +416,16 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
     sched = Schedule(
         soccfg=getattr(prog, "soccfg", None),
         prog=prog,
-        loop_dict=dict(getattr(prog, "loop_dict", {}) or {}),
+        loop_dict=dict(
+            _call(prog, "get_loop_dict", default=None)
+            or getattr(prog, "loop_dict", {})
+            or {}
+        ),
         suppress_off_pulses=suppress_off_pulses,
     )
 
-    macro_list = getattr(prog, "macro_list", None) or []
-    pulses = getattr(prog, "pulses", None) or {}
+    macro_list = _call(prog, "get_macro_list", default=None) or getattr(prog, "macro_list", None) or []
+    pulses = _call(prog, "get_pulses", default=None) or getattr(prog, "pulses", None) or {}
     if not macro_list:
         return sched
 
@@ -528,7 +558,11 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
 # --------------------------------------------------------------------------- #
 def _gencfg(prog: Any, ch: int) -> dict:
     try:
-        return dict(prog.soccfg["gens"][ch])
+        soccfg = getattr(prog, "soccfg", None)
+        cfg = _call(soccfg, "get_gen_cfg", ch, default=None)
+        if cfg is not None:
+            return dict(cfg)
+        return dict(soccfg["gens"][ch])
     except Exception as exc:
         if is_strict():
             raise QCVTError(f"could not read generator config for ch {ch}") from exc
@@ -547,9 +581,12 @@ def _sample_dt_us(gencfg: dict) -> float:
 
 def _envelope_magnitude(prog: Any, ch: int, envelope: str) -> Optional[np.ndarray]:
     """Return the envelope magnitude samples (unitless DAC counts), or ``None``."""
-    envelopes = getattr(prog, "envelopes", None)
     try:
-        data = np.asarray(envelopes[ch]["envs"][envelope]["data"])
+        data = _call(prog, "get_envelope_data", ch, envelope, default=None)
+        if data is None:
+            envelopes = _call(prog, "get_envelopes", default=None) or getattr(prog, "envelopes", None)
+            data = envelopes[ch]["envs"][envelope]["data"]
+        data = np.asarray(data)
     except Exception as exc:
         if is_strict():
             raise QCVTError(
@@ -566,7 +603,10 @@ def _envelope_magnitude(prog: Any, ch: int, envelope: str) -> Optional[np.ndarra
 def _flat_top_plateau_us(prog: Any, event: PulseEvent) -> float:
     """Duration of the flat (DDS) segment of a ``flat_top`` pulse, in us."""
     try:
-        length = getattr(prog, "pulses", {})[event.name].params.get("length")
+        pulses = _call(prog, "get_pulses", default=None) or getattr(prog, "pulses", {})
+        pulse = pulses[event.name]
+        params = _call(pulse, "get_params", default=None) or getattr(pulse, "params", {})
+        length = params.get("length")
         return max(0.0, param_nominal(length))
     except Exception as exc:
         if is_strict():
@@ -601,8 +641,11 @@ def amplitude_trace(prog: Any, event: PulseEvent, length_us: Optional[float] = N
     t0 = event.t_start
     gain = abs(representative_gain(event) if gain_override is None else gain_override)
     gencfg = _gencfg(prog, event.ch)
-    maxv = int(gencfg.get("maxv", 32766))
-    scale = maxv if dac_units else 1.0
+    soccfg = getattr(prog, "soccfg", None)
+    maxv = _call(soccfg, "get_maxv", event.ch, default=None)
+    if maxv is None:
+        maxv = int(gencfg.get("maxv", 32766))
+    scale = int(maxv) if dac_units else 1.0
     amp_peak = gain * scale
 
     def _box(duration: float = length_us):

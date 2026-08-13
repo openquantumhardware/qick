@@ -180,6 +180,38 @@ def test_timing_and_sweeps():
 
 
 @needs_qick
+def test_qick_accessors_match_dicts():
+    """Documented accessors used by QCVT must match the underlying dicts."""
+    prog = _build_spec_program()
+    soccfg = prog.soccfg
+
+    gencfg = soccfg.get_gen_cfg(2)
+    assert gencfg["fs"] == soccfg["gens"][2]["fs"]
+    assert gencfg["f_fabric"] == soccfg["gens"][2]["f_fabric"]
+    assert gencfg["maxv"] == soccfg["gens"][2]["maxv"]
+    assert soccfg.get_gen_fs(2) == pytest.approx(float(soccfg["gens"][2]["fs"]))
+    assert soccfg.get_maxv(2) == int(
+        __import__("numpy").floor(
+            soccfg["gens"][2]["maxv"] * soccfg["gens"][2]["maxv_scale"]
+        )
+    )
+
+    rocfg = soccfg.get_ro_cfg(0)
+    assert rocfg["f_output"] == soccfg["readouts"][0]["f_output"]
+    assert soccfg.get_ro_f_output(0) == pytest.approx(float(soccfg["readouts"][0]["f_output"]))
+
+    assert list(prog.get_macro_list()) == list(prog.macro_list)
+    assert prog.get_pulses() is prog.pulses
+    assert dict(prog.get_loop_dict()) == dict(prog.loop_dict)
+    assert prog.get_ro_chs() is prog.ro_chs
+    assert prog.get_ro_length_us(0) == pytest.approx(10.0, abs=1e-2)
+    assert "qpulse" in prog.get_pulses()
+    assert "gain" in prog.get_pulses()["qpulse"].get_params()
+    env = prog.get_envelopes()
+    assert env is prog.envelopes
+
+
+@needs_qick
 def test_plot_with_ax_and_amplitude_no_crash():
     import matplotlib.pyplot as plt
     from qcvt import plot_pulse_schedule
