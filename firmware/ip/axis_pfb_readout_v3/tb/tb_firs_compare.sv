@@ -3,17 +3,21 @@
 module tb_firs_compare;
 
     localparam int CLK_PERIOD = 10;
-    localparam int N = 32;
+    // Must match production instantiation (axis_pfb_readout_v3.v: N=64, L=4)
+    // so that pfb_ctrl's channel count (N/(2*L)=8) matches the Number_Channels=8
+    // the generated fir_0 IP was actually built with.
+    localparam int N = 64;
     localparam int L = 4;
     localparam int INPUT_W = L * 32;
     localparam int OUTPUT_W = 2 * L * 32;
     localparam int OUTPUT_WORDS = 2 * L;
-    localparam int PATTERN_COUNT = 4;
+    localparam int DISTINCT_PATTERNS = 4;
+    localparam int PATTERN_COUNT = 64;
     localparam int SAMPLES_PER_PATTERN = 32;
     localparam int TOTAL_SAMPLES = PATTERN_COUNT * SAMPLES_PER_PATTERN;
     localparam int SAMPLES_PER_FRAME = N / (2 * L);
     localparam int DRAIN_CYCLES = 120;
-    localparam int WATCHDOG_CYCLES = 4000;
+    localparam int WATCHDOG_CYCLES = TOTAL_SAMPLES + DRAIN_CYCLES + 500;
     localparam int ABS_TOLERANCE = 2;
     localparam real REL_TOLERANCE = 0.01;
 
@@ -100,7 +104,7 @@ module tb_firs_compare;
             pattern_sample = sample_index % SAMPLES_PER_PATTERN;
             s_axis_tdata = '0;
             for (int lane = 0; lane < L; lane = lane + 1) begin
-                case (pattern_id)
+                case (pattern_id % DISTINCT_PATTERNS)
                     0: begin
                         sample_i = (pattern_sample == 0) ? (16'sd1024 + lane * 16'sd17) : 16'sd0;
                         sample_q = 16'sd0;
@@ -130,7 +134,7 @@ module tb_firs_compare;
     always @(posedge clk) begin
         cycle_count = cycle_count + 1;
 
-        if (cycle_count < 80 &&
+        if ((cycle_count < 80 || (cycle_count >= 330 && cycle_count <= 370)) &&
             (ip_dut.config_tvalid || emu_dut.config_tvalid ||
              ip_dut.fr_sync || emu_dut.fr_sync || ip_tlast || emu_tlast)) begin
             $display("SYNC cycle=%0d cfg_ip=%b/%b/%0d cfg_emu=%b/%b/%0d frsync_ip=%b emu=%b frout_ip=%b emu=%b tlast_ip=%b emu=%b",
