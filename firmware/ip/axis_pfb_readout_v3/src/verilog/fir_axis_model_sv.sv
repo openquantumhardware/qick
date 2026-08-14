@@ -77,6 +77,7 @@ module fir_axis_model_sv #(
     logic data_unexpected_now;
     logic config_missing_now;
     logic config_unexpected_now;
+    logic frame_last_now;
 
     function automatic logic signed [DATA_W-1:0] sat16(input logic signed [ACC_W-1:0] x);
         logic signed [ACC_W-1:0] maxv;
@@ -114,6 +115,14 @@ module fir_axis_model_sv #(
     // The FIR compiler uses the missing-TLAST event to align the PFB framing
     // counter.  Report the event at the expected frame boundary, before the
     // sequential state update consumes this beat.
+    //
+    // In vector-framing mode m_axis_data_tlast is NOT a delayed copy of
+    // s_axis_data_tlast: the core tracks the vector boundary with its own
+    // free-running channel counter (data_frame_index) and regenerates tlast
+    // whenever that counter reaches the last channel of the frame, whether or
+    // not the input tlast happened to be asserted there. This is what lets the
+    // core self-correct after an initial missing/unexpected tlast instead of
+    // propagating the input error indefinitely.
     always_comb begin
         data_missing_now =
             s_axis_data_tvalid && s_axis_data_tready &&
@@ -125,6 +134,9 @@ module fir_axis_model_sv #(
             (data_frame_index != DATA_FRAME_LENGTH - 1);
         config_missing_now = 1'b0;
         config_unexpected_now = 1'b0;
+        frame_last_now =
+            s_axis_data_tvalid && s_axis_data_tready &&
+            (data_frame_index == DATA_FRAME_LENGTH - 1);
     end
 
     always_ff @(posedge aclk) begin
@@ -186,7 +198,7 @@ module fir_axis_model_sv #(
             data_pipe[0] <= {out_q, out_i};
 
             valid_pipe <= {valid_pipe[LATENCY-2:0], s_axis_data_tvalid};
-            last_pipe  <= {last_pipe[TLAST_LATENCY-2:0], s_axis_data_tlast};
+            last_pipe  <= {last_pipe[TLAST_LATENCY-2:0], frame_last_now};
             data_missing_pipe <= {data_missing_pipe[EVENT_LATENCY-2:0], data_missing_now};
             data_unexpected_pipe <= {data_unexpected_pipe[EVENT_LATENCY-2:0], data_unexpected_now};
             config_missing_pipe <= {config_missing_pipe[EVENT_LATENCY-2:0], config_missing_now};

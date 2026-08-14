@@ -86,7 +86,11 @@ always @(posedge aclk) begin
 	valid_r <= s_axis_tvalid;
 end
 
-// PFB Control.
+// PFB Control and delay line: VHDL/Xilinx path for synthesis, pure SV path
+// for iverilator/emulation.
+generate
+if (!EMULATOR) begin : gen_ctrl_synth
+
 pfb_ctrl
 	#(
 		// Number of channels.
@@ -136,6 +140,61 @@ zn_nb
 		.m_axis_tdata	(data_d			)
 	
 	);
+
+end else begin : gen_ctrl_emu
+
+pfb_ctrl_sv
+	#(
+		// Number of channels.
+		.N(N/(2*L))
+    )
+    pfb_ctrl_i
+	(
+		.aresetn				(aresetn			),
+		.aclk     				(aclk   			),
+		
+		// M_AXIS for Configuration.
+		.m_axis_config_tready	(config_tready		),
+		.m_axis_config_tvalid 	(config_tvalid		),
+		.m_axis_config_tlast  	(config_tlast 		),
+		.m_axis_config_tdata  	(config_tdata 		),
+		
+		// Filter config.
+		.cfg_en					(1'b1				),
+		
+		// Framing.
+		.tready					(m_axis_tvalid		),
+		.tvalid					(m_axis_tvalid		),
+		.fr_sync				(fr_sync			),
+		.fr_out  				(fr_out				)
+        );
+
+// Delayed data.
+zn_nb_sv
+	#(
+		// Number of bits.
+		.B(L*32),
+
+		// Delay.
+		.N(N/(2*L))
+	)
+	zn_nb_i
+	(
+		.aclk	 		(aclk			),
+		.aresetn		(aresetn		),
+	
+		// S_AXIS for intput.
+		.s_axis_tvalid	(s_axis_tvalid	),
+		.s_axis_tdata	(s_axis_tdata	),
+	
+		// M_AXIS for output.
+		.m_axis_tvalid	(				),
+		.m_axis_tdata	(data_d			)
+	
+	);
+
+end
+endgenerate
 
 
 // Delayed samples go to first half of firs. This is equivalent
