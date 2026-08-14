@@ -3,8 +3,7 @@
 module ssrfft_8x64_sync_sv #(
     parameter int NFFT = 16,
     parameter int SSR  = 8,
-    parameter int B    = 16,
-    parameter int FFT_LATENCY = 18
+    parameter int B    = 16
 )(
     input  logic                  aresetn,
     input  logic                  aclk,
@@ -97,7 +96,10 @@ module ssrfft_8x64_sync_sv #(
     );
 
     ssr_8x64_sv #(
-        .FFT_LATENCY (FFT_LATENCY)
+        .FFT_LATENCY(32),
+        .INPUT_DELAY(4),
+        .OUTPUT_DELAY(6),
+        .LANE_MAP('{0,1,2,3,4,5,6,7})
     ) ssr_8x64_i (
         .clk     (aclk),
         .i_valid (fft_i_valid),

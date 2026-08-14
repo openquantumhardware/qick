@@ -1,0 +1,141 @@
+[*]
+[*] GTKWave Analyzer v3.3.118 (w)1999-2023 BSI
+[*] Fri Aug 14 07:02:44 2026
+[*]
+[dumpfile] "/home/dmartin2/hrl-labs-clinic/qick_hrl_clinic_b_features/firmware/ip/axis_pfb_readout_v3/tb/firs_sim_work/firs_compare.sim/sim_1/behav/xsim/tb_firs_compare.vcd"
+[dumpfile_mtime] "Fri Aug 14 07:02:25 2026"
+[dumpfile_size] 386356
+[savefile] "/home/dmartin2/hrl-labs-clinic/qick_hrl_clinic_b_features/firmware/ip/axis_pfb_readout_v3/tb/tb_firs_compare.gtkw"
+[timestart] 0
+[size] 1920 930
+[pos] -1 -1
+*-18.422865 725000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_firs_compare.
+[treeopen] tb_firs_compare.emu_dut.
+[treeopen] tb_firs_compare.emu_dut.gen_firs_emu.
+[treeopen] tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.
+[treeopen] tb_firs_compare.emu_dut.gen_firs_emu.fir1_i.
+[treeopen] tb_firs_compare.emu_dut.gen_firs_emu.fir1_i.u_model.
+[treeopen] tb_firs_compare.ip_dut.
+[treeopen] tb_firs_compare.ip_dut.gen_firs_synth.
+[sst_width] 273
+[signals_width] 553
+[sst_expanded] 1
+[sst_vpaned_height] 369
+@28
+tb_firs_compare.ip_dut.aresetn
+tb_firs_compare.ip_dut.aclk
+tb_firs_compare.ip_dut.s_axis_tvalid
+@22
+tb_firs_compare.ip_dut.s_axis_tdata[127:0]
+@28
+tb_firs_compare.ip_dut.fr_out
+tb_firs_compare.ip_dut.valid_r
+@22
+tb_firs_compare.ip_dut.data_d[127:0]
+@28
+tb_firs_compare.ip_dut.config_tready
+tb_firs_compare.ip_dut.config_tvalid
+tb_firs_compare.ip_dut.config_tlast
+@22
+tb_firs_compare.ip_dut.config_tdata[7:0]
+@200
+---------------------
+@28
+[color] 2
+tb_firs_compare.ip_dut.m_axis_tvalid
+@22
+tb_firs_compare.ip_dut.m_axis_tdata[255:0]
+@28
+[color] 3
+tb_firs_compare.ip_dut.m_axis_tlast
+[color] 2
+tb_firs_compare.ip_dut.fr_sync
+[color] 2
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.event_s_data_tlast_missing
+[color] 2
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.event_s_data_tlast_unexpected
+@200
+-------------------------
+@28
+[color] 2
+tb_firs_compare.emu_dut.m_axis_tvalid
+[color] 3
+tb_firs_compare.emu_dut.m_axis_tlast
+@22
+tb_firs_compare.emu_dut.m_axis_tdata[255:0]
+@28
+[color] 2
+tb_firs_compare.emu_dut.fr_sync
+[color] 2
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.event_s_data_tlast_missing
+[color] 2
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.event_s_data_tlast_unexpected
+@200
+-------------------
+@28
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.aclk
+@22
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.m_axis_data_tdata[31:0]
+@28
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.m_axis_data_tlast
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.m_axis_data_tvalid
+@22
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_config_tdata[7:0]
+@28
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_config_tlast
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_config_tready
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_config_tvalid
+@22
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_data_tdata[31:0]
+@200
+------
+@28
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.aclk
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.aresetn
+@22
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.m_axis_data_tdata[31:0]
+@28
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.m_axis_data_tlast
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.m_axis_data_tvalid
+@22
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_config_tdata[7:0]
+@28
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_config_tlast
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_config_tready
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_config_tvalid
+@22
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_data_tdata[31:0]
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.s_axis_config_tdata[7:0]
+@23
+tb_firs_compare.emu_dut.gen_firs_emu.fir0_i.u_model.s_axis_config_tdata[7:0]
+@22
+tb_firs_compare.emu_dut.gen_firs_emu.fir1_i.s_axis_config_tdata[7:0]
+tb_firs_compare.emu_dut.gen_firs_emu.fir1_i.u_model.s_axis_config_tdata[7:0]
+tb_firs_compare.ip_dut.gen_firs_synth.fir0_i.s_axis_config_tdata[7:0]
+tb_firs_compare.ip_dut.pfb_ctrl_i.m_axis_config_tdata[7:0]
+tb_firs_compare.emu_dut.pfb_ctrl_i.m_axis_config_tdata[7:0]
+@28
+tb_firs_compare.emu_dut.pfb_ctrl_i.cfg_en
+tb_firs_compare.emu_dut.pfb_ctrl_i.fr_out
+tb_firs_compare.emu_dut.pfb_ctrl_i.fr_sync
+tb_firs_compare.ip_dut.pfb_ctrl_i.cfg_en
+tb_firs_compare.ip_dut.pfb_ctrl_i.fr_out
+tb_firs_compare.ip_dut.pfb_ctrl_i.fr_sync
+tb_firs_compare.ip_dut.pfb_ctrl_i.tvalid
+tb_firs_compare.ip_dut.pfb_ctrl_i.tready
+tb_firs_compare.ip_dut.pfb_ctrl_i.m_axis_config_tvalid
+tb_firs_compare.ip_dut.pfb_ctrl_i.m_axis_config_tready
+tb_firs_compare.ip_dut.pfb_ctrl_i.m_axis_config_tlast
+@22
+tb_firs_compare.ip_dut.pfb_ctrl_i.m_axis_config_tdata[7:0]
+@28
+tb_firs_compare.emu_dut.pfb_ctrl_i.tvalid
+tb_firs_compare.emu_dut.pfb_ctrl_i.tready
+tb_firs_compare.emu_dut.pfb_ctrl_i.m_axis_config_tvalid
+tb_firs_compare.emu_dut.pfb_ctrl_i.m_axis_config_tready
+tb_firs_compare.emu_dut.pfb_ctrl_i.m_axis_config_tlast
+@22
+tb_firs_compare.emu_dut.pfb_ctrl_i.m_axis_config_tdata[7:0]
+[pattern_trace] 1
+[pattern_trace] 0

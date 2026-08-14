@@ -418,7 +418,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a3471ca6</spirit:value>
+            <spirit:value>39997d7f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -440,7 +440,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>a3471ca6</spirit:value>
+            <spirit:value>39997d7f</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -482,7 +482,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>664ccc57</spirit:value>
+            <spirit:value>54add43d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1611,6 +1611,14 @@
         <spirit:userFileType>USED_IN_testbench</spirit:userFileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
+      <spirit:file>
+        <spirit:name>scripts/data_iq.txt</spirit:name>
+        <spirit:userFileType>text</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>tb/tb_emu.sv</spirit:name>
+        <spirit:fileType>systemVerilogSource</spirit:fileType>
+      </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
   <spirit:description>AXIS PFB Readout, 64 Channels, 4 outputs, V3.</spirit:description>
@@ -1638,13 +1646,13 @@
       <xilinx:vendorDisplayName>Quantum Instrumentation Control Kit</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://github.com/openquantumhardware/qick/</xilinx:vendorURL>
       <xilinx:coreRevision>4</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2026-08-04T06:40:53Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2026-08-12T15:11:45Z</xilinx:coreCreationDateTime>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2023.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="de7f6fea"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="c930e363"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="5358afef"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7e323996"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="d7721178"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="5a13634e"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="e9e31b05"/>

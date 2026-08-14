@@ -17,15 +17,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="3,650.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="4,361.862 ns"></ZoomEndTime>
-      <Cursor1Time time="3,937.000 ns"></Cursor1Time>
+      <ZoomStartTime time="3.092500 us"></ZoomStartTime>
+      <ZoomEndTime time="12.581501 us"></ZoomEndTime>
+      <Cursor1Time time="11.000000 us"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="265"></NameColumnWidth>
-      <ValueColumnWidth column_width="106"></ValueColumnWidth>
+      <ValueColumnWidth column_width="102"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="11" />
+   <WVObjectSize size="13" />
    <wvobject type="group" fp_name="group198">
       <obj_property name="label">AXI</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -176,6 +176,7 @@
       <wvobject type="group" fp_name="group1268">
          <obj_property name="label">ANALOG_WAVES</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
          <wvobject type="array" fp_name="/tb_emu/dout0_real">
             <obj_property name="ElementShortName">dout0_real[15:0]</obj_property>
             <obj_property name="ObjectShortName">dout0_real[15:0]</obj_property>
@@ -314,6 +315,49 @@
          <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
       </wvobject>
    </wvobject>
+   <wvobject type="group" fp_name="group1464">
+      <obj_property name="label">SSR_FFT</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/clk">
+         <obj_property name="ElementShortName">clk</obj_property>
+         <obj_property name="ObjectShortName">clk</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_valid">
+         <obj_property name="ElementShortName">i_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">i_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_scale">
+         <obj_property name="ElementShortName">i_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">i_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_re_0">
+         <obj_property name="ElementShortName">i_re_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_re_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_im_0">
+         <obj_property name="ElementShortName">i_im_0[15:0]</obj_property>
+         <obj_property name="ObjectShortName">i_im_0[15:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_scale">
+         <obj_property name="ElementShortName">o_scale[5:0]</obj_property>
+         <obj_property name="ObjectShortName">o_scale[5:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_valid">
+         <obj_property name="ElementShortName">o_valid[0:0]</obj_property>
+         <obj_property name="ObjectShortName">o_valid[0:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_re_0">
+         <obj_property name="ElementShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_re_0[26:0]</obj_property>
+         <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_im_0">
+         <obj_property name="ElementShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="ObjectShortName">o_im_0[26:0]</obj_property>
+         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
    <wvobject fp_name="divider646" type="divider">
       <obj_property name="label">EMU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
@@ -321,6 +365,7 @@
    <wvobject type="group" fp_name="group639">
       <obj_property name="label">TOP_EMU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/m0_axis_tvalid">
          <obj_property name="ElementShortName">m0_axis_tvalid</obj_property>
          <obj_property name="ObjectShortName">m0_axis_tvalid</obj_property>
@@ -356,6 +401,7 @@
       <wvobject type="group" fp_name="group1353">
          <obj_property name="label">ANALOG_WAVES</obj_property>
          <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
          <wvobject type="array" fp_name="/tb_emu/emu_dout0_real">
             <obj_property name="ElementShortName">emu_dout0_real[15:0]</obj_property>
             <obj_property name="ObjectShortName">emu_dout0_real[15:0]</obj_property>
@@ -494,61 +540,16 @@
          <obj_property name="ObjectShortName">m3_axis_tdata[31:0]</obj_property>
       </wvobject>
    </wvobject>
-   <wvobject type="group" fp_name="group1464">
-      <obj_property name="label">SSR_FFT</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/clk">
-         <obj_property name="ElementShortName">clk</obj_property>
-         <obj_property name="ObjectShortName">clk</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_scale">
-         <obj_property name="ElementShortName">i_scale[5:0]</obj_property>
-         <obj_property name="ObjectShortName">i_scale[5:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_valid">
-         <obj_property name="ElementShortName">i_valid[0:0]</obj_property>
-         <obj_property name="ObjectShortName">i_valid[0:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_re_0">
-         <obj_property name="ElementShortName">i_re_0[15:0]</obj_property>
-         <obj_property name="ObjectShortName">i_re_0[15:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/i_im_0">
-         <obj_property name="ElementShortName">i_im_0[15:0]</obj_property>
-         <obj_property name="ObjectShortName">i_im_0[15:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_scale">
-         <obj_property name="ElementShortName">o_scale[5:0]</obj_property>
-         <obj_property name="ObjectShortName">o_scale[5:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_valid">
-         <obj_property name="ElementShortName">o_valid[0:0]</obj_property>
-         <obj_property name="ObjectShortName">o_valid[0:0]</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_re_0">
-         <obj_property name="ElementShortName">o_re_0[26:0]</obj_property>
-         <obj_property name="ObjectShortName">o_re_0[26:0]</obj_property>
-         <obj_property name="WaveformStyle">STYLE_DIGITAL</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-      </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/gen_ssrfft_synth.ssrfft_i/ssr_8x64_i/o_im_0">
-         <obj_property name="ElementShortName">o_im_0[26:0]</obj_property>
-         <obj_property name="ObjectShortName">o_im_0[26:0]</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-      </wvobject>
-   </wvobject>
    <wvobject type="group" fp_name="group1470">
       <obj_property name="label">SSR_FFT_EMU</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/clk">
          <obj_property name="ElementShortName">clk</obj_property>
          <obj_property name="ObjectShortName">clk</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_valid">
-         <obj_property name="ElementShortName">i_valid[0:0]</obj_property>
-         <obj_property name="ObjectShortName">i_valid[0:0]</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_valid">
+         <obj_property name="ElementShortName">i_valid</obj_property>
+         <obj_property name="ObjectShortName">i_valid</obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/i_scale">
          <obj_property name="ElementShortName">i_scale[5:0]</obj_property>
@@ -566,9 +567,9 @@
          <obj_property name="ElementShortName">o_scale[5:0]</obj_property>
          <obj_property name="ObjectShortName">o_scale[5:0]</obj_property>
       </wvobject>
-      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_valid">
-         <obj_property name="ElementShortName">o_valid[0:0]</obj_property>
-         <obj_property name="ObjectShortName">o_valid[0:0]</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_valid">
+         <obj_property name="ElementShortName">o_valid</obj_property>
+         <obj_property name="ObjectShortName">o_valid</obj_property>
       </wvobject>
       <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/\gen_ssrfft_emu.ssrfft_i /ssr_8x64_i/o_re_0">
          <obj_property name="ElementShortName">o_re_0[26:0]</obj_property>
@@ -580,6 +581,146 @@
          <obj_property name="ElementShortName">o_im_0[26:0]</obj_property>
          <obj_property name="ObjectShortName">o_im_0[26:0]</obj_property>
          <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group2105">
+      <obj_property name="label">FIR_0</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/aclk">
+         <obj_property name="ElementShortName">aclk</obj_property>
+         <obj_property name="ObjectShortName">aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_data_tready">
+         <obj_property name="ElementShortName">s_axis_data_tready</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_data_tvalid">
+         <obj_property name="ElementShortName">s_axis_data_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_data_tdata">
+         <obj_property name="ElementShortName">s_axis_data_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_data_tlast">
+         <obj_property name="ElementShortName">s_axis_data_tlast</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tlast</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_config_tready">
+         <obj_property name="ElementShortName">s_axis_config_tready</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_config_tvalid">
+         <obj_property name="ElementShortName">s_axis_config_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_config_tlast">
+         <obj_property name="ElementShortName">s_axis_config_tlast</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/s_axis_config_tdata">
+         <obj_property name="ElementShortName">s_axis_config_tdata[7:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tdata[7:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/m_axis_data_tvalid">
+         <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/m_axis_data_tlast">
+         <obj_property name="ElementShortName">m_axis_data_tlast</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/m_axis_data_tdata">
+         <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/event_s_data_tlast_missing">
+         <obj_property name="ElementShortName">event_s_data_tlast_missing</obj_property>
+         <obj_property name="ObjectShortName">event_s_data_tlast_missing</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/event_s_data_tlast_unexpected">
+         <obj_property name="ElementShortName">event_s_data_tlast_unexpected</obj_property>
+         <obj_property name="ObjectShortName">event_s_data_tlast_unexpected</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/event_s_config_tlast_missing">
+         <obj_property name="ElementShortName">event_s_config_tlast_missing</obj_property>
+         <obj_property name="ObjectShortName">event_s_config_tlast_missing</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT/pfb_readout_i/pfb_top_i/pfb_i/firs_i/gen_firs_synth.fir0_i/event_s_config_tlast_unexpected">
+         <obj_property name="ElementShortName">event_s_config_tlast_unexpected</obj_property>
+         <obj_property name="ObjectShortName">event_s_config_tlast_unexpected</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group2123">
+      <obj_property name="label">FIR_0_EMU</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /aclk">
+         <obj_property name="ElementShortName">aclk</obj_property>
+         <obj_property name="ObjectShortName">aclk</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_data_tvalid">
+         <obj_property name="ElementShortName">s_axis_data_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_data_tready">
+         <obj_property name="ElementShortName">s_axis_data_tready</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_data_tlast">
+         <obj_property name="ElementShortName">s_axis_data_tlast</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_data_tdata">
+         <obj_property name="ElementShortName">s_axis_data_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_data_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_config_tvalid">
+         <obj_property name="ElementShortName">s_axis_config_tvalid</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_config_tready">
+         <obj_property name="ElementShortName">s_axis_config_tready</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tready</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_config_tlast">
+         <obj_property name="ElementShortName">s_axis_config_tlast</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /s_axis_config_tdata">
+         <obj_property name="ElementShortName">s_axis_config_tdata[7:0]</obj_property>
+         <obj_property name="ObjectShortName">s_axis_config_tdata[7:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /m_axis_data_tvalid">
+         <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /m_axis_data_tlast">
+         <obj_property name="ElementShortName">m_axis_data_tlast</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tlast</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /m_axis_data_tdata">
+         <obj_property name="ElementShortName">m_axis_data_tdata[31:0]</obj_property>
+         <obj_property name="ObjectShortName">m_axis_data_tdata[31:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /event_s_data_tlast_missing">
+         <obj_property name="ElementShortName">event_s_data_tlast_missing</obj_property>
+         <obj_property name="ObjectShortName">event_s_data_tlast_missing</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /event_s_data_tlast_unexpected">
+         <obj_property name="ElementShortName">event_s_data_tlast_unexpected</obj_property>
+         <obj_property name="ObjectShortName">event_s_data_tlast_unexpected</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /event_s_config_tlast_missing">
+         <obj_property name="ElementShortName">event_s_config_tlast_missing</obj_property>
+         <obj_property name="ObjectShortName">event_s_config_tlast_missing</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /event_s_config_tlast_unexpected">
+         <obj_property name="ElementShortName">event_s_config_tlast_unexpected</obj_property>
+         <obj_property name="ObjectShortName">event_s_config_tlast_unexpected</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/tb_emu/DUT_EMU/pfb_readout_i/pfb_top_i/pfb_i/firs_i/\gen_firs_emu.fir0_i /COEFFS">
+         <obj_property name="ElementShortName">COEFFS[0:55][31:0]</obj_property>
+         <obj_property name="ObjectShortName">COEFFS[0:55][31:0]</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>
