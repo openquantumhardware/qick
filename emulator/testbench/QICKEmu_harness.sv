@@ -117,6 +117,7 @@ localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
 localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
 localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
 localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
+localparam logic [39:0] PFB_RO_BASE   = 40'h04_0009_0000;  // axis_pfb_readout_v3
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -358,6 +359,21 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    wire    [31:0]    buf1_m1_axis_dec_tdata  = qick_dut.buf1_m1_axis_dec_tdata;
    wire              buf1_m1_axis_dec_tvalid = qick_dut.buf1_m1_axis_dec_tvalid;
    wire              buf1_m1_axis_dec_tlast  = qick_dut.buf1_m1_axis_dec_tlast;
+
+   // // ++++++++++++ PFB Readout signals
+   // wire    [31:0]    pfb_ro_m0_axis_tdata  = qick_dut.pfb_ro_m0_axis_tdata;
+   // wire              pfb_ro_m0_axis_tvalid = qick_dut.pfb_ro_m0_axis_tvalid;
+   // wire              pfb_ro_m0_axis_tready = qick_dut.pfb_ro_m0_axis_tready;
+   // wire    [31:0]    pfb_ro_m1_axis_tdata  = qick_dut.pfb_ro_m1_axis_tdata;
+   // wire              pfb_ro_m1_axis_tvalid = qick_dut.pfb_ro_m1_axis_tvalid;
+   // wire              pfb_ro_m1_axis_tready = qick_dut.pfb_ro_m1_axis_tready;
+   // wire    [31:0]    pfb_ro_m2_axis_tdata  = qick_dut.pfb_ro_m2_axis_tdata;
+   // wire              pfb_ro_m2_axis_tvalid = qick_dut.pfb_ro_m2_axis_tvalid;
+   // wire              pfb_ro_m2_axis_tready = qick_dut.pfb_ro_m2_axis_tready;
+   // wire    [31:0]    pfb_ro_m3_axis_tdata  = qick_dut.pfb_ro_m3_axis_tdata;
+   // wire              pfb_ro_m3_axis_tvalid = qick_dut.pfb_ro_m3_axis_tvalid;
+   // wire              pfb_ro_m3_axis_tready = qick_dut.pfb_ro_m3_axis_tready;
+   // ++++++++++++
    // ++++++++++++
 
 
@@ -529,14 +545,20 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
       .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
 
+      // ADC 1 --> Readout 1 Interface
+      .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
+      .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
+      .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      ),
+
+      // ADC 2 --> Readout 2 Interface
+      .axis_adc2_ro2_tready       (/*axis_adc2_ro2_tready*/     ),
+      .axis_adc2_ro2_tvalid       (/*axis_adc2_ro2_tvalid*/     ),
+      .axis_adc2_ro2_tdata        (/*axis_adc2_ro2_tdata*/      )
+
       // // Readout 0 --> MR Buffer 0 Interface
       // .axis_ro0_mrbuf_tvalid       (axis_ro0_mrbuf_tvalid     ),
       // .axis_ro0_mrbuf_tdata        (axis_ro0_mrbuf_tdata      ),
 
-      // ADC 1 --> Readout 1 Interface
-      .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
-      .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
-      .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      )
    );
 
 

@@ -23,7 +23,7 @@ reg		[31:0]	POFF_REG	;
 /****************/
 
 // DUT.
-dds_ctrl DUT
+dds_ctrl_pfb_ro_v3 DUT
 	(
 		// Reset and clock.
 		.aclk		,

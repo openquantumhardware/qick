@@ -74,6 +74,15 @@ VERILOG_SOURCES = \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
 	\
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.sv) \
+	\
 	$(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
 	$(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
 	$(wildcard $(MODELS_DIR)/dac_adc/*.sv) \

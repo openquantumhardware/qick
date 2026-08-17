@@ -86,9 +86,9 @@ wire				valid_int		;
 /**********************/
 // AXI Slave.
 generate
-if (!EMULATOR) begin : gen_axi_slv_synth
+if (!EMULATOR) begin : gen_axi_slv_pfb_ro_v3_synth
 
-axi_slv axi_slv_i
+axi_slv_pfb_ro_v3 axi_slv_pfb_ro_v3_i
 	(
 		.aclk			(s_axi_aclk	 	),
 		.aresetn		(s_axi_aresetn	),
@@ -137,9 +137,9 @@ axi_slv axi_slv_i
 		.POFF3_REG		(POFF3_REG		)
 	);
 
-end else begin : gen_axi_slv_emu
+end else begin : gen_axi_slv_pfb_ro_v3_emu
 
-axi_slv_pfb_ro_v3 axi_slv_i
+axi_slv_pfb_ro_v3_pfb_ro_v3 axi_slv_pfb_ro_v3_i
 	(
 		.aclk			(s_axi_aclk	 	),
 		.aresetn		(s_axi_aresetn	),

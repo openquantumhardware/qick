@@ -1063,7 +1063,7 @@
       <spirit:file>
         <spirit:name>src/dds/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/gen_dds_synth.dds_i</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_pfb_ro_v3_i/gen_dds_synth.dds_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/fir/fir_7/fir_7.xci</spirit:name>
@@ -1136,12 +1136,12 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds/dds_ctrl.sv</spirit:name>
+        <spirit:name>src/dds/dds_ctrl_pfb_ro_v3.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds/dds_top.sv</spirit:name>
+        <spirit:name>src/dds/dds_top_pfb_ro_v3.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
@@ -1186,7 +1186,7 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_slv.vhd</spirit:name>
+        <spirit:name>src/axi_slv_pfb_ro_v3.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
@@ -1341,7 +1341,7 @@
       <spirit:file>
         <spirit:name>src/dds/dds_0/dds_0.xci</spirit:name>
         <spirit:userFileType>xci</spirit:userFileType>
-        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/gen_dds_synth.dds_i</spirit:userFileType>
+        <spirit:userFileType>CELL_NAME_pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_pfb_ro_v3_i/gen_dds_synth.dds_i</spirit:userFileType>
       </spirit:file>
       <spirit:file>
         <spirit:name>src/pfb/fir/fir_7/fir_7.xci</spirit:name>
@@ -1414,12 +1414,12 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds/dds_ctrl.sv</spirit:name>
+        <spirit:name>src/dds/dds_ctrl_pfb_ro_v3.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/dds/dds_top.sv</spirit:name>
+        <spirit:name>src/dds/dds_top_pfb_ro_v3.sv</spirit:name>
         <spirit:fileType>systemVerilogSource</spirit:fileType>
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
@@ -1464,7 +1464,7 @@
         <spirit:logicalName>xil_defaultlib</spirit:logicalName>
       </spirit:file>
       <spirit:file>
-        <spirit:name>src/axi_slv.vhd</spirit:name>
+        <spirit:name>src/axi_slv_pfb_ro_v3.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>

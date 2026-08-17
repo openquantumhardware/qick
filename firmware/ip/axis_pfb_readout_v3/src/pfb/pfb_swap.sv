@@ -99,7 +99,7 @@ reg					tlast_r;
 /**********************/
 
 // Fifo 0.
-fifo
+fifo_sv
 	#(
 		// Data width.
 		.B(2*L*B),
@@ -129,7 +129,7 @@ assign fifo0_wr_en = (wr_en && ~wr_sel);
 assign fifo0_rd_en = rst_state || (rw1_state && ~rd_sel);
 
 // Fifo 1.
-fifo
+fifo_sv
 	#(
 		// Data width.
 		.B(2*L*B),

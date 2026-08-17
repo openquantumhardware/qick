@@ -9,7 +9,7 @@
  * 
 */
 
-module dds_ctrl
+module dds_ctrl_pfb_ro_v3
 	(
 		// Clock.
 		input	wire			aclk		,

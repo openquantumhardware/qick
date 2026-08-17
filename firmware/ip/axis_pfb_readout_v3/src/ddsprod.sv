@@ -57,12 +57,12 @@ wire			valid_la		;
 
 // DDS block.
 // Latency: 19.
-dds_top 
+dds_top_pfb_ro_v3 
 	#(
 		// Emulator flag.
 		.EMULATOR(EMULATOR)
 	)
-	dds_top_i
+	dds_top_pfb_ro_v3_i
 	(
 		// Clock.
 		.aclk		(aclk			),

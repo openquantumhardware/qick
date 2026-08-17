@@ -1,4 +1,4 @@
-module dds_top
+module dds_top_pfb_ro_v3
 	#(
 		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
 		// Valid values: 0 for synthesis (default), non-zero for emulation.
@@ -37,7 +37,7 @@ wire	[31:0]	dds_dout		;
 /**********************/
 // DDS control.
 // Latency: 9.
-dds_ctrl dds_ctrl_i
+dds_ctrl_pfb_ro_v3 dds_ctrl_i
 	(
 		// Clock.
 		.aclk		(aclk				),

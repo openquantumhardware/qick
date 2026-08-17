@@ -163,6 +163,33 @@ module axi_router_lite #(
     input  wire                     s_avg1_rvalid,
     output logic                    s_avg1_rready,
 
+    // Slave 7: PFB Readout (8-bit address, base 0x4000_9000)
+    output logic [7:0]              s_pfb_ro_awaddr,
+    output logic [2:0]              s_pfb_ro_awprot,
+    output logic                    s_pfb_ro_awvalid,
+    input  wire                     s_pfb_ro_awready,
+
+    output logic [DATA_WIDTH-1:0]   s_pfb_ro_wdata,
+    output logic [DATA_WIDTH/8-1:0] s_pfb_ro_wstrb,
+    output logic                    s_pfb_ro_wvalid,
+    input  wire                     s_pfb_ro_wready,
+
+    input  wire [1:0]               s_pfb_ro_bresp,
+    input  wire                     s_pfb_ro_bvalid,
+    output logic                    s_pfb_ro_bready,
+
+    output logic [7:0]              s_pfb_ro_araddr,
+    output logic [2:0]              s_pfb_ro_arprot,
+    output logic                    s_pfb_ro_arvalid,
+    input  wire                     s_pfb_ro_arready,
+
+    input  wire [DATA_WIDTH-1:0]    s_pfb_ro_rdata,
+    input  wire [1:0]               s_pfb_ro_rresp,
+    input  wire                     s_pfb_ro_rvalid,
+    output logic                    s_pfb_ro_rready,
+
+
+
     // Slave 5: Signal Generator 1 (6-bit address, base 0x4001_D000)
     output logic [5:0]              s_sg1_awaddr,
     output logic [2:0]              s_sg1_awprot,
@@ -220,7 +247,8 @@ module axi_router_lite #(
     output logic                    sg2_sel,
     output logic                    avg0_sel,
     output logic                    rov2_sel,
-    output logic                    avg1_sel
+    output logic                    avg1_sel,
+    output logic                    pfb_ro_sel
 );
 
 
@@ -229,9 +257,10 @@ module axi_router_lite #(
     localparam logic [ADDR_WIDTH-1:0] BASE_BUF0   = 40'h04_0006_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_BUF1   = 40'h04_0007_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_ROV2   = 40'h04_0008_0000;
+    localparam logic [ADDR_WIDTH-1:0] BASE_PFB_RO = 40'h04_0009_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG0    = 40'h04_001C_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG1    = 40'h04_001D_0000;
-    localparam logic [ADDR_WIDTH-1:0] BASE_SG2    = 40'h04_001F_0000;  // mux8 config; distinct from harness SG1_BASE(0x1E)
+    localparam logic [ADDR_WIDTH-1:0] BASE_SG2    = 40'h04_001E_0000;
 
 
 
@@ -246,27 +275,27 @@ module axi_router_lite #(
 
     // Internal signals for write path
     logic [ADDR_WIDTH-1:0]    write_addr;
-    logic [6:0]               write_slave_sel;
-    logic [6:0]               write_awready;
-    logic [6:0]               write_wready;
-    logic [6:0]               write_slave_valid;
-    logic [6:0]               write_resp_valid;
+    logic [7:0]               write_slave_sel;
+    logic [7:0]               write_awready;
+    logic [7:0]               write_wready;
+    logic [7:0]               write_slave_valid;
+    logic [7:0]               write_resp_valid;
     logic [1:0]               write_resp_resp;
-    logic [6:0]               write_data_sel;
+    logic [7:0]               write_data_sel;
     
     // Internal signals for read path
     logic [ADDR_WIDTH-1:0]    read_addr;
-    logic [6:0]               read_slave_sel;
-    logic [6:0]               read_slave_ready;
-    logic [6:0]               read_slave_valid;
-    logic [6:0]               read_resp_valid;
+    logic [7:0]               read_slave_sel;
+    logic [7:0]               read_slave_ready;
+    logic [7:0]               read_slave_valid;
+    logic [7:0]               read_resp_valid;
     logic [DATA_WIDTH-1:0]    read_resp_data;
     logic [1:0]               read_resp_resp;
 
-    function automatic logic [6:0] decode_slave_sel(
+    function automatic logic [7:0] decode_slave_sel(
         input logic [ADDR_WIDTH-1:0] addr
     );
-        logic [6:0] sel;
+        logic [7:0] sel;
         begin
             sel = '0;
             unique case (addr[39:16])
@@ -278,6 +307,8 @@ module axi_router_lite #(
                 BASE_BUF0[39:16]:  sel[2] = 1'b1;
                 BASE_BUF1[39:16]:  sel[4] = 1'b1;
                 BASE_ROV2[39:16]:  sel[3] = 1'b1;
+                BASE_PFB_RO[39:16]: sel[7] = 1'b1;
+
                 default: sel = '0;
             endcase
             return sel;
@@ -304,7 +335,7 @@ module axi_router_lite #(
         write_awready[5] = s_sg1_awready;
         write_awready[6] = s_sg2_awready;
 
-        write_slave_valid = {7{m_axi_awvalid}} & write_slave_sel;
+        write_slave_valid = {8{m_axi_awvalid}} & write_slave_sel;
     end
 
     
@@ -329,6 +360,11 @@ module axi_router_lite #(
         s_rov2_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
         s_rov2_awprot = m_axi_awprot;
         s_rov2_awvalid = m_axi_awvalid & write_slave_sel[3];
+        // PFB Readout
+        s_pfb_ro_awaddr = m_axi_awaddr[7:0];  // Truncate to 8-bit
+        s_pfb_ro_awprot = m_axi_awprot;
+        s_pfb_ro_awvalid = write_slave_sel[7] & m_axi_awvalid;
+
         
         // Average Buffer 1
         s_avg1_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
@@ -356,10 +392,12 @@ module axi_router_lite #(
         else if (write_slave_sel[4]) m_axi_awready = write_awready[4];
         else if (write_slave_sel[5]) m_axi_awready = write_awready[5];
         else if (write_slave_sel[6]) m_axi_awready = write_awready[6];
+        else if (write_slave_sel[7]) m_axi_awready = write_awready[7];
+
     end
     
     // Keep write target stable between AW and W phases for single-beat AXI-Lite writes.
-    logic [6:0] write_sel_q;
+    logic [7:0] write_sel_q;
 
     logic       write_sel_valid_q;
     always_ff @(posedge aclk or negedge aresetn) begin
@@ -407,7 +445,12 @@ module axi_router_lite #(
         s_rov2_wdata = m_axi_wdata;
         s_rov2_wstrb = m_axi_wstrb;
         s_rov2_wvalid = write_data_sel[3] & m_axi_wvalid;
-        
+
+        // PFB Readout
+        s_pfb_ro_wdata = m_axi_wdata;
+        s_pfb_ro_wstrb = m_axi_wstrb;
+        s_pfb_ro_wvalid = write_data_sel[7] & m_axi_wvalid;
+
         // Average Buffer 1
         s_avg1_wdata = m_axi_wdata;
         s_avg1_wstrb = m_axi_wstrb;
@@ -433,6 +476,8 @@ module axi_router_lite #(
         write_wready[4] = s_avg1_wready;
         write_wready[5] = s_sg1_wready;
         write_wready[6] = s_sg2_wready;
+        write_wready[7] = s_pfb_ro_wready;
+
 
         m_axi_wready = 1'b0;
         if (write_data_sel[0]) m_axi_wready = write_wready[0];
@@ -442,6 +487,8 @@ module axi_router_lite #(
         else if (write_data_sel[4]) m_axi_wready = write_wready[4];
         else if (write_data_sel[5]) m_axi_wready = write_wready[5];
         else if (write_data_sel[6]) m_axi_wready = write_wready[6];
+        else if (write_data_sel[7]) m_axi_wready = write_wready[7];
+
     end
 
     
@@ -460,16 +507,18 @@ module axi_router_lite #(
         write_resp_valid[4] = s_avg1_bvalid;
         write_resp_valid[5] = s_sg1_bvalid;
         write_resp_valid[6] = s_sg2_bvalid;
+        write_resp_valid[7] = s_pfb_ro_bvalid;
+
     end
     
     // Route write response from selected slave
-    logic [6:0] write_resp_pending;
+    logic [7:0] write_resp_pending;
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             write_resp_pending <= '0;
         end else begin
             // Mark which slave is pending write response after W beat is accepted.
-            for (int i = 0; i < 7; i++) begin
+            for (int i = 0; i < 8; i++) begin
 
                 if (write_data_sel[i] && m_axi_wvalid && m_axi_wready) begin
                     write_resp_pending[i] <= 1'b1;
@@ -505,6 +554,10 @@ module axi_router_lite #(
         end else if (write_resp_pending[6] && write_resp_valid[6]) begin
             m_axi_bvalid = 1'b1;
             m_axi_bresp = s_sg2_bresp;
+        end else if (write_resp_pending[7] && write_resp_valid[7]) begin
+            m_axi_bvalid = 1'b1;
+            m_axi_bresp = s_pfb_ro_bresp;
+
         end
     end
     
@@ -530,6 +583,10 @@ module axi_router_lite #(
         
         // Signal Generator 2 (mux8)
         s_sg2_bready = m_axi_bready & write_resp_pending[6];
+
+        // PFB Readout
+        s_pfb_ro_bready = m_axi_bready & write_resp_pending[7];
+
     end
 
     
@@ -551,8 +608,10 @@ module axi_router_lite #(
         read_slave_ready[4] = s_avg1_arready;
         read_slave_ready[5] = s_sg1_arready;
         read_slave_ready[6] = s_sg2_arready;
+        read_slave_ready[7] = s_pfb_ro_arready;
 
-        read_slave_valid = {7{m_axi_arvalid}} & read_slave_sel;
+
+        read_slave_valid = {8{m_axi_arvalid}} & read_slave_sel;
     end
 
     
@@ -577,6 +636,11 @@ module axi_router_lite #(
         s_rov2_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
         s_rov2_arprot = m_axi_arprot;
         s_rov2_arvalid = m_axi_arvalid & read_slave_sel[3];
+
+        // PFB Readout
+        s_pfb_ro_araddr = m_axi_araddr[7:0];  // Truncate to 8-bit
+        s_pfb_ro_arprot = m_axi_arprot;
+        s_pfb_ro_arvalid = read_slave_sel[7] & m_axi_arvalid;
         
         // Average Buffer 1
         s_avg1_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
@@ -623,16 +687,18 @@ module axi_router_lite #(
         read_resp_valid[4] = s_avg1_rvalid;
         read_resp_valid[5] = s_sg1_rvalid;
         read_resp_valid[6] = s_sg2_rvalid;
+        read_resp_valid[7] = s_pfb_ro_rvalid;
+
     end
     
     // Route read response from selected slave
-    logic [6:0] read_resp_pending;
+    logic [7:0] read_resp_pending;
     always_ff @(posedge aclk or negedge aresetn) begin
         if (!aresetn) begin
             read_resp_pending <= '0;
         end else begin
             // Mark which slave is pending response
-            for (int i = 0; i < 7; i++) begin
+            for (int i = 0; i < 8; i++) begin
 
                 if (read_slave_sel[i] && m_axi_arvalid && m_axi_arready) begin
                     read_resp_pending[i] <= 1'b1;
@@ -676,6 +742,10 @@ module axi_router_lite #(
             m_axi_rvalid = 1'b1;
             m_axi_rdata = s_sg2_rdata;
             m_axi_rresp = s_sg2_rresp;
+        end else if (read_resp_pending[7] && read_resp_valid[7]) begin
+            m_axi_rvalid = 1'b1;
+            m_axi_rdata = s_pfb_ro_rdata;
+            m_axi_rresp = s_pfb_ro_rresp;
         end
     end
     
@@ -701,6 +771,10 @@ module axi_router_lite #(
         
         // Signal Generator 2 (mux8)
         s_sg2_rready = m_axi_rready & read_resp_pending[6];
+
+        // PFB Readout
+        s_pfb_ro_rready = m_axi_rready & read_resp_pending[7];
+
     end
 
     // Assign select signals for debugging/monitoring
@@ -712,5 +786,6 @@ module axi_router_lite #(
     assign avg0_sel = write_slave_sel[2] | read_slave_sel[2];
     assign rov2_sel = write_slave_sel[3] | read_slave_sel[3];
     assign avg1_sel = write_slave_sel[4] | read_slave_sel[4];
+    assign pfb_ro_sel = write_slave_sel[7] | read_slave_sel[7];
 
 endmodule

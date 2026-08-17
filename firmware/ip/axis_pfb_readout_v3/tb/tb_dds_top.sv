@@ -28,7 +28,7 @@ assign dout_real = dout[15:0];
 assign dout_imag = dout[31:16];
 
 // DUT.
-dds_top DUT
+dds_top_pfb_ro_v3 DUT
 	(
 		// Reset and clock.
 		.aclk		,

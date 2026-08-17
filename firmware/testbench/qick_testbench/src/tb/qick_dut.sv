@@ -167,15 +167,12 @@ module qick_dut #(
     // AXIS ADC1 Readout
     output logic                     axis_adc1_ro1_tready,
     input logic                      axis_adc1_ro1_tvalid,
-    input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata
+    input logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata,
 
-   //  // Readout1 Buffer Averaged Data AXIS (for axis_readout_v2)
-   //  output logic                     m0_axis_buf1_avg_tvalid,
-   //  output logic [63:0]              m0_axis_buf1_avg_tdata,
-   //  // Readout1 Buffer Decimated Data AXIS
-   //  output logic                     m1_axis_buf1_dec_tvalid,
-   //  output logic [31:0]              m1_axis_buf1_dec_tdata
-
+    // AXIS ADC2 Readout
+    output logic                     axis_adc2_ro2_tready,
+    input logic                      axis_adc2_ro2_tvalid,
+    input logic [N_DDS_RO*16-1:0]    axis_adc2_ro2_tdata
  );
 
    // Signal Generator 0 Path signals
@@ -254,6 +251,40 @@ module qick_dut #(
    logic                     buf1_m2_axis_reg_tvalid;
    logic [63:0]              buf1_m2_axis_reg_tdata;
    wire                      buf1_m2_axis_reg_tready;
+
+   // axis_pfb_readout_v3 signals
+   logic                     pfb_ro_m0_axis_tready;
+   logic                     pfb_ro_m0_axis_tvalid;
+   logic [31:0]              pfb_ro_m0_axis_tdata;
+   logic                     pfb_ro_m1_axis_tready;
+   logic                     pfb_ro_m1_axis_tvalid;
+   logic [31:0]              pfb_ro_m1_axis_tdata;
+   logic                     pfb_ro_m2_axis_tready;
+   logic                     pfb_ro_m2_axis_tvalid;
+   logic [31:0]              pfb_ro_m2_axis_tdata;
+   logic                     pfb_ro_m3_axis_tready;
+   logic                     pfb_ro_m3_axis_tvalid;
+   logic [31:0]              pfb_ro_m3_axis_tdata;
+
+   // logic [7:0]               s_axi_pfb_ro_awaddr;
+   // logic [2:0]               s_axi_pfb_ro_awprot;
+   // logic                     s_axi_pfb_ro_awvalid;
+   // logic                     s_axi_pfb_ro_awready;
+   // logic [31:0]              s_axi_pfb_ro_wdata;
+   // logic [3:0]               s_axi_pfb_ro_wstrb;
+   // logic                     s_axi_pfb_ro_wvalid;
+   // logic                     s_axi_pfb_ro_wready;
+   // logic [1:0]               s_axi_pfb_ro_bresp;
+   // logic                     s_axi_pfb_ro_bvalid;
+   // logic                     s_axi_pfb_ro_bready;
+   // logic [7:0]               s_axi_pfb_ro_araddr;
+   // logic [2:0]               s_axi_pfb_ro_arprot;
+   // logic                     s_axi_pfb_ro_arvalid;
+   // logic                     s_axi_pfb_ro_arready;
+   // logic [31:0]              s_axi_pfb_ro_rdata;
+   // logic [1:0]               s_axi_pfb_ro_rresp;
+   // logic                     s_axi_pfb_ro_rvalid;
+   // logic                     s_axi_pfb_ro_rready;
 
    wire                       trig_10;
    wire                       trig_11;
@@ -381,6 +412,28 @@ module qick_dut #(
    wire  [1:0]       s_axi_avg1_rresp;
    wire              s_axi_avg1_rvalid;
    wire  [31:0]      s_axi_avg1_wdata;
+
+   // AXI router output signals for PFB Readout
+   logic  [7:0]    s_axi_pfb_ro_awaddr;
+   logic  [2:0]    s_axi_pfb_ro_awprot;
+   logic           s_axi_pfb_ro_awvalid;
+   logic           s_axi_pfb_ro_awready;
+   logic  [31:0]   s_axi_pfb_ro_wdata;
+   logic  [3:0]    s_axi_pfb_ro_wstrb;
+   logic           s_axi_pfb_ro_wvalid;
+   logic           s_axi_pfb_ro_wready;
+   logic  [1:0]    s_axi_pfb_ro_bresp;
+   logic           s_axi_pfb_ro_bvalid;
+   logic           s_axi_pfb_ro_bready;
+   logic  [7:0]    s_axi_pfb_ro_araddr;
+   logic  [2:0]    s_axi_pfb_ro_arprot;
+   logic           s_axi_pfb_ro_arvalid;
+   logic           s_axi_pfb_ro_arready;
+   logic  [31:0]   s_axi_pfb_ro_rdata;
+   logic  [1:0]    s_axi_pfb_ro_rresp;
+   logic           s_axi_pfb_ro_rvalid;
+   logic           s_axi_pfb_ro_rready;
+
    wire              s_axi_avg1_wready;
    wire  [3:0]       s_axi_avg1_wstrb;
    wire              s_axi_avg1_wvalid;
@@ -414,6 +467,7 @@ module qick_dut #(
    logic           avg0_sel;
    logic           avg1_sel;
    logic           rov2_sel;
+   logic           pfb_ro_sel;
 
 
    // Instantiate AXI Router
@@ -523,7 +577,6 @@ module qick_dut #(
       .s_sg2_rready    (s_axi_sg2_rready    ),
       // ++++++++++++
       .s_avg0_awaddr   (s_axi_avg0_awaddr   ),
-
       .s_avg0_awprot   (s_axi_avg0_awprot   ),
       .s_avg0_awvalid  (s_axi_avg0_awvalid  ),
       .s_avg0_awready  (s_axi_avg0_awready  ),
@@ -542,6 +595,7 @@ module qick_dut #(
       .s_avg0_rresp    (s_axi_avg0_rresp    ),
       .s_avg0_rvalid   (s_axi_avg0_rvalid   ),
       .s_avg0_rready   (s_axi_avg0_rready   ),
+
       .s_rov2_awaddr   (s_axi_rov2_awaddr   ),
       .s_rov2_awprot   (s_axi_rov2_awprot   ),
       .s_rov2_awvalid  (s_axi_rov2_awvalid  ),
@@ -561,6 +615,27 @@ module qick_dut #(
       .s_rov2_rresp    (s_axi_rov2_rresp    ),
       .s_rov2_rvalid   (s_axi_rov2_rvalid   ),
       .s_rov2_rready   (s_axi_rov2_rready   ),
+
+      .s_pfb_ro_awaddr (s_axi_pfb_ro_awaddr ),
+      .s_pfb_ro_awprot (s_axi_pfb_ro_awprot ),
+      .s_pfb_ro_awvalid(s_axi_pfb_ro_awvalid),
+      .s_pfb_ro_awready(s_axi_pfb_ro_awready),
+      .s_pfb_ro_wdata  (s_axi_pfb_ro_wdata  ),
+      .s_pfb_ro_wstrb  (s_axi_pfb_ro_wstrb  ),
+      .s_pfb_ro_wvalid (s_axi_pfb_ro_wvalid ),
+      .s_pfb_ro_wready (s_axi_pfb_ro_wready ),
+      .s_pfb_ro_bresp  (s_axi_pfb_ro_bresp  ),
+      .s_pfb_ro_bvalid (s_axi_pfb_ro_bvalid ),
+      .s_pfb_ro_bready (s_axi_pfb_ro_bready ),
+      .s_pfb_ro_araddr (s_axi_pfb_ro_araddr ),
+      .s_pfb_ro_arprot (s_axi_pfb_ro_arprot ),
+      .s_pfb_ro_arvalid(s_axi_pfb_ro_arvalid),
+      .s_pfb_ro_arready(s_axi_pfb_ro_arready),
+      .s_pfb_ro_rdata  (s_axi_pfb_ro_rdata  ),
+      .s_pfb_ro_rresp  (s_axi_pfb_ro_rresp  ),
+      .s_pfb_ro_rvalid (s_axi_pfb_ro_rvalid ),
+      .s_pfb_ro_rready (s_axi_pfb_ro_rready ),
+
       .s_avg1_awaddr   (s_axi_avg1_awaddr   ),
       .s_avg1_awprot   (s_axi_avg1_awprot   ),
       .s_avg1_awvalid  (s_axi_avg1_awvalid  ),
@@ -1799,5 +1874,57 @@ module qick_dut #(
 //    assign s1_axis_tvalid = 0;
 
 // `endif
+
+   // axis_pfb_readout_v3 instance
+   axis_pfb_readout_v3 #(
+      .N                      (64               ),
+      .EMULATOR               (EMULATOR         )
+   )
+   u_axis_pfb_readout_v3 (
+      // AXI Slave I/F for configuration.
+      .s_axi_aclk             (ps_clk               ),
+      .s_axi_aresetn          (ps_resetn            ),
+      .s_axi_araddr           (s_axi_pfb_ro_araddr  ),
+      .s_axi_arprot           (s_axi_pfb_ro_arprot  ),
+      .s_axi_arready          (s_axi_pfb_ro_arready ),
+      .s_axi_arvalid          (s_axi_pfb_ro_arvalid ),
+      .s_axi_awaddr           (s_axi_pfb_ro_awaddr  ),
+      .s_axi_awprot           (s_axi_pfb_ro_awprot  ),
+      .s_axi_awready          (s_axi_pfb_ro_awready ),
+      .s_axi_awvalid          (s_axi_pfb_ro_awvalid ),
+      .s_axi_bready           (s_axi_pfb_ro_bready  ),
+      .s_axi_bresp            (s_axi_pfb_ro_bresp   ),
+      .s_axi_bvalid           (s_axi_pfb_ro_bvalid  ),
+      .s_axi_rdata            (s_axi_pfb_ro_rdata   ),
+      .s_axi_rready           (s_axi_pfb_ro_rready  ),
+      .s_axi_rresp            (s_axi_pfb_ro_rresp   ),
+      .s_axi_rvalid           (s_axi_pfb_ro_rvalid  ),
+      .s_axi_wdata            (s_axi_pfb_ro_wdata   ),
+      .s_axi_wready           (s_axi_pfb_ro_wready  ),
+      .s_axi_wstrb            (s_axi_pfb_ro_wstrb   ),
+      .s_axi_wvalid           (s_axi_pfb_ro_wvalid  ),
+
+      // Reset and clock.
+      .aresetn                (ro_resetn            ),
+      .aclk                   (ro_clk               ),
+
+      // S_AXIS for input samples
+      .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
+      .s_axis_tdata           (axis_adc2_ro2_tdata  ),
+
+      // M_AXIS for CH0-3 output.
+      // .m0_axis_tready         (pfb_ro_m0_axis_tready),
+      .m0_axis_tvalid         (pfb_ro_m0_axis_tvalid),
+      .m0_axis_tdata          (pfb_ro_m0_axis_tdata ),
+      // .m1_axis_tready         (pfb_ro_m1_axis_tready),
+      .m1_axis_tvalid         (pfb_ro_m1_axis_tvalid),
+      .m1_axis_tdata          (pfb_ro_m1_axis_tdata ),
+      // .m2_axis_tready         (pfb_ro_m2_axis_tready),
+      .m2_axis_tvalid         (pfb_ro_m2_axis_tvalid),
+      .m2_axis_tdata          (pfb_ro_m2_axis_tdata ),
+      // .m3_axis_tready         (pfb_ro_m3_axis_tready),
+      .m3_axis_tvalid         (pfb_ro_m3_axis_tvalid),
+      .m3_axis_tdata          (pfb_ro_m3_axis_tdata )
+   );
 
  endmodule

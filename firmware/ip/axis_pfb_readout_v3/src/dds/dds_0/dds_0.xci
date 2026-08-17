@@ -2,7 +2,7 @@
   "schema": "xilinx.com:schema:json_instance:1.0",
   "ip_inst": {
     "xci_name": "dds_0",
-    "cell_name": "pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_i/gen_dds_synth.dds_i",
+    "cell_name": "pfb_readout_i/ddsprod_v_i/GEN_ddsprod[0].ddsprod_i/dds_top_pfb_ro_v3_i/gen_dds_synth.dds_i",
     "component_reference": "xilinx.com:ip:dds_compiler:6.0",
     "ip_revision": "22",
     "gen_directory": "../../../../../projects/qick_tprocv2_216_demo/top/top.tmp/axis_pfb_readout_v3_v1_0_project/axis_pfb_readout_v3_v1_0_project.gen/sources_1/ip/dds_0",

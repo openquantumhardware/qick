@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module axi_slv_pfb_ro_v3
+module axi_slv_pfb_ro_v3_pfb_ro_v3
 #(
   parameter integer DATA_WIDTH = 32,
   parameter integer ADDR_WIDTH = 6

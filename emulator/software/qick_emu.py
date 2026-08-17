@@ -431,6 +431,15 @@ def default_addrmap_skeleton() -> AddrMap:
         "MODE_REG":   RegDef(0x10),
         "WE_REG":     RegDef(0x14),
     }
+    am.reg_defs_by_type["axis_pfb_readout_v3"] = {
+        "ID0_REG":   RegDef(0x00), "ID1_REG":   RegDef(0x04),
+        "ID2_REG":   RegDef(0x08), "ID3_REG":   RegDef(0x0C),
+        "FREQ0_REG": RegDef(0x10), "PHASE0_REG": RegDef(0x14),
+        "FREQ1_REG": RegDef(0x18), "PHASE1_REG": RegDef(0x1C),
+        "FREQ2_REG": RegDef(0x20), "PHASE2_REG": RegDef(0x24),
+        "FREQ3_REG": RegDef(0x28), "PHASE3_REG": RegDef(0x2C),
+    }
+
     am.reg_defs_by_type["axis_pfb_readout_v4"] = {
         "PFB_CH": RegDef(0x10), "OUTSEL": RegDef(0x14),
         "NCO_FREQ": RegDef(0x18), "NCO_PHASE": RegDef(0x1C),
