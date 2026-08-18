@@ -114,10 +114,10 @@ localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;  // qick_processor
 localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer
 localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer
 localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
+localparam logic [39:0] PFB_RO_BASE = 40'h04_0009_0000;  // axis_pfb_readout_v3
 localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
 localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
 localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
-localparam logic [39:0] PFB_RO_BASE   = 40'h04_0009_0000;  // axis_pfb_readout_v3
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -331,6 +331,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                      axis_adc1_ro1_tready;
    logic                      axis_adc1_ro1_tvalid;
    logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata;
+
+   logic                      axis_adc2_ro2_tready;
+   logic                      axis_adc2_ro2_tvalid;
+   logic [N_DDS_RO*16-1:0]    axis_adc2_ro2_tdata;
 
 
    wire sg0_s0_axis_aclk = s_ps_dma_aclk;
@@ -551,9 +555,9 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      ),
 
       // ADC 2 --> Readout 2 Interface
-      .axis_adc2_ro2_tready       (/*axis_adc2_ro2_tready*/     ),
-      .axis_adc2_ro2_tvalid       (/*axis_adc2_ro2_tvalid*/     ),
-      .axis_adc2_ro2_tdata        (/*axis_adc2_ro2_tdata*/      )
+      .axis_adc2_ro2_tready       (axis_adc2_ro2_tready     ),
+      .axis_adc2_ro2_tvalid       (axis_adc2_ro2_tvalid     ),
+      .axis_adc2_ro2_tdata        (axis_adc2_ro2_tdata      )
 
       // // Readout 0 --> MR Buffer 0 Interface
       // .axis_ro0_mrbuf_tvalid       (axis_ro0_mrbuf_tvalid     ),
@@ -574,7 +578,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC0_W = 16;
    localparam ADC0_W = 16;
-   logic signed [ADC0_W-1:0] adc0_sample;
+   // logic signed [ADC0_W-1:0] adc0_sample;
    real dac0_signal_rf;
    real dac0_signal_rf_dly;
    real dac0_delay_buffer [0:RF_DELAY_CYCLES-1];
@@ -609,7 +613,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac0_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc0_sample),
+      // .adc_sample          (adc0_sample),
 
       .axis_tready         (axis_adc0_ro0_tready),
       .axis_tvalid         (axis_adc0_ro0_tvalid),
@@ -621,7 +625,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC1_W = 16;
    localparam ADC1_W = 16;
-   logic signed [ADC1_W-1:0] adc1_sample;
+   // logic signed [ADC1_W-1:0] adc1_sample;
    real dac1_signal_rf;
    real dac1_signal_rf_dly;
 
@@ -657,7 +661,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac1_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc1_sample),
+      // .adc_sample          (adc1_sample),
 
       .axis_tready         (axis_adc1_ro1_tready),
       .axis_tvalid         (axis_adc1_ro1_tvalid),
@@ -684,6 +688,27 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac2_signal_rf)
    );
    // ++++++++++++
+
+   model_ADC #(
+      .ADC_W               (ADC0_W),
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO),
+      .ADC_NOISE_STD       (0.002)
+   ) u_model_ADC2 (
+      .clk_DAC             (dac_fs),
+      // .dac_signal_rf       (dac2_signal_rf_dly),
+      .dac_signal_rf       (dac2_signal_rf),
+
+      .clk_ADC             (adc_fs),
+      // .adc_sample          (),
+
+      .axis_tready         (axis_adc2_ro2_tready),
+      .axis_tvalid         (axis_adc2_ro2_tvalid),
+      .axis_tdata          (axis_adc2_ro2_tdata),
+
+      .mode                (1)   // 0 = ZOH, 1 = linear
+   );
+
 
 
    // Model transport delay between DAC0 and ADC0.

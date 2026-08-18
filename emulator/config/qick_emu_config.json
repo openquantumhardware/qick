@@ -192,6 +192,46 @@
       "ro_addr_range": 64,
       "avgbuf_phys_addr": 17180327936,
       "avgbuf_addr_range": 64
+    },
+    {
+      "adc": "22",
+      "avg_maxlen": 8192,
+      "avgbuf_fullpath": "axis_avg_buffer_2",
+      "avgbuf_revision": 7,
+      "avgbuf_type": "axis_avg_buffer",
+      "avgbuf_version": "1.0",
+      "b_dds": 32,
+      "b_phase": 32,
+      "buf_maxlen": 1024,
+      "decimation": 2,
+      "f_dds": 38.4,
+      "f_fabric": 307.2,
+      "f_output": 38.4,
+      "fdds_div": 256,
+      "fs": 2457.6,
+      "fs_div": 4,
+      "fs_mult": 40,
+      "has_edge_counter": false,
+      "has_outsel": false,
+      "has_weights": false,
+      "iq_offset": -0.5,
+      "pfb_ch_offset": 32,
+      "pfb_dds_on_output": true,
+      "pfb_nch": 64,
+      "pfb_nout": 8,
+      "pfb_port": 0,
+      "ro_fullpath": "axis_pfb_readout_v3_0",
+      "ro_revision": 3,
+      "ro_type": "axis_pfb_readout_v3",
+      "ro_version": "1.0",
+      "ro_phys_addr": 17180131328,
+      "ro_addr_range": 64,
+      "tproc_ch": 2,
+      "trigger_bit": 0,
+      "trigger_port": 12,
+      "trigger_type": "tport",      
+      "avgbuf_phys_addr": 17180459008,
+      "avgbuf_addr_range": 64
     }
   ],
   "refclk_freq": 245.76,
@@ -221,6 +261,19 @@
         "index": [
           2,
           1
+        ]
+      },
+      "22": {
+        "coupling": "AC",
+        "decimation": 2,
+        "f_fabric": 307.2,
+        "f_ref": 245.76,
+        "fs": 2457.6,
+        "fs_div": 4,
+        "fs_mult": 40,
+        "index": [
+          2,
+          2
         ]
       }
     },
@@ -309,7 +362,8 @@
         "2": {
           "blocks": [
             "20",
-            "21"
+            "21",
+            "22"
           ],
           "coupling": "AC",
           "f_fabric": 307.2,
