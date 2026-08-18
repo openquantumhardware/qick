@@ -101,7 +101,7 @@
       "tproc_ch": 2,
       "type": "axis_sg_mux8_v1",
       "version": "1.0",
-      "phys_addr": 17181900800,
+      "phys_addr": 17181835264,
       "addr_range": 64
     }
   ],
@@ -218,19 +218,19 @@
       "pfb_ch_offset": 32,
       "pfb_dds_on_output": true,
       "pfb_nch": 64,
-      "pfb_nout": 8,
+      "pfb_nout": 4,
       "pfb_port": 0,
       "ro_fullpath": "axis_pfb_readout_v3_0",
       "ro_revision": 3,
       "ro_type": "axis_pfb_readout_v3",
       "ro_version": "1.0",
-      "ro_phys_addr": 17180131328,
+      "ro_phys_addr": 17180459008,
       "ro_addr_range": 64,
       "tproc_ch": 2,
       "trigger_bit": 0,
       "trigger_port": 12,
       "trigger_type": "tport",      
-      "avgbuf_phys_addr": 17180459008,
+      "avgbuf_phys_addr": 17180131328,
       "avgbuf_addr_range": 64
     }
   ],

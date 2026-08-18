@@ -111,13 +111,14 @@ int    pre_run_delay_ns = -1;
 
 // QICKEMU_DUT Address Map
 localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;  // qick_processor
-localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer
-localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer
+localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer_0
+localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer_1
+localparam logic [39:0] BUF2_BASE   = 40'h04_0004_0000;  // axis_avg_buffer_2
 localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
 localparam logic [39:0] PFB_RO_BASE = 40'h04_0009_0000;  // axis_pfb_readout_v3
-localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
-localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
-localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
+localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6_0
+localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6_1
+localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6_2
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -364,24 +365,16 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    wire              buf1_m1_axis_dec_tvalid = qick_dut.buf1_m1_axis_dec_tvalid;
    wire              buf1_m1_axis_dec_tlast  = qick_dut.buf1_m1_axis_dec_tlast;
 
-   // // ++++++++++++ PFB Readout signals
-   // wire    [31:0]    pfb_ro_m0_axis_tdata  = qick_dut.pfb_ro_m0_axis_tdata;
-   // wire              pfb_ro_m0_axis_tvalid = qick_dut.pfb_ro_m0_axis_tvalid;
-   // wire              pfb_ro_m0_axis_tready = qick_dut.pfb_ro_m0_axis_tready;
-   // wire    [31:0]    pfb_ro_m1_axis_tdata  = qick_dut.pfb_ro_m1_axis_tdata;
-   // wire              pfb_ro_m1_axis_tvalid = qick_dut.pfb_ro_m1_axis_tvalid;
-   // wire              pfb_ro_m1_axis_tready = qick_dut.pfb_ro_m1_axis_tready;
-   // wire    [31:0]    pfb_ro_m2_axis_tdata  = qick_dut.pfb_ro_m2_axis_tdata;
-   // wire              pfb_ro_m2_axis_tvalid = qick_dut.pfb_ro_m2_axis_tvalid;
-   // wire              pfb_ro_m2_axis_tready = qick_dut.pfb_ro_m2_axis_tready;
-   // wire    [31:0]    pfb_ro_m3_axis_tdata  = qick_dut.pfb_ro_m3_axis_tdata;
-   // wire              pfb_ro_m3_axis_tvalid = qick_dut.pfb_ro_m3_axis_tvalid;
-   // wire              pfb_ro_m3_axis_tready = qick_dut.pfb_ro_m3_axis_tready;
-   // ++++++++++++
-   // ++++++++++++
+   // ++++++++++++ pfb_readout_v3 buffer 2 signals
+   wire    [63:0]    buf2_m0_axis_avg_tdata  = qick_dut.buf2_m0_axis_avg_tdata;
+   wire              buf2_m0_axis_avg_tvalid = qick_dut.buf2_m0_axis_avg_tvalid;
+   wire              buf2_m0_axis_avg_tlast  = qick_dut.buf2_m0_axis_avg_tlast;
 
+   wire    [31:0]    buf2_m1_axis_dec_tdata  = qick_dut.buf2_m1_axis_dec_tdata;
+   wire              buf2_m1_axis_dec_tvalid = qick_dut.buf2_m1_axis_dec_tvalid;
+   wire              buf2_m1_axis_dec_tlast  = qick_dut.buf2_m1_axis_dec_tlast;
 
-   //--------------------------------------
+    //--------------------------------------
    // QICK DUT
    //--------------------------------------
 
@@ -944,8 +937,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    integer dac2_csv_fd;   // ++++++++++++ mux8 SG2 -> DAC2 capture
    integer avg0_csv_fd;
    integer avg1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
+   integer avg2_csv_fd;   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
    integer dec0_csv_fd;
    integer dec1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
+   integer dec2_csv_fd;   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
    integer mr_csv_fd;
    int     mr_rows_logged = 0;
 
@@ -955,8 +950,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       string dac2_csv_path;
       string avg0_csv_path;
       string avg1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
+      string avg2_csv_path;   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       string dec0_csv_path;
       string dec1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
+      string dec2_csv_path;
       string mr_csv_path;
 
       // Print times in ps
@@ -969,8 +966,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       dac2_csv_path = {EMU_DIR, "/dac_out_ch2.csv"};   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_path = {EMU_DIR, "/avg_out_ch0.csv"};
       avg1_csv_path = {EMU_DIR, "/avg_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
+      avg2_csv_path = {EMU_DIR, "/avg_out_ch2.csv"};   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       dec0_csv_path = {EMU_DIR, "/dec_out_ch0.csv"};
       dec1_csv_path = {EMU_DIR, "/dec_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
+      dec2_csv_path = {EMU_DIR, "/dec_out_ch2.csv"};   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
       dac0_csv_fd = $fopen(dac0_csv_path, "w");
@@ -978,8 +977,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       dac2_csv_fd = $fopen(dac2_csv_path, "w");   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_fd = $fopen(avg0_csv_path, "w");
       avg1_csv_fd = $fopen(avg1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
+      avg2_csv_fd = $fopen(avg2_csv_path, "w");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       dec0_csv_fd = $fopen(dec0_csv_path, "w");
       dec1_csv_fd = $fopen(dec1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
+      dec2_csv_fd = $fopen(dec2_csv_path, "w");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       mr_csv_fd  = $fopen(mr_csv_path, "w");
 
       // Signal Generators
@@ -998,6 +999,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fwrite(dec0_csv_fd, "time_ps,I,Q\n");
       $fwrite(avg1_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec1_csv_fd, "time_ps,I,Q\n");
+      $fwrite(avg2_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      $fwrite(dec2_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
 
       // MR Buffer
       $fwrite(mr_csv_fd, "time_ps");
@@ -1061,6 +1064,22 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          $fwrite(dec1_csv_fd, "%0t,%0d,%0d\n", $realtime,
                  $signed(buf1_m1_axis_dec_tdata[15:0]),
                  $signed(buf1_m1_axis_dec_tdata[31:16]));
+   end
+   // ++++++++++++
+
+   // ++++++++++++ axis_avg_buffer_2 CSV logging (PFB v3 downstream)
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf2_m0_axis_avg_tvalid)
+         $fwrite(avg2_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf2_m0_axis_avg_tdata[31:0]),
+               $signed(buf2_m0_axis_avg_tdata[63:32]));
+   end
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf2_m1_axis_dec_tvalid)
+         $fwrite(dec2_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf2_m1_axis_dec_tdata[15:0]),
+               $signed(buf2_m1_axis_dec_tdata[31:16]));
    end
    // ++++++++++++
 
@@ -1262,8 +1281,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fclose(dac2_csv_fd);   // ++++++++++++ mux8 SG2 -> DAC2 capture
       $fclose(avg0_csv_fd);
       $fclose(avg1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
+      $fclose(avg2_csv_fd);   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       $fclose(dec0_csv_fd);
       $fclose(dec1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
+      $fclose(dec2_csv_fd);   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
       $fclose(mr_csv_fd);
 
       $display("%0t - End Emulation", $realtime);

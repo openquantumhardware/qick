@@ -675,6 +675,26 @@ module qick_dut #(
       .s_avg1_rvalid   (s_axi_avg1_rvalid   ),
       .s_avg1_rready   (s_axi_avg1_rready   ),
 
+      .s_avg2_awaddr   (s_axi_avg2_awaddr   ),
+      .s_avg2_awprot   (s_axi_avg2_awprot   ),
+      .s_avg2_awvalid  (s_axi_avg2_awvalid  ),
+      .s_avg2_awready  (s_axi_avg2_awready  ),
+      .s_avg2_wdata    (s_axi_avg2_wdata    ),
+      .s_avg2_wstrb    (s_axi_avg2_wstrb    ),
+      .s_avg2_wvalid   (s_axi_avg2_wvalid   ),
+      .s_avg2_wready   (s_axi_avg2_wready   ),
+      .s_avg2_bresp    (s_axi_avg2_bresp    ),
+      .s_avg2_bvalid   (s_axi_avg2_bvalid   ),
+      .s_avg2_bready   (s_axi_avg2_bready   ),
+      .s_avg2_araddr   (s_axi_avg2_araddr   ),
+      .s_avg2_arprot   (s_axi_avg2_arprot   ),
+      .s_avg2_arvalid  (s_axi_avg2_arvalid  ),
+      .s_avg2_arready  (s_axi_avg2_arready  ),
+      .s_avg2_rdata    (s_axi_avg2_rdata    ),
+      .s_avg2_rresp    (s_axi_avg2_rresp    ),
+      .s_avg2_rvalid   (s_axi_avg2_rvalid   ),
+      .s_avg2_rready   (s_axi_avg2_rready   ),
+
       // Output select signals
       .tproc_sel       (tproc_sel           ),
       .sg0_sel         (sg0_sel             ),
@@ -1939,9 +1959,9 @@ module qick_dut #(
       .aresetn                (ro_resetn            ),
       .aclk                   (ro_clk               ),
 
-      // S_AXIS for input samples
-      .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
-      .s_axis_tdata           (axis_adc2_ro2_tdata  ),
+        // S_AXIS for input samples
+        .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
+        .s_axis_tdata           (axis_adc2_ro2_tdata  ),
 
       // M_AXIS for CH0-3 output.
       .m0_axis_tvalid         (pfb_ro_m0_axis_tvalid),
@@ -1992,7 +2012,6 @@ module qick_dut #(
       // AXIS Slave for input data.
       .s_axis_aresetn         (ro_resetn             ),
       .s_axis_aclk            (ro_clk                ),
-      .s_axis_tready          (/*pfb_ro_m0_axis_tready*/ ),
       .s_axis_tvalid          (pfb_ro_m0_axis_tvalid ),
       .s_axis_tdata           (pfb_ro_m0_axis_tdata  ),
 

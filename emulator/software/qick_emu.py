@@ -432,12 +432,12 @@ def default_addrmap_skeleton() -> AddrMap:
         "WE_REG":     RegDef(0x14),
     }
     am.reg_defs_by_type["axis_pfb_readout_v3"] = {
-        "ID0_REG":   RegDef(0x00), "ID1_REG":   RegDef(0x04),
-        "ID2_REG":   RegDef(0x08), "ID3_REG":   RegDef(0x0C),
-        "FREQ0_REG": RegDef(0x10), "PHASE0_REG": RegDef(0x14),
-        "FREQ1_REG": RegDef(0x18), "PHASE1_REG": RegDef(0x1C),
-        "FREQ2_REG": RegDef(0x20), "PHASE2_REG": RegDef(0x24),
-        "FREQ3_REG": RegDef(0x28), "PHASE3_REG": RegDef(0x2C),
+        "id0_reg":   RegDef(0x00), "id1_reg":   RegDef(0x04),
+        "id2_reg":   RegDef(0x08), "id3_reg":   RegDef(0x0C),
+        "freq0_reg": RegDef(0x10), "phase0_reg": RegDef(0x14),
+        "freq1_reg": RegDef(0x18), "phase1_reg": RegDef(0x1C),
+        "freq2_reg": RegDef(0x20), "phase2_reg": RegDef(0x24),
+        "freq3_reg": RegDef(0x28), "phase3_reg": RegDef(0x2C),
     }
 
     am.reg_defs_by_type["axis_pfb_readout_v4"] = {
@@ -595,8 +595,17 @@ class MockPFBReadout(MockIpDriver):
         out_ch = cfg.get('pfb_port', 0)
         pfb_ch = cfg.get('pfb_ch', 0)
         f_int = cfg.get('f_int', 0)
-        self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
-        self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel")
+
+        if self.ip_type == "axis_pfb_readout_v3":
+            packet = pfb_ch // 8
+            index = pfb_ch % 8
+            id_val = (index << 8) + packet
+            self.soc.reg_write(self.fullpath, f"id{out_ch}_reg", id_val, comment=f"PFB ch{pfb_ch}->out{out_ch} id")
+            self.soc.reg_write(self.fullpath, f"freq{out_ch}_reg", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
+            self.soc.reg_write(self.fullpath, f"phase{out_ch}_reg", cfg.get('phase_int', 0), comment=f"PFB ch{pfb_ch}->out{out_ch} phase")
+        else:
+            self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
+            self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel")
 
 
 class MockAxisReadoutV2(MockIpDriver):
