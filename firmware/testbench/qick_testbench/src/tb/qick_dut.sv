@@ -202,11 +202,14 @@ module qick_dut #(
    logic              sgt1_sg1_axis_tready;
 
    // ++++++++++++ Signal Generator 2 (mux8) Path signals
-   // tproc wave port m2 -> sg_translator
-   wire [167:0]       tproc_sgt2_axis_tdata ;
-   wire               tproc_sgt2_axis_tvalid;
-   logic              tproc_sgt2_axis_tready;
-   // sg_translator m_mux4 (40-bit) -> axis_sg_mux8_v1
+   wire [167:0]       tproc_sg2cdc_axis_tdata ;
+   wire               tproc_sg2cdc_axis_tvalid;
+   logic              tproc_sg2cdc_axis_tready;
+
+   wire [167:0]       sg2cdc_sgt2_axis_tdata ;
+   wire               sg2cdc_sgt2_axis_tvalid;
+   logic              sg2cdc_sgt2_axis_tready;
+
    wire [39:0]        sgt2_sg2_axis_tdata ;
    wire               sgt2_sg2_axis_tvalid;
    logic              sgt2_sg2_axis_tready;
@@ -952,9 +955,9 @@ module qick_dut #(
       .m1_axis_tdata        ( tproc_sg1cdc_axis_tdata        ),
       .m1_axis_tvalid       ( tproc_sg1cdc_axis_tvalid       ),
       .m1_axis_tready       ( tproc_sg1cdc_axis_tready       ),
-      .m2_axis_tdata        ( tproc_sgt2_axis_tdata         ),
-      .m2_axis_tvalid       ( tproc_sgt2_axis_tvalid        ),
-      .m2_axis_tready       ( tproc_sgt2_axis_tready        ),
+      .m2_axis_tdata        ( tproc_sg2cdc_axis_tdata       ),
+      .m2_axis_tvalid       ( tproc_sg2cdc_axis_tvalid      ),
+      .m2_axis_tready       ( tproc_sg2cdc_axis_tready      ),
       .m3_axis_tdata        ( /*m3_axis_tdata*/        ),
       .m3_axis_tvalid       ( /*m3_axis_tvalid*/       ),
       .m3_axis_tready       ( 1'b0 /*m3_axis_tready*/       ),
@@ -1049,7 +1052,7 @@ module qick_dut #(
 
    // CDC for signal generator
    axis_cdcsync_v1 #(
-      .N                         (2),     // Number of inputs/outputs.
+      .N                         (3),     // Number of inputs/outputs.
       .B                         (168),   // Number of data bits.
       // ++++++++++++ ADD EMULATOR PARAMETER
       .EMULATOR                  (EMULATOR)
@@ -1065,9 +1068,9 @@ module qick_dut #(
       .s1_axis_tready            (tproc_sg1cdc_axis_tready),
       .s1_axis_tvalid            (tproc_sg1cdc_axis_tvalid),
       .s1_axis_tdata             (tproc_sg1cdc_axis_tdata),
-      .s2_axis_tready            (/*s2_axis_tready*/),
-      .s2_axis_tvalid            (1'b0 /*s2_axis_tvalid*/),
-      .s2_axis_tdata             (168'd0 /*s2_axis_tdata*/),
+      .s2_axis_tready            (tproc_sg2cdc_axis_tready),
+      .s2_axis_tvalid            (tproc_sg2cdc_axis_tvalid),
+      .s2_axis_tdata             (tproc_sg2cdc_axis_tdata),
       .s3_axis_tready            (/*s3_axis_tready*/),
       .s3_axis_tvalid            (1'b0 /*s3_axis_tvalid*/),
       .s3_axis_tdata             (168'd0 /*s3_axis_tdata*/),
@@ -1116,9 +1119,9 @@ module qick_dut #(
       .m1_axis_tready            (sg1cdc_sgt1_axis_tready),
       .m1_axis_tvalid            (sg1cdc_sgt1_axis_tvalid),
       .m1_axis_tdata             (sg1cdc_sgt1_axis_tdata),
-      .m2_axis_tready            (1'b1 /*m2_axis_tready*/),
-      .m2_axis_tvalid            (/*m2_axis_tvalid*/),
-      .m2_axis_tdata             (/*m2_axis_tdata*/),
+      .m2_axis_tready            (sg2cdc_sgt2_axis_tready),
+      .m2_axis_tvalid            (sg2cdc_sgt2_axis_tvalid),
+      .m2_axis_tdata             (sg2cdc_sgt2_axis_tdata),
       .m3_axis_tready            (1'b1 /*m3_axis_tready*/),
       .m3_axis_tvalid            (/*m3_axis_tvalid*/),
       .m3_axis_tdata             (/*m3_axis_tdata*/),
@@ -1362,9 +1365,9 @@ module qick_dut #(
       .aresetn                (1'bx),  // not used
       .aclk                   (1'bx),  // not used
       // IN WAVE PORT
-      .s_axis_tdata           (tproc_sgt2_axis_tdata),
-      .s_axis_tvalid          (tproc_sgt2_axis_tvalid),
-      .s_axis_tready          (tproc_sgt2_axis_tready),
+      .s_axis_tdata           (sg2cdc_sgt2_axis_tdata),
+      .s_axis_tvalid          (sg2cdc_sgt2_axis_tvalid),
+      .s_axis_tready          (sg2cdc_sgt2_axis_tready),
       // OUT DATA gen_v6 (SEL:0)
       .m_gen_v6_axis_tdata    (),
       .m_gen_v6_axis_tvalid   (),

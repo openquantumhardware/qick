@@ -686,7 +686,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .ADC_W               (ADC0_W),
       .BUFFER_SIZE         (16),
       .N_DDS               (N_DDS_RO),
-      .ADC_NOISE_STD       (0.0),
+      .ADC_NOISE_STD       (0.002),
       .MIXER_FS4_EN        (1'b1)   // matches axis_pfb_readout_v3's RFDC config (coarse mixer -Fs/4, 2x decimation)
    ) u_model_ADC2 (
       .clk_DAC             (dac_fs),
