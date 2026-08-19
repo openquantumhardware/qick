@@ -33,11 +33,23 @@ VERILATOR_BIN = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator,verilator
 VERILATOR_PROFCFUNC = $(if $(VERILATOR_ROOT),$(VERILATOR_ROOT)/bin/verilator_profcfunc,verilator_profcfunc)
 
 VERILOG_SOURCES = \
+	-work lib_axis_pfb_readout_v3 \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.sv) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.v) \
+	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.sv) \
+	\
+	-work lib_axis_signal_gen_v6 \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_signal_gen_v6/src/verilog/*.sv) \
 	\
+	-work work \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_dyn_readout_v1/src/verilog/*.v) \
@@ -64,32 +76,16 @@ VERILOG_SOURCES = \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_readout_v2/src/verilog/*.sv) \
 	\
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_kidsim_v3/src/dds/*.sv) \
-	\
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/*.sv) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.v) \
 	$(wildcard $(FIRMWARE_DIR)/ip/axis_avg_buffer/src/verilog/*.sv) \
 	\
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/verilog/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/dds/*.sv) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.v) \
-	$(wildcard $(FIRMWARE_DIR)/ip/axis_pfb_readout_v3/src/pfb/*.sv) \
-	\
-	$(wildcard $(MODELS_DIR)/axis_signal_gen_v6/*.sv) \
 	$(wildcard $(MODELS_DIR)/bram_dp/*.sv) \
-	$(wildcard $(MODELS_DIR)/dac_adc/*.sv) \
+	$(wildcard $(MODELS_DIR)/dds_model/*.sv) \
 	$(wildcard $(MODELS_DIR)/dsp_macro/src/*.sv) \
 	$(wildcard $(MODELS_DIR)/fifo/*.sv) \
 	$(wildcard $(MODELS_DIR)/fir/*.sv) \
-	$(wildcard $(MODELS_DIR)/dds_model/*.sv) \
 	\
 	$(COM_VERIF_DIR)/src/rand_id_queue.sv \
 	$(AXI_DIR)/src/axi_intf.sv \

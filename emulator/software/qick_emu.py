@@ -607,17 +607,18 @@ class MockPFBReadout(MockIpDriver):
         out_ch = cfg.get('pfb_port', 0)
         pfb_ch = cfg.get('pfb_ch', 0)
         f_int = cfg.get('f_int', 0)
+        phase_int = cfg.get('phase_int', 0)
 
         if self.ip_type == "axis_pfb_readout_v3":
             packet = pfb_ch // 8
             index = pfb_ch % 8
             id_val = (index << 8) + packet
-            self.soc.reg_write(self.fullpath, f"id{out_ch}_reg", id_val, comment=f"PFB ch{pfb_ch}->out{out_ch} id")
-            self.soc.reg_write(self.fullpath, f"freq{out_ch}_reg", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
-            self.soc.reg_write(self.fullpath, f"phase{out_ch}_reg", cfg.get('phase_int', 0), comment=f"PFB ch{pfb_ch}->out{out_ch} phase")
+            self.soc.reg_write(self.fullpath, f"id{out_ch}_reg", id_val, comment=f"PFB ch{pfb_ch}->out{out_ch} id: {id_val}")
+            self.soc.reg_write(self.fullpath, f"freq{out_ch}_reg", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq: {f_int}")
+            self.soc.reg_write(self.fullpath, f"phase{out_ch}_reg", phase_int, comment=f"PFB ch{pfb_ch}->out{out_ch} phase: {phase_int}")
         else:
-            self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq")
-            self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel")
+            self.soc.reg_write(self.fullpath, "NCO_FREQ", f_int, comment=f"PFB ch{pfb_ch}->out{out_ch} freq: {f_int}")
+            self.soc.reg_write(self.fullpath, "PFB_CH", pfb_ch, comment=f"PFB ch{pfb_ch}->out{out_ch} sel: {pfb_ch}")
 
 
 class MockAxisReadoutV2(MockIpDriver):
@@ -1488,9 +1489,11 @@ class QickEmu:
             ("dac1", "dac_out_ch1.csv"),
             ("dac2", "dac_out_ch2.csv"),
             ("avg0", "avg_out_ch0.csv"),
-            ("avg1", "avg_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
             ("dec0", "dec_out_ch0.csv"),
-            ("dec1", "dec_out_ch1.csv"),   # ++++++++++++ axis_readout_v2 buffer 1
+            ("avg1", "avg_out_ch1.csv"),
+            ("dec1", "dec_out_ch1.csv"),
+            ("avg2", "avg_out_ch2.csv"),
+            ("dec2", "dec_out_ch2.csv"),
             ("mr",  "mr_out.csv"),
         ]:
             p = emu_dir / name

@@ -686,7 +686,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .ADC_W               (ADC0_W),
       .BUFFER_SIZE         (16),
       .N_DDS               (N_DDS_RO),
-      .ADC_NOISE_STD       (0.002)
+      .ADC_NOISE_STD       (0.0),
+      .MIXER_FS4_EN        (1'b1)   // matches axis_pfb_readout_v3's RFDC config (coarse mixer -Fs/4, 2x decimation)
    ) u_model_ADC2 (
       .clk_DAC             (dac_fs),
       // .dac_signal_rf       (dac2_signal_rf_dly),
@@ -701,6 +702,17 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
+
+   wire [15:0] adc2_ch0_real = axis_adc2_ro2_tdata[15:0];
+   wire [15:0] adc2_ch0_imag = axis_adc2_ro2_tdata[31:16];
+   wire [15:0] adc2_ch1_real = axis_adc2_ro2_tdata[47:32];
+   wire [15:0] adc2_ch1_imag = axis_adc2_ro2_tdata[63:48];
+   wire [15:0] adc2_ch2_real = axis_adc2_ro2_tdata[79:64];
+   wire [15:0] adc2_ch2_imag = axis_adc2_ro2_tdata[95:80];
+   wire [15:0] adc2_ch3_real = axis_adc2_ro2_tdata[111:96];
+   wire [15:0] adc2_ch3_imag = axis_adc2_ro2_tdata[127:112];
+
+
 
 
 
