@@ -266,26 +266,6 @@ module qick_dut #(
    wire                      buf2_m2_axis_reg_tready;
 
 
-   // logic [7:0]               s_axi_pfb_ro_awaddr;
-   // logic [2:0]               s_axi_pfb_ro_awprot;
-   // logic                     s_axi_pfb_ro_awvalid;
-   // logic                     s_axi_pfb_ro_awready;
-   // logic [31:0]              s_axi_pfb_ro_wdata;
-   // logic [3:0]               s_axi_pfb_ro_wstrb;
-   // logic                     s_axi_pfb_ro_wvalid;
-   // logic                     s_axi_pfb_ro_wready;
-   // logic [1:0]               s_axi_pfb_ro_bresp;
-   // logic                     s_axi_pfb_ro_bvalid;
-   // logic                     s_axi_pfb_ro_bready;
-   // logic [7:0]               s_axi_pfb_ro_araddr;
-   // logic [2:0]               s_axi_pfb_ro_arprot;
-   // logic                     s_axi_pfb_ro_arvalid;
-   // logic                     s_axi_pfb_ro_arready;
-   // logic [31:0]              s_axi_pfb_ro_rdata;
-   // logic [1:0]               s_axi_pfb_ro_rresp;
-   // logic                     s_axi_pfb_ro_rvalid;
-   // logic                     s_axi_pfb_ro_rready;
-
    wire                       trig_10;
    wire                       trig_11;
    wire                       trig_12;

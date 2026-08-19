@@ -13,7 +13,9 @@ module dds_behavioral_model # (
     // Reserve for Parameters
     parameter int       LUT_SIZE        = 256, // Lookup Table size
     parameter int       PHASE_WIDTH     = 32, // phase width
-    parameter int       DDS_LATENCY     = 8   // MUST MATCH DDS Compiler GUI Latency
+    parameter int       DDS_LATENCY     = 8,  // MUST MATCH DDS Compiler GUI Latency
+    parameter int       NEGATIVE_SINE   = 0,  // Invert polarity of sine wave
+    parameter int       NEGATIVE_COSINE = 0   // Invert polarity of cosine wave
 ) (
     input   logic        aclk, // clock at @ ??? MHz
     input   logic        s_axis_phase_tvalid,
@@ -104,6 +106,8 @@ begin
     theta = (TWO_PI * real'(index)) / real'(DEPTH);
     sine_q15 = real_to_q15($sin(theta));
     cosine_q15 = real_to_q15($cos(theta));
+    if (NEGATIVE_SINE) sine_q15 = -sine_q15;
+    if (NEGATIVE_COSINE) cosine_q15 = -cosine_q15;
     make_rom_word = {sine_q15, cosine_q15};
 end
 endfunction

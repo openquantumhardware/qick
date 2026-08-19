@@ -71,6 +71,7 @@ dds_0 dds_i
 end else begin : gen_dds_emu
 
 dds_behavioral_model #(
+	.NEGATIVE_SINE (1),
     .DDS_LATENCY (10)
 )
 dds_i 

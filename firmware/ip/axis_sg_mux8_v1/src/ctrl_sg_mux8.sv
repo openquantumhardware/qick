@@ -8,7 +8,7 @@
 // mask 	: 8 bits
 //
 // Total	: 40.
-module ctrl (
+module ctrl_sg_mux8 (
 	// Reset and clock.
 	rstn			,
 	clk				,
