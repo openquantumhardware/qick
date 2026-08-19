@@ -1959,9 +1959,9 @@ module qick_dut #(
       .aresetn                (ro_resetn            ),
       .aclk                   (ro_clk               ),
 
-        // S_AXIS for input samples
-        .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
-        .s_axis_tdata           (axis_adc2_ro2_tdata  ),
+      // S_AXIS for input samples
+      .s_axis_tvalid          (axis_adc2_ro2_tvalid ),
+      .s_axis_tdata           (axis_adc2_ro2_tdata  ),
 
       // M_AXIS for CH0-3 output.
       .m0_axis_tvalid         (pfb_ro_m0_axis_tvalid),
@@ -1973,6 +1973,8 @@ module qick_dut #(
       .m3_axis_tvalid         (pfb_ro_m3_axis_tvalid),
       .m3_axis_tdata          (pfb_ro_m3_axis_tdata )
    );
+
+   assign axis_adc2_ro2_tready = 1'b1;
 
    axis_avg_buffer #(
       .N_AVG                  (13               ),

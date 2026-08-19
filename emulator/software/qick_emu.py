@@ -131,8 +131,20 @@ class AxiTxn:
 
         Keys with a ``None`` value are omitted so reads don't carry an empty
         ``"data"`` field, etc.
+        Address and data fields are serialized as hexadecimal strings to preserve
+        unsigned values (40-bit addresses, 32-bit data) and avoid sign-extension issues.
         """
-        return json.dumps({k: v for k, v in asdict(self).items() if v is not None}, cls=NpEncoder)
+        txn_dict = {k: v for k, v in asdict(self).items() if v is not None}
+        # Format addr and data as hexadecimal strings for unsigned representation
+        # Mask with 0xFFFFFFFFFF for 40-bit addresses to handle negative signed ints
+        if "addr" in txn_dict:
+            txn_dict["addr"] = f"0x{txn_dict['addr'] & 0xFFFFFFFFFF:010X}"
+        if "data" in txn_dict:
+            txn_dict["data"] = f"0x{txn_dict['data'] & 0xFFFFFFFF:08X}"
+        # Format stream words as hexadecimal strings
+        if "words" in txn_dict:
+            txn_dict["words"] = [f"0x{w & 0xFFFFFFFF:08X}" for w in txn_dict["words"]]
+        return json.dumps(txn_dict, cls=NpEncoder)
 
 
 class AxiRecorder:
@@ -1015,7 +1027,7 @@ class QickEmu:
         * ``sgmem_ch{N}.mem`` — envelope data, one per declared generator
           channel with ``maxlen > 0`` and a non-empty stream (``style="const"``
           pulses produce no envelope so they're skipped).
-        * ``axi_replay.jsonl`` — the ordered AXI-Lite transaction log.
+        * ``axi_replay.jsonl`` — the ordered AXI-Lite transaction log (hexadecimal strings for addresses and data).
 
         Parameters
         ----------
@@ -2022,7 +2034,8 @@ class QickEmu:
     ) -> pathlib.Path:
         """Convert the JSONL AXI replay into the flat format ``tb_qick_emu.sv`` expects.
 
-        ``prepare()`` writes ``axi_replay.jsonl`` (one JSON record per line).
+        ``prepare()`` writes ``axi_replay.jsonl`` (one JSON record per line) with
+        hexadecimal strings for addresses and data.
         The Vivado-compatible testbench reads a simpler whitespace-separated
         ``"HEXADDR HEXDATA"`` file via ``$fscanf``; this helper rewrites the
         JSONL into that format and prints the current board's address-routing
@@ -2066,10 +2079,24 @@ class QickEmu:
                 if not line:
                     continue
                 txn = json.loads(line)
-                addr = int(txn["addr"])
-                data = int(txn["data"])
+
+                # Parse addr and data - they can be int or hex string
+                # Mask with 0xFFFFFFFFFF for 40-bit addresses, 0xFFFFFFFF for data
+                addr_str = txn["addr"]
+                if isinstance(addr_str, str):
+                    addr = int(addr_str, 16)
+                else:
+                    addr = int(addr_str)
+                addr &= 0xFFFFFFFFFF
+                data_str = txn["data"]
+                if isinstance(data_str, str):
+                    data = int(data_str, 16)
+                else:
+                    data = int(data_str)
+                data &= 0xFFFFFFFF
+
                 comment = txn.get("comment", "")
-                fout.write(f"{addr:08X} {data:08X}  # {comment}\n")
+                fout.write(f"{addr:010X} {data:08X}  # {comment}\n")
 
         ## I think this is not needed anymore
 

@@ -1270,6 +1270,7 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       read_avg_dec_buffers(0);
       read_avg_dec_buffers(1);
+      read_avg_dec_buffers(2);
 
       #50us;
 
@@ -1301,15 +1302,19 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $display("### %0t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
       $fflush();
 
-      if (ro_ch >= 2) begin
+      if (ro_ch >= 3) begin
          $fatal(1, "ERROR: Invalid channel number %0d for read_avg_dec_buffers() task", ro_ch);
          $finish;
       end
 
       if (ro_ch == 0) begin
          buf_base = BUF0_BASE;
-      end else if (ro_ch == 1) begin
+      end
+      else if (ro_ch == 1) begin
          buf_base = BUF1_BASE;
+      end
+      else if (ro_ch == 2) begin
+         buf_base = BUF2_BASE;
       end
 
       @(posedge s_ps_dma_aclk); #0.1;

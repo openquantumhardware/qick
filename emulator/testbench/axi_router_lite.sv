@@ -282,7 +282,7 @@ module axi_router_lite #(
     localparam logic [ADDR_WIDTH-1:0] BASE_BUF1   = 40'h04_0007_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_ROV2   = 40'h04_0008_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_PFB_RO = 40'h04_0009_0000;
-    localparam logic [ADDR_WIDTH-1:0] BASE_AVG2   = 40'h04_0004_0000;
+    localparam logic [ADDR_WIDTH-1:0] BASE_BUF2   = 40'h04_0004_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG0    = 40'h04_001C_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG1    = 40'h04_001D_0000;
     localparam logic [ADDR_WIDTH-1:0] BASE_SG2    = 40'h04_001E_0000;
@@ -331,7 +331,7 @@ module axi_router_lite #(
                 BASE_SG1[39:16]:   sel[5] = 1'b1;
                 BASE_SG2[39:16]:   sel[6] = 1'b1;
                 BASE_PFB_RO[39:16]: sel[7] = 1'b1;
-                BASE_AVG2[39:16]:   sel[8] = 1'b1;
+                BASE_BUF2[39:16]:   sel[8] = 1'b1;
                 default: sel = '0;
             endcase
             return sel;
