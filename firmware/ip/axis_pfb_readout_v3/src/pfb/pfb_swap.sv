@@ -27,6 +27,10 @@ parameter L = 4;
 // Number of channels.
 parameter N = 32;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 for synthesis (default), non-zero for emulation.
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/
@@ -98,6 +102,71 @@ reg					tlast_r;
 /* Begin Architecture */
 /**********************/
 
+generate
+if (!EMULATOR) begin : gen_fifo_synth
+
+// Fifo 0.
+fifo
+	#(
+		// Data width.
+		.B(2*L*B),
+		
+		// Fifo depth.
+		.N(N/L)
+	)
+	fifo_0
+	( 
+	    .rstn	(aresetn		),
+	    .clk 	(aclk			),
+	
+	    // Write I/F.
+	    .wr_en  (fifo0_wr_en	),
+	    .din    (s_axis_tdata	),
+	    
+	    // Read I/F.
+	    .rd_en  (fifo0_rd_en	),
+	    .dout  	(fifo0_dout		),
+	    
+	    // Flags.
+	    .full   (fifo0_full		),
+	    .empty  (fifo0_empty	)
+	);
+
+assign fifo0_wr_en = (wr_en && ~wr_sel);
+assign fifo0_rd_en = rst_state || (rw1_state && ~rd_sel);
+
+// Fifo 1.
+fifo
+	#(
+		// Data width.
+		.B(2*L*B),
+		
+		// Fifo depth.
+		.N(N/L)
+	)
+	fifo_1
+	( 
+	    .rstn	(aresetn		),
+	    .clk 	(aclk			),
+	
+	    // Write I/F.
+	    .wr_en  (fifo1_wr_en	),
+	    .din    (s_axis_tdata	),
+	    
+	    // Read I/F.
+	    .rd_en  (fifo1_rd_en	),
+	    .dout  	(fifo1_dout		),
+	    
+	    // Flags.
+	    .full   (fifo1_full		),
+	    .empty  (fifo1_empty	)
+	);
+
+assign fifo1_wr_en = (wr_en && wr_sel);
+assign fifo1_rd_en = rst_state || (rw1_state && rd_sel);
+
+end else begin : gen_fifo_emu
+
 // Fifo 0.
 fifo_sv
 	#(
@@ -157,6 +226,10 @@ fifo_sv
 
 assign fifo1_wr_en = (wr_en && wr_sel);
 assign fifo1_rd_en = rst_state || (rw1_state && rd_sel);
+
+end
+endgenerate
+
 
 // Registers.
 always @(posedge aclk) begin

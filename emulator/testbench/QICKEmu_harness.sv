@@ -118,7 +118,7 @@ localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
 localparam logic [39:0] PFB_RO_BASE = 40'h04_0009_0000;  // axis_pfb_readout_v3
 localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6_0
 localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6_1
-localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6_2
+localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_sg_mux8_v1_0
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -571,7 +571,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC0_W = 16;
    localparam ADC0_W = 16;
-   // logic signed [ADC0_W-1:0] adc0_sample;
    real dac0_signal_rf;
    real dac0_signal_rf_dly;
    real dac0_delay_buffer [0:RF_DELAY_CYCLES-1];
@@ -606,8 +605,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac0_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      // .adc_sample          (adc0_sample),
-
       .axis_tready         (axis_adc0_ro0_tready),
       .axis_tvalid         (axis_adc0_ro0_tvalid),
       .axis_tdata          (axis_adc0_ro0_tdata),
@@ -618,7 +615,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC1_W = 16;
    localparam ADC1_W = 16;
-   // logic signed [ADC1_W-1:0] adc1_sample;
    real dac1_signal_rf;
    real dac1_signal_rf_dly;
 
@@ -654,8 +650,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac1_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      // .adc_sample          (adc1_sample),
-
       .axis_tready         (axis_adc1_ro1_tready),
       .axis_tvalid         (axis_adc1_ro1_tvalid),
       .axis_tdata          (axis_adc1_ro1_tdata),
@@ -690,30 +684,15 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .MIXER_FS4_EN        (1'b1)   // matches axis_pfb_readout_v3's RFDC config (coarse mixer -Fs/4, 2x decimation)
    ) u_model_ADC2 (
       .clk_DAC             (dac_fs),
-      // .dac_signal_rf       (dac2_signal_rf_dly),
       .dac_signal_rf       (dac2_signal_rf),
 
       .clk_ADC             (adc_fs),
-      // .adc_sample          (),
-
       .axis_tready         (axis_adc2_ro2_tready),
       .axis_tvalid         (axis_adc2_ro2_tvalid),
       .axis_tdata          (axis_adc2_ro2_tdata),
 
       .mode                (1)   // 0 = ZOH, 1 = linear
    );
-
-   wire [15:0] adc2_ch0_real = axis_adc2_ro2_tdata[15:0];
-   wire [15:0] adc2_ch0_imag = axis_adc2_ro2_tdata[31:16];
-   wire [15:0] adc2_ch1_real = axis_adc2_ro2_tdata[47:32];
-   wire [15:0] adc2_ch1_imag = axis_adc2_ro2_tdata[63:48];
-   wire [15:0] adc2_ch2_real = axis_adc2_ro2_tdata[79:64];
-   wire [15:0] adc2_ch2_imag = axis_adc2_ro2_tdata[95:80];
-   wire [15:0] adc2_ch3_real = axis_adc2_ro2_tdata[111:96];
-   wire [15:0] adc2_ch3_imag = axis_adc2_ro2_tdata[127:112];
-
-
-
 
 
    // Model transport delay between DAC0 and ADC0.
@@ -753,119 +732,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
-   // //--------------------------------------
-   // // WIP: Qubit Emulator
-   // //--------------------------------------
-
-   // wire  [7:0]       s_axi_qemu_araddr;
-   // wire  [2:0]       s_axi_qemu_arprot;
-   // wire              s_axi_qemu_arready;
-   // wire              s_axi_qemu_arvalid;
-   // wire  [7:0]       s_axi_qemu_awaddr;
-   // wire  [2:0]       s_axi_qemu_awprot;
-   // wire              s_axi_qemu_awready;
-   // wire              s_axi_qemu_awvalid;
-   // wire              s_axi_qemu_bready;
-   // wire  [1:0]       s_axi_qemu_bresp;
-   // wire              s_axi_qemu_bvalid;
-   // wire  [31:0]      s_axi_qemu_rdata;
-   // wire              s_axi_qemu_rready;
-   // wire  [1:0]       s_axi_qemu_rresp;
-   // wire              s_axi_qemu_rvalid;
-   // wire  [31:0]      s_axi_qemu_wdata;
-   // wire              s_axi_qemu_wready;
-   // wire  [3:0]       s_axi_qemu_wstrb;
-   // wire              s_axi_qemu_wvalid;
-   
-   // // AXI VIP master address.
-   // xil_axi_ulong   QEMU_DDS_BVAL_REG     = 4 * 0;
-   // xil_axi_ulong   QEMU_DDS_SLOPE_REG    = 4 * 1;
-   // xil_axi_ulong   QEMU_DDS_STEPS_REG    = 4 * 2;
-   // xil_axi_ulong   QEMU_DDS_WAIT_REG     = 4 * 3;
-   // xil_axi_ulong   QEMU_DDS_FREQ_REG     = 4 * 4;
-   // xil_axi_ulong   QEMU_IIR_C0_REG       = 4 * 5;
-   // xil_axi_ulong   QEMU_IIR_C1_REG       = 4 * 6;
-   // xil_axi_ulong   QEMU_IIR_G_REG        = 4 * 7;
-   // xil_axi_ulong   QEMU_OUTSEL_REG       = 4 * 8;
-   // xil_axi_ulong   QEMU_PUNCT_ID_REG     = 4 * 9;
-   // xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
-   // xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
-
-   // localparam L = 1;
-   // wire              axis_qemu_ro_tvalid;
-   // wire [L*2*16-1:0] axis_qemu_ro_tdata;
-
-   // axi_mst_0 u_axi_mst_qemu_0 (
-   //    .aclk          (s_ps_dma_aclk       ),
-   //    .aresetn       (s_ps_dma_aresetn    ),
-   //    .m_axi_araddr  (s_axi_qemu_araddr    ),
-   //    .m_axi_arprot  (s_axi_qemu_arprot    ),
-   //    .m_axi_arready (s_axi_qemu_arready   ),
-   //    .m_axi_arvalid (s_axi_qemu_arvalid   ),
-   //    .m_axi_awaddr  (s_axi_qemu_awaddr    ),
-   //    .m_axi_awprot  (s_axi_qemu_awprot    ),
-   //    .m_axi_awready (s_axi_qemu_awready   ),
-   //    .m_axi_awvalid (s_axi_qemu_awvalid   ),
-   //    .m_axi_bready  (s_axi_qemu_bready    ),
-   //    .m_axi_bresp   (s_axi_qemu_bresp     ),
-   //    .m_axi_bvalid  (s_axi_qemu_bvalid    ),
-   //    .m_axi_rdata   (s_axi_qemu_rdata     ),
-   //    .m_axi_rready  (s_axi_qemu_rready    ),
-   //    .m_axi_rresp   (s_axi_qemu_rresp     ),
-   //    .m_axi_rvalid  (s_axi_qemu_rvalid    ),
-   //    .m_axi_wdata   (s_axi_qemu_wdata     ),
-   //    .m_axi_wready  (s_axi_qemu_wready    ),
-   //    .m_axi_wstrb   (s_axi_qemu_wstrb     ),
-   //    .m_axi_wvalid  (s_axi_qemu_wvalid    )
-   // );
-
-   // axis_kidsim_v3 #(
-   //    .L                      (L)   // Number of lanes.
-   // )
-   // u_axis_kidsim_v3 (
-   //    // AXI Slave I/F for configuration.
-   //    .s_axi_aclk             (s_ps_dma_aclk       ),
-   //    .s_axi_aresetn          (s_ps_dma_aresetn    ),
-   //    .s_axi_araddr           (s_axi_qemu_araddr   ),
-   //    .s_axi_arprot           (s_axi_qemu_arprot   ),
-   //    .s_axi_arready          (s_axi_qemu_arready  ),
-   //    .s_axi_arvalid          (s_axi_qemu_arvalid  ),
-   //    .s_axi_awaddr           (s_axi_qemu_awaddr   ),
-   //    .s_axi_awprot           (s_axi_qemu_awprot   ),
-   //    .s_axi_awready          (s_axi_qemu_awready  ),
-   //    .s_axi_awvalid          (s_axi_qemu_awvalid  ),
-   //    .s_axi_bready           (s_axi_qemu_bready   ),
-   //    .s_axi_bresp            (s_axi_qemu_bresp    ),
-   //    .s_axi_bvalid           (s_axi_qemu_bvalid   ),
-   //    .s_axi_rdata            (s_axi_qemu_rdata    ),
-   //    .s_axi_rready           (s_axi_qemu_rready   ),
-   //    .s_axi_rresp            (s_axi_qemu_rresp    ),
-   //    .s_axi_rvalid           (s_axi_qemu_rvalid   ),
-   //    .s_axi_wdata            (s_axi_qemu_wdata    ),
-   //    .s_axi_wready           (s_axi_qemu_wready   ),
-   //    .s_axi_wstrb            (s_axi_qemu_wstrb    ),
-   //    .s_axi_wvalid           (s_axi_qemu_wvalid   ),
-
-   //    // Modulation trigger.
-   //    .trigger                (trigger_0           ),
-
-   //    // Reset and clock for axis_*.
-   //    .aresetn                (s_ps_dma_aresetn    ),
-   //    .aclk                   (adc_fs             ),
-
-   //    // s_axis_* for input.
-   //    .s_axis_tvalid          (1'b1),
-   //    // .s_axis_tdata           ({adc_data_imag,adc_data_real}),   // width: 32*L, should be I/Q from input ADC
-   //    .s_axis_tdata           ({16'd0,adc_data}),   // width: 32*L, should be I/Q from input ADC
-   //    .s_axis_tlast           (1'b1),
-
-   //    // m_axis_* for output.
-   //    .m_axis_tvalid          (axis_qemu_ro_tvalid ),
-   //    .m_axis_tdata           (axis_qemu_ro_tdata  ),   // width: 32*L, should be I/Q to output DAC
-   //    .m_axis_tlast           ()
-   // );
-
-
 
    // SIMULATION WATCHDOG
    initial begin
@@ -883,7 +749,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          string vcd_file;
          vcd_file = {EMU_DIR, "/waveform.vcd"};
          $dumpfile(vcd_file);
-         // $dumpvars(0, tb_qick_emu_verilator);
          $dumpvars(0, QICKEmu_harness);
          $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
       end

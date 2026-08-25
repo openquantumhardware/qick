@@ -1927,36 +1927,14 @@ class AcquireMixin:
         if threshold is None:
             return iq_list
 
-        # The emulator's CSV data has a different format than real hardware.
-        # The emulator returns data in (*loop_dims, trigs, 2) = (reps, steps, trigs, 2) format.
-        # But the _process_accumulated() and _apply_threshold() expect data in a different order.
-        # Transform to match the expected format by swapping steps and trigs dimensions.
-
-        # # iq_list has shape (*loop_dims, trigs, 2) = (reps, steps, trigs, 2)
-        # # We need to transform to (reps, trigs, steps, 2) for _process_accumulated
-        # # Then transform back after
-        # if iq_list[0].ndim == 4:
-        #     # Transform from (reps, steps, trigs, 2) to (reps, trigs, steps, 2)
-        #     iq_list_transformed = [np.moveaxis(d, 1, 2) for d in iq_list]
-        # else:
-        #     iq_list_transformed = iq_list
-        iq_list_transformed = iq_list
-
         self.acquire_params = {
             'type': 'accumulated',
             'threshold': threshold,
             'angle': angle,
             'remove_offset': remove_offset,
         }
-        result = self._process_accumulated(iq_list_transformed)
+        result = self._process_accumulated(iq_list)
 
-        # # Transform result back from (trigs, reps, steps, 2) to (reps, trigs, steps, 2)
-        # # Then transform from (reps, trigs, steps, 2) to (reps, steps, trigs, 2)
-        # if result[0].ndim == 4:
-        #     # First move trigs to end: (trigs, reps, steps, 2) -> (reps, steps, trigs, 2)
-        #     result = [np.moveaxis(d, 0, -2) for d in result]
-        #     # Then move steps back: (reps, trigs, steps, 2) -> (reps, steps, trigs, 2)
-        #     result = [np.moveaxis(d, 1, 2) for d in result]
         return result
 
     def get_rounds(self):

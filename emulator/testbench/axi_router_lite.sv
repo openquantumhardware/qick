@@ -88,32 +88,32 @@ module axi_router_lite #(
     input  wire                     s_sg0_rvalid,
     output logic                    s_sg0_rready,
 
-    // Slave 2: Average Buffer 0 (6-bit address, base 0x4001_0000)
-    output logic [5:0]              s_avg0_awaddr,
-    output logic [2:0]              s_avg0_awprot,
-    output logic                    s_avg0_awvalid,
-    input  wire                     s_avg0_awready,
+    // Slave 2: Readout Buffer 0
+    output logic [5:0]              s_buf0_awaddr,
+    output logic [2:0]              s_buf0_awprot,
+    output logic                    s_buf0_awvalid,
+    input  wire                     s_buf0_awready,
     
-    output logic [DATA_WIDTH-1:0]   s_avg0_wdata,
-    output logic [DATA_WIDTH/8-1:0] s_avg0_wstrb,
-    output logic                    s_avg0_wvalid,
-    input  wire                     s_avg0_wready,
+    output logic [DATA_WIDTH-1:0]   s_buf0_wdata,
+    output logic [DATA_WIDTH/8-1:0] s_buf0_wstrb,
+    output logic                    s_buf0_wvalid,
+    input  wire                     s_buf0_wready,
     
-    input  wire [1:0]               s_avg0_bresp,
-    input  wire                     s_avg0_bvalid,
-    output logic                    s_avg0_bready,
+    input  wire [1:0]               s_buf0_bresp,
+    input  wire                     s_buf0_bvalid,
+    output logic                    s_buf0_bready,
     
-    output logic [5:0]              s_avg0_araddr,
-    output logic [2:0]              s_avg0_arprot,
-    output logic                    s_avg0_arvalid,
-    input  wire                     s_avg0_arready,
+    output logic [5:0]              s_buf0_araddr,
+    output logic [2:0]              s_buf0_arprot,
+    output logic                    s_buf0_arvalid,
+    input  wire                     s_buf0_arready,
     
-    input  wire [DATA_WIDTH-1:0]    s_avg0_rdata,
-    input  wire [1:0]               s_avg0_rresp,
-    input  wire                     s_avg0_rvalid,
-    output logic                    s_avg0_rready,
+    input  wire [DATA_WIDTH-1:0]    s_buf0_rdata,
+    input  wire [1:0]               s_buf0_rresp,
+    input  wire                     s_buf0_rvalid,
+    output logic                    s_buf0_rready,
 
-    // Slave 3: Readout (6-bit address, base 0x4002_0000)
+    // Slave 3: Readout 2
     output logic [5:0]              s_rov2_awaddr,
     output logic [2:0]              s_rov2_awprot,
     output logic                    s_rov2_awvalid,
@@ -138,32 +138,32 @@ module axi_router_lite #(
     input  wire                     s_rov2_rvalid,
     output logic                    s_rov2_rready,
 
-    // Slave 4: Average Buffer 1 (6-bit address, base 0x4003_0000)
-    output logic [5:0]              s_avg1_awaddr,
-    output logic [2:0]              s_avg1_awprot,
-    output logic                    s_avg1_awvalid,
-    input  wire                     s_avg1_awready,
+    // Slave 4: Readout Buffer 1
+    output logic [5:0]              s_buf1_awaddr,
+    output logic [2:0]              s_buf1_awprot,
+    output logic                    s_buf1_awvalid,
+    input  wire                     s_buf1_awready,
     
-    output logic [DATA_WIDTH-1:0]   s_avg1_wdata,
-    output logic [DATA_WIDTH/8-1:0] s_avg1_wstrb,
-    output logic                    s_avg1_wvalid,
-    input  wire                     s_avg1_wready,
+    output logic [DATA_WIDTH-1:0]   s_buf1_wdata,
+    output logic [DATA_WIDTH/8-1:0] s_buf1_wstrb,
+    output logic                    s_buf1_wvalid,
+    input  wire                     s_buf1_wready,
     
-    input  wire [1:0]               s_avg1_bresp,
-    input  wire                     s_avg1_bvalid,
-    output logic                    s_avg1_bready,
+    input  wire [1:0]               s_buf1_bresp,
+    input  wire                     s_buf1_bvalid,
+    output logic                    s_buf1_bready,
     
-    output logic [5:0]              s_avg1_araddr,
-    output logic [2:0]              s_avg1_arprot,
-    output logic                    s_avg1_arvalid,
-    input  wire                     s_avg1_arready,
+    output logic [5:0]              s_buf1_araddr,
+    output logic [2:0]              s_buf1_arprot,
+    output logic                    s_buf1_arvalid,
+    input  wire                     s_buf1_arready,
     
-    input  wire [DATA_WIDTH-1:0]    s_avg1_rdata,
-    input  wire [1:0]               s_avg1_rresp,
-    input  wire                     s_avg1_rvalid,
-    output logic                    s_avg1_rready,
+    input  wire [DATA_WIDTH-1:0]    s_buf1_rdata,
+    input  wire [1:0]               s_buf1_rresp,
+    input  wire                     s_buf1_rvalid,
+    output logic                    s_buf1_rready,
 
-    // Slave 7: PFB Readout (8-bit address, base 0x4000_9000)
+    // Slave 7: PFB Readout
     output logic [7:0]              s_pfb_ro_awaddr,
     output logic [2:0]              s_pfb_ro_awprot,
     output logic                    s_pfb_ro_awvalid,
@@ -188,32 +188,32 @@ module axi_router_lite #(
     input  wire                     s_pfb_ro_rvalid,
     output logic                    s_pfb_ro_rready,
 
-    // Slave 8: Average Buffer 2 (6-bit address, base 0x4004_0000)
-    output logic [5:0]              s_avg2_awaddr,
-    output logic [2:0]              s_avg2_awprot,
-    output logic                    s_avg2_awvalid,
-    input  wire                     s_avg2_awready,
+    // Slave 8: Readout Buffer 2
+    output logic [5:0]              s_buf2_awaddr,
+    output logic [2:0]              s_buf2_awprot,
+    output logic                    s_buf2_awvalid,
+    input  wire                     s_buf2_awready,
     
-    output logic [DATA_WIDTH-1:0]   s_avg2_wdata,
-    output logic [DATA_WIDTH/8-1:0] s_avg2_wstrb,
-    output logic                    s_avg2_wvalid,
-    input  wire                     s_avg2_wready,
+    output logic [DATA_WIDTH-1:0]   s_buf2_wdata,
+    output logic [DATA_WIDTH/8-1:0] s_buf2_wstrb,
+    output logic                    s_buf2_wvalid,
+    input  wire                     s_buf2_wready,
     
-    input  wire [1:0]               s_avg2_bresp,
-    input  wire                     s_avg2_bvalid,
-    output logic                    s_avg2_bready,
+    input  wire [1:0]               s_buf2_bresp,
+    input  wire                     s_buf2_bvalid,
+    output logic                    s_buf2_bready,
     
-    output logic [5:0]              s_avg2_araddr,
-    output logic [2:0]              s_avg2_arprot,
-    output logic                    s_avg2_arvalid,
-    input  wire                     s_avg2_arready,
+    output logic [5:0]              s_buf2_araddr,
+    output logic [2:0]              s_buf2_arprot,
+    output logic                    s_buf2_arvalid,
+    input  wire                     s_buf2_arready,
     
-    input  wire [DATA_WIDTH-1:0]    s_avg2_rdata,
-    input  wire [1:0]               s_avg2_rresp,
-    input  wire                     s_avg2_rvalid,
-    output logic                    s_avg2_rready,
+    input  wire [DATA_WIDTH-1:0]    s_buf2_rdata,
+    input  wire [1:0]               s_buf2_rresp,
+    input  wire                     s_buf2_rvalid,
+    output logic                    s_buf2_rready,
 
-    // Slave 5: Signal Generator 1 (6-bit address, base 0x4001_D000)
+    // Slave 5: Signal Generator 1
     output logic [5:0]              s_sg1_awaddr,
     output logic [2:0]              s_sg1_awprot,
     output logic                    s_sg1_awvalid,
@@ -238,7 +238,7 @@ module axi_router_lite #(
     input  wire                     s_sg1_rvalid,
     output logic                    s_sg1_rready,
 
-    // Slave 6: Signal Generator 2 (mux8, 8-bit address, base 0x4001_E000)
+    // Slave 6: Signal Generator 2
     output logic [7:0]              s_sg2_awaddr,
     output logic [2:0]              s_sg2_awprot,
     output logic                    s_sg2_awvalid,
@@ -268,11 +268,11 @@ module axi_router_lite #(
     output logic                    sg0_sel,
     output logic                    sg1_sel,
     output logic                    sg2_sel,
-    output logic                    avg0_sel,
+    output logic                    buf0_sel,
     output logic                    rov2_sel,
-    output logic                    avg1_sel,
+    output logic                    buf1_sel,
     output logic                    pfb_ro_sel,
-    output logic                    avg2_sel
+    output logic                    buf2_sel
 );
 
 
@@ -352,13 +352,13 @@ module axi_router_lite #(
 
         write_awready[0] = s_tproc_awready;
         write_awready[1] = s_sg0_awready;
-        write_awready[2] = s_avg0_awready;
+        write_awready[2] = s_buf0_awready;
         write_awready[3] = s_rov2_awready;
-        write_awready[4] = s_avg1_awready;
+        write_awready[4] = s_buf1_awready;
         write_awready[5] = s_sg1_awready;
         write_awready[6] = s_sg2_awready;
         write_awready[7] = s_pfb_ro_awready;
-        write_awready[8] = s_avg2_awready;
+        write_awready[8] = s_buf2_awready;
 
         write_slave_valid = {9{m_axi_awvalid}} & write_slave_sel;
     end
@@ -377,9 +377,9 @@ module axi_router_lite #(
         s_sg0_awvalid = m_axi_awvalid & write_slave_sel[1];
         
         // Average Buffer 0
-        s_avg0_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
-        s_avg0_awprot = m_axi_awprot;
-        s_avg0_awvalid = m_axi_awvalid & write_slave_sel[2];
+        s_buf0_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
+        s_buf0_awprot = m_axi_awprot;
+        s_buf0_awvalid = m_axi_awvalid & write_slave_sel[2];
         
         // Readout
         s_rov2_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
@@ -387,9 +387,9 @@ module axi_router_lite #(
         s_rov2_awvalid = m_axi_awvalid & write_slave_sel[3];
         
         // Average Buffer 1
-        s_avg1_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
-        s_avg1_awprot = m_axi_awprot;
-        s_avg1_awvalid = m_axi_awvalid & write_slave_sel[4];
+        s_buf1_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
+        s_buf1_awprot = m_axi_awprot;
+        s_buf1_awvalid = m_axi_awvalid & write_slave_sel[4];
         
         // Signal Generator 1
         s_sg1_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
@@ -407,9 +407,9 @@ module axi_router_lite #(
         s_pfb_ro_awvalid = write_slave_sel[7] & m_axi_awvalid;
 
         // Average Buffer 2
-        s_avg2_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
-        s_avg2_awprot = m_axi_awprot;
-        s_avg2_awvalid = m_axi_awvalid & write_slave_sel[8];
+        s_buf2_awaddr = m_axi_awaddr[5:0];  // Truncate to 6-bit
+        s_buf2_awprot = m_axi_awprot;
+        s_buf2_awvalid = m_axi_awvalid & write_slave_sel[8];
     end
     
     // Collect write ready from selected slave
@@ -468,9 +468,9 @@ module axi_router_lite #(
         s_sg0_wvalid = write_data_sel[1] & m_axi_wvalid;
         
         // Average Buffer 0
-        s_avg0_wdata = m_axi_wdata;
-        s_avg0_wstrb = m_axi_wstrb;
-        s_avg0_wvalid = write_data_sel[2] & m_axi_wvalid;
+        s_buf0_wdata = m_axi_wdata;
+        s_buf0_wstrb = m_axi_wstrb;
+        s_buf0_wvalid = write_data_sel[2] & m_axi_wvalid;
         
         // Readout
         s_rov2_wdata = m_axi_wdata;
@@ -478,9 +478,9 @@ module axi_router_lite #(
         s_rov2_wvalid = write_data_sel[3] & m_axi_wvalid;
 
         // Average Buffer 1
-        s_avg1_wdata = m_axi_wdata;
-        s_avg1_wstrb = m_axi_wstrb;
-        s_avg1_wvalid = write_data_sel[4] & m_axi_wvalid;
+        s_buf1_wdata = m_axi_wdata;
+        s_buf1_wstrb = m_axi_wstrb;
+        s_buf1_wvalid = write_data_sel[4] & m_axi_wvalid;
         
         // Signal Generator 1
         s_sg1_wdata = m_axi_wdata;
@@ -498,9 +498,9 @@ module axi_router_lite #(
         s_pfb_ro_wvalid = write_data_sel[7] & m_axi_wvalid;
 
         // Average Buffer 2
-        s_avg2_wdata = m_axi_wdata;
-        s_avg2_wstrb = m_axi_wstrb;
-        s_avg2_wvalid = write_data_sel[8] & m_axi_wvalid;
+        s_buf2_wdata = m_axi_wdata;
+        s_buf2_wstrb = m_axi_wstrb;
+        s_buf2_wvalid = write_data_sel[8] & m_axi_wvalid;
 
     end
     
@@ -508,13 +508,13 @@ module axi_router_lite #(
     always_comb begin
         write_wready[0] = s_tproc_wready;
         write_wready[1] = s_sg0_wready;
-        write_wready[2] = s_avg0_wready;
+        write_wready[2] = s_buf0_wready;
         write_wready[3] = s_rov2_wready;
-        write_wready[4] = s_avg1_wready;
+        write_wready[4] = s_buf1_wready;
         write_wready[5] = s_sg1_wready;
         write_wready[6] = s_sg2_wready;
         write_wready[7] = s_pfb_ro_wready;
-        write_wready[8] = s_avg2_wready;
+        write_wready[8] = s_buf2_wready;
 
 
         m_axi_wready = 1'b0;
@@ -540,13 +540,13 @@ module axi_router_lite #(
         write_resp_valid = '0;
         write_resp_valid[0] = s_tproc_bvalid;
         write_resp_valid[1] = s_sg0_bvalid;
-        write_resp_valid[2] = s_avg0_bvalid;
+        write_resp_valid[2] = s_buf0_bvalid;
         write_resp_valid[3] = s_rov2_bvalid;
-        write_resp_valid[4] = s_avg1_bvalid;
+        write_resp_valid[4] = s_buf1_bvalid;
         write_resp_valid[5] = s_sg1_bvalid;
         write_resp_valid[6] = s_sg2_bvalid;
         write_resp_valid[7] = s_pfb_ro_bvalid;
-        write_resp_valid[8] = s_avg2_bvalid;
+        write_resp_valid[8] = s_buf2_bvalid;
 
     end
     
@@ -580,13 +580,13 @@ module axi_router_lite #(
             m_axi_bresp = s_sg0_bresp;
         end else if (write_resp_pending[2] && write_resp_valid[2]) begin
             m_axi_bvalid = 1'b1;
-            m_axi_bresp = s_avg0_bresp;
+            m_axi_bresp = s_buf0_bresp;
         end else if (write_resp_pending[3] && write_resp_valid[3]) begin
             m_axi_bvalid = 1'b1;
             m_axi_bresp = s_rov2_bresp;
         end else if (write_resp_pending[4] && write_resp_valid[4]) begin
             m_axi_bvalid = 1'b1;
-            m_axi_bresp = s_avg1_bresp;
+            m_axi_bresp = s_buf1_bresp;
         end else if (write_resp_pending[5] && write_resp_valid[5]) begin
             m_axi_bvalid = 1'b1;
             m_axi_bresp = s_sg1_bresp;
@@ -598,7 +598,7 @@ module axi_router_lite #(
             m_axi_bresp = s_pfb_ro_bresp;
         end else if (write_resp_pending[8] && write_resp_valid[8]) begin
             m_axi_bvalid = 1'b1;
-            m_axi_bresp = s_avg2_bresp;
+            m_axi_bresp = s_buf2_bresp;
         end
     end
     
@@ -611,13 +611,13 @@ module axi_router_lite #(
         s_sg0_bready = m_axi_bready & write_resp_pending[1];
         
         // Average Buffer 0
-        s_avg0_bready = m_axi_bready & write_resp_pending[2];
+        s_buf0_bready = m_axi_bready & write_resp_pending[2];
         
         // Readout
         s_rov2_bready = m_axi_bready & write_resp_pending[3];
         
         // Average Buffer 1
-        s_avg1_bready = m_axi_bready & write_resp_pending[4];
+        s_buf1_bready = m_axi_bready & write_resp_pending[4];
         
         // Signal Generator 1
         s_sg1_bready = m_axi_bready & write_resp_pending[5];
@@ -629,7 +629,7 @@ module axi_router_lite #(
         s_pfb_ro_bready = m_axi_bready & write_resp_pending[7];
         
         // Average Buffer 2
-        s_avg2_bready = m_axi_bready & write_resp_pending[8];
+        s_buf2_bready = m_axi_bready & write_resp_pending[8];
 
     end
 
@@ -647,13 +647,13 @@ module axi_router_lite #(
 
         read_slave_ready[0] = s_tproc_arready;
         read_slave_ready[1] = s_sg0_arready;
-        read_slave_ready[2] = s_avg0_arready;
+        read_slave_ready[2] = s_buf0_arready;
         read_slave_ready[3] = s_rov2_arready;
-        read_slave_ready[4] = s_avg1_arready;
+        read_slave_ready[4] = s_buf1_arready;
         read_slave_ready[5] = s_sg1_arready;
         read_slave_ready[6] = s_sg2_arready;
         read_slave_ready[7] = s_pfb_ro_arready;
-        read_slave_ready[8] = s_avg2_arready;
+        read_slave_ready[8] = s_buf2_arready;
 
         read_slave_valid = {9{m_axi_arvalid}} & read_slave_sel;
     end
@@ -672,9 +672,9 @@ module axi_router_lite #(
         s_sg0_arvalid = m_axi_arvalid & read_slave_sel[1];
         
         // Average Buffer 0
-        s_avg0_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
-        s_avg0_arprot = m_axi_arprot;
-        s_avg0_arvalid = m_axi_arvalid & read_slave_sel[2];
+        s_buf0_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
+        s_buf0_arprot = m_axi_arprot;
+        s_buf0_arvalid = m_axi_arvalid & read_slave_sel[2];
         
         // Readout
         s_rov2_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
@@ -682,9 +682,9 @@ module axi_router_lite #(
         s_rov2_arvalid = m_axi_arvalid & read_slave_sel[3];
 
         // Average Buffer 1
-        s_avg1_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
-        s_avg1_arprot = m_axi_arprot;
-        s_avg1_arvalid = m_axi_arvalid & read_slave_sel[4];
+        s_buf1_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
+        s_buf1_arprot = m_axi_arprot;
+        s_buf1_arvalid = m_axi_arvalid & read_slave_sel[4];
         
         // Signal Generator 1
         s_sg1_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
@@ -702,9 +702,9 @@ module axi_router_lite #(
         s_pfb_ro_arvalid = read_slave_sel[7] & m_axi_arvalid;
         
         // Average Buffer 2
-        s_avg2_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
-        s_avg2_arprot = m_axi_arprot;
-        s_avg2_arvalid = m_axi_arvalid & read_slave_sel[8];
+        s_buf2_araddr = m_axi_araddr[5:0];  // Truncate to 6-bit
+        s_buf2_arprot = m_axi_arprot;
+        s_buf2_arvalid = m_axi_arvalid & read_slave_sel[8];
         
     end
     
@@ -734,13 +734,13 @@ module axi_router_lite #(
         read_resp_resp = '0;
         read_resp_valid[0] = s_tproc_rvalid;
         read_resp_valid[1] = s_sg0_rvalid;
-        read_resp_valid[2] = s_avg0_rvalid;
+        read_resp_valid[2] = s_buf0_rvalid;
         read_resp_valid[3] = s_rov2_rvalid;
-        read_resp_valid[4] = s_avg1_rvalid;
+        read_resp_valid[4] = s_buf1_rvalid;
         read_resp_valid[5] = s_sg1_rvalid;
         read_resp_valid[6] = s_sg2_rvalid;
         read_resp_valid[7] = s_pfb_ro_rvalid;
-        read_resp_valid[8] = s_avg2_rvalid;
+        read_resp_valid[8] = s_buf2_rvalid;
 
     end
     
@@ -777,16 +777,16 @@ module axi_router_lite #(
             m_axi_rresp = s_sg0_rresp;
         end else if (read_resp_pending[2] && read_resp_valid[2]) begin
             m_axi_rvalid = 1'b1;
-            m_axi_rdata = s_avg0_rdata;
-            m_axi_rresp = s_avg0_rresp;
+            m_axi_rdata = s_buf0_rdata;
+            m_axi_rresp = s_buf0_rresp;
         end else if (read_resp_pending[3] && read_resp_valid[3]) begin
             m_axi_rvalid = 1'b1;
             m_axi_rdata = s_rov2_rdata;
             m_axi_rresp = s_rov2_rresp;
         end else if (read_resp_pending[4] && read_resp_valid[4]) begin
             m_axi_rvalid = 1'b1;
-            m_axi_rdata = s_avg1_rdata;
-            m_axi_rresp = s_avg1_rresp;
+            m_axi_rdata = s_buf1_rdata;
+            m_axi_rresp = s_buf1_rresp;
         end else if (read_resp_pending[5] && read_resp_valid[5]) begin
             m_axi_rvalid = 1'b1;
             m_axi_rdata = s_sg1_rdata;
@@ -801,8 +801,8 @@ module axi_router_lite #(
             m_axi_rresp = s_pfb_ro_rresp;
         end else if (read_resp_pending[8] && read_resp_valid[8]) begin
             m_axi_rvalid = 1'b1;
-            m_axi_rdata = s_avg2_rdata;
-            m_axi_rresp = s_avg2_rresp;
+            m_axi_rdata = s_buf2_rdata;
+            m_axi_rresp = s_buf2_rresp;
         end
     end
     
@@ -815,13 +815,13 @@ module axi_router_lite #(
         s_sg0_rready = m_axi_rready & read_resp_pending[1];
         
         // Average Buffer 0
-        s_avg0_rready = m_axi_rready & read_resp_pending[2];
+        s_buf0_rready = m_axi_rready & read_resp_pending[2];
         
         // Readout
         s_rov2_rready = m_axi_rready & read_resp_pending[3];
         
         // Average Buffer 1
-        s_avg1_rready = m_axi_rready & read_resp_pending[4];
+        s_buf1_rready = m_axi_rready & read_resp_pending[4];
         
         // Signal Generator 1
         s_sg1_rready = m_axi_rready & read_resp_pending[5];
@@ -833,7 +833,7 @@ module axi_router_lite #(
         s_pfb_ro_rready = m_axi_rready & read_resp_pending[7];
 
         // Average Buffer 2
-        s_avg2_rready = m_axi_rready & read_resp_pending[8];
+        s_buf2_rready = m_axi_rready & read_resp_pending[8];
 
     end
 
@@ -843,10 +843,10 @@ module axi_router_lite #(
     assign sg1_sel = write_slave_sel[5] | read_slave_sel[5];
     assign sg2_sel = write_slave_sel[6] | read_slave_sel[6];
 
-    assign avg0_sel = write_slave_sel[2] | read_slave_sel[2];
+    assign buf0_sel = write_slave_sel[2] | read_slave_sel[2];
     assign rov2_sel = write_slave_sel[3] | read_slave_sel[3];
-    assign avg1_sel = write_slave_sel[4] | read_slave_sel[4];
+    assign buf1_sel = write_slave_sel[4] | read_slave_sel[4];
     assign pfb_ro_sel = write_slave_sel[7] | read_slave_sel[7];
-    assign avg2_sel = write_slave_sel[8] | read_slave_sel[8];
+    assign buf2_sel = write_slave_sel[8] | read_slave_sel[8];
 
 endmodule

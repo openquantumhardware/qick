@@ -369,7 +369,6 @@ end else begin : gen_firs_emu
 fir_0_sv fir0_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -387,10 +386,10 @@ fir_0_sv fir0_i
 		.event_s_config_tlast_unexpected(				)
 	);
 
+
 fir_1_sv fir1_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -411,7 +410,6 @@ fir_1_sv fir1_i
 fir_2_sv fir2_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -432,7 +430,6 @@ fir_2_sv fir2_i
 fir_3_sv fir3_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -453,7 +450,6 @@ fir_3_sv fir3_i
 fir_4_sv fir4_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -474,7 +470,6 @@ fir_4_sv fir4_i
 fir_5_sv fir5_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -495,7 +490,6 @@ fir_5_sv fir5_i
 fir_6_sv fir6_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),
@@ -516,7 +510,6 @@ fir_6_sv fir6_i
 fir_7_sv fir7_i 
 	(
 		.aclk							(aclk			),
-		.aresetn						(aresetn		),
 		.s_axis_data_tvalid				(valid_r		),
 		.s_axis_data_tready				(				),
 		.s_axis_data_tlast				(fr_out			),

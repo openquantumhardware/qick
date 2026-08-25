@@ -2,7 +2,6 @@
 
 module fir_1_sv (
     input  logic        aclk,
-    input  logic        aresetn,
     input  logic        s_axis_data_tvalid,
     output logic        s_axis_data_tready,
     input  logic        s_axis_data_tlast,

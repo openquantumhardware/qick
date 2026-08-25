@@ -65,7 +65,6 @@ module automatic model_ADC #(
    input wire clk_ADC,
    input wire axis_tready,
    input wire mode,  // 0 = ZOH, 1 = linear
-   // output logic [ADC_W-1:0] adc_sample,
    output logic axis_tvalid,
    output logic [N_DDS*ADC_W-1:0] axis_tdata
 );
