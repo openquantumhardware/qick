@@ -1780,6 +1780,72 @@ class QickEmu:
         scale = {"fs": 1e3, "ps": 1e0, "ns": 1e-3, "us": 1e-6, "ms": 1e-9}[time_unit]
         return t_ps * scale, samples
 
+    def load_dac_all(
+        self,
+        emu_dir: Union[str, pathlib.Path],
+        *,
+        time_unit: str = "us",
+        absolute_time: bool = False,
+    ) -> Dict[int, Tuple[np.ndarray, np.ndarray]]:
+        """Load DAC samples from all available generator channels.
+
+        Similar to ``load_dac``, but loads and returns data for all available
+        DAC channels in the emulation directory. Returns a dictionary mapping
+        channel index to (time, samples) tuples.
+
+        Parameters
+        ----------
+        emu_dir : str or pathlib.Path
+            Directory containing the ``dac_out_ch*.csv`` files.
+        time_unit : {'fs', 'ps', 'ns', 'us', 'ms'}
+            Unit for the returned time axis.
+        absolute_time : bool
+            If ``True``, return raw sim-time values instead of normalising
+            to the first DAC sample.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping channel index (int) to (time, samples) tuples.
+            Each tuple contains:
+            - time : numpy.ndarray
+                Time axis in ``time_unit``.
+            - samples : numpy.ndarray
+                Flat DAC stream aligned to time axis.
+        """
+        emu_dir = pathlib.Path(emu_dir)
+        dac_data = {}
+
+        # Find all available dac_out_ch*.csv files
+        pattern = emu_dir / "dac_out_ch*.csv"
+        dac_files = sorted(emu_dir.glob("dac_out_ch*.csv"))
+
+        if not dac_files:
+            # Try to load the generic dac_out.csv if no per-channel files exist
+            if (emu_dir / "dac_out.csv").exists():
+                dac_files = [emu_dir / "dac_out.csv"]
+            else:
+                raise FileNotFoundError(f"No dac_out CSV files in {emu_dir}")
+
+        for csv_file in dac_files:
+            # Extract channel number from filename (e.g., "dac_out_ch0.csv" -> 0)
+            # or default to 0 if it's just "dac_out.csv"
+            if "ch" in csv_file.stem:
+                ch = int(csv_file.stem.split("ch")[-1])
+            else:
+                ch = 0
+
+            try:
+                t, samples = self.load_dac(emu_dir, gen_ch=ch, time_unit=time_unit, absolute_time=absolute_time)
+                dac_data[ch] = (t, samples)
+            except FileNotFoundError:
+                continue
+
+        if not dac_data:
+            raise FileNotFoundError(f"Failed to load any DAC channels from {emu_dir}")
+
+        return dac_data
+
     def load_mr(
         self,
         emu_dir: Union[str, pathlib.Path],

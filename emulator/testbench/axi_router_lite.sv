@@ -533,6 +533,31 @@ module axi_router_lite #(
     input  wire                     s_buf2_rvalid,
     output logic                    s_buf2_rready,
 
+    // Slave 9: Readout Buffer 3
+    output logic [5:0]              s_buf3_awaddr,
+    output logic [2:0]              s_buf3_awprot,
+    output logic                    s_buf3_awvalid,
+    input  wire                     s_buf3_awready,
+
+    output logic [DATA_WIDTH-1:0]   s_buf3_wdata,
+    output logic [DATA_WIDTH/8-1:0] s_buf3_wstrb,
+    output logic                    s_buf3_wvalid,
+    input  wire                     s_buf3_wready,
+
+    input  wire [1:0]               s_buf3_bresp,
+    input  wire                     s_buf3_bvalid,
+    output logic                    s_buf3_bready,
+
+    output logic [5:0]              s_buf3_araddr,
+    output logic [2:0]              s_buf3_arprot,
+    output logic                    s_buf3_arvalid,
+    input  wire                     s_buf3_arready,
+
+    input  wire [DATA_WIDTH-1:0]    s_buf3_rdata,
+    input  wire [1:0]               s_buf3_rresp,
+    input  wire                     s_buf3_rvalid,
+    output logic                    s_buf3_rready,
+
     // Output select signals (for debugging/monitoring)
     output logic                    tproc_sel,
     output logic                    sg0_sel,
@@ -542,11 +567,12 @@ module axi_router_lite #(
     output logic                    rov2_sel,
     output logic                    buf1_sel,
     output logic                    pfb_ro_sel,
-    output logic                    buf2_sel
+    output logic                    buf2_sel,
+    output logic                    buf3_sel
 );
 
     // Slave configuration
-    localparam int NUM_SLAVES = 9;
+    localparam int NUM_SLAVES = 10;
     localparam logic [ADDR_WIDTH-1:0] BASE_ADDRS[NUM_SLAVES] = '{
         40'h04_0026_0000,  // [0] tProc
         40'h04_001C_0000,  // [1] SG0
@@ -556,7 +582,8 @@ module axi_router_lite #(
         40'h04_001D_0000,  // [5] SG1
         40'h04_001E_0000,  // [6] SG2
         40'h04_0009_0000,  // [7] PFB_RO
-        40'h04_0004_0000   // [8] BUF2
+        40'h04_0004_0000,  // [8] BUF2
+        40'h04_0005_0000   // [9] BUF3
     };
 
     localparam int ADDR_WIDTHS[NUM_SLAVES] = '{
@@ -568,7 +595,8 @@ module axi_router_lite #(
         6,  // [5] SG1
         8,  // [6] SG2
         8,  // [7] PFB_RO
-        6   // [8] BUF2
+        6,  // [8] BUF2
+        6   // [9] BUF3
     };
 
     // Core router signals
@@ -836,6 +864,27 @@ module axi_router_lite #(
     assign s_rvalid_core[8] = s_buf2_rvalid;
     assign s_buf2_rready = s_rready_core[8];
 
+    // Slave 9: BUF3
+    assign s_buf3_awaddr = s_awaddr_core[9][5:0];
+    assign s_buf3_awprot = s_awprot_core[9];
+    assign s_buf3_awvalid = s_awvalid_core[9];
+    assign s_awready_core[9] = s_buf3_awready;
+    assign s_buf3_wdata = s_wdata_core[9];
+    assign s_buf3_wstrb = s_wstrb_core[9];
+    assign s_buf3_wvalid = s_wvalid_core[9];
+    assign s_wready_core[9] = s_buf3_wready;
+    assign s_bresp_core[9] = s_buf3_bresp;
+    assign s_bvalid_core[9] = s_buf3_bvalid;
+    assign s_buf3_bready = s_bready_core[9];
+    assign s_buf3_araddr = s_araddr_core[9][5:0];
+    assign s_buf3_arprot = s_arprot_core[9];
+    assign s_buf3_arvalid = s_arvalid_core[9];
+    assign s_arready_core[9] = s_buf3_arready;
+    assign s_rdata_core[9] = s_buf3_rdata;
+    assign s_rresp_core[9] = s_buf3_rresp;
+    assign s_rvalid_core[9] = s_buf3_rvalid;
+    assign s_buf3_rready = s_rready_core[9];
+
     // Debugging/monitoring select signals
     assign tproc_sel = s_awvalid_core[0] | s_arvalid_core[0];
     assign sg0_sel = s_awvalid_core[1] | s_arvalid_core[1];
@@ -846,5 +895,6 @@ module axi_router_lite #(
     assign sg2_sel = s_awvalid_core[6] | s_arvalid_core[6];
     assign pfb_ro_sel = s_awvalid_core[7] | s_arvalid_core[7];
     assign buf2_sel = s_awvalid_core[8] | s_arvalid_core[8];
+    assign buf3_sel = s_awvalid_core[9] | s_arvalid_core[9];
 
 endmodule
