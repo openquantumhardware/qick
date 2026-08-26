@@ -34,7 +34,6 @@ logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
 logic [PHASE_WIDTH-1:0] phase_acc;     // phase accumulator result
 logic [PHASE_WIDTH-1:0] phase_seed;    // initial phase
 logic        sync;          // strobe bit
-// logic [31:0] m_axis_data_tdata_temp = '0;
 
 
 // --------- UNPACK s_axis_phase_tdata --------------------------
@@ -143,7 +142,6 @@ end
     wire [15:0] tdata_imag = m_axis_data_tdata[31:16];
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
-    // logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
         if (s_axis_phase_tvalid) begin
