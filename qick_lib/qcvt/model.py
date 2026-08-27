@@ -120,6 +120,31 @@ def param_range(x: Any) -> Tuple[float, float, bool]:
     return v, v, False
 
 
+def param_loop_names(x: Any) -> Tuple[str, ...]:
+    """Loop names that increment a QickParam (``QickParam.spans`` keys).
+
+    Averager ``reps`` is skipped.  Empty for scalars and unknown objects.
+    """
+    spans = getattr(x, "spans", None) or {}
+    try:
+        return tuple(k for k in spans.keys() if k != "reps")
+    except Exception:
+        return ()
+
+
+def ordered_loop_names(names, loop_dict: Optional[Dict[str, int]] = None
+                       ) -> Tuple[str, ...]:
+    """Deduplicate ``names``, outer→inner when ``loop_dict`` is given."""
+    seen = []
+    for n in (loop_dict or {}):
+        if n in names and n not in seen and n != "reps":
+            seen.append(n)
+    for n in names:
+        if n and n not in seen and n != "reps":
+            seen.append(n)
+    return tuple(seen)
+
+
 def _finite(*vals: float) -> bool:
     return all(np.isfinite(v) for v in vals)
 
@@ -149,6 +174,10 @@ class PulseEvent:
     freq: Optional[float] = None
     phase: Optional[float] = None
     swept_params: Tuple[str, ...] = ()
+    # Loops that change this event's start time or length (ghost label).
+    timing_loops: Tuple[str, ...] = ()
+    # ``(param, loop)`` pairs for on-bar sweep captions, e.g. ("gain", "gainloop").
+    param_loops: Tuple[Tuple[str, str], ...] = ()
 
     @property
     def t_end(self) -> float:
@@ -349,6 +378,17 @@ def _pulse_param_range(prog: Any, name: str, param: str) -> Tuple[float, float, 
     return param_nominal(p), lo, hi, swept
 
 
+def _pulse_param_loops(prog: Any, name: str, param: str) -> Tuple[str, ...]:
+    """Loop names that increment ``param`` on pulse ``name``."""
+    try:
+        pulses = _call(prog, "get_pulses", default=None) or getattr(prog, "pulses", {})
+        pulse = pulses[name]
+        params = _call(pulse, "get_params", default=None) or getattr(pulse, "params", {})
+        return param_loop_names(params.get(param))
+    except Exception:
+        return ()
+
+
 def _ro_length_us(prog: Any, ro: int) -> Optional[float]:
     """ADC integration-window length (us) for readout channel ``ro``."""
     getter = getattr(prog, "get_ro_length_us", None)
@@ -431,6 +471,7 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
 
     # Moving reference offset (us), tracked with its sweep range.
     ref_nom = ref_min = ref_max = 0.0
+    ref_loops: List[str] = []
     # Per-call warning/bookkeeping state.
     resync_warned = False
     unknown_warned: set = set()
@@ -458,6 +499,9 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
                 ref_nom += param_nominal(tp)
                 ref_min += lo
                 ref_max += hi
+                for n in param_loop_names(tp):
+                    if n not in ref_loops:
+                        ref_loops.append(n)
 
             elif cname == "Pulse":
                 ch = getattr(macro, "ch", None)
@@ -491,6 +535,25 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
                     swept.append("gain")
                 if f_sw:
                     swept.append("freq")
+                t_loops = ordered_loop_names(
+                    list(param_loop_names(tp)) + list(ref_loops), sched.loop_dict)
+                l_loops = ordered_loop_names(param_loop_names(length_qp),
+                                             sched.loop_dict)
+                timing_loops = ordered_loop_names(
+                    list(t_loops) + list(l_loops), sched.loop_dict)
+                param_loops: List[Tuple[str, str]] = []
+                if t_loops:
+                    param_loops.append(("time", ", ".join(t_loops)))
+                if l_loops:
+                    param_loops.append(("length", ", ".join(l_loops)))
+                g_loops = ordered_loop_names(
+                    _pulse_param_loops(prog, name, "gain"), sched.loop_dict)
+                if g_loops:
+                    param_loops.append(("gain", ", ".join(g_loops)))
+                f_loops = ordered_loop_names(
+                    _pulse_param_loops(prog, name, "freq"), sched.loop_dict)
+                if f_loops:
+                    param_loops.append(("freq", ", ".join(f_loops)))
                 sched.events.append(PulseEvent(
                     ch=int(ch), name=str(name), kind="gen",
                     t_start=ref_nom + t_nom, length=l_nom,
@@ -499,6 +562,8 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
                     style=style, envelope=envelope, periodic=periodic,
                     gain=g_nom, gain_min=g_lo, gain_max=g_hi,
                     freq=f_nom, phase=p_nom, swept_params=tuple(swept),
+                    timing_loops=timing_loops,
+                    param_loops=tuple(param_loops),
                 ))
 
             elif cname == "Trigger":
@@ -518,12 +583,17 @@ def _extract_schedule(prog: Any, *, suppress_off_pulses: bool) -> Schedule:
                         length = param_nominal(width_qp) if width_qp is not None else 0.0
                     if not _finite(t_nom, length) or length < 0:
                         continue
+                    t_loops = ordered_loop_names(
+                        list(param_loop_names(tp)) + list(ref_loops),
+                        sched.loop_dict)
                     sched.events.append(PulseEvent(
                         ch=int(ro), name="readout", kind="adc",
                         t_start=ref_nom + t_nom, length=float(length),
                         t_min=ref_min + t_lo, t_max=ref_max + t_hi,
                         len_min=float(length), len_max=float(length),
                         style="const",
+                        timing_loops=t_loops,
+                        param_loops=(("time", ", ".join(t_loops)),) if t_loops else (),
                     ))
 
             elif cname == "OpenLoop":

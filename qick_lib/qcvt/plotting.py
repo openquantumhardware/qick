@@ -4,17 +4,20 @@ Matplotlib rendering of a QICK pulse :class:`~qcvt.model.Schedule`.
 
 The schedule plot shows one horizontal lane per generator/readout channel with
 every pulse drawn as a labelled bar on a shared microsecond axis.  An optional
-amplitude panel reconstructs the output amplitude vs. time.  Swept parameters
-(time, length, gain) are drawn as translucent ranges so you can see, at a glance,
-what the loop actually varies before the program is sent to the RFSoC.
+amplitude panel reconstructs the output amplitude vs. time.  Swept start times
+and lengths are shown as a dashed **ghost** of the pulse at the other sweep
+extreme (same width if only the start moves; a different width if length
+sweeps too), labelled with the loop that moves the pulse, so a sliding pulse
+is not mistaken for a length sweep and a timing loop is not mistaken for a
+gain loop.
 
 Multi-timescale programs (ns-scale qubit pulses next to µs-scale readout / ms-scale
 CW pumps) are handled by:
 
 * an explicit ``t0_us`` / ``max_time_us`` viewing window;
 * duration callouts + tick marks for pulses that would otherwise be invisible;
-* optional zoom insets around clusters of short pulses when the dynamic range
-  of pulse lengths is large.
+* an opt-in zoom inset around clusters of short pulses (``insets=True``).
+  Pulses that overlap the inset are drawn even if they started earlier.
 """
 
 from __future__ import annotations
@@ -24,8 +27,10 @@ from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb
 from matplotlib.patches import Patch
 
+from .labels import default_port_text, lookup_physical, resolve_label_maps
 from .model import PulseEvent, Schedule, amplitude_trace, extract_schedule, gain_band
 
 
@@ -34,8 +39,6 @@ _ADC_HEIGHT = 0.4
 _ADC_COLOR = "#1a7a1a"
 # Pulses shorter than this fraction of the viewing window get a duration callout.
 _SHORT_FRAC = 0.015
-# If longest/shortest (visible) gen pulse exceeds this, offer an auto-inset.
-_INSET_DYNAMIC_RANGE = 25.0
 
 
 def _as_schedule(prog_or_schedule) -> Schedule:
@@ -81,13 +84,16 @@ def _gen_label(sched: Schedule, ch: int, gen_ch_labels, physical_port_labels) ->
         except Exception:
             dac_id = None
         if dac_id is not None:
-            phys = (physical_port_labels or {}).get(str(dac_id))
-            label = f"{label} ({phys or 'dac ' + str(dac_id)})"
+            phys = lookup_physical(physical_port_labels, dac_id)
+            label = f"{label} ({phys or default_port_text(soccfg, 'dac', dac_id)})"
     return label
 
 
-def _adc_label(sched: Schedule, ch: int, physical_port_labels) -> str:
+def _adc_label(sched: Schedule, ch: int, physical_port_labels,
+               n_windows: Optional[int] = None) -> str:
     label = f"ro {ch}"
+    if n_windows is not None and n_windows > 1:
+        label = f"{label} ({n_windows} windows)"
     soccfg = sched.soccfg
     if soccfg is not None:
         try:
@@ -97,8 +103,8 @@ def _adc_label(sched: Schedule, ch: int, physical_port_labels) -> str:
         except Exception:
             adc_id = None
         if adc_id is not None:
-            phys = (physical_port_labels or {}).get(str(adc_id))
-            label = f"{label} ({phys or 'adc ' + str(adc_id)})"
+            phys = lookup_physical(physical_port_labels, adc_id)
+            label = f"{label} ({phys or default_port_text(soccfg, 'adc', adc_id)})"
     return label
 
 
@@ -112,14 +118,18 @@ def _format_duration(us: float) -> str:
     return f"{us / 1000.0:.3g} ms"
 
 
+def _sliver(width: float, window_us: float) -> bool:
+    """True if a bar this wide would render as a vertical tick, not a pulse."""
+    return width < max(_SHORT_FRAC * window_us, 1e-6)
+
+
 def _short_events(events: Sequence[PulseEvent], draw_lengths: dict,
                   window_us: float) -> List[PulseEvent]:
-    thresh = max(_SHORT_FRAC * window_us, 1e-6)
     out = []
     for e in events:
         if e.kind != "gen":
             continue
-        if draw_lengths.get(id(e), e.length) < thresh:
+        if _sliver(draw_lengths.get(id(e), e.length), window_us):
             out.append(e)
     return out
 
@@ -132,6 +142,126 @@ def _choose_inset_window(short: Sequence[PulseEvent], pad_us: float) -> Optional
     lo, hi = min(starts), max(ends)
     span = max(hi - lo, 1e-3)
     return max(0.0, lo - pad_us), hi + pad_us + 0.05 * span
+
+
+def sweep_ghost(event: PulseEvent, draw_len: Optional[float] = None
+                ) -> Optional[Tuple[float, float]]:
+    """Return ``(t_start, length)`` of the dashed ghost at the other sweep extreme.
+
+    Nominal bars use the sweep *start* (``event.t_start``, ``event.length``).
+    The ghost is the same pulse at the opposite endpoint:
+
+    * time-only sweep: same width, different start (translation);
+    * length-only sweep: same start, different width (stretch);
+    * both: the other start *and* the other length.
+
+    ``draw_len`` overrides the nominal width (periodic extension).  Returns
+    ``None`` when nothing is swept or the ghost would overlap the nominal bar.
+    """
+    length = event.length if draw_len is None else draw_len
+    t_g = event.t_start
+    if event.time_swept:
+        if abs(event.t_start - event.t_min) <= abs(event.t_start - event.t_max):
+            t_g = event.t_max
+        else:
+            t_g = event.t_min
+    l_g = length
+    if event.length_swept:
+        if abs(event.length - event.len_min) <= abs(event.length - event.len_max):
+            l_g = event.len_max
+        else:
+            l_g = event.len_min
+    l_g = max(float(l_g), 0.0)
+    if np.isclose(t_g, event.t_start) and np.isclose(l_g, length):
+        return None
+    return float(t_g), l_g
+
+
+def _darker(color, factor: float = 0.4):
+    r, g, b = to_rgb(color)
+    return (r * factor, g * factor, b * factor)
+
+
+def _ghost_label_x(nom_left: float, nom_width: float, g_left: float, g_width: float
+                   ) -> float:
+    """Midpoint of the ghost segment that is not covered by the nominal bar."""
+    n0, n1 = nom_left, nom_left + max(nom_width, 0.0)
+    g0, g1 = g_left, g_left + max(g_width, 0.0)
+    segs = []
+    if g0 < n0 - 1e-12:
+        segs.append((g0, min(g1, n0)))
+    if g1 > n1 + 1e-12:
+        segs.append((max(g0, n1), g1))
+    segs = [(a, b) for a, b in segs if b - a > 1e-12]
+    if segs:
+        a, b = max(segs, key=lambda s: s[1] - s[0])
+        return 0.5 * (a + b)
+    return 0.5 * (g0 + g1)
+
+
+def _timing_loop_label(events: Sequence[PulseEvent]) -> str:
+    loops = []
+    for e in events:
+        for n in e.timing_loops:
+            if n not in loops:
+                loops.append(n)
+    return ", ".join(loops)
+
+
+def _draw_ghost(ax, y: float, left: float, width: float, height: float, color,
+                label: Optional[str] = None,
+                nom_left: Optional[float] = None,
+                nom_width: Optional[float] = None,
+                min_label_width: float = 0.0) -> None:
+    """Dashed outline of the pulse at the other sweep extreme.
+
+    Same lane as the solid bar, drawn on top, with a darker dotted edge so a
+    ghost that overlaps the initial pulse still shows where it begins.
+    ``label`` is the loop that moves or stretches this pulse.
+    """
+    width = max(width, 0.0)
+    dark = _darker(color)
+    bars = ax.barh(
+        y, width, left=left, height=height,
+        facecolor=color, alpha=0.12, edgecolor="none", zorder=3,
+    )
+    for artist in bars:
+        artist.set_gid("qcvt_ghost")
+    y0, y1 = y - height / 2, y + height / 2
+    right = left + width
+    kw = dict(color=dark, linewidth=1.8, linestyle=(0, (1.2, 0.9)),
+              solid_capstyle="butt", zorder=6)
+    ax.plot([left, right], [y1, y1], **kw)
+    ax.plot([left, right], [y0, y0], **kw)
+    ax.plot([left, left], [y0, y1], **kw)
+    ax.plot([right, right], [y0, y1], **kw)
+    if label and width >= min_label_width:
+        x = _ghost_label_x(
+            left if nom_left is None else nom_left,
+            0.0 if nom_width is None else nom_width,
+            left, width,
+        )
+        ax.text(x, y, label, ha="center", va="center", fontsize=6.5,
+                color=dark, zorder=7, clip_on=True, fontstyle="italic",
+                bbox=dict(boxstyle="round,pad=0.12", facecolor="white",
+                          edgecolor="none", alpha=0.8))
+
+
+def _adc_series_ghost(events: Sequence[PulseEvent]) -> Optional[Tuple[float, float]]:
+    """One ghost spanning a burst of ADC windows at the other start extreme."""
+    if not events:
+        return None
+    ghosts = []
+    for e in events:
+        g = sweep_ghost(e, e.length)
+        if g is None:
+            continue
+        ghosts.append((g[0], g[0] + g[1]))
+    if not ghosts:
+        return None
+    lo = min(a for a, _ in ghosts)
+    hi = max(b for _, b in ghosts)
+    return lo, max(hi - lo, 0.0)
 
 
 def plot_pulse_schedule(
@@ -147,7 +277,7 @@ def plot_pulse_schedule(
     title: Optional[str] = None,
     label_pulses: bool = True,
     schedule: Optional[Schedule] = None,
-    insets: Optional[bool] = None,
+    insets: bool = False,
     time_origin: str = "program",
 ):
     """Plot a pulse schedule from a compiled QICK ``asm_v2`` program.
@@ -164,9 +294,16 @@ def plot_pulse_schedule(
     max_time_us : float, optional
         Right limit of the time axis.  If ``None`` it is inferred from the schedule.
     gen_ch_labels : dict, optional
-        Map ``gen_ch (int) -> label`` for lane labels.
+        Map ``gen_ch (int) -> label`` for lane labels.  Matches the channel
+        numbers used in ``add_pulse`` / ``declare_gen``.  If omitted, session
+        defaults from :func:`~qcvt.set_channel_labels` and any
+        ``soccfg["qcvt_gen_ch_labels"]`` are used.
     physical_port_labels : dict, optional
-        Map RFDC ids (e.g. dac ``'00'``, adc ``'20'``) -> human labels.
+        Map RFDC tile/block ids (e.g. ``'12'`` or ``12``) -> human labels.
+        These ids are *not* QICK box DAC numbers; see ``print(soccfg)`` or
+        ``soccfg.get_gen_cfg(ch)['dac']``.  Prefer ``gen_ch_labels`` for
+        names you actually think about.  Unlabelled ports default to the
+        QICK box port (``DAC 4``) when the board mapping is known.
     show_readout_triggers : bool
         Draw ADC integration windows as their own lanes.
     show_amplitude : bool
@@ -174,15 +311,20 @@ def plot_pulse_schedule(
     amplitude_units : str
         ``"dac"`` (0..maxv) or ``"norm"`` (0..1) for the amplitude panel.
     title : str, optional
-        Plot title.
+        Plot title.  When the program has loops, a ``loops (outer → inner)``
+        line is appended so sweep order is visible without extra annotations.
+        Time- or length-swept pulses get a dashed ghost at the other sweep
+        extreme so a sliding pulse is not drawn as a longer bar.
     label_pulses : bool
         Write each pulse's name on its bar.
     schedule : Schedule, optional
         Pre-extracted schedule (avoids re-extraction when plotting repeatedly).
-    insets : bool or None
-        If ``True``, always try to add a zoom inset around short pulses.
-        If ``None`` (default), add an inset automatically when the schedule's
-        pulse-length dynamic range is large.  If ``False``, never add an inset.
+    insets : bool
+        If ``True``, add a zoom inset around short pulses.  Default ``False``:
+        interactive windows can already zoom, and auto-insets often obscure
+        the timeline.  Pulses that *overlap* the inset window are drawn even
+        if they started earlier (so a CW pump that began before the zoom is
+        still shown).
     time_origin : str
         ``"program"`` (default): absolute program timeline, including any
         initial delay from ``_initialize()``.  ``"body"``: shift the time axis
@@ -202,6 +344,9 @@ def plot_pulse_schedule(
     sched = schedule if schedule is not None else _as_schedule(prog)
     if time_origin == "body" and sched and sched.body_start_us:
         sched = _shifted_schedule(sched, sched.body_start_us)
+    gen_ch_labels, physical_port_labels = resolve_label_maps(
+        getattr(sched, "soccfg", None), gen_ch_labels, physical_port_labels,
+    )
     ax_amp = None
     want_amp = show_amplitude
 
@@ -258,8 +403,18 @@ def plot_pulse_schedule(
     )
     if time_origin == "body":
         ax.set_xlabel("Time (µs, relative to body start)")
+    title_bits = []
     if title:
-        ax.set_title(title, fontsize=11)
+        title_bits.append(title)
+    if sched.loop_dict:
+        # AveragerProgramV2 always has a "reps" averaging loop; skip it so the
+        # caption shows the experimenter's sweep order, not shot averaging.
+        loops = [(n, c) for n, c in sched.loop_dict.items() if n != "reps"]
+        if loops:
+            loops_txt = " → ".join(f"{name} ({n})" for name, n in loops)
+            title_bits.append(f"loops (outer → inner): {loops_txt}")
+    if title_bits:
+        ax.set_title("\n".join(title_bits), fontsize=11 if title else 10)
 
     # Duration callouts for pulses that would be invisible at this zoom.
     short = [e for e in _short_events(sched.gen_events, draw_lengths, window_us)
@@ -271,20 +426,22 @@ def plot_pulse_schedule(
         color = colors.get(e.ch, "C0")
         ax.plot([e.t_start, e.t_start], [y - _GEN_HEIGHT / 2, y + _GEN_HEIGHT / 2],
                 color=color, linewidth=1.6, zorder=4)
+        # Upper-left of the tick, in this lane's gap.  Straight up lands on
+        # the next lane's ghost; straight right rides this pulse's dotted top.
         ax.annotate(
-            f"{e.name}\n{_format_duration(e.length)}",
-            xy=(e.t_start, y), xytext=(6, 10), textcoords="offset points",
-            fontsize=6.5, color=color,
+            f"{e.name}  {_format_duration(e.length)}",
+            xy=(e.t_start, y + _GEN_HEIGHT / 2),
+            xytext=(-8, 12), textcoords="offset points",
+            fontsize=6.5, color=color, ha="right", va="bottom",
             arrowprops=dict(arrowstyle="-", color=color, lw=0.7),
-            zorder=5,
+            bbox=dict(boxstyle="round,pad=0.12", facecolor="white",
+                      edgecolor="none", alpha=0.85),
+            zorder=7,
         )
 
-    # Auto inset when short and long pulses coexist in the same window.
-    gen_lens = [draw_lengths.get(id(e), e.length) for e in sched.gen_events
-                if id(e) not in suppressed and e.length > 0]
-    use_inset = insets
-    if use_inset is None and gen_lens and short:
-        use_inset = (max(gen_lens) / max(min(gen_lens), 1e-9)) >= _INSET_DYNAMIC_RANGE
+    # Opt-in inset around short pulses.  Include events that overlap the
+    # zoom window even if they started earlier (periodic CW pumps, etc.).
+    use_inset = bool(insets)
     if use_inset and owns_figure and short:
         inset_win = _choose_inset_window(short, pad_us=max(0.05, 0.15 * window_us * _SHORT_FRAC))
         if inset_win is not None:
@@ -321,12 +478,12 @@ def _draw_schedule_bars(
         if t_end < t0_us or e.t_start > end_us:
             continue
 
-        if e.time_swept:
-            ax.barh(y, (e.t_max + draw_len) - e.t_min, left=e.t_min, height=_GEN_HEIGHT,
-                    color=color, alpha=0.15, edgecolor="none", zorder=1)
-        elif e.length_swept:
-            ax.barh(y, e.len_max, left=e.t_start, height=_GEN_HEIGHT,
-                    color=color, alpha=0.15, edgecolor="none", zorder=1)
+        ghost = sweep_ghost(e, draw_len)
+        if ghost is not None:
+            _draw_ghost(ax, y, ghost[0], ghost[1], _GEN_HEIGHT, color,
+                        label=_timing_loop_label([e]),
+                        nom_left=e.t_start, nom_width=max(draw_len, 0.0),
+                        min_label_width=max(_SHORT_FRAC * window_us, 1e-6))
 
         ax.barh(y, max(draw_len, 0.0), left=e.t_start, height=_GEN_HEIGHT,
                 color=color, edgecolor="black", linewidth=0.6, zorder=2,
@@ -340,7 +497,10 @@ def _draw_schedule_bars(
         vis_len = max(vis_hi - vis_lo, 0.0)
         if label_pulses and vis_len >= _SHORT_FRAC * window_us:
             label = e.name
-            if e.swept_params:
+            if e.param_loops:
+                bits = [f"{p} ← {lp}" for p, lp in e.param_loops]
+                label += f"\n[sweep: {', '.join(bits)}]"
+            elif e.swept_params:
                 label += f"\n[sweep: {', '.join(e.swept_params)}]"
             if e.style and e.style not in ("const",):
                 label += f"\n({e.style})"
@@ -355,14 +515,34 @@ def _draw_schedule_bars(
                         va="bottom", fontsize=6.5, color=color, zorder=3,
                         clip_on=True)
 
+    adc_by_ch: dict = {}
     for e in sched.adc_events:
         y = y_pos.get(("adc", e.ch))
         if y is None:
             continue
-        if e.t_end < t0_us or e.t_start > end_us:
+        t_end = e.t_start + max(e.length, 0.0)
+        if t_end < t0_us or e.t_start > end_us:
             continue
         ax.barh(y, max(e.length, 0.01), left=e.t_start, height=_ADC_HEIGHT,
                 color=_ADC_COLOR, alpha=0.7, edgecolor="black", linewidth=0.8, zorder=2)
+        adc_by_ch.setdefault(e.ch, []).append(e)
+
+    for ch, evs in adc_by_ch.items():
+        y = y_pos.get(("adc", ch))
+        if y is None:
+            continue
+        ghost = _adc_series_ghost(evs)
+        if ghost is not None:
+            _draw_ghost(ax, y, ghost[0], ghost[1], _ADC_HEIGHT, _ADC_COLOR,
+                        label=_timing_loop_label(evs),
+                        nom_left=min(e.t_start for e in evs),
+                        nom_width=(max(e.t_start + e.length for e in evs)
+                                   - min(e.t_start for e in evs)),
+                        min_label_width=max(_SHORT_FRAC * window_us, 1e-6))
+
+    adc_window_counts = {}
+    for e in sched.adc_events:
+        adc_window_counts[e.ch] = adc_window_counts.get(e.ch, 0) + 1
 
     y_ticks, y_labels = [], []
     for ch in gen_chs:
@@ -374,7 +554,8 @@ def _draw_schedule_bars(
         y_labels.append(lab)
     for ch in adc_chs:
         y_ticks.append(y_pos[("adc", ch)])
-        y_labels.append(_adc_label(sched, ch, physical_port_labels))
+        y_labels.append(_adc_label(sched, ch, physical_port_labels,
+                                   n_windows=adc_window_counts.get(ch)))
 
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_labels, fontsize=8)
@@ -390,9 +571,10 @@ def _draw_schedule_bars(
     if adc_chs:
         legend_items.append(Patch(facecolor=_ADC_COLOR, alpha=0.7,
                                    edgecolor="black", label="ADC integration"))
-    if any(e.swept_params for e in sched.gen_events):
-        legend_items.append(Patch(facecolor="0.6", alpha=0.15, edgecolor="none",
-                                   label="swept range"))
+    if any(e.time_swept or e.length_swept for e in sched.events):
+        legend_items.append(Patch(facecolor="0.85", edgecolor="0.2",
+                                   linestyle=(0, (1.2, 0.9)), linewidth=1.6,
+                                   label="other sweep extreme"))
     if legend_items:
         ax.legend(handles=legend_items, loc="upper right", fontsize=7, framealpha=0.9)
 
@@ -409,17 +591,28 @@ def _add_zoom_inset(
     for e in sched.gen_events:
         if id(e) in suppressed:
             continue
-        if e.t_end < z0 or e.t_start > z1:
-            continue
         y = y_pos.get(("gen", e.ch))
         if y is None:
             continue
         color = colors.get(e.ch, "C0")
         draw_len = draw_lengths.get(id(e), e.length)
+        t_end = e.t_start + max(draw_len, 0.0)
+        # Include pulses that overlap the zoom, even if they started earlier
+        # (a periodic CW pump often begins before the short-pulse cluster).
+        if t_end < z0 or e.t_start > z1:
+            continue
         inset.barh(y, max(draw_len, 0.0), left=e.t_start, height=_GEN_HEIGHT,
                    color=color, edgecolor="black", linewidth=0.5, zorder=2,
                    hatch="////" if e.periodic else None,
                    alpha=0.55 if e.periodic else 1.0)
+        ghost = sweep_ghost(e, draw_len)
+        if ghost is not None:
+            g_end = ghost[0] + ghost[1]
+            if not (g_end < z0 or ghost[0] > z1):
+                _draw_ghost(inset, y, ghost[0], ghost[1], _GEN_HEIGHT, color,
+                            label=_timing_loop_label([e]),
+                            nom_left=e.t_start, nom_width=max(draw_len, 0.0),
+                            min_label_width=max(_SHORT_FRAC * (z1 - z0), 1e-6))
         # Center the label on the segment visible inside the inset window, not
         # the whole pulse (whose midpoint may lie far outside and blow up the
         # figure bbox on save).
@@ -429,14 +622,29 @@ def _add_zoom_inset(
                    f"{e.name}\n{_format_duration(e.length)}",
                    ha="center", va="center", fontsize=6, color="white",
                    fontweight="bold", zorder=3, clip_on=True)
+    adc_by_ch: dict = {}
     for e in sched.adc_events:
-        if e.t_end < z0 or e.t_start > z1:
+        t_end = e.t_start + max(e.length, 0.0)
+        if t_end < z0 or e.t_start > z1:
             continue
         y = y_pos.get(("adc", e.ch))
         if y is None:
             continue
         inset.barh(y, max(e.length, 0.0), left=e.t_start, height=_ADC_HEIGHT,
                    color=_ADC_COLOR, alpha=0.7, edgecolor="black", linewidth=0.6)
+        adc_by_ch.setdefault(e.ch, []).append(e)
+    for ch, evs in adc_by_ch.items():
+        y = y_pos.get(("adc", ch))
+        if y is None:
+            continue
+        ghost = _adc_series_ghost(evs)
+        if ghost is not None:
+            _draw_ghost(inset, y, ghost[0], ghost[1], _ADC_HEIGHT, _ADC_COLOR,
+                        label=_timing_loop_label(evs),
+                        nom_left=min(e.t_start for e in evs),
+                        nom_width=(max(e.t_start + e.length for e in evs)
+                                   - min(e.t_start for e in evs)),
+                        min_label_width=max(_SHORT_FRAC * (z1 - z0), 1e-6))
 
     inset.set_xlim(z0, z1)
     inset.set_ylim(ax.get_ylim())
@@ -516,7 +724,7 @@ def show_schedule(
     physical_port_labels: Optional[dict] = None,
     t0_us: float = 0.0,
     max_time_us: Optional[float] = None,
-    insets: Optional[bool] = None,
+    insets: bool = False,
     time_origin: str = "program",
 ) -> None:
     """Quickly display a pulse schedule interactively (no files saved).

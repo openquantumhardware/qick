@@ -163,7 +163,7 @@ def demo_3_cw_pump_and_gain_sweep(soccfg):
 
 
 def demo_4_multi_timescale(soccfg):
-    """Short ns-scale pulse next to a long readout — triggers zoom inset."""
+    """Short ns-scale pulse next to a long readout — pass insets=True to zoom."""
 
     class Prog(AveragerProgramV2):
         def _initialize(self, cfg):
@@ -190,8 +190,9 @@ def demo_4_multi_timescale(soccfg):
     return _save(
         prog,
         "04_multi_timescale",
-        "4. Multi-timescale: 100 ns pulse + 40 us readout (auto inset)",
+        "4. Multi-timescale: 100 ns pulse + 40 us readout",
         physical_port_labels={"02": "short pi", "26": "readout", "20": "ADC 0"},
+        insets=True,  # opt-in; default is off because auto-insets often obscure the plot
     )
 
 
@@ -200,7 +201,7 @@ def main() -> int:
         print(f"Missing {CONFIG_PATH}", file=sys.stderr)
         return 1
 
-    soccfg = load_soccfg_from_json(CONFIG_PATH)
+    soccfg = load_soccfg_from_json(CONFIG_PATH, align_version=True)
     os.makedirs(OUT, exist_ok=True)
 
     demo_1_const_and_readout(soccfg)

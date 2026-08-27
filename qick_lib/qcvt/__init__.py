@@ -1,5 +1,10 @@
 """QCVT: visualization and edge-matrix export for QICK ``asm_v2`` pulse programs."""
 
+from .labels import (
+    clear_channel_labels,
+    get_channel_labels,
+    set_channel_labels,
+)
 from .model import (
     PulseEvent,
     QCVTError,
@@ -34,6 +39,9 @@ __all__ = [
     "plot_pulse_schedule",
     "show_schedule",
     "review_schedule",
+    "set_channel_labels",
+    "clear_channel_labels",
+    "get_channel_labels",
     "export_edge_matrix_csv",
     "csv_to_table_png",
     "save_soccfg_to_json",

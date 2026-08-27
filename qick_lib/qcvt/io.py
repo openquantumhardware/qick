@@ -43,11 +43,32 @@ def save_soccfg_to_json(soc, path: str) -> None:
     print(f"Saved soccfg to {path}")
 
 
-def load_soccfg_from_json(path: str):
-    """Load a :class:`QickConfig` from a JSON file (requires ``qick``)."""
+def load_soccfg_from_json(path: str, *, align_version: bool = False):
+    """Load a :class:`QickConfig` from a JSON file (requires ``qick``).
+
+    Parameters
+    ----------
+    path : str
+        Path to a JSON file written by :func:`save_soccfg_to_json`.
+    align_version : bool
+        If ``True``, rewrite ``sw_version`` to the installed QICK version
+        *before* constructing :class:`QickConfig`.  Use this for bundled
+        offline demo configs so a stale snapshot does not warn you to
+        upgrade the RFSoC.  Leave ``False`` (default) for configs captured
+        from a live board, where a mismatch is a real signal.
+    """
     if QickConfig is None:
         raise ImportError("qick is required for load_soccfg_from_json")
-    return QickConfig(path)
+    if not align_version:
+        return QickConfig(path)
+    with open(path) as f:
+        cfg = json.load(f)
+    try:
+        from qick import get_version
+        cfg["sw_version"] = get_version()
+    except Exception:
+        pass
+    return QickConfig(cfg)
 
 
 def load_program_pickle(pickle_path: str):
@@ -131,7 +152,7 @@ def review_schedule(
     confirm: bool = False,
     full_export: bool = False,
     time_origin: str = "program",
-    insets: Optional[bool] = None,
+    insets: bool = False,
     strict: bool = False,
     suppress_off_pulses: bool = True,
 ) -> bool:
@@ -163,9 +184,8 @@ def review_schedule(
         start of the loop body).  Affects plots only; exports stay absolute.
     t0_us, max_time_us :
         Optional viewing window (µs). Use to zoom on short pulses next to long ones.
-    insets : bool or None
-        Zoom inset around short pulses. ``None`` = auto when length dynamic range
-        is large; ``True``/``False`` force on/off.
+    insets : bool
+        If ``True``, add a zoom inset around short pulses.  Default ``False``.
 
     Returns
     -------
@@ -264,7 +284,7 @@ def visualize_all(
     physical_port_labels: Optional[dict] = None,
     schedule_dpi: int = 150,
     show: bool = False,
-    insets: Optional[bool] = None,
+    insets: bool = False,
     time_origin: str = "program",
     write_table_png: bool = True,
     strict: bool = False,

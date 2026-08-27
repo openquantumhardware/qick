@@ -40,7 +40,7 @@ def main() -> int:
         print(f"No soccfg found at {CONFIG_PATH}. Save one with save_soccfg_to_json(soc, path).")
         return 1
 
-    soccfg = load_soccfg_from_json(CONFIG_PATH)
+    soccfg = load_soccfg_from_json(CONFIG_PATH, align_version=True)
 
     class ExampleProgram(AveragerProgramV2):
         """Gaussian qubit pulse (gain sweep) + CW pump + square readout."""
@@ -78,6 +78,9 @@ def main() -> int:
         show_amplitude=True,
         physical_port_labels={"02": "qubit drive", "26": "readout out",
                               "24": "pump", "20": "input 0"},
+        # Prefer gen_ch_labels={2: "qubit drive", 6: "readout out", ...}
+        # keyed by generator channel.  The two-digit keys above are RFDC
+        # tile/block ids from print(soccfg), not QICK box DAC numbers.
     )
     for key, path in outputs.items():
         if path:

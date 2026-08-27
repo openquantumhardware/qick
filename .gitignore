@@ -74,3 +74,8 @@ Temporary Items
 
 # local conda env accidentally under repo
 .conda/
+
+# local reviewer materials and scratch, not part of the library
+feedback/
+qick_demos/qcvt/theo_test.py
+qick_demos/qcvt/reviewer_repro/

@@ -104,6 +104,8 @@ def test_gain_sweep_range_captured(sched):
     assert "gain" in q.swept_params
     assert q.gain_min == pytest.approx(0.0, abs=1e-3)
     assert q.gain_max == pytest.approx(1.0, abs=1e-3)
+    assert q.param_loops == (("gain", "gainloop"),)
+    assert q.timing_loops == ()
 
 
 def test_swept_pulse_has_nonzero_amplitude(sched):
@@ -291,3 +293,78 @@ def test_body_time_origin(sched):
     assert "body start" in ax.get_xlabel()
     # Draw-time only: the schedule itself must keep the absolute timeline.
     assert _one(sched, "qubit").t_start == q.t_start
+
+
+def test_swept_delay_moves_later_adc_windows():
+    """Integrations after delay(swept) must inherit the delay's time range.
+
+    The reviewer's cat-rabi program does delay(z_start) then trigger at a
+    constant local t; those windows are not static.
+    """
+    soccfg = QickConfig(CFG)
+
+    class SweptDelayThenReadout(AveragerProgramV2):
+        def _initialize(self, cfg):
+            self.declare_gen(ch=2, nqz=1)
+            self.declare_readout(ch=0, length=0.1)
+            self.add_loop("tloop", 11)
+            self.add_pulse(ch=2, name="drive", style="const", length=0.5,
+                           freq=1000, phase=0, gain=0.5)
+            self.add_pulse(ch=2, name="after", style="const", length=0.5,
+                           freq=1000, phase=0, gain=0.4)
+
+        def _body(self, cfg):
+            self.pulse(ch=2, name="drive", t=0)
+            self.delay(QickSweep1D("tloop", 1.0, 3.0))
+            self.pulse(ch=2, name="after", t=0.5)
+            for off in (0.0, 0.2, 0.4):
+                self.trigger(ros=[0], t=0.5 + off)
+
+    s = extract_schedule(SweptDelayThenReadout(
+        soccfg, reps=1, final_delay=1.0, cfg={},
+    ))
+    after = _one(s, "after")
+    assert after.time_swept
+    assert after.t_max - after.t_min == pytest.approx(2.0, abs=0.05)
+    assert after.timing_loops == ("tloop",)
+    assert ("time", "tloop") in after.param_loops
+
+    assert len(s.adc_events) == 3
+    for adc in s.adc_events:
+        assert adc.time_swept
+        assert adc.t_max - adc.t_min == pytest.approx(2.0, abs=0.05)
+        assert adc.timing_loops == ("tloop",)
+
+    import matplotlib
+    matplotlib.use("Agg")
+    from qcvt.plotting import plot_pulse_schedule
+
+    ax = plot_pulse_schedule(s.prog, schedule=s, show_amplitude=False)
+    ylabels = [t.get_text() for t in ax.get_yticklabels()]
+    assert any("3 windows" in lab for lab in ylabels)
+
+    ghosts = [p for p in ax.patches if p.get_gid() == "qcvt_ghost"]
+    assert ghosts, "time-swept pulses must draw a dashed ghost, not occupancy fill"
+    # The post-delay pulse translates by ~2 µs with fixed length 0.5 µs.
+    after_ghosts = [
+        p for p in ghosts
+        if np.isclose(p.get_width(), after.length, atol=0.08)
+        and np.isclose(p.get_x(), after.t_max, atol=0.08)
+    ]
+    assert after_ghosts, "ghost must be the same width at t_max, not a longer bar"
+    # Occupancy-union smear would be ~2.5 µs wide.
+    assert all(p.get_width() < 1.2 for p in after_ghosts)
+
+    # Three ADC windows collapse to one series ghost.
+    adc_y = None
+    for tick, lab in zip(ax.get_yticks(), ylabels):
+        if "windows" in lab:
+            adc_y = tick
+            break
+    assert adc_y is not None
+    adc_ghosts = [p for p in ghosts if np.isclose(p.get_y() + p.get_height() / 2, adc_y, atol=0.15)]
+    assert len(adc_ghosts) == 1
+    ghost_labels = [t.get_text() for t in ax.texts if "tloop" in t.get_text()]
+    assert ghost_labels, "ghosts must name the loop that moves them"
+    import matplotlib.pyplot as plt
+    plt.close("all")

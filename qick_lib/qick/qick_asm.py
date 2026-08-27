@@ -1034,6 +1034,73 @@ class QickConfig():
         """
         return float(self['readouts'][ro_ch]['f_output'])
 
+    def get_dac_port_label(self, dacname):
+        """Short experimenter-facing label for an RFDC DAC block.
+
+        On ZCU216 this is ``DAC N`` (QICK box port number).  The two-digit
+        RFDC tile/block id (e.g. ``'12'``) is still available as
+        ``get_gen_cfg(ch)['dac']``.
+
+        Parameters
+        ----------
+        dacname : str
+            RFDC tile/block name, e.g. ``'00'`` or ``'12'``
+
+        Returns
+        -------
+        str
+            Short label such as ``DAC 4`` or ``DAC_B``
+        """
+        dacname = str(dacname)
+        try:
+            tile, block = [int(c) for c in dacname]
+        except Exception:
+            return "dac %s" % dacname
+        board = self._cfg.get("board")
+        if board == "ZCU111":
+            return "DAC port %d" % (tile * 4 + block)
+        if board == "ZCU216":
+            return "DAC %d" % (tile * 4 + block)
+        if board == "RFSoC4x2":
+            return {"00": "DAC_B", "20": "DAC_A"}.get(dacname, "dac %s" % dacname)
+        return "dac %s" % dacname
+
+    def get_adc_port_label(self, adcname):
+        """Short experimenter-facing label for an RFDC ADC block.
+
+        On ZCU216 this is ``ADC N`` (QICK box port number) when the tile
+        maps to a box port.  The two-digit RFDC tile/block id is still
+        available as ``get_ro_cfg(ch)['adc']``.
+
+        Parameters
+        ----------
+        adcname : str
+            RFDC tile/block name, e.g. ``'20'``
+
+        Returns
+        -------
+        str
+            Short label such as ``ADC 0`` or ``ADC_A``
+        """
+        adcname = str(adcname)
+        try:
+            tile, block = [int(c) for c in adcname]
+        except Exception:
+            return "adc %s" % adcname
+        board = self._cfg.get("board")
+        if board == "ZCU111":
+            return "ADC port %d" % ((tile % 2) * 2 + block // 2)
+        if board == "ZCU216":
+            if tile in [1, 2]:
+                return "ADC %d" % ((tile - 1) * 4 + block)
+            return "adc %s" % adcname
+        if board == "RFSoC4x2":
+            return {"00": "ADC_D", "02": "ADC_C", "20": "ADC_B", "22": "ADC_A"}.get(
+                adcname, "adc %s" % adcname
+            )
+        return "adc %s" % adcname
+
+
 class AbsQickProgram(ABC):
     """Generic QICK program, including support for generator and readout configuration but excluding tProc-specific code.
     QickProgram/QickProgramV2 are the concrete subclasses for tProc v1/v2.
@@ -1062,7 +1129,8 @@ class AbsQickProgram(ABC):
                       'deg2reg', 'reg2deg',
                       'roundfreq', 'get_maxv',
                       'get_gen_cfg', 'get_ro_cfg',
-                      'get_gen_fs', 'get_ro_f_output']
+                      'get_gen_fs', 'get_ro_f_output',
+                      'get_dac_port_label', 'get_adc_port_label']
 
     # if true, duration units in declare_readout and envelope definitions are in user units (float, us), not raw (int, clock ticks)
     USER_DURATIONS = False

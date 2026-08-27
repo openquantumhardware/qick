@@ -34,9 +34,20 @@ def test_public_api():
         "QCVTError", "strict_mode", "is_strict",
         "export_edge_matrix_csv", "csv_to_table_png",
         "save_soccfg_to_json", "load_soccfg_from_json",
-        "review_schedule",
+        "review_schedule", "set_channel_labels", "clear_channel_labels",
+        "get_channel_labels",
     ]:
         assert hasattr(qcvt, name), name
+
+
+@needs_qick
+def test_load_soccfg_align_version_skips_mismatch_warning(caplog):
+    import logging
+    from qcvt import load_soccfg_from_json
+
+    with caplog.at_level(logging.WARNING, logger="qick.qick_asm"):
+        load_soccfg_from_json(CONFIG, align_version=True)
+    assert "version mismatch" not in caplog.text
 
 
 def test_csv_to_table_png_without_pandas(tmp_path, monkeypatch):
@@ -124,6 +135,61 @@ def test_representative_gain_and_band():
     assert gain_band(ev(-0.6, -0.6, -0.2)) == (pytest.approx(0.2), pytest.approx(0.6))
 
 
+def test_sweep_ghost_translation_vs_stretch():
+    """Time-only sweep → same width, new start. Length-only → same start, new width."""
+    from qcvt.model import PulseEvent
+    from qcvt.plotting import sweep_ghost
+
+    slide = PulseEvent(ch=0, name="cqr", kind="gen", t_start=1.0, length=5.0,
+                       t_min=1.0, t_max=3.5, len_min=5.0, len_max=5.0)
+    g = sweep_ghost(slide)
+    assert g is not None
+    assert g[0] == pytest.approx(3.5)
+    assert g[1] == pytest.approx(5.0)
+
+    stretch = PulseEvent(ch=0, name="rabi", kind="gen", t_start=1.0, length=0.5,
+                         t_min=1.0, t_max=1.0, len_min=0.5, len_max=2.5)
+    g = sweep_ghost(stretch)
+    assert g is not None
+    assert g[0] == pytest.approx(1.0)
+    assert g[1] == pytest.approx(2.5)
+
+    both = PulseEvent(ch=0, name="both", kind="gen", t_start=0.0, length=1.0,
+                      t_min=0.0, t_max=2.0, len_min=1.0, len_max=3.0)
+    g = sweep_ghost(both)
+    assert g == pytest.approx((2.0, 3.0))
+
+    static = PulseEvent(ch=0, name="s", kind="gen", t_start=1.0, length=1.0,
+                        t_min=1.0, t_max=1.0, len_min=1.0, len_max=1.0)
+    assert sweep_ghost(static) is None
+
+
+def test_short_time_swept_pulses_still_get_ghosts():
+    """ns-scale time-swept pulses (fall / *_off) get a ghost at the other start."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from qcvt.model import PulseEvent, Schedule
+    from qcvt.plotting import plot_pulse_schedule
+
+    cw = PulseEvent(ch=0, name="pump", kind="gen", t_start=1.0, length=0.05,
+                    t_min=1.0, t_max=3.5, len_min=0.05, len_max=0.05,
+                    periodic=True, swept_params=("time",))
+    fall = PulseEvent(ch=0, name="fall", kind="gen", t_start=3.4, length=0.005,
+                      t_min=3.4, t_max=5.9, len_min=0.005, len_max=0.005,
+                      swept_params=("time",))
+    stretch = PulseEvent(ch=1, name="rabi", kind="gen", t_start=1.0, length=0.01,
+                         t_min=1.0, t_max=1.0, len_min=0.01, len_max=2.5,
+                         swept_params=("length",))
+    sched = Schedule(events=[cw, fall, stretch])
+    ax = plot_pulse_schedule(sched, schedule=sched, show_amplitude=False)
+    ghosts = [p for p in ax.patches if p.get_gid() == "qcvt_ghost"]
+    widths = sorted(p.get_width() for p in ghosts)
+    assert any(abs(w - 0.005) < 1e-4 for w in widths), f"fall ghost missing: {widths}"
+    assert any(abs(w - 2.5) < 0.05 for w in widths)
+    plt.close("all")
+
+
 # --------------------------------------------------------------------------- #
 # Golden tests against a real (offline-built) program
 # --------------------------------------------------------------------------- #
@@ -167,6 +233,8 @@ def test_timing_and_sweeps():
     assert q.length == pytest.approx(5.0, abs=1e-2)
     assert q.t_start == pytest.approx(1.0, abs=1e-2)  # includes initial sync delay
     assert "freq" in q.swept_params
+    assert q.param_loops == (("freq", "freqloop"),)
+    assert q.timing_loops == ()
 
     r = by_name["readout"]
     # readout follows qpulse + delay_auto(0.01): ~1.0 + 5.0 + 0.01
@@ -199,6 +267,8 @@ def test_qick_accessors_match_dicts():
     rocfg = soccfg.get_ro_cfg(0)
     assert rocfg["f_output"] == soccfg["readouts"][0]["f_output"]
     assert soccfg.get_ro_f_output(0) == pytest.approx(float(soccfg["readouts"][0]["f_output"]))
+    assert soccfg.get_dac_port_label(gencfg["dac"]).startswith("DAC")
+    assert "ADC" in soccfg.get_adc_port_label(rocfg["adc"])
 
     assert list(prog.get_macro_list()) == list(prog.macro_list)
     assert prog.get_pulses() is prog.pulses
@@ -367,4 +437,125 @@ def test_multi_timescale_window_and_insets():
     fig.canvas.draw()
     bbox = fig.get_tightbbox(fig.canvas.get_renderer())
     assert bbox.width < 3 * fig.get_size_inches()[0], "tight bbox exploded"
+    plt.close("all")
+
+
+@needs_qick
+def test_insets_default_off():
+    """Auto-inset used to fire on mixed timescales; default is now off."""
+    import matplotlib.pyplot as plt
+    from qick.asm_v2 import AveragerProgramV2
+    from qcvt import load_soccfg_from_json, plot_pulse_schedule
+
+    soccfg = load_soccfg_from_json(CONFIG)
+
+    class Mixed(AveragerProgramV2):
+        def _initialize(self, cfg):
+            self.declare_gen(ch=2, nqz=2)
+            self.declare_gen(ch=6, nqz=2)
+            self.declare_readout(ch=0, length=50.0)
+            self.add_readoutconfig(ch=0, name="ro", freq=1000, gen_ch=6)
+            self.add_gauss(ch=2, name="g", sigma=0.01, length=0.05)
+            self.add_pulse(ch=2, name="short", style="arb", envelope="g",
+                           freq=3200, phase=0, gain=0.8)
+            self.add_pulse(ch=6, name="long", style="const", length=50.0,
+                           freq=1000, phase=0, gain=0.4)
+
+        def _body(self, cfg):
+            self.pulse(ch=2, name="short", t=0.1)
+            self.delay_auto(0.05)
+            self.pulse(ch=6, name="long", t=0)
+            self.trigger(ros=[0], pins=[0], t=0.2)
+
+    prog = Mixed(soccfg, reps=1, final_delay=10, cfg={}, reps_innermost=False)
+    ax = plot_pulse_schedule(prog, show_amplitude=False)
+    assert len(ax.figure.axes) == 1
+    plt.close("all")
+
+
+@needs_qick
+def test_inset_includes_overlapping_periodic_pulse():
+    """A CW pump that starts before the zoom window must still appear in it."""
+    import matplotlib.pyplot as plt
+    from qick.asm_v2 import AveragerProgramV2
+    from qcvt import load_soccfg_from_json, plot_pulse_schedule
+
+    soccfg = load_soccfg_from_json(CONFIG)
+
+    class PumpAndPi(AveragerProgramV2):
+        def _initialize(self, cfg):
+            self.declare_gen(ch=0, nqz=1)
+            self.declare_gen(ch=2, nqz=1)
+            self.add_pulse(ch=0, name="pump", style="const", length=0.05,
+                           freq=500, phase=0, gain=0.3, mode="periodic")
+            self.add_gauss(ch=2, name="g", sigma=0.01, length=0.05)
+            self.add_pulse(ch=2, name="pi", style="arb", envelope="g",
+                           freq=3200, phase=0, gain=0.8)
+            self.add_pulse(ch=0, name="pump_off", style="const", length=1.0,
+                           freq=500, phase=0, gain=0.3)
+
+        def _body(self, cfg):
+            self.pulse(ch=0, name="pump", t=0)
+            self.pulse(ch=2, name="pi", t=2.0)
+            self.pulse(ch=0, name="pump_off", t=8.0)
+
+    prog = PumpAndPi(soccfg, reps=1, final_delay=1, cfg={}, reps_innermost=False)
+    ax = plot_pulse_schedule(prog, show_amplitude=False, insets=True)
+    # inset_axes is a child of the schedule axes (not a sibling figure axes).
+    assert ax.child_axes, "expected a zoom inset"
+    inset = ax.child_axes[0]
+    # The pump (periodic, starts before the zoom) must still be drawn in it.
+    hatched = [p for p in inset.patches if p.get_hatch()]
+    assert hatched, "periodic pump overlapping the zoom is missing from the inset"
+    plt.close("all")
+
+
+@needs_qick
+def test_loop_order_in_title():
+    import matplotlib.pyplot as plt
+    from qcvt import plot_pulse_schedule
+
+    prog = _build_spec_program()
+    ax = plot_pulse_schedule(prog, show_amplitude=False, title="spec")
+    title = ax.get_title()
+    assert "loops (outer → inner)" in title
+    assert "freqloop" in title
+    plt.close("all")
+
+
+@needs_qick
+def test_session_and_soccfg_channel_labels():
+    import matplotlib.pyplot as plt
+    from qcvt import plot_pulse_schedule, set_channel_labels
+    from qcvt.model import extract_schedule
+    from qcvt.plotting import _gen_label
+
+    prog = _build_spec_program()
+    soccfg = prog.soccfg
+    dac_id = soccfg.get_gen_cfg(2)["dac"]
+
+    sched = extract_schedule(prog)
+    default = _gen_label(sched, 2, {}, {})
+    assert "DAC" in default
+    assert f"dac {dac_id}" not in default
+
+    set_channel_labels(gen_ch_labels={2: "qubit drive"})
+    ax = plot_pulse_schedule(prog, show_amplitude=False)
+    labels = [t.get_text() for t in ax.get_yticklabels()]
+    assert any("qubit drive" in lab for lab in labels)
+    plt.close("all")
+
+    ax = plot_pulse_schedule(
+        prog, show_amplitude=False, gen_ch_labels={2: "q"},
+        physical_port_labels={int(dac_id): "SMA qubit"},
+    )
+    labels = [t.get_text() for t in ax.get_yticklabels()]
+    assert any("SMA qubit" in lab for lab in labels)
+    plt.close("all")
+
+    soccfg["qcvt_gen_ch_labels"] = {6: "readout drive"}
+    ax = plot_pulse_schedule(prog, show_amplitude=False)
+    labels = [t.get_text() for t in ax.get_yticklabels()]
+    assert any("readout drive" in lab for lab in labels)
+    del soccfg._cfg["qcvt_gen_ch_labels"]
     plt.close("all")
