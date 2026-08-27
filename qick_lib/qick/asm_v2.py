@@ -479,6 +479,14 @@ class QickPulse(SimpleClass):
             else:
                 raise RuntimeError("add_wave argument {waveform} is neither a Waveform nor a waveform name")
 
+    def get_params(self):
+        """Pulse parameters as specified in add_pulse() (may include QickParams).
+
+        Prefer :meth:`QickProgramV2.get_pulse_param` for fully rounded,
+        loop-aware values after compilation.
+        """
+        return self.params
+
     def get_length(self):
         # always returns a QickParam
         length = QickParam(start=0)
@@ -799,10 +807,15 @@ class TimedMacro(Macro):
     """Timed instructions have parameters corresponding to times or durations.
 
     Add additional methods used for handling these time parameters.
+
+    ``t_params`` holds the user-unit (microsecond) QickParam for each named
+    time; :meth:`get_time_param` is the supported accessor. This is
+    load-bearing for schedule visualization (QCVT).
     """
     def __init__(self, *args, **kwargs):
         # pass through any init arguments
         super().__init__(*args, **kwargs)
+        # user-unit times; use get_time_param() (QCVT / external tools)
         self.t_params = {}
         self.t_regs = {}
 
@@ -1148,6 +1161,19 @@ class AsmV2:
             macro to be added
         """
         self.macro_list.append(macro)
+
+    def get_macro_list(self):
+        """High-level instruction list (Pulse, Delay, Trigger, OpenLoop, ...).
+
+        Timed macros expose :meth:`TimedMacro.get_time_param`. This is a
+        supported interface for schedule visualization (QCVT).
+
+        Returns
+        -------
+        list
+            macros in program order
+        """
+        return self.macro_list
 
     def extend_macros(self, asm):
         """Append all the given instructions onto this list of instructions.
@@ -2082,6 +2108,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         # high-level macros
         # this also gets reset in AsmV2.__init__(), but that's OK
+        # Load-bearing for schedule visualization (QCVT); use get_macro_list().
         self.macro_list = []
 
         # generator managers handle a gen's envelopes and add_pulse logic
@@ -2089,6 +2116,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         self._ro_mgrs = [ReadoutManager(self, iCh) if 'tproc_ctrl' in ch else None for iCh, ch in enumerate(self.soccfg['readouts'])]
 
         # pulses are software constructs, each is a set of 1 or more waveforms
+        # Load-bearing for schedule visualization (QCVT); use get_pulses().
         self.pulses = {}
 
         # waveforms consist of initial parameters (to be written to the wave memory) and sweeps (to be applied when looping)
@@ -2108,6 +2136,7 @@ class QickProgramV2(AsmV2, AbsQickProgram):
 
         self.time_dict = {} # lookup dict for timed instructions with tags
 
+        # Load-bearing for schedule visualization (QCVT); use get_loop_dict().
         self.loop_dict = OrderedDict()
         self.loop_stack = []
 
@@ -2454,6 +2483,34 @@ class QickProgramV2(AsmV2, AbsQickProgram):
         """
         pulse = self.pulses[pulsename]
         return pulse.numeric_params
+
+    def get_pulses(self):
+        """Named pulses defined by add_pulse().
+
+        Each value is a :class:`Pulse` with :meth:`Pulse.get_params` and
+        :meth:`Pulse.get_length`. After compilation, prefer
+        :meth:`get_pulse_param` for rounded, loop-aware values.
+
+        This is a supported interface for schedule visualization (QCVT).
+
+        Returns
+        -------
+        dict
+            pulse name -> Pulse
+        """
+        return self.pulses
+
+    def get_loop_dict(self):
+        """Loop names and iteration counts, outermost first.
+
+        This is a supported interface for schedule visualization (QCVT).
+
+        Returns
+        -------
+        OrderedDict
+            loop name -> number of iterations
+        """
+        return self.loop_dict
 
     def get_pulse_param(self, pulsename, parname, as_array=False):
         """Get the fully rounded value of a pulse parameter, in the same units that are used to specify the parameter in add_pulse().

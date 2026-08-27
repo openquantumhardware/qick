@@ -14,6 +14,7 @@ We generally recommend using the newer generation of RFSoCs (ZCU216 and RFSoC4x2
 It consists of:
 * Firmware for the supported RFSoC boards, both compiled bitstreams and source for the designs and modules
 * The `qick` Python package, which includes the interface to the firmware and an API for writing QICK programs
+* The `qcvt` package (install with `pip install "qick[qcvt]"`), which visualizes `AveragerProgramV2` pulse schedules offline — see [qick_demos/qcvt](qick_demos/qcvt)
 * [Jupyter notebooks](qick_demos) demonstrating usage
 
 See our [Read the Docs site](https://docs.qick.dev/) for:

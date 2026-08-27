@@ -25,6 +25,11 @@ Below is a brief summary of the QICK software capabilities.
 * The ability to write data to and read data from tProc memory addresses (which tProc registers can access) 
 * Addition, subtraction, multiplication, bit shifting
 
+## Pulse-schedule visualization (QCVT)
+
+* Offline visualization of compiled `AveragerProgramV2` schedules: [qick_demos/qcvt](qcvt)
+* Install extras: `pip install "qick[qcvt]"`, then `python qick_demos/qcvt/run_offline_example.py`
+
 ## Measurements on quantum devices
 
 * Measuring a single qubit [Demo 06_qubit_demos](https://github.com/openquantumhardware/qick/blob/main/qick_demos/06_qubit_demos.ipynb)

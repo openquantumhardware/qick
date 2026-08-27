@@ -172,6 +172,9 @@ setup(
     extras_require={
         # install all extra optional dependencies
         'full': ['pyro4'],
+        # QCVT pulse-schedule visualizer (matplotlib plots; cloudpickle for pickles)
+        'qcvt': ['matplotlib>=3.5', 'numpy'],
+        'qcvt-pickle': ['matplotlib>=3.5', 'numpy', 'cloudpickle>=2.0'],
     },
 
     # If there are data files included in your packages that need to be
@@ -182,7 +185,8 @@ setup(
                  'ipq_pynq_utils/ipq_pynq_utils/data/*.txt',
                  'ipq_pynq_utils/ipq_pynq_utils/data/*.h',
                  'ipq_pynq_utils/ipq_pynq_utils/data/clockFiles/*.txt',
-                 ]
+                 ],
+        'qcvt': ['tests/qick_config.json'],
     },
     include_package_data=True,
 
@@ -200,11 +204,11 @@ setup(
     #
     # For example, the following would provide a command called `sample` which
     # executes the function `main` from this package when invoked:
-    # entry_points={  # Optional
-    #     'console_scripts': [
-    #         'sample=sample:main',
-    #     ],
-    # },
+    entry_points={  # Optional
+        'console_scripts': [
+            'qcvt=qcvt.cli:main',
+        ],
+    },
 
     # List additional URLs that are relevant to your project as a dict.
     #
