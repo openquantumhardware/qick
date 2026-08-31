@@ -1,11 +1,10 @@
-from __future__ import annotations
 import logging
 import numpy as np
 import textwrap
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from types import SimpleNamespace
-from typing import Callable, NamedTuple, Union, Dict
+from typing import Callable, Dict, NamedTuple, Optional, Tuple, Union
 from abc import ABC, abstractmethod
 from fractions import Fraction
 import copy
@@ -59,12 +58,12 @@ class QickParam:
         self.spans = spans
 
         # these get assigned when to_int is called and are used by get_actual_values
-        self.raw_param: QickRawParam | None = None
-        self.raw_scale: float | int | None = None
+        self.raw_param: Optional['QickRawParam'] = None
+        self.raw_scale: Optional[Union[float, int]] = None
 
         # these get assigned when a mathematical operation is performed on this QickParam
-        self.derived_param: QickParam | None = None
-        self.conversion_from_derived_param: Callable | None = None
+        self.derived_param: Optional['QickParam'] = None
+        self.conversion_from_derived_param: Optional[Callable] = None
 
     def is_sweep(self):
         return bool(self.spans)
@@ -85,7 +84,7 @@ class QickParam:
         self.raw_scale = scale
         return self.raw_param
 
-    def get_rounded(self, loop_counts: dict[str, int]=None) -> QickParam:
+    def get_rounded(self, loop_counts: Dict[str, int]=None) -> 'QickParam':
         """Calculate the param values after rounding to ASM units.
         loop_counts parameter is optional and will be used to compute steps if they have not already been computed.
 
@@ -142,7 +141,7 @@ class QickParam:
                 values = np.add.outer(values, [0])
         return values
 
-    def get_actual_values(self, loop_counts: dict[str, int]) -> np.ndarray:
+    def get_actual_values(self, loop_counts: Dict[str, int]) -> np.ndarray:
         """Calculate the actual sweep points after rounding to ASM units.
 
         Parameters
@@ -1586,7 +1585,7 @@ class AbsRegisterManager(ABC):
         return self.params2pulse(pulse_params)
 
     @abstractmethod
-    def check_params(self, params) -> tuple[dict, list]:
+    def check_params(self, params) -> Tuple[dict, list]:
         ...
 
     @abstractmethod
