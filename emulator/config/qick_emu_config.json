@@ -1,26 +1,9 @@
 {
   "_comment": "This file describes the configuration of the emulated QICK DUT to be used with QICKEMu. It was manually generated based on the actual QICK ZCU216 hardware configuration, but stripped away all the unsupported blocks. It has to be updated if the emulated DUT is modified.",
   "board": "QICKEmu",
-  "ddr4_buf": {
-    "burst_len": 128,
-    "fullpath": "ddr4/axis_buffer_ddr_v1_0",
-    "junk_len": 401,
-    "junk_nt": 4,
-    "maxlen": 1073741824,
-    "readouts": [
-      "axis_avg_buffer_0"
-    ],
-    "revision": 3,
-    "trigger_bit": 0,
-    "trigger_port": 9,
-    "trigger_type": "tport",
-    "type": "axis_buffer_ddr_v1",
-    "version": "1.0",
-    "phys_addr": 17180917760,
-    "addr_range": 4096
-  },
+  "ddr4_buf": [],
   "extra_description": [],
-  "fw_timestamp": "Sat Sep 28 22:15:40 2024",
+  "fw_timestamp": "Fri Sep 4 2026",
   "gens": [
     {
       "b_dds": 32,
@@ -620,7 +603,7 @@
         ]
       ],
       "pmem_size": 4096,
-      "revision": 21,
+      "revision": 27,
       "start_pin": "PMOD1_0_LS",
       "stop_pin": "PMOD1_1_LS",
       "type": "qick_processor",

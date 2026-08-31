@@ -742,6 +742,11 @@ class QickEmu:
         self.soccfg = QickConfig(str(self.cfg_path))
         self.raw_cfg = json.loads(self.cfg_path.read_text())
 
+        ## QickEmu does not support DDR4 buffers, so we remove the key if it exists but is empty.
+        if 'ddr4_buf' in self.soccfg._cfg and not self.soccfg._cfg['ddr4_buf']:
+            del self.soccfg._cfg['ddr4_buf']
+            del self.raw_cfg['ddr4_buf']
+
         if addrmap is None:
             self.addrmap = AddrMap.from_qick_config(self.raw_cfg)
         elif isinstance(addrmap, AddrMap):
