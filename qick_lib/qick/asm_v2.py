@@ -1059,8 +1059,16 @@ class Trigger(TimedMacro):
         self.convert_time(prog, self.width, "width")
 
         special_ros = []
-        if self.ddr4: special_ros.append(prog.soccfg['ddr4_buf'])
-        if self.mr: special_ros.append(prog.soccfg['mr_buf'])
+        if self.ddr4:
+            try:
+                special_ros.append(prog.soccfg['ddr4_buf'])
+            except KeyError:
+                pass
+        if self.mr:
+            try:
+                special_ros.append(prog.soccfg['mr_buf'])
+            except KeyError:
+                pass
         for rocfg in special_ros:
             if rocfg['trigger_type'] == 'dport':
                 self.outdict[rocfg['trigger_port']] |= (1 << rocfg['trigger_bit'])

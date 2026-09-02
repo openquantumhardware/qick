@@ -428,8 +428,8 @@ logic                   sg1_s0_axis_tvalid;
       .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      )
    );
 
-   assign axis_adc1_ro1_tvalid = axis_adc0_ro0_tvalid;
-   assign axis_adc1_ro1_tdata  = axis_adc0_ro0_tdata;
+   // assign axis_adc1_ro1_tvalid = axis_adc0_ro0_tvalid;
+   // assign axis_adc1_ro1_tdata  = axis_adc0_ro0_tdata;
 
    //--------------------------------------
    // DAC-ADC RF frontend model
@@ -437,8 +437,8 @@ logic                   sg1_s0_axis_tvalid;
 
    localparam DAC0_W = 16;
    localparam ADC0_W = 16;
-   logic signed [ADC0_W-1:0] adc0_sample;
-   logic signed [15:0] adc0_data;
+   // logic signed [ADC0_W-1:0] adc0_sample;
+   // logic signed [15:0] adc0_data;
    real dac0_signal_rf;
 
    model_DAC #(
@@ -461,7 +461,7 @@ logic                   sg1_s0_axis_tvalid;
       .dac_signal_rf       (dac0_signal_rf),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc0_sample),
+      // .adc_sample          (adc0_sample),
 
       .axis_tready         (axis_adc0_ro0_tready),
       .axis_tvalid         (axis_adc0_ro0_tvalid),
@@ -475,7 +475,7 @@ logic                   sg1_s0_axis_tvalid;
 
    localparam DAC1_W = 16;
    localparam ADC1_W = 16;
-   logic signed [ADC1_W-1:0] adc1_sample;
+   // logic signed [ADC1_W-1:0] adc1_sample;
    logic signed [15:0] adc1_data;
    real dac1_signal_rf;
 
@@ -499,7 +499,7 @@ logic                   sg1_s0_axis_tvalid;
       .dac_signal_rf       (dac1_signal_rf),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc1_sample),
+      // .adc_sample          (adc1_sample),
 
       .axis_tready         (axis_adc1_ro1_tready),
       .axis_tvalid         (axis_adc1_ro1_tvalid),
@@ -513,29 +513,29 @@ logic                   sg1_s0_axis_tvalid;
 
    // ADC RF to RO processes 8 samples per clock
 
-   assign adc0_data = $signed(adc0_sample);
+   // assign adc0_data = $signed(adc0_sample);
 
-   logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
-   always @(posedge adc_fs) begin
-      if (adc_samp_cnt < N_DDS_RO-1) begin
-         adc_samp_cnt      <= adc_samp_cnt + 1;
-         rf_signal_valid   <= 0;
-      end
-      else begin
-         adc_samp_cnt      <= 0;
-         rf_signal_valid   <= 1;
-      end
-      rf_signal_data[16*adc_samp_cnt +: 16] <= adc0_data;
-   end
+   // logic [$clog2(N_DDS_RO)-1:0] adc_samp_cnt;
+   // always @(posedge adc_fs) begin
+   //    if (adc_samp_cnt < N_DDS_RO-1) begin
+   //       adc_samp_cnt      <= adc_samp_cnt + 1;
+   //       rf_signal_valid   <= 0;
+   //    end
+   //    else begin
+   //       adc_samp_cnt      <= 0;
+   //       rf_signal_valid   <= 1;
+   //    end
+   //    rf_signal_data[16*adc_samp_cnt +: 16] <= adc0_data;
+   // end
 
-   // Model Transport delay
-   // NOTE: THESE MUST BE REG TO WORK!!!
-   reg                    rf_signal_valid_dly;
-   reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
-   always @(*) begin
-      rf_signal_valid_dly <= #(250ns) rf_signal_valid;
-      rf_signal_data_dly  <= #(250ns) rf_signal_data;
-   end
+   // // Model Transport delay
+   // // NOTE: THESE MUST BE REG TO WORK!!!
+   // reg                    rf_signal_valid_dly;
+   // reg [N_DDS_RO*16-1:0]  rf_signal_data_dly;
+   // always @(*) begin
+   //    rf_signal_valid_dly <= #(250ns) rf_signal_valid;
+   //    rf_signal_data_dly  <= #(250ns) rf_signal_data;
+   // end
 
 
    //--------------------------------------
@@ -639,9 +639,9 @@ logic                   sg1_s0_axis_tvalid;
       .aclk                   (adc_fs             ),
 
       // s_axis_* for input.
-      .s_axis_tvalid          (1'b1),
+      .s_axis_tvalid          (axis_adc0_ro0_tvalid),
       // .s_axis_tdata           ({adc_data_imag,adc_data_real}),   // width: 32*L, should be I/Q from input ADC
-      .s_axis_tdata           ({16'd0,adc0_data}),   // width: 32*L, should be I/Q from input ADC
+      .s_axis_tdata           (axis_adc0_ro0_tdata),   // width: 32*L, should be I/Q from input ADC
       .s_axis_tlast           (1'b1),
 
       // m_axis_* for output.

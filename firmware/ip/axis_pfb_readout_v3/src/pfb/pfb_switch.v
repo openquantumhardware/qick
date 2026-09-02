@@ -27,6 +27,10 @@ parameter L = 4;
 // Number of channels.
 parameter N = 32;
 
+// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+// Valid values: 0 for synthesis (default), non-zero for emulation.
+parameter EMULATOR = 0;
+
 /*********/
 /* Ports */
 /*********/
@@ -79,7 +83,8 @@ pfb_swap
 	#(
 		.B(B),
 		.L(L),
-		.N(N)
+		.N(N),
+		.EMULATOR(EMULATOR)
 	)
 	pfb_swap_i
 	(

@@ -234,7 +234,12 @@ initial begin
 	s_axis_tvalid 	<= 0;
 
 	// Open file with Coefficients.
-	fd = $fopen("../../../../../tb/data_iq.txt","r");
+	// fd = $fopen("../../../../../tb/data_iq.txt","r");
+	fd = $fopen("data_iq.txt","r");
+	if (fd == 0) begin
+		$display("ERROR: Could not open input file.");
+		$finish;
+	end
 
 	wait(tb_data);
 	@(posedge aclk);
@@ -267,10 +272,10 @@ initial begin
 	shortint real_d3, imag_d3;
 
 	// Output file.
-	fd0 = $fopen("../../../../../tb/dout_0.csv","w");
-	fd1 = $fopen("../../../../../tb/dout_1.csv","w");
-	fd2 = $fopen("../../../../../tb/dout_2.csv","w");
-	fd3 = $fopen("../../../../../tb/dout_3.csv","w");
+	fd0 = $fopen("dout_0.csv","w");
+	fd1 = $fopen("dout_1.csv","w");
+	fd2 = $fopen("dout_2.csv","w");
+	fd3 = $fopen("dout_3.csv","w");
 
 	// Data format.
 	$fdisplay(fd0, "valid, real, imag");
@@ -301,6 +306,8 @@ initial begin
 	$fclose(fd1);
 	$fclose(fd2);
 	$fclose(fd3);
+
+	$finish;
 end
 
 always begin

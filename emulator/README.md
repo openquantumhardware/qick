@@ -36,7 +36,7 @@ The QICK Emulator provides a software-based simulation environment for testing Q
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    Testbench (Verilator)                            │
-│  - AXI transaction replay (axi_replay.jsonl)                        │
+│  - AXI transaction replay (axi_replay.jsonl, hex format)              │
 │  - Memory files (pmem.mem, dmem.mem, wmem.mem)                      │
 │  - Signal generator memory (sgmem_ch*.mem)                          │
 │  - Output CSV files (dac_out.csv, avg_out.csv, dec_out.csv)         │
