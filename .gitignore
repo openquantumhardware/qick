@@ -34,6 +34,8 @@ __pycache__/
 
 # Distribution / packaging
 build/
+.build/
+.venv/
 dist/
 
 # Sphinx documentation
