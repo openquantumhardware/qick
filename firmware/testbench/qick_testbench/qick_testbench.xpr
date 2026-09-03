@@ -562,7 +562,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/../../../emulator/models/sig_gen_dds/src/dds_behavioral_model.sv">
+      <File Path="$PPRDIR/../../../emulator/models/dds_model/src/dds_behavioral_model.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>

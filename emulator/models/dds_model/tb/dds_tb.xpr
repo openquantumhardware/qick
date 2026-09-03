@@ -4,7 +4,7 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2023 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/hrl-labs-clinic/qick_fork_mmdiego_qickemu/emulator/models/sig_gen_dds/tb/dds_tb.xpr">
+<Project Product="Vivado" Version="7" Minor="63" Path="/home/dmartin2/hrl-labs-clinic/qick_fork_mmdiego_qickemu/emulator/models/dds_model/tb/dds_tb.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="d7df255e61504097a95011c9d763b6f3"/>
@@ -144,7 +144,7 @@
         <Option Name="PamSignalDriverFile" Val="xil_bypass_driver"/>
         <Option Name="PamPseudoTop" Val="pseudo_tb"/>
         <Option Name="SrcSet" Val="sources_1"/>
-        <Option Name="XSimWcfgFile" Val="$PPRDIR/../qick/firmware/ip/sig_gen_dds/src/dds_behavioral_model_tb_behav.wcfg"/>
+        <Option Name="XSimWcfgFile" Val="$PPRDIR/../qick/firmware/ip/dds_model/src/dds_behavioral_model_tb_behav.wcfg"/>
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">

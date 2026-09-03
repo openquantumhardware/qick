@@ -1,4 +1,9 @@
-module dds_top
+module dds_top_pfb_ro_v3
+	#(
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
+	)
 	(
 		// Clock.
 		input	wire			aclk		,
@@ -32,7 +37,7 @@ wire	[31:0]	dds_dout		;
 /**********************/
 // DDS control.
 // Latency: 9.
-dds_ctrl dds_ctrl_i
+dds_ctrl_pfb_ro_v3 dds_ctrl_i
 	(
 		// Clock.
 		.aclk		(aclk				),
@@ -51,14 +56,35 @@ dds_ctrl dds_ctrl_i
 
 // DDS instance.
 // Latency: 10.
+generate
+if (!EMULATOR) begin : gen_dds_synth
+
 dds_0 dds_i 
 	(
- 		.aclk				(aclk				),
-  		.s_axis_phase_tvalid(ctrl_dout_valid	),
-  		.s_axis_phase_tdata	(ctrl_dout			),
-  		.m_axis_data_tvalid	(dds_dout_valid		),
-  		.m_axis_data_tdata	(dds_dout			)
+  		.aclk				(aclk				),
+   		.s_axis_phase_tvalid(ctrl_dout_valid	),
+   		.s_axis_phase_tdata	(ctrl_dout			),
+   		.m_axis_data_tvalid	(dds_dout_valid		),
+   		.m_axis_data_tdata	(dds_dout			)
 	);
+
+end else begin : gen_dds_emu
+
+dds_behavioral_model #(
+	.NEGATIVE_SINE (1),
+    .DDS_LATENCY (10)
+)
+dds_i 
+	(
+  		.aclk				(aclk				),
+   		.s_axis_phase_tvalid(ctrl_dout_valid	),
+   		.s_axis_phase_tdata	(ctrl_dout			),
+   		.m_axis_data_tvalid	(dds_dout_valid		),
+   		.m_axis_data_tdata	(dds_dout			)
+	);
+
+end
+endgenerate
 
 // Assign outputs.
 assign dout_valid	= dds_dout_valid	;

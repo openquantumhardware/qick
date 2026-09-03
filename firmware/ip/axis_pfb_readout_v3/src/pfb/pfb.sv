@@ -4,7 +4,11 @@ module pfb
 		parameter N = 32,
 		
 		// Number of Lanes (Input).
-		parameter L = 4
+		parameter L = 4,
+
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
 	)
 	(
 		// Reset and clock.
@@ -47,7 +51,8 @@ wire[2*L*32-1:0]	ssrfft_tdata;
 firs 
 	#(
 		.N(N),
-		.L(L)
+		.L(L),
+		.EMULATOR(EMULATOR)
 	)
 	firs_i
 	(
@@ -70,7 +75,8 @@ pfb_switch
 	#(
 		.B(32),
 		.L(L),
-		.N(N)
+		.N(N),
+		.EMULATOR(EMULATOR)
 	)
 	pfb_switch_i
 	(
@@ -90,6 +96,9 @@ pfb_switch
 	);
 
 // SSR FFT 8x64 Sync.
+generate
+if (!EMULATOR) begin : gen_ssrfft_synth
+
 ssrfft_8x64_sync
 	#(
 		.NFFT	(N		),
@@ -117,7 +126,42 @@ ssrfft_8x64_sync
 		.QOUT_REG		(QOUT_REG		)
     );
 
+end else begin : gen_ssrfft_emu
+
+ssrfft_8x64_sync_sv
+	#(
+		.NFFT	(N		),
+		.SSR	(2*L	),
+		.B		(16		)
+	)
+	ssrfft_i
+    (
+		// Reset and clock.
+		.aresetn		(aresetn		),
+		.aclk			(aclk			),
+
+		// AXIS Slave.
+		.s_axis_tdata	(switch_tdata	),
+		.s_axis_tlast	(switch_tlast	),
+		.s_axis_tvalid	(switch_tvalid	),
+
+		// AXIS Master.
+		.m_axis_tdata	(ssrfft_tdata	),
+		.m_axis_tlast	(ssrfft_tlast	),
+		.m_axis_tvalid	(ssrfft_tvalid	),
+
+		// Registers.
+		.SCALE_REG		(0				),
+		.QOUT_REG		(QOUT_REG		)
+    );
+
+end
+endgenerate
+
 // PI modulation block.
+generate
+if (!EMULATOR) begin : gen_pimod_synth
+
 pimod_pfb
 	#(
 		// FFT size.
@@ -145,6 +189,39 @@ pimod_pfb
 		.m_axis_tvalid	(m_axis_tvalid	),
 		.m_axis_tready	(1'b1			)
 	);
+
+end else begin : gen_pimod_emu
+
+pimod_pfb_sv
+	#(
+		// FFT size.
+		.NFFT	(N		),
+		// Number of bits.
+		.B		(16		),
+		// Number of Lanes.
+		.L		(2*L	)
+	)
+	pimod_pfb_i
+	(
+		// Reset and clock.
+		.aresetn		(aresetn		),
+		.aclk			(aclk			),
+
+		// S_AXIS for input.
+		.s_axis_tdata	(ssrfft_tdata 	),
+		.s_axis_tlast	(ssrfft_tlast 	),
+		.s_axis_tvalid	(ssrfft_tvalid	),
+		.s_axis_tready	(				),
+
+		// M_AXIS for output.
+		.m_axis_tdata	(m_axis_tdata 	),
+		.m_axis_tlast	(m_axis_tlast 	),
+		.m_axis_tvalid	(m_axis_tvalid	),
+		.m_axis_tready	(1'b1			)
+	);
+
+end
+endgenerate
 
 endmodule
 

@@ -13,7 +13,9 @@ module dds_behavioral_model # (
     // Reserve for Parameters
     parameter int       LUT_SIZE        = 256, // Lookup Table size
     parameter int       PHASE_WIDTH     = 32, // phase width
-    parameter int       DDS_LATENCY     = 8   // MUST MATCH DDS Compiler GUI Latency
+    parameter int       DDS_LATENCY     = 8,  // MUST MATCH DDS Compiler GUI Latency
+    parameter int       NEGATIVE_SINE   = 0,  // Invert polarity of sine wave
+    parameter int       NEGATIVE_COSINE = 0   // Invert polarity of cosine wave
 ) (
     input   logic        aclk, // clock at @ ??? MHz
     input   logic        s_axis_phase_tvalid,
@@ -32,7 +34,6 @@ logic [PHASE_WIDTH-1:0] phase_inc;     // PINC from AXIS
 logic [PHASE_WIDTH-1:0] phase_acc;     // phase accumulator result
 logic [PHASE_WIDTH-1:0] phase_seed;    // initial phase
 logic        sync;          // strobe bit
-// logic [31:0] m_axis_data_tdata_temp = '0;
 
 
 // --------- UNPACK s_axis_phase_tdata --------------------------
@@ -104,6 +105,8 @@ begin
     theta = (TWO_PI * real'(index)) / real'(DEPTH);
     sine_q15 = real_to_q15($sin(theta));
     cosine_q15 = real_to_q15($cos(theta));
+    if (NEGATIVE_SINE) sine_q15 = -sine_q15;
+    if (NEGATIVE_COSINE) cosine_q15 = -cosine_q15;
     make_rom_word = {sine_q15, cosine_q15};
 end
 endfunction
@@ -125,9 +128,11 @@ end
 
     integer k;
     always_ff @(posedge aclk) begin
-        // Remaining pipeline stages
-        for (k = 1; k < DDS_LATENCY; k++) begin
-            data_pipe[k] <= data_pipe[k-1];
+        if (s_axis_phase_tvalid) begin
+            // Remaining pipeline stages
+            for (k = 1; k < DDS_LATENCY; k++) begin
+                data_pipe[k] <= data_pipe[k-1];
+            end
         end
     end
 
@@ -137,17 +142,13 @@ end
     wire [15:0] tdata_imag = m_axis_data_tdata[31:16];
 
     logic [DDS_LATENCY-1:0] valid_pipe = '0;
-    // logic                   started    = 1'b0;
 
     always_ff @(posedge aclk) begin
-        if (!s_axis_phase_tvalid) begin
-            valid_pipe <= '0; // reset the valid pipeline when input is not valid
-        end
-        else begin
+        if (s_axis_phase_tvalid) begin
             valid_pipe <= {valid_pipe[DDS_LATENCY-2:0], 1'b1}; // shift in 1's when input is valid
         end
     end
 
-    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1];
+    assign m_axis_data_tvalid = valid_pipe[DDS_LATENCY-1] & s_axis_phase_tvalid; // output valid when last stage of pipeline is valid and input is valid
 
 endmodule

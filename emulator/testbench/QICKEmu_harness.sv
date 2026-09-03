@@ -111,12 +111,15 @@ int    pre_run_delay_ns = -1;
 
 // QICKEMU_DUT Address Map
 localparam logic [39:0] TPROC_BASE  = 40'h04_0026_0000;  // qick_processor
-localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer
-localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer
+localparam logic [39:0] BUF0_BASE   = 40'h04_0006_0000;  // axis_avg_buffer_0
+localparam logic [39:0] BUF1_BASE   = 40'h04_0007_0000;  // axis_avg_buffer_1
+localparam logic [39:0] BUF2_BASE   = 40'h04_0004_0000;  // axis_avg_buffer_2
+localparam logic [39:0] BUF3_BASE   = 40'h04_0005_0000;  // axis_avg_buffer_3
 localparam logic [39:0] RO1_BASE    = 40'h04_0008_0000;  // axis_readout_v2
-localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6
-localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6
-localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_signal_gen_v6
+localparam logic [39:0] PFB_RO_BASE = 40'h04_0009_0000;  // axis_pfb_readout_v3
+localparam logic [39:0] SG0_BASE    = 40'h04_001C_0000;  // axis_signal_gen_v6_0
+localparam logic [39:0] SG1_BASE    = 40'h04_001D_0000;  // axis_signal_gen_v6_1
+localparam logic [39:0] SG2_BASE    = 40'h04_001E_0000;  // axis_sg_mux8_v1_0
 
 // AVG_BUFFER Memory Mapped Registers
 logic [5:0] AVG_START_REG       = 4 * 0;
@@ -331,6 +334,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    logic                      axis_adc1_ro1_tvalid;
    logic [N_DDS_RO*16-1:0]    axis_adc1_ro1_tdata;
 
+   logic                      axis_adc2_ro2_tready;
+   logic                      axis_adc2_ro2_tvalid;
+   logic [N_DDS_RO*16-1:0]    axis_adc2_ro2_tdata;
+
 
    wire sg0_s0_axis_aclk = s_ps_dma_aclk;
    logic   [31:0]          sg0_s0_axis_tdata;
@@ -358,8 +365,24 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    wire    [31:0]    buf1_m1_axis_dec_tdata  = qick_dut.buf1_m1_axis_dec_tdata;
    wire              buf1_m1_axis_dec_tvalid = qick_dut.buf1_m1_axis_dec_tvalid;
    wire              buf1_m1_axis_dec_tlast  = qick_dut.buf1_m1_axis_dec_tlast;
-   // ++++++++++++
 
+   // ++++++++++++ pfb_readout_v3 buffer 2 signals
+   wire    [63:0]    buf2_m0_axis_avg_tdata  = qick_dut.buf2_m0_axis_avg_tdata;
+   wire              buf2_m0_axis_avg_tvalid = qick_dut.buf2_m0_axis_avg_tvalid;
+   wire              buf2_m0_axis_avg_tlast  = qick_dut.buf2_m0_axis_avg_tlast;
+
+   wire    [31:0]    buf2_m1_axis_dec_tdata  = qick_dut.buf2_m1_axis_dec_tdata;
+   wire              buf2_m1_axis_dec_tvalid = qick_dut.buf2_m1_axis_dec_tvalid;
+   wire              buf2_m1_axis_dec_tlast  = qick_dut.buf2_m1_axis_dec_tlast;
+
+   // ++++++++++++ pfb_readout_v3 buffer 3 signals
+   wire    [63:0]    buf3_m0_axis_avg_tdata  = qick_dut.buf3_m0_axis_avg_tdata;
+   wire              buf3_m0_axis_avg_tvalid = qick_dut.buf3_m0_axis_avg_tvalid;
+   wire              buf3_m0_axis_avg_tlast  = qick_dut.buf3_m0_axis_avg_tlast;
+
+   wire    [31:0]    buf3_m1_axis_dec_tdata  = qick_dut.buf3_m1_axis_dec_tdata;
+   wire              buf3_m1_axis_dec_tvalid = qick_dut.buf3_m1_axis_dec_tvalid;
+   wire              buf3_m1_axis_dec_tlast  = qick_dut.buf3_m1_axis_dec_tlast;
 
    //--------------------------------------
    // QICK DUT
@@ -529,14 +552,20 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .axis_adc0_ro0_tvalid       (axis_adc0_ro0_tvalid     ),
       .axis_adc0_ro0_tdata        (axis_adc0_ro0_tdata      ),
 
+      // ADC 1 --> Readout 1 Interface
+      .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
+      .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
+      .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      ),
+
+      // ADC 2 --> Readout 2 Interface
+      .axis_adc2_ro2_tready       (axis_adc2_ro2_tready     ),
+      .axis_adc2_ro2_tvalid       (axis_adc2_ro2_tvalid     ),
+      .axis_adc2_ro2_tdata        (axis_adc2_ro2_tdata      )
+
       // // Readout 0 --> MR Buffer 0 Interface
       // .axis_ro0_mrbuf_tvalid       (axis_ro0_mrbuf_tvalid     ),
       // .axis_ro0_mrbuf_tdata        (axis_ro0_mrbuf_tdata      ),
 
-      // ADC 1 --> Readout 1 Interface
-      .axis_adc1_ro1_tready       (axis_adc1_ro1_tready     ),
-      .axis_adc1_ro1_tvalid       (axis_adc1_ro1_tvalid     ),
-      .axis_adc1_ro1_tdata        (axis_adc1_ro1_tdata      )
    );
 
 
@@ -552,7 +581,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC0_W = 16;
    localparam ADC0_W = 16;
-   logic signed [ADC0_W-1:0] adc0_sample;
    real dac0_signal_rf;
    real dac0_signal_rf_dly;
    real dac0_delay_buffer [0:RF_DELAY_CYCLES-1];
@@ -580,14 +608,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    model_ADC #(
       .ADC_W               (ADC0_W),
       .BUFFER_SIZE         (16),
-      .N_DDS               (N_DDS_RO)
+      .N_DDS               (N_DDS_RO),
+      .ADC_NOISE_STD       (0.002)
    ) u_model_ADC0 (
       .clk_DAC             (dac_fs),
       .dac_signal_rf       (dac0_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc0_sample),
-
       .axis_tready         (axis_adc0_ro0_tready),
       .axis_tvalid         (axis_adc0_ro0_tvalid),
       .axis_tdata          (axis_adc0_ro0_tdata),
@@ -598,7 +625,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
    localparam DAC1_W = 16;
    localparam ADC1_W = 16;
-   logic signed [ADC1_W-1:0] adc1_sample;
    real dac1_signal_rf;
    real dac1_signal_rf_dly;
 
@@ -634,8 +660,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac1_signal_rf_dly),
 
       .clk_ADC             (adc_fs),
-      .adc_sample          (adc1_sample),
-
       .axis_tready         (axis_adc1_ro1_tready),
       .axis_tvalid         (axis_adc1_ro1_tvalid),
       .axis_tdata          (axis_adc1_ro1_tdata),
@@ -661,6 +685,24 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       .dac_signal_rf       (dac2_signal_rf)
    );
    // ++++++++++++
+
+   model_ADC #(
+      .ADC_W               (ADC0_W),
+      .BUFFER_SIZE         (16),
+      .N_DDS               (N_DDS_RO),
+      .ADC_NOISE_STD       (0.002),
+      .MIXER_FS4_EN        (1'b1)   // matches axis_pfb_readout_v3's RFDC config (coarse mixer -Fs/4, 2x decimation)
+   ) u_model_ADC2 (
+      .clk_DAC             (dac_fs),
+      .dac_signal_rf       (dac2_signal_rf),
+
+      .clk_ADC             (adc_fs),
+      .axis_tready         (axis_adc2_ro2_tready),
+      .axis_tvalid         (axis_adc2_ro2_tvalid),
+      .axis_tdata          (axis_adc2_ro2_tdata),
+
+      .mode                (1)   // 0 = ZOH, 1 = linear
+   );
 
 
    // Model transport delay between DAC0 and ADC0.
@@ -700,119 +742,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
-   // //--------------------------------------
-   // // WIP: Qubit Emulator
-   // //--------------------------------------
-
-   // wire  [7:0]       s_axi_qemu_araddr;
-   // wire  [2:0]       s_axi_qemu_arprot;
-   // wire              s_axi_qemu_arready;
-   // wire              s_axi_qemu_arvalid;
-   // wire  [7:0]       s_axi_qemu_awaddr;
-   // wire  [2:0]       s_axi_qemu_awprot;
-   // wire              s_axi_qemu_awready;
-   // wire              s_axi_qemu_awvalid;
-   // wire              s_axi_qemu_bready;
-   // wire  [1:0]       s_axi_qemu_bresp;
-   // wire              s_axi_qemu_bvalid;
-   // wire  [31:0]      s_axi_qemu_rdata;
-   // wire              s_axi_qemu_rready;
-   // wire  [1:0]       s_axi_qemu_rresp;
-   // wire              s_axi_qemu_rvalid;
-   // wire  [31:0]      s_axi_qemu_wdata;
-   // wire              s_axi_qemu_wready;
-   // wire  [3:0]       s_axi_qemu_wstrb;
-   // wire              s_axi_qemu_wvalid;
-   
-   // // AXI VIP master address.
-   // xil_axi_ulong   QEMU_DDS_BVAL_REG     = 4 * 0;
-   // xil_axi_ulong   QEMU_DDS_SLOPE_REG    = 4 * 1;
-   // xil_axi_ulong   QEMU_DDS_STEPS_REG    = 4 * 2;
-   // xil_axi_ulong   QEMU_DDS_WAIT_REG     = 4 * 3;
-   // xil_axi_ulong   QEMU_DDS_FREQ_REG     = 4 * 4;
-   // xil_axi_ulong   QEMU_IIR_C0_REG       = 4 * 5;
-   // xil_axi_ulong   QEMU_IIR_C1_REG       = 4 * 6;
-   // xil_axi_ulong   QEMU_IIR_G_REG        = 4 * 7;
-   // xil_axi_ulong   QEMU_OUTSEL_REG       = 4 * 8;
-   // xil_axi_ulong   QEMU_PUNCT_ID_REG     = 4 * 9;
-   // xil_axi_ulong   QEMU_ADDR_REG         = 4 * 10;
-   // xil_axi_ulong   QEMU_WE_REG           = 4 * 11;
-
-   // localparam L = 1;
-   // wire              axis_qemu_ro_tvalid;
-   // wire [L*2*16-1:0] axis_qemu_ro_tdata;
-
-   // axi_mst_0 u_axi_mst_qemu_0 (
-   //    .aclk          (s_ps_dma_aclk       ),
-   //    .aresetn       (s_ps_dma_aresetn    ),
-   //    .m_axi_araddr  (s_axi_qemu_araddr    ),
-   //    .m_axi_arprot  (s_axi_qemu_arprot    ),
-   //    .m_axi_arready (s_axi_qemu_arready   ),
-   //    .m_axi_arvalid (s_axi_qemu_arvalid   ),
-   //    .m_axi_awaddr  (s_axi_qemu_awaddr    ),
-   //    .m_axi_awprot  (s_axi_qemu_awprot    ),
-   //    .m_axi_awready (s_axi_qemu_awready   ),
-   //    .m_axi_awvalid (s_axi_qemu_awvalid   ),
-   //    .m_axi_bready  (s_axi_qemu_bready    ),
-   //    .m_axi_bresp   (s_axi_qemu_bresp     ),
-   //    .m_axi_bvalid  (s_axi_qemu_bvalid    ),
-   //    .m_axi_rdata   (s_axi_qemu_rdata     ),
-   //    .m_axi_rready  (s_axi_qemu_rready    ),
-   //    .m_axi_rresp   (s_axi_qemu_rresp     ),
-   //    .m_axi_rvalid  (s_axi_qemu_rvalid    ),
-   //    .m_axi_wdata   (s_axi_qemu_wdata     ),
-   //    .m_axi_wready  (s_axi_qemu_wready    ),
-   //    .m_axi_wstrb   (s_axi_qemu_wstrb     ),
-   //    .m_axi_wvalid  (s_axi_qemu_wvalid    )
-   // );
-
-   // axis_kidsim_v3 #(
-   //    .L                      (L)   // Number of lanes.
-   // )
-   // u_axis_kidsim_v3 (
-   //    // AXI Slave I/F for configuration.
-   //    .s_axi_aclk             (s_ps_dma_aclk       ),
-   //    .s_axi_aresetn          (s_ps_dma_aresetn    ),
-   //    .s_axi_araddr           (s_axi_qemu_araddr   ),
-   //    .s_axi_arprot           (s_axi_qemu_arprot   ),
-   //    .s_axi_arready          (s_axi_qemu_arready  ),
-   //    .s_axi_arvalid          (s_axi_qemu_arvalid  ),
-   //    .s_axi_awaddr           (s_axi_qemu_awaddr   ),
-   //    .s_axi_awprot           (s_axi_qemu_awprot   ),
-   //    .s_axi_awready          (s_axi_qemu_awready  ),
-   //    .s_axi_awvalid          (s_axi_qemu_awvalid  ),
-   //    .s_axi_bready           (s_axi_qemu_bready   ),
-   //    .s_axi_bresp            (s_axi_qemu_bresp    ),
-   //    .s_axi_bvalid           (s_axi_qemu_bvalid   ),
-   //    .s_axi_rdata            (s_axi_qemu_rdata    ),
-   //    .s_axi_rready           (s_axi_qemu_rready   ),
-   //    .s_axi_rresp            (s_axi_qemu_rresp    ),
-   //    .s_axi_rvalid           (s_axi_qemu_rvalid   ),
-   //    .s_axi_wdata            (s_axi_qemu_wdata    ),
-   //    .s_axi_wready           (s_axi_qemu_wready   ),
-   //    .s_axi_wstrb            (s_axi_qemu_wstrb    ),
-   //    .s_axi_wvalid           (s_axi_qemu_wvalid   ),
-
-   //    // Modulation trigger.
-   //    .trigger                (trigger_0           ),
-
-   //    // Reset and clock for axis_*.
-   //    .aresetn                (s_ps_dma_aresetn    ),
-   //    .aclk                   (adc_fs             ),
-
-   //    // s_axis_* for input.
-   //    .s_axis_tvalid          (1'b1),
-   //    // .s_axis_tdata           ({adc_data_imag,adc_data_real}),   // width: 32*L, should be I/Q from input ADC
-   //    .s_axis_tdata           ({16'd0,adc_data}),   // width: 32*L, should be I/Q from input ADC
-   //    .s_axis_tlast           (1'b1),
-
-   //    // m_axis_* for output.
-   //    .m_axis_tvalid          (axis_qemu_ro_tvalid ),
-   //    .m_axis_tdata           (axis_qemu_ro_tdata  ),   // width: 32*L, should be I/Q to output DAC
-   //    .m_axis_tlast           ()
-   // );
-
-
 
    // SIMULATION WATCHDOG
    initial begin
@@ -830,7 +759,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          string vcd_file;
          vcd_file = {EMU_DIR, "/waveform.vcd"};
          $dumpfile(vcd_file);
-         // $dumpvars(0, tb_qick_emu_verilator);
          $dumpvars(0, QICKEmu_harness);
          $display("### TRACE Enabled: VCD dump enabled. Output file: %s", vcd_file);
       end
@@ -893,11 +821,15 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
    // -----------------------------------------------------------------------------
    integer dac0_csv_fd;
    integer dac1_csv_fd;
-   integer dac2_csv_fd;   // ++++++++++++ mux8 SG2 -> DAC2 capture
+   integer dac2_csv_fd;
    integer avg0_csv_fd;
-   integer avg1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
    integer dec0_csv_fd;
-   integer dec1_csv_fd;   // ++++++++++++ axis_readout_v2 buffer 1
+   integer avg1_csv_fd;
+   integer dec1_csv_fd;
+   integer avg2_csv_fd;
+   integer dec2_csv_fd;
+   integer avg3_csv_fd;
+   integer dec3_csv_fd;
    integer mr_csv_fd;
    int     mr_rows_logged = 0;
 
@@ -906,9 +838,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       string dac1_csv_path;
       string dac2_csv_path;
       string avg0_csv_path;
-      string avg1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
       string dec0_csv_path;
-      string dec1_csv_path;   // ++++++++++++ axis_readout_v2 buffer 1
+      string avg1_csv_path;
+      string dec1_csv_path;
+      string avg2_csv_path;
+      string dec2_csv_path;
+      string avg3_csv_path;
+      string dec3_csv_path;
       string mr_csv_path;
 
       // Print times in ps
@@ -920,18 +856,26 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       dac1_csv_path = {EMU_DIR, "/dac_out_ch1.csv"};
       dac2_csv_path = {EMU_DIR, "/dac_out_ch2.csv"};   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_path = {EMU_DIR, "/avg_out_ch0.csv"};
-      avg1_csv_path = {EMU_DIR, "/avg_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
       dec0_csv_path = {EMU_DIR, "/dec_out_ch0.csv"};
+      avg1_csv_path = {EMU_DIR, "/avg_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
       dec1_csv_path = {EMU_DIR, "/dec_out_ch1.csv"};   // ++++++++++++ axis_readout_v2 buffer 1
+      avg2_csv_path = {EMU_DIR, "/avg_out_ch2.csv"};   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      dec2_csv_path = {EMU_DIR, "/dec_out_ch2.csv"};   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      avg3_csv_path = {EMU_DIR, "/avg_out_ch3.csv"};   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
+      dec3_csv_path = {EMU_DIR, "/dec_out_ch3.csv"};   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
       mr_csv_path  = {EMU_DIR, "/mr_out.csv"};
 
       dac0_csv_fd = $fopen(dac0_csv_path, "w");
       dac1_csv_fd = $fopen(dac1_csv_path, "w");
       dac2_csv_fd = $fopen(dac2_csv_path, "w");   // ++++++++++++ mux8 SG2 -> DAC2 capture
       avg0_csv_fd = $fopen(avg0_csv_path, "w");
-      avg1_csv_fd = $fopen(avg1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
       dec0_csv_fd = $fopen(dec0_csv_path, "w");
+      avg1_csv_fd = $fopen(avg1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
       dec1_csv_fd = $fopen(dec1_csv_path, "w");   // ++++++++++++ axis_readout_v2 buffer 1
+      avg2_csv_fd = $fopen(avg2_csv_path, "w");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      dec2_csv_fd = $fopen(dec2_csv_path, "w");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      avg3_csv_fd = $fopen(avg3_csv_path, "w");   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
+      dec3_csv_fd = $fopen(dec3_csv_path, "w");   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
       mr_csv_fd  = $fopen(mr_csv_path, "w");
 
       // Signal Generators
@@ -950,6 +894,10 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fwrite(dec0_csv_fd, "time_ps,I,Q\n");
       $fwrite(avg1_csv_fd, "time_ps,I,Q\n");
       $fwrite(dec1_csv_fd, "time_ps,I,Q\n");
+      $fwrite(avg2_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      $fwrite(dec2_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      $fwrite(avg3_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
+      $fwrite(dec3_csv_fd, "time_ps,I,Q\n");   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
 
       // MR Buffer
       $fwrite(mr_csv_fd, "time_ps");
@@ -975,7 +923,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       end
    end
 
-   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
    always @(posedge sg_clk) begin
       if (axis_sg2_dac2_tvalid) begin
          $fwrite(dac2_csv_fd, "%0t", $realtime);
@@ -984,7 +931,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
          $fwrite(dac2_csv_fd, "\n");
       end
    end
-   // ++++++++++++ mux8 SG2 -> DAC2 capture logging
 
    always @(posedge s_ps_dma_aclk) begin
       if (buf0_m0_axis_avg_tvalid)
@@ -1000,7 +946,6 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
                  $signed(buf0_m1_axis_dec_tdata[31:16]));
    end
 
-   // ++++++++++++ axis_readout_v2 buffer 1 CSV logging (ch1)
    always @(posedge s_ps_dma_aclk) begin
       if (buf1_m0_axis_avg_tvalid)
          $fwrite(avg1_csv_fd, "%0t,%0d,%0d\n", $realtime,
@@ -1014,7 +959,35 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
                  $signed(buf1_m1_axis_dec_tdata[15:0]),
                  $signed(buf1_m1_axis_dec_tdata[31:16]));
    end
-   // ++++++++++++
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf2_m0_axis_avg_tvalid)
+         $fwrite(avg2_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf2_m0_axis_avg_tdata[31:0]),
+               $signed(buf2_m0_axis_avg_tdata[63:32]));
+   end
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf2_m1_axis_dec_tvalid)
+         $fwrite(dec2_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf2_m1_axis_dec_tdata[15:0]),
+               $signed(buf2_m1_axis_dec_tdata[31:16]));
+   end
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf3_m0_axis_avg_tvalid)
+         $fwrite(avg3_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf3_m0_axis_avg_tdata[31:0]),
+               $signed(buf3_m0_axis_avg_tdata[63:32]));
+   end
+
+   always @(posedge s_ps_dma_aclk) begin
+      if (buf3_m1_axis_dec_tvalid)
+         $fwrite(dec3_csv_fd, "%0t,%0d,%0d\n", $realtime,
+               $signed(buf3_m1_axis_dec_tdata[15:0]),
+               $signed(buf3_m1_axis_dec_tdata[31:16]));
+   end
+
 
    wire                     axis_ro0_mrbuf_tvalid   = qick_dut.axis_ro0_mrbuf_tvalid;
    wire [N_DDS_RO*2*16-1:0] axis_ro0_mrbuf_tdata    = qick_dut.axis_ro0_mrbuf_tdata;
@@ -1203,6 +1176,8 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
 
       read_avg_dec_buffers(0);
       read_avg_dec_buffers(1);
+      read_avg_dec_buffers(2);
+      read_avg_dec_buffers(3);
 
       #50us;
 
@@ -1213,9 +1188,13 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $fclose(dac1_csv_fd);
       $fclose(dac2_csv_fd);   // ++++++++++++ mux8 SG2 -> DAC2 capture
       $fclose(avg0_csv_fd);
-      $fclose(avg1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
       $fclose(dec0_csv_fd);
+      $fclose(avg1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
       $fclose(dec1_csv_fd);   // ++++++++++++ axis_readout_v2 buffer 1
+      $fclose(avg2_csv_fd);   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      $fclose(dec2_csv_fd);   // ++++++++++++ axis_avg_buffer_2 (PFB v3 downstream)
+      $fclose(avg3_csv_fd);   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
+      $fclose(dec3_csv_fd);   // ++++++++++++ axis_avg_buffer_3 (PFB v3 downstream)
       $fclose(mr_csv_fd);
 
       $display("%0t - End Emulation", $realtime);
@@ -1232,16 +1211,17 @@ assign ext_flag_i        =  t_time_abs_o[5] &  t_time_abs_o[4] & t_time_abs_o[3]
       $display("### %0t - Task read_avg_dec_buffers() channel %0d start ###", $realtime(), ro_ch);
       $fflush();
 
-      if (ro_ch >= 2) begin
+      if (ro_ch >= 4) begin
          $fatal(1, "ERROR: Invalid channel number %0d for read_avg_dec_buffers() task", ro_ch);
          $finish;
       end
 
-      if (ro_ch == 0) begin
-         buf_base = BUF0_BASE;
-      end else if (ro_ch == 1) begin
-         buf_base = BUF1_BASE;
-      end
+      case (ro_ch)
+         0:          buf_base = BUF0_BASE;
+         1:          buf_base = BUF1_BASE;
+         2:          buf_base = BUF2_BASE;
+         3:          buf_base = BUF3_BASE;
+      endcase
 
       @(posedge s_ps_dma_aclk); #0.1;
       axi_mst_agent.write(buf_base + AVG_DR_LEN_REG,   prot, ro_avg_len,    8'hFF, resp);

@@ -1910,7 +1910,9 @@ class AcquireMixin:
             if decimated:
                 round_results.append(soc.load_iq_decimated(emu_dir, self))
             else:
-                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True))
+                # When thresholding, we need raw data BEFORE averaging (to preserve reps dimension)
+                # Otherwise use the normal averaged data
+                round_results.append(soc.load_iq_averaged(emu_dir, self, length_norm=True, skip_average=(threshold is not None)))
 
         if decimated:
             if rounds == 1:
@@ -1925,11 +1927,14 @@ class AcquireMixin:
         if threshold is None:
             return iq_list
 
-        raw_like = [d * ro['length'] for d, ro in zip(iq_list, self.ro_chs.values())]
-        shots = self._apply_threshold(raw_like, threshold, angle, remove_offset)
-        result = [np.zeros_like(d) for d in iq_list]
-        for i, ch_shot in enumerate(shots):
-            result[i][..., 0] = ch_shot
+        self.acquire_params = {
+            'type': 'accumulated',
+            'threshold': threshold,
+            'angle': angle,
+            'remove_offset': remove_offset,
+        }
+        result = self._process_accumulated(iq_list)
+
         return result
 
     def get_rounds(self):

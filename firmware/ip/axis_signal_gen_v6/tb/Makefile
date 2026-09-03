@@ -12,7 +12,7 @@ EMU_DIR = ../../../../emulator/
 AXI_DIR = $(EMU_DIR)/submodules/pulp_platform/axi/
 COM_VERIF_DIR = $(EMU_DIR)/submodules/pulp_platform/common_verification/
 
-VERILOG_SOURCES = $(wildcard ../src/*.v) $(wildcard ../src/*.sv) $(wildcard ../src/verilog/*.v) $(wildcard ../src/verilog/*.sv) $(wildcard $(EMU_DIR)/models/fifo/*.sv) $(wildcard $(EMU_DIR)/models/bram_dp/*.sv) $(wildcard $(EMU_DIR)/models/sig_gen_dds/src/*.sv) $(COM_VERIF_DIR)/src/rand_id_queue.sv $(AXI_DIR)/src/axi_intf.sv $(AXI_DIR)/src/axi_pkg.sv $(AXI_DIR)/src/axi_test.sv ./tb_verilator.sv
+VERILOG_SOURCES = $(wildcard ../src/*.v) $(wildcard ../src/*.sv) $(wildcard ../src/verilog/*.v) $(wildcard ../src/verilog/*.sv) $(wildcard $(EMU_DIR)/models/fifo/*.sv) $(wildcard $(EMU_DIR)/models/bram_dp/*.sv) $(wildcard $(EMU_DIR)/models/dds_model/src/*.sv) $(COM_VERIF_DIR)/src/rand_id_queue.sv $(AXI_DIR)/src/axi_intf.sv $(AXI_DIR)/src/axi_pkg.sv $(AXI_DIR)/src/axi_test.sv ./tb_verilator.sv
 
 #$(wildcard ../../../hdl/*.sv)
 

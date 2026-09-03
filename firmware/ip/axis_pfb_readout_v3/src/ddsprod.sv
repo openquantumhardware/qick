@@ -1,4 +1,9 @@
 module ddsprod
+	#(
+		// Emulator flag to conditionally instantiate behavioral models in place of VHDL/Xilinx IP.
+		// Valid values: 0 for synthesis (default), non-zero for emulation.
+		parameter EMULATOR = 0
+	)
 	(
 		// Clock.
 		input	wire			aclk			,
@@ -52,7 +57,12 @@ wire			valid_la		;
 
 // DDS block.
 // Latency: 19.
-dds_top dds_top_i
+dds_top_pfb_ro_v3 
+	#(
+		// Emulator flag.
+		.EMULATOR(EMULATOR)
+	)
+	dds_top_pfb_ro_v3_i
 	(
 		// Clock.
 		.aclk		(aclk			),
